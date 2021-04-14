@@ -7,7 +7,7 @@ edition = '2018'
 [dependencies]
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-
+log = { version = "0.4.14", default-features = false }
 parachain-info = { path = "../pallets/parachain-info", default-features = false }
 rococo-parachain-primitives = { path = "../primitives", default-features = false }
 
@@ -36,13 +36,17 @@ pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", 
 # Cumulus dependencies
 cumulus-pallet-parachain-system = { path = "../../pallets/parachain-system", default-features = false }
 cumulus-primitives-core = { path = "../../primitives/core", default-features = false }
-cumulus-pallet-xcm-handler = { path = "../../pallets/xcm-handler", default-features = false }
+cumulus-primitives-utility = { path = "../../primitives/utility", default-features = false }
+cumulus-pallet-xcmp-queue = { path = "../../pallets/xcmp-queue", default-features = false }
+cumulus-pallet-xcm = { path = "../../pallets/xcm", default-features = false }
+cumulus-ping = { path = "../../rococo-parachains/pallets/ping", default-features = false }
 
 # Polkadot dependencies
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 
 [build-dependencies]
 substrate-wasm-builder = "3.0.0"
@@ -52,6 +56,7 @@ default = [ "std" ]
 std = [
 	"codec/std",
 	"serde",
+	"log/std",
 	"sp-api/std",
 	"sp-std/std",
 	"sp-io/std",
@@ -74,8 +79,11 @@ std = [
 	"parachain-info/std",
 	"rococo-parachain-primitives/std",
 	"cumulus-pallet-parachain-system/std",
-	"cumulus-pallet-xcm-handler/std",
+	"cumulus-pallet-xcmp-queue/std",
+	"cumulus-pallet-xcm/std",
 	"cumulus-primitives-core/std",
+	"cumulus-primitives-utility/std",
+	"cumulus-ping/std",
 	"xcm/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
