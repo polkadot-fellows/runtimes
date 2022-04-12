@@ -1,4 +1,4 @@
-// Copyright 2020 Parity Technologies (UK) Ltd.
+// Copyright 2017-2022 Parity Technologies (UK) Ltd.
 // This file is part of Polkadot.
 
 // Polkadot is free software: you can redistribute it and/or modify
@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Runtime API implementations for Parachains.
-//!
-//! These are exposed as different modules using different sets of primitives.
-//! At the moment there is only a v2 module and it is not completely clear how migration
-//! to a v2 would be done.
+// Put implementations of functions from staging API here.
 
-pub mod v2;
-#[cfg(feature = "vstaging")]
-pub mod vstaging;
+use crate::disputes;
+use primitives::v2::{CandidateHash, DisputeState, SessionIndex};
+use sp_std::prelude::*;
+
+/// Implementation for `get_session_disputes` function from the runtime API
+pub fn get_session_disputes<T: disputes::Config>(
+) -> Vec<(SessionIndex, CandidateHash, DisputeState<T::BlockNumber>)> {
+	<disputes::Pallet<T>>::disputes()
+}
