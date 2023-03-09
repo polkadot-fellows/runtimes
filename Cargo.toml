@@ -1,0 +1,27 @@
+[workspace.package]
+authors = ["Polkadot Fellowship"]
+edition = "2021"
+version = "1.0.0"
+
+[workspace]
+members = [
+	"relay/common",
+	"relay/common/slot_range_helper",
+	"relay/runtimes/kusama",
+	"relay/runtimes/kusama/constants",
+	"relay/runtimes/metrics",
+	"relay/runtimes/parachains",
+	"relay/runtimes/polkadot",
+	"relay/runtimes/polkadot/constants",
+	"relay/runtimes/test-runtime",
+	"relay/runtimes/test-runtime/constants",
+	"system-parachains/common",
+	"system-parachains/common/pallets/collator-selection",
+	"system-parachains/runtimes/asset-hubs/assets-hub-kusama",
+	"system-parachains/runtimes/asset-hubs/assets-hub-polkadot",
+	"system-parachains/runtimes/asset-hubs/common",
+	"system-parachains/runtimes/asset-hubs/common/test-utils",
+	"system-parachains/runtimes/bridge-hubs/bridge-hub-kusama",
+	"system-parachains/runtimes/bridge-hubs/bridge-hub-polkadot",
+	"system-parachains/runtimes/collectives/collectives-polkadot",
+]

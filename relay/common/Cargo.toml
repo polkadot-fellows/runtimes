@@ -43,12 +43,12 @@ frame-election-provider-support = { git = "https://github.com/paritytech/substra
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 pallet-babe = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 
-primitives = { package = "polkadot-primitives", path = "../../primitives", default-features = false }
+primitives = { package = "polkadot-primitives", git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 libsecp256k1 = { version = "0.7.0", default-features = false }
-runtime-parachains = { package = "polkadot-runtime-parachains", path = "../parachains", default-features = false }
+runtime-parachains = { package = "polkadot-runtime-parachains", path = "../runtimes/parachains", default-features = false }
 
-slot-range-helper = { path = "slot_range_helper", default-features = false }
-xcm = { path = "../../xcm", default-features = false }
+slot-range-helper = { path = "./slot_range_helper", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [dev-dependencies]
 hex-literal = "0.3.4"
@@ -58,7 +58,7 @@ pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "m
 sp-keystore = { git = "https://github.com/paritytech/substrate", branch = "master" }
 serde_json = "1.0.81"
 libsecp256k1 = "0.7.0"
-test-helpers = { package = "polkadot-primitives-test-helpers", path = "../../primitives/test-helpers" }
+test-helpers = { package = "polkadot-primitives-test-helpers", git = "https://github.com/paritytech/polkadot", branch = "master" }
 
 [features]
 default = ["std"]
