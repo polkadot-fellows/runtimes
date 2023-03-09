@@ -54,14 +54,14 @@ pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
-runtime-common = { package = "polkadot-runtime-common", path = "../common", default-features = false }
-primitives = { package = "polkadot-primitives", path = "../../primitives", default-features = false }
-pallet-xcm = { path = "../../xcm/pallet-xcm", default-features = false }
-polkadot-parachain = { path = "../../parachain", default-features = false }
+runtime-common = { package = "polkadot-runtime-common", path = "../../common", default-features = false }
+primitives = { package = "polkadot-primitives", git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 polkadot-runtime-parachains = { path = "../parachains", default-features = false }
-xcm-builder = { path = "../../xcm/xcm-builder", default-features = false }
-xcm-executor = { path = "../../xcm/xcm-executor", default-features = false }
-xcm = { path = "../../xcm", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [dev-dependencies]
 hex-literal = "0.3.4"

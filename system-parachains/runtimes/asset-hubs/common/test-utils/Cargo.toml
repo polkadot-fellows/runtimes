@@ -20,8 +20,8 @@ sp-std = { git = "https://github.com/paritytech/substrate", default-features = f
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
 
 # Cumulus
-pallet-collator-selection = { path = "../../../../pallets/collator-selection", default-features = false }
-parachains-common = { path = "../../../common", default-features = false }
+pallet-collator-selection = { path = "../../../../common/pallets/collator-selection", default-features = false }
+parachains-common = { path = "../../../../common", default-features = false }
 
 [dev-dependencies]
 hex-literal = "0.3.4"
