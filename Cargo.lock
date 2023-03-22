@@ -6935,71 +6935,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "polkadot-test-runtime"
-version = "1.0.0"
-dependencies = [
- "bitvec",
- "frame-election-provider-support",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-rpc-runtime-api",
- "hex-literal",
- "log",
- "pallet-authority-discovery",
- "pallet-authorship",
- "pallet-babe",
- "pallet-balances",
- "pallet-grandpa",
- "pallet-indices",
- "pallet-offences",
- "pallet-session",
- "pallet-staking",
- "pallet-staking-reward-curve",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "pallet-transaction-payment-rpc-runtime-api",
- "pallet-vesting",
- "pallet-xcm",
- "parity-scale-codec",
- "polkadot-parachain",
- "polkadot-primitives",
- "polkadot-runtime-common 1.0.0",
- "polkadot-runtime-parachains 1.0.0",
- "rustc-hex",
- "scale-info",
- "serde",
- "serde_derive",
- "serde_json",
- "smallvec",
- "sp-api",
- "sp-authority-discovery",
- "sp-block-builder",
- "sp-consensus-babe",
- "sp-consensus-beefy",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-keyring",
- "sp-mmr-primitives",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-staking",
- "sp-std",
- "sp-transaction-pool",
- "sp-trie",
- "sp-version",
- "substrate-wasm-builder",
- "test-runtime-constants",
- "tiny-keccak",
- "xcm",
- "xcm-builder",
- "xcm-executor",
-]
-
-[[package]]
 name = "polling"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10215,19 +10150,6 @@ name = "termtree"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
-
-[[package]]
-name = "test-runtime-constants"
-version = "1.0.0"
-dependencies = [
- "frame-support",
- "polkadot-primitives",
- "polkadot-runtime-common 1.0.0",
- "smallvec",
- "sp-core",
- "sp-runtime",
- "sp-weights",
-]
 
 [[package]]
 name = "thiserror"

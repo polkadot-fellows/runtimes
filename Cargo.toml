@@ -13,8 +13,6 @@ members = [
 	"relay/runtimes/parachains",
 	"relay/runtimes/polkadot",
 	"relay/runtimes/polkadot/constants",
-	"relay/runtimes/test-runtime",
-	"relay/runtimes/test-runtime/constants",
 	"system-parachains/common",
 	"system-parachains/common/pallets/collator-selection",
 	"system-parachains/runtimes/asset-hubs/asset-hub-kusama",
