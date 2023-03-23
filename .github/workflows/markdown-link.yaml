@@ -1,0 +1,13 @@
+# Not sure if we want this, just copy&pasted to see if the repo is
+# correctly set up.
+
+name: Check Markdown links
+
+on: push
+
+jobs:
+  markdown-link-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: gaurav-nelson/github-action-markdown-link-check@v1
