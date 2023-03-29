@@ -22,7 +22,7 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 
 # Cumulus
 parachains-common = { path = "../../../common", default-features = false }
-cumulus-primitives-core = { path = "../../../../primitives/core", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "master" }
