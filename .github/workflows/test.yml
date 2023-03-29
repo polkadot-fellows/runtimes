@@ -1,4 +1,4 @@
-name: cargo test
+name: "Test all features"
 
 on:
   push:
@@ -8,10 +8,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-22.04
 
     steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
@@ -19,7 +24,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           target: wasm32-unknown-unknown
           override: true
 
@@ -29,5 +34,5 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f # v2.2.1
 
-      - name: Cargo test
-        run:  cargo +nightly test --workspace --features runtime-benchmarks
+      - name: Test all features
+        run:  cargo test --workspace --all-features

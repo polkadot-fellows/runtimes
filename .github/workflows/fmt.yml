@@ -1,4 +1,4 @@
-name: cargo fmt
+name: "Rustfmt (check)"
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  rustfmt:
+    runs-on: ubuntu-22.04
 
     steps:
 
@@ -17,7 +17,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           target: wasm32-unknown-unknown
           components: rustfmt
           override: true
@@ -25,5 +25,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Cargo format
+      - name: Rustfmt (check)
         run:  cargo fmt --all -- --check
