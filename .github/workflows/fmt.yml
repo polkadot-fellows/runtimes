@@ -1,0 +1,29 @@
+name: cargo fmt
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Install toolchains
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+          components: rustfmt
+          override: true
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Cargo format
+        run:  cargo fmt --all -- --check
