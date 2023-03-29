@@ -13,17 +13,15 @@ jobs:
 
     steps:
 
-      - name: Install toolchains
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
-          target: wasm32-unknown-unknown
           components: rustfmt
-          override: true
 
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Rustfmt (check)
-        run:  cargo +nightly fmt --all -- --check
+        run: cargo +nightly fmt --all -- --check
