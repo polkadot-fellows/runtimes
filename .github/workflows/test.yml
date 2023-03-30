@@ -41,4 +41,6 @@ jobs:
         uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f # v2.2.1
 
       - name: Test all features
-        run: cargo test --workspace --all-features
+        run: cargo test --workspace --release --locked --features=runtime-benchmarks,runtime-metrics,try-runtime
+        env:
+          RUSTFLAGS: "-C debug-assertions -D warnings"
