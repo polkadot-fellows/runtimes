@@ -34,34 +34,34 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Voting (r:100 w:100)
 	// Storage: Collective Prime (r:0 w:1)
 	fn set_members(m: u32, _n: u32, p: u32, ) -> Weight {
-		(0 as Weight)
+		Weight::from_ref_time(0)
 			// Standard Error: 69_000
-			.saturating_add((15_485_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(15_485_000_u64).saturating_mul(m.into()))
 			// Standard Error: 69_000
-			.saturating_add((20_494_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().reads((1 as Weight).saturating_mul(p as Weight)))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(p as Weight)))
+			.saturating_add(Weight::from_ref_time(20_494_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(p.into())))
+			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(p.into())))
 	}
 	// Storage: Collective Members (r:1 w:0)
 	fn execute(b: u32, m: u32, ) -> Weight {
-		(20_626_000 as Weight)
+		Weight::from_ref_time(20_626_000)
 			// Standard Error: 0
-			.saturating_add((3_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add(Weight::from_ref_time(3_000_u64).saturating_mul(b.into()))
 			// Standard Error: 1_000
-			.saturating_add((74_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(Weight::from_ref_time(74_000_u64).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
 	}
 	// Storage: Collective Members (r:1 w:0)
 	// Storage: Collective ProposalOf (r:1 w:0)
 	fn propose_execute(b: u32, m: u32, ) -> Weight {
-		(24_295_000 as Weight)
+		Weight::from_ref_time(24_295_000)
 			// Standard Error: 0
-			.saturating_add((3_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add(Weight::from_ref_time(3_000_u64).saturating_mul(b.into()))
 			// Standard Error: 1_000
-			.saturating_add((149_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(Weight::from_ref_time(149_000_u64).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
 	}
 	// Storage: Collective Members (r:1 w:0)
 	// Storage: Collective ProposalOf (r:1 w:1)
@@ -69,52 +69,52 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 	// Storage: Collective ProposalCount (r:1 w:1)
 	// Storage: Collective Voting (r:0 w:1)
 	fn propose_proposed(b: u32, m: u32, p: u32, ) -> Weight {
-		(36_933_000 as Weight)
+		Weight::from_ref_time(36_933_000)
 			// Standard Error: 0
-			.saturating_add((10_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add(Weight::from_ref_time(10_000_u64).saturating_mul(b.into()))
 			// Standard Error: 2_000
-			.saturating_add((86_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(86_000_u64).saturating_mul(m.into()))
 			// Standard Error: 2_000
-			.saturating_add((360_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+			.saturating_add(Weight::from_ref_time(360_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: Collective Members (r:1 w:0)
 	// Storage: Collective Voting (r:1 w:1)
 	fn vote(m: u32, ) -> Weight {
-		(41_498_000 as Weight)
+		Weight::from_ref_time(41_498_000)
 			// Standard Error: 3_000
-			.saturating_add((183_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+			.saturating_add(Weight::from_ref_time(183_000_u64).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Collective Voting (r:1 w:1)
 	// Storage: Collective Members (r:1 w:0)
 	// Storage: Collective Proposals (r:1 w:1)
 	// Storage: Collective ProposalOf (r:0 w:1)
 	fn close_early_disapproved(m: u32, p: u32, ) -> Weight {
-		(45_184_000 as Weight)
+		Weight::from_ref_time(45_184_000)
 			// Standard Error: 2_000
-			.saturating_add((153_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(153_000_u64).saturating_mul(m.into()))
 			// Standard Error: 2_000
-			.saturating_add((322_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add(Weight::from_ref_time(322_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Collective Voting (r:1 w:1)
 	// Storage: Collective Members (r:1 w:0)
 	// Storage: Collective ProposalOf (r:1 w:1)
 	// Storage: Collective Proposals (r:1 w:1)
 	fn close_early_approved(b: u32, m: u32, p: u32, ) -> Weight {
-		(55_539_000 as Weight)
+		Weight::from_ref_time(55_539_000)
 			// Standard Error: 0
-			.saturating_add((9_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add(Weight::from_ref_time(9_000_u64).saturating_mul(b.into()))
 			// Standard Error: 4_000
-			.saturating_add((143_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(143_000_u64).saturating_mul(m.into()))
 			// Standard Error: 4_000
-			.saturating_add((365_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add(Weight::from_ref_time(365_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Collective Voting (r:1 w:1)
 	// Storage: Collective Members (r:1 w:0)
@@ -122,13 +122,13 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Proposals (r:1 w:1)
 	// Storage: Collective ProposalOf (r:0 w:1)
 	fn close_disapproved(m: u32, p: u32, ) -> Weight {
-		(48_452_000 as Weight)
+		Weight::from_ref_time(48_452_000)
 			// Standard Error: 3_000
-			.saturating_add((166_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(166_000_u64).saturating_mul(m.into()))
 			// Standard Error: 3_000
-			.saturating_add((348_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add(Weight::from_ref_time(348_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Collective Voting (r:1 w:1)
 	// Storage: Collective Members (r:1 w:0)
@@ -136,24 +136,24 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 	// Storage: Collective ProposalOf (r:1 w:1)
 	// Storage: Collective Proposals (r:1 w:1)
 	fn close_approved(b: u32, m: u32, p: u32, ) -> Weight {
-		(60_654_000 as Weight)
+		Weight::from_ref_time(60_654_000)
 			// Standard Error: 0
-			.saturating_add((7_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add(Weight::from_ref_time(7_000_u64).saturating_mul(b.into()))
 			// Standard Error: 3_000
-			.saturating_add((190_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add(Weight::from_ref_time(190_000_u64).saturating_mul(m.into()))
 			// Standard Error: 3_000
-			.saturating_add((336_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add(Weight::from_ref_time(336_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Collective Proposals (r:1 w:1)
 	// Storage: Collective Voting (r:0 w:1)
 	// Storage: Collective ProposalOf (r:0 w:1)
 	fn disapprove_proposal(p: u32, ) -> Weight {
-		(26_137_000 as Weight)
+		Weight::from_ref_time(26_137_000)
 			// Standard Error: 11_000
-			.saturating_add((544_000 as Weight).saturating_mul(p as Weight))
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add(Weight::from_ref_time(544_000_u64).saturating_mul(p.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }

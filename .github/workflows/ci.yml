@@ -59,6 +59,8 @@ jobs:
       RELEASE_NAME: debug
     steps:
       - uses: actions/checkout@v3
+      - name: Install protoc
+        run: sudo apt-get install protobuf-compiler
 
       - name: Print env
         run: |
@@ -104,6 +106,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install protoc
+        run: sudo apt-get install protobuf-compiler
+
       # With rustup's nice new toml format, we just need to run rustup show to install the toolchain
       # https://github.com/actions-rs/toolchain/issues/126#issuecomment-782989659
       - name: Setup Rust toolchain
@@ -130,6 +135,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install protoc
+        run: sudo apt-get install protobuf-compiler
+        
       - name: Cache target dir
         uses: actions/cache@v2
         with:
@@ -141,9 +149,10 @@ jobs:
 
       - name: Srtool build
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.3.0
+        uses: chevdor/srtool-actions@v0.7.0
         with:
           chain: ${{ matrix.runtime }}
+          tag: 1.66.1
           runtime_dir: polkadot-parachains/${{ matrix.runtime }}-runtime
 
       - name: Summary

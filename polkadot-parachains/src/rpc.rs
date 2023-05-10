@@ -95,7 +95,7 @@ where
 			)?;
 
 			module.merge(
-				CeremoniesRpc::new(client.clone(), deny_unsafe, storage, offchain_indexing_enabled)
+				CeremoniesRpc::new(client, deny_unsafe, storage, offchain_indexing_enabled)
 					.into_rpc(),
 			)?;
 		},
@@ -132,7 +132,7 @@ where
 	let FullDeps { client, pool, backend: _, offchain_indexing_enabled: _, deny_unsafe } = deps;
 
 	module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
-	module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+	module.merge(TransactionPayment::new(client).into_rpc())?;
 
 	Ok(module)
 }
