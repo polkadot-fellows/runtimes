@@ -2,6 +2,8 @@
   "bootNodes": [
     "/ip4/104.248.131.111/tcp/30333/p2p/12D3KooWGa6QRfYmeCWCBHPvJAytaiXZsWzuq1L7zgzph4YHwGjB",
     "/ip4/104.248.135.198/tcp/30333/p2p/12D3KooWCSzi8TmqvxKmrPdXT5jietrRMCeDVQGZUWQ5JT6MpZ9F",
+    "/dns/encointer-kusama.bootnode.amforc.com/tcp/30338/p2p/12D3KooWDBr4sfp9R7t7tA1LAkNzADcGVXW9rX1BryES47mhUMEz",
+    "/dns/encointer-kusama.bootnode.amforc.com/tcp/30333/wss/p2p/12D3KooWDBr4sfp9R7t7tA1LAkNzADcGVXW9rX1BryES47mhUMEz",
     "/dns/kusama-encointer-boot-ng.dwellir.com/tcp/30342/p2p/12D3KooWMKBdoj1y5yxpPRsuioAuLDeYGyZFJw1aL1dDbBvWMrvx",
     "/dns/kusama-encointer-boot-ng.dwellir.com/tcp/30342/p2p/12D3KooWMKBdoj1y5yxpPRsuioAuLDeYGyZFJw1aL1dDbBvWMrvx",
     "/dns/boot-node.helikon.io/tcp/10240/p2p/12D3KooWA911RYTs2DdsA1EkxviUo12DdAdJ9Zsaf8S5PpQzeRGA",
