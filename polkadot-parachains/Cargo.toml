@@ -70,7 +70,7 @@ sp-consensus-aura = { git = "https://github.com/paritytech/substrate", branch = 
 sc-sysinfo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-serializer = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+try-runtime-cli = { git = "https://github.com/paritytech/substrate", optional = true , branch = "polkadot-v0.9.37" }
 
 # RPC related dependencies
 sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
@@ -111,4 +111,8 @@ runtime-benchmarks = [
 	'polkadot-service/runtime-benchmarks',
 	'launch-runtime/runtime-benchmarks',
 	'parachain-runtime/runtime-benchmarks',
+]
+try-runtime = [
+	"parachain-runtime/try-runtime",
+	"try-runtime-cli/try-runtime",
 ]

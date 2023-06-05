@@ -30,6 +30,7 @@ sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default
 sp-inherents = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.37" }
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.37" }
 
+try-runtime-cli = { git = "https://github.com/paritytech/substrate.git",default-features = false, branch = "polkadot-v0.9.37", optional = true }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.37" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.37" }
 frame-executive = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.37" }
@@ -142,9 +143,12 @@ std = [
 	"sp-consensus-aura/std",
 	# encointer
 	"runtime-common/std",
+	"frame-try-runtime/std",
 ]
 
+
 try-runtime = [
+	"frame-try-runtime/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-dmp-queue/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
@@ -159,4 +163,11 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
+	"frame-try-runtime/try-runtime",
+	"frame-support/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-randomness-collective-flip/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-transaction-payment/try-runtime",
+	"pallet-utility/try-runtime"
 ]

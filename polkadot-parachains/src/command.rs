@@ -374,30 +374,33 @@ pub fn run() -> Result<()> {
 		},
 		#[cfg(feature = "try-runtime")]
 		Some(Subcommand::TryRuntime(cmd)) => {
-			if cfg!(feature = "try-runtime") {
-				// grab the task manager.
-				let runner = cli.create_runner(cmd)?;
-				let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
-				let task_manager =
-					TaskManager::new(runner.config().tokio_handle.clone(), *registry)
-						.map_err(|e| format!("Error: {:?}", e))?;
-
-				if runner.config().chain_spec.is_launch() {
-					runner.async_run(|config| {
-						Ok((cmd.run::<Block, LaunchParachainRuntimeExecutor>(config), task_manager))
-					})
-				} else if runner.config().chain_spec.is_encointer() {
-					runner.async_run(|config| {
-						Ok((
-							cmd.run::<Block, EncointerParachainRuntimeExecutor>(config),
-							task_manager,
-						))
-					})
-				} else {
-					Err("Chain doesn't support try-runtime".into())
-				}
+			// grab the task manager.
+			let runner = cli.create_runner(cmd)?;
+			let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+			let task_manager =
+				sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+					.map_err(|e| format!("Error: {:?}", e))?;
+			use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+			type HostFunctionsOf<E> = ExtendedHostFunctions<
+				sp_io::SubstrateHostFunctions,
+				<E as NativeExecutionDispatch>::ExtendHostFunctions,
+			>;
+			if runner.config().chain_spec.is_launch() {
+				runner.async_run(|_| {
+					Ok((
+						cmd.run::<Block, HostFunctionsOf<LaunchParachainRuntimeExecutor>>(),
+						task_manager,
+					))
+				})
+			} else if runner.config().chain_spec.is_encointer() {
+				runner.async_run(|_| {
+					Ok((
+						cmd.run::<Block, HostFunctionsOf<EncointerParachainRuntimeExecutor>>(),
+						task_manager,
+					))
+				})
 			} else {
-				Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+				Err("Chain doesn't support try-runtime".into())
 			}
 		},
 		#[cfg(not(feature = "try-runtime"))]

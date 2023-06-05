@@ -80,24 +80,17 @@ where
 
 	module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
 	module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
-	module.merge(BazaarRpc::new(client.clone(), deny_unsafe).into_rpc())?;
+	module.merge(BazaarRpc::new(client.clone()).into_rpc())?;
 
 	match backend.offchain_storage() {
 		Some(storage) => {
 			module.merge(
-				CommunitiesRpc::new(
-					client.clone(),
-					storage.clone(),
-					offchain_indexing_enabled,
-					deny_unsafe,
-				)
-				.into_rpc(),
-			)?;
-
-			module.merge(
-				CeremoniesRpc::new(client, deny_unsafe, storage, offchain_indexing_enabled)
+				CommunitiesRpc::new(client.clone(), storage.clone(), offchain_indexing_enabled)
 					.into_rpc(),
 			)?;
+
+			module
+				.merge(CeremoniesRpc::new(client, storage, offchain_indexing_enabled).into_rpc())?;
 		},
 		None => log::warn!(
 			"Offchain caching disabled, due to lack of offchain storage support in backend. \n

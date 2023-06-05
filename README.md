@@ -136,6 +136,23 @@ encointer-collator \
 * The relay chain and the collator need to be about equally recent. This might require frequent rebasing of this repository on the `rococo-v1` branch.
 * Sanity check: The genesis state is printed when starting the collator. Make sure it matches the one from the `genesis.state` file.
 
+## Test state migrations on live data
+Compile the node with
+
+```bash
+cargo build --release --features try-runtime
+```
+
+Then run the state migrations with live data from the encointer-kusama parachain
+
+```bash
+./target/release/encointer-collator try-runtime \
+  --chain encointer-kusama-local \
+  --runtime ./target/release/wbuild/encointer-runtime/encointer_runtime.wasm \
+  on-runtime-upgrade --checks=all \
+  live --uri wss://kusama.api.encointer.org:443
+```
+
 ## Benchmark the runtimes
 In `./scripts` we have two scripts for benchmarking the runtimes.
 
