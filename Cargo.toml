@@ -1,6 +1,6 @@
 [workspace]
 members = [
-	"polkadot-parachains",
+    "polkadot-parachains",
     "polkadot-parachains/encointer-runtime",
     "polkadot-parachains/launch-runtime",
     "polkadot-parachains/runtime-common",
