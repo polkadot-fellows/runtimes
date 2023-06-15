@@ -29,24 +29,24 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_utility::WeightInfo for WeightInfo<T> {
 	fn batch(c: u32, ) -> Weight {
-		Weight::from_ref_time(54_338_000)
+		Weight::from_parts(54_338_000, 0)
 			// Standard Error: 18_000
-			.saturating_add(Weight::from_ref_time(8_410_000_u64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(8_410_000_u64, 0).saturating_mul(c.into()))
 	}
 	fn as_derivative() -> Weight {
-		Weight::from_ref_time(6_000_000)
+		Weight::from_parts(6_000_000, 0)
 	}
 	fn batch_all(c: u32, ) -> Weight {
-		Weight::from_ref_time(216_369_000)
+		Weight::from_parts(216_369_000, 0)
 			// Standard Error: 22_000
-			.saturating_add(Weight::from_ref_time(7_644_000_u64).saturating_mul(c.into()))
+			.saturating_add(Weight::from_parts(7_644_000_u64, 0).saturating_mul(c.into()))
 	}
 	fn dispatch_as() -> Weight {
-		Weight::from_ref_time(23_000_000)
+		Weight::from_parts(23_000_000, 0)
 	}
 
 	fn force_batch(_c: u32) -> Weight {
 		// Todo: dummy weight need to rerun benchmarks
-		Weight::from_ref_time(23_000_000)
+		Weight::from_parts(23_000_000, 0)
 	}
 }

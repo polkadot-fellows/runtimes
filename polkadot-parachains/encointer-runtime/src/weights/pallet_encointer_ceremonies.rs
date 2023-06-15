@@ -44,7 +44,7 @@ impl<T: frame_system::Config> pallet_encointer_ceremonies::WeightInfo for Weight
 	// Storage: EncointerCeremonies ReputableCount (r:1 w:1)
 	// Storage: EncointerCeremonies ReputableRegistry (r:0 w:1)
 	fn register_participant() -> Weight {
-		Weight::from_ref_time(183_000_000)
+		Weight::from_parts(183_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -67,7 +67,7 @@ impl<T: frame_system::Config> pallet_encointer_ceremonies::WeightInfo for Weight
 	// Storage: EncointerCeremonies MeetupParticipantCountVote (r:0 w:1)
 	// Storage: EncointerCeremonies AttestationRegistry (r:0 w:1)
 	fn attest_attendees() -> Weight {
-		Weight::from_ref_time(224_000_000)
+		Weight::from_parts(224_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(25))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -88,7 +88,7 @@ impl<T: frame_system::Config> pallet_encointer_ceremonies::WeightInfo for Weight
 	// Storage: EncointerCeremonies EndorseeRegistry (r:0 w:1)
 	// Storage: EncointerCeremonies EndorseeIndex (r:0 w:1)
 	fn endorse_newcomer() -> Weight {
-		Weight::from_ref_time(158_000_000)
+		Weight::from_parts(158_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
@@ -112,40 +112,40 @@ impl<T: frame_system::Config> pallet_encointer_ceremonies::WeightInfo for Weight
 	// Storage: EncointerBalances TotalIssuance (r:1 w:1)
 	// Storage: EncointerCeremonies ParticipantReputation (r:0 w:10)
 	fn claim_rewards() -> Weight {
-		Weight::from_ref_time(782_000_000)
+		Weight::from_parts(782_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(62))
 			.saturating_add(T::DbWeight::get().writes(22))
 	}
 	// Storage: EncointerCeremonies InactivityTimeout (r:0 w:1)
 	fn set_inactivity_timeout() -> Weight {
-		Weight::from_ref_time(27_000_000)
+		Weight::from_parts(27_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerScheduler CurrentPhase (r:1 w:0)
 	// Storage: EncointerCeremonies MeetupTimeOffset (r:0 w:1)
 	fn set_meetup_time_offset() -> Weight {
-		Weight::from_ref_time(32_000_000)
+		Weight::from_parts(32_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerCeremonies ReputationLifetime (r:0 w:1)
 	fn set_reputation_lifetime() -> Weight {
-		Weight::from_ref_time(28_000_000)
+		Weight::from_parts(28_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerCeremonies EndorsementTicketsPerBootstrapper (r:0 w:1)
 	fn set_endorsement_tickets_per_bootstrapper() -> Weight {
-		Weight::from_ref_time(30_000_000)
+		Weight::from_parts(30_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerCeremonies TimeTolerance (r:0 w:1)
 	fn set_time_tolerance() -> Weight {
-		Weight::from_ref_time(32_000_000)
+		Weight::from_parts(32_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerCeremonies LocationTolerance (r:0 w:1)
 	fn set_location_tolerance() -> Weight {
-		Weight::from_ref_time(28_000_000)
+		Weight::from_parts(28_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: EncointerCeremonies Assignments (r:0 w:1)
@@ -161,21 +161,21 @@ impl<T: frame_system::Config> pallet_encointer_ceremonies::WeightInfo for Weight
 	// Storage: EncointerCeremonies EndorseeCount (r:0 w:1)
 	// Storage: EncointerCeremonies EndorseesCount (r:0 w:1)
 	fn purge_community_ceremony() -> Weight {
-		Weight::from_ref_time(185_000_000)
+		Weight::from_parts(185_000_000, 0)
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
 	fn upgrade_registration() -> Weight {
-		Weight::from_ref_time(247_000_000)
+		Weight::from_parts(247_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
 	
 	fn unregister_participant() -> Weight {
-		Weight::from_ref_time(91_000_000)
+		Weight::from_parts(91_000_000, 0)
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
     fn set_endorsement_tickets_per_reputable() -> Weight {
-        Weight::from_ref_time(38_000_000_u64).saturating_add(T::DbWeight::get().writes(1))
+        Weight::from_parts(38_000_000_u64, 0).saturating_add(T::DbWeight::get().writes(1))
     }
 }

@@ -34,9 +34,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Members (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn add_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(24_898_000)
+		Weight::from_parts(24_898_000, 0)
 			// Standard Error: 9_000
-			.saturating_add(Weight::from_ref_time(231_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(231_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -46,9 +46,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Members (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn remove_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(33_292_000)
+		Weight::from_parts(33_292_000, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(41_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(41_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -58,9 +58,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Members (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn swap_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(29_690_000)
+		Weight::from_parts(29_690_000, 0)
 			// Standard Error: 2_000
-			.saturating_add(Weight::from_ref_time(134_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(134_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -70,9 +70,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Members (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn reset_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(33_688_000)
+		Weight::from_parts(33_688_000, 0)
 			// Standard Error: 3_000
-			.saturating_add(Weight::from_ref_time(216_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(216_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -82,9 +82,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Collective Members (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn change_key(m: u32, ) -> Weight {
-		Weight::from_ref_time(30_127_000)
+		Weight::from_parts(30_127_000, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(141_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(141_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -92,18 +92,18 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Membership Prime (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn set_prime(m: u32, ) -> Weight {
-		Weight::from_ref_time(8_775_000)
+		Weight::from_parts(8_775_000, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(76_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(76_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Membership Prime (r:0 w:1)
 	// Storage: Collective Prime (r:0 w:1)
 	fn clear_prime(m: u32, ) -> Weight {
-		Weight::from_ref_time(3_437_000)
+		Weight::from_parts(3_437_000, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(2_000_u64).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(2_000_u64, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }
