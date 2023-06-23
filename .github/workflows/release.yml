@@ -1,0 +1,48 @@
+name: Create Draft Release
+
+on:
+  push:
+    paths:
+    - 'CHANGELOG'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Rust
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        source $HOME/.cargo/env
+
+    - name: Build # TODO: srtool
+      run: |
+        cargo build --release
+        mv target/release/foo ./foo
+
+    - name: Get Changelog Diff
+      id: get_diff
+      run: |
+        echo "::set-output name=diff::$(git diff HEAD^ HEAD -- CHANGELOG | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/%0A/g' -e 's/\r/%0D/g' -e 's/\%/%%/g')"
+
+    - name: Create Draft Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.sha }}
+        release_name: Release ${{ github.sha }}
+        draft: true
+        body: ${{ steps.get_diff.outputs.diff }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./foo # TODO: srtool output
+        asset_name: foo # TODO: srtool output
+        asset_content_type: application/octet-stream
