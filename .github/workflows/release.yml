@@ -51,7 +51,7 @@ jobs:
             srtool-target-system_parachains-
 
       - name: Build ${{ matrix.relay }} relay runtime
-        id: srtool_build
+        id: srtool_build # todo: _relay
         uses: chevdor/srtool-actions@v0.7.0
         with:
           image: paritytech/srtool
@@ -59,7 +59,7 @@ jobs:
           runtime_dir: "${{ github.workspace }}/relay/runtimes/${{ matrix.relay }}"
 
       - name: Build ${{ matrix.system-parachains }} system-parachains runtime
-        id: srtool_build
+        id: srtool_build_system-parachains
         uses: chevdor/srtool-actions@v0.7.0
         with:
           image: paritytech/srtool
