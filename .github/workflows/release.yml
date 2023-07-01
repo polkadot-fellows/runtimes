@@ -56,7 +56,7 @@ jobs:
         with:
           image: paritytech/srtool
           chain: ${{ matrix.relay }}
-          runtime_dir: "${{ github.workspace }}/relay/runtimes/${{ matrix.relay }}"
+          runtime_dir: "relay/runtimes/${{ matrix.relay }}"
 
       - name: Build ${{ matrix.system-parachains }} system-parachains runtime
         id: srtool_build_system-parachains
@@ -64,7 +64,7 @@ jobs:
         with:
           image: paritytech/srtool
           chain: ${{ matrix.system-parachains }}
-          runtime_dir: "${{ github.workspace }}/system-parachains/runtimes/${{ matrix.system-parachains }}"
+          runtime_dir: "system-parachains/runtimes/${{ matrix.system-parachains }}"
 
       - name: Store srtool digest to disk
         run: |
