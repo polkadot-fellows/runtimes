@@ -12,8 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        relay:  ["polkadot"]
-        system-parachains: ["collectives"]
+        relay:  ["polkadot", "kusama", "parachains", "metrics"]
+        asset-hubs: ["polkadot", "kusama"]
+        bridge-hubs: ["polkadot", "kusama"]
+        collectives: ["polkadot"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -27,14 +29,14 @@ jobs:
             srtool-target-relay-${{ matrix.relay }}-
             srtool-target-relay-
 
-      - name: Cache system-parachains target dir
-        uses: actions/cache@v3
-        with:
-          path: "${{ github.workspace }}/system-parachains/runtimes/${{ matrix.system-parachains }}/target"
-          key: srtool-target-system_parachains-${{ matrix.system-parachains }}-${{ github.sha }}
-          restore-keys: |
-            srtool-target-system_parachains-${{ matrix.system-parachains }}-
-            srtool-target-system_parachains-
+     #- name: Cache system-parachains target dir
+     #   uses: actions/cache@v3
+     #   with:
+     #     path: "${{ github.workspace }}/system-parachains/runtimes/system-parachains${{ matrix.system-parachains }}/target"
+     #     key: srtool-target-system_parachains-${{ matrix.system-parachains }}-${{ github.sha }}
+     #     restore-keys: |
+     #       srtool-target-system_parachains-${{ matrix.system-parachains }}-
+     #       srtool-target-system_parachains-
 
       - name: Build ${{ matrix.relay }} relay runtime
         id: srtool_build # todo: _relay
@@ -45,14 +47,14 @@ jobs:
           chain: ${{ matrix.relay }}
           runtime_dir: "relay/runtimes/${{ matrix.relay }}"
 
-      - name: Build ${{ matrix.system-parachains }} system-parachains runtime
-        id: srtool_build_system-parachains
-        uses: chevdor/srtool-actions@v0.7.0
-        with:
-          tag: 1.66.1
-          #image: coderobe/srtool-nightly # todo: this is not a prod image
-          chain: ${{ matrix.system-parachains }}
-          runtime_dir: "system-parachains/runtimes/${{ matrix.system-parachains }}"
+      #- name: Build ${{ matrix.system-parachains }} system-parachains runtime
+      #  id: srtool_build_system-parachains
+      #  uses: chevdor/srtool-actions@v0.7.0
+      #  with:
+      #    tag: 1.66.1
+      #    #image: coderobe/srtool-nightly # todo: this is not a prod image
+      #    chain: ${{ matrix.system-parachains }}
+      #    runtime_dir: "system-parachains/runtimes/${{ matrix.system-parachains }}"
 
       - name: Store srtool digest to disk
         run: |
@@ -64,11 +66,11 @@ jobs:
           name: ${{ matrix.relay }}-srtool-json
           path: ${{ matrix.relay }}_srtool_output.json
 
-      - name: Upload ${{ matrix.system-parachains }} system-parachains srtool json
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.system-parachains }}-srtool-json
-          path: ${{ matrix.system-parachains }}_srtool_output.json
+      #- name: Upload ${{ matrix.system-parachains }} system-parachains srtool json
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: ${{ matrix.system-parachains }}-srtool-json
+      #    path: ${{ matrix.system-parachains }}_srtool_output.json
 
       - name: Upload ${{ matrix.relay }} relay runtime
         uses: actions/upload-artifact@v3
@@ -77,12 +79,12 @@ jobs:
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
 
-      - name: Upload ${{ matrix.system-parachains }} system-parachains runtime
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.system-parachains }}-runtime
-          path: |
-            ${{ steps.srtool_build.outputs.wasm_compressed }}
+      #- name: Upload ${{ matrix.system-parachains }} system-parachains runtime
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: ${{ matrix.system-parachains }}-runtime
+      #    path: |
+      #      ${{ steps.srtool_build.outputs.wasm_compressed }}
 
 
   publish-draft-release:
