@@ -58,7 +58,7 @@ jobs:
 
       - name: Store srtool digest to disk
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime }}_srtool_output.json
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.relay }}_srtool_output.json
 
       - name: Upload ${{ matrix.relay }} relay srtool json
         uses: actions/upload-artifact@v3
@@ -124,3 +124,24 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Runtimes ${{ github.ref }}
           draft: true
+
+  publish-runtimes:
+    runs-on: ubuntu-latest
+    needs: ["publish-draft-release"]
+    env:
+      RUNTIME_DIR: runtime
+    strategy:
+      matrix:
+        runtime: ["polkadot", "kusama"]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      - name: Upload compressed ${{ matrix.runtime }} wasm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
+          asset_path: "${{ matrix.runtime }}-runtime/${{ matrix.runtime }}_runtime.compact.compressed.wasm"
+          asset_name: ${{ matrix.runtime }}_runtime-v.compact.compressed.wasm
+          asset_content_type: application/wasm
