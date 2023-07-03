@@ -13,9 +13,9 @@ jobs:
     strategy:
       matrix:
         relay:  ["polkadot", "kusama", "parachains", "metrics"]
-        asset-hubs: ["polkadot", "kusama"]
-        bridge-hubs: ["polkadot", "kusama"]
-        collectives: ["polkadot"]
+        #asset-hubs: ["polkadot", "kusama"]
+        #bridge-hubs: ["polkadot", "kusama"]
+        #collectives: ["polkadot"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
