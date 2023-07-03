@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        relay:  ["polkadot", "kusama", "parachains", "metrics"]
+        relay:  ["polkadot", "kusama"] #, "parachains", "metrics"]
         #asset-hubs: ["polkadot", "kusama"]
         #bridge-hubs: ["polkadot", "kusama"]
         #collectives: ["polkadot"]
