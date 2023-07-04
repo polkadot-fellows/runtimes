@@ -39,11 +39,10 @@ jobs:
             srtool-target-${{ matrix.runtime[0] }}-
 
       - name: Build ${{ matrix.runtime[2] }}
-        id: srtool_build # todo: _relay
+        id: srtool_build
         uses: chevdor/srtool-actions@v0.7.0
         with:
           tag: 1.66.1
-          #image: coderobe/srtool-nightly # todo: this is not a prod image
           chain: ${{ matrix.runtime[3] }}
           package: ${{ matrix.runtime[2] }}
           runtime_dir: "${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}"
