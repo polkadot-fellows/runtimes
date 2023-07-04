@@ -126,12 +126,10 @@ jobs:
 
       - name: Get runtime info
         run: |
-          ls *
-          
-          ASSET=${{ matrix.runtime[3] }}/*.compact.compressed.wasm
+          ASSET=$(find ${{ matrix.runtime[3] }} -name '*.compact.compressed.wasm')
           echo ASSET=${ASSET} >> $GITHUB_ENV
           
-          SPEC=$(grep -F spec_version ${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/src/lib.rs | tr -d ',' | cut -d' ' -f2)
+          SPEC=$(grep -F spec_version ${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/src/lib.rs | tr -d ',' | cut -d' ' -f2 | head -n1)
           echo SPEC=${SPEC} >> $GITHUB_ENV
 
       - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} wasm
