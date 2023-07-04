@@ -126,6 +126,8 @@ jobs:
 
       - name: Get runtime info
         run: |
+          ls *
+          
           ASSET=${{ matrix.runtime[3] }}/*.compact.compressed.wasm
           echo ASSET=${ASSET} >> $GITHUB_ENV
           
