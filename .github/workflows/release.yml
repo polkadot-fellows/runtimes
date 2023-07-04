@@ -17,8 +17,8 @@ jobs:
           # relay/para, runtime path, package name, chain
           ["relay", "polkadot", "polkadot-runtime", "polkadot"],
           ["relay", "kusama", "kusama-runtime", "kusama"],
-          ["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
-          ["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
+          #["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
+          #["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
           ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
           ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"],
           ["system-parachains", "asset-hubs/asset-hub-kusama", "statemine-runtime", "statemine"],
@@ -110,8 +110,8 @@ jobs:
           # relay/para, runtime path, package name, chain
           ["relay", "polkadot", "polkadot-runtime", "polkadot"],
           ["relay", "kusama", "kusama-runtime", "kusama"],
-          ["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
-          ["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
+          #["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
+          #["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
           ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
           ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"],
           ["system-parachains", "asset-hubs/asset-hub-kusama", "statemine-runtime", "statemine"],
@@ -121,12 +121,16 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
+      - name: Get runtime wasm asset path
+        run: |
+          ASSET=${{ matrix.runtime[3] }}/*.compact.compressed.wasm
+          echo ASSET=${ASSET} >> $GITHUB_ENV
       - name: Upload compressed ${{ matrix.runtime[3] }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
-          asset_path: "${{ matrix.runtime[3] }}/*.compact.compressed.wasm"
+          asset_path: ${{ env.ASSET }}
           asset_name: ${{ matrix.runtime[2] }}.compact.compressed.wasm # TODO: add spec version to filename
           asset_content_type: application/wasm
