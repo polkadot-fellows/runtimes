@@ -15,13 +15,15 @@ jobs:
         runtime: [
           # relay/para, runtime path, package name, chain
           ["relay", "polkadot", "polkadot-runtime", "polkadot"],
+          ["relay", "kusama", "kusama-runtime", "kusama"],
+          ["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
+          ["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
           ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
-          ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"]
+          ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"],
+          ["system-parachains", "asset-hubs/asset-hub-kusama", "statemine-runtime", "statemine"],
+          ["system-parachains", "bridge-hubs/bridge-hub-polkadot", "bridge-hub-polkadot-runtime", "bridge-hub-polkadot"],
+          ["system-parachains", "bridge-hubs/bridge-hub-kusama", "bridge-hub-kusama-runtime", "bridge-hub-kusama"]
         ]
-        #relay:  ["polkadot", "kusama"] #, "parachains", "metrics"]
-        #asset-hubs: ["polkadot", "kusama"]
-        #bridge-hubs: ["polkadot", "kusama"]
-        #collectives: ["polkadot"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -35,7 +37,7 @@ jobs:
             srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[2] }}-
             srtool-target-${{ matrix.runtime[0] }}-
 
-      - name: Build ${{ matrix.runtime[0] }} ${{ matrix.runtime[2] }}
+      - name: Build ${{ matrix.runtime[2] }}
         id: srtool_build # todo: _relay
         uses: chevdor/srtool-actions@v0.7.0
         with:
