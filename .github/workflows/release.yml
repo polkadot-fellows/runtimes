@@ -106,7 +106,7 @@ jobs:
       RUNTIME_DIR: runtime
     strategy:
       matrix:
-        runtime: [
+        runtime: [ # this is the same matrix as above
           # relay/para, runtime path, package name, chain
           ["relay", "polkadot", "polkadot-runtime", "polkadot"],
           ["relay", "kusama", "kusama-runtime", "kusama"],
@@ -119,18 +119,26 @@ jobs:
           ["system-parachains", "bridge-hubs/bridge-hub-kusama", "bridge-hub-kusama-runtime", "bridge-hub-kusama"]
         ]
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
       - name: Download artifacts
         uses: actions/download-artifact@v3
-      - name: Get runtime wasm asset path
+
+      - name: Get runtime info
         run: |
           ASSET=${{ matrix.runtime[3] }}/*.compact.compressed.wasm
           echo ASSET=${ASSET} >> $GITHUB_ENV
-      - name: Upload compressed ${{ matrix.runtime[3] }} wasm
+          
+          SPEC=$(grep -F spec_version ${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/src/lib.rs | tr -d ',' | cut -d' ' -f2)
+          echo SPEC=${SPEC} >> $GITHUB_ENV
+
+      - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime[2] }}.compact.compressed.wasm # TODO: add spec version to filename
+          asset_name: ${{ matrix.runtime[2] }}-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
