@@ -128,15 +128,9 @@ jobs:
         env:
           JSON: release-notes-context/${{ matrix.runtime[3] }}-srtool-json/${{ matrix.runtime[3] }}_srtool_output.json
         run: |
-          ASSET=$(find ${{ matrix.runtime[3] }} -name '*.compact.compressed.wasm')
-          echo ASSET=${ASSET} >> $GITHUB_ENV
-          
-          SPEC=$(<${JSON} jq .runtimes.compact.subwasm.core_version.specVersion)
-          echo SPEC=${SPEC} >> $GITHUB_ENV
-
-          TXVER=$(<${JSON} jq .runtimes.compact.subwasm.core_version.transactionVersion)
-          echo TXVER=${TXVER} >> $GITHUB_ENV
-
+          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime[3] }} -name '*.compact.compressed.wasm')
+          >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
+          >>$GITHUB_ENV echo TXVER=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.transactionVersion)
       - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
         uses: actions/upload-release-asset@v1
         env:
