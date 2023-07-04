@@ -12,7 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        relay:  ["polkadot", "kusama"] #, "parachains", "metrics"]
+        runtime: [
+          # relay/para, runtime path, package name, chain
+          ["relay", "polkadot", "polkadot-runtime", "polkadot"],
+          ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
+          ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"]
+        ]
+        #relay:  ["polkadot", "kusama"] #, "parachains", "metrics"]
         #asset-hubs: ["polkadot", "kusama"]
         #bridge-hubs: ["polkadot", "kusama"]
         #collectives: ["polkadot"]
@@ -20,72 +26,41 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Cache relay target dir
+      - name: Cache ${{ matrix.runtime[3] }} target dir
         uses: actions/cache@v3
         with:
-          path: "${{ github.workspace }}/relay/runtimes/${{ matrix.relay }}/target"
-          key: srtool-target-relay-${{ matrix.relay }}-${{ github.sha }}
+          path: "${{ github.workspace }}/${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/target"
+          key: srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[2] }}-${{ github.sha }}
           restore-keys: |
-            srtool-target-relay-${{ matrix.relay }}-
-            srtool-target-relay-
+            srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[2] }}-
+            srtool-target-${{ matrix.runtime[0] }}-
 
-     #- name: Cache system-parachains target dir
-     #   uses: actions/cache@v3
-     #   with:
-     #     path: "${{ github.workspace }}/system-parachains/runtimes/system-parachains${{ matrix.system-parachains }}/target"
-     #     key: srtool-target-system_parachains-${{ matrix.system-parachains }}-${{ github.sha }}
-     #     restore-keys: |
-     #       srtool-target-system_parachains-${{ matrix.system-parachains }}-
-     #       srtool-target-system_parachains-
-
-      - name: Build ${{ matrix.relay }} relay runtime
+      - name: Build ${{ matrix.runtime[0] }} ${{ matrix.runtime[2] }}
         id: srtool_build # todo: _relay
         uses: chevdor/srtool-actions@v0.7.0
         with:
           tag: 1.66.1
           #image: coderobe/srtool-nightly # todo: this is not a prod image
-          chain: ${{ matrix.relay }}
-          runtime_dir: "relay/runtimes/${{ matrix.relay }}"
+          chain: ${{ matrix.runtime[3] }}
+          package: ${{ matrix.runtime[2] }}
+          runtime_dir: "${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}"
 
-      #- name: Build ${{ matrix.system-parachains }} system-parachains runtime
-      #  id: srtool_build_system-parachains
-      #  uses: chevdor/srtool-actions@v0.7.0
-      #  with:
-      #    tag: 1.66.1
-      #    #image: coderobe/srtool-nightly # todo: this is not a prod image
-      #    chain: ${{ matrix.system-parachains }}
-      #    runtime_dir: "system-parachains/runtimes/${{ matrix.system-parachains }}"
-
-      - name: Store srtool digest to disk
+      - name: Store ${{ matrix.runtime[3] }} srtool digest to disk
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.relay }}_srtool_output.json
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime[3] }}_srtool_output.json
 
-      - name: Upload ${{ matrix.relay }} relay srtool json
+      - name: Upload ${{ matrix.runtime[3] }} srtool json
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.relay }}-srtool-json
-          path: ${{ matrix.relay }}_srtool_output.json
+          name: ${{ matrix.runtime[3] }}-srtool-json
+          path: ${{ matrix.runtime[3] }}_srtool_output.json
 
-      #- name: Upload ${{ matrix.system-parachains }} system-parachains srtool json
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: ${{ matrix.system-parachains }}-srtool-json
-      #    path: ${{ matrix.system-parachains }}_srtool_output.json
-
-      - name: Upload ${{ matrix.relay }} relay runtime
+      - name: Upload  ${{ matrix.runtime[3] }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.relay }}-runtime
+          name: ${{ matrix.runtime[3] }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
-
-      #- name: Upload ${{ matrix.system-parachains }} system-parachains runtime
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: ${{ matrix.system-parachains }}-runtime
-      #    path: |
-      #      ${{ steps.srtool_build.outputs.wasm_compressed }}
-
 
   publish-draft-release:
     runs-on: ubuntu-latest
@@ -99,11 +74,6 @@ jobs:
         with:
           fetch-depth: 0
           path: polkadot
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.0.0
 
       - name: Download srtool json output
         uses: actions/download-artifact@v3
@@ -136,12 +106,12 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
-      - name: Upload compressed ${{ matrix.runtime }} wasm
+      - name: Upload compressed ${{ matrix.runtime[3] }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
-          asset_path: "${{ matrix.runtime }}-runtime/${{ matrix.runtime }}_runtime.compact.compressed.wasm"
-          asset_name: ${{ matrix.runtime }}_runtime-v.compact.compressed.wasm
+          asset_path: "${{ matrix.runtime[3] }}/*.compact.compressed.wasm"
+          asset_name: ${{ matrix.runtime[2] }}.compact.compressed.wasm # TODO: add spec version to filename
           asset_content_type: application/wasm
