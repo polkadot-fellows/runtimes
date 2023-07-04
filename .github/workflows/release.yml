@@ -125,19 +125,24 @@ jobs:
         uses: actions/download-artifact@v3
 
       - name: Get runtime info
+        env:
+          JSON: release-notes-context/${{ matrix.runtime[3] }}-srtool-json/${{ matrix.runtime[3] }}_srtool_output.json
         run: |
           ASSET=$(find ${{ matrix.runtime[3] }} -name '*.compact.compressed.wasm')
           echo ASSET=${ASSET} >> $GITHUB_ENV
           
-          SPEC=$(grep -F spec_version ${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/src/lib.rs | tr -d ',' | cut -d' ' -f2 | head -n1)
+          SPEC=$(<${JSON} jq .runtimes.compact.subwasm.core_version.specVersion)
           echo SPEC=${SPEC} >> $GITHUB_ENV
 
-      - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} wasm
+          TXVER=$(<${JSON} jq .runtimes.compact.subwasm.core_version.transactionVersion)
+          echo TXVER=${TXVER} >> $GITHUB_ENV
+
+      - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime[2] }}-v${{ env.SPEC }}.compact.compressed.wasm
+          asset_name: ${{ matrix.runtime[2] }}-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
           asset_content_type: application/wasm
