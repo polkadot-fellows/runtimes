@@ -1,0 +1,27 @@
+name: "Rustfmt (check)"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustfmt
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Rustfmt (check)
+        run: cargo +nightly fmt --all -- --check

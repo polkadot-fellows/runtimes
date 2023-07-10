@@ -1,0 +1,34 @@
+name: "Clippy"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  clippy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: clippy
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f # v2.2.1
+
+      - name: Clippy
+        run: cargo +nightly clippy --all-targets
+        env:
+          SKIP_WASM_BUILD: 1
