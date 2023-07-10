@@ -1,0 +1,14 @@
+[workspace]
+members = [
+	"relay/runtimes/kusama",
+	"relay/runtimes/kusama/constants",
+	"relay/runtimes/metrics",
+	"relay/runtimes/polkadot",
+	"relay/runtimes/polkadot/constants",
+	"system-parachains/runtimes/asset-hubs/asset-hub-kusama",
+	"system-parachains/runtimes/asset-hubs/asset-hub-polkadot",
+	"system-parachains/runtimes/bridge-hubs/bridge-hub-kusama",
+	"system-parachains/runtimes/bridge-hubs/bridge-hub-polkadot",
+	"system-parachains/runtimes/bridge-hubs/bridge-hub-rococo",
+	"system-parachains/runtimes/collectives/collectives-polkadot",
+]

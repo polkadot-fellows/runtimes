@@ -58,39 +58,39 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features
 xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 
 # Cumulus
-cumulus-pallet-aura-ext = { path = "../../../../pallets/aura-ext", default-features = false }
-cumulus-pallet-dmp-queue = { path = "../../../../pallets/dmp-queue", default-features = false }
-cumulus-pallet-parachain-system = { path = "../../../../pallets/parachain-system", default-features = false }
-cumulus-pallet-session-benchmarking = {path = "../../../../pallets/session-benchmarking", default-features = false, version = "3.0.0"}
-cumulus-pallet-xcm = { path = "../../../../pallets/xcm", default-features = false }
-cumulus-pallet-xcmp-queue = { path = "../../../../pallets/xcmp-queue", default-features = false }
-cumulus-primitives-core = { path = "../../../../primitives/core", default-features = false }
-cumulus-primitives-timestamp = { path = "../../../../primitives/timestamp", default-features = false }
-cumulus-primitives-utility = { path = "../../../../primitives/utility", default-features = false }
-pallet-collator-selection = { path = "../../../../pallets/collator-selection", default-features = false }
-parachain-info = { path = "../../../../parachains/pallets/parachain-info", default-features = false }
-parachains-common = { path = "../../../../parachains/common", default-features = false }
+cumulus-pallet-aura-ext = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-dmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-parachain-system = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-session-benchmarking = { default-features = false, version = "3.0.0", git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-xcm = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-xcmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-primitives-core = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-primitives-timestamp = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-primitives-utility = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+pallet-collator-selection = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+parachain-info = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+parachains-common = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 
 # Bridges
-bp-bridge-hub-rococo = { path = "../../../../bridges/primitives/chain-bridge-hub-rococo", default-features = false }
-bp-bridge-hub-wococo = { path = "../../../../bridges/primitives/chain-bridge-hub-wococo", default-features = false }
-bp-messages = { path = "../../../../bridges/primitives/messages", default-features = false }
-bp-parachains = { path = "../../../../bridges/primitives/parachains", default-features = false }
-bp-polkadot-core = { path = "../../../../bridges/primitives/polkadot-core", default-features = false }
-bp-relayers = { path = "../../../../bridges/primitives/relayers", default-features = false }
-bp-runtime = { path = "../../../../bridges/primitives/runtime", default-features = false }
-bp-rococo = { path = "../../../../bridges/primitives/chain-rococo", default-features = false }
-bp-wococo = { path = "../../../../bridges/primitives/chain-wococo", default-features = false }
-pallet-bridge-grandpa = { path = "../../../../bridges/modules/grandpa", default-features = false }
-pallet-bridge-messages = { path = "../../../../bridges/modules/messages", default-features = false }
-pallet-bridge-parachains = { path = "../../../../bridges/modules/parachains", default-features = false }
-pallet-bridge-relayers = { path = "../../../../bridges/modules/relayers", default-features = false }
-bridge-runtime-common = { path = "../../../../bridges/bin/runtime-common", default-features = false }
+bp-bridge-hub-rococo = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-bridge-hub-wococo = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-messages = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-parachains = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-polkadot-core = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-relayers = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-runtime = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-rococo = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bp-wococo = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+pallet-bridge-grandpa = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+pallet-bridge-messages = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+pallet-bridge-parachains = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+pallet-bridge-relayers = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bridge-runtime-common = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 
 [dev-dependencies]
 static_assertions = "1.1"
-bridge-hub-test-utils = { path = "../test-utils"}
-bridge-runtime-common = { path = "../../../../bridges/bin/runtime-common", features = ["integrity-test"] }
+bridge-hub-test-utils = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bridge-runtime-common = { features = ["integrity-test"] , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
 sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [features]

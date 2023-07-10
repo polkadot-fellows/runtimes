@@ -19,7 +19,7 @@ smallvec = "1.8.0"
 authority-discovery-primitives = { package = "sp-authority-discovery", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 babe-primitives = { package = "sp-consensus-babe", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 beefy-primitives = { package = "sp-consensus-beefy", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-kusama-runtime-constants = { package = "kusama-runtime-constants", path = "./constants", default-features = false }
+kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 inherents = { package = "sp-inherents", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 offchain-primitives = { package = "sp-offchain", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -83,8 +83,8 @@ pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "m
 pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-whitelist = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-pallet-xcm = { path = "../../xcm/pallet-xcm", default-features = false }
-pallet-xcm-benchmarks = { path = "../../xcm/pallet-xcm-benchmarks", default-features = false, optional = true }
+pallet-xcm = { default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 frame-election-provider-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
@@ -96,13 +96,13 @@ frame-system-benchmarking = { git = "https://github.com/paritytech/substrate", b
 pallet-election-provider-support-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 hex-literal = "0.4.1"
 
-runtime-common = { package = "polkadot-runtime-common", path = "../common", default-features = false }
-runtime-parachains = { package = "polkadot-runtime-parachains", path = "../parachains", default-features = false }
-primitives = { package = "polkadot-primitives", path = "../../primitives", default-features = false }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+primitives = { package = "polkadot-primitives", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
-xcm = { package = "xcm", path = "../../xcm", default-features = false }
-xcm-executor = { package = "xcm-executor", path = "../../xcm/xcm-executor", default-features = false }
-xcm-builder = { package = "xcm-builder", path = "../../xcm/xcm-builder", default-features = false }
+xcm = { package = "xcm", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+xcm-executor = { package = "xcm-executor", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+xcm-builder = { package = "xcm-builder", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
 [dev-dependencies]
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
