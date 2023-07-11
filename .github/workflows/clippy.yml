@@ -2,9 +2,9 @@ name: "Clippy"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Some test job
+        run: echo helloworld
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
