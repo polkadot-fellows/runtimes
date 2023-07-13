@@ -72,7 +72,7 @@ pallet-staking-reward-curve = { git = "https://github.com/paritytech/substrate",
 pallet-staking-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-system = {git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "./constants", default-features = false }
+polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -80,7 +80,7 @@ pallet-whitelist = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-election-provider-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-pallet-xcm = { path = "../../xcm/pallet-xcm", default-features = false }
+pallet-xcm = { default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
@@ -91,13 +91,13 @@ pallet-session-benchmarking = { git = "https://github.com/paritytech/substrate",
 pallet-nomination-pools-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 hex-literal = { version = "0.4.1", optional = true }
 
-runtime-common = { package = "polkadot-runtime-common", path = "../common", default-features = false }
-runtime-parachains = { package = "polkadot-runtime-parachains", path = "../parachains", default-features = false }
-primitives = { package = "polkadot-primitives", path = "../../primitives", default-features = false }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+primitives = { package = "polkadot-primitives", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
-xcm = { package = "xcm", path = "../../xcm", default-features = false }
-xcm-executor = { package = "xcm-executor", path = "../../xcm/xcm-executor", default-features = false }
-xcm-builder = { package = "xcm-builder", path = "../../xcm/xcm-builder", default-features = false }
+xcm = { package = "xcm", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+xcm-executor = { package = "xcm-executor", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+xcm-builder = { package = "xcm-builder", default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
