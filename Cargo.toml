@@ -11,3 +11,9 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-rococo",
 	"system-parachains/collectives/collectives-polkadot",
 ]
+
+[workspace.package]
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+repository = "https://github.com/paritytech/polkadot.git"
+version = "1.0.0"
