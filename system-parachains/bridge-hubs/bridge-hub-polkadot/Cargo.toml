@@ -58,21 +58,21 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features
 xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "master" }
 
 # Cumulus
-cumulus-pallet-aura-ext = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-pallet-dmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-pallet-parachain-system = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-pallet-session-benchmarking = { default-features = false, version = "3.0.0", git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-pallet-xcm = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-pallet-xcmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-primitives-core = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-primitives-timestamp = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-cumulus-primitives-utility = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-pallet-collator-selection = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-parachain-info = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
-parachains-common = { default-features = false , git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+cumulus-pallet-aura-ext = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-pallet-dmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-pallet-parachain-system = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-pallet-session-benchmarking = { default-features = false, version = "3.0.0", git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-pallet-xcm = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-pallet-xcmp-queue = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-primitives-core = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-primitives-timestamp = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+cumulus-primitives-utility = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+pallet-collator-selection = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+parachain-info = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
+parachains-common = { default-features = false , git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
 
 [dev-dependencies]
-bridge-hub-test-utils = { git = "https://github.com/paritytech/cumulus.git", branch = "master" }
+bridge-hub-test-utils = { git = "https://github.com/paritytech/cumulus.git", rev = "3b2e317f6bd7bee63083da99553ea4972b31a675" }
 
 [features]
 default = [
