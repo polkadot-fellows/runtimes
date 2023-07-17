@@ -80,7 +80,7 @@ pallet-whitelist = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-election-provider-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-pallet-xcm = { default-features = false , git = "https://github.com/paritytech/polkadot.git", branch = "master" }
+pallet-xcm = { default-features = false , features = ["experimental"], git = "https://github.com/paritytech/polkadot.git", branch = "master" }
 
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
