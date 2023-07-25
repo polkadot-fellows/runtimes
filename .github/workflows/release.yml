@@ -16,7 +16,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Generate Matrix
+      - name: Generate runtime matrix
         id: generate-matrix
         run: |
           >>$GITHUB_OUTPUT echo runtime="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}' | tr -d $'\n')]"
@@ -45,7 +45,6 @@ jobs:
         id: srtool_build
         uses: chevdor/srtool-actions@v0.7.0
         with:
-          tag: 1.66.1
           chain: ${{ matrix.runtime[1] }}
           runtime_dir: "${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}"
 
