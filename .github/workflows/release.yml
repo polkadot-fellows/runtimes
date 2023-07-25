@@ -16,8 +16,7 @@ jobs:
       - name: Generate Matrix
         id: generate-matrix
         run: |
-          set +f
-          RUNTIME="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}')]"
+          RUNTIME="[$(find relay system-parachains -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}')]"
           echo ::set-output name=runtime::${RUNTIME}
   build-runtimes:
     continue-on-error: true
