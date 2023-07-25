@@ -8,23 +8,24 @@ on:
 
 
 jobs:
+  enumerate:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.generate-matrix.outputs.runtime }}
+    steps:
+      - name: Generate Matrix
+        id: generate-matrix
+        run: |
+          RUNTIME="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}')]"
+          echo ::set-output name=runtime::${RUNTIME}
   build-runtimes:
     continue-on-error: true
     runs-on: ubuntu-latest
+    needs:
+      - enumerate
     strategy:
       matrix:
-        runtime: [
-          # relay/para, runtime path, package name, chain
-          ["relay", "polkadot", "polkadot-runtime", "polkadot"],
-          ["relay", "kusama", "kusama-runtime", "kusama"],
-          #["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
-          #["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
-          ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
-          ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"],
-          ["system-parachains", "asset-hubs/asset-hub-kusama", "statemine-runtime", "statemine"],
-          ["system-parachains", "bridge-hubs/bridge-hub-polkadot", "bridge-hub-polkadot-runtime", "bridge-hub-polkadot"],
-          ["system-parachains", "bridge-hubs/bridge-hub-kusama", "bridge-hub-kusama-runtime", "bridge-hub-kusama"]
-        ]
+        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -32,41 +33,41 @@ jobs:
       - name: Cache target dir
         uses: actions/cache@v3
         with:
-          path: "${{ github.workspace }}/${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}/target"
-          key: srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[2] }}-${{ github.sha }}
+          path: "${{ github.workspace }}/${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}/target"
+          key: srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-${{ github.sha }}
           restore-keys: |
-            srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[2] }}-
+            srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-
             srtool-target-${{ matrix.runtime[0] }}-
 
-      - name: Build ${{ matrix.runtime[2] }}
+      - name: Build ${{ matrix.runtime[1] }}
         id: srtool_build
         uses: chevdor/srtool-actions@v0.7.0
         with:
           tag: 1.66.1
-          chain: ${{ matrix.runtime[3] }}
-          package: ${{ matrix.runtime[2] }}
-          runtime_dir: "${{ matrix.runtime[0] }}/runtimes/${{ matrix.runtime[1] }}"
+          chain: ${{ matrix.runtime[1] }}
+          runtime_dir: "${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}"
 
-      - name: Store ${{ matrix.runtime[3] }} srtool digest to disk
+      - name: Store ${{ matrix.runtime[1] }} srtool digest to disk
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime[3] }}_srtool_output.json
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime[1] }}_srtool_output.json
 
-      - name: Upload ${{ matrix.runtime[3] }} srtool json
+      - name: Upload ${{ matrix.runtime[1] }} srtool json
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.runtime[3] }}-srtool-json
-          path: ${{ matrix.runtime[3] }}_srtool_output.json
+          name: ${{ matrix.runtime[1] }}-srtool-json
+          path: ${{ matrix.runtime[1] }}_srtool_output.json
 
-      - name: Upload  ${{ matrix.runtime[3] }}
+      - name: Upload  ${{ matrix.runtime[1] }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.runtime[3] }}
+          name: ${{ matrix.runtime[1] }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
 
   publish-draft-release:
     runs-on: ubuntu-latest
-    needs: ["build-runtimes"]
+    needs:
+      - build-runtimes
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
@@ -116,23 +117,14 @@ jobs:
   publish-runtimes:
     continue-on-error: true
     runs-on: ubuntu-latest
-    needs: ["publish-draft-release"]
     env:
       RUNTIME_DIR: runtime
+    needs:
+      - publish-draft-release
+      - enumerate
     strategy:
       matrix:
-        runtime: [ # this is the same matrix as above
-          # relay/para, runtime path, package name, chain
-          ["relay", "polkadot", "polkadot-runtime", "polkadot"],
-          ["relay", "kusama", "kusama-runtime", "kusama"],
-          #["relay", "parachains", "polkadot-runtime-parachains", "polkadot"], # ?
-          #["relay", "metrics", "polkadot-runtime-metrics", "polkadot"], # ?         
-          ["system-parachains", "collectives/collectives-polkadot", "collectives-polkadot-runtime", "collectives-polkadot"],
-          ["system-parachains", "asset-hubs/asset-hub-polkadot", "statemint-runtime", "statemint"],
-          ["system-parachains", "asset-hubs/asset-hub-kusama", "statemine-runtime", "statemine"],
-          ["system-parachains", "bridge-hubs/bridge-hub-polkadot", "bridge-hub-polkadot-runtime", "bridge-hub-polkadot"],
-          ["system-parachains", "bridge-hubs/bridge-hub-kusama", "bridge-hub-kusama-runtime", "bridge-hub-kusama"]
-        ]
+        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -142,18 +134,18 @@ jobs:
 
       - name: Get runtime info
         env:
-          JSON: release-notes-context/${{ matrix.runtime[3] }}-srtool-json/${{ matrix.runtime[3] }}_srtool_output.json
+          JSON: release-notes-context/${{ matrix.runtime[1] }}-srtool-json/${{ matrix.runtime[1] }}_srtool_output.json
         run: |
-          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime[3] }} -name '*.compact.compressed.wasm')
+          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime[1] }} -name '*.compact.compressed.wasm')
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
           >>$GITHUB_ENV echo TXVER=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.transactionVersion)
 
-      - name: Upload compressed ${{ matrix.runtime[3] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
+      - name: Upload compressed ${{ matrix.runtime[1] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime[2] }}-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
+          asset_name: ${{ matrix.runtime[1] }}_runtime-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
           asset_content_type: application/wasm
