@@ -13,11 +13,13 @@ jobs:
     outputs:
       runtime: ${{ steps.generate-matrix.outputs.runtime }}
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
       - name: Generate Matrix
         id: generate-matrix
         run: |
-          RUNTIME="[$(find relay system-parachains -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}')]"
-          echo ::set-output name=runtime::${RUNTIME}
+          >>$GITHUB_OUTPUT echo runtime="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}')]"
   build-runtimes:
     continue-on-error: true
     runs-on: ubuntu-latest
