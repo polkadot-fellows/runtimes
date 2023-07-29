@@ -21,20 +21,6 @@ env:
 
 
 jobs:
-
-  # this job set up dynamic configuration shared among jobs
-  config:
-    name: Set up Config
-    runs-on: ubuntu-latest
-    env:
-      ENABLE_CHECK: true
-    outputs:
-      check: ${{ steps.check.outputs.check }}
-      runs: ${{ steps.runs.outputs.runs }}
-    steps:
-      - id: check
-        run: echo "::set-output name=check::${{ env.ENABLE_CHECK }}"
-
   cancel_previous_runs:
     name: Cancel Previous Runs
     runs-on: ubuntu-20.04
@@ -71,7 +57,7 @@ jobs:
       - name: Setup Rust toolchain
         run: rustup show
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.os }}-${{ env.RUST_BIN_DIR }}-${{ matrix.binary }}
 
@@ -90,8 +76,6 @@ jobs:
   # Run all checks and unit test. This always run on debug mode
   check:
     name: Rust check ${{ matrix.check }} (${{ matrix.rust-target }})
-    needs: config
-    if: ${{ needs.config.outputs.check == 'true' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -114,7 +98,7 @@ jobs:
       - name: Setup Rust toolchain
         run: rustup show
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.rust-target }}-${{ matrix.check }}
 
@@ -152,7 +136,7 @@ jobs:
         run: sudo apt-get install protobuf-compiler
         
       - name: Cache target dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: "${{ github.workspace }}/runtime/${{ matrix.runtime }}/target"
           key: srtool-target-${{ matrix.runtime }}-${{ github.sha }}
