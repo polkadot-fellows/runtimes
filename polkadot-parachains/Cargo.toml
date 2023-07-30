@@ -1,7 +1,7 @@
 [package]
 name = "encointer-collator"
 # align major.minor revision with the runtimes. bump patch revision ad lib. make this the github release tag
-version = "1.3.3"
+version = "1.4.0"
 authors = ["Encointer <info@encointer.org>"]
 build = "build.rs"
 edition = "2021"
@@ -29,12 +29,12 @@ launch-runtime = { package = "launch-runtime", path = "launch-runtime" }
 parachain-runtime = { package = "encointer-runtime", path = "encointer-runtime" }
 
 # encointer dependencies
-pallet-encointer-bazaar-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
-pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
-pallet-encointer-ceremonies-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
-pallet-encointer-ceremonies-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
-pallet-encointer-communities-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
-pallet-encointer-communities-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42" }
+pallet-encointer-bazaar-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-ceremonies-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-ceremonies-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-communities-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-communities-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 
 # Substrate dependencies
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
