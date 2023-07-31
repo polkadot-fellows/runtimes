@@ -14,20 +14,23 @@ echo "WEIGHT_OUTPUT_DIR:  ${WEIGHT_OUTPUT_DIR}"
 mkdir -p "$WEIGHT_OUTPUT_DIR"
 
 pallets=(
-  "cumulus_pallet_xcmp_queue"
-  "frame_system" \
-  "pallet_balances" \
-  "pallet_collective" \
+#  "cumulus_pallet_xcmp_queue"
+#  "frame_system" \
+#  "pallet_balances" \
+#  "pallet_collective" \
 # ^^^ takes some time to complete
-  "pallet_membership" \
-  "pallet_timestamp" \
-  "pallet_treasury" \
-  "pallet_utility" \
-  "pallet_encointer_balances" \
-  "pallet_encointer_bazaar" \
-  "pallet_encointer_ceremonies" \
-  "pallet_encointer_communities" \
-  "pallet_encointer_scheduler" \
+#  "pallet_membership" \
+#  "pallet_timestamp" \
+#  "pallet_treasury" \
+#  "pallet_utility" \
+  "pallet_proxy" \
+#  "pallet_encointer_balances" \
+#  "pallet_encointer_bazaar" \
+#  "pallet_encointer_ceremonies" \
+#  "pallet_encointer_communities" \
+#  "pallet_encointer_scheduler" \
+  "pallet_encointer_faucet" \
+#  "pallet_encointer_reputation_commitments" \
 )
 
 for pallet in ${pallets[*]}; do

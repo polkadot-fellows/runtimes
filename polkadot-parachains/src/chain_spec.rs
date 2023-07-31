@@ -240,6 +240,9 @@ fn encointer_genesis(
 			// lower values lead to lower fees in CC proportionally
 			fee_conversion_factor: 100_000,
 		},
+		encointer_faucet: parachain_runtime::EncointerFaucetConfig {
+			reserve_amount: 10_000_000_000_000,
+		},
 	}
 }
 

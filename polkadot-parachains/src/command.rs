@@ -374,34 +374,25 @@ pub fn run() -> Result<()> {
 		},
 		#[cfg(feature = "try-runtime")]
 		Some(Subcommand::TryRuntime(cmd)) => {
-			// grab the task manager.
+			use parachain_runtime::MILLISECS_PER_BLOCK;
+			use try_runtime_cli::block_building_info::timestamp_with_aura_info;
+
 			let runner = cli.create_runner(cmd)?;
+
+			type HostFunctions =
+				(sp_io::SubstrateHostFunctions, frame_benchmarking::benchmarking::HostFunctions);
+
+			// grab the task manager.
 			let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
 			let task_manager =
 				sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
 					.map_err(|e| format!("Error: {:?}", e))?;
-			use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
-			type HostFunctionsOf<E> = ExtendedHostFunctions<
-				sp_io::SubstrateHostFunctions,
-				<E as NativeExecutionDispatch>::ExtendHostFunctions,
-			>;
-			if runner.config().chain_spec.is_launch() {
-				runner.async_run(|_| {
-					Ok((
-						cmd.run::<Block, HostFunctionsOf<LaunchParachainRuntimeExecutor>>(),
-						task_manager,
-					))
-				})
-			} else if runner.config().chain_spec.is_encointer() {
-				runner.async_run(|_| {
-					Ok((
-						cmd.run::<Block, HostFunctionsOf<EncointerParachainRuntimeExecutor>>(),
-						task_manager,
-					))
-				})
-			} else {
-				Err("Chain doesn't support try-runtime".into())
-			}
+
+			let info_provider = timestamp_with_aura_info(MILLISECS_PER_BLOCK);
+
+			runner.async_run(|_| {
+				Ok((cmd.run::<Block, HostFunctions, _>(Some(info_provider)), task_manager))
+			})
 		},
 		#[cfg(not(feature = "try-runtime"))]
 		Some(Subcommand::TryRuntime) => Err("Try-runtime was not enabled when building the node. \

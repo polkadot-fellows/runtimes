@@ -72,6 +72,48 @@ jobs:
           name: encointer-collator-${{ github.sha }}
           path: target/release/encointer-collator
 
+  build_try_runtime_and_benchmark_binaries:
+    name: extra flags build ${{ matrix.binary }} for ${{ matrix.rust-target }} on (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        rust: [stable]
+        binary: [release]
+    env:
+      RUST_BACKTRACE: full
+      RUSTV: ${{ matrix.rust }}
+      TARGET: ${{ matrix.rust-target }}
+      RUST_BIN_DIR: target/${{ matrix.rust-target }}/debug
+      RELEASE_NAME: debug
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install protoc
+        run: sudo apt-get install protobuf-compiler
+
+      - name: Print env
+        run: |
+          echo "RUST_BIN_DIR = ${{ env.RUST_BIN_DIR }} "
+
+      # With rustup's nice new toml format, we just need to run rustup show to install the toolchain
+      # https://github.com/actions-rs/toolchain/issues/126#issuecomment-782989659
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}-${{ env.RUST_BIN_DIR }}-${{ matrix.binary }}
+
+      - name: Release
+        if: ${{ matrix.binary == 'release' }}
+        run: cargo build --locked --release --features try-runtime,runtime-benchmarks
+
+      # Upload artifacts
+      - name: Upload encointer-collator
+        uses: actions/upload-artifact@v3
+        with:
+          name: encointer-collator-benchmark-try-runtime-${{ github.sha }}
+          path: target/release/encointer-collator
 
   # Run all checks and unit test. This always run on debug mode
   check:
@@ -134,7 +176,7 @@ jobs:
 
       - name: Install protoc
         run: sudo apt-get install protobuf-compiler
-        
+
       - name: Cache target dir
         uses: actions/cache@v3
         with:
@@ -149,7 +191,6 @@ jobs:
         uses: chevdor/srtool-actions@v0.7.0
         with:
           chain: ${{ matrix.runtime }}
-          tag: 1.66.1
           runtime_dir: polkadot-parachains/${{ matrix.runtime }}-runtime
 
       - name: Summary

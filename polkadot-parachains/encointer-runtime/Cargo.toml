@@ -22,6 +22,7 @@ serde = { version = "1.0.132", default-features = false, optional = true, featur
 
 # encointer deps
 encointer-balances-tx-payment = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 encointer-primitives = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-balances = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-bazaar = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
@@ -30,6 +31,8 @@ pallet-encointer-ceremonies = { default-features = false, git = "https://github.
 pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-communities = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-communities-rpc-runtime-api = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-faucet = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
+pallet-encointer-reputation-commitments = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-scheduler = { default-features = false, git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 runtime-common = { default-features = false, path = "../runtime-common" }
 
@@ -98,9 +101,9 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 [features]
 default = ["std"]
 runtime-benchmarks = [
-    "frame-benchmarking",
+    "frame-benchmarking/runtime-benchmarks",
     "frame-support/runtime-benchmarks",
-    "frame-system-benchmarking",
+    "frame-system-benchmarking/runtime-benchmarks",
     "hex-literal",
     "sp-runtime/runtime-benchmarks",
     "xcm-builder/runtime-benchmarks",
@@ -112,6 +115,7 @@ runtime-benchmarks = [
     "pallet-balances/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
     "pallet-membership/runtime-benchmarks",
+    "pallet-proxy/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-treasury/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
@@ -119,6 +123,8 @@ runtime-benchmarks = [
     "pallet-encointer-bazaar/runtime-benchmarks",
     "pallet-encointer-ceremonies/runtime-benchmarks",
     "pallet-encointer-communities/runtime-benchmarks",
+    "pallet-encointer-faucet/runtime-benchmarks",
+    "pallet-encointer-reputation-commitments/runtime-benchmarks",
     "pallet-encointer-scheduler/runtime-benchmarks",
 ]
 std = [
@@ -172,6 +178,7 @@ std = [
     # encointer
     "runtime-common/std",
     "encointer-balances-tx-payment/std",
+    "encointer-balances-tx-payment-rpc-runtime-api/std",
     "encointer-primitives/std",
     "encointer-primitives/serde_derive",
     "pallet-encointer-balances/std",
@@ -181,6 +188,8 @@ std = [
     "pallet-encointer-ceremonies-rpc-runtime-api/std",
     "pallet-encointer-communities/std",
     "pallet-encointer-communities-rpc-runtime-api/std",
+    "pallet-encointer-faucet/std",
+    "pallet-encointer-reputation-commitments/std",
     "pallet-encointer-scheduler/std",
     "frame-try-runtime/std",
 ]
@@ -214,4 +223,6 @@ try-runtime = [
     "pallet-encointer-communities/try-runtime",
     "pallet-encointer-balances/try-runtime",
     "pallet-encointer-bazaar/try-runtime",
+    "pallet-encointer-faucet/try-runtime",
+    "pallet-encointer-reputation-commitments/try-runtime",
 ]

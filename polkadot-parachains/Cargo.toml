@@ -29,6 +29,7 @@ launch-runtime = { package = "launch-runtime", path = "launch-runtime" }
 parachain-runtime = { package = "encointer-runtime", path = "encointer-runtime" }
 
 # encointer dependencies
+encointer-balances-tx-payment-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-bazaar-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }
 pallet-encointer-ceremonies-rpc = { git = "https://github.com/encointer/pallets", branch = "polkadot-v0.9.42-pallets-v1.3.0" }

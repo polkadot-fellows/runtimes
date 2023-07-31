@@ -50,11 +50,15 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use encointer_balances_tx_payment::{AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter},
+	traits::{
+		tokens::ConversionToAssetBalance, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+		InstanceFilter,
+	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId, RuntimeDebug,
 };
@@ -63,6 +67,8 @@ use frame_system::{
 	EnsureRoot,
 };
 pub use parachains_common as common;
+pub use parachains_common::MILLISECS_PER_BLOCK;
+
 use parachains_common::{
 	opaque, AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT,
 	NORMAL_DISPATCH_RATIO, SLOT_DURATION,
@@ -78,6 +84,8 @@ pub use pallet_encointer_bazaar::Call as EncointerBazaarCall;
 pub use pallet_encointer_ceremonies::Call as EncointerCeremoniesCall;
 pub use pallet_encointer_communities::Call as EncointerCommunitiesCall;
 // pub use pallet_encointer_personhood_oracle::Call as EncointerPersonhoodOracleCall;
+pub use pallet_encointer_faucet::Call as EncointerFaucetCall;
+pub use pallet_encointer_reputation_commitments::Call as EncointerReputationCommitmentsCall;
 pub use pallet_encointer_scheduler::Call as EncointerSchedulerCall;
 // pub use pallet_encointer_sybil_gate_template::Call as EncointerSybilGateCall;
 
@@ -109,6 +117,9 @@ pub(crate) use runtime_common::{
 /// A type to hold UTC unix epoch [ms]
 pub type Moment = u64;
 pub const ONE_DAY: Moment = 86_400_000;
+
+pub type AssetId = AssetIdOf<Runtime>;
+pub type AssetBalance = AssetBalanceOf<Runtime>;
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -440,6 +451,7 @@ parameter_types! {
 	pub const MeetupSizeTarget: u64 = 10;
 	pub const MeetupMinSize: u64 = 3;
 	pub const MeetupNewbieLimitDivider: u64 = 2; // 2 means 1/3 of participants may be newbies
+	pub const FaucetPalletId: PalletId = PalletId(*b"ectrfct0");
 }
 
 impl pallet_encointer_scheduler::Config for Runtime {
@@ -487,19 +499,18 @@ impl pallet_encointer_bazaar::Config for Runtime {
 	type WeightInfo = weights::pallet_encointer_bazaar::WeightInfo<Runtime>;
 }
 
-// impl pallet_encointer_personhood_oracle::Config for Runtime {
-// 	type RuntimeEvent = RuntimeEvent;
-// 	type XcmSender = XcmRouter;
-// }
-//
-// impl pallet_encointer_sybil_gate_template::Config for Runtime {
-// 	type RuntimeEvent = RuntimeEvent;
-// 	type RuntimeCall = RuntimeCall;
-// 	type XcmSender = XcmRouter;
-// 	type Currency = Balances;
-// 	type Public = <Signature as Verify>::Signer;
-// 	type Signature = Signature;
-// }
+impl pallet_encointer_reputation_commitments::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_encointer_reputation_commitments::WeightInfo<Runtime>;
+}
+
+impl pallet_encointer_faucet::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ControllerOrigin = EnsureRoot<AccountId>;
+	type Currency = Balances;
+	type PalletId = FaucetPalletId;
+	type WeightInfo = weights::pallet_encointer_faucet::WeightInfo<Runtime>;
+}
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
@@ -601,9 +612,8 @@ construct_runtime! {
 		EncointerCommunities: pallet_encointer_communities::{Pallet, Call, Storage, Config, Event<T>} = 62,
 		EncointerBalances: pallet_encointer_balances::{Pallet, Call, Storage, Config, Event<T>} = 63,
 		EncointerBazaar: pallet_encointer_bazaar::{Pallet, Call, Storage, Event<T>} = 64,
-		//
-		// EncointerPersonhoodOracle: pallet_encointer_personhood_oracle::{Pallet, Call, Event} = 70,
-		// EncointerSybilGate: pallet_encointer_sybil_gate_template::{Pallet, Call, Storage, Event<T>} = 71,
+		EncointerReputationCommitments: pallet_encointer_reputation_commitments::{Pallet, Call, Storage, Event<T>} = 65,
+		EncointerFaucet: pallet_encointer_faucet::{Pallet, Call, Storage, Config<T>, Event<T>} = 66,
 	}
 }
 
@@ -665,10 +675,13 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
+		[pallet_proxy, Proxy]
 		[pallet_encointer_balances, EncointerBalances]
 		[pallet_encointer_bazaar, EncointerBazaar]
 		[pallet_encointer_ceremonies, EncointerCeremonies]
 		[pallet_encointer_communities, EncointerCommunities]
+		[pallet_encointer_faucet, EncointerFaucet]
+		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
 		[pallet_encointer_scheduler, EncointerScheduler]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 	);
@@ -831,6 +844,14 @@ impl_runtime_apis! {
 
 		fn get_businesses(community: &CommunityIdentifier) -> Vec<(AccountId, BusinessData)>{
 			EncointerBazaar::get_businesses(community)
+		}
+	}
+
+	impl encointer_balances_tx_payment_rpc_runtime_api::BalancesTxPaymentApi<Block, Balance, AssetId, AssetBalance> for Runtime {
+		fn balance_to_asset_balance(amount: Balance, asset_id: AssetId) -> Result<AssetBalance, encointer_balances_tx_payment_rpc_runtime_api::Error> {
+			BalanceToCommunityBalance::<Runtime>::to_asset_balance(amount, asset_id).map_err(|_e|
+				encointer_balances_tx_payment_rpc_runtime_api::Error::RuntimeError
+			)
 		}
 	}
 

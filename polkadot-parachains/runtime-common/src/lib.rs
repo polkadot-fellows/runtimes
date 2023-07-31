@@ -25,3 +25,6 @@ pub mod weights;
 // copied from cumulus/parachains/runtimes/assets/statemine/constants
 mod constants;
 pub use constants::{currency, fee};
+
+pub const MILLISECS_PER_BLOCK: u64 = 12000;
+pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
