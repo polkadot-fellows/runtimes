@@ -17,7 +17,7 @@ codec = { package = "parity-scale-codec", version = "3.0.0" }
 futures = { version = "0.3.28", features = ["compat"] }
 hex-literal = "0.4.1"
 jsonrpsee = { version = "0.16.2", features = ["server"] }
-log = "0.4.17"
+log = "0.4.19"
 serde = { version = "1.0.167", features = ["derive"] }
 
 # added by encointer

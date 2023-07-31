@@ -160,14 +160,6 @@ impl SubstrateCli for Cli {
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
 		load_spec(id)
 	}
-
-	fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		if chain_spec.is_launch() {
-			&launch_runtime::VERSION
-		} else {
-			&parachain_runtime::VERSION
-		}
-	}
 }
 
 impl SubstrateCli for RelayChainCli {
