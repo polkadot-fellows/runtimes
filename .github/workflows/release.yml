@@ -93,11 +93,12 @@ jobs:
           C "## Runtime info"
           C "*These runtimes were built with $(SRTOOL rustc) using $(SRTOOL gen)*  "
           for JSON in $(find . -name '*_srtool_output.json' | sort -sr); do
-            WASM() { <${JSON} jq -r .runtimes.compact.subwasm.$1; }
+            WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
 
             C "### $(WASM core_version.specName)"
             C '```'
             C "🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)"
+            C "🗜 Compressed:             $(WASM '.compression.compressed | if . then "Yes" else "No" end'): $(WASM '.compression | 1 - .size_compressed / .size_decompressed | . * 10000 | round / 100')%"
             C "🔥 Core Version:           $(WASM core_version.specName)-$(WASM core_version.specVersion) $(WASM core_version.implName)-$(WASM core_version.implVersion).tx$(WASM core_version.transactionVersion).au$(WASM core_version.authoringVersion)"
             C "🎁 Metadata version:       V$(WASM metadata_version)"
             C "🗳️ Blake2-256 hash:        $(WASM blake2_256)"
