@@ -88,9 +88,11 @@ jobs:
 
       - name: Add runtime info to changelog
         run: |
-          >>CHANGELOG echo "## Runtime info"
+          C() { >>CHANGELOG echo $@; }
+          SRTOOL() { <$(find . -name '*_srtool_output.json' | head -n1) jq -r $1; }
+          C "## Runtime info"
+          C "*These runtimes were built with $(SRTOOL rustc) using $(SRTOOL gen)*  "
           for JSON in $(find . -name '*_srtool_output.json' | sort -sr); do
-            C() { >>CHANGELOG echo $@; }
             WASM() { <${JSON} jq -r .runtimes.compact.subwasm.$1; }
 
             C "### $(WASM core_version.specName)"
