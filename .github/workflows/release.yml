@@ -92,7 +92,7 @@ jobs:
           SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
           >>CHANGELOG cat <<-EOF
           ## Runtime info
-          *These runtimes were built with $(SRTOOL rustc) using $(SRTOOL gen)*
+          *These runtimes were built with **$(SRTOOL rustc)** using **$(SRTOOL gen)***
           EOF
           WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
           for JSON in $(<<<$CONTEXT sort -sr)
