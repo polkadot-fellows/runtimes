@@ -94,12 +94,12 @@ jobs:
           SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
           >>CHANGELOG cat <<-EOF
           ## Runtime info
-          *These runtimes were built with **$(SRTOOL rustc)** using **$(SRTOOL gen)***
+          *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
           EOF
           WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
           for JSON in $(<<<$CONTEXT sort -sr)
           do >>CHANGELOG cat <<-EOF
-          ### $(WASM core_version.specName)
+          ### $(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
           \`\`\`
           🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
           🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')
