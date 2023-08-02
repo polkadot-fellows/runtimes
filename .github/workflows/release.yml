@@ -88,22 +88,25 @@ jobs:
 
       - name: Add runtime info to changelog
         run: |
-          C() { >>CHANGELOG echo $@; }
-          SRTOOL() { <$(find . -name '*_srtool_output.json' | head -n1) jq -r .$1; }
-          C "## Runtime info"
-          C "*These runtimes were built with $(SRTOOL rustc) using $(SRTOOL gen)*  "
-          for JSON in $(find . -name '*_srtool_output.json' | sort -sr); do
-            WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
-
-            C "### $(WASM core_version.specName)"
-            C '```'
-            C "🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)"
-            C "🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')"
-            C "🔥 Core Version:           $(WASM 'core_version | "\(.specName)-\(.specVersion) \(.implName)-\(.implVersion).tx\(.transactionVersion).au\(.authoringVersion)"')"
-            C "🎁 Metadata version:       V$(WASM metadata_version)"
-            C "🗳️ Blake2-256 hash:        $(WASM blake2_256)"
-            C "📦 IPFS:                   $(WASM ipfs_hash)"
-            C '```'
+          CONTEXT=$(find . -name '*_srtool_output.json')
+          SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
+          >>CHANGELOG cat <<-EOF
+          ## Runtime info
+          *These runtimes were built with $(SRTOOL rustc) using $(SRTOOL gen)*
+          EOF
+          WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
+          for JSON in $(<<<$CONTEXT sort -sr)
+          do >>CHANGELOG cat <<-EOF
+          ### $(WASM core_version.specName)
+          \`\`\`
+          🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
+          🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')
+          🔥 Core Version:           $(WASM 'core_version | "\(.specName)-\(.specVersion) \(.implName)-\(.implVersion).tx\(.transactionVersion).au\(.authoringVersion)"')
+          🎁 Metadata version:       V$(WASM metadata_version)
+          🗳️ Blake2-256 hash:        $(WASM blake2_256)
+          📦 IPFS:                   $(WASM ipfs_hash)
+          \`\`\`
+          EOF
           done
       - name: Create draft release
         id: create-release
