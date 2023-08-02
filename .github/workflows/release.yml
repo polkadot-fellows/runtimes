@@ -95,7 +95,7 @@ jobs:
 
             C "### $(WASM core_version.specName)"
             C '```'
-            C "🏋️ Runtime Size:           $(WASM size) bytes"
+            C "🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)"
             C "🔥 Core Version:           $(WASM core_version.specName)-$(WASM core_version.specVersion) $(WASM core_version.implName)-$(WASM core_version.implVersion).tx$(WASM core_version.transactionVersion).au$(WASM core_version.authoringVersion)"
             C "🎁 Metadata version:       V$(WASM metadata_version)"
             C "🗳️ Blake2-256 hash:        $(WASM blake2_256)"
