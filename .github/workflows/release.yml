@@ -93,17 +93,17 @@ jobs:
           CONTEXT=$(find . -name '*_srtool_output.json')
           SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
           WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
-          >>DRAFT cat <<-CHANGELOG_EOF <CHANGELOG <<-RUNTIMES_EOF
+          tee -a DRAFT <<-EOF <CHANGELOG <<-EOF
 
           ## Changelog
-          CHANGELOG_EOF
+          EOF
 
           ## Runtime info
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
-          RUNTIMES_EOF
+          EOF
 
           for JSON in $(<<<$CONTEXT sort -sr)
-          do >>DRAFT cat <<-EOF
+          do tee -a DRAFT <<-EOF
 
           ### $(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
           ~~~
