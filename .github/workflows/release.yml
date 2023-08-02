@@ -89,7 +89,7 @@ jobs:
       - name: Add runtime info to changelog
         run: |
           >>CHANGELOG echo "## Runtime info"
-          for JSON in $(find . -name '*_srtool_output.json'); do
+          for JSON in $(find . -name '*_srtool_output.json' | sort -sr); do
             C() { >>CHANGELOG echo $@; }
             WASM() { <${JSON} jq -r .runtimes.compact.subwasm.$1; }
 
