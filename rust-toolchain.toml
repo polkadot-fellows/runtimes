@@ -1,6 +1,0 @@
-# https://stackoverflow.com/questions/75955457/substrate-node-template-cannot-create-a-runtime-error-othercannot-deserialize
-[toolchain]
-channel = "nightly-2023-05-22"
-components = [ "rustfmt" ]
-targets = [ "wasm32-unknown-unknown" ]
-profile = "minimal"
