@@ -92,22 +92,28 @@ jobs:
         run: |
           CONTEXT=$(find . -name '*_srtool_output.json')
           SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
-          >>CHANGELOG cat <<-EOF
+          WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
+          >>DRAFT cat <<-CHANGELOG_EOF <CHANGELOG <<-RUNTIMES_EOF
+
+          ## Changelog
+          CHANGELOG_EOF
+
           ## Runtime info
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
-          EOF
-          WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
+          RUNTIMES_EOF
+
           for JSON in $(<<<$CONTEXT sort -sr)
-          do >>CHANGELOG cat <<-EOF
+          do >>DRAFT cat <<-EOF
+
           ### $(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
-          \`\`\`
+          ~~~
           🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
           🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')
           🔥 Core Version:           $(WASM 'core_version | "\(.specName)-\(.specVersion) \(.implName)-\(.implVersion).tx\(.transactionVersion).au\(.authoringVersion)"')
           🎁 Metadata version:       V$(WASM metadata_version)
           🗳️ Blake2-256 hash:        $(WASM blake2_256)
           📦 IPFS:                   $(WASM ipfs_hash)
-          \`\`\`
+          ~~~
           EOF
           done
 
@@ -119,7 +125,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Runtimes ${{ github.sha }}
-          body_path: CHANGELOG
+          body_path: DRAFT
           draft: true
 
   publish-runtimes:
