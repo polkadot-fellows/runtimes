@@ -45,10 +45,11 @@ jobs:
 
       - name: Build ${{ matrix.runtime[1] }}
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.7.0
+        uses: chevdor/srtool-actions@v0.8.0
         with:
           chain: ${{ matrix.runtime[1] }}
           runtime_dir: "${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}"
+          profile: "production"
 
       - name: Store ${{ matrix.runtime[1] }} srtool digest to disk
         run: |
