@@ -8,7 +8,6 @@ members = [
 	"system-parachains/asset-hubs/asset-hub-polkadot",
 	"system-parachains/bridge-hubs/bridge-hub-kusama",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
-	"system-parachains/bridge-hubs/bridge-hub-rococo",
 	"system-parachains/collectives/collectives-polkadot",
 ]
 
