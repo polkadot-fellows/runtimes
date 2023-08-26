@@ -17,9 +17,9 @@
 //! XCM configurations for the Kusama runtime.
 
 use super::{
-	governance::Spender, parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp,
-	Fellows, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
-	TransactionByteFee, WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, ParaId, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee, WeightToFee,
+	XcmPallet,
 };
 use frame_support::{
 	match_types, parameter_types,
@@ -353,8 +353,8 @@ parameter_types! {
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
-	// Spender pluralistic body.
-	pub const SpenderBodyId: BodyId = BodyId::Treasury;
+	// Treasurer pluralistic body.
+	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -376,8 +376,8 @@ pub type StakingAdminToPlurality =
 /// Type to convert the Fellows origin to a Plurality `MultiLocation` value.
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
-/// Type to convert the Fellows origin to a Plurality `MultiLocation` value.
-pub type SpenderToPlurality = OriginToPluralityVoice<RuntimeOrigin, Spender, SpenderBodyId>;
+/// Type to convert the Treasury origin to a Plurality `MultiLocation` value.
+pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
 
 /// Type to convert a pallet `Origin` type value into a `MultiLocation` value which represents an interior location
 /// of this chain for a destination chain.
@@ -386,8 +386,8 @@ pub type LocalPalletOriginToLocation = (
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
 	FellowsToPlurality,
-	// Spender origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
-	SpenderToPlurality,
+	// Treasurer origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
+	TreasurerToPlurality,
 );
 
 impl pallet_xcm::Config for Runtime {
