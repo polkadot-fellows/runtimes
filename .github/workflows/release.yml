@@ -1,0 +1,168 @@
+name: Create Draft Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - CHANGELOG
+  workflow_dispatch:
+
+jobs:
+  enumerate:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.generate-matrix.outputs.runtime }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Generate runtime matrix
+        id: generate-matrix
+        run: |
+          >>$GITHUB_OUTPUT echo runtime="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}' | tr -d $'\n')]"
+
+  build-runtimes:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    needs:
+      - enumerate
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Cache target dir
+        uses: actions/cache@v3
+        with:
+          path: "${{ github.workspace }}/${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}/target"
+          key: srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-${{ github.sha }}
+          restore-keys: |
+            srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-
+            srtool-target-${{ matrix.runtime[0] }}-
+
+      - name: Build ${{ matrix.runtime[1] }}
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.8.0
+        env:
+          BUILD_OPTS: "--features on-chain-release-build"
+        with:
+          chain: ${{ matrix.runtime[1] }}
+          runtime_dir: "${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}"
+          profile: "production"
+
+      - name: Store ${{ matrix.runtime[1] }} srtool digest to disk
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime[1] }}_srtool_output.json
+
+      - name: Upload ${{ matrix.runtime[1] }} srtool json
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.runtime[1] }}-srtool-json
+          path: ${{ matrix.runtime[1] }}_srtool_output.json
+
+      - name: Upload  ${{ matrix.runtime[1] }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.runtime[1] }}
+          path: |
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
+
+  publish-draft-release:
+    runs-on: ubuntu-latest
+    needs:
+      - build-runtimes
+    outputs:
+      release_url: ${{ steps.create-release.outputs.html_url }}
+      asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download srtool json output
+        uses: actions/download-artifact@v3
+
+      - name: Archive context output
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-notes-context
+          path: |
+            **/*_srtool_output.json
+
+      - name: Add runtime info to changelog
+        run: |
+          CONTEXT=$(find . -name '*_srtool_output.json')
+          SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
+          WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
+          tee -a DRAFT <<-EOF
+          ## Changelog
+          EOF
+          tee -a DRAFT <CHANGELOG
+          tee -a DRAFT <<-EOF
+          ## Runtime info
+          *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
+          EOF
+
+          for JSON in $(<<<$CONTEXT sort -sr)
+          do tee -a DRAFT <<-EOF
+
+          ### $(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
+          ~~~
+          🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
+          🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')
+          🔥 Core Version:           $(WASM 'core_version | "\(.specName)-\(.specVersion) \(.implName)-\(.implVersion).tx\(.transactionVersion).au\(.authoringVersion)"')
+          🎁 Metadata version:       V$(WASM metadata_version)
+          🗳️ Blake2-256 hash:        $(WASM blake2_256)
+          📦 IPFS:                   $(WASM ipfs_hash)
+          ~~~
+          EOF
+          done
+
+      - name: Create draft release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Runtimes ${{ github.sha }}
+          body_path: DRAFT
+          draft: true
+
+  publish-runtimes:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    env:
+      RUNTIME_DIR: runtime
+    needs:
+      - publish-draft-release
+      - enumerate
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Get runtime info
+        env:
+          JSON: release-notes-context/${{ matrix.runtime[1] }}-srtool-json/${{ matrix.runtime[1] }}_srtool_output.json
+        run: |
+          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime[1] }} -name '*.compact.compressed.wasm')
+          >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
+          >>$GITHUB_ENV echo TXVER=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.transactionVersion)
+
+      - name: Upload compressed ${{ matrix.runtime[1] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ matrix.runtime[1] }}_runtime-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
+          asset_content_type: application/wasm
