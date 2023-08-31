@@ -4,6 +4,7 @@ Do not modify the `relay/` or `system-parachains/` folder. They are currently re
 
 ## Folder Structure
 
+<!-- tree -I 'target' -d -L 3 -->
 ```pre
 .
 ├── relay
@@ -19,8 +20,7 @@ Do not modify the `relay/` or `system-parachains/` folder. They are currently re
     │   └── asset-hub-polkadot
     ├── bridge-hubs
     │   ├── bridge-hub-kusama
-    │   ├── bridge-hub-polkadot
-    │   └── bridge-hub-rococo
+    │   └── bridge-hub-polkadot
     └── collectives
         └── collectives-polkadot
 ```
