@@ -367,6 +367,8 @@ parameter_types! {
 pub type LocalOriginToLocation = (
 	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
+	// Treasury Origin to be used to reserve transfer
+	TreasurerToPlurality,
 );
 
 /// Type to convert the `StakingAdmin` origin to a Plurality `MultiLocation` value.
@@ -386,8 +388,6 @@ pub type LocalPalletOriginToLocation = (
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
 	FellowsToPlurality,
-	// Treasurer origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
-	TreasurerToPlurality,
 );
 
 impl pallet_xcm::Config for Runtime {
