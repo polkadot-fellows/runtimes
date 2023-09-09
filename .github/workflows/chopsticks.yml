@@ -1,0 +1,54 @@
+name: "Run Chopsticks E2E Integration Tests"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  e2e_integration_tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler wget curl git python3 make build-essential
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install e2e tests repo
+        run: git clone https://github.com/AcalaNetwork/e2e-tests && yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
+
+      - name: Build runtimes
+        run: cargo build --release
+
+      - name: Install e2e tests repo
+        run:  yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
+
+      - name: Run e2e tests
+        env:
+          KUSAMA_WASM: "../target/release/wbuild/kusama-runtime/kusama_runtime.compact.compressed.wasm"
+          POLKADOT_WASM: "../target/release/wbuild/polkadot-runtime/polkadot_runtime.compact.compressed.wasm"
+          STATEMINE_WASM: "../target/release/wbuild/asset-hub-kusama-runtime/asset_hub_kusama_runtime.compact.compressed.wasm"
+          STATEMINT_WASM: "../target/release/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.compact.compressed.wasm"
+        run: find e2e-tests/tests/ -name '*.test.*' | xargs rm -rf && cp -r chopsticks/*  e2e-tests/tests/ && yarn --cwd e2e-tests test

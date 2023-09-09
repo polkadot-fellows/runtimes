@@ -1,0 +1,88 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > balance on from chain 1`] = `
+{
+  "consumers": 0,
+  "data": {
+    "flags": "0x80000000000000000000000000000000",
+    "free": "(rounded 9000000000000)",
+    "frozen": 0,
+    "reserved": 0,
+  },
+  "nonce": 1,
+  "providers": 1,
+  "sufficients": 0,
+}
+`;
+
+exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > balance on to chain 1`] = `
+{
+  "consumers": 0,
+  "data": {
+    "flags": 0,
+    "free": 10000000000000,
+    "frozen": 0,
+    "reserved": 0,
+  },
+  "nonce": 0,
+  "providers": 1,
+  "sufficients": 0,
+}
+`;
+
+exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > to chain dmp events 1`] = `
+[
+  {
+    "data": {
+      "count": 1,
+    },
+    "method": "DownwardMessagesReceived",
+    "section": "parachainSystem",
+  },
+  {
+    "data": {
+      "messageHash": "(hash)",
+      "messageId": "(hash)",
+      "outcome": {
+        "Incomplete": [
+          {
+            "proofSize": 0,
+            "refTime": 1000000000,
+          },
+          "UntrustedReserveLocation",
+        ],
+      },
+    },
+    "method": "ExecutedDownward",
+    "section": "dmpQueue",
+  },
+  {
+    "data": {
+      "dmqHead": "(hash)",
+      "weightUsed": {
+        "proofSize": 0,
+        "refTime": 1000000000,
+      },
+    },
+    "method": "DownwardMessagesProcessed",
+    "section": "parachainSystem",
+  },
+]
+`;
+
+exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > tx events 1`] = `
+[
+  {
+    "data": {
+      "outcome": {
+        "Complete": {
+          "proofSize": 0,
+          "refTime": "(rounded 753000000)",
+        },
+      },
+    },
+    "method": "Attempted",
+    "section": "xcmPallet",
+  },
+]
+`;
