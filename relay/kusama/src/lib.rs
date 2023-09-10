@@ -58,8 +58,9 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter, KeyOwnerProofSystem,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, StorageMapShim, WithdrawReasons,
+		ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut, InstanceFilter,
+		KeyOwnerProofSystem, PrivilegeCmp, ProcessMessage, ProcessMessageError, StorageMapShim,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId, RuntimeDebug,
@@ -164,13 +165,24 @@ impl Contains<RuntimeCall> for BaseFilter {
 	}
 }
 
+/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
+/// locking the state of the pallet and preventing further updates to identities and sub-identities.
+/// The locked state will be the genesis state of a new system chain and then removed from the Relay
+/// Chain.
+pub struct IdentityCalls;
+impl Contains<RuntimeCall> for IdentityCalls {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Identity(_))
+	}
+}
+
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub const SS58Prefix: u8 = 2;
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = EverythingBut<IdentityCalls>;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
