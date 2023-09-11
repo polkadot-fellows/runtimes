@@ -30,7 +30,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
           target: wasm32-unknown-unknown
 
       - name: Checkout
@@ -40,7 +39,7 @@ jobs:
         run: git clone https://github.com/AcalaNetwork/e2e-tests && yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
 
       - name: Build runtimes
-        run: cargo build --release --locked
+        run: cargo build --release -p *-runtime --locked
 
       - name: Run e2e tests
         env:
@@ -48,4 +47,5 @@ jobs:
           POLKADOT_WASM: "../target/release/wbuild/polkadot-runtime/polkadot_runtime.compact.compressed.wasm"
           STATEMINE_WASM: "../target/release/wbuild/asset-hub-kusama-runtime/asset_hub_kusama_runtime.compact.compressed.wasm"
           STATEMINT_WASM: "../target/release/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.compact.compressed.wasm"
+#       Delete all existing tests and replace with runtime specific tests defined in the chopsticks folder
         run: find e2e-tests/tests/ -name '*.test.*' | xargs rm -rf && cp -r chopsticks/*  e2e-tests/tests/ && yarn --cwd e2e-tests test
