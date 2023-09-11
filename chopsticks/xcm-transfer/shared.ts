@@ -75,9 +75,6 @@ export default function buildTest(tests: ReadonlyArray<TestType>) {
       if ('xtokensUp' in test) {
         const { balance, tx } = test.xtokensUp
         it('xtokens transfer', async () => {
-          console.log("**** balance is ");
-          console.log(balance);
-
           const tx0 = await sendTransaction(tx(fromChain, toAccount.addressRaw).signAsync(fromAccount))
 
           await fromChain.chain.newBlock()
