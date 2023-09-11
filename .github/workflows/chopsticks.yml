@@ -40,7 +40,7 @@ jobs:
         run: git clone https://github.com/AcalaNetwork/e2e-tests && yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
 
       - name: Build runtimes
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: Install e2e tests repo
         run:  yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
