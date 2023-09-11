@@ -41,6 +41,7 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > to 
   },
   {
     "data": {
+      "messageHash": "(hash)",
       "messageId": "(hash)",
       "outcome": {
         "Complete": {
@@ -69,14 +70,14 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > to 
 exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > tx events 1`] = `
 [
   {
-    "data": [
-      {
+    "data": {
+      "outcome": {
         "Complete": {
           "proofSize": 0,
           "refTime": 3000000000,
         },
       },
-    ],
+    },
     "method": "Attempted",
     "section": "xcmPallet",
   },
