@@ -19,8 +19,8 @@ exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > balan
 {
   "consumers": 0,
   "data": {
-    "flags": 0,
-    "free": 10000000000000,
+    "flags": "0x80000000000000000000000000000000",
+    "free": "(rounded 11000000000000)",
     "frozen": 0,
     "reserved": 0,
   },
@@ -44,13 +44,10 @@ exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > to ch
       "messageHash": "(hash)",
       "messageId": "(hash)",
       "outcome": {
-        "Incomplete": [
-          {
-            "proofSize": 0,
-            "refTime": 1000000000,
-          },
-          "UntrustedReserveLocation",
-        ],
+        "Complete": {
+          "proofSize": 0,
+          "refTime": "(rounded 170000000)",
+        },
       },
     },
     "method": "ExecutedDownward",
@@ -61,7 +58,7 @@ exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > to ch
       "dmqHead": "(hash)",
       "weightUsed": {
         "proofSize": 0,
-        "refTime": 1000000000,
+        "refTime": "(rounded 170000000)",
       },
     },
     "method": "DownwardMessagesProcessed",
@@ -77,7 +74,7 @@ exports[`'kusama' -> 'statemine' xcm transfer 'KSM' > xcmPallet transfer > tx ev
       "outcome": {
         "Complete": {
           "proofSize": 0,
-          "refTime": "(rounded 753000000)",
+          "refTime": "(rounded 764000000)",
         },
       },
     },

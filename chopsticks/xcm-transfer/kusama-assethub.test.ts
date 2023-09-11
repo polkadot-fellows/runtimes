@@ -12,7 +12,7 @@ const tests = [
     name: 'KSM',
     test: {
       xcmPalletDown: {
-        tx: tx.xcmPallet.limitedReserveTransferAssetsV3(kusama.ksm, 1e12, tx.xcmPallet.parachainV3(0, statemine.paraId)),
+        tx: tx.xcmPallet.limitedTeleportAssets(kusama.ksm, 1e12, tx.xcmPallet.parachainV3(0, statemine.paraId)),
         balance: query.balances,
       },
     },

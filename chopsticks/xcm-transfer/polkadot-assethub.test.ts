@@ -12,7 +12,7 @@ const tests = [
     name: 'DOT',
     test: {
       xcmPalletDown: {
-        tx: tx.xcmPallet.limitedReserveTransferAssetsV3(polkadot.dot, 1e12, tx.xcmPallet.parachainV3(0, statemint.paraId)),
+        tx: tx.xcmPallet.limitedTeleportAssets(polkadot.dot, 1e12, tx.xcmPallet.parachainV3(0, statemint.paraId)),
         balance: query.balances,
       },
     },

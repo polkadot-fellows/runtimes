@@ -19,8 +19,8 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > bal
 {
   "consumers": 0,
   "data": {
-    "flags": 0,
-    "free": 10000000000000,
+    "flags": "0x80000000000000000000000000000000",
+    "free": "(rounded 11000000000000)",
     "frozen": 0,
     "reserved": 0,
   },
@@ -43,13 +43,10 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > to 
     "data": {
       "messageId": "(hash)",
       "outcome": {
-        "Incomplete": [
-          {
-            "proofSize": 0,
-            "refTime": 1000000000,
-          },
-          "UntrustedReserveLocation",
-        ],
+        "Complete": {
+          "proofSize": 0,
+          "refTime": "(rounded 160000000)",
+        },
       },
     },
     "method": "ExecutedDownward",
@@ -60,7 +57,7 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > to 
       "dmqHead": "(hash)",
       "weightUsed": {
         "proofSize": 0,
-        "refTime": 1000000000,
+        "refTime": "(rounded 160000000)",
       },
     },
     "method": "DownwardMessagesProcessed",
@@ -76,7 +73,7 @@ exports[`'polkadot' -> 'statemint' xcm transfer 'DOT' > xcmPallet transfer > tx 
       {
         "Complete": {
           "proofSize": 0,
-          "refTime": 2000000000,
+          "refTime": 3000000000,
         },
       },
     ],
