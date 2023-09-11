@@ -42,9 +42,6 @@ jobs:
       - name: Build runtimes
         run: cargo build --release --locked
 
-      - name: Install e2e tests repo
-        run:  yarn --cwd e2e-tests/ && yarn --cwd e2e-tests/ update-env
-
       - name: Run e2e tests
         env:
           KUSAMA_WASM: "../target/release/wbuild/kusama-runtime/kusama_runtime.compact.compressed.wasm"
