@@ -17,6 +17,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 repository = "https://github.com/polkadot-fellows/runtimes.git"
 version = "1.0.0"
+license = "GPL-3.0"
 
 [profile.release]
 # Polkadot runtime requires unwinding.
