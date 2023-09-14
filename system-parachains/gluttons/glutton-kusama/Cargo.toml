@@ -36,11 +36,11 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false, versi
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "2.0.0" }
 
 # Cumulus
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.2.0" }
-cumulus-pallet-xcm = { default-features = false , version = "0.2.0" }
-cumulus-primitives-core = { default-features = false , version = "0.2.0" }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.2.0" }
-parachains-common = { default-features = false , version = "2.0.0" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",], version = "0.2.0" }
+cumulus-pallet-xcm = { default-features = false, version = "0.2.0" }
+cumulus-primitives-core = { default-features = false, version = "0.2.0" }
+parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.2.0" }
+parachains-common = { default-features = false, version = "2.0.0" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "12.0.0" }
