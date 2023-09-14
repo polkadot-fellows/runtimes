@@ -1,0 +1,105 @@
+[package]
+name = "glutton-runtime"
+version = "1.0.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+
+# Substrate
+frame-benchmarking = { default-features = false, optional = true, version = "23.0.0" }
+frame-executive = { default-features = false, version = "23.0.0" }
+frame-support = { default-features = false, version = "23.0.0" }
+frame-system = { default-features = false, version = "23.0.0" }
+frame-system-rpc-runtime-api = { default-features = false, version = "21.0.0" }
+frame-system-benchmarking = { default-features = false, optional = true, version = "23.0.0" }
+frame-try-runtime = { default-features = false, optional = true, version = "0.29.0" }
+pallet-glutton = { default-features = false, optional = true, version = "9.0.0" }
+pallet-sudo = { default-features = false, optional = true, version = "23.0.0" }
+sp-api = { default-features = false, version = "21.0.0" }
+sp-block-builder = { default-features = false, version = "21.0.0" }
+sp-core = { default-features = false, version = "23.0.0" }
+sp-inherents = { default-features = false, version = "21.0.0" }
+sp-offchain = { default-features = false, version = "21.0.0" }
+sp-runtime = { default-features = false, version = "26.0.0" }
+sp-session = { default-features = false, version = "22.0.0" }
+sp-std = { default-features = false, version = "10.0.0" }
+sp-storage = { default-features = false, version = "15.0.0" }
+sp-transaction-pool = { default-features = false, version = "21.0.0" }
+sp-version = { default-features = false, version = "24.0.0" }
+
+# Polkadot
+xcm = { package = "staging-xcm", default-features = false, version = "2.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "2.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "2.0.0" }
+
+# Cumulus
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",], version = "0.2.0" }
+cumulus-pallet-xcm = { default-features = false, version = "0.2.0" }
+cumulus-primitives-core = { default-features = false, version = "0.2.0" }
+parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.2.0" }
+parachains-common = { default-features = false, version = "2.0.0" }
+
+[build-dependencies]
+substrate-wasm-builder = { version = "12.0.0" }
+
+[features]
+default = [ "std" ]
+runtime-benchmarks = [
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system-benchmarking/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-glutton/runtime-benchmarks",
+	"pallet-sudo?/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+]
+std = [
+	"codec/std",
+	"cumulus-pallet-parachain-system/std",
+	"cumulus-pallet-xcm/std",
+	"cumulus-primitives-core/std",
+	"frame-benchmarking?/std",
+	"frame-executive/std",
+	"frame-support/std",
+	"frame-system-benchmarking?/std",
+	"frame-system-rpc-runtime-api/std",
+	"frame-system/std",
+	"frame-try-runtime?/std",
+	"pallet-glutton/std",
+	"pallet-sudo/std",
+	"parachain-info/std",
+	"parachains-common/std",
+	"scale-info/std",
+	"sp-api/std",
+	"sp-block-builder/std",
+	"sp-core/std",
+	"sp-inherents/std",
+	"sp-offchain/std",
+	"sp-runtime/std",
+	"sp-session/std",
+	"sp-std/std",
+	"sp-storage/std",
+	"sp-transaction-pool/std",
+	"sp-version/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
+	"xcm/std",
+]
+try-runtime = [
+	"cumulus-pallet-parachain-system/try-runtime",
+	"cumulus-pallet-xcm/try-runtime",
+	"frame-executive/try-runtime",
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"frame-try-runtime/try-runtime",
+	"pallet-glutton/try-runtime",
+	"pallet-sudo/try-runtime",
+	"parachain-info/try-runtime",
+	"sp-runtime/try-runtime",
+]
