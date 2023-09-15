@@ -1,6 +1,6 @@
 [package]
 name = "collectives-polkadot-runtime"
-version = "1.0.0"
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 description = "Polkadot Collectives Parachain Runtime"

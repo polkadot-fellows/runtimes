@@ -1,6 +1,6 @@
 [package]
 name = "bridge-hub-polkadot-runtime"
-version = "0.1.0"
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 description = "Polkadot's BridgeHub parachain runtime"
