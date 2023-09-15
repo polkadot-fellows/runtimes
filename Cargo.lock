@@ -385,7 +385,7 @@ checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
 name = "asset-hub-kusama-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "asset-test-utils",
  "assets-common",
@@ -405,7 +405,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "kusama-runtime-constants 1.1.0",
+ "kusama-runtime-constants 1.0.0",
  "log",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "asset-hub-polkadot-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "asset-test-utils",
  "assets-common",
@@ -502,7 +502,7 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants 1.1.0",
+ "polkadot-runtime-constants 1.0.0",
  "scale-info",
  "smallvec",
  "sp-api",
@@ -1119,7 +1119,7 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-kusama-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "bridge-hub-test-utils",
  "cumulus-pallet-aura-ext",
@@ -1138,7 +1138,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "kusama-runtime-constants 1.1.0",
+ "kusama-runtime-constants 1.0.0",
  "log",
  "pallet-aura",
  "pallet-authorship",
@@ -1182,7 +1182,7 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-polkadot-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "bridge-hub-test-utils",
  "cumulus-pallet-aura-ext",
@@ -1219,7 +1219,7 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants 1.1.0",
+ "polkadot-runtime-constants 1.0.0",
  "scale-info",
  "serde",
  "smallvec",
@@ -1656,7 +1656,7 @@ dependencies = [
 
 [[package]]
 name = "collectives-polkadot-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -1700,7 +1700,7 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants 1.1.0",
+ "polkadot-runtime-constants 1.0.0",
  "scale-info",
  "smallvec",
  "sp-api",
@@ -3771,7 +3771,7 @@ dependencies = [
 
 [[package]]
 name = "glutton-kusama-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
@@ -4546,7 +4546,7 @@ dependencies = [
 
 [[package]]
 name = "kusama-runtime-constants"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "polkadot-primitives",
@@ -7817,7 +7817,7 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "bitvec",
  "frame-benchmarking",
@@ -7879,7 +7879,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants 1.1.0",
+ "polkadot-runtime-constants 1.0.0",
  "polkadot-runtime-parachains",
  "rustc-hex",
  "scale-info",
@@ -7968,7 +7968,7 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-constants"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "polkadot-primitives",
@@ -11108,7 +11108,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "staging-kusama-runtime"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
  "bitvec",
@@ -11122,7 +11122,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "kusama-runtime-constants 1.1.0",
+ "kusama-runtime-constants 1.0.0",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
