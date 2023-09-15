@@ -5,6 +5,7 @@ description = "Asset Hub Polkadot parachain runtime"
 edition.workspace = true
 license.workspace = true
 name = "asset-hub-polkadot-runtime"
+repository.workspace = true
 version.workspace = true
 
 [dependencies]

@@ -5,6 +5,7 @@ description = "Polkadot's BridgeHub parachain runtime"
 edition.workspace = true
 license.workspace = true
 name = "bridge-hub-polkadot-runtime"
+repository.workspace = true
 version.workspace = true
 
 [build-dependencies]

@@ -5,6 +5,7 @@ build = "build.rs"
 edition.workspace = true
 license.workspace = true
 name = "asset-hub-kusama-runtime"
+repository.workspace = true
 version.workspace = true
 
 [dependencies]

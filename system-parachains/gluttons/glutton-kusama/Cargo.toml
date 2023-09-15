@@ -5,6 +5,7 @@ description = "Runtime of the Kusama Glutton System-Parachain"
 edition.workspace = true
 license.workspace = true
 name = "glutton-kusama-runtime"
+repository.workspace = true
 version.workspace = true
 
 [dependencies]
