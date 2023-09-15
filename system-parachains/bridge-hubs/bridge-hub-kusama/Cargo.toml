@@ -1,9 +1,11 @@
 [package]
+authors.workspace = true
+build = "build.rs"
+description = "Kusama's BridgeHub parachain runtime"
+edition.workspace = true
+license.workspace = true
 name = "bridge-hub-kusama-runtime"
 version.workspace = true
-authors.workspace = true
-edition.workspace = true
-description = "Kusama's BridgeHub parachain runtime"
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "12.0.0" }

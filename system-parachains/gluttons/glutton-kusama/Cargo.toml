@@ -1,8 +1,11 @@
 [package]
-name = "glutton-runtime"
-version.workspace = true
 authors.workspace = true
+build = "build.rs"
+description = "Runtime of the Kusama Glutton System-Parachain"
 edition.workspace = true
+license.workspace = true
+name = "glutton-kusama-runtime"
+version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }

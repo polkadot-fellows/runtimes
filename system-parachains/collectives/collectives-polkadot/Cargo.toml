@@ -1,9 +1,11 @@
 [package]
+authors.workspace = true
+build = "build.rs"
+description = "Polkadot Collectives Parachain Runtime"
+edition.workspace = true
+license.workspace = true
 name = "collectives-polkadot-runtime"
 version.workspace = true
-authors.workspace = true
-edition.workspace = true
-description = "Polkadot Collectives Parachain Runtime"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
