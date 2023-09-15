@@ -1,5 +1,6 @@
 [package]
 name = "kusama-runtime-constants"
+repository.workspace = true
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

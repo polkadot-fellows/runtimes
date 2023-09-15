@@ -5,6 +5,7 @@ description = "Polkadot Collectives Parachain Runtime"
 edition.workspace = true
 license.workspace = true
 name = "collectives-polkadot-runtime"
+repository.workspace = true
 version.workspace = true
 
 [dependencies]
