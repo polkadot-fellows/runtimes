@@ -1,0 +1,44 @@
+rules:
+  - name: CI Files
+    condition:
+      include:
+        - ^\.github/.*
+    type: basic
+    minFellowsRank: 6
+    min_approvals: 2
+  - name: Relay files
+    condition:
+      include:
+        - ^relay\/kusama\/.*
+        - ^relay\/polkadot\/.*
+      exclude: 
+        - ^relay\/.+\.adoc$
+    type: basic
+    minFellowsRank: 4
+    min_approvals: 2
+  - name: System Parachain Files
+    condition:
+      include:
+        - ^system-parachains\/.*
+    type: basic
+    minFellowsRank: 2
+    min_approvals: 2
+  - name: Target Files
+    condition:
+      include:
+        - ^target\/.*
+    type: basic
+    minFellowsRank: 4
+    min_approvals: 2
+  - name: General Files
+    condition:
+      include:
+        - '.*'
+      exclude: 
+        - ^relay\/kusama\/.*
+        - ^relay\/polkadot\/.*
+        - ^\.github/.*
+        - ^system-parachains\/.*
+        - ^target\/.*
+    type: basic
+    minFellowsRank: 1
