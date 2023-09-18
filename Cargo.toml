@@ -1,6 +1,6 @@
 [workspace.package]
 version = "1.0.0"
-authors = ["Parity Technologies <admin@parity.io>"]
+authors = ["Polkadot Fellowship"]
 edition = "2021"
 repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
