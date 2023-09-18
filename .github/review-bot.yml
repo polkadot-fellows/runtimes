@@ -6,23 +6,17 @@ rules:
     type: basic
     minFellowsRank: 6
     min_approvals: 2
-  - name: Relay files
+  - name: Relay and system files
     condition:
       include:
         - ^relay\/kusama\/.*
         - ^relay\/polkadot\/.*
+        - ^system-parachains\/.*
       exclude: 
         - ^relay\/.+\.adoc$
     type: basic
     minFellowsRank: 3
     min_approvals: 4
-  - name: System Parachain Files
-    condition:
-      include:
-        - ^system-parachains\/.*
-    type: basic
-    minFellowsRank: 2
-    min_approvals: 2
   - name: General Files
     condition:
       include:
