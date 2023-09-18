@@ -23,13 +23,6 @@ rules:
     type: basic
     minFellowsRank: 2
     min_approvals: 2
-  - name: Target Files
-    condition:
-      include:
-        - ^target\/.*
-    type: basic
-    minFellowsRank: 4
-    min_approvals: 2
   - name: General Files
     condition:
       include:
