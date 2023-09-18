@@ -4,7 +4,7 @@ rules:
       include:
         - ^\.github/.*
     type: basic
-    minFellowsRank: 6
+    minFellowsRank: 4
     min_approvals: 2
   - name: Relay and system files
     condition:
