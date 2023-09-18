@@ -14,8 +14,8 @@ rules:
       exclude: 
         - ^relay\/.+\.adoc$
     type: basic
-    minFellowsRank: 4
-    min_approvals: 2
+    minFellowsRank: 3
+    min_approvals: 4
   - name: System Parachain Files
     condition:
       include:
@@ -34,4 +34,4 @@ rules:
         - ^system-parachains\/.*
         - ^target\/.*
     type: basic
-    minFellowsRank: 1
+    minFellowsRank: 2
