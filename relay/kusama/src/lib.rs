@@ -1715,7 +1715,7 @@ pub mod migrations {
 	impl Contains<ParaId> for ParachainsToUnlock {
 		fn contains(id: &ParaId) -> bool {
 			let id: u32 = (*id).into();
-			// ksuama parachains/parathreads that are locked and never produced block
+			// Kusama parachains/parathreads that are locked and never produced block
 			match id {
 				2003 | 2008 | 2018 | 2077 | 2089 | 2111 | 2112 | 2120 | 2126 | 2127 | 2130 |
 				2226 | 2227 | 2231 | 2233 | 2237 | 2256 | 2257 | 2261 | 2268 | 2275 => true,
