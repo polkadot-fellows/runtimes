@@ -1517,6 +1517,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "chain-spec-generator"
+version = "1.0.0"
+dependencies = [
+ "clap",
+ "hex-literal",
+ "kusama-runtime-constants 1.0.0",
+ "pallet-im-online",
+ "pallet-staking",
+ "polkadot-primitives",
+ "polkadot-runtime",
+ "polkadot-runtime-constants 1.0.0",
+ "polkadot-runtime-parachains",
+ "sc-chain-spec",
+ "sc-consensus-grandpa",
+ "serde_json",
+ "sp-authority-discovery",
+ "sp-consensus-babe",
+ "sp-consensus-beefy",
+ "sp-core",
+ "sp-runtime",
+ "staging-kusama-runtime",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1594,9 +1618,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.2"
+version = "4.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a13b88d2c62ff462f88e4a121f17a82c1af05693a2f192b5c38d14de73c19f6"
+checksum = "b1d7b8d5ec32af0fadc644bf1fd509a688c2103b185644bb1e29d164e0703136"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1604,9 +1628,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.2"
+version = "4.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb9faaa7c2ef94b2743a21f5a29e6f0010dff4caa69ac8e9d6cf8b6fa74da08"
+checksum = "5179bb514e4d7c2051749d8fcefa2ed6d06a9f4e6d69faf3805f5d80b8cf8d56"
 dependencies = [
  "anstream",
  "anstyle",
@@ -9229,6 +9253,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-consensus-grandpa"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc9029e051a1ff62dff58219ca654ebecc669e3746cf4a0bc1515f96c2220c9b"
+dependencies = [
+ "ahash 0.8.3",
+ "array-bytes",
+ "async-trait",
+ "dyn-clone",
+ "finality-grandpa",
+ "fork-tree",
+ "futures",
+ "futures-timer",
+ "log",
+ "parity-scale-codec",
+ "parking_lot 0.12.1",
+ "rand 0.8.5",
+ "sc-block-builder",
+ "sc-chain-spec",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-network",
+ "sc-network-common",
+ "sc-network-gossip",
+ "sc-telemetry",
+ "sc-transaction-pool-api",
+ "sc-utils",
+ "serde_json",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-arithmetic",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-keystore",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
+ "thiserror",
+]
+
+[[package]]
 name = "sc-executor"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9393,6 +9459,25 @@ dependencies = [
  "sp-consensus",
  "sp-consensus-grandpa",
  "sp-runtime",
+]
+
+[[package]]
+name = "sc-network-gossip"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "596fa23e269e218a5cbd9928fa1df30c46fbf9f04cdcf0cbd6549c47e952ad77"
+dependencies = [
+ "ahash 0.8.3",
+ "futures",
+ "futures-timer",
+ "libp2p",
+ "log",
+ "sc-network",
+ "sc-network-common",
+ "schnellru",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
+ "tracing",
 ]
 
 [[package]]
@@ -10025,9 +10110,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.105"
+version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "693151e1ac27563d6dbcec9dee9fbd5da8539b20fa14ad3752b2e6d363ace360"
+checksum = "6b420ce6e3d8bd882e9b243c6eed35dbc9a6110c9769e74b584e0d68d1f20c65"
 dependencies = [
  "itoa",
  "ryu",
