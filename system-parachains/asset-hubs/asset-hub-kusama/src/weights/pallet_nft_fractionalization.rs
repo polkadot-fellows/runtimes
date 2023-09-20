@@ -67,8 +67,8 @@ impl<T: frame_system::Config> pallet_nft_fractionalization::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `462`
 		//  Estimated: `4326`
-		// Minimum execution time: 160_226_000 picoseconds.
-		Weight::from_parts(163_088_000, 0)
+		// Minimum execution time: 165_355_000 picoseconds.
+		Weight::from_parts(168_385_000, 0)
 			.saturating_add(Weight::from_parts(0, 4326))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -101,8 +101,8 @@ impl<T: frame_system::Config> pallet_nft_fractionalization::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `1275`
 		//  Estimated: `4326`
-		// Minimum execution time: 115_317_000 picoseconds.
-		Weight::from_parts(118_270_000, 0)
+		// Minimum execution time: 119_359_000 picoseconds.
+		Weight::from_parts(120_614_000, 0)
 			.saturating_add(Weight::from_parts(0, 4326))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(10))

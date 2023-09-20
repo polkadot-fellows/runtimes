@@ -50,8 +50,8 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_772_000 picoseconds.
-		Weight::from_parts(2_393_033, 0)
+		// Minimum execution time: 1_849_000 picoseconds.
+		Weight::from_parts(2_313_152, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			// Standard Error: 0
 			.saturating_add(Weight::from_parts(387, 0).saturating_mul(b.into()))
@@ -61,11 +61,11 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_127_000 picoseconds.
-		Weight::from_parts(61_600_891, 0)
+		// Minimum execution time: 6_986_000 picoseconds.
+		Weight::from_parts(38_372_392, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 5
-			.saturating_add(Weight::from_parts(1_647, 0).saturating_mul(b.into()))
+			// Standard Error: 4
+			.saturating_add(Weight::from_parts(1_662, 0).saturating_mul(b.into()))
 	}
 	/// Storage: `System::Digest` (r:1 w:1)
 	/// Proof: `System::Digest` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
@@ -75,8 +75,8 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `1485`
-		// Minimum execution time: 3_518_000 picoseconds.
-		Weight::from_parts(3_833_000, 0)
+		// Minimum execution time: 3_558_000 picoseconds.
+		Weight::from_parts(3_806_000, 0)
 			.saturating_add(Weight::from_parts(0, 1485))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -97,8 +97,8 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `127`
 		//  Estimated: `1612`
-		// Minimum execution time: 97_264_091_000 picoseconds.
-		Weight::from_parts(99_003_004_000, 0)
+		// Minimum execution time: 96_815_706_000 picoseconds.
+		Weight::from_parts(100_138_487_000, 0)
 			.saturating_add(Weight::from_parts(0, 1612))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -110,11 +110,11 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_939_000 picoseconds.
-		Weight::from_parts(1_985_000, 0)
+		// Minimum execution time: 2_004_000 picoseconds.
+		Weight::from_parts(2_054_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 2_196
-			.saturating_add(Weight::from_parts(706_653, 0).saturating_mul(i.into()))
+			// Standard Error: 1_778
+			.saturating_add(Weight::from_parts(698_035, 0).saturating_mul(i.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(i.into())))
 	}
 	/// Storage: `Skipped::Metadata` (r:0 w:0)
@@ -124,11 +124,11 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_917_000 picoseconds.
-		Weight::from_parts(1_977_000, 0)
+		// Minimum execution time: 1_958_000 picoseconds.
+		Weight::from_parts(2_006_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 921
-			.saturating_add(Weight::from_parts(538_351, 0).saturating_mul(i.into()))
+			// Standard Error: 873
+			.saturating_add(Weight::from_parts(538_062, 0).saturating_mul(i.into()))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(i.into())))
 	}
 	/// Storage: `Skipped::Metadata` (r:0 w:0)
@@ -138,11 +138,11 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `68 + p * (69 ±0)`
 		//  Estimated: `66 + p * (70 ±0)`
-		// Minimum execution time: 3_582_000 picoseconds.
-		Weight::from_parts(3_699_000, 0)
+		// Minimum execution time: 3_657_000 picoseconds.
+		Weight::from_parts(3_732_000, 0)
 			.saturating_add(Weight::from_parts(0, 66))
-			// Standard Error: 1_377
-			.saturating_add(Weight::from_parts(1_238_711, 0).saturating_mul(p.into()))
+			// Standard Error: 1_369
+			.saturating_add(Weight::from_parts(1_239_746, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(p.into())))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(p.into())))
 			.saturating_add(Weight::from_parts(0, 70).saturating_mul(p.into()))
