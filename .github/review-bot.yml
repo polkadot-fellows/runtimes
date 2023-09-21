@@ -3,9 +3,9 @@ rules:
     condition:
       include:
         - ^\.github/.*
-    type: basic
-    minFellowsRank: 4
-    min_approvals: 2
+    type: fellows
+    minRank: 4
+    minApprovals: 2
   - name: Relay and system files
     condition:
       include:
@@ -14,9 +14,9 @@ rules:
         - ^system-parachains\/.*
       exclude: 
         - ^relay\/.+\.adoc$
-    type: basic
-    minFellowsRank: 3
-    min_approvals: 4
+    type: fellows
+    minRank: 3
+    minApprovals: 4
   - name: General Files
     condition:
       include:
@@ -27,5 +27,5 @@ rules:
         - ^\.github/.*
         - ^system-parachains\/.*
         - ^target\/.*
-    type: basic
-    minFellowsRank: 2
+    type: fellows
+    minRank: 2
