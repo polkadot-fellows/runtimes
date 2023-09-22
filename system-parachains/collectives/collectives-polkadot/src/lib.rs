@@ -677,7 +677,7 @@ impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
 			writes.saturating_inc();
 		}
 
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(4, writes)
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(5, writes)
 	}
 }
 
