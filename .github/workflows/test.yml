@@ -38,10 +38,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f # v2.2.1
 
       - name: Test all features
-        run: cargo test --workspace --release --locked -q --features=runtime-benchmarks,runtime-metrics,try-runtime
+        run: cargo test --workspace --release --locked --features=runtime-benchmarks,runtime-metrics,try-runtime
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
-          SKIP_WASM_BUILD: 1

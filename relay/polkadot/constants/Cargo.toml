@@ -1,7 +1,6 @@
 [package]
 name = "polkadot-runtime-constants"
-repository.workspace = true
-version.workspace = true
+version = "1.0.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,12 +8,12 @@ license.workspace = true
 [dependencies]
 smallvec = "1.8.0"
 
-frame-support = { default-features = false, version = "23.0.0" }
-primitives = { package = "polkadot-primitives", default-features = false, version = "2.0.0" }
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "2.0.0" }
-sp-runtime = { default-features = false, version = "26.0.0" }
-sp-weights = { default-features = false, version = "22.0.0" }
-sp-core = { default-features = false, version = "23.0.0" }
+frame-support = { default-features = false , version = "23.0.0" }
+primitives = { package = "polkadot-primitives", default-features = false , version = "2.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "2.0.0" }
+sp-runtime = { default-features = false , version = "26.0.0" }
+sp-weights = { default-features = false , version = "22.0.0" }
+sp-core = { default-features = false , version = "23.0.0" }
 
 [features]
 default = [ "std" ]

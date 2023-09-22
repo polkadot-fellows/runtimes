@@ -1,6 +1,5 @@
 [workspace.package]
-version = "1.0.0"
-authors = ["Polkadot Fellowship"]
+authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
@@ -9,7 +8,6 @@ license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/is
 resolver = "2"
 
 members = [
-	"chain-spec-generator",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",

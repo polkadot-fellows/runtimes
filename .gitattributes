@@ -1,3 +1,0 @@
-Cargo.lock linguist-generated=true
-relay/**/src/weights/*.rs linguist-generated=true
-system-parachains/**/**/src/weights/*.rs linguist-generated=true

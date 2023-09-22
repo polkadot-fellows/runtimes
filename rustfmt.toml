@@ -1,5 +1,4 @@
 # Basic
-edition = "2021"
 hard_tabs = true
 max_width = 100
 use_small_heuristics = "Max"
@@ -19,6 +18,7 @@ match_block_trailing_comma = true
 trailing_comma = "Vertical"
 trailing_semicolon = false
 use_field_init_shorthand = true
-# Format comments
-comment_width = 100
-wrap_comments = true
+ignore = [
+    "bridges",
+]
+edition = "2021"

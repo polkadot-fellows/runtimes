@@ -1,15 +1,12 @@
 [package]
-authors.workspace = true
-build = "build.rs"
-description = "Polkadot's BridgeHub parachain runtime"
-edition.workspace = true
-license.workspace = true
 name = "bridge-hub-polkadot-runtime"
-repository.workspace = true
-version.workspace = true
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+description = "Polkadot's BridgeHub parachain runtime"
 
 [build-dependencies]
-substrate-wasm-builder = { optional = true, version = "12.0.0" }
+substrate-wasm-builder = { optional = true , version = "12.0.0" }
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
@@ -51,9 +48,9 @@ sp-transaction-pool = { default-features = false, version = "21.0.0" }
 sp-version = { default-features = false, version = "24.0.0" }
 
 # Polkadot
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false }
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 pallet-xcm = { default-features = false, version = "2.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true, version = "2.0.0" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "2.0.0" }
 polkadot-core-primitives = { default-features = false, version = "2.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "1.0.0" }
 polkadot-runtime-common = { default-features = false, version = "2.0.0" }
@@ -62,17 +59,17 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false, versi
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "2.0.0" }
 
 # Cumulus
-cumulus-pallet-aura-ext = { default-features = false, version = "0.2.0" }
-cumulus-pallet-dmp-queue = { default-features = false, version = "0.2.0" }
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",], version = "0.2.0" }
+cumulus-pallet-aura-ext = { default-features = false , version = "0.2.0" }
+cumulus-pallet-dmp-queue = { default-features = false , version = "0.2.0" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.2.0" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "4.0.0" }
-cumulus-pallet-xcm = { default-features = false, version = "0.2.0" }
-cumulus-pallet-xcmp-queue = { default-features = false, version = "0.2.0" }
-cumulus-primitives-core = { default-features = false, version = "0.2.0" }
-cumulus-primitives-utility = { default-features = false, version = "0.2.0" }
-pallet-collator-selection = { default-features = false, version = "4.0.0" }
-parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.2.0" }
-parachains-common = { default-features = false, version = "2.0.0" }
+cumulus-pallet-xcm = { default-features = false , version = "0.2.0" }
+cumulus-pallet-xcmp-queue = { default-features = false , version = "0.2.0" }
+cumulus-primitives-core = { default-features = false , version = "0.2.0" }
+cumulus-primitives-utility = { default-features = false , version = "0.2.0" }
+pallet-collator-selection = { default-features = false , version = "4.0.0" }
+parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.2.0" }
+parachains-common = { default-features = false , version = "2.0.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.2.0" }
