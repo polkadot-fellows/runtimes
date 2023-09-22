@@ -12,6 +12,7 @@ rules:
         - ^relay\/kusama\/.*
         - ^relay\/polkadot\/.*
         - ^system-parachains\/.*
+        - ^CHANGELOG$
       exclude: 
         - ^relay\/.+\.adoc$
     type: fellows
