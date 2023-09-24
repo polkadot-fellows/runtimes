@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - CHANGELOG
+      - CHANGELOG.md
   workflow_dispatch:
 
 jobs:
