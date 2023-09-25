@@ -125,7 +125,7 @@ impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
 		let mut writes = 0;
 
 		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<PolkadotXcm>();
+			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
 			writes.saturating_inc();
 		}
 

@@ -815,31 +815,26 @@ impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
 		let mut writes = 0;
 
 		if Multisig::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<Multisig>();
+			Multisig::current_storage_version().put::<Multisig>();
 			writes.saturating_inc();
 		}
 
 		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<PolkadotXcm>();
-			writes.saturating_inc();
-		}
-
-		if Uniques::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<Uniques>();
+			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
 			writes.saturating_inc();
 		}
 
 		if Nfts::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<Nfts>();
+			Nfts::current_storage_version().put::<Nfts>();
 			writes.saturating_inc();
 		}
 
 		if ForeignAssets::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<ForeignAssets>();
+			ForeignAssets::current_storage_version().put::<ForeignAssets>();
 			writes.saturating_inc();
 		}
 
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(5, writes)
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(4, writes)
 	}
 }
 

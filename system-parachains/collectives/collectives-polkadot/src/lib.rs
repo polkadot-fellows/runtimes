@@ -653,27 +653,27 @@ impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
 		let mut writes = 0;
 
 		if Multisig::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<Multisig>();
+			Multisig::current_storage_version().put::<Multisig>();
 			writes.saturating_inc();
 		}
 
 		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<PolkadotXcm>();
+			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
 			writes.saturating_inc();
 		}
 
 		if Preimage::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<Preimage>();
+			Preimage::current_storage_version().put::<Preimage>();
 			writes.saturating_inc();
 		}
 
 		if Scheduler::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(4).put::<Scheduler>();
+			Scheduler::current_storage_version().put::<Scheduler>();
 			writes.saturating_inc();
 		}
 
 		if FellowshipReferenda::on_chain_storage_version() == StorageVersion::new(0) {
-			StorageVersion::new(1).put::<FellowshipReferenda>();
+			FellowshipReferenda::current_storage_version().put::<FellowshipReferenda>();
 			writes.saturating_inc();
 		}
 
