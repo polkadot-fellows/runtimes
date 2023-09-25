@@ -1,6 +1,6 @@
 # Changelog
 
-Changelog for the runtimes governend by the Polkadot Fellowship.
+Changelog for the runtimes governed by the Polkadot Fellowship.
 
 ## [1.0.0]
 
