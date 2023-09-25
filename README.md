@@ -24,3 +24,13 @@ Do not modify the `relay/` or `system-parachains/` folder. They are currently re
     └── collectives
         └── collectives-polkadot
 ```
+
+## Approval rights
+
+The approval rights are configured in [`review-bot.yml`](.github/review-bot.yml). The rights are configured as:
+
+- All files in `.github` require two approvals from fellow members of rank 4 or higher.
+- `CHANGELOG.md`, `relay/*` or `system-parachains/*` require four approvals from fellow members of rank 3 or higher.
+- All other files require the approval from one fellow member of rank 2 or higher.
+
+The review-bot is using the on chain identity to map from a github account to a fellowship member. This requires that each fellowship member adds its github handle to its on-chain identity. Check [here](docs/github-on-chain-identity.md) for an instruction.
