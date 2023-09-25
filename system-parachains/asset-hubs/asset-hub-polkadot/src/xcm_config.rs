@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +41,8 @@ use xcm_builder::{
 	EnsureXcmOrigin, FungiblesAdapter, HashedDescription, IsConcrete, LocalMint, NoChecking,
 	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents, WeightInfoBounds,
-	WithComputedOrigin,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
@@ -89,7 +89,7 @@ pub type CurrencyTransactor = CurrencyAdapter<
 	(),
 >;
 
-/// `AssetId/Balance` converter for `TrustBackedAssets``
+/// `AssetId`/`Balance` converter for `TrustBackedAssets`.
 pub type TrustBackedAssetsConvertedConcreteId =
 	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocation, Balance>;
 
@@ -116,8 +116,10 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		// Ignore `TrustBackedAssets` explicitly
 		StartsWith<TrustBackedAssetsPalletLocation>,
 		// Ignore assets that start explicitly with our `GlobalConsensus(NetworkId)`, means:
-		// - foreign assets from our consensus should be: `MultiLocation {parents: 1, X*(Parachain(xyz), ..)}`
-		// - foreign assets outside our consensus with the same `GlobalConsensus(NetworkId)` won't be accepted here
+		// - foreign assets from our consensus should be: `MultiLocation {parents: 1,
+		//   X*(Parachain(xyz), ..)}`
+		// - foreign assets outside our consensus with the same `GlobalConsensus(NetworkId)` won't
+		//   be accepted here
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
@@ -228,7 +230,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
 				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::Utility(pallet_utility::Call::as_derivative { .. }) |
 				RuntimeCall::Assets(
 					pallet_assets::Call::create { .. } |
 						pallet_assets::Call::force_create { .. } |
@@ -249,6 +250,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_assets::Call::set_team { .. } |
 						pallet_assets::Call::set_metadata { .. } |
 						pallet_assets::Call::clear_metadata { .. } |
+						pallet_assets::Call::force_set_metadata { .. } |
 						pallet_assets::Call::force_clear_metadata { .. } |
 						pallet_assets::Call::force_asset_status { .. } |
 						pallet_assets::Call::approve_transfer { .. } |
@@ -277,6 +279,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					pallet_assets::Call::set_team { .. } |
 					pallet_assets::Call::set_metadata { .. } |
 					pallet_assets::Call::clear_metadata { .. } |
+					pallet_assets::Call::force_set_metadata { .. } |
 					pallet_assets::Call::force_clear_metadata { .. } |
 					pallet_assets::Call::force_asset_status { .. } |
 					pallet_assets::Call::approve_transfer { .. } |
@@ -347,36 +350,40 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					pallet_uniques::Call::set_accept_ownership { .. } |
 					pallet_uniques::Call::set_collection_max_supply { .. } |
 					pallet_uniques::Call::set_price { .. } |
-					pallet_uniques::Call::buy_item { .. },
+					pallet_uniques::Call::buy_item { .. }
 			)
 		)
 	}
 }
 
-pub type Barrier = DenyThenTry<
-	DenyReserveTransferToRelayChain,
-	(
-		TakeWeightCredit,
-		// Expected responses are OK.
-		AllowKnownQueryResponses<PolkadotXcm>,
-		// Allow XCMs with some computed origins to pass through.
-		WithComputedOrigin<
-			(
-				// If the message is one that immediately attemps to pay for execution, then allow it.
-				AllowTopLevelPaidExecutionFrom<Everything>,
-				// Parent, its pluralities (i.e. governance bodies), and the Fellows plurality get free execution.
-				AllowExplicitUnpaidExecutionFrom<(
-					ParentOrParentsPlurality,
-					FellowsPlurality,
-					FellowshipSalaryPallet,
-				)>,
-				// Subscriptions for version tracking are OK.
-				AllowSubscriptionsFrom<ParentOrSiblings>,
-			),
-			UniversalLocation,
-			ConstU32<8>,
-		>,
-	),
+pub type Barrier = TrailingSetTopicAsId<
+	DenyThenTry<
+		DenyReserveTransferToRelayChain,
+		(
+			TakeWeightCredit,
+			// Expected responses are OK.
+			AllowKnownQueryResponses<PolkadotXcm>,
+			// Allow XCMs with some computed origins to pass through.
+			WithComputedOrigin<
+				(
+					// If the message is one that immediately attemps to pay for execution, then
+					// allow it.
+					AllowTopLevelPaidExecutionFrom<Everything>,
+					// Parent, its pluralities (i.e. governance bodies), and the Fellows plurality
+					// get free execution.
+					AllowExplicitUnpaidExecutionFrom<(
+						ParentOrParentsPlurality,
+						FellowsPlurality,
+						FellowshipSalaryPallet,
+					)>,
+					// Subscriptions for version tracking are OK.
+					AllowSubscriptionsFrom<ParentOrSiblings>,
+				),
+				UniversalLocation,
+				ConstU32<8>,
+			>,
+		),
+	>,
 >;
 
 pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentialDepositMultiplier<
@@ -449,12 +456,12 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
-pub type XcmRouter = (
+pub type XcmRouter = WithUniqueTopic<(
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
-);
+)>;
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
@@ -468,7 +475,8 @@ impl pallet_xcm::Config for Runtime {
 	type XcmRouter = XcmRouter;
 	// We support local origins dispatching XCM executions in principle...
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
-	// ... but disallow generic XCM execution. As a result only teleports and reserve transfers are allowed.
+	// ... but disallow generic XCM execution. As a result only teleports and reserve transfers are
+	// allowed.
 	type XcmExecuteFilter = Nothing;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Everything;
