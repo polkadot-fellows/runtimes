@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        runtime: ${{ fromJson(needs.matrix.outputs.matrix) }}
+        runtime: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -137,7 +137,7 @@ jobs:
       RUNTIME_DIR: runtime
     strategy:
       matrix:
-        runtime: ${{ fromJson(needs.matrix.outputs.matrix) }}
+        runtime: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
