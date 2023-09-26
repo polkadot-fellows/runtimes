@@ -11,12 +11,12 @@ jobs:
   matrix:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
       - uses: actions/checkout@v2
-      - id: set-matrix
+      - id: runtime
         run: |
-          TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' | sed 's/\"/\\\"/g' )
+          TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' )
           echo $TASKS
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
   build-runtimes:
