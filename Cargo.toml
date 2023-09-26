@@ -1,4 +1,12 @@
+[workspace.package]
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+repository = "https://github.com/polkadot-fellows/runtimes.git"
+license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
+
 [workspace]
+resolver = "2"
+
 members = [
 	"relay/kusama",
 	"relay/kusama/constants",
@@ -9,13 +17,8 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-kusama",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
 	"system-parachains/collectives/collectives-polkadot",
+	"system-parachains/gluttons/glutton-kusama",
 ]
-
-[workspace.package]
-authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2021"
-repository = "https://github.com/polkadot-fellows/runtimes.git"
-version = "1.0.0"
 
 [profile.release]
 # Polkadot runtime requires unwinding.
