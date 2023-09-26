@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - id: set-matrix
         run: |
-          TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' )
+          TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' | sed 's/\"/\\\"/g' )
           echo $TASKS
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
   build-runtimes:
