@@ -17,6 +17,7 @@ jobs:
       - id: set-matrix
         run: |
           TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' )
+          echo $TASKS
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
   build-runtimes:
     needs: [ matrix ]
