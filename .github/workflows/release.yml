@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  matrix:
+  runtime-matrix:
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -20,12 +20,12 @@ jobs:
           echo $TASKS
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
   build-runtimes:
-    needs: [ matrix ]
+    needs: [ runtime-matrix ]
     continue-on-error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        runtime: ${{ fromJSON(needs.matrix.outputs.runtime) }}
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -128,14 +128,14 @@ jobs:
           draft: true
 
   publish-runtimes:
-    needs: [ matrix, publish-draft-release ]
+    needs: [ runtime-matrix, publish-draft-release ]
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
       RUNTIME_DIR: runtime
     strategy:
       matrix:
-        runtime: ${{ fromJSON(needs.matrix.outputs.runtime) }}
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
