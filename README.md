@@ -33,4 +33,4 @@ The approval rights are configured in [`review-bot.yml`](.github/review-bot.yml)
 - `CHANGELOG.md`, `relay/*` or `system-parachains/*` require four approvals from fellow members of rank 3 or higher.
 - All other files require the approval from one fellow member of rank 2 or higher.
 
-The review-bot is using the on chain identity to map from a github account to a fellowship member. This requires that each fellowship member adds its github handle to its on-chain identity. Check [here](docs/github-on-chain-identity.md) for an instruction.
+The review-bot uses the on-chain identity to map from a github account to a fellowship member. This requires that each fellowship member add their github handle to their on-chain identity. Check [here](docs/github-on-chain-identity.md) for instructions.
