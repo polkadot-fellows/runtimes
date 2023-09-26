@@ -1,6 +1,8 @@
 name: Create Draft Release
 
 on:
+  push:
+    branches: [ "oty-followup" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
