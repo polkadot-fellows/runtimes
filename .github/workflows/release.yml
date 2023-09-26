@@ -2,9 +2,8 @@ name: Create Draft Release
 
 on:
   push:
-    branches: [ "oty-followup" ]
-  pull_request:
     branches: [ "main" ]
+    paths: [ "CHANGELOG.md" ]
   workflow_dispatch:
 
 jobs:
@@ -95,7 +94,7 @@ jobs:
           tee -a DRAFT <<-EOF
           ## Changelog
           EOF
-          tee -a DRAFT <CHANGELOG
+          tee -a DRAFT <CHANGELOG.md
           tee -a DRAFT <<-EOF
           ## Runtime info
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
