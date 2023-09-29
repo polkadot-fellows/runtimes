@@ -443,7 +443,8 @@ const TINKERNET_MULTISIG_PALLET: u8 = 71;
 pub fn derive_tinkernet_multisig<AccountId: Decode>(id: u128) -> Result<AccountId, ()> {
 	AccountId::decode(&mut TrailingZeroInput::new(
 		&(
-			// The constant salt used to derive Tinkernet Multisigs, this is Tinkernet's genesis hash.
+			// The constant salt used to derive Tinkernet Multisigs, this is Tinkernet's genesis
+			// hash.
 			H256([
 				212, 46, 150, 6, 169, 149, 223, 228, 51, 220, 121, 85, 220, 42, 112, 244, 149, 243,
 				80, 243, 115, 218, 162, 0, 9, 138, 232, 68, 55, 129, 106, 210,
