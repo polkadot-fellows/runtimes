@@ -1,9 +1,12 @@
 [package]
-name = "bridge-hub-kusama-runtime"
-version = "0.1.0"
 authors.workspace = true
-edition.workspace = true
+build = "build.rs"
 description = "Kusama's BridgeHub parachain runtime"
+edition.workspace = true
+license.workspace = true
+name = "bridge-hub-kusama-runtime"
+repository.workspace = true
+version.workspace = true
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "12.0.0" }
@@ -181,3 +184,8 @@ try-runtime = [
 ]
 
 experimental = [ "pallet-aura/experimental" ]
+
+# A feature that should be enabled when the runtime should be build for on-chain
+# deployment. This will disable stuff that shouldn't be part of the on-chain wasm
+# to make it smaller like logging for example.
+on-chain-release-build = [ "sp-api/disable-logging" ]
