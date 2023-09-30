@@ -547,7 +547,7 @@ parameter_types! {
 /// + let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 300u64);
 /// ```
 ///
-/// See https://forum.polkadot.network/t/adjusting-polkadots-ideal-staking-rate-calculation/3897/2
+/// See <https://forum.polkadot.network/t/adjusting-polkadots-ideal-staking-rate-calculation/3897>.
 fn polkadot_era_payout(
 	total_staked: Balance,
 	total_stakable: Balance,
