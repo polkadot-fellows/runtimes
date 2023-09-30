@@ -115,6 +115,8 @@ use governance::{
 
 pub mod xcm_config;
 
+pub const LOG_TARGET: &'static str = "runtime::polkadot";
+
 impl_runtime_weights!(polkadot_runtime_constants);
 
 // Make the WASM binary available.
@@ -843,7 +845,7 @@ where
 		);
 		let raw_payload = SignedPayload::new(call, extra)
 			.map_err(|e| {
-				log::warn!("Unable to create signed payload: {:?}", e);
+				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {:?}", e);
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
@@ -1359,10 +1361,10 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
 			pallet_nomination_pools::MaxPoolMembersPerPool::<Runtime>::put(0);
 			pallet_nomination_pools::MaxPoolMembers::<Runtime>::put(0);
 
-			log::info!(target: "runtime::polkadot", "pools config initiated 🎉");
+			log::info!(target: LOG_TARGET, "pools config initiated 🎉");
 			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 5)
 		} else {
-			log::info!(target: "runtime::polkadot", "pools config already initiated 😏");
+			log::info!(target: LOG_TARGET, "pools config already initiated 😏");
 			<Runtime as frame_system::Config>::DbWeight::get().reads(1)
 		}
 	}
@@ -2093,7 +2095,7 @@ sp_api::impl_runtime_apis! {
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
-			log::info!("try-runtime::on_runtime_upgrade polkadot.");
+			log::info!(target: LOG_TARGET, "try-runtime::on_runtime_upgrade polkadot.");
 			let weight = Executive::try_runtime_upgrade(checks).unwrap();
 			(weight, BlockWeights::get().max_block)
 		}
@@ -2585,21 +2587,15 @@ mod remote_tests {
 	use super::*;
 	use frame_try_runtime::{runtime_decl_for_try_runtime::TryRuntime, UpgradeCheckSelect};
 	use remote_externalities::{
-		Builder, Mode, OfflineConfig, OnlineConfig, SnapshotConfig, Transport,
+		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig, Transport,
 	};
 	use std::env::var;
 
-	#[tokio::test]
-	async fn run_migrations() {
-		if var("RUN_MIGRATION_TESTS").is_err() {
-			return
-		}
-
-		sp_tracing::try_init_simple();
+	async fn remote_ext_test_setup() -> RemoteExternalities<Block> {
 		let transport: Transport =
 			var("WS").unwrap_or("wss://rpc.polkadot.io:443".to_string()).into();
 		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
-		let mut ext = Builder::<Block>::default()
+		Builder::<Block>::default()
 			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
 				Mode::OfflineOrElseOnline(
 					OfflineConfig { state_snapshot: state_snapshot.clone() },
@@ -2614,7 +2610,63 @@ mod remote_tests {
 			})
 			.build()
 			.await
-			.unwrap();
+			.unwrap()
+	}
+
+	#[tokio::test]
+	async fn dispatch_all_proposals() {
+		if var("RUN_OPENGOV_TEST").is_err() {
+			return
+		}
+
+		sp_tracing::try_init_simple();
+		let mut ext = remote_ext_test_setup().await;
+		ext.execute_with(|| {
+			type Ref = pallet_referenda::ReferendumInfoOf<Runtime, ()>;
+			type RefStatus = pallet_referenda::ReferendumStatusOf<Runtime, ()>;
+			use sp_runtime::traits::Dispatchable;
+			let all_refs: Vec<(u32, RefStatus)> =
+				pallet_referenda::ReferendumInfoFor::<Runtime>::iter()
+					.filter_map(|(idx, reff): (_, Ref)| {
+						if let Ref::Ongoing(ref_status) = reff {
+							Some((idx, ref_status))
+						} else {
+							None
+						}
+					})
+					.collect::<Vec<_>>();
+
+			for (ref_index, referenda) in all_refs {
+				log::info!(target: LOG_TARGET, "🚀 executing referenda #{}", ref_index);
+				let RefStatus { origin, proposal, .. } = referenda;
+				// we do more or less what the scheduler will do under the hood, as bes tas we can
+				// imitate:
+				let (call, _len) = match <
+					<Runtime as pallet_scheduler::Config>::Preimages
+					as
+					frame_support::traits::QueryPreimage
+				>::peek(&proposal) {
+					Ok(x) => x,
+					Err(e) => {
+						log::error!(target: LOG_TARGET, "failed to get preimage: {:?}", e);
+						continue;
+					}
+				};
+
+				let dispatch_result = call.dispatch(origin.clone().into());
+				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {:?}: {:?}", origin, dispatch_result);
+			}
+		});
+	}
+
+	#[tokio::test]
+	async fn run_migrations() {
+		if var("RUN_MIGRATION_TESTS").is_err() {
+			return
+		}
+
+		sp_tracing::try_init_simple();
+		let mut ext = remote_ext_test_setup().await;
 		ext.execute_with(|| Runtime::on_runtime_upgrade(UpgradeCheckSelect::PreAndPost));
 	}
 
