@@ -385,7 +385,7 @@ checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
 name = "asset-hub-kusama-runtime"
-version = "0.9.420"
+version = "1.0.0"
 dependencies = [
  "asset-test-utils",
  "assets-common",
@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "asset-hub-polkadot-runtime"
-version = "0.9.420"
+version = "1.0.0"
 dependencies = [
  "asset-test-utils",
  "assets-common",
@@ -1119,7 +1119,7 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-kusama-runtime"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bridge-hub-test-utils",
  "cumulus-pallet-aura-ext",
@@ -1182,7 +1182,7 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-polkadot-runtime"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bridge-hub-test-utils",
  "cumulus-pallet-aura-ext",
@@ -3770,7 +3770,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "glutton-runtime"
+name = "glutton-kusama-runtime"
 version = "1.0.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
