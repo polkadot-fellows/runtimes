@@ -1681,6 +1681,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-collective-content",
  "pallet-core-fellowship",
  "pallet-multisig",
  "pallet-preimage",
@@ -6304,6 +6305,22 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-collective-content"
+version = "0.2.0-dev.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95b94776af09c80e268e2178267b66d9c2c21ab3b5a534c7ee2d80c459c5ecd1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
  "sp-runtime",
  "sp-std",
 ]

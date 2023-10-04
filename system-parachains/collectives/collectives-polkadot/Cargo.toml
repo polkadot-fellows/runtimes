@@ -75,6 +75,7 @@ cumulus-pallet-xcmp-queue = { default-features = false , version = "0.3.0-dev" }
 cumulus-primitives-core = { default-features = false , version = "0.3.0-dev" }
 cumulus-primitives-utility = { default-features = false , version = "0.3.0-dev" }
 pallet-collator-selection = { default-features = false , version = "5.0.0-dev" }
+pallet-collective-content = { default-features = false, version = "0.2.0-dev" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.3.0-dev" }
 parachains-common = { default-features = false , version = "3.0.0-dev" }
 
@@ -97,6 +98,7 @@ runtime-benchmarks = [
 	"pallet-alliance/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
+	"pallet-collective-content/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-core-fellowship/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
@@ -130,6 +132,7 @@ try-runtime = [
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-collator-selection/try-runtime",
+	"pallet-collective-content/try-runtime",
 	"pallet-collective/try-runtime",
 	"pallet-core-fellowship/try-runtime",
 	"pallet-multisig/try-runtime",
@@ -171,6 +174,7 @@ std = [
 	"pallet-authorship/std",
 	"pallet-balances/std",
 	"pallet-collator-selection/std",
+	"pallet-collective-content/std",
 	"pallet-collective/std",
 	"pallet-core-fellowship/std",
 	"pallet-multisig/std",
