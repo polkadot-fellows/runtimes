@@ -13,41 +13,41 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 
 # Substrate
-frame-benchmarking = { default-features = false, optional = true, version = "24.0.0-dev" }
-frame-executive = { default-features = false, version = "24.0.0-dev" }
-frame-support = { default-features = false, version = "24.0.0-dev" }
-frame-system = { default-features = false, version = "24.0.0-dev" }
-frame-system-rpc-runtime-api = { default-features = false, version = "22.0.0-dev" }
-frame-system-benchmarking = { default-features = false, optional = true, version = "24.0.0-dev" }
-frame-try-runtime = { default-features = false, optional = true, version = "0.30.0-dev" }
-pallet-glutton = { default-features = false, optional = true, version = "10.0.0-dev" }
-pallet-sudo = { default-features = false, optional = true, version = "24.0.0-dev" }
-sp-api = { default-features = false, version = "22.0.0-dev" }
-sp-block-builder = { default-features = false, version = "22.0.0-dev" }
-sp-core = { default-features = false, version = "24.0.0-dev" }
-sp-inherents = { default-features = false, version = "22.0.0-dev" }
-sp-offchain = { default-features = false, version = "22.0.0-dev" }
-sp-runtime = { default-features = false, version = "27.0.0-dev" }
-sp-session = { default-features = false, version = "23.0.0-dev" }
-sp-std = { default-features = false, version = "11.0.0-dev" }
-sp-storage = { default-features = false, version = "16.0.0-dev" }
-sp-transaction-pool = { default-features = false, version = "22.0.0-dev" }
-sp-version = { default-features = false, version = "25.0.0-dev" }
+frame-benchmarking = { default-features = false, optional = true, version = "24.0.0" }
+frame-executive = { default-features = false, version = "24.0.0" }
+frame-support = { default-features = false, version = "24.0.0" }
+frame-system = { default-features = false, version = "24.0.0" }
+frame-system-rpc-runtime-api = { default-features = false, version = "22.0.0" }
+frame-system-benchmarking = { default-features = false, optional = true, version = "24.0.0" }
+frame-try-runtime = { default-features = false, optional = true, version = "0.30.0" }
+pallet-glutton = { default-features = false, optional = true, version = "10.0.0" }
+pallet-sudo = { default-features = false, optional = true, version = "24.0.0" }
+sp-api = { default-features = false, version = "22.0.0" }
+sp-block-builder = { default-features = false, version = "22.0.0" }
+sp-core = { default-features = false, version = "24.0.0" }
+sp-inherents = { default-features = false, version = "22.0.0" }
+sp-offchain = { default-features = false, version = "22.0.0" }
+sp-runtime = { default-features = false, version = "27.0.0" }
+sp-session = { default-features = false, version = "23.0.0" }
+sp-std = { default-features = false, version = "11.0.0" }
+sp-storage = { default-features = false, version = "16.0.0" }
+sp-transaction-pool = { default-features = false, version = "22.0.0" }
+sp-version = { default-features = false, version = "25.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "3.0.0-dev" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "3.0.0-dev" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "3.0.0-dev" }
+xcm = { package = "staging-xcm", default-features = false, version = "3.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "3.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "3.0.0" }
 
 # Cumulus
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.3.0-dev" }
-cumulus-pallet-xcm = { default-features = false , version = "0.3.0-dev" }
-cumulus-primitives-core = { default-features = false , version = "0.3.0-dev" }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.3.0-dev" }
-parachains-common = { default-features = false , version = "3.0.0-dev" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.3.0" }
+cumulus-pallet-xcm = { default-features = false , version = "0.3.0" }
+cumulus-primitives-core = { default-features = false , version = "0.3.0" }
+parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.3.0" }
+parachains-common = { default-features = false , version = "3.0.0" }
 
 [build-dependencies]
-substrate-wasm-builder = { version = "13.0.0-dev" }
+substrate-wasm-builder = { version = "13.0.0" }
 
 [features]
 default = [ "std" ]
