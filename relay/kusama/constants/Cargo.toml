@@ -9,12 +9,12 @@ license.workspace = true
 [dependencies]
 smallvec = "1.8.0"
 
-frame-support = { default-features = false , version = "24.0.0-dev" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "3.0.0-dev" }
-runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "3.0.0-dev" }
-sp-runtime = { default-features = false , version = "27.0.0-dev" }
-sp-weights = { default-features = false , version = "23.0.0-dev" }
-sp-core = { default-features = false , version = "24.0.0-dev" }
+frame-support = { default-features = false , version = "24.0.0" }
+primitives = { package = "polkadot-primitives", default-features = false , version = "3.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "3.0.0" }
+sp-runtime = { default-features = false , version = "27.0.0" }
+sp-weights = { default-features = false , version = "23.0.0" }
+sp-core = { default-features = false , version = "24.0.0" }
 
 [features]
 default = [ "std" ]
