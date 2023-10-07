@@ -1,6 +1,6 @@
 # Adding github account to your on-chain identity
 
-Adding the github account to your identity requires the usage of the `additional` fields in the identity info. This is currently only supported by using the [polkadot-js bare extrinsic interface](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Frpc.polkadot.io#/extrinsics). See the following image for an example:
+Adding the github account to your identity requires the usage of the `additional` fields in the identity info. The identity needs to be set on Polkadot. This is currently only supported by using the [polkadot-js bare extrinsic interface](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Frpc.polkadot.io#/extrinsics/decode/0x1c010407676974687562123c67697468756220757365726e616d653e0000000000000000). See the following image for an example:
 
 ![Add github name to the additional fields of the on-chain identity](github-on-chain-identity-process.jpg)
 
