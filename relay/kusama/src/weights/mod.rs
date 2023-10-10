@@ -18,8 +18,8 @@
 pub mod frame_election_provider_support;
 pub mod frame_system;
 pub mod pallet_bags_list;
-pub mod pallet_balances_balances;
-pub mod pallet_balances_nis_counterpart_balances;
+pub mod pallet_balances_native;
+pub mod pallet_balances_nis;
 pub mod pallet_bounties;
 pub mod pallet_child_bounties;
 pub mod pallet_conviction_voting;
