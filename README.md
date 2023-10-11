@@ -24,3 +24,15 @@ Each leaf folder contains one runtime crate:
     └── gluttons
         └── glutton-kusama
 ```
+
+# Working on Pull Requests
+
+To merge a pull request, we use [Auto Merge Bot](https://github.com/paritytech/auto-merge-bot).
+
+To use it, write a comment in a PR that says:
+
+> `/merge`
+
+This will enable [`auto-merge`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) in the Pull Request (or merge it if it is ready to merge).
+
+The automation can be triggered by the author of the PR or any fellow whose GitHub handle is part of their identity.
