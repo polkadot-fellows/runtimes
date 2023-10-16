@@ -1,9 +1,12 @@
 [package]
-name = "collectives-polkadot-runtime"
-version = "1.0.0"
 authors.workspace = true
-edition.workspace = true
+build = "build.rs"
 description = "Polkadot Collectives Parachain Runtime"
+edition.workspace = true
+license.workspace = true
+name = "collectives-polkadot-runtime"
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
@@ -211,3 +214,8 @@ std = [
 ]
 
 experimental = [ "pallet-aura/experimental" ]
+
+# A feature that should be enabled when the runtime should be build for on-chain
+# deployment. This will disable stuff that shouldn't be part of the on-chain wasm
+# to make it smaller like logging for example.
+on-chain-release-build = [ "sp-api/disable-logging" ]

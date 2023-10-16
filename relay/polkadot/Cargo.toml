@@ -1,7 +1,8 @@
 [package]
 name = "polkadot-runtime"
 build = "build.rs"
-version = "1.0.0"
+repository.workspace = true
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true

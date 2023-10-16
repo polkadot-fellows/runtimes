@@ -43,10 +43,7 @@ pub mod xcm_config;
 pub mod fellowship;
 
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
-use fellowship::{
-	migration::import_kusama_fellowship, pallet_fellowship_origins, Fellows,
-	FellowshipCollectiveInstance,
-};
+use fellowship::{pallet_fellowship_origins, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -635,11 +632,54 @@ pub type UncheckedExtrinsic =
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
 type Migrations = (
-	// v9420
-	import_kusama_fellowship::Migration<Runtime, FellowshipCollectiveInstance>,
 	// unreleased
 	pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,
+	InitStorageVersions,
 );
+
+/// Migration to initialize storage versions for pallets added after genesis.
+///
+/// Ideally this would be done automatically (see
+/// <https://github.com/paritytech/polkadot-sdk/pull/1297>), but it probably won't be ready for some
+/// time and it's beneficial to get storage version issues smoothed over before merging
+/// <https://github.com/polkadot-fellows/runtimes/pull/28> so we're just setting them manually.
+pub struct InitStorageVersions;
+
+impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
+	fn on_runtime_upgrade() -> Weight {
+		use frame_support::traits::{GetStorageVersion, StorageVersion};
+		use sp_runtime::traits::Saturating;
+
+		let mut writes = 0;
+
+		if Multisig::on_chain_storage_version() == StorageVersion::new(0) {
+			Multisig::current_storage_version().put::<Multisig>();
+			writes.saturating_inc();
+		}
+
+		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
+			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
+			writes.saturating_inc();
+		}
+
+		if Preimage::on_chain_storage_version() == StorageVersion::new(0) {
+			Preimage::current_storage_version().put::<Preimage>();
+			writes.saturating_inc();
+		}
+
+		if Scheduler::on_chain_storage_version() == StorageVersion::new(0) {
+			Scheduler::current_storage_version().put::<Scheduler>();
+			writes.saturating_inc();
+		}
+
+		if FellowshipReferenda::on_chain_storage_version() == StorageVersion::new(0) {
+			FellowshipReferenda::current_storage_version().put::<FellowshipReferenda>();
+			writes.saturating_inc();
+		}
+
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(5, writes)
+	}
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
