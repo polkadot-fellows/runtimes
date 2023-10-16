@@ -286,7 +286,6 @@ impl pallet_indices::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
-	pub const MaxHolds: u32 = u32::MAX;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -301,7 +300,7 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = MaxHolds;
+	type MaxHolds = ConstU32<50>;
 	type MaxFreezes = ConstU32<50>;
 }
 
