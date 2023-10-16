@@ -104,7 +104,7 @@ impl<T: frame_system::Config> pallet_nfts::WeightInfo for WeightInfo<T> {
 	/// The range of component `m` is `[0, 1000]`.
 	/// The range of component `c` is `[0, 1000]`.
 	/// The range of component `a` is `[0, 1000]`.
-	fn destroy(_m: u32, _c: u32, a: u32, ) -> Weight {
+	fn destroy(m: u32, _c: u32, a: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `32170 + a * (366 ±0)`
 		//  Estimated: `2523990 + a * (2954 ±0)`

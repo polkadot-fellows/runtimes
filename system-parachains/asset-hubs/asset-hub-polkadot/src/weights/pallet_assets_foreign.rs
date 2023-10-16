@@ -305,7 +305,7 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[0, 50]`.
 	/// The range of component `n` is `[0, 50]`.
 	/// The range of component `s` is `[0, 50]`.
-	fn set_metadata(_n: u32, s: u32, ) -> Weight {
+	fn set_metadata(n: u32, s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `242`
 		//  Estimated: `4273`
