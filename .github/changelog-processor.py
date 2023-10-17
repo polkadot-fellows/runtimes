@@ -8,7 +8,9 @@ parser = argparse.ArgumentParser(description="Process the CHANGELOG.md")
 parser.add_argument(
     "changelog",
     metavar="CHANGELOG",
-    help="Path to the CHANGELOG.md file"
+    help="Path to the CHANGELOG.md file",
+    default="CHANGELOG.md",
+    nargs='?'
 )
 parser.add_argument(
     "--print-latest-version",
