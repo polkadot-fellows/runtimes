@@ -15,7 +15,7 @@ jobs:
       version: ${{ steps.run.outputs.version }}
     steps:
       - uses: actions/checkout@v2
-      - id: runtime
+      - id: run
         run: |
           echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
           echo "version=$(.github/changelog-processor.py CHANGELOG.md --print-latest-version)" >> $GITHUB_OUTPUT
