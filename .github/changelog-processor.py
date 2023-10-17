@@ -40,11 +40,11 @@ with open(args.changelog, "r") as changelog:
 
     if args.print_latest_version:
         print(version, end = "")
-        sys.exit(1)
+        sys.exit(0)
     elif args.should_release:
         if version.lower() == "unreleased":
             print("0", end = "")
-            sys.exit(1)
+            sys.exit(-1)
         elif version.count(".") != 2:
             print("0", end = "")
             sys.exit(-1)
@@ -58,6 +58,6 @@ with open(args.changelog, "r") as changelog:
         else:
             print("0", end = "")
 
-        sys.exit(1)
+        sys.exit(0)
     else:
         parser.print_help()
