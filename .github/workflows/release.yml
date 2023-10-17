@@ -22,7 +22,7 @@ jobs:
           cat $GITHUB_OUTPUT
   runtime-matrix:
     needs: [ collect-release-information ]
-    if: ${{ needs.collect-release-information.outputs.should-release == 1 }}
+    if: needs.collect-release-information.outputs.should-release == '1'
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
