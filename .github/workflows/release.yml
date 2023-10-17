@@ -22,7 +22,7 @@ jobs:
           cat $GITHUB_OUTPUT
   runtime-matrix:
     needs: [ collect-release-information ]
-    if: ${{ needs.collect-release-information.should-release == 1 }}
+    if: ${{ needs.collect-release-information.outputs.should-release == 1 }}
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ format('v{0}', needs.collect-release-information.version) }}
+          tag_name: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
           release_name: Runtimes ${{ github.sha }}
           body_path: DRAFT
           draft: true
