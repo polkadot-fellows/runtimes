@@ -33,7 +33,7 @@ with open(args.changelog, "r") as changelog:
         if not line.startswith("## ["):
             continue
 
-        version = line.strip().removeprefix("## [").removesuffix("]")
+        version = line.strip().removeprefix("## [").split("]")[0]
         break
 
     if args.print_latest_version:
@@ -43,6 +43,9 @@ with open(args.changelog, "r") as changelog:
         if version.lower() == "unreleased":
             print("0", end = "")
             sys.exit(1)
+        elif version.count(".") != 2:
+            print("0", end = "")
+            sys.exit(-1)
 
         stream = os.popen("git tag -l v" + version)
         output = stream.read()
