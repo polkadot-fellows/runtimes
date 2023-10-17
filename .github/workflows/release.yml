@@ -3,11 +3,26 @@ name: Create Draft Release
 on:
   push:
     branches: [ "main" ]
-    paths: [ "CHANGELOG.md" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
+  collect-release-information:
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.run.outputs.should-release }}
+      version: ${{ steps.run.outputs.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
+          echo "version=$(.github/changelog-processor.py CHANGELOG.md --print-latest-version)" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
   runtime-matrix:
+    needs: [ collect-release-information ]
+    if: ${{ collect-release-information.should-release == "1" }}
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -68,7 +83,7 @@ jobs:
 
   publish-draft-release:
     runs-on: ubuntu-latest
-    needs: [ build-runtimes ]
+    needs: [ build-runtimes, collect-release-information ]
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
@@ -121,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ format('v{0}', collect-release-information.version) }}
           release_name: Runtimes ${{ github.sha }}
           body_path: DRAFT
           draft: true
