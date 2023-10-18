@@ -1,9 +1,12 @@
 [package]
-name = "asset-hub-kusama-runtime"
-version = "0.9.420"
 authors.workspace = true
-edition.workspace = true
 description = "Kusama variant of Asset Hub parachain runtime"
+build = "build.rs"
+edition.workspace = true
+license.workspace = true
+name = "asset-hub-kusama-runtime"
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
@@ -223,3 +226,8 @@ std = [
 ]
 
 experimental = [ "pallet-aura/experimental" ]
+
+# A feature that should be enabled when the runtime should be build for on-chain
+# deployment. This will disable stuff that shouldn't be part of the on-chain wasm
+# to make it smaller like logging for example.
+on-chain-release-build = [ "sp-api/disable-logging" ]
