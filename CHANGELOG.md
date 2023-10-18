@@ -41,4 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - XCM: Fix issue with RequestUnlock ([paritytech/polkadot#7278](https://github.com/paritytech/polkadot/pull/7278))
 - Clear Existing HRMP Channel Request When Force Opening ([paritytech/polkadot#7389](https://github.com/paritytech/polkadot/pull/7389))
 - Prune upgrade cooldowns ([paritytech/polkadot#7470](https://github.com/paritytech/polkadot/pull/7470))
-- Assets `destroy_accounts` releases the deposit ([paritytech/substrate#14443](https://github.com/paritytech/substrate/pull/14443))
+- Assets `destroy_accounts` releases the deposit
+  ([paritytech/substrate#14443](https://github.com/paritytech/substrate/pull/14443))
+- Update Polkadot Collectives to use `limited_teleport_assets` for automatic slash handling, as
+  `teleport_assets` is deprecated and caused a failing integration test. ([polkadot-fellows/runtimes#46](https://github.com/polkadot-fellows/runtimes/pull/46))
