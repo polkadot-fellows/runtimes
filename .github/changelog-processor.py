@@ -12,13 +12,15 @@ parser.add_argument(
     default="CHANGELOG.md",
     nargs='?'
 )
-parser.add_argument(
+
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
     "--print-latest-version",
     dest="print_latest_version",
     help="Print the latest version (first in the file) found in the CHANGELOG.md",
     action="store_true"
 )
-parser.add_argument(
+group.add_argument(
     "--should-release",
     dest="should_release",
     help="Should a release be made? Prints `1` or `0`.",
