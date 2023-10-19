@@ -111,7 +111,7 @@ primitives = { package = "polkadot-primitives", default-features = false , versi
 
 xcm = { package = "staging-xcm", default-features = false , version = "2.0.0" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "2.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "2.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "2.0.1" }
 
 [dev-dependencies]
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }

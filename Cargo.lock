@@ -11255,9 +11255,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd00b720a97ad1304684c07eea14fb3615dd2e26569d29876e9b40ff9c334eca"
+checksum = "07c1ca6d8f2b7fcbfe8866c1a1cb8105b62c72a74e727dd8c9943e8ac0c410eb"
 dependencies = [
  "frame-support",
  "frame-system",
