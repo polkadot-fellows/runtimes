@@ -2639,7 +2639,7 @@ mod remote_tests {
 			for (ref_index, referenda) in all_refs {
 				log::info!(target: LOG_TARGET, "🚀 executing referenda #{}", ref_index);
 				let RefStatus { origin, proposal, .. } = referenda;
-				// we do more or less what the scheduler will do under the hood, as bes tas we can
+				// we do more or less what the scheduler will do under the hood, as best as we can
 				// imitate:
 				let (call, _len) = match <
 					<Runtime as pallet_scheduler::Config>::Preimages
