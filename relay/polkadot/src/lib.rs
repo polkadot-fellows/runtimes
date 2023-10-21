@@ -2458,6 +2458,7 @@ mod multiplier_tests {
 	use super::*;
 	use frame_support::{dispatch::DispatchInfo, traits::OnFinalize};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
+	use scale_info::TypeInfo;
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
 
@@ -2579,6 +2580,13 @@ mod multiplier_tests {
 			});
 			blocks += 1;
 		}
+	}
+
+	#[test]
+	fn ensure_xcm_metadata_is_correct() {
+		let path = xcm::VersionedXcm::<()>::type_info().path;
+		// Ensure that the name doesn't include `staging` (from the pallet name)
+		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
 	}
 }
 
