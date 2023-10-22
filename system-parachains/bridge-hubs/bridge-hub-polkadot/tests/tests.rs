@@ -1,4 +1,4 @@
-// Copyright 2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Cumulus is free software: you can redistribute it and/or modify
@@ -15,12 +15,12 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 pub use bridge_hub_polkadot_runtime::{
-	constants::fee::WeightToFee, xcm_config::XcmConfig, Balances, ExistentialDeposit,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeEvent, SessionKeys,
+	xcm_config::XcmConfig, AllPalletsWithoutSystem, Balances, ExistentialDeposit, ParachainSystem,
+	PolkadotXcm, Runtime, RuntimeEvent, SessionKeys,
 };
 use codec::Decode;
 use frame_support::parameter_types;
-use parachains_common::{AccountId, AuraId};
+use parachains_common::{polkadot::fee::WeightToFee, AccountId, AuraId};
 
 const ALICE: [u8; 32] = [1u8; 32];
 
@@ -30,6 +30,7 @@ parameter_types! {
 
 bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 	Runtime,
+	AllPalletsWithoutSystem,
 	XcmConfig,
 	CheckingAccount,
 	WeightToFee,
