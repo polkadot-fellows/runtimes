@@ -168,7 +168,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
           asset_content_type: application/wasm
