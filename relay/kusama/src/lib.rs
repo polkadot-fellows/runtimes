@@ -1623,62 +1623,6 @@ pub mod migrations {
 	use frame_support::traits::LockIdentifier;
 	use frame_system::pallet_prelude::BlockNumberFor;
 
-	parameter_types! {
-		pub const DemocracyPalletName: &'static str = "Democracy";
-		pub const CouncilPalletName: &'static str = "Council";
-		pub const TechnicalCommitteePalletName: &'static str = "TechnicalCommittee";
-		pub const PhragmenElectionPalletName: &'static str = "PhragmenElection";
-		pub const TechnicalMembershipPalletName: &'static str = "TechnicalMembership";
-		pub const TipsPalletName: &'static str = "Tips";
-		pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
-	}
-
-	// Special Config for Gov V1 pallets, allowing us to run migrations for them without
-	// implementing their configs on [`Runtime`].
-	pub struct UnlockConfig;
-	impl pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockConfig for UnlockConfig {
-		type Currency = Balances;
-		type MaxVotes = ConstU32<100>;
-		type MaxDeposits = ConstU32<100>;
-		type AccountId = AccountId;
-		type BlockNumber = BlockNumberFor<Runtime>;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = DemocracyPalletName;
-	}
-	impl pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockConfig
-		for UnlockConfig
-	{
-		type Currency = Balances;
-		type MaxVotesPerVoter = ConstU32<16>;
-		type PalletId = PhragmenElectionPalletId;
-		type AccountId = AccountId;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = PhragmenElectionPalletName;
-	}
-	impl pallet_tips::migrations::unreserve_deposits::UnlockConfig<()> for UnlockConfig {
-		type Currency = Balances;
-		type Hash = Hash;
-		type DataDepositPerByte = DataDepositPerByte;
-		type TipReportDepositBase = TipReportDepositBase;
-		type AccountId = AccountId;
-		type BlockNumber = BlockNumberFor<Runtime>;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = TipsPalletName;
-	}
-
-	pub struct ParachainsToUnlock;
-	impl Contains<ParaId> for ParachainsToUnlock {
-		fn contains(id: &ParaId) -> bool {
-			let id: u32 = (*id).into();
-			// ksuama parachains/parathreads that are locked and never produced block
-			match id {
-				2003 | 2008 | 2018 | 2077 | 2089 | 2111 | 2112 | 2120 | 2126 | 2127 | 2130 |
-				2226 | 2227 | 2231 | 2233 | 2237 | 2256 | 2257 | 2261 | 2268 | 2275 => true,
-				_ => false,
-			}
-		}
-	}
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		init_state_migration::InitMigrate,
@@ -1692,23 +1636,7 @@ pub mod migrations {
 		paras_scheduler_migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
-		// Unlock/unreserve balances from Gov v1 pallets that hold them
-		// https://github.com/paritytech/polkadot/issues/6749
-		pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_tips::migrations::unreserve_deposits::UnreserveDeposits<UnlockConfig, ()>,
-
-		// Delete storage key/values from all Gov v1 pallets
-		frame_support::migrations::RemovePallet<DemocracyPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<CouncilPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalCommitteePalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<PhragmenElectionPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalMembershipPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TipsPalletName, <Runtime as frame_system::Config>::DbWeight>,
-
 		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
-		// Migrate parachain info format
-		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
 	);
 }
 
