@@ -1620,23 +1620,10 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::LockIdentifier;
-	use frame_system::pallet_prelude::BlockNumberFor;
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		init_state_migration::InitMigrate,
-		pallet_society::migrations::VersionCheckedMigrateToV2<
-			Runtime,
-			(),
-			past_payouts::PastPayouts,
-		>,
-		pallet_im_online::migration::v1::Migration<Runtime>,
-		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		paras_scheduler_migration::v1::MigrateToV1<Runtime>,
-		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
-
-		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
 	);
 }
 
