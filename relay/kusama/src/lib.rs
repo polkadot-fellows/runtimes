@@ -1623,7 +1623,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		init_state_migration::InitMigrate,
 	);
 }
 
