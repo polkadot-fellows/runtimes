@@ -125,7 +125,6 @@ jobs:
               HEADING=$(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
           fi
 
-
           ### $HEADING
           ~~~
           🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
