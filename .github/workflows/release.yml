@@ -2,7 +2,7 @@ name: Create Release
 
 on:
   push:
-    branches: [ "main", "liam-rename-statemint-statemine" ]
+    branches: [ "main" ]
     paths: [ "CHANGELOG.md" ]
   workflow_dispatch:
 
