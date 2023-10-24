@@ -16,8 +16,15 @@ jobs:
       - uses: actions/checkout@v2
       - id: runtime
         run: |
-          TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
+          # Filter out runtimes that don't have a URI
+          TASKS=$(jq '[.[] | select(.uri != null)]' .github/workflows/runtimes-matrix.json)
+          SKIPPED_TASKS=$(jq '[.[] | select(.uri == null)]' .github/workflows/runtimes-matrix.json)
+          echo --- Running the following tasks ---
           echo $TASKS
+          echo --- Skipping the following tasks due to not having a uri field ---
+          echo $SKIPPED_TASKS
+          # Strip whitespace from Tasks now that we've logged it
+          TASKS=$(echo $TASKS | jq -c .)
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   check-migrations:
@@ -61,7 +68,7 @@ jobs:
         if: ${{ matrix.runtime.uri != '' }}
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compressed.compact.wasm
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.wasm
           ./try-runtime \
               --runtime ./${{ matrix.runtime.path }}/target/srtool/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
               on-runtime-upgrade --checks=pre-and-post live --uri ${{ matrix.runtime.uri }}

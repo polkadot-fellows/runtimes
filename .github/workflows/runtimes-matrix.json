@@ -14,8 +14,7 @@
   {
     "name": "glutton-kusama",
     "package": "glutton-kusama-runtime",
-    "path": "system-parachains/gluttons/glutton-kusama",
-    "uri": ""
+    "path": "system-parachains/gluttons/glutton-kusama"
   },
   {
     "name": "asset-hub-kusama",
