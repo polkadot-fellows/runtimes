@@ -32,24 +32,24 @@ jobs:
         if: ${{ matrix.runtime.uri != '' }}
         uses: actions/checkout@v3
 
-      # - name: Build ${{ matrix.runtime.name }}
-      #   if: ${{ matrix.runtime.uri != '' }}
-      #   id: srtool_build
-      #   uses: chevdor/srtool-actions@v0.8.0
-      #   env:
-      #     BUILD_OPTS: "--features try-runtime"
-      #   with:
-      #     chain: ${{ matrix.runtime.name }}
-      #     package: ${{ matrix.runtime.package }}
-      #     runtime_dir: ${{ matrix.runtime.path }}
-      #     profile: "production"
+      - name: Build ${{ matrix.runtime.name }}
+        if: ${{ matrix.runtime.uri != '' }}
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.8.0
+        env:
+          BUILD_OPTS: "--features try-runtime"
+        with:
+          chain: ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
+          profile: "production"
 
-      # - name: Build Summary
-      #   if: ${{ matrix.runtime.uri != '' }}
-      #   run: |
-      #     echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.runtime.name }}-srtool-digest.json
-      #     cat ${{ matrix.runtime.name }}-srtool-digest.json
-      #     echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+      - name: Build Summary
+        if: ${{ matrix.runtime.uri != '' }}
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.runtime.name }}-srtool-digest.json
+          cat ${{ matrix.runtime.name }}-srtool-digest.json
+          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
 
       - name: Download try-runtime-cli
         if: ${{ matrix.runtime.uri != '' }}
