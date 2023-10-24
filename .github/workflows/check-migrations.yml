@@ -36,11 +36,9 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
-        if: ${{ matrix.runtime.uri != '' }}
         uses: actions/checkout@v3
 
       - name: Build ${{ matrix.runtime.name }}
-        if: ${{ matrix.runtime.uri != '' }}
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
         env:
@@ -52,20 +50,17 @@ jobs:
           profile: "production"
 
       - name: Build Summary
-        if: ${{ matrix.runtime.uri != '' }}
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.runtime.name }}-srtool-digest.json
           cat ${{ matrix.runtime.name }}-srtool-digest.json
           echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
 
       - name: Download try-runtime-cli
-        if: ${{ matrix.runtime.uri != '' }}
         run: |
           curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.3.3/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x ./try-runtime
 
       - name: Check migrations
-        if: ${{ matrix.runtime.uri != '' }}
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.wasm
