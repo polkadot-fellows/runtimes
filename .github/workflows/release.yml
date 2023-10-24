@@ -114,7 +114,7 @@ jobs:
           EOF
 
           for JSON in $(<<<$CONTEXT sort -sr)
-          do tee -a DRAFT <<-EOF
+          do
           SPEC_NAME=$(WASM 'core_version.specName')
           # Check for spec names and adjust the heading accordingly
           if [[ "$SPEC_NAME" == "statemint" ]]; then
@@ -124,6 +124,8 @@ jobs:
           else
               HEADING=$(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
           fi
+
+          tee -a DRAFT <<-EOF
 
           ### $HEADING
           ~~~
