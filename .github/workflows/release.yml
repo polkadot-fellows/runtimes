@@ -117,9 +117,9 @@ jobs:
             SPEC_NAME=$(WASM 'core_version.specName')
             # Check for spec names and adjust the heading accordingly
             if [[ "$SPEC_NAME" == "statemint" ]]; then
-                HEADING="Polkadot Asset Hub (previously Statemint)"
+                HEADING="Asset Hub Polkadot (previously Statemint)"
             elif [[ "$SPEC_NAME" == "statemine" ]]; then
-                HEADING="Kusama Asset Hub (previously Statemine)"
+                HEADING="Asset Hub Kusama (previously Statemine)"
             else
                 HEADING=$(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
             fi
