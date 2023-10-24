@@ -113,7 +113,7 @@ jobs:
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
           EOF
 
-          for JSON in $(<<<$CONTEXT sort -sr) 
+          for JSON in $(<<<$CONTEXT sort -sr)
           do tee -a DRAFT <<-EOF
           SPEC_NAME=$(WASM 'core_version.specName')
           # Check for spec names and adjust the heading accordingly
@@ -136,7 +136,7 @@ jobs:
           📦 IPFS:                   $(WASM ipfs_hash)
           ~~~
           EOF
-        done
+          done
 
       - name: Create release
         id: create-release
