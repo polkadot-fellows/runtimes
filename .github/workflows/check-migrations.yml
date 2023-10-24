@@ -1,0 +1,67 @@
+name: Create Release
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request: 
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  runtime-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
+          echo $TASKS
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+
+  check-migrations:
+    needs: [ runtime-matrix ]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        if: ${{ matrix.runtime.uri != '' }}
+        uses: actions/checkout@v3
+
+      # - name: Build ${{ matrix.runtime.name }}
+      #   if: ${{ matrix.runtime.uri != '' }}
+      #   id: srtool_build
+      #   uses: chevdor/srtool-actions@v0.8.0
+      #   env:
+      #     BUILD_OPTS: "--features try-runtime"
+      #   with:
+      #     chain: ${{ matrix.runtime.name }}
+      #     package: ${{ matrix.runtime.package }}
+      #     runtime_dir: ${{ matrix.runtime.path }}
+      #     profile: "production"
+
+      # - name: Build Summary
+      #   if: ${{ matrix.runtime.uri != '' }}
+      #   run: |
+      #     echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.runtime.name }}-srtool-digest.json
+      #     cat ${{ matrix.runtime.name }}-srtool-digest.json
+      #     echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+
+      - name: Download try-runtime-cli
+        if: ${{ matrix.runtime.uri != '' }}
+        run: |
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.3.3/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          chmod +x ./try-runtime
+
+      - name: Check migrations
+        if: ${{ matrix.runtime.uri != '' }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compressed.compact.wasm
+          ./try-runtime \
+              --runtime ./target/release/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
+              on-runtime-upgrade --checks=pre-and-post live --uri ${{ matrix.runtime.uri }}
