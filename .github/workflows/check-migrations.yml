@@ -63,5 +63,5 @@ jobs:
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compressed.compact.wasm
           ./try-runtime \
-              --runtime ./target/release/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
+              --runtime ./${{ matrix.runtime.path }}/target/srtool/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
               on-runtime-upgrade --checks=pre-and-post live --uri ${{ matrix.runtime.uri }}
