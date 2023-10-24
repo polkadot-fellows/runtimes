@@ -67,7 +67,7 @@ jobs:
           # When running on relay, we don't need weight checks.
           NO_WEIGHT_WARNINGS_FLAG=""
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
-            NO_WEIGHT_WARNINGS_FLAG="--no_weight_warnings"
+            NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
           fi
           ./try-runtime \
               --runtime ./${{ matrix.runtime.path }}/target/srtool/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
