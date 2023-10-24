@@ -69,6 +69,11 @@ jobs:
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.wasm
+          # When running on relay, we don't need weight checks.
+          NO_WEIGHT_WARNINGS_FLAG=""
+          if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
+            NO_WEIGHT_WARNINGS_FLAG="--no_weight_warnings"
+          fi
           ./try-runtime \
               --runtime ./${{ matrix.runtime.path }}/target/srtool/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
-              on-runtime-upgrade --checks=pre-and-post live --uri ${{ matrix.runtime.uri }}
+              on-runtime-upgrade --checks=pre-and-post $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
