@@ -53,7 +53,7 @@ jobs:
 
       - name: Build ${{ matrix.runtime.name }}
         run: |
-          cargo build --profile production -p ${{ matrix.runtime.package }}
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime
 
       - name: Check migrations
         run: |
