@@ -463,6 +463,16 @@ pub fn kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	)))
 }
 
+pub fn from_json_file(filepath: &str) -> Result<Box<dyn ChainSpec>, String> {
+	let path = std::path::PathBuf::from(&filepath);
+	let chain_spec = PolkadotChainSpec::from_json_file(path.clone())?;
+	match chain_spec.id() {
+		x if x.starts_with("kusama") | x.starts_with("ksm") =>
+			Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
+		_ => Ok(Box::new(chain_spec)),
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
