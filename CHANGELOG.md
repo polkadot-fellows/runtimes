@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Introduce chain spec generator ([polkadot-fellows/runtimes#78](https://github.com/polkadot-fellows/runtimes/pull/78))
+
 ## [1.0.0] 22.10.2023
 
 ### Changed
