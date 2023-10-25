@@ -39,21 +39,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build ${{ matrix.runtime.name }}
-        id: srtool_build
-        uses: chevdor/srtool-actions@v0.8.0
-        env:
-          BUILD_OPTS: "--features try-runtime"
-        with:
-          chain: ${{ matrix.runtime.name }}
-          package: ${{ matrix.runtime.package }}
-          runtime_dir: ${{ matrix.runtime.path }}
-          profile: "production"
-
-      - name: Build Summary
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.runtime.name }}-srtool-digest.json
-          cat ${{ matrix.runtime.name }}-srtool-digest.json
-          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+          cargo build --profile production -p ${{ matrix.runtime.package }}
 
       - name: Download try-runtime-cli
         run: |
@@ -63,12 +50,12 @@ jobs:
       - name: Check migrations
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.wasm
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
           # When running on relay, we don't need weight checks.
           NO_WEIGHT_WARNINGS_FLAG=""
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
           fi
           ./try-runtime \
-              --runtime ./${{ matrix.runtime.path }}/target/srtool/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
+              --runtime ./target/release/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
               on-runtime-upgrade --checks=pre-and-post $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
