@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Alain Brenzikofer
+// Copyright (c) 2023 Encointer Association
 // This file is part of Encointer
 //
 // Encointer is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 //!  * perform ceremonies and receive a community income
 //!  * pay fees in the respective community currency
 //!
-//! The configuration (especially XCM) is almost identical to `statemine`. Therefore, upstream
+//! The configuration (especially XCM) is almost identical to `asset-hub`. Therefore, upstream
 //! updates should always check the diff to see if there are some configuration updates.
 
 #![cfg_attr(not(feature = "std"), no_std)]

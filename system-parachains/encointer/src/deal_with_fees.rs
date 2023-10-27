@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Alain Brenzikofer
+// Copyright (c) 2023 Encointer Association
 // This file is part of Encointer
 //
 // Encointer is free software: you can redistribute it and/or modify
