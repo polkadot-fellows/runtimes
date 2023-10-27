@@ -1,4 +1,4 @@
-// Copyright 2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Cumulus is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{impls::ToStakingPot, xcm_config::ConcreteNativeAssetFrom};
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
@@ -33,7 +33,7 @@ use xcm_builder::{
 	DenyReserveTransferToRelayChain, DenyThenTry, EnsureXcmOrigin, IsConcrete, ParentAsSuperuser,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
@@ -150,32 +150,35 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::Utility(pallet_utility::Call::as_derivative { .. })
+				RuntimeCall::DmpQueue(..)
 		)
 	}
 }
 
-pub type Barrier = DenyThenTry<
-	DenyReserveTransferToRelayChain,
-	(
-		// Allow local users to buy weight credit.
-		TakeWeightCredit,
-		// Expected responses are OK.
-		AllowKnownQueryResponses<PolkadotXcm>,
-		WithComputedOrigin<
-			(
-				// If the message is one that immediately attemps to pay for execution, then allow it.
-				AllowTopLevelPaidExecutionFrom<Everything>,
-				// Parent, its pluralities (i.e. governance bodies), and the Fellows plurality get free execution.
-				AllowExplicitUnpaidExecutionFrom<(ParentOrParentsPlurality, FellowsPlurality)>,
-				// Subscriptions for version tracking are OK.
-				AllowSubscriptionsFrom<ParentOrSiblings>,
-			),
-			UniversalLocation,
-			ConstU32<8>,
-		>,
-	),
+pub type Barrier = TrailingSetTopicAsId<
+	DenyThenTry<
+		DenyReserveTransferToRelayChain,
+		(
+			// Allow local users to buy weight credit.
+			TakeWeightCredit,
+			// Expected responses are OK.
+			AllowKnownQueryResponses<PolkadotXcm>,
+			WithComputedOrigin<
+				(
+					// If the message is one that immediately attemps to pay for execution, then
+					// allow it.
+					AllowTopLevelPaidExecutionFrom<Everything>,
+					// Parent, its pluralities (i.e. governance bodies), and the Fellows plurality
+					// get free execution.
+					AllowExplicitUnpaidExecutionFrom<(ParentOrParentsPlurality, FellowsPlurality)>,
+					// Subscriptions for version tracking are OK.
+					AllowSubscriptionsFrom<ParentOrSiblings>,
+				),
+				UniversalLocation,
+				ConstU32<8>,
+			>,
+		),
+	>,
 >;
 
 pub struct XcmConfig;
@@ -220,12 +223,12 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
-pub type XcmRouter = (
+pub type XcmRouter = WithUniqueTopic<(
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
-);
+)>;
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {

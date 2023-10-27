@@ -1,4 +1,4 @@
-// Copyright 2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Cumulus is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{impls::ToStakingPot, xcm_config::ConcreteNativeAssetFrom};
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
@@ -147,8 +147,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::Utility(pallet_utility::Call::as_derivative { .. })
+				RuntimeCall::DmpQueue(..)
 		)
 	}
 }
@@ -163,7 +162,8 @@ pub type Barrier = TrailingSetTopicAsId<
 			AllowKnownQueryResponses<PolkadotXcm>,
 			WithComputedOrigin<
 				(
-					// If the message is one that immediately attemps to pay for execution, then allow it.
+					// If the message is one that immediately attemps to pay for execution, then
+					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) get free execution.
 					AllowExplicitUnpaidExecutionFrom<ParentOrParentsPlurality>,

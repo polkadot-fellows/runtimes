@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,16 @@
 
 use crate::OriginCaller;
 use frame_support::{
-	dispatch::{DispatchError, DispatchResultWithPostInfo},
-	log,
+	dispatch::DispatchResultWithPostInfo,
 	traits::{Currency, Get, Imbalance, OnUnbalanced, OriginTrait, PrivilegeCmp},
 	weights::Weight,
 };
+use log;
 use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
+use sp_runtime::DispatchError;
 use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
-use xcm::latest::{Fungibility, Junction, Parent};
+use xcm::latest::{Fungibility, Junction, Parent, WeightLimit};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -35,7 +36,8 @@ type HashOf<T> = <T as frame_system::Config>::Hash;
 pub type BalanceOf<T> =
 	<pallet_balances::Pallet<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-/// Implements `OnUnbalanced::on_unbalanced` to teleport slashed assets to relay chain treasury account.
+/// Implements `OnUnbalanced::on_unbalanced` to teleport slashed assets to relay chain treasury
+/// account.
 pub struct ToParentTreasury<TreasuryAccount, PalletAccount, T>(
 	PhantomData<(TreasuryAccount, PalletAccount, T)>,
 );
@@ -61,7 +63,7 @@ where
 
 		<pallet_balances::Pallet<T>>::resolve_creating(&pallet_acc, amount);
 
-		let result = <pallet_xcm::Pallet<T>>::teleport_assets(
+		let result = <pallet_xcm::Pallet<T>>::limited_teleport_assets(
 			<<T as frame_system::Config>::RuntimeOrigin>::signed(pallet_acc.into()),
 			Box::new(Parent.into()),
 			Box::new(
@@ -71,6 +73,7 @@ where
 			),
 			Box::new((Parent, imbalance).into()),
 			0,
+			WeightLimit::Unlimited,
 		);
 
 		if let Err(err) = result {
@@ -187,8 +190,9 @@ pub mod benchmarks {
 		}
 	}
 
-	/// Type that wraps a type implementing the [`Pay`] trait to decorate its [`Pay::ensure_successful`]
-	/// function with a provided implementation of the [`EnsureSuccessful`] trait.
+	/// Type that wraps a type implementing the [`Pay`] trait to decorate its
+	/// [`Pay::ensure_successful`] function with a provided implementation of the
+	/// [`EnsureSuccessful`] trait.
 	pub struct PayWithEnsure<O, E>(PhantomData<(O, E)>);
 	impl<O, E> Pay for PayWithEnsure<O, E>
 	where

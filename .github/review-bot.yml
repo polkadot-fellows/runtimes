@@ -1,0 +1,32 @@
+rules:
+  - name: CI Files
+    condition:
+      include:
+        - ^\.github/.*
+    type: fellows
+    minRank: 4
+    minApprovals: 2
+  - name: Relay and system files
+    condition:
+      include:
+        - ^relay\/kusama\/.*
+        - ^relay\/polkadot\/.*
+        - ^system-parachains\/.*
+        - ^CHANGELOG$
+      exclude: 
+        - ^relay\/.+\.adoc$
+    type: fellows
+    minRank: 3
+    minApprovals: 4
+  - name: General Files
+    condition:
+      include:
+        - '.*'
+      exclude: 
+        - ^relay\/kusama\/.*
+        - ^relay\/polkadot\/.*
+        - ^\.github/.*
+        - ^system-parachains\/.*
+        - ^target\/.*
+    type: fellows
+    minRank: 2
