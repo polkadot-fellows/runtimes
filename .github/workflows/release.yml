@@ -1,35 +1,44 @@
-name: Create Draft Release
+name: Create Release
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - CHANGELOG
+    branches: [ "main" ]
+    paths: [ "CHANGELOG.md" ]
   workflow_dispatch:
 
 jobs:
-  enumerate:
+  collect-release-information:
     runs-on: ubuntu-latest
     outputs:
-      runtime: ${{ steps.generate-matrix.outputs.runtime }}
+      should-release: ${{ steps.run.outputs.should-release }}
+      version: ${{ steps.run.outputs.version }}
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Generate runtime matrix
-        id: generate-matrix
+      - uses: actions/checkout@v2
+      - id: run
         run: |
-          >>$GITHUB_OUTPUT echo runtime="[$(find * -name "lib.rs" -not -path "*/common/*" -not -path "*/constants/*" | awk -F/ '{sub("/src/lib.rs",""); print "[\"" gensub("/" $NF "$", "", "g") "\",\"" $NF "\"],"}' | tr -d $'\n')]"
-
+          echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
+          echo "version=$(.github/changelog-processor.py CHANGELOG.md --print-latest-version)" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+  runtime-matrix:
+    needs: [ collect-release-information ]
+    if: needs.collect-release-information.outputs.should-release == '1'
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          TASKS=$(echo $(cat .github/workflows/release-matrix.json) | sed 's/ //g' )
+          echo $TASKS
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
   build-runtimes:
+    needs: [ runtime-matrix ]
     continue-on-error: true
     runs-on: ubuntu-latest
-    needs:
-      - enumerate
     strategy:
       matrix:
-        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -37,43 +46,43 @@ jobs:
       - name: Cache target dir
         uses: actions/cache@v3
         with:
-          path: "${{ github.workspace }}/${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}/target"
-          key: srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-${{ github.sha }}
+          path: "${{ github.workspace }}/${{ matrix.runtime.path }}/target"
+          key: srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-${{ github.sha }}
           restore-keys: |
-            srtool-target-${{ matrix.runtime[0] }}-${{ matrix.runtime[1] }}-
-            srtool-target-${{ matrix.runtime[0] }}-
+            srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-
+            srtool-target-${{ matrix.runtime.path }}-
 
-      - name: Build ${{ matrix.runtime[1] }}
+      - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
         env:
           BUILD_OPTS: "--features on-chain-release-build"
         with:
-          chain: ${{ matrix.runtime[1] }}
-          runtime_dir: "${{ matrix.runtime[0] }}/${{ matrix.runtime[1] }}"
+          chain: ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
           profile: "production"
 
-      - name: Store ${{ matrix.runtime[1] }} srtool digest to disk
+      - name: Store ${{ matrix.runtime.name }} srtool digest to disk
         run: |
-          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime[1] }}_srtool_output.json
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime.name }}_srtool_output.json
 
-      - name: Upload ${{ matrix.runtime[1] }} srtool json
+      - name: Upload ${{ matrix.runtime.name }} srtool json
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.runtime[1] }}-srtool-json
-          path: ${{ matrix.runtime[1] }}_srtool_output.json
+          name: ${{ matrix.runtime.name }}-srtool-json
+          path: ${{ matrix.runtime.name }}_srtool_output.json
 
-      - name: Upload  ${{ matrix.runtime[1] }}
+      - name: Upload  ${{ matrix.runtime.name }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.runtime[1] }}
+          name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
 
-  publish-draft-release:
+  publish-release:
     runs-on: ubuntu-latest
-    needs:
-      - build-runtimes
+    needs: [ build-runtimes, collect-release-information ]
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
@@ -97,9 +106,8 @@ jobs:
           SRTOOL() { <$(<<<$CONTEXT head -n1) jq -r .$1; }
           WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
           tee -a DRAFT <<-EOF
-          ## Changelog
           EOF
-          tee -a DRAFT <CHANGELOG
+          tee -a DRAFT <CHANGELOG.md
           tee -a DRAFT <<-EOF
           ## Runtime info
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
@@ -120,28 +128,26 @@ jobs:
           EOF
           done
 
-      - name: Create draft release
+      - name: Create release
         id: create-release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Runtimes ${{ github.sha }}
+          tag_name: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
+          release_name: Runtimes ${{ needs.collect-release-information.outputs.version }}
           body_path: DRAFT
-          draft: true
+          draft: false
 
   publish-runtimes:
+    needs: [ runtime-matrix, publish-release ]
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
       RUNTIME_DIR: runtime
-    needs:
-      - publish-draft-release
-      - enumerate
     strategy:
       matrix:
-        runtime: ${{ fromJSON(needs.enumerate.outputs.runtime) }}
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -151,18 +157,17 @@ jobs:
 
       - name: Get runtime info
         env:
-          JSON: release-notes-context/${{ matrix.runtime[1] }}-srtool-json/${{ matrix.runtime[1] }}_srtool_output.json
+          JSON: release-notes-context/${{ matrix.runtime.name }}-srtool-json/${{ matrix.runtime.name }}_srtool_output.json
         run: |
-          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime[1] }} -name '*.compact.compressed.wasm')
+          >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime.name }} -name '*.compact.compressed.wasm')
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
-          >>$GITHUB_ENV echo TXVER=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.transactionVersion)
 
-      - name: Upload compressed ${{ matrix.runtime[1] }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
+      - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime[1] }}_runtime-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
+          asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm

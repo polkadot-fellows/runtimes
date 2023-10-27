@@ -1,4 +1,4 @@
-// Copyright 2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Cumulus.
 
 // Cumulus is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@ pub(crate) mod migration;
 mod origins;
 mod tracks;
 use crate::{
-	constants, impls::ToParentTreasury, weights, AccountId, Balance, Balances, FellowshipReferenda,
+	impls::ToParentTreasury, weights, AccountId, Balance, Balances, FellowshipReferenda,
 	GovernanceLocation, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS,
 };
@@ -36,6 +36,7 @@ pub use origins::{
 };
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
+use parachains_common::polkadot::account;
 use polkadot_runtime_constants::{time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{AccountIdConversion, ConstU16, ConvertToValue, Replace, TakeFirst};
@@ -62,7 +63,7 @@ pub mod ranks {
 
 parameter_types! {
 	// Referenda pallet account, used to temporarily deposit slashed imbalance before teleporting.
-	pub ReferendaPalletAccount: AccountId = constants::account::REFERENDA_PALLET_ID.into_account_truncating();
+	pub ReferendaPalletAccount: AccountId = account::REFERENDA_PALLET_ID.into_account_truncating();
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 }
 
@@ -113,14 +114,16 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
 	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
 	#[cfg(feature = "runtime-benchmarks")]
-	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will pass.
+	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
+	// pass.
 	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
 
 	// Demotion is by any of:
 	// - Root can demote arbitrarily.
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	//
-	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will pass.
+	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
+	// pass.
 	type DemoteOrigin = EitherOf<
 		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		MapSuccess<
