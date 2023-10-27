@@ -71,10 +71,9 @@ pub use parachains_common as common;
 pub use parachains_common::MILLISECS_PER_BLOCK;
 use sp_runtime::RuntimeDebug;
 
-use parachains_common::kusama::consensus::*;
 use parachains_common::{
-	AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-	SLOT_DURATION,
+	kusama::consensus::*, AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT,
+	NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 use xcm_config::{KsmLocation, XcmConfig, XcmOriginToTransactDispatchOrigin};
 
@@ -111,8 +110,7 @@ use xcm_executor::XcmExecutor;
 
 // adopt all currency-related constants identical to other system chains
 use deal_with_fees::FeesToTreasury;
-use parachains_common::kusama::currency::*;
-use parachains_common::kusama::fee::WeightToFee;
+use parachains_common::kusama::{currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 /// A type to hold UTC unix epoch [ms]
@@ -189,9 +187,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NonTransfer => matches!(c, RuntimeCall::EncointerBazaar(..)),
 			ProxyType::BazaarEdit => matches!(
 				c,
-				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. })
-					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. })
-					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
+				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. }) |
+					RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. }) |
+					RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
 			),
 		}
 	}
@@ -355,7 +353,8 @@ impl pallet_treasury::Config for Runtime {
 	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = ProposalBondMinimum;
 	type ProposalBondMaximum = ProposalBondMaximum;
-	type SpendPeriod = SpendPeriod; //Cannot be 0: Error: Thread 'tokio-runtime-worker' panicked at 'attempt to calculate the remainder with a divisor of zero
+	type SpendPeriod = SpendPeriod; //Cannot be 0: Error: Thread 'tokio-runtime-worker' panicked at 'attempt to calculate the
+								// remainder with a divisor of zero
 	type Burn = (); //No burn
 	type BurnDestination = (); //No burn
 	type SpendFunds = (); //No spend, no bounty
