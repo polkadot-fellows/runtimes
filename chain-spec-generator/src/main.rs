@@ -39,10 +39,16 @@ fn main() -> Result<(), String> {
 		print!("{chain_spec}");
 		Ok(())
 	} else {
-		let supported = supported_chains.keys().enumerate().fold(String::new(), |c, (n, k)| {
-			let extra = (n + 1 < supported_chains.len()).then(|| ", ").unwrap_or("");
-			format!("{c}{k}{extra}")
-		});
-		Err(format!("Unknown chain, only supported: {supported}"))
+		if cli.chain.ends_with(".json") {
+			let chain_spec = relay_chain_specs::from_json_file(&cli.chain)?.as_json(cli.raw)?;
+			print!("{chain_spec}");
+			Ok(())
+		} else {
+			let supported = supported_chains.keys().enumerate().fold(String::new(), |c, (n, k)| {
+				let extra = (n + 1 < supported_chains.len()).then(|| ", ").unwrap_or("");
+				format!("{c}{k}{extra}")
+			});
+			Err(format!("Unknown chain, only supported: {supported} or a json file"))
+		}
 	}
 }
