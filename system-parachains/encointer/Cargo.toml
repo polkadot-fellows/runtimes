@@ -11,12 +11,9 @@ edition = "2021"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
     "derive",
 ] }
-hex-literal = { version = "0.3.1", optional = true }
-log = { version = "0.4.19", default-features = false }
+hex-literal = { version = "0.4.1", optional = true }
+log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = [
-    "derive",
-] }
-serde = { version = "1.0.171", default-features = false, optional = true, features = [
     "derive",
 ] }
 
@@ -126,7 +123,6 @@ runtime-benchmarks = [
 std = [
     "codec/std",
     "scale-info/std",
-    "serde",
     "log/std",
     "sp-api/std",
     "sp-std/std",
@@ -169,7 +165,6 @@ std = [
     "xcm-executor/std",
     "pallet-aura/std",
     "sp-consensus-aura/std",
-    "serde/std",
     # encointer
     "encointer-balances-tx-payment/std",
     "encointer-balances-tx-payment-rpc-runtime-api/std",
