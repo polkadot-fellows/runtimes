@@ -1,6 +1,6 @@
 # Setting up on-chain identity
 
-As a member of the Polkadot Technical Fellowship you should set an on-chain identity for your account. Your identity should also include a field `github` pointing to your github username. Unfortunately this is a custom field that isn't supported by the polkadot.js UI, therefore in order to set it you'll need to create the identity extrinsic yourself.
+As a member of the Polkadot Technical Fellowship you should set an on-chain identity for your account on the Polkadot relay chain. Your identity should also include a field `github` pointing to your github username. Unfortunately this is a custom field that isn't supported by the polkadot.js UI, therefore in order to set it you'll need to create the identity extrinsic yourself.
 
 In the polkadot.js UI go to `Developer > Extrinsics`. Select your fellowship member account and pick the extrinsic `identity.setIdentity`. Below is an example screenshot of what it should look like including the `github` field.
 
