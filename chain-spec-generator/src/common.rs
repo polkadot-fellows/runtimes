@@ -5,6 +5,7 @@ use crate::{
         AssetHubPolkadotChainSpec,
         AssetHubKusamaChainSpec,
         CollectivesPolkadotChainSpec,
+        BridgeHubPolkadotChainSpec,
     },
 };
 use polkadot_primitives::{AccountId, AccountPublic};
@@ -57,6 +58,8 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 			Ok(Box::new(AssetHubKusamaChainSpec::from_json_file(path)?)),
         x if x.starts_with("collectives-polkadot") =>
 			Ok(Box::new(CollectivesPolkadotChainSpec::from_json_file(path)?)),
+        x if x.starts_with("bridge-hub-polkadot") =>
+			Ok(Box::new(BridgeHubPolkadotChainSpec::from_json_file(path)?)),
         _ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }

@@ -1522,6 +1522,8 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-kusama-runtime",
  "asset-hub-polkadot-runtime",
+ "bridge-hub-kusama-runtime",
+ "bridge-hub-polkadot-runtime",
  "clap",
  "collectives-polkadot-runtime",
  "cumulus-primitives-core",

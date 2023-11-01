@@ -20,6 +20,8 @@ kusama-runtime-constants = { path = "../relay/kusama/constants" }
 asset-hub-polkadot-runtime = { path = "../system-parachains/asset-hubs/asset-hub-polkadot" }
 asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-kusama" }
 collectives-polkadot-runtime = { path = "../system-parachains/collectives/collectives-polkadot" }
+bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-polkadot" }
+bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
 
 sc-chain-spec = "22.0.0"
 sc-service = "0.30.0"
