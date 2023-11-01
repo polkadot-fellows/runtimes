@@ -6,6 +6,7 @@ use crate::{
         AssetHubKusamaChainSpec,
         CollectivesPolkadotChainSpec,
         BridgeHubPolkadotChainSpec,
+        BridgeHubKusamaChainSpec,
     },
 };
 use polkadot_primitives::{AccountId, AccountPublic};
@@ -44,12 +45,20 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct EmptyChainSpecWithId {
+    id: String,
+}
+
 pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn ChainSpec>, String> {
-	let path = std::path::PathBuf::from(&filepath);
-	let chain_spec = PolkadotChainSpec::from_json_file(path.clone())?;
-	match chain_spec.id() {
+    let path = std::path::PathBuf::from(&filepath);
+    let file = std::fs::File::open(&filepath).expect("Failed to open file");
+    let reader = std::io::BufReader::new(file);
+    let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
+        .expect("Failed to read 'json' file with ChainSpec configuration");
+	match &chain_spec.id {
         x if x.starts_with("polkadot") | x.starts_with("dot") =>
-            Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
+            Ok(Box::new(PolkadotChainSpec::from_json_file(path)?)),
 		x if x.starts_with("kusama") | x.starts_with("ksm") =>
 			Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
         x if x.starts_with("asset-hub-polkadot") =>
@@ -60,6 +69,8 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 			Ok(Box::new(CollectivesPolkadotChainSpec::from_json_file(path)?)),
         x if x.starts_with("bridge-hub-polkadot") =>
 			Ok(Box::new(BridgeHubPolkadotChainSpec::from_json_file(path)?)),
+        x if x.starts_with("bridge-hub-kusama") =>
+			Ok(Box::new(BridgeHubKusamaChainSpec::from_json_file(path)?)),
         _ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }

@@ -50,6 +50,10 @@ fn main() -> Result<(), String> {
 				"bridge-hub-polkadot-local",
 				Box::new(|| system_parachains_specs::bridge_hub_polkadot_local_testnet_config()) as Box<_>,
 			),
+            (
+				"bridge-hub-kusama-local",
+				Box::new(|| system_parachains_specs::bridge_hub_kusama_local_testnet_config()) as Box<_>,
+			),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {

@@ -27,6 +27,9 @@ pub type CollectivesPolkadotChainSpec =
 pub type BridgeHubPolkadotChainSpec =
 	sc_service::GenericChainSpec<bridge_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
 
+pub type BridgeHubKusamaChainSpec =
+	sc_service::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+
 const ASSET_HUB_POLKADOT_ED: Balance =
 	parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
@@ -38,6 +41,9 @@ const COLLECTIVES_POLKADOT_ED: Balance =
 
 const BRIDGE_HUB_POLKADOT_ED: Balance =
     parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+
+const BRIDGE_HUB_KUSAMA_ED: Balance =
+    parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
@@ -99,6 +105,15 @@ pub fn bridge_hub_polkadot_session_keys(
 	keys: AuraId,
 ) -> bridge_hub_polkadot_runtime::SessionKeys {
 	bridge_hub_polkadot_runtime::SessionKeys { aura: keys }
+}
+
+/// Generate the session keys from individual elements.
+///
+/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
+pub fn bridge_hub_kusama_session_keys(
+	keys: AuraId,
+) -> bridge_hub_kusama_runtime::SessionKeys {
+	bridge_hub_kusama_runtime::SessionKeys { aura: keys }
 }
 
 // AssetHubPolkadot
@@ -456,5 +471,94 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 		None,
 		Some(properties),
 		Extensions { relay_chain: "polkadot-local".into(), para_id: 1003 },
+	)))
+}
+
+// BridgeHubKusama
+fn bridge_hub_kusama_genesis(
+    wasm_binary: &[u8],
+	invulnerables: Vec<(AccountId, AuraId)>,
+	endowed_accounts: Vec<AccountId>,
+	id: ParaId,
+) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
+	bridge_hub_kusama_runtime::RuntimeGenesisConfig {
+		system: bridge_hub_kusama_runtime::SystemConfig {
+			code: wasm_binary.to_vec(), ..Default::default() },
+		balances: bridge_hub_kusama_runtime::BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, BRIDGE_HUB_KUSAMA_ED * 4096))
+				.collect(),
+		},
+		parachain_info: bridge_hub_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
+		collator_selection: bridge_hub_kusama_runtime::CollatorSelectionConfig {
+			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+			candidacy_bond: BRIDGE_HUB_KUSAMA_ED * 16,
+			..Default::default()
+		},
+		session: bridge_hub_kusama_runtime::SessionConfig {
+			keys: invulnerables
+				.into_iter()
+				.map(|(acc, aura)| {
+					(
+						acc.clone(),                           // account id
+						acc,                                   // validator id
+						bridge_hub_kusama_session_keys(aura), // session keys
+					)
+				})
+				.collect(),
+		},
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this.
+		aura: Default::default(),
+		aura_ext: Default::default(),
+		parachain_system: Default::default(),
+		polkadot_xcm: bridge_hub_kusama_runtime::PolkadotXcmConfig {
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+	}
+}
+
+fn bridge_hub_kusama_local_genesis(wasm_binary: &[u8]) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
+	bridge_hub_kusama_genesis(
+        // initial collators.
+            wasm_binary,
+            invulnerables(),
+        testnet_accounts(),
+        1003.into(),
+	)
+}
+
+pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("ss58Format".into(), 2.into());
+    properties.insert("tokenSymbol".into(), "KSM".into());
+    properties.insert("tokenDecimals".into(), 12.into());
+
+    let wasm_binary =
+        bridge_hub_polkadot_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
+
+    Ok(Box::new(BridgeHubKusamaChainSpec::from_genesis(
+		// Name
+		"Kusama Bridge Hub Local",
+		// ID
+		"bridge-hub-kusama-local",
+		ChainType::Local,
+		move || {
+			bridge_hub_kusama_local_genesis(
+                wasm_binary
+			)
+		},
+		Vec::new(),
+		None,
+		None,
+		None,
+		Some(properties),
+		Extensions { relay_chain: "kusama-local".into(), para_id: 1003 },
 	)))
 }
