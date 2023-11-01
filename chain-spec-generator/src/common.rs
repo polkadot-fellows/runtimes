@@ -1,7 +1,10 @@
 use crate::{
     ChainSpec,
     relay_chain_specs::{PolkadotChainSpec, KusamaChainSpec},
-    system_parachains_specs::{AssetHubPolkadotChainSpec},
+    system_parachains_specs::{
+        AssetHubPolkadotChainSpec,
+        AssetHubKusamaChainSpec
+    },
 };
 use polkadot_primitives::{AccountId, AccountPublic};
 use sp_core::{sr25519, Pair, Public};
@@ -47,8 +50,10 @@ pub fn from_json_file(filepath: &str) -> Result<Box<dyn ChainSpec>, String> {
             Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("kusama") | x.starts_with("ksm") =>
 			Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
-        x if x.starts_with("asset-hub-polkadot") | x.starts_with("ksm") =>
+        x if x.starts_with("asset-hub-polkadot") =>
 			Ok(Box::new(AssetHubPolkadotChainSpec::from_json_file(path)?)),
+        x if x.starts_with("asset-hub-kusama") =>
+			Ok(Box::new(AssetHubKusamaChainSpec::from_json_file(path)?)),
 		_ => Ok(Box::new(chain_spec)),
 	}
 }

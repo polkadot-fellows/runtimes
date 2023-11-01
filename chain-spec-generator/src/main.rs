@@ -34,10 +34,10 @@ fn main() -> Result<(), String> {
 				"kusama-local",
 				Box::new(|| relay_chain_specs::kusama_local_testnet_config()) as Box<_>,
 			),
-            // (
-			// 	"asset-hub-kusama-local",
-			// 	Box::new(|| system_parachains_chain_specs::asset_hub_kusama_local_testnet_config()) as Box<_>,
-			// ),
+            (
+				"asset-hub-kusama-local",
+				Box::new(|| system_parachains_specs::asset_hub_kusama_local_testnet_config()) as Box<_>,
+			),
             (
 				"asset-hub-polkadot-local",
 				Box::new(|| system_parachains_specs::asset_hub_polkadot_local_testnet_config()) as Box<_>,

@@ -66,6 +66,14 @@ pub fn asset_hub_polkadot_session_keys(
 	asset_hub_polkadot_runtime::SessionKeys { aura: keys }
 }
 
+/// Generate the session keys from individual elements.
+///
+/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
+pub fn asset_hub_kusama_session_keys(keys: AuraId) -> asset_hub_kusama_runtime::SessionKeys {
+	asset_hub_kusama_runtime::SessionKeys { aura: keys }
+}
+
+// AssetHubPolkadot
 fn asset_hub_polkadot_genesis(
     wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AssetHubPolkadotAuraId)>,
@@ -151,5 +159,94 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 		None,
 		Some(properties),
 		Extensions { relay_chain: "polkadot-local".into(), para_id: 1000 },
+	)))
+}
+
+// AssetHubKusama
+fn asset_hub_kusama_genesis(
+    wasm_binary: &[u8],
+	invulnerables: Vec<(AccountId, AuraId)>,
+	endowed_accounts: Vec<AccountId>,
+	id: ParaId,
+) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
+	asset_hub_kusama_runtime::RuntimeGenesisConfig {
+		system: asset_hub_kusama_runtime::SystemConfig {
+			code: wasm_binary.to_vec(), ..Default::default() },
+		balances: asset_hub_kusama_runtime::BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096))
+				.collect(),
+		},
+		parachain_info: asset_hub_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
+		collator_selection: asset_hub_kusama_runtime::CollatorSelectionConfig {
+			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+			candidacy_bond: ASSET_HUB_POLKADOT_ED * 16,
+			..Default::default()
+		},
+		session: asset_hub_kusama_runtime::SessionConfig {
+			keys: invulnerables
+				.into_iter()
+				.map(|(acc, aura)| {
+					(
+						acc.clone(),                           // account id
+						acc,                                   // validator id
+						asset_hub_kusama_session_keys(aura), // session keys
+					)
+				})
+				.collect(),
+		},
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this.
+		aura: Default::default(),
+		aura_ext: Default::default(),
+		parachain_system: Default::default(),
+		polkadot_xcm: asset_hub_kusama_runtime::PolkadotXcmConfig {
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+	}
+}
+
+fn asset_hub_kusama_local_genesis(wasm_binary: &[u8]) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
+	asset_hub_kusama_genesis(
+        // initial collators.
+            wasm_binary,
+            invulnerables(),
+        testnet_accounts(),
+        1000.into(),
+	)
+}
+
+pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+    let wasm_binary =
+        asset_hub_polkadot_runtime::WASM_BINARY.ok_or("AssetHubPolkadot wasm not available")?;
+
+    Ok(Box::new(AssetHubKusamaChainSpec::from_genesis(
+		// Name
+		"Kusama Asset Hub Local",
+		// ID
+		"asset-hub-kusama-local",
+		ChainType::Local,
+		move || {
+			asset_hub_kusama_local_genesis(
+                wasm_binary
+			)
+		},
+		Vec::new(),
+		None,
+		None,
+		None,
+		Some(properties),
+		Extensions { relay_chain: "kusama-local".into(), para_id: 1000 },
 	)))
 }
