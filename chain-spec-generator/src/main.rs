@@ -42,10 +42,10 @@ fn main() -> Result<(), String> {
 				"asset-hub-polkadot-local",
 				Box::new(|| system_parachains_specs::asset_hub_polkadot_local_testnet_config()) as Box<_>,
 			),
-            // (
-			// 	"collectives-polkadot-local",
-			// 	Box::new(|| system_parachains_chain_specs::collectives_polakdot_local_testnet_config()) as Box<_>,
-			// ),
+            (
+				"collectives-polkadot-local",
+				Box::new(|| system_parachains_specs::collectives_polkadot_local_testnet_config()) as Box<_>,
+			),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {
@@ -53,15 +53,15 @@ fn main() -> Result<(), String> {
 		print!("{chain_spec}");
 		Ok(())
 	} else {
+        let supported = supported_chains.keys().enumerate().fold(String::new(), |c, (n, k)| {
+            let extra = (n + 1 < supported_chains.len()).then(|| ", ").unwrap_or("");
+            format!("{c}{k}{extra}")
+        });
 		if cli.chain.ends_with(".json") {
-			let chain_spec = common::from_json_file(&cli.chain)?.as_json(cli.raw)?;
+			let chain_spec = common::from_json_file(&cli.chain, supported)?.as_json(cli.raw)?;
 			print!("{chain_spec}");
 			Ok(())
 		} else {
-			let supported = supported_chains.keys().enumerate().fold(String::new(), |c, (n, k)| {
-				let extra = (n + 1 < supported_chains.len()).then(|| ", ").unwrap_or("");
-				format!("{c}{k}{extra}")
-			});
 			Err(format!("Unknown chain, only supported: {supported} or a json file"))
 		}
 	}

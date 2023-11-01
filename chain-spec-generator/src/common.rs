@@ -3,7 +3,8 @@ use crate::{
     relay_chain_specs::{PolkadotChainSpec, KusamaChainSpec},
     system_parachains_specs::{
         AssetHubPolkadotChainSpec,
-        AssetHubKusamaChainSpec
+        AssetHubKusamaChainSpec,
+        CollectivesPolkadotChainSpec,
     },
 };
 use polkadot_primitives::{AccountId, AccountPublic};
@@ -42,7 +43,7 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-pub fn from_json_file(filepath: &str) -> Result<Box<dyn ChainSpec>, String> {
+pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn ChainSpec>, String> {
 	let path = std::path::PathBuf::from(&filepath);
 	let chain_spec = PolkadotChainSpec::from_json_file(path.clone())?;
 	match chain_spec.id() {
@@ -54,6 +55,8 @@ pub fn from_json_file(filepath: &str) -> Result<Box<dyn ChainSpec>, String> {
 			Ok(Box::new(AssetHubPolkadotChainSpec::from_json_file(path)?)),
         x if x.starts_with("asset-hub-kusama") =>
 			Ok(Box::new(AssetHubKusamaChainSpec::from_json_file(path)?)),
-		_ => Ok(Box::new(chain_spec)),
+        x if x.starts_with("collectives-polkadot") =>
+			Ok(Box::new(CollectivesPolkadotChainSpec::from_json_file(path)?)),
+        _ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }
