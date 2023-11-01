@@ -1520,17 +1520,24 @@ dependencies = [
 name = "chain-spec-generator"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-hub-polkadot-runtime",
  "clap",
+ "collectives-polkadot-runtime",
+ "cumulus-primitives-core",
  "hex-literal",
  "kusama-runtime-constants 1.0.0",
  "pallet-im-online",
  "pallet-staking",
+ "parachains-common",
  "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-constants 1.0.0",
  "polkadot-runtime-parachains",
  "sc-chain-spec",
  "sc-consensus-grandpa",
+ "sc-service",
+ "serde",
  "serde_json",
  "sp-authority-discovery",
  "sp-consensus-babe",
@@ -1538,6 +1545,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "staging-kusama-runtime",
+ "staging-xcm",
 ]
 
 [[package]]

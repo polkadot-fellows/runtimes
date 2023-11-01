@@ -3,6 +3,8 @@ use sc_chain_spec::ChainSpec;
 use std::collections::HashMap;
 
 mod relay_chain_specs;
+mod system_parachains_specs;
+mod common;
 
 #[derive(Parser)]
 struct Cli {
@@ -32,6 +34,18 @@ fn main() -> Result<(), String> {
 				"kusama-local",
 				Box::new(|| relay_chain_specs::kusama_local_testnet_config()) as Box<_>,
 			),
+            // (
+			// 	"asset-hub-kusama-local",
+			// 	Box::new(|| system_parachains_chain_specs::asset_hub_kusama_local_testnet_config()) as Box<_>,
+			// ),
+            (
+				"asset-hub-polkadot-local",
+				Box::new(|| system_parachains_specs::asset_hub_polkadot_local_testnet_config()) as Box<_>,
+			),
+            // (
+			// 	"collectives-polkadot-local",
+			// 	Box::new(|| system_parachains_chain_specs::collectives_polakdot_local_testnet_config()) as Box<_>,
+			// ),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {
@@ -40,7 +54,7 @@ fn main() -> Result<(), String> {
 		Ok(())
 	} else {
 		if cli.chain.ends_with(".json") {
-			let chain_spec = relay_chain_specs::from_json_file(&cli.chain)?.as_json(cli.raw)?;
+			let chain_spec = common::from_json_file(&cli.chain)?.as_json(cli.raw)?;
 			print!("{chain_spec}");
 			Ok(())
 		} else {

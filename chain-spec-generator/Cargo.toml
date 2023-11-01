@@ -10,13 +10,19 @@ license.workspace = true
 clap = { version = "4.4.4", features = [ "derive" ] }
 hex-literal = "0.4.1"
 serde_json = "1.0.107"
+serde = { version = "1.0.188", features = ["derive"] }
 
 polkadot-runtime = { path = "../relay/polkadot" }
 polkadot-runtime-constants = { path = "../relay/polkadot/constants" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" }
 kusama-runtime-constants = { path = "../relay/kusama/constants" }
 
+asset-hub-polkadot-runtime = { path = "../system-parachains/asset-hubs/asset-hub-polkadot" }
+asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-kusama" }
+collectives-polkadot-runtime = { path = "../system-parachains/collectives/collectives-polkadot" }
+
 sc-chain-spec = "22.0.0"
+sc-service = "0.30.0"
 polkadot-runtime-parachains = "2.0.0"
 polkadot-primitives = "2.0.0"
 sp-consensus-babe = "0.27.0"
@@ -27,3 +33,6 @@ sc-consensus-grandpa = "0.14.0"
 pallet-im-online = "22.0.0"
 sp-runtime = "26.0.0"
 sp-consensus-beefy = "8.0.0"
+xcm = { package = "staging-xcm", version = "2.0.1" }
+parachains-common = { version = "2.0.0" }
+cumulus-primitives-core = { version = "0.2.0" }
