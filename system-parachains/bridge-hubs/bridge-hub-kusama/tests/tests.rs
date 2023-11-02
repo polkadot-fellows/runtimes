@@ -14,18 +14,92 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-pub use bridge_hub_kusama_runtime::{
-	xcm_config::XcmConfig, AllPalletsWithoutSystem, Balances, ExistentialDeposit, ParachainSystem,
-	PolkadotXcm, Runtime, RuntimeEvent, SessionKeys,
+use bp_polkadot_core::Signature;
+use bridge_hub_kusama_runtime::{
+	bridge_to_polkadot_config::{
+		BridgeGrandpaPolkadotInstance, BridgeHubPolkadotChainId, BridgeParachainPolkadotInstance,
+		DeliveryRewardInBalance, PolkadotGlobalConsensusNetwork, RefundBridgeHubPolkadotMessages,
+		RequiredStakeForStakeAndSlash, WithBridgeHubPolkadotMessageBridge,
+		WithBridgeHubPolkadotMessagesInstance, XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+	},
+	xcm_config::{KsmRelayLocation, RelayNetwork, XcmConfig},
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
+	TransactionPayment, UncheckedExtrinsic,
 };
-use codec::Decode;
-use frame_support::parameter_types;
-use parachains_common::{kusama::fee::WeightToFee, AccountId, AuraId};
+use codec::{Decode, Encode};
+use frame_support::{dispatch::GetDispatchInfo, parameter_types};
+use frame_system::pallet_prelude::HeaderFor;
+use parachains_common::{kusama::fee::WeightToFee, AccountId, AuraId, Balance};
+use sp_keyring::AccountKeyring::Alice;
+use sp_runtime::{
+	generic::{Era, SignedPayload},
+	AccountId32,
+};
+use xcm::latest::prelude::*;
 
 const ALICE: [u8; 32] = [1u8; 32];
 
+// Para id of sibling chain used in tests.
+pub const SIBLING_PARACHAIN_ID: u32 = 1000;
+
 parameter_types! {
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+}
+
+fn construct_extrinsic(
+	sender: sp_keyring::AccountKeyring,
+	call: RuntimeCall,
+) -> UncheckedExtrinsic {
+	let extra: SignedExtra = (
+		frame_system::CheckNonZeroSender::<Runtime>::new(),
+		frame_system::CheckSpecVersion::<Runtime>::new(),
+		frame_system::CheckTxVersion::<Runtime>::new(),
+		frame_system::CheckGenesis::<Runtime>::new(),
+		frame_system::CheckEra::<Runtime>::from(Era::immortal()),
+		frame_system::CheckNonce::<Runtime>::from(0),
+		frame_system::CheckWeight::<Runtime>::new(),
+		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
+		BridgeRejectObsoleteHeadersAndMessages::default(),
+		(RefundBridgeHubPolkadotMessages::default()),
+	);
+	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
+	let signature = payload.using_encoded(|e| sender.sign(e));
+	UncheckedExtrinsic::new_signed(
+		call,
+		AccountId32::from(sender.public()).into(),
+		Signature::Sr25519(signature.clone()),
+		extra,
+	)
+}
+
+fn construct_and_apply_extrinsic(
+	relayer_at_target: sp_keyring::AccountKeyring,
+	batch: pallet_utility::Call<Runtime>,
+) -> sp_runtime::DispatchOutcome {
+	let batch_call = RuntimeCall::Utility(batch);
+	let xt = construct_extrinsic(relayer_at_target, batch_call);
+	let r = Executive::apply_extrinsic(xt);
+	r.unwrap()
+}
+/* TODO
+fn construct_and_estimate_extrinsic_fee(batch: pallet_utility::Call<Runtime>) -> Balance {
+	let batch_call = RuntimeCall::Utility(batch);
+	let batch_info = batch_call.get_dispatch_info();
+	let xt = construct_extrinsic(Alice, batch_call);
+	TransactionPayment::compute_fee(xt.encoded_size() as _, &batch_info, 0)
+}
+*/
+fn executive_init_block(header: &HeaderFor<Runtime>) {
+	Executive::initialize_block(header)
+}
+
+fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
+	bridge_hub_test_utils::CollatorSessionKeys::new(
+		AccountId::from(Alice),
+		AccountId::from(Alice),
+		SessionKeys { aura: AuraId::from(Alice.public()) },
+	)
 }
 
 bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
@@ -55,3 +129,214 @@ bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 	}),
 	1002
 );
+
+#[test]
+fn initialize_bridge_by_governance_works() {
+	bridge_hub_test_utils::test_cases::initialize_bridge_by_governance_works::<
+		Runtime,
+		BridgeGrandpaPolkadotInstance,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::BridgePolkadotGrandpa(call).encode()),
+	)
+}
+
+#[test]
+fn change_delivery_reward_by_governance_works() {
+	bridge_hub_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		DeliveryRewardInBalance,
+		Balance,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| (DeliveryRewardInBalance::key().to_vec(), DeliveryRewardInBalance::get()),
+		|old_value| old_value.checked_mul(2).unwrap(),
+	)
+}
+
+#[test]
+fn change_required_stake_by_governance_works() {
+	bridge_hub_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		RequiredStakeForStakeAndSlash,
+		Balance,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| (RequiredStakeForStakeAndSlash::key().to_vec(), RequiredStakeForStakeAndSlash::get()),
+		|old_value| old_value.checked_mul(2).unwrap(),
+	)
+}
+
+#[test]
+fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
+	bridge_hub_test_utils::test_cases::handle_export_message_from_system_parachain_to_outbound_queue_works::<
+			Runtime,
+			XcmConfig,
+			WithBridgeHubPolkadotMessagesInstance,
+		>(
+			collator_session_keys(),
+			bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+			SIBLING_PARACHAIN_ID,
+			Box::new(|runtime_event_encoded: Vec<u8>| {
+				match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+					Ok(RuntimeEvent::BridgePolkadotMessages(event)) => Some(event),
+					_ => None,
+				}
+			}),
+			|| ExportMessage { network: Polkadot, destination: X1(Parachain(4321)), xcm: Xcm(vec![]) },
+			XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+			Some((KsmRelayLocation::get(), ExistentialDeposit::get()).into()),
+			// value should be >= than value generated by `can_calculate_weight_for_paid_export_message_with_reserve_transfer`
+			Some((KsmRelayLocation::get(), 0).into()), // TODO: Some((KsmRelayLocation::get(), bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get()).into()),
+			|| (),
+		)
+}
+
+#[test]
+fn message_dispatch_routing_works() {
+	bridge_hub_test_utils::test_cases::message_dispatch_routing_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		WithBridgeHubPolkadotMessagesInstance,
+		RelayNetwork,
+		PolkadotGlobalConsensusNetwork,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		SIBLING_PARACHAIN_ID,
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::ParachainSystem(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+		|| (),
+	)
+}
+
+#[test]
+fn relayed_incoming_message_works() {
+	bridge_hub_test_utils::test_cases::relayed_incoming_message_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		BridgeGrandpaPolkadotInstance,
+		BridgeParachainPolkadotInstance,
+		WithBridgeHubPolkadotMessagesInstance,
+		WithBridgeHubPolkadotMessageBridge,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		SIBLING_PARACHAIN_ID,
+		Kusama,
+		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+		|| (),
+	)
+}
+
+#[test]
+pub fn complex_relay_extrinsic_works() {
+	bridge_hub_test_utils::test_cases::complex_relay_extrinsic_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		BridgeGrandpaPolkadotInstance,
+		BridgeParachainPolkadotInstance,
+		WithBridgeHubPolkadotMessagesInstance,
+		WithBridgeHubPolkadotMessageBridge,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		SIBLING_PARACHAIN_ID,
+		BridgeHubPolkadotChainId::get(),
+		Kusama,
+		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+		ExistentialDeposit::get(),
+		executive_init_block,
+		construct_and_apply_extrinsic,
+		|| (),
+	);
+}
+/* TODO
+#[test]
+pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
+	let estimated = bridge_hub_test_utils::test_cases::can_calculate_weight_for_paid_export_message_with_reserve_transfer::<
+			Runtime,
+			XcmConfig,
+			WeightToFee,
+		>();
+
+	// check if estimated value is sane
+	let max_expected = bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get();
+	assert!(
+			estimated <= max_expected,
+			"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms` value",
+			estimated,
+			max_expected
+		);
+}
+
+#[test]
+pub fn can_calculate_fee_for_complex_message_delivery_transaction() {
+	let estimated = bridge_hub_test_utils::test_cases::can_calculate_fee_for_complex_message_delivery_transaction::<
+		Runtime,
+		BridgeGrandpaPolkadotInstance,
+		BridgeParachainPolkadotInstance,
+		WithBridgeHubPolkadotMessagesInstance,
+		WithBridgeHubPolkadotMessageBridge,
+	>(
+		collator_session_keys(),
+		construct_and_estimate_extrinsic_fee
+	);
+
+	// check if estimated value is sane
+	let max_expected = bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms::get();
+	assert!(
+		estimated <= max_expected,
+		"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms` value",
+		estimated,
+		max_expected
+	);
+}
+
+#[test]
+pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
+	let estimated = bridge_hub_test_utils::test_cases::can_calculate_fee_for_complex_message_confirmation_transaction::<
+		Runtime,
+		BridgeGrandpaPolkadotInstance,
+		BridgeParachainPolkadotInstance,
+		WithBridgeHubPolkadotMessagesInstance,
+		WithBridgeHubPolkadotMessageBridge,
+	>(
+		collator_session_keys(),
+		construct_and_estimate_extrinsic_fee
+	);
+
+	// check if estimated value is sane
+	let max_expected = bp_bridge_hub_kusama::BridgeHubKusamaBaseConfirmationFeeInKsms::get();
+	assert!(
+		estimated <= max_expected,
+		"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_kusama::BridgeHubKusamaBaseConfirmationFeeInKsms` value",
+		estimated,
+		max_expected
+	);
+}
+*/

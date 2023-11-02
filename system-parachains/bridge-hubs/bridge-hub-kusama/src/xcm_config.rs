@@ -15,7 +15,8 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	bridge_to_polkadot_config::ToBridgeHubPolkadotHaulBlobExporter, AccountId,
+	AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
 	XcmpQueue,
 };
@@ -47,10 +48,10 @@ use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 parameter_types! {
 	pub const KsmRelayLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorMultiLocation =
-		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
+		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
@@ -241,7 +242,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetLocker = ();
 	type AssetExchanger = ();
 	type FeeManager = XcmFeesToAccount<Self, WaivedLocations, AccountId, TreasuryAccount>;
-	type MessageExporter = ();
+	type MessageExporter = ToBridgeHubPolkadotHaulBlobExporter;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;

@@ -312,6 +312,26 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		// Minimum execution time: 2_576_000 picoseconds.
 		Weight::from_parts(2_701_000, 0)
 	}
+	// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
+	// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	// Storage: `BridgeWococoMessages::PalletOperatingMode` (r:1 w:0)
+	// Proof: `BridgeWococoMessages::PalletOperatingMode` (`max_values`: Some(1), `max_size`: Some(2), added: 497, mode: `MaxEncodedLen`)
+	// Storage: `BridgeWococoMessages::OutboundLanes` (r:1 w:1)
+	// Proof: `BridgeWococoMessages::OutboundLanes` (`max_values`: Some(1), `max_size`: Some(44), added: 539, mode: `MaxEncodedLen`)
+	// Storage: `BridgeWococoMessages::OutboundMessages` (r:0 w:1)
+	// Proof: `BridgeWococoMessages::OutboundMessages` (`max_values`: None, `max_size`: Some(2621472), added: 2623947, mode: `MaxEncodedLen`)
+	/// The range of component `x` is `[1, 1000]`.
+	pub fn export_message(x: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `95`
+		//  Estimated: `1529`
+		// Minimum execution time: 28_427_000 picoseconds.
+		Weight::from_parts(28_755_860, 1529)
+			// Standard Error: 383
+			.saturating_add(Weight::from_parts(393_744, 0).saturating_mul(x.into()))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 	pub fn set_fees_mode() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
