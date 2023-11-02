@@ -17,16 +17,21 @@
 
 //! Tests for the Statemint (Polkadot Assets Hub) chain.
 
-use asset_hub_polkadot_runtime::xcm_config::{
-	AssetFeeAsExistentialDepositMultiplierFeeCharger, CheckingAccount, DotLocation,
-	ForeignCreatorsSovereignAccountOf, TrustBackedAssetsPalletLocation, XcmConfig,
-};
-pub use asset_hub_polkadot_runtime::{
+use asset_hub_polkadot_runtime::{
+	xcm_config::{
+		bridging::{self, XcmBridgeHubRouterFeeAssetId},
+		AssetFeeAsExistentialDepositMultiplierFeeCharger, CheckingAccount, DotLocation,
+		ForeignCreatorsSovereignAccountOf, LocationToAccountId, TrustBackedAssetsPalletLocation,
+		XcmConfig,
+	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, ExistentialDeposit, ForeignAssets,
 	ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte, ParachainSystem, Runtime,
-	RuntimeCall, RuntimeEvent, SessionKeys, System, TrustBackedAssetsInstance,
+	RuntimeCall, RuntimeEvent, SessionKeys, ToKusamaXcmRouterInstance, TrustBackedAssetsInstance,
+	XcmpQueue,
 };
-use asset_test_utils::{CollatorSessionKeys, ExtBuilder};
+use asset_test_utils::{
+	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys, ExtBuilder,
+};
 use codec::{Decode, Encode};
 use cumulus_primitives_utility::ChargeWeightInFungibles;
 use frame_support::{
@@ -49,6 +54,14 @@ type AssetIdForTrustBackedAssetsConvert =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+
+fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
+	CollatorSessionKey::new(
+		AccountId::from(account),
+		AccountId::from(account),
+		SessionKeys { aura: AuraId::from(sp_core::ed25519::Public::from_raw(account)) },
+	)
+}
 
 fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
 	CollatorSessionKeys::new(
@@ -657,3 +670,180 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 		assert_eq!(ForeignAssets::asset_ids().collect::<Vec<_>>().len(), 1);
 	})
 );
+
+fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
+	TestBridgingConfig {
+		bridged_network: bridging::to_kusama::KusamaNetwork::get(),
+		local_bridge_hub_para_id: bridging::SiblingBridgeHubParaId::get(),
+		local_bridge_hub_location: bridging::SiblingBridgeHub::get(),
+		bridged_target_location: bridging::to_kusama::AssetHubKusama::get(),
+	}
+}
+
+#[test]
+fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
+	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		XcmpQueue,
+		LocationToAccountId,
+	>(
+		collator_session_keys(),
+		ExistentialDeposit::get(),
+		AccountId::from(ALICE),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		bridging_to_asset_hub_kusama,
+		WeightLimit::Unlimited,
+		Some(XcmBridgeHubRouterFeeAssetId::get()),
+		// None // TODO Some(xcm_config::TreasuryAccount::get()),
+	)
+}
+#[test]
+fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
+	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
+	asset_test_utils::test_cases_over_bridge::receive_reserve_asset_deposited_from_different_consensus_works::<
+			Runtime,
+			AllPalletsWithoutSystem,
+			XcmConfig,
+			LocationToAccountId,
+			ForeignAssetsInstance,
+		>(
+			collator_session_keys().add(collator_session_key(BLOCK_AUTHOR_ACCOUNT)),
+			ExistentialDeposit::get(),
+			AccountId::from([73; 32]),
+			AccountId::from(BLOCK_AUTHOR_ACCOUNT),
+			// receiving ROCs
+			(MultiLocation { parents: 2, interior: X1(GlobalConsensus(Kusama)) }, 1000000000000, 1_000_000_000),
+			bridging_to_asset_hub_kusama,
+			(
+				X1(PalletInstance(53)), // TODO X1(PalletInstance(bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX)),
+				GlobalConsensus(Kusama),
+				X1(Parachain(1000))
+			)
+		)
+}
+#[test]
+fn report_bridge_status_from_xcm_bridge_router_for_kusama_works() {
+	/* TODO
+	asset_test_utils::test_cases_over_bridge::report_bridge_status_from_xcm_bridge_router_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		LocationToAccountId,
+		ToKusamaXcmRouterInstance,
+	>(
+		collator_session_keys(),
+		bridging_to_asset_hub_kusama,
+		|| {
+			sp_std::vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					require_weight_at_most:
+						bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get(),
+					call: bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
+						bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
+							bridge_id: Default::default(),
+							is_congested: true,
+						}
+					)
+					.encode()
+					.into(),
+				}
+			]
+			.into()
+		},
+		|| {
+			sp_std::vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					require_weight_at_most:
+						bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get(),
+					call: bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
+						bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
+							bridge_id: Default::default(),
+							is_congested: false,
+						}
+					)
+					.encode()
+					.into(),
+				}
+			]
+			.into()
+		},
+	)*/
+}
+
+#[test]
+fn test_report_bridge_status_call_compatibility() {
+	// if this test fails, make sure `bp_asset_hub_kusama` has valid encoding
+	assert_eq!(
+		RuntimeCall::ToKusamaXcmRouter(pallet_xcm_bridge_hub_router::Call::report_bridge_status {
+			bridge_id: Default::default(),
+			is_congested: true,
+		})
+		.encode(),
+		bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
+			bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
+				bridge_id: Default::default(),
+				is_congested: true,
+			}
+		)
+		.encode()
+	)
+}
+
+#[test]
+fn check_sane_weight_report_bridge_status() {
+	use pallet_xcm_bridge_hub_router::WeightInfo;
+	let actual = <Runtime as pallet_xcm_bridge_hub_router::Config<
+			ToKusamaXcmRouterInstance,
+		>>::WeightInfo::report_bridge_status();
+	let max_weight = bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get();
+	assert!(
+		actual.all_lte(max_weight),
+		"max_weight: {:?} should be adjusted to actual {:?}",
+		max_weight,
+		actual
+	);
+}
+
+#[test]
+fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
+	asset_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		bridging::XcmBridgeHubRouterByteFee,
+		Balance,
+	>(
+		collator_session_keys(),
+		1000,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| {
+			(
+				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
+				bridging::XcmBridgeHubRouterByteFee::get(),
+			)
+		},
+		|old_value| {
+			if let Some(new_value) = old_value.checked_add(1) {
+				new_value
+			} else {
+				old_value.checked_sub(1).unwrap()
+			}
+		},
+	)
+}

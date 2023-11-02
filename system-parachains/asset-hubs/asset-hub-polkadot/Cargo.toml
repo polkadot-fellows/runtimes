@@ -70,13 +70,20 @@ cumulus-pallet-dmp-queue = { default-features = false , version = "0.4.0" }
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.4.0" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "6.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.4.0" }
-cumulus-pallet-xcmp-queue = { default-features = false , version = "0.4.0" }
+cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.4.0" }
 cumulus-primitives-core = { default-features = false , version = "0.4.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.4.0" }
 pallet-collator-selection = { default-features = false , version = "6.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.4.0" }
 parachains-common = { default-features = false , version = "4.0.0" }
 assets-common = { default-features = false , version = "0.4.0" }
+
+# Bridges
+bp-asset-hub-kusama = { default-features = false , version = "0.2.0" }
+bp-asset-hub-polkadot = { default-features = false , version = "0.2.0" }
+bp-bridge-hub-kusama = { default-features = false , version = "0.3.0" }
+bp-bridge-hub-polkadot = { default-features = false , version = "0.3.0" }
+pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
@@ -109,6 +116,7 @@ runtime-benchmarks = [
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
+	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
@@ -140,6 +148,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-xcm-bridge-hub-router/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
@@ -147,6 +156,10 @@ try-runtime = [
 ]
 std = [
 	"assets-common/std",
+	"bp-asset-hub-kusama/std",
+	"bp-asset-hub-polkadot/std",
+	"bp-bridge-hub-kusama/std",
+	"bp-bridge-hub-polkadot/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-dmp-queue/std",
@@ -181,6 +194,7 @@ std = [
 	"pallet-uniques/std",
 	"pallet-utility/std",
 	"pallet-xcm-benchmarks?/std",
+	"pallet-xcm-bridge-hub-router/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
