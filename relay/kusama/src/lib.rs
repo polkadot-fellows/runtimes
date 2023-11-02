@@ -110,8 +110,6 @@ mod weights;
 // Voter bag threshold definitions.
 mod bag_thresholds;
 
-mod paras_scheduler_migration;
-
 // Historical information of society finances.
 mod past_payouts;
 
@@ -1745,7 +1743,7 @@ pub mod migrations {
 		>,
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		paras_scheduler_migration::v1::MigrateToV1<Runtime>,
+		//paras_scheduler_migration::v1::MigrateToV1<Runtime>, // TODO
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Unlock/unreserve balances from Gov v1 pallets that hold them
