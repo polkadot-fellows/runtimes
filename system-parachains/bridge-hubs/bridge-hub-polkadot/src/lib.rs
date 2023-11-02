@@ -22,6 +22,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
@@ -100,7 +101,19 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	BridgeRejectObsoleteHeadersAndMessages,
+	bridge_to_kusama_config::RefundBridgeHubKusamaMessages,
 );
+
+bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
+	RuntimeCall, AccountId,
+	// Grandpa
+	BridgeKusamaGrandpa,
+	// Parachains
+	BridgeKusamaParachains,
+	// Messages
+	BridgeKusamaMessages
+}
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -453,6 +466,14 @@ construct_runtime!(
 		// Handy utilities.
 		Utility: pallet_utility::{Pallet, Call, Event} = 40,
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
+
+		// Pallets that may be used by all bridges.
+		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>} = 50,
+
+		// Kusama bridge pallets.
+		BridgeKusamaGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+		BridgeKusamaParachains: pallet_bridge_parachains::<Instance1>::{Pallet, Call, Storage, Event<T>} = 52,
+		BridgeKusamaMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 53,
 	}
 );
 
@@ -476,6 +497,12 @@ mod benches {
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
+		// Shared bridge pallets
+		[pallet_bridge_relayers, BridgeRelayersBench::<Runtime>]
+		// Polkadot bridge pallets.
+		[pallet_bridge_grandpa, KusamaFinality]
+		[pallet_bridge_parachains, KusamaParachains]
+		[pallet_bridge_messages, KusamaMessages]
 	);
 }
 
@@ -633,6 +660,50 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl bp_kusama::KusamaFinalityApi<Block> for Runtime {
+		fn best_finalized() -> Option<bp_runtime::HeaderId<bp_kusama::Hash, bp_kusama::BlockNumber>> {
+			BridgeKusamaGrandpa::best_finalized()
+		}
+
+		fn synced_headers_grandpa_info(
+		) -> Vec<bp_header_chain::StoredHeaderGrandpaInfo<bp_kusama::Header>> {
+			BridgeKusamaGrandpa::synced_headers_grandpa_info()
+		}
+	}
+
+	impl bp_bridge_hub_kusama::BridgeHubKusamaFinalityApi<Block> for Runtime {
+		fn best_finalized() -> Option<bp_runtime::HeaderId<bp_bridge_hub_kusama::Hash, bp_bridge_hub_kusama::BlockNumber>> {
+			BridgeKusamaParachains::best_parachain_head_id::<
+				bp_bridge_hub_kusama::BridgeHubKusama
+			>().unwrap_or(None)
+		}
+	}
+
+	impl bp_bridge_hub_kusama::FromBridgeHubKusamaInboundLaneApi<Block> for Runtime {
+		fn message_details(
+			lane: bp_messages::LaneId,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
+		) -> Vec<bp_messages::InboundMessageDetails> {
+			bridge_runtime_common::messages_api::inbound_message_details::<
+				Runtime,
+				bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
+			>(lane, messages)
+		}
+	}
+
+	impl bp_bridge_hub_kusama::ToBridgeHubKusamaOutboundLaneApi<Block> for Runtime {
+		fn message_details(
+			lane: bp_messages::LaneId,
+			begin: bp_messages::MessageNonce,
+			end: bp_messages::MessageNonce,
+		) -> Vec<bp_messages::OutboundMessageDetails> {
+			bridge_runtime_common::messages_api::outbound_message_details::<
+				Runtime,
+				bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
+			>(lane, begin, end)
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -668,6 +739,11 @@ impl_runtime_apis! {
 			// are referenced in that call.
 			type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet::<Runtime>;
 			type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet::<Runtime>;
+
+			use pallet_bridge_relayers::benchmarking::Pallet as BridgeRelayersBench;
+			type KusamaFinality = BridgeKusamaGrandpa;
+			type KusamaParachains = pallet_bridge_parachains::benchmarking::Pallet::<Runtime, bridge_to_kusama_config::BridgeParachainKusamaInstance>;
+			type KusamaMessages = pallet_bridge_messages::benchmarking::Pallet::<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -801,6 +877,114 @@ impl_runtime_apis! {
 
 			type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet::<Runtime>;
 			type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet::<Runtime>;
+
+			type KusamaFinality = BridgeKusamaGrandpa;
+			type KusamaParachains = pallet_bridge_parachains::benchmarking::Pallet::<Runtime, bridge_to_kusama_config::BridgeParachainKusamaInstance>;
+			type KusamaMessages = pallet_bridge_messages::benchmarking::Pallet::<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>;
+
+			use pallet_bridge_relayers::benchmarking::{
+				Pallet as BridgeRelayersBench,
+				Config as BridgeRelayersConfig,
+			};
+
+			impl BridgeRelayersConfig for Runtime {
+				fn prepare_rewards_account(
+					account_params: bp_relayers::RewardsAccountParams,
+					reward: Balance,
+				) {
+					let rewards_account = bp_relayers::PayRewardFromAccount::<
+						Balances,
+						AccountId
+					>::rewards_account(account_params);
+					Self::deposit_account(rewards_account, reward);
+				}
+
+				fn deposit_account(account: AccountId, balance: Balance) {
+					use frame_support::traits::fungible::Mutate;
+					Balances::mint_into(&account, balance.saturating_add(ExistentialDeposit::get())).unwrap();
+				}
+			}
+
+			use bridge_runtime_common::parachains_benchmarking::prepare_parachain_heads_proof;
+			use pallet_bridge_parachains::benchmarking::Config as BridgeParachainsConfig;
+
+			impl BridgeParachainsConfig<bridge_to_kusama_config::BridgeParachainKusamaInstance> for Runtime {
+				fn parachains() -> Vec<bp_polkadot_core::parachains::ParaId> {
+					use bp_runtime::Parachain;
+					vec![bp_polkadot_core::parachains::ParaId(bp_bridge_hub_kusama::BridgeHubKusama::PARACHAIN_ID)]
+				}
+
+				fn prepare_parachain_heads_proof(
+					parachains: &[bp_polkadot_core::parachains::ParaId],
+					parachain_head_size: u32,
+					proof_size: bp_runtime::StorageProofSize,
+				) -> (
+					pallet_bridge_parachains::RelayBlockNumber,
+					pallet_bridge_parachains::RelayBlockHash,
+					bp_polkadot_core::parachains::ParaHeadsProof,
+					Vec<(bp_polkadot_core::parachains::ParaId, bp_polkadot_core::parachains::ParaHash)>,
+				) {
+					prepare_parachain_heads_proof::<Runtime, bridge_to_kusama_config::BridgeParachainKusamaInstance>(
+						parachains,
+						parachain_head_size,
+						proof_size,
+					)
+				}
+			}
+
+			use bridge_runtime_common::messages_benchmarking::{
+				prepare_message_delivery_proof_from_parachain,
+				prepare_message_proof_from_parachain,
+				generate_xcm_builder_bridge_message_sample,
+			};
+			use pallet_bridge_messages::benchmarking::{
+				Config as BridgeMessagesConfig,
+				MessageDeliveryProofParams,
+				MessageProofParams,
+			};
+
+			impl BridgeMessagesConfig<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance> for Runtime {
+				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
+					let bench_lane_id = <Self as BridgeMessagesConfig<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>::bench_lane_id();
+					let bridged_chain_id = bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID;
+					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
+						relayer,
+						bp_relayers::RewardsAccountParams::new(
+							bench_lane_id,
+							bridged_chain_id,
+							bp_relayers::RewardsAccountOwner::BridgedChain
+						)
+					).is_some()
+				}
+
+				fn prepare_message_proof(
+					params: MessageProofParams,
+				) -> (bridge_to_kusama_config::FromKusamaBridgeHubMessagesProof, Weight) {
+					use cumulus_primitives_core::XcmpMessageSource;
+					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
+					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
+					prepare_message_proof_from_parachain::<
+						Runtime,
+						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
+						bridge_to_kusama_config::WithBridgeHubKusamaMessageBridge,
+					>(params, generate_xcm_builder_bridge_message_sample(X2(GlobalConsensus(Polkadot), Parachain(42))))
+				}
+
+				fn prepare_message_delivery_proof(
+					params: MessageDeliveryProofParams<AccountId>,
+				) -> bridge_to_kusama_config::ToKusamaBridgeHubMessagesDeliveryProof {
+					prepare_message_delivery_proof_from_parachain::<
+						Runtime,
+						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
+						bridge_to_kusama_config::WithBridgeHubKusamaMessageBridge,
+					>(params)
+				}
+
+				fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
+					use cumulus_primitives_core::XcmpMessageSource;
+					!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
+				}
+			}
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
