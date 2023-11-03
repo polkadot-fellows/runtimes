@@ -424,7 +424,7 @@ pub fn polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
 		"Local Testnet",
-		"local_testnet",
+		"polkadot_testnet",
 		ChainType::Local,
 		move || polkadot_local_testnet_genesis(wasm_binary),
 		vec![],

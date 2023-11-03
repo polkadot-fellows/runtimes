@@ -272,7 +272,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	properties.insert("tokenDecimals".into(), 12.into());
 
     let wasm_binary =
-        asset_hub_polkadot_runtime::WASM_BINARY.ok_or("AssetHubKusama wasm not available")?;
+        asset_hub_kusama_runtime::WASM_BINARY.ok_or("AssetHubKusama wasm not available")?;
 
     Ok(Box::new(AssetHubKusamaChainSpec::from_genesis(
 		// Name
@@ -363,7 +363,7 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 	properties.insert("tokenDecimals".into(), 10.into());
 
     let wasm_binary =
-        asset_hub_polkadot_runtime::WASM_BINARY.ok_or("CollectivesPolkadot wasm not available")?;
+        collectives_polkadot_runtime::WASM_BINARY.ok_or("CollectivesPolkadot wasm not available")?;
 
     Ok(Box::new(CollectivesPolkadotChainSpec::from_genesis(
 		// Name
@@ -541,7 +541,7 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
     properties.insert("tokenDecimals".into(), 12.into());
 
     let wasm_binary =
-        bridge_hub_polkadot_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
+        bridge_hub_kusama_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
 
     Ok(Box::new(BridgeHubKusamaChainSpec::from_genesis(
 		// Name
