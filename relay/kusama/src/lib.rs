@@ -327,11 +327,11 @@ impl pallet_balances::Config for Runtime {
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
-	type FreezeIdentifier = ();
-	type MaxFreezes = ();
+	type FreezeIdentifier = RuntimeFreezeReason;
+	type MaxFreezes = ConstU32<1>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type MaxHolds = ConstU32<1>;
+	type MaxHolds = ConstU32<2>;
 }
 
 parameter_types! {
@@ -1444,9 +1444,10 @@ impl pallet_balances::Config<NisCounterpartInstance> for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = weights::pallet_balances_nis_counterpart_balances::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
+	type MaxHolds = ConstU32<2>;
+	type MaxFreezes = ConstU32<1>;
 }
 
 parameter_types! {
@@ -1493,6 +1494,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type Currency = Balances;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
@@ -1632,7 +1634,7 @@ construct_runtime! {
 		VoterList: pallet_bags_list::<Instance1>::{Pallet, Call, Storage, Event<T>} = 39,
 
 		// nomination pools: extension to staking.
-		NominationPools: pallet_nomination_pools::{Pallet, Call, Storage, Event<T>, Config<T>} = 41,
+		NominationPools: pallet_nomination_pools::{Pallet, Call, Storage, Event<T>, Config<T>, FreezeReason} = 41,
 
 		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 42,
