@@ -374,7 +374,7 @@ pub fn polkadot_development_config() -> Result<Box<dyn ChainSpec>, String> {
 		polkadot_runtime::WASM_BINARY.ok_or("Polkadot development wasm not available")?;
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
-		"Development",
+		"Polakdot Development",
 		"polkadot_dev",
 		ChainType::Development,
 		move || polkadot_development_config_genesis(wasm_binary),
@@ -392,7 +392,7 @@ pub fn kusama_development_config() -> Result<Box<dyn ChainSpec>, String> {
 	let wasm_binary = kusama_runtime::WASM_BINARY.ok_or("Kusama development wasm not available")?;
 
 	Ok(Box::new(KusamaChainSpec::from_genesis(
-		"Development",
+		"Kusama Development",
 		"kusama_dev",
 		ChainType::Development,
 		move || kusama_development_config_genesis(wasm_binary),
@@ -423,7 +423,7 @@ pub fn polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 		polkadot_runtime::WASM_BINARY.ok_or("Polkadot development wasm not available")?;
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
-		"Local Testnet",
+		"Polkadot Local Testnet",
 		"polkadot_testnet",
 		ChainType::Local,
 		move || polkadot_local_testnet_genesis(wasm_binary),
