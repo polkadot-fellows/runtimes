@@ -46,7 +46,7 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v5 as parachains_runtime_api_impl,
+	runtime_api_impl::v7 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -110,7 +110,7 @@ mod weights;
 // Voter bag threshold definitions.
 mod bag_thresholds;
 
-mod paras_scheduler_migration;
+// mod paras_scheduler_migration; // TODO: has it happened?
 
 // Historical information of society finances.
 mod past_payouts;
@@ -1743,7 +1743,7 @@ pub mod migrations {
 		>,
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		paras_scheduler_migration::v1::MigrateToV1<Runtime>,
+		// paras_scheduler_migration::v1::MigrateToV1<Runtime>, TODO: has it happened?
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Unlock/unreserve balances from Gov v1 pallets that hold them
