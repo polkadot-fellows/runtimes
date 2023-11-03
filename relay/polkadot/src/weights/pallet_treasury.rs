@@ -45,6 +45,10 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_treasury`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
+	fn spend_local() -> Weight {
+		Weight::zero()
+	}
+
 	/// Storage: `Treasury::ProposalCount` (r:1 w:1)
 	/// Proof: `Treasury::ProposalCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::Approvals` (r:1 w:1)
@@ -61,6 +65,11 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+
+	fn payout() -> Weight {
+		Weight::zero()
+	}
+
 	/// Storage: `Treasury::ProposalCount` (r:1 w:1)
 	/// Proof: `Treasury::ProposalCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Treasury::Proposals` (r:0 w:1)
@@ -143,5 +152,13 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(p.into())))
 			.saturating_add(Weight::from_parts(0, 5206).saturating_mul(p.into()))
+	}
+
+	fn check_status() -> Weight {
+		Weight::zero()
+	}
+
+	fn void_spend() -> Weight {
+		Weight::zero()
 	}
 }
