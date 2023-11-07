@@ -30,6 +30,7 @@ offchain-primitives = { package = "sp-offchain", default-features = false , vers
 sp-std = { package = "sp-std", default-features = false , version = "12.0.0" }
 sp-application-crypto = { default-features = false , version = "27.0.0" }
 sp-arithmetic = { default-features = false , version = "20.0.0" }
+sp-genesis-builder = { default-features = false , version = "0.4.0" }
 sp-io = { default-features = false , version = "27.0.0" }
 sp-mmr-primitives = { default-features = false , version = "23.0.0" }
 sp-runtime = { default-features = false , version = "28.0.0" }
@@ -215,6 +216,7 @@ std = [
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
+	"sp-genesis-builder/std",
 	"sp-io/std",
 	"sp-mmr-primitives/std",
 	"sp-npos-elections/std",
