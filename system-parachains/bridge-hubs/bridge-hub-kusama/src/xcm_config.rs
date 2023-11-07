@@ -158,7 +158,11 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..)
+				RuntimeCall::DmpQueue(..) |
+				RuntimeCall::BridgePolkadotGrandpa(pallet_bridge_grandpa::Call::<
+					Runtime,
+					crate::bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
+				>::initialize { .. })
 		)
 	}
 }
