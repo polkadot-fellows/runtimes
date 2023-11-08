@@ -27,7 +27,7 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
-use kusama_runtime_constants::currency::CENTS;
+use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
 use runtime_common::{
 	crowdloan, paras_registrar,
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
@@ -123,14 +123,21 @@ pub type XcmRouter = WithUniqueTopic<(
 
 parameter_types! {
 	pub const Ksm: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
-	pub const Statemine: MultiLocation = Parachain(1000).into_location();
-	pub const Encointer: MultiLocation = Parachain(1001).into_location();
+	pub const Statemine: MultiLocation = Parachain(ASSET_HUB_ID).into_location();
+	pub const EncointerLocation: MultiLocation = Parachain(ENCOINTER_ID).into_location();
+	pub const BridgeHubLocation: MultiLocation = Parachain(BRIDGE_HUB_ID).into_location();
 	pub const KsmForStatemine: (MultiAssetFilter, MultiLocation) = (Ksm::get(), Statemine::get());
-	pub const KsmForEncointer: (MultiAssetFilter, MultiLocation) = (Ksm::get(), Encointer::get());
+	pub const KsmForEncointer: (MultiAssetFilter, MultiLocation) = (Ksm::get(), EncointerLocation::get());
+	pub const KsmForBridgeHub: (MultiAssetFilter, MultiLocation) = (Ksm::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
-pub type TrustedTeleporters =
-	(xcm_builder::Case<KsmForStatemine>, xcm_builder::Case<KsmForEncointer>);
+
+/// Kusama Relay recognizes/respects AssetHub, Encointer, and BridgeHub chains as teleporters.
+pub type TrustedTeleporters = (
+	xcm_builder::Case<KsmForStatemine>,
+	xcm_builder::Case<KsmForEncointer>,
+	xcm_builder::Case<KsmForBridgeHub>,
+);
 
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {
