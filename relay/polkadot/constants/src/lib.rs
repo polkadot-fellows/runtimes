@@ -121,6 +121,9 @@ pub mod system_parachain {
 	pub const BRIDGE_HUB_ID: u32 = 1002;
 }
 
+/// Polkadot Treasury pallet instance.
+pub const TREASURY_PALLET_ID: u8 = 19;
+
 #[cfg(test)]
 mod tests {
 	use super::{
