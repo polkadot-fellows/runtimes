@@ -72,6 +72,7 @@ pallet-session = { default-features = false , version = "24.0.0" }
 frame-support = { default-features = false , version = "24.0.0" }
 pallet-staking = { default-features = false , version = "24.0.0" }
 pallet-staking-reward-curve = { version = "9.0.0" }
+pallet-staking-reward-fn = { default-features = false, version = "15.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "10.0.0" }
 frame-system = { default-features = false , version = "24.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "22.0.0" }
@@ -99,9 +100,9 @@ runtime-common = { package = "polkadot-runtime-common", default-features = false
 runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "3.0.0" }
 primitives = { package = "polkadot-primitives", default-features = false , version = "3.0.0" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "3.0.0" }
+xcm = { package = "staging-xcm", default-features = false , version = "3.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "3.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "3.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "3.0.1" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
@@ -170,6 +171,7 @@ std = [
 	"pallet-scheduler/std",
 	"pallet-session-benchmarking?/std",
 	"pallet-session/std",
+	"pallet-staking-reward-fn/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-timestamp/std",
