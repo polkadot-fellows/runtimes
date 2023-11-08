@@ -635,14 +635,21 @@ parameter_types! {
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = Concrete(xcm_config::KsmLocation::get());
 	/// The base fee for the message delivery fees.
-	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
+	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
+	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
 }
 
 pub type PriceForSiblingParachainDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
 	FeeAssetId,
-	BaseDeliveryFee,
+	ToSiblingBaseDeliveryFee,
 	TransactionByteFee,
 	XcmpQueue,
+>;
+pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
+	FeeAssetId,
+	ToParentBaseDeliveryFee,
+	TransactionByteFee,
+	ParachainSystem,
 >;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
@@ -1276,9 +1283,21 @@ impl_runtime_apis! {
 			use xcm_config::{KsmLocation, MaxAssetsIntoHolding};
 			use pallet_xcm_benchmarks::asset_instance_from;
 
+			parameter_types! {
+				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+					KsmLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+			}
+
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = xcm_config::XcmConfig;
 				type AccountIdConverter = xcm_config::LocationToAccountId;
+				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+					xcm_config::XcmConfig,
+					ExistentialDepositMultiAsset,
+					PriceForParentDelivery,
+				>;
 				fn valid_destination() -> Result<MultiLocation, BenchmarkError> {
 					Ok(KsmLocation::get())
 				}
@@ -1334,6 +1353,7 @@ impl_runtime_apis! {
 			}
 
 			impl pallet_xcm_benchmarks::generic::Config for Runtime {
+				type TransactAsset = Balances;
 				type RuntimeCall = RuntimeCall;
 
 				fn worst_case_response() -> (u64, Response) {
