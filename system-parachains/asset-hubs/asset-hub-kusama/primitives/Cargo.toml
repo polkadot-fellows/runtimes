@@ -12,7 +12,6 @@ codec = { package = "parity-scale-codec", version = "3.6.5", default-features = 
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 
 # Bridge Dependencies
-# TODO: why is this 0.3.0 and not 0.4.0?
 bp-xcm-bridge-hub-router = { default-features = false , version = "0.3.0" }
 
 # Substrate Based Dependencies

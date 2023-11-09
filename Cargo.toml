@@ -21,7 +21,6 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-kusama/primitives",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot/primitives",
-	"system-parachains/bridge-hubs/common",
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/gluttons/glutton-kusama",
 ]

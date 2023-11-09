@@ -19,11 +19,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
 };
-pub use bridge_hub_common::*;
 use frame_support::dispatch::DispatchClass;
 use sp_runtime::RuntimeDebug;
 

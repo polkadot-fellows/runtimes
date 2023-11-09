@@ -1124,9 +1124,9 @@ dependencies = [
 name = "bp-bridge-hub-kusama"
 version = "1.0.0"
 dependencies = [
+ "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-runtime",
- "bridge-hub-common",
  "frame-support",
  "sp-api",
  "sp-runtime",
@@ -1137,9 +1137,9 @@ dependencies = [
 name = "bp-bridge-hub-polkadot"
 version = "1.0.0"
 dependencies = [
+ "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-runtime",
- "bridge-hub-common",
  "frame-support",
  "sp-api",
  "sp-runtime",
@@ -1345,20 +1345,6 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-runtime",
-]
-
-[[package]]
-name = "bridge-hub-common"
-version = "0.1.0"
-dependencies = [
- "bp-messages",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "frame-system",
- "polkadot-primitives",
- "sp-api",
- "sp-std",
 ]
 
 [[package]]
