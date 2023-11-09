@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use sc_chain_spec::{ChainSpec, ChainType, ChainSpecExtension, ChainSpecGroup};
+use crate::common::{get_account_id_from_seed, get_from_seed, testnet_accounts};
 use cumulus_primitives_core::ParaId;
-use sp_core::sr25519;
 use parachains_common::{AccountId, AssetHubPolkadotAuraId, AuraId, Balance};
-use crate::common::{testnet_accounts, get_from_seed, get_account_id_from_seed};
+use sc_chain_spec::{ChainSpec, ChainSpecExtension, ChainSpecGroup, ChainType};
+use serde::{Deserialize, Serialize};
+use sp_core::sr25519;
 
 /// Generic extensions for Parachain ChainSpecs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
@@ -30,47 +30,39 @@ pub type BridgeHubPolkadotChainSpec =
 pub type BridgeHubKusamaChainSpec =
 	sc_chain_spec::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
 
-const ASSET_HUB_POLKADOT_ED: Balance =
-	parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
-const ASSET_HUB_KUSAMA_ED: Balance =
-	parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 
-const COLLECTIVES_POLKADOT_ED: Balance =
-	parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const COLLECTIVES_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
-const BRIDGE_HUB_POLKADOT_ED: Balance =
-    parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
-const BRIDGE_HUB_KUSAMA_ED: Balance =
-    parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
 /// Invulnerable Collators
 pub fn invulnerables() -> Vec<(AccountId, AuraId)> {
-    vec![
-        (
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            get_from_seed::<AuraId>("Alice"),
-        ),
-        (get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
-    ]
+	vec![
+		(get_account_id_from_seed::<sr25519::Public>("Alice"), get_from_seed::<AuraId>("Alice")),
+		(get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
+	]
 }
 
 /// Invulnerable Collators for the particular case of AssetHubPolkadot
 pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
-    vec![
-        (
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Bob"),
-            get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
-        ),
-    ]
+	vec![
+		(
+			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
+		),
+		(
+			get_account_id_from_seed::<sr25519::Public>("Bob"),
+			get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
+		),
+	]
 }
 
 /// Generate the session keys from individual elements.
@@ -101,31 +93,29 @@ pub fn collectives_polkadot_session_keys(
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn bridge_hub_polkadot_session_keys(
-	keys: AuraId,
-) -> bridge_hub_polkadot_runtime::SessionKeys {
+pub fn bridge_hub_polkadot_session_keys(keys: AuraId) -> bridge_hub_polkadot_runtime::SessionKeys {
 	bridge_hub_polkadot_runtime::SessionKeys { aura: keys }
 }
 
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn bridge_hub_kusama_session_keys(
-	keys: AuraId,
-) -> bridge_hub_kusama_runtime::SessionKeys {
+pub fn bridge_hub_kusama_session_keys(keys: AuraId) -> bridge_hub_kusama_runtime::SessionKeys {
 	bridge_hub_kusama_runtime::SessionKeys { aura: keys }
 }
 
 // AssetHubPolkadot
 fn asset_hub_polkadot_genesis(
-    wasm_binary: &[u8],
+	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AssetHubPolkadotAuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> asset_hub_polkadot_runtime::RuntimeGenesisConfig {
 	asset_hub_polkadot_runtime::RuntimeGenesisConfig {
 		system: asset_hub_polkadot_runtime::SystemConfig {
-			code: wasm_binary.to_vec(), ..Default::default() },
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -166,13 +156,15 @@ fn asset_hub_polkadot_genesis(
 	}
 }
 
-fn asset_hub_polkadot_local_genesis(wasm_binary: &[u8]) -> asset_hub_polkadot_runtime::RuntimeGenesisConfig {
+fn asset_hub_polkadot_local_genesis(
+	wasm_binary: &[u8],
+) -> asset_hub_polkadot_runtime::RuntimeGenesisConfig {
 	asset_hub_polkadot_genesis(
-        // initial collators.
-            wasm_binary,
-            invulnerables_asset_hub_polkadot(),
-        testnet_accounts(),
-        1000.into(),
+		// initial collators.
+		wasm_binary,
+		invulnerables_asset_hub_polkadot(),
+		testnet_accounts(),
+		1000.into(),
 	)
 }
 
@@ -182,20 +174,16 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-    let wasm_binary =
-        asset_hub_polkadot_runtime::WASM_BINARY.ok_or("AssetHubPolkadot wasm not available")?;
+	let wasm_binary =
+		asset_hub_polkadot_runtime::WASM_BINARY.ok_or("AssetHubPolkadot wasm not available")?;
 
-    Ok(Box::new(AssetHubPolkadotChainSpec::from_genesis(
+	Ok(Box::new(AssetHubPolkadotChainSpec::from_genesis(
 		// Name
 		"Polkadot Asset Hub Local",
 		// ID
 		"asset-hub-polkadot-local",
 		ChainType::Local,
-		move || {
-			asset_hub_polkadot_local_genesis(
-                wasm_binary
-			)
-		},
+		move || asset_hub_polkadot_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,
@@ -207,14 +195,16 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 
 // AssetHubKusama
 fn asset_hub_kusama_genesis(
-    wasm_binary: &[u8],
+	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
 	asset_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: asset_hub_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(), ..Default::default() },
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
 		balances: asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -236,8 +226,8 @@ fn asset_hub_kusama_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                           // account id
-						acc,                                   // validator id
+						acc.clone(),                         // account id
+						acc,                                 // validator id
 						asset_hub_kusama_session_keys(aura), // session keys
 					)
 				})
@@ -255,13 +245,15 @@ fn asset_hub_kusama_genesis(
 	}
 }
 
-fn asset_hub_kusama_local_genesis(wasm_binary: &[u8]) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
+fn asset_hub_kusama_local_genesis(
+	wasm_binary: &[u8],
+) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
 	asset_hub_kusama_genesis(
-        // initial collators.
-            wasm_binary,
-            invulnerables(),
-        testnet_accounts(),
-        1000.into(),
+		// initial collators.
+		wasm_binary,
+		invulnerables(),
+		testnet_accounts(),
+		1000.into(),
 	)
 }
 
@@ -271,20 +263,16 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	properties.insert("tokenSymbol".into(), "KSM".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 
-    let wasm_binary =
-        asset_hub_kusama_runtime::WASM_BINARY.ok_or("AssetHubKusama wasm not available")?;
+	let wasm_binary =
+		asset_hub_kusama_runtime::WASM_BINARY.ok_or("AssetHubKusama wasm not available")?;
 
-    Ok(Box::new(AssetHubKusamaChainSpec::from_genesis(
+	Ok(Box::new(AssetHubKusamaChainSpec::from_genesis(
 		// Name
 		"Kusama Asset Hub Local",
 		// ID
 		"asset-hub-kusama-local",
 		ChainType::Local,
-		move || {
-			asset_hub_kusama_local_genesis(
-                wasm_binary
-			)
-		},
+		move || asset_hub_kusama_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,
@@ -296,14 +284,16 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 
 // CollectivesPolkadot
 fn collectives_polkadot_genesis(
-    wasm_binary: &[u8],
+	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> collectives_polkadot_runtime::RuntimeGenesisConfig {
 	collectives_polkadot_runtime::RuntimeGenesisConfig {
 		system: collectives_polkadot_runtime::SystemConfig {
-            code: wasm_binary.to_vec(), ..Default::default() },
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
 		balances: collectives_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -346,13 +336,15 @@ fn collectives_polkadot_genesis(
 	}
 }
 
-fn collectives_polkadot_local_genesis(wasm_binary: &[u8]) -> collectives_polkadot_runtime::RuntimeGenesisConfig {
+fn collectives_polkadot_local_genesis(
+	wasm_binary: &[u8],
+) -> collectives_polkadot_runtime::RuntimeGenesisConfig {
 	collectives_polkadot_genesis(
-        // initial collators.
-            wasm_binary,
-            invulnerables(),
-        testnet_accounts(),
-        1002.into(),
+		// initial collators.
+		wasm_binary,
+		invulnerables(),
+		testnet_accounts(),
+		1002.into(),
 	)
 }
 
@@ -362,20 +354,16 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-    let wasm_binary =
-        collectives_polkadot_runtime::WASM_BINARY.ok_or("CollectivesPolkadot wasm not available")?;
+	let wasm_binary = collectives_polkadot_runtime::WASM_BINARY
+		.ok_or("CollectivesPolkadot wasm not available")?;
 
-    Ok(Box::new(CollectivesPolkadotChainSpec::from_genesis(
+	Ok(Box::new(CollectivesPolkadotChainSpec::from_genesis(
 		// Name
 		"Polkadot Collectives Local",
 		// ID
 		"collectives-polkadot-local",
 		ChainType::Local,
-		move || {
-			collectives_polkadot_local_genesis(
-                wasm_binary
-			)
-		},
+		move || collectives_polkadot_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,
@@ -387,14 +375,16 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 
 // BridgeHubPolkadot
 fn bridge_hub_polkadot_genesis(
-    wasm_binary: &[u8],
+	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
 	bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
 		system: bridge_hub_polkadot_runtime::SystemConfig {
-			code: wasm_binary.to_vec(), ..Default::default() },
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
 		balances: bridge_hub_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -416,8 +406,8 @@ fn bridge_hub_polkadot_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                           // account id
-						acc,                                   // validator id
+						acc.clone(),                            // account id
+						acc,                                    // validator id
 						bridge_hub_polkadot_session_keys(aura), // session keys
 					)
 				})
@@ -435,36 +425,34 @@ fn bridge_hub_polkadot_genesis(
 	}
 }
 
-fn bridge_hub_polkadot_local_genesis(wasm_binary: &[u8]) -> bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
+fn bridge_hub_polkadot_local_genesis(
+	wasm_binary: &[u8],
+) -> bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
 	bridge_hub_polkadot_genesis(
-        // initial collators.
-            wasm_binary,
-            invulnerables(),
-        testnet_accounts(),
-        1003.into(),
+		// initial collators.
+		wasm_binary,
+		invulnerables(),
+		testnet_accounts(),
+		1003.into(),
 	)
 }
 
 pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("ss58Format".into(), 0.into());
-    properties.insert("tokenSymbol".into(), "DOT".into());
-    properties.insert("tokenDecimals".into(), 10.into());
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
 
-    let wasm_binary =
-        bridge_hub_polkadot_runtime::WASM_BINARY.ok_or("BridgeHubPolkadot wasm not available")?;
+	let wasm_binary =
+		bridge_hub_polkadot_runtime::WASM_BINARY.ok_or("BridgeHubPolkadot wasm not available")?;
 
-    Ok(Box::new(BridgeHubPolkadotChainSpec::from_genesis(
+	Ok(Box::new(BridgeHubPolkadotChainSpec::from_genesis(
 		// Name
 		"Polkadot Bridge Hub Local",
 		// ID
 		"bridge-hub-polkadot-local",
 		ChainType::Local,
-		move || {
-			bridge_hub_polkadot_local_genesis(
-                wasm_binary
-			)
-		},
+		move || bridge_hub_polkadot_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,
@@ -476,14 +464,16 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 
 // BridgeHubKusama
 fn bridge_hub_kusama_genesis(
-    wasm_binary: &[u8],
+	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
 	bridge_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: bridge_hub_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(), ..Default::default() },
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
 		balances: bridge_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -505,8 +495,8 @@ fn bridge_hub_kusama_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                           // account id
-						acc,                                   // validator id
+						acc.clone(),                          // account id
+						acc,                                  // validator id
 						bridge_hub_kusama_session_keys(aura), // session keys
 					)
 				})
@@ -524,36 +514,34 @@ fn bridge_hub_kusama_genesis(
 	}
 }
 
-fn bridge_hub_kusama_local_genesis(wasm_binary: &[u8]) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
+fn bridge_hub_kusama_local_genesis(
+	wasm_binary: &[u8],
+) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
 	bridge_hub_kusama_genesis(
-        // initial collators.
-            wasm_binary,
-            invulnerables(),
-        testnet_accounts(),
-        1003.into(),
+		// initial collators.
+		wasm_binary,
+		invulnerables(),
+		testnet_accounts(),
+		1003.into(),
 	)
 }
 
 pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("ss58Format".into(), 2.into());
-    properties.insert("tokenSymbol".into(), "KSM".into());
-    properties.insert("tokenDecimals".into(), 12.into());
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
 
-    let wasm_binary =
-        bridge_hub_kusama_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
+	let wasm_binary =
+		bridge_hub_kusama_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
 
-    Ok(Box::new(BridgeHubKusamaChainSpec::from_genesis(
+	Ok(Box::new(BridgeHubKusamaChainSpec::from_genesis(
 		// Name
 		"Kusama Bridge Hub Local",
 		// ID
 		"bridge-hub-kusama-local",
 		ChainType::Local,
-		move || {
-			bridge_hub_kusama_local_genesis(
-                wasm_binary
-			)
-		},
+		move || bridge_hub_kusama_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,

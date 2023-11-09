@@ -1,13 +1,10 @@
 use crate::{
-    ChainSpec,
-    relay_chain_specs::{PolkadotChainSpec, KusamaChainSpec},
-    system_parachains_specs::{
-        AssetHubPolkadotChainSpec,
-        AssetHubKusamaChainSpec,
-        CollectivesPolkadotChainSpec,
-        BridgeHubPolkadotChainSpec,
-        BridgeHubKusamaChainSpec,
-    },
+	relay_chain_specs::{KusamaChainSpec, PolkadotChainSpec},
+	system_parachains_specs::{
+		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
+		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec,
+	},
+	ChainSpec,
 };
 use polkadot_primitives::{AccountId, AccountPublic};
 use sp_core::{sr25519, Pair, Public};
@@ -47,30 +44,30 @@ where
 
 #[derive(Debug, serde::Deserialize)]
 struct EmptyChainSpecWithId {
-    id: String,
+	id: String,
 }
 
 pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn ChainSpec>, String> {
-    let path = std::path::PathBuf::from(&filepath);
-    let file = std::fs::File::open(&filepath).expect("Failed to open file");
-    let reader = std::io::BufReader::new(file);
-    let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
-        .expect("Failed to read 'json' file with ChainSpec configuration");
+	let path = std::path::PathBuf::from(&filepath);
+	let file = std::fs::File::open(&filepath).expect("Failed to open file");
+	let reader = std::io::BufReader::new(file);
+	let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
+		.expect("Failed to read 'json' file with ChainSpec configuration");
 	match &chain_spec.id {
-        x if x.starts_with("polkadot") | x.starts_with("dot") =>
-            Ok(Box::new(PolkadotChainSpec::from_json_file(path)?)),
+		x if x.starts_with("polkadot") | x.starts_with("dot") =>
+			Ok(Box::new(PolkadotChainSpec::from_json_file(path)?)),
 		x if x.starts_with("kusama") | x.starts_with("ksm") =>
 			Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
-        x if x.starts_with("asset-hub-polkadot") =>
+		x if x.starts_with("asset-hub-polkadot") =>
 			Ok(Box::new(AssetHubPolkadotChainSpec::from_json_file(path)?)),
-        x if x.starts_with("asset-hub-kusama") =>
+		x if x.starts_with("asset-hub-kusama") =>
 			Ok(Box::new(AssetHubKusamaChainSpec::from_json_file(path)?)),
-        x if x.starts_with("collectives-polkadot") =>
+		x if x.starts_with("collectives-polkadot") =>
 			Ok(Box::new(CollectivesPolkadotChainSpec::from_json_file(path)?)),
-        x if x.starts_with("bridge-hub-polkadot") =>
+		x if x.starts_with("bridge-hub-polkadot") =>
 			Ok(Box::new(BridgeHubPolkadotChainSpec::from_json_file(path)?)),
-        x if x.starts_with("bridge-hub-kusama") =>
+		x if x.starts_with("bridge-hub-kusama") =>
 			Ok(Box::new(BridgeHubKusamaChainSpec::from_json_file(path)?)),
-        _ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
+		_ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }
