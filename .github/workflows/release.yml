@@ -1,4 +1,4 @@
-name: Create Draft Release
+name: Create Release
 
 on:
   push:
@@ -161,14 +161,13 @@ jobs:
         run: |
           >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime.name }} -name '*.compact.compressed.wasm')
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
-          >>$GITHUB_ENV echo TXVER=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.transactionVersion)
 
-      - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} tx${{ env.TXVER }} wasm
+      - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.publish-draft-release.outputs.asset_upload_url }}
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
           asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.tx${{ env.TXVER }}.compact.compressed.wasm
+          asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
