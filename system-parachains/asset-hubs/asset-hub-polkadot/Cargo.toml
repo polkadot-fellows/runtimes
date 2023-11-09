@@ -12,8 +12,13 @@ version.workspace = true
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
 hex-literal = { version = "0.4.1", optional = true }
 log = { version = "0.4.20", default-features = false }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
-smallvec = "1.11.0"
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+smallvec = "1.11.1"
+
+# Local
+bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
+bridge-hub-polkadot-runtime-constants = { path = "../../bridge-hubs/bridge-hub-polkadot/constants", default-features = false}
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
@@ -81,7 +86,6 @@ assets-common = { default-features = false , version = "0.4.0" }
 # Bridges
 bp-asset-hub-kusama = { default-features = false , version = "0.2.0" }
 bp-asset-hub-polkadot = { default-features = false , version = "0.2.0" }
-bp-bridge-hub-kusama = { default-features = false , version = "0.3.0" }
 bp-bridge-hub-polkadot = { default-features = false , version = "0.3.0" }
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 

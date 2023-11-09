@@ -704,7 +704,7 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_polkadot_works() {
 			(MultiLocation { parents: 2, interior: X1(GlobalConsensus(Polkadot)) }, 1000000000000, 1_000_000_000),
 			bridging_to_asset_hub_polkadot,
 			(
-				X1(PalletInstance(53)), // TODO X1(PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX)),
+				X1(PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX)),
 				GlobalConsensus(Polkadot),
 				X1(Parachain(1000))
 			)

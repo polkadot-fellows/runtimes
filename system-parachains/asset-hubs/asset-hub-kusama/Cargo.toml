@@ -15,6 +15,10 @@ log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 smallvec = "1.11.0"
 
+# Local
+bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
+kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
+
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
 frame-executive = { default-features = false, version = "25.0.0" }
@@ -59,7 +63,6 @@ sp-weights = { default-features = false, version = "24.0.0" }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "num-traits"] }
 
 # Polkadot
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
 pallet-xcm = { default-features = false, version = "4.0.0" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "4.0.0" }
 polkadot-core-primitives = { default-features = false, version = "4.0.0" }
@@ -86,7 +89,6 @@ assets-common = { default-features = false , version = "0.4.0" }
 # Bridges
 bp-asset-hub-kusama = { default-features = false , version = "0.2.0" }
 bp-asset-hub-polkadot = { default-features = false , version = "0.2.0" }
-bp-bridge-hub-kusama = { default-features = false , version = "0.3.0" }
 bp-bridge-hub-polkadot = { default-features = false , version = "0.3.0" }
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 

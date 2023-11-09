@@ -16,7 +16,10 @@ members = [
 	"system-parachains/asset-hubs/asset-hub-kusama",
 	"system-parachains/asset-hubs/asset-hub-polkadot",
 	"system-parachains/bridge-hubs/bridge-hub-kusama",
+	"system-parachains/bridge-hubs/bridge-hub-kusama/primitives",
 	"system-parachains/bridge-hubs/bridge-hub-polkadot",
+	"system-parachains/bridge-hubs/bridge-hub-polkadot/constants",
+	"system-parachains/bridge-hubs/common",
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/gluttons/glutton-kusama",
 ]
