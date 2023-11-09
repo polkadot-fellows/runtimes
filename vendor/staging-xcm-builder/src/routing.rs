@@ -33,20 +33,36 @@ use xcm::prelude::*;
 /// This is designed to be at the top-level of any routers, since it will always mutate the
 /// passed `message` reference into a `None`. Don't try to combine it within a tuple except as the
 /// last element.
-pub struct WithUniqueTopic<Inner>(PhantomData<Inner>);
-impl<Inner: SendXcm> SendXcm for WithUniqueTopic<Inner> {
+pub struct WithUniqueTopic<Inner, W>(PhantomData<(Inner, W)>);
+impl<Inner: SendXcm, W: WrapVersion> SendXcm for WithUniqueTopic<Inner, W> {
 	type Ticket = (Inner::Ticket, [u8; 32]);
 
 	fn validate(
 		destination: &mut Option<MultiLocation>,
 		message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
+		// guess destination version if supports `SetTopic` instruction.
+		let supports_set_topic = if let Some(dest) = destination.as_ref() {
+			if let Ok(versioned_xcm) = W::wrap_version(dest, Xcm::<()>::default()) {
+				match versioned_xcm {
+					VersionedXcm::V2(..) => false,
+					VersionedXcm::V3(..) => true,
+				}
+			} else {
+				false
+			}
+		} else {
+			false
+		};
+
 		let mut message = message.take().ok_or(SendError::MissingArgument)?;
 		let unique_id = if let Some(SetTopic(id)) = message.last() {
 			*id
 		} else {
 			let unique_id = unique(&message);
-			message.0.push(SetTopic(unique_id));
+			if supports_set_topic {
+				message.0.push(SetTopic(unique_id));
+			}
 			unique_id
 		};
 		let (ticket, assets) = Inner::validate(destination, &mut Some(message))
