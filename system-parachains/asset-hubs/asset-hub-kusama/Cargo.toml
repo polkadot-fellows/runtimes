@@ -16,6 +16,8 @@ scale-info = { version = "2.9.0", default-features = false, features = ["derive"
 smallvec = "1.11.0"
 
 # Local
+bp-asset-hub-kusama = { path = "./primitives", default-features = false}
+bp-asset-hub-polkadot = { path = "../asset-hub-polkadot/primitives", default-features = false}
 bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
@@ -88,8 +90,6 @@ parachains-common = { default-features = false , version = "4.0.0" }
 assets-common = { default-features = false , version = "0.4.0" }
 
 # Bridges
-bp-asset-hub-kusama = { default-features = false , version = "0.2.0" }
-bp-asset-hub-polkadot = { default-features = false , version = "0.2.0" }
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 
 [dev-dependencies]

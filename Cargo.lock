@@ -1086,9 +1086,7 @@ dependencies = [
 
 [[package]]
 name = "bp-asset-hub-kusama"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6948379f8336b0f2ab37ddd8016432182359dc6faf3de722e3e6c3c6ce1be074"
+version = "1.0.0"
 dependencies = [
  "bp-xcm-bridge-hub-router",
  "frame-support",
@@ -1098,15 +1096,12 @@ dependencies = [
 
 [[package]]
 name = "bp-asset-hub-polkadot"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a05d3f2975e06f3a23cd199887844de5107ba8d58ea400e0901c9f00c1d28b58"
+version = "1.0.0"
 dependencies = [
  "bp-xcm-bridge-hub-router",
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime",
 ]
 
 [[package]]

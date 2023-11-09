@@ -1,0 +1,28 @@
+[package]
+name = "bp-asset-hub-polkadot"
+description = "Primitives of AssetHubPolkadot parachain runtime."
+repository.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive", "max-encoded-len"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+
+# Bridge Dependencies
+# TODO: why is this 0.3.0 and not 0.4.0?
+bp-xcm-bridge-hub-router = { default-features = false , version = "0.3.0" }
+
+# Substrate Based Dependencies
+frame-support = { default-features = false, version = "25.0.0" }
+
+[features]
+default = [ "std" ]
+std = [
+	"bp-xcm-bridge-hub-router/std",
+	"codec/std",
+	"frame-support/std",
+	"scale-info/std",
+]
