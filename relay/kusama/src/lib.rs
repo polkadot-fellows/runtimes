@@ -1820,6 +1820,7 @@ pub mod migrations {
 		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
 
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
+		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
 	);
 }
 
