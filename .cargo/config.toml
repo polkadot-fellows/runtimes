@@ -31,3 +31,9 @@ rustflags = [
   "-Aclippy::stable_sort_primitive",     # prefer stable sort
   "-Aclippy::extra-unused-type-parameters", # stylistic
 ]
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
