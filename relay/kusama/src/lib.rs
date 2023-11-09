@@ -1734,39 +1734,7 @@ pub mod migrations {
 	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		init_state_migration::InitMigrate,
-		pallet_society::migrations::VersionCheckedMigrateToV2<
-			Runtime,
-			(),
-			past_payouts::PastPayouts,
-		>,
-		pallet_im_online::migration::v1::Migration<Runtime>,
-		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		//paras_scheduler_migration::v1::MigrateToV1<Runtime>, // TODO
-		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
-
-		// Unlock/unreserve balances from Gov v1 pallets that hold them
-		// https://github.com/paritytech/polkadot/issues/6749
-		pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_tips::migrations::unreserve_deposits::UnreserveDeposits<UnlockConfig, ()>,
-
-		// Delete storage key/values from all Gov v1 pallets
-		frame_support::migrations::RemovePallet<DemocracyPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<CouncilPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalCommitteePalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<PhragmenElectionPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalMembershipPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TipsPalletName, <Runtime as frame_system::Config>::DbWeight>,
-
-		// Upgrade SessionKeys to include BEEFY key
-		UpgradeSessionKeys,
-
-		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
-		// Migrate parachain info format
-		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
-	);
+	pub type Unreleased = ();
 }
 
 /// Unchecked extrinsic type as expected by this runtime.

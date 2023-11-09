@@ -1575,30 +1575,7 @@ pub mod migrations {
 	}
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		pallet_im_online::migration::v1::Migration<Runtime>,
-		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		//crate::paras_scheduler_migration::v1::MigrateToV1<Runtime>, // TODO
-		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
-
-		// Gov v1 storage migrations
-		// https://github.com/paritytech/polkadot/issues/6749
-		pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_tips::migrations::unreserve_deposits::UnreserveDeposits<UnlockConfig, ()>,
-
-		// Delete all Gov v1 pallet storage key/values.
-		frame_support::migrations::RemovePallet<DemocracyPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<CouncilPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalCommitteePalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<PhragmenElectionPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalMembershipPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TipsPalletName, <Runtime as frame_system::Config>::DbWeight>,
-
-		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
-		// Migrate parachain info format
-		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
-	);
+	pub type Unreleased = ();
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
