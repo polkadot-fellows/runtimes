@@ -1538,7 +1538,6 @@ dependencies = [
  "polkadot-runtime-parachains",
  "sc-chain-spec",
  "sc-consensus-grandpa",
- "sc-service",
  "serde",
  "serde_json",
  "sp-authority-discovery",

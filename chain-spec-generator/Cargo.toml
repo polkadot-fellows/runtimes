@@ -24,7 +24,6 @@ bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-
 bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
 
 sc-chain-spec = "22.0.0"
-sc-service = "0.30.0"
 polkadot-runtime-parachains = "2.0.0"
 polkadot-primitives = "2.0.0"
 sp-consensus-babe = "0.27.0"

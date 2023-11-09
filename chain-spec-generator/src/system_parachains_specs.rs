@@ -16,19 +16,19 @@ pub struct Extensions {
 }
 
 pub type AssetHubPolkadotChainSpec =
-	sc_service::GenericChainSpec<asset_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+	sc_chain_spec::GenericChainSpec<asset_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
 
 pub type AssetHubKusamaChainSpec =
-	sc_service::GenericChainSpec<asset_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+	sc_chain_spec::GenericChainSpec<asset_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
 
 pub type CollectivesPolkadotChainSpec =
-	sc_service::GenericChainSpec<collectives_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+	sc_chain_spec::GenericChainSpec<collectives_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
 
 pub type BridgeHubPolkadotChainSpec =
-	sc_service::GenericChainSpec<bridge_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+	sc_chain_spec::GenericChainSpec<bridge_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
 
 pub type BridgeHubKusamaChainSpec =
-	sc_service::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+	sc_chain_spec::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
 
 const ASSET_HUB_POLKADOT_ED: Balance =
 	parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
