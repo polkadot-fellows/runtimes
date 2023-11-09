@@ -1,0 +1,7 @@
+error: no rules expected the token `T`
+ --> tests/ui/type-qpath-eof2.rs:5:17
+  |
+5 |     input = [{ <T }]
+  |                 ^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

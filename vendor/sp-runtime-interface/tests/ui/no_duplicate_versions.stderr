@@ -1,0 +1,11 @@
+error: Duplicated version attribute
+  --> tests/ui/no_duplicate_versions.rs:24:2
+   |
+24 |     #[version(2)]
+   |     ^
+
+error: Previous version with the same number defined here
+  --> tests/ui/no_duplicate_versions.rs:22:2
+   |
+22 |     #[version(2)]
+   |     ^

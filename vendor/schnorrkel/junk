@@ -1,0 +1,9 @@
+
+A pseudo random function (PRF) family is a cryptographic approximation to selecting a function randomly from the set of all functions, aka a random oracle.  In formal terms, a PRF is a family of efficiently computable functions for which no efficiently algorithm can distinguish between a function chosen randomly from the PRF family and a randomly select function.  
+
+We make a PRF by hashing an input with some seed, meaning the seed parameterizes the family.  As an example, a message authentication code (MAC) is a PRFs in which our input is the publicly known cipher-text, but family member given by the MAC key is secret or otherwise controlled.
+
+We define a VRF in similar language, except our the function family is parameterized by public-secret key pairs and (a) require the secret key to evaluate the functions efficiently but also (b) provide a proof of correct evaluation that requires only the public key.  
+
+
+

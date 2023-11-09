@@ -1,0 +1,7 @@
+error: no rules expected the token `T`
+ --> tests/ui/type-path-eof2.rs:5:18
+  |
+5 |     input = [{ S<T }]
+  |                  ^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

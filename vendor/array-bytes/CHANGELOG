@@ -1,0 +1,87 @@
+## v6.1.0
+- Improve expression
+- Improve `TryFromHex` and add `Hex`
+
+## v6.0.0
+- Optimize algorithm.
+- Bump dependencies.
+
+## v5.1.0
+- Rename error fields.
+
+## v5.0.0
+- Optimize algorithm.
+- Improve documentation.
+- Support `AsRef<T>` input.
+- Add `hex2slice` and `hex2slice_unchecked`.
+
+## v4.2.0
+- Bump dependencies.
+- Update CI.
+- Update license.
+
+## v4.1.0
+- Mark `hex_bytes2hex_str_unchecked` as unsafe.
+
+## v4.0.0
+- Use `is_hex_ascii` to optimize performance.
+- Add benchmark results.
+- Add `hex_bytes2hex_str` and `hex_bytes2hex_str_unchecked`.
+- Add fuzzing.
+
+## v3.0.0
+- Break `hex_into` into `hex_into` and `hex_n_into`.
+- Break `hex_into_unchecked` into `hex_into_unchecked` and `hex_n_into_unchecked`.
+
+## v2.0.2
+- Bump dependencies.
+- Update README.
+- Update CI.
+
+## v2.0.1
+- Fix tests.
+
+## v2.0.0
+- Split `dyn_*` to `slice_*` and `vec_*`.
+- Remove all the unsafe usage.
+
+## v1.6.0
+- Disable generic input. (people should know what are they going to do)
+- Bump dependencies.
+
+## v1.5.2
+- Update documentation.
+- Update code format.
+- Bump dependencies.
+
+## v1.5.1
+- Update description.
+
+## v1.5.0
+- Revert *"Use `String` instead `&str` in `serde`"*.
+- Bump dependencies.
+- Rust edition 2021.
+
+## v1.4.1
+- Use `String` instead `&str` in `serde`.
+
+## v1.4.0
+- Bump `serde`.
+- Add more documentation.
+- Add more tests.
+- Rename `hexd2num` to `de_hex2num`, `hexd2bytes` to `de_hex2bytes`.
+
+## v1.3.3
+- Allow explicit generic argument.
+
+## v1.3.2
+- Add `dyn_into`.
+
+## v1.3.0
+- Add `hex2array`, `hex_try_into` and `hex_into_unchecked`.
+- Support `serde`.
+
+## v1.2.0
+- Deprecated macro `hex2array_unchecked`.
+- Introduce function `hex2array_unchecked`.
+- Require at least Rust `1.51.0`.

@@ -1,0 +1,5 @@
+error: Expected binding: `TargetIndex = ...`
+  --> tests/ui/fail/missing_target.rs:22:2
+   |
+22 |     u8,
+   |     ^^

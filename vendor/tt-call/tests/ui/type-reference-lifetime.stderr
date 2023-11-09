@@ -1,0 +1,7 @@
+error: no rules expected the token `'a`
+ --> tests/ui/type-reference-lifetime.rs:5:17
+  |
+5 |     input = [{ &'a }]
+  |                 ^^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

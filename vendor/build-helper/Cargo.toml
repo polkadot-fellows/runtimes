@@ -1,0 +1,29 @@
+[package]
+name = "build-helper"
+version = "0.1.1"
+authors = ["Daniel Keep <daniel.keep@gmail.com>"]
+
+description = "This crate contains convenience methods for build scripts."
+repository = "https://github.com/DanielKeep/rust-build-helper"
+documentation = "https://docs.rs/crate/build-helper/"
+readme = "README.md"
+keywords = []
+categories = ["development-tools"]
+license = "MIT/Apache-2.0"
+
+[badges]
+travis-ci = { repository = "DanielKeep/rust-build-helper" }
+
+[features]
+default = []
+nightly = []
+
+[workspace]
+members = [
+    "tests/pkgs/basic",
+    "tests/pkgs/basic-nightly",
+    "tests/pkgs/cargo-env",
+]
+
+[dependencies]
+semver = "0.6.0"

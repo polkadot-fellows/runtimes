@@ -1,0 +1,1473 @@
+    Updating crates.io index
+   Packaging jsonrpsee-proc-macros v0.16.3 (/home/niklasad1/Github/jsonrpsee/proc-macros)
+   Verifying jsonrpsee-proc-macros v0.16.3 (/home/niklasad1/Github/jsonrpsee/proc-macros)
+    Updating crates.io index
+   Compiling proc-macro2 v1.0.66
+   Compiling hashbrown v0.14.0
+   Compiling unicode-ident v1.0.11
+   Compiling equivalent v1.0.1
+   Compiling winnow v0.5.14
+   Compiling toml_datetime v0.6.3
+   Compiling syn v1.0.109
+   Compiling once_cell v1.18.0
+   Compiling heck v0.4.1
+   Compiling indexmap v2.0.0
+   Compiling quote v1.0.33
+   Compiling toml_edit v0.19.14
+   Compiling proc-macro-crate v1.3.1
+   Compiling jsonrpsee-proc-macros v0.16.3 (/home/niklasad1/Github/jsonrpsee/target/package/jsonrpsee-proc-macros-0.16.3)
+error[E0432]: unresolved import `syn::spanned`
+  --> src/attributes.rs:32:11
+   |
+32 | use syn::{spanned::Spanned, Attribute, Error, LitInt, LitStr, Token};
+   |           ^^^^^^^ could not find `spanned` in `syn`
+
+error[E0432]: unresolved import `syn::spanned`
+  --> src/rpc_macro.rs:37:10
+   |
+37 | use syn::spanned::Spanned;
+   |          ^^^^^^^ could not find `spanned` in `syn`
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+   --> src/helpers.rs:114:65
+    |
+114 |             let mut bounds: Punctuated<syn::TypeParamBound, Token![+]> = parse_quote!(Send + Sync + 'static);
+    |                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+    |
+    = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+   --> src/helpers.rs:118:18
+    |
+118 |                     bounds.push(parse_quote!(jsonrpsee::core::Serialize))
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+    |
+    = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+   --> src/helpers.rs:121:18
+    |
+121 |                     bounds.push(parse_quote!(jsonrpsee::core::DeserializeOwned))
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+    |
+    = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+   --> src/helpers.rs:125:18
+    |
+125 |                     bounds.push(parse_quote!(jsonrpsee::core::DeserializeOwned))
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+    |
+    = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+   --> src/helpers.rs:128:18
+    |
+128 |                     bounds.push(parse_quote!(jsonrpsee::core::Serialize))
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+    |
+    = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+  --> src/render_server.rs:77:40
+   |
+77 |             let subscription_sink: syn::FnArg = syn::parse_quote!(subscription_sink: #subscription_sink_ty);
+   |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+   |
+   = note: this error originates in the macro `syn::parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `quote` in `__private`
+  --> src/render_server.rs:82:29
+   |
+82 |             let output: ReturnType = parse_quote! { -> #return_ty };
+   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `quote` in `__private`
+   |
+   = note: this error originates in the macro `parse_quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0423]: expected function, found module `syn::parse`
+   --> src/lib.rs:371:35
+    |
+371 |     let trait_data: syn::ItemTrait = syn::parse(item)?;
+    |                                      ^^^^^^^^^^
+    |
+   ::: /home/niklasad1/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-1.0.109/src/lib.rs:888:1
+    |
+888 | pub fn parse2<T: parse::Parse>(tokens: proc_macro2::TokenStream) -> Result<T> {
+    | ----------------------------------------------------------------------------- similarly named function `parse2` defined here
+    |
+help: a function with a similar name exists
+    |
+371 |     let trait_data: syn::ItemTrait = syn::parse2(item)?;
+    |                                           ~~~~~~
+help: consider importing one of these items instead
+    |
+29  + use quote::__private::parse;
+    |
+29  + use syn::parse_quote::parse;
+    |
+help: if you import `parse`, refer to it directly
+    |
+371 -     let trait_data: syn::ItemTrait = syn::parse(item)?;
+371 +     let trait_data: syn::ItemTrait = parse(item)?;
+    |
+
+error[E0277]: the trait bound `LitStr: Clone` is not satisfied
+  --> src/attributes.rs:52:2
+   |
+50 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+51 | pub struct Resource {
+52 |     pub name: LitStr,
+   |     ^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `LitStr`
+   |
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::token::Eq: Clone` is not satisfied
+  --> src/attributes.rs:53:2
+   |
+50 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+53 |     pub assign: Token![=],
+   |     ^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `syn::token::Eq`
+   |
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `LitInt: Clone` is not satisfied
+  --> src/attributes.rs:54:2
+   |
+50 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+54 |     pub value: LitInt,
+   |     ^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `LitInt`
+   |
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `span` found for struct `syn::Path` in the current scope
+   --> src/attributes.rs:157:95
+    |
+157 |         let mut result: [Result<Argument, _>; N] = allowed.map(|name| Err(MissingArgument(self.path.span(), name)));
+    |                                                                                                     ^^^^ method not found in `syn::Path`
+
+error[E0599]: no method named `span` found for struct `TokenStream2` in the current scope
+   --> src/attributes.rs:205:31
+    |
+205 |             Err(Error::new(self.tokens.span(), "Expected a flag argument"))
+    |                                        ^^^^ method not found in `TokenStream`
+
+error[E0599]: no method named `span` found for enum `Option` in the current scope
+   --> src/attributes.rs:246:33
+    |
+246 |         ident => Err(Error::new(ident.span(), "param_kind must be either `map` or `array`")),
+    |                                       ^^^^ method not found in `Option<Ident>`
+    |
+note: the method `span` exists on the type `proc_macro2::Ident`
+   --> /home/niklasad1/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.66/src/lib.rs:968:5
+    |
+968 |     pub fn span(&self) -> Span {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Option::expect` to unwrap the `proc_macro2::Ident` value, panicking if the value is an `Option::None`
+    |
+246 |         ident => Err(Error::new(ident.expect("REASON").span(), "param_kind must be either `map` or `array`")),
+    |                                      +++++++++++++++++
+
+error[E0599]: the method `clone` exists for enum `Option<WhereClause>`, but its trait bounds were not satisfied
+   --> src/helpers.rs:97:65
+    |
+97  |       let additional_where_clause = item_trait.generics.where_clause.clone();
+    |                                                                      ^^^^^ method cannot be called on `Option<WhereClause>` due to unsatisfied trait bounds
+    |
+   ::: /home/niklasad1/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:563:1
+    |
+563 |   pub enum Option<T> {
+    |   ------------------ doesn't satisfy `Option<WhereClause>: Clone`
+    |
+   ::: /home/niklasad1/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-1.0.109/src/generics.rs:511:1
+    |
+511 | / ast_struct! {
+512 | |     /// A `where` clause in a definition: `where T: Deserialize<'de>, D:
+513 | |     /// 'static`.
+514 | |     ///
+...   |
+521 | |     }
+522 | | }
+    | |_- doesn't satisfy `WhereClause: Clone`
+    |
+    = note: the following trait bounds were not satisfied:
+            `WhereClause: Clone`
+            which is required by `Option<WhereClause>: Clone`
+
+error[E0277]: the trait bound `WherePredicate: Clone` is not satisfied
+    --> src/helpers.rs:104:38
+     |
+104  |         bounds.extend(custom_bounds.iter().cloned());
+     |                                            ^^^^^^ the trait `Clone` is not implemented for `WherePredicate`
+     |
+note: required by a bound in `cloned`
+    --> /home/niklasad1/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:3361:12
+     |
+3358 |     fn cloned<'a, T: 'a>(self) -> Cloned<Self>
+     |        ------ required by a bound in this associated function
+...
+3361 |         T: Clone,
+     |            ^^^^^ required by this bound in `Iterator::cloned`
+
+error[E0599]: no method named `clone` found for struct `syn::punctuated::Punctuated` in the current scope
+   --> src/helpers.rs:138:39
+    |
+138 | ...                   bounds.extend(where_ty.bounds.clone().into_iter());
+    |                                                     ^^^^^ method not found in `Punctuated<TypeParamBound, Add>`
+
+error[E0277]: the trait bound `Attribute: ToTokens` is not satisfied
+   --> src/helpers.rs:192:2
+    |
+192 |     quote! ( #(#docs)* )
+    |     ^^^^^^^^^^^^^^^^^^^^
+    |     |
+    |     the trait `ToTokens` is not implemented for `Attribute`
+    |     required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&Attribute` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&Attribute>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `split_for_impl` found for struct `Generics` in the current scope
+  --> src/render_client.rs:41:67
+   |
+41 |         let (impl_generics, type_generics, _) = self.trait_def.generics.split_for_impl();
+   |                                                                         ^^^^^^^^^^^^^^ method not found in `Generics`
+
+error[E0277]: the trait bound `WherePredicate: ToTokens` is not satisfied
+  --> src/render_client.rs:57:20
+   |
+57 |   ...   let trait_impl = quote! {
+   |  ________________________^
+58 | | ...       #[#async_trait]
+59 | | ...       #[doc = #doc_comment]
+60 | | ...       pub trait #trait_name #impl_generics: #super_trait where #(#where_clause,)* {
+...  |
+65 | | ...       impl<TypeJsonRpseeInteral #(,#type_idents)*> #trait_name #type_generics for TypeJsonRpseeInteral where TypeJsonRpseeInteral: #s...
+66 | | ...   };
+   | |       ^
+   | |       |
+   | |_______the trait `ToTokens` is not implemented for `WherePredicate`
+   |         required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `ToTokens`:
+             &'a T
+             &'a mut T
+             Cow<'a, T>
+             Option<T>
+             Rc<T>
+             RepInterp<T>
+             TokenStream2
+             bool
+           and 23 others
+   = note: required for `&WherePredicate` to implement `ToTokens`
+   = note: 1 redundant requirement hidden
+   = note: required for `RepInterp<&WherePredicate>` to implement `ToTokens`
+   = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `TypeParam: ToTokens` is not satisfied
+  --> src/render_client.rs:57:20
+   |
+57 |   ...   let trait_impl = quote! {
+   |  ________________________^
+58 | | ...       #[#async_trait]
+59 | | ...       #[doc = #doc_comment]
+60 | | ...       pub trait #trait_name #impl_generics: #super_trait where #(#where_clause,)* {
+...  |
+65 | | ...       impl<TypeJsonRpseeInteral #(,#type_idents)*> #trait_name #type_generics for TypeJsonRpseeInteral where TypeJsonRpseeInteral: #s...
+66 | | ...   };
+   | |       ^
+   | |       |
+   | |_______the trait `ToTokens` is not implemented for `TypeParam`
+   |         required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `ToTokens`:
+             &'a T
+             &'a mut T
+             Cow<'a, T>
+             Option<T>
+             Rc<T>
+             RepInterp<T>
+             TokenStream2
+             bool
+           and 23 others
+   = note: required for `&TypeParam` to implement `ToTokens`
+   = note: 2 redundant requirements hidden
+   = note: required for `RepInterp<&&TypeParam>` to implement `ToTokens`
+   = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+  --> src/render_client.rs:86:18
+   |
+86 |             let returns = quote! { #returns };
+   |                           ^^^^^^^^^^^^^^^^^^^
+   |                           |
+   |                           the trait `ToTokens` is not implemented for `syn::Type`
+   |                           required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `ToTokens`:
+             &'a T
+             &'a mut T
+             Cow<'a, T>
+             Option<T>
+             Rc<T>
+             RepInterp<T>
+             TokenStream2
+             bool
+           and 23 others
+   = note: required for `&syn::Type` to implement `ToTokens`
+   = note: this error originates in the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::punctuated::Punctuated<FnArg, syn::token::Comma>: ToTokens` is not satisfied
+   --> src/render_client.rs:103:16
+    |
+103 |           let method = quote! {
+    |  ______________________^
+104 | |             #docs
+105 | |             #deprecated
+106 | |             async fn #rust_method_name(#rust_method_params) -> #returns {
+...   |
+109 | |             }
+110 | |         };
+    | |         ^
+    | |         |
+    | |_________the trait `ToTokens` is not implemented for `syn::punctuated::Punctuated<FnArg, syn::token::Comma>`
+    |           required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::punctuated::Punctuated<FnArg, syn::token::Comma>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_client.rs:130:17
+    |
+130 |         let returns = quote! { Result<#sub_type<#item>, #jrps_error> };
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                       |
+    |                       the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::punctuated::Punctuated<FnArg, syn::token::Comma>: ToTokens` is not satisfied
+   --> src/render_client.rs:137:16
+    |
+137 |           let method = quote! {
+    |  ______________________^
+138 | |             #docs
+139 | |             async fn #rust_method_name(#rust_method_params) -> #returns {
+140 | |                 let params = #parameter_builder;
+141 | |                 self.subscribe(#rpc_sub_name, params, #rpc_unsub_name).await
+142 | |             }
+143 | |         };
+    | |         ^
+    | |         |
+    | |_________the trait `ToTokens` is not implemented for `syn::punctuated::Punctuated<FnArg, syn::token::Comma>`
+    |           required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::punctuated::Punctuated<FnArg, syn::token::Comma>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_client.rs:170:6
+    |
+170 |                     quote!(#name, #value)
+    |                     ^^^^^^^^^^^^^^^^^^^^^
+    |                     |
+    |                     the trait `ToTokens` is not implemented for `PatIdent`
+    |                     required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_client.rs:185:5
+    |
+185 | /                 quote!({
+186 | |                     let mut params = #jsonrpsee::core::params::ArrayParams::new();
+187 | |                     #(
+188 | |                         if let Err(err) = params.insert( #params ) {
+...   |
+192 | |                     params
+193 | |                 })
+    | |                  ^
+    | |                  |
+    | |__________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                    required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&PatIdent>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `clone` found for struct `Generics` in the current scope
+  --> src/render_server.rs:41:42
+   |
+41 |         let generics = self.trait_def.generics.clone();
+   |                                                ^^^^^ method not found in `Generics`
+
+error[E0277]: the trait bound `TraitItemMethod: ToTokens` is not satisfied
+  --> src/render_server.rs:67:4
+   |
+67 | /             quote! {
+68 | |                 #docs
+69 | |                 #method_sig
+70 | |             }
+   | |             ^
+   | |             |
+   | |_____________the trait `ToTokens` is not implemented for `TraitItemMethod`
+   |               required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `ToTokens`:
+             &'a T
+             &'a mut T
+             Cow<'a, T>
+             Option<T>
+             Rc<T>
+             RepInterp<T>
+             TokenStream2
+             bool
+           and 23 others
+   = note: required for `&TraitItemMethod` to implement `ToTokens`
+   = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `clone` found for struct `TraitItemMethod` in the current scope
+  --> src/render_server.rs:78:36
+   |
+78 |             let mut sub_sig = sub.signature.clone();
+   |                                             ^^^^^ method not found in `TraitItemMethod`
+
+error[E0277]: the trait bound `WherePredicate: ToTokens` is not satisfied
+   --> src/render_server.rs:294:6
+    |
+294 |           Ok(quote! {
+    |  ____________^
+295 | |             #[doc = #doc_comment]
+296 | |             fn into_rpc(self) -> #rpc_module<Self> where #(#where_clause,)* {
+297 | |                 let mut rpc = #rpc_module::new(self);
+...   |
+306 | |             }
+307 | |         })
+    | |         ^
+    | |         |
+    | |_________the trait `ToTokens` is not implemented for `WherePredicate`
+    |           required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&WherePredicate` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&WherePredicate>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `LitStr: ToTokens` is not satisfied
+   --> src/render_server.rs:135:5
+    |
+135 |                 quote! { .resource(#name, #value)? }
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                 |
+    |                 the trait `ToTokens` is not implemented for `LitStr`
+    |                 required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&LitStr` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `LitInt: ToTokens` is not satisfied
+   --> src/render_server.rs:135:5
+    |
+135 |                 quote! { .resource(#name, #value)? }
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                 |
+    |                 the trait `ToTokens` is not implemented for `LitInt`
+    |                 required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&LitInt` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:320:23
+    |
+320 |         let params_fields = quote! { #(#params_fields_seq),* };
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                             |
+    |                             the trait `ToTokens` is not implemented for `PatIdent`
+    |                             required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&PatIdent>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:329:6
+    |
+329 | /                     quote! {
+330 | |                         let #name: #ty = match seq.optional_next() {
+331 | |                             Ok(v) => v,
+332 | |                             Err(e) => {
+...   |
+338 | |                         };
+339 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:329:6
+    |
+329 | /                     quote! {
+330 | |                         let #name: #ty = match seq.optional_next() {
+331 | |                             Ok(v) => v,
+332 | |                             Err(e) => {
+...   |
+338 | |                         };
+339 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:329:6
+    |
+329 | /                     quote! {
+330 | |                         let #name: #ty = match seq.optional_next() {
+331 | |                             Ok(v) => v,
+332 | |                             Err(e) => {
+...   |
+338 | |                         };
+339 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:329:6
+    |
+329 | /                     quote! {
+330 | |                         let #name: #ty = match seq.optional_next() {
+331 | |                             Ok(v) => v,
+332 | |                             Err(e) => {
+...   |
+338 | |                         };
+339 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:342:6
+    |
+342 | /                     quote! {
+343 | |                         let #name: #ty = match seq.optional_next() {
+344 | |                             Ok(v) => v,
+345 | |                             Err(e) => {
+...   |
+349 | |                         };
+350 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:342:6
+    |
+342 | /                     quote! {
+343 | |                         let #name: #ty = match seq.optional_next() {
+344 | |                             Ok(v) => v,
+345 | |                             Err(e) => {
+...   |
+349 | |                         };
+350 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:342:6
+    |
+342 | /                     quote! {
+343 | |                         let #name: #ty = match seq.optional_next() {
+344 | |                             Ok(v) => v,
+345 | |                             Err(e) => {
+...   |
+349 | |                         };
+350 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:342:6
+    |
+342 | /                     quote! {
+343 | |                         let #name: #ty = match seq.optional_next() {
+344 | |                             Ok(v) => v,
+345 | |                             Err(e) => {
+...   |
+349 | |                         };
+350 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:353:6
+    |
+353 | /                     quote! {
+354 | |                         let #name: #ty = match seq.next() {
+355 | |                             Ok(v) => v,
+356 | |                             Err(e) => {
+...   |
+362 | |                         };
+363 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:353:6
+    |
+353 | /                     quote! {
+354 | |                         let #name: #ty = match seq.next() {
+355 | |                             Ok(v) => v,
+356 | |                             Err(e) => {
+...   |
+362 | |                         };
+363 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:353:6
+    |
+353 | /                     quote! {
+354 | |                         let #name: #ty = match seq.next() {
+355 | |                             Ok(v) => v,
+356 | |                             Err(e) => {
+...   |
+362 | |                         };
+363 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:353:6
+    |
+353 | /                     quote! {
+354 | |                         let #name: #ty = match seq.next() {
+355 | |                             Ok(v) => v,
+356 | |                             Err(e) => {
+...   |
+362 | |                         };
+363 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:366:6
+    |
+366 | /                     quote! {
+367 | |                         let #name: #ty = match seq.next() {
+368 | |                             Ok(v) => v,
+369 | |                             Err(e) => {
+...   |
+373 | |                         };
+374 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:366:6
+    |
+366 | /                     quote! {
+367 | |                         let #name: #ty = match seq.next() {
+368 | |                             Ok(v) => v,
+369 | |                             Err(e) => {
+...   |
+373 | |                         };
+374 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:366:6
+    |
+366 | /                     quote! {
+367 | |                         let #name: #ty = match seq.next() {
+368 | |                             Ok(v) => v,
+369 | |                             Err(e) => {
+...   |
+373 | |                         };
+374 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:366:6
+    |
+366 | /                     quote! {
+367 | |                         let #name: #ty = match seq.next() {
+368 | |                             Ok(v) => v,
+369 | |                             Err(e) => {
+...   |
+373 | |                         };
+374 | |                     }
+    | |                     ^
+    | |                     |
+    | |_____________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                       required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Attribute: ToTokens` is not satisfied
+   --> src/render_server.rs:417:5
+    |
+417 | /                 quote! {
+418 | |                     #serde_alias
+419 | |                     #name: #ty,
+420 | |                 }
+    | |                 ^
+    | |                 |
+    | |_________________the trait `ToTokens` is not implemented for `Attribute`
+    |                   required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:417:5
+    |
+417 | /                 quote! {
+418 | |                     #serde_alias
+419 | |                     #name: #ty,
+420 | |                 }
+    | |                 ^
+    | |                 |
+    | |_________________the trait `ToTokens` is not implemented for `PatIdent`
+    |                   required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: ToTokens` is not satisfied
+   --> src/render_server.rs:422:49
+    |
+422 |             let destruct = params.iter().map(|(name, _)| quote! { parsed.#name });
+    |                                                          ^^^^^^^^^^^^^^^^^^^^^^^
+    |                                                          |
+    |                                                          the trait `ToTokens` is not implemented for `PatIdent`
+    |                                                          required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&PatIdent` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:426:5
+    |
+426 | /                 quote! {
+427 | |                     #[derive(#serde::Deserialize)]
+428 | |                     #[serde(crate = #serde_crate)]
+429 | |                     struct ParamsObject<#(#generics,)*> {
+...   |
+443 | |                     (#(#destruct),*)
+444 | |                 }
+    | |                 ^
+    | |                 |
+    | |_________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                   required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&syn::Type>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: ToTokens` is not satisfied
+   --> src/render_server.rs:446:5
+    |
+446 | /                 quote! {
+447 | |                     #[derive(#serde::Deserialize)]
+448 | |                     #[serde(crate = #serde_crate)]
+449 | |                     struct ParamsObject<#(#generics,)*> {
+...   |
+457 | |                     (#(#destruct),*)
+458 | |                 }
+    | |                 ^
+    | |                 |
+    | |_________________the trait `ToTokens` is not implemented for `syn::Type`
+    |                   required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `ToTokens`:
+              &'a T
+              &'a mut T
+              Cow<'a, T>
+              Option<T>
+              Rc<T>
+              RepInterp<T>
+              TokenStream2
+              bool
+            and 23 others
+    = note: required for `&syn::Type` to implement `ToTokens`
+    = note: 1 redundant requirement hidden
+    = note: required for `RepInterp<&syn::Type>` to implement `ToTokens`
+    = note: this error originates in the macro `$crate::quote_token_with_context` which comes from the expansion of the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `PatIdent: Clone` is not satisfied in `(PatIdent, syn::Type)`
+  --> src/rpc_macro.rs:46:2
+   |
+40 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+46 |     pub params: Vec<(syn::PatIdent, syn::Type)>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ within `(PatIdent, syn::Type)`, the trait `Clone` is not implemented for `PatIdent`
+   |
+   = note: required because it appears within the type `(PatIdent, Type)`
+   = note: required for `Vec<(PatIdent, syn::Type)>` to implement `Clone`
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: Clone` is not satisfied in `(PatIdent, syn::Type)`
+  --> src/rpc_macro.rs:46:2
+   |
+40 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+46 |     pub params: Vec<(syn::PatIdent, syn::Type)>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ within `(PatIdent, syn::Type)`, the trait `Clone` is not implemented for `syn::Type`
+   |
+   = note: required because it appears within the type `(PatIdent, Type)`
+   = note: required for `Vec<(PatIdent, syn::Type)>` to implement `Clone`
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: Clone` is not satisfied
+  --> src/rpc_macro.rs:48:2
+   |
+40 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+48 |     pub returns: Option<syn::Type>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `syn::Type`
+   |
+   = note: required for `Option<syn::Type>` to implement `Clone`
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `TraitItemMethod: Clone` is not satisfied
+  --> src/rpc_macro.rs:49:2
+   |
+40 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+49 |     pub signature: syn::TraitItemMethod,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `TraitItemMethod`
+   |
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::punctuated::Punctuated<Resource, syn::token::Comma>: Clone` is not satisfied
+  --> src/rpc_macro.rs:51:2
+   |
+40 | #[derive(Debug, Clone)]
+   |                 ----- in this derive macro expansion
+...
+51 |     pub resources: Punctuated<Resource, Token![,]>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `syn::punctuated::Punctuated<Resource, syn::token::Comma>`
+   |
+   = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `clone` found for struct `Signature` in the current scope
+  --> src/rpc_macro.rs:65:24
+   |
+65 |         let sig = method.sig.clone();
+   |                              ^^^^^ method not found in `Signature`
+
+error[E0277]: the trait bound `Attribute: ToTokens` is not satisfied
+  --> src/rpc_macro.rs:68:18
+   |
+68 |             Some(attr) => quote!(#attr),
+   |                           ^^^^^^^^^^^^^
+   |                           |
+   |                           the trait `ToTokens` is not implemented for `Attribute`
+   |                           required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `ToTokens`:
+             &'a T
+             &'a mut T
+             Cow<'a, T>
+             Option<T>
+             Rc<T>
+             RepInterp<T>
+             TokenStream2
+             bool
+           and 23 others
+   = note: required for `&Attribute` to implement `ToTokens`
+   = note: this error originates in the macro `quote` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `span` found for struct `Underscore` in the current scope
+  --> src/rpc_macro.rs:84:29
+   |
+84 |                         wild.underscore_token.span(),
+   |                                               ^^^^-- help: remove the arguments
+   |                                               |
+   |                                               field, not a method
+
+error[E0599]: no method named `span` found for struct `PatType` in the current scope
+  --> src/rpc_macro.rs:88:11
+   |
+88 |                         arg.span(),
+   |                             ^^^^ method not found in `PatType`
+
+error[E0277]: the trait bound `PatIdent: Clone` is not satisfied in `(PatIdent, syn::Type)`
+   --> src/rpc_macro.rs:130:2
+    |
+118 | #[derive(Debug, Clone)]
+    |                 ----- in this derive macro expansion
+...
+130 |     pub params: Vec<(syn::PatIdent, syn::Type)>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ within `(PatIdent, syn::Type)`, the trait `Clone` is not implemented for `PatIdent`
+    |
+    = note: required because it appears within the type `(PatIdent, Type)`
+    = note: required for `Vec<(PatIdent, syn::Type)>` to implement `Clone`
+    = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: Clone` is not satisfied in `(PatIdent, syn::Type)`
+   --> src/rpc_macro.rs:130:2
+    |
+118 | #[derive(Debug, Clone)]
+    |                 ----- in this derive macro expansion
+...
+130 |     pub params: Vec<(syn::PatIdent, syn::Type)>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ within `(PatIdent, syn::Type)`, the trait `Clone` is not implemented for `syn::Type`
+    |
+    = note: required because it appears within the type `(PatIdent, Type)`
+    = note: required for `Vec<(PatIdent, syn::Type)>` to implement `Clone`
+    = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::Type: Clone` is not satisfied
+   --> src/rpc_macro.rs:132:2
+    |
+118 | #[derive(Debug, Clone)]
+    |                 ----- in this derive macro expansion
+...
+132 |     pub item: syn::Type,
+    |     ^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `syn::Type`
+    |
+    = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `TraitItemMethod: Clone` is not satisfied
+   --> src/rpc_macro.rs:133:2
+    |
+118 | #[derive(Debug, Clone)]
+    |                 ----- in this derive macro expansion
+...
+133 |     pub signature: syn::TraitItemMethod,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `TraitItemMethod`
+    |
+    = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `syn::punctuated::Punctuated<Resource, syn::token::Comma>: Clone` is not satisfied
+   --> src/rpc_macro.rs:136:2
+    |
+118 | #[derive(Debug, Clone)]
+    |                 ----- in this derive macro expansion
+...
+136 |     pub resources: Punctuated<Resource, Token![,]>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `syn::punctuated::Punctuated<Resource, syn::token::Comma>`
+    |
+    = note: this error originates in the derive macro `Clone` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `clone` found for struct `Signature` in the current scope
+   --> src/rpc_macro.rs:161:21
+    |
+161 |         let sig = sub.sig.clone();
+    |                           ^^^^^ method not found in `Signature`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:241:27
+    |
+241 |             return Err(syn::Error::new_spanned(&item.ident, "Either 'server' or 'client' attribute must be applied"));
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:245:27
+    |
+245 |             return Err(syn::Error::new_spanned(
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:252:27
+    |
+252 |             return Err(syn::Error::new_spanned(
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:262:27
+    |
+262 |             return Err(syn::Error::new_spanned(&item.ident, "Unable to locate 'jsonrpsee' client dependency"));
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:265:27
+    |
+265 |             return Err(syn::Error::new_spanned(&item.ident, "Unable to locate 'jsonrpsee' server dependency"));
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:278:29
+    |
+278 |                     return Err(syn::Error::new_spanned(&method.sig, "First argument of the trait must be '&self'"));
+    |                                            ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0308]: arguments to this function are incorrect
+   --> src/rpc_macro.rs:286:24
+    |
+286 |                     let method_data = RpcMethod::from_item(attr.clone(), method.clone())?;
+    |                                       ^^^^^^^^^^^^^^^^^^^^ ------------  -------------- expected `TraitItemMethod`, found `&TraitItemMethod`
+    |                                                            |
+    |                                                            expected `Attribute`, found `&Attribute`
+    |
+note: `Attribute` does not implement `Clone`, so `&Attribute` was cloned instead
+   --> src/rpc_macro.rs:286:45
+    |
+286 |                     let method_data = RpcMethod::from_item(attr.clone(), method.clone())?;
+    |                                                            ^^^^
+note: `TraitItemMethod` does not implement `Clone`, so `&TraitItemMethod` was cloned instead
+   --> src/rpc_macro.rs:286:59
+    |
+286 |                     let method_data = RpcMethod::from_item(attr.clone(), method.clone())?;
+    |                                                                          ^^^^^^
+note: associated function defined here
+   --> src/rpc_macro.rs:55:9
+    |
+55  |     pub fn from_item(attr: Attribute, mut method: syn::TraitItemMethod) -> syn::Result<Self> {
+    |            ^^^^^^^^^ ---------------  --------------------------------
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:292:30
+    |
+292 |                         return Err(syn::Error::new_spanned(
+    |                                                ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:299:30
+    |
+299 |                         return Err(syn::Error::new_spanned(
+    |                                                ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:306:30
+    |
+306 |                         return Err(syn::Error::new_spanned(method, "Subscription methods must not be `async`"));
+    |                                                ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0308]: arguments to this function are incorrect
+   --> src/rpc_macro.rs:309:21
+    |
+309 |                     let sub_data = RpcSubscription::from_item(attr.clone(), method.clone())?;
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ ------------  -------------- expected `TraitItemMethod`, found `&TraitItemMethod`
+    |                                                               |
+    |                                                               expected `Attribute`, found `&Attribute`
+    |
+note: `Attribute` does not implement `Clone`, so `&Attribute` was cloned instead
+   --> src/rpc_macro.rs:309:48
+    |
+309 |                     let sub_data = RpcSubscription::from_item(attr.clone(), method.clone())?;
+    |                                                               ^^^^
+note: `TraitItemMethod` does not implement `Clone`, so `&TraitItemMethod` was cloned instead
+   --> src/rpc_macro.rs:309:62
+    |
+309 |                     let sub_data = RpcSubscription::from_item(attr.clone(), method.clone())?;
+    |                                                                             ^^^^^^
+note: associated function defined here
+   --> src/rpc_macro.rs:140:9
+    |
+140 |     pub fn from_item(attr: syn::Attribute, mut sub: syn::TraitItemMethod) -> syn::Result<Self> {
+    |            ^^^^^^^^^ --------------------  -----------------------------
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:314:29
+    |
+314 |                     return Err(syn::Error::new_spanned(
+    |                                            ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:320:28
+    |
+320 |                 return Err(syn::Error::new_spanned(entry, "Only methods allowed in RPC traits"));
+    |                                        ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+error[E0599]: no function or associated item named `new_spanned` found for struct `syn::Error` in the current scope
+   --> src/rpc_macro.rs:325:27
+    |
+325 |             return Err(syn::Error::new_spanned(&item, "RPC cannot be empty"));
+    |                                    ^^^^^^^^^^^ function or associated item not found in `syn::Error`
+
+Some errors have detailed explanations: E0277, E0308, E0423, E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `jsonrpsee-proc-macros` (lib) due to 88 previous errors
+error: failed to verify package tarball

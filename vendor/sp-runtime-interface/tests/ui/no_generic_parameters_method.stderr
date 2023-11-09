@@ -1,0 +1,5 @@
+error: Generic parameters not supported.
+  --> tests/ui/no_generic_parameters_method.rs:22:10
+   |
+22 |     fn test<T>() {}
+   |             ^

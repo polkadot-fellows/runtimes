@@ -1,0 +1,5 @@
+error: Expected binding: `Accuracy = ...`
+  --> tests/ui/fail/missing_accuracy.rs:23:2
+   |
+23 |     Perbill,
+   |     ^^^^^^^

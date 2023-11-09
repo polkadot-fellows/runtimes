@@ -1,0 +1,7 @@
+error: no rules expected the token `::`
+ --> tests/ui/type-path-eof4.rs:5:17
+  |
+5 |     input = [{ S:: }]
+  |                 ^^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

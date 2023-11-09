@@ -1,0 +1,117 @@
+
+# cargo-vet audits file
+
+[[audits.bytemuck]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.10.0 -> 1.12.1"
+
+[[audits.bytemuck]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.12.1 -> 1.12.2"
+
+[[audits.nalgebra]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.31.0 -> 0.31.3"
+
+[[audits.nalgebra]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.31.3 -> 0.32.1"
+
+[[audits.nalgebra]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.32.1 -> 0.32.2"
+
+[[audits.nalgebra-macros]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.2.0"
+
+[[audits.num-complex]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.4.1 -> 0.4.2"
+
+[[audits.num-rational]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.4.1"
+
+[[audits.num-traits]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.2.14 -> 0.2.15"
+
+[[audits.paste]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.7 -> 1.0.9"
+
+[[audits.proc-macro2]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.30 -> 1.0.47"
+
+[[audits.proc-macro2]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.37 -> 1.0.40"
+
+[[audits.proc-macro2]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.40 -> 1.0.47"
+
+[[audits.quote]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.18 -> 1.0.20"
+
+[[audits.quote]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.20 -> 1.0.21"
+
+[[audits.simba]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.7.1 -> 0.7.3"
+
+[[audits.simba]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.7.3 -> 0.8.0"
+
+[[audits.syn]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.80 -> 1.0.103"
+
+[[audits.syn]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.92 -> 1.0.98"
+
+[[audits.syn]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "1.0.98 -> 1.0.103"
+
+[[audits.tiny-bench]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+
+[[audits.unicode-ident]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+version = "1.0.5"
+
+[[audits.wide]]
+who = "Nils Mehrtens"
+criteria = "safe-to-deploy"
+delta = "0.7.4 -> 0.7.5"

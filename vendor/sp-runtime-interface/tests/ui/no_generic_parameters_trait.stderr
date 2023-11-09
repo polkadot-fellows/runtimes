@@ -1,0 +1,5 @@
+error: Generic parameters not supported.
+  --> tests/ui/no_generic_parameters_trait.rs:21:12
+   |
+21 | trait Test<T> {
+   |            ^

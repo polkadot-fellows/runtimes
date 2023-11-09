@@ -1,0 +1,9 @@
+extend = "./vendor/cargo-make/Makefile.common.toml"
+
+[tasks.install-sh-upgrade-libsh]
+description = "Upgrades the inserted version of libsh in install.sh"
+script = '''
+	curl --proto '=https' --tlsv1.2 -sSf \
+		https://fnichol.github.io/libsh/install.sh \
+		| sh -s -- --mode=insert --target=install.sh --distribution=full-minified
+'''

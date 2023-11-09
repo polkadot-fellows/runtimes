@@ -1,0 +1,11 @@
+error: no rules expected the token `]`
+ --> tests/ui/type-slice-empty.rs:5:17
+  |
+5 |     input = [{ [] }]
+  |                 ^ no rules expected this token in macro call
+  |
+note: while trying to match `_`
+ --> src/unexpected.rs
+  |
+  |     ([_]) => {};
+  |       ^

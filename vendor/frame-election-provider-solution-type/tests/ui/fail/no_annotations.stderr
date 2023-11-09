@@ -1,0 +1,5 @@
+error: Expected binding: `VoterIndex = ...`
+  --> tests/ui/fail/no_annotations.rs:21:2
+   |
+21 |     u16,
+   |     ^^^

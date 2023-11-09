@@ -1,0 +1,5 @@
+error: Expected binding: `MaxVoters = ...`
+  --> tests/ui/fail/missing_size_bound.rs:24:2
+   |
+24 |     ConstU32::<10>,
+   |     ^^^^^^^^^^^^^^

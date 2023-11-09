@@ -1,0 +1,81 @@
+
+# cargo-vet config file
+
+[policy.linregress]
+audit-as-crates-io = false
+
+[[exemptions.approx]]
+version = "0.5.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.autocfg]]
+version = "1.1.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.bytemuck]]
+version = "1.10.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.matrixmultiply]]
+version = "0.3.2"
+criteria = "safe-to-deploy"
+
+[[exemptions.nalgebra]]
+version = "0.31.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.nalgebra-macros]]
+version = "0.1.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.num-complex]]
+version = "0.4.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.num-integer]]
+version = "0.1.45"
+criteria = "safe-to-deploy"
+
+[[exemptions.num-rational]]
+version = "0.4.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.num-traits]]
+version = "0.2.14"
+criteria = "safe-to-deploy"
+
+[[exemptions.paste]]
+version = "1.0.7"
+criteria = "safe-to-deploy"
+
+[[exemptions.proc-macro2]]
+version = "1.0.37"
+criteria = "safe-to-deploy"
+
+[[exemptions.quote]]
+version = "1.0.18"
+criteria = "safe-to-deploy"
+
+[[exemptions.rawpointer]]
+version = "0.2.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.safe_arch]]
+version = "0.6.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.simba]]
+version = "0.7.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.syn]]
+version = "1.0.92"
+criteria = "safe-to-deploy"
+
+[[exemptions.typenum]]
+version = "1.15.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.wide]]
+version = "0.7.4"
+criteria = "safe-to-deploy"

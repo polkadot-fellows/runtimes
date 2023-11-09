@@ -1,0 +1,5 @@
+error: Taking `Self` by value is not allowed.
+  --> tests/ui/take_self_by_value.rs:22:10
+   |
+22 |     fn test(self) {}
+   |             ^^^^

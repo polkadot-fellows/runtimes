@@ -1,0 +1,451 @@
+//! Metric registry implementation.
+//!
+//! See [`Registry`] for details.
+
+use std::borrow::Cow;
+
+/// A metric registry.
+///
+/// First off one registers metrics with the registry via
+/// [`Registry::register`]. Later on the [`Registry`] is passed to an encoder
+/// collecting samples of each metric by iterating all metrics in the
+/// [`Registry`] via [`Registry::iter`].
+///
+/// [`Registry`] is the core building block, generic over the metric type being
+/// registered. Out of convenience, the generic type parameter is set to use
+/// dynamic dispatching by default to be able to register different types of
+/// metrics (e.g. [`Counter`](crate::metrics::counter::Counter) and
+/// [`Gauge`](crate::metrics::gauge::Gauge)) with the same registry. Advanced
+/// users might want to use their custom types.
+///
+/// ```
+/// # use prometheus_client::encoding::text::encode;
+/// # use prometheus_client::metrics::counter::{Atomic as _, Counter};
+/// # use prometheus_client::metrics::gauge::{Atomic as _, Gauge};
+/// # use prometheus_client::registry::Registry;
+/// #
+/// // Create a metric registry.
+/// let mut registry = Registry::default();
+///
+/// let counter: Counter = Counter::default();
+/// let gauge: Gauge = Gauge::default();
+///
+/// registry.register(
+///   "my_counter",
+///   "This is my counter",
+///   counter.clone(),
+/// );
+/// registry.register(
+///   "my_gauge",
+///   "This is my gauge",
+///   gauge.clone(),
+/// );
+///
+/// # // Encode all metrics in the registry in the text format.
+/// # let mut buffer = String::new();
+/// # encode(&mut buffer, &registry).unwrap();
+/// #
+/// # let expected = "# HELP my_counter This is my counter.\n".to_owned() +
+/// #                "# TYPE my_counter counter\n" +
+/// #                "my_counter_total 0\n" +
+/// #                "# HELP my_gauge This is my gauge.\n" +
+/// #                "# TYPE my_gauge gauge\n" +
+/// #                "my_gauge 0\n" +
+/// #                "# EOF\n";
+/// # assert_eq!(expected, buffer);
+/// ```
+#[derive(Debug, Default)]
+pub struct Registry {
+    prefix: Option<Prefix>,
+    labels: Vec<(Cow<'static, str>, Cow<'static, str>)>,
+    metrics: Vec<(Descriptor, Box<dyn Metric>)>,
+    sub_registries: Vec<Registry>,
+}
+
+impl Registry {
+    /// Creates a new default [`Registry`] with the given prefix.
+    pub fn with_prefix(prefix: impl Into<String>) -> Self {
+        Self {
+            prefix: Some(Prefix(prefix.into())),
+            ..Default::default()
+        }
+    }
+
+    /// Register a metric with the [`Registry`].
+    ///
+    /// Note: In the Open Metrics text exposition format some metric types have
+    /// a special suffix, e.g. the
+    /// [`Counter`](crate::metrics::counter::Counter`) metric with `_total`.
+    /// These suffixes are inferred through the metric type and must not be
+    /// appended to the metric name manually by the user.
+    ///
+    /// Note: A full stop punctuation mark (`.`) is automatically added to the
+    /// passed help text.
+    ///
+    /// Use [`Registry::register_with_unit`] whenever a unit for the given
+    /// metric is known.
+    ///
+    /// ```
+    /// # use prometheus_client::metrics::counter::{Atomic as _, Counter};
+    /// # use prometheus_client::registry::{Registry, Unit};
+    /// #
+    /// let mut registry = Registry::default();
+    /// let counter: Counter = Counter::default();
+    ///
+    /// registry.register("my_counter", "This is my counter", counter.clone());
+    /// ```
+    pub fn register<N: Into<String>, H: Into<String>>(
+        &mut self,
+        name: N,
+        help: H,
+        metric: impl Metric,
+    ) {
+        self.priv_register(name, help, metric, None)
+    }
+
+    /// Register a metric with the [`Registry`] specifying the metric's unit.
+    ///
+    /// See [`Registry::register`] for additional documentation.
+    ///
+    /// Note: In the Open Metrics text exposition format units are appended to
+    /// the metric name. This is done automatically. Users must not append the
+    /// unit to the name manually.
+    ///
+    /// ```
+    /// # use prometheus_client::metrics::counter::{Atomic as _, Counter};
+    /// # use prometheus_client::registry::{Registry, Unit};
+    /// #
+    /// let mut registry = Registry::default();
+    /// let counter: Counter = Counter::default();
+    ///
+    /// registry.register_with_unit(
+    ///   "my_counter",
+    ///   "This is my counter",
+    ///   Unit::Seconds,
+    ///   counter.clone(),
+    /// );
+    /// ```
+    pub fn register_with_unit<N: Into<String>, H: Into<String>>(
+        &mut self,
+        name: N,
+        help: H,
+        unit: Unit,
+        metric: impl Metric,
+    ) {
+        self.priv_register(name, help, metric, Some(unit))
+    }
+
+    fn priv_register<N: Into<String>, H: Into<String>>(
+        &mut self,
+        name: N,
+        help: H,
+        metric: impl Metric,
+        unit: Option<Unit>,
+    ) {
+        let name = name.into();
+        let help = help.into() + ".";
+        let descriptor = Descriptor {
+            name: self
+                .prefix
+                .as_ref()
+                .map(|p| (p.clone().0 + "_" + name.as_str()))
+                .unwrap_or(name),
+            help,
+            unit,
+            labels: self.labels.clone(),
+        };
+
+        self.metrics.push((descriptor, Box::new(metric)));
+    }
+
+    /// Create a sub-registry to register metrics with a common prefix.
+    ///
+    /// Say you would like to prefix one set of metrics with `subsystem_a` and
+    /// one set of metrics with `subsystem_b`. Instead of prefixing each metric
+    /// with the corresponding subsystem string individually, you can create two
+    /// sub-registries like demonstrated below.
+    ///
+    /// This can be used to pass a prefixed sub-registry down to a subsystem of
+    /// your architecture automatically adding a prefix to each metric the
+    /// subsystem registers.
+    ///
+    /// ```
+    /// # use prometheus_client::metrics::counter::{Atomic as _, Counter};
+    /// # use prometheus_client::registry::{Registry, Unit};
+    /// #
+    /// let mut registry = Registry::default();
+    ///
+    /// let subsystem_a_counter_1: Counter = Counter::default();
+    /// let subsystem_a_counter_2: Counter = Counter::default();
+    ///
+    /// let subsystem_a_registry = registry.sub_registry_with_prefix("subsystem_a");
+    /// registry.register("counter_1", "", subsystem_a_counter_1.clone());
+    /// registry.register("counter_2", "", subsystem_a_counter_2.clone());
+    ///
+    /// let subsystem_b_counter_1: Counter = Counter::default();
+    /// let subsystem_b_counter_2: Counter = Counter::default();
+    ///
+    /// let subsystem_a_registry = registry.sub_registry_with_prefix("subsystem_b");
+    /// registry.register("counter_1", "", subsystem_b_counter_1.clone());
+    /// registry.register("counter_2", "", subsystem_b_counter_2.clone());
+    /// ```
+    ///
+    /// See [`Registry::sub_registry_with_label`] for the same functionality,
+    /// but namespacing with a label instead of a metric name prefix.
+    pub fn sub_registry_with_prefix<P: AsRef<str>>(&mut self, prefix: P) -> &mut Self {
+        let sub_registry = Registry {
+            prefix: Some(Prefix(
+                self.prefix.clone().map(|p| p.0 + "_").unwrap_or_default() + prefix.as_ref(),
+            )),
+            labels: self.labels.clone(),
+            ..Default::default()
+        };
+
+        self.priv_sub_registry(sub_registry)
+    }
+
+    /// Like [`Registry::sub_registry_with_prefix`] but with a label instead.
+    pub fn sub_registry_with_label(
+        &mut self,
+        label: (Cow<'static, str>, Cow<'static, str>),
+    ) -> &mut Self {
+        let mut labels = self.labels.clone();
+        labels.push(label);
+        let sub_registry = Registry {
+            prefix: self.prefix.clone(),
+            labels,
+            ..Default::default()
+        };
+
+        self.priv_sub_registry(sub_registry)
+    }
+
+    fn priv_sub_registry(&mut self, sub_registry: Self) -> &mut Self {
+        self.sub_registries.push(sub_registry);
+
+        self.sub_registries
+            .last_mut()
+            .expect("sub_registries not to be empty.")
+    }
+
+    /// [`Iterator`] over all metrics registered with the [`Registry`].
+    pub fn iter(&self) -> RegistryIterator {
+        let metrics = self.metrics.iter();
+        let sub_registries = self.sub_registries.iter();
+        RegistryIterator {
+            metrics,
+            sub_registries,
+            sub_registry: None,
+        }
+    }
+}
+
+/// Iterator iterating both the metrics registered directly with the registry as
+/// well as all metrics registered with sub-registries.
+#[derive(Debug)]
+pub struct RegistryIterator<'a> {
+    metrics: std::slice::Iter<'a, (Descriptor, Box<dyn Metric>)>,
+    sub_registries: std::slice::Iter<'a, Registry>,
+    sub_registry: Option<Box<RegistryIterator<'a>>>,
+}
+
+impl<'a> Iterator for RegistryIterator<'a> {
+    type Item = &'a (Descriptor, Box<dyn Metric>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(metric) = self.metrics.next() {
+            return Some(metric);
+        }
+
+        loop {
+            if let Some(metric) = self.sub_registry.as_mut().and_then(|i| i.next()) {
+                return Some(metric);
+            }
+
+            self.sub_registry = self.sub_registries.next().map(|r| Box::new(r.iter()));
+
+            if self.sub_registry.is_none() {
+                break;
+            }
+        }
+
+        None
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Prefix(String);
+
+impl From<String> for Prefix {
+    fn from(s: String) -> Self {
+        Prefix(s)
+    }
+}
+
+impl From<Prefix> for String {
+    fn from(p: Prefix) -> Self {
+        p.0
+    }
+}
+
+/// OpenMetrics metric descriptor.
+#[derive(Debug)]
+pub struct Descriptor {
+    name: String,
+    help: String,
+    unit: Option<Unit>,
+    labels: Vec<(Cow<'static, str>, Cow<'static, str>)>,
+}
+
+impl Descriptor {
+    /// Returns the name of the OpenMetrics metric [`Descriptor`].
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the help text of the OpenMetrics metric [`Descriptor`].
+    pub fn help(&self) -> &str {
+        &self.help
+    }
+
+    /// Returns the unit of the OpenMetrics metric [`Descriptor`].
+    pub fn unit(&self) -> &Option<Unit> {
+        &self.unit
+    }
+
+    /// Returns the label set of the OpenMetrics metric [`Descriptor`].
+    pub fn labels(&self) -> &[(Cow<'static, str>, Cow<'static, str>)] {
+        &self.labels
+    }
+}
+
+/// Metric units recommended by Open Metrics.
+///
+/// See [`Unit::Other`] to specify alternative units.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub enum Unit {
+    Amperes,
+    Bytes,
+    Celsius,
+    Grams,
+    Joules,
+    Meters,
+    Ratios,
+    Seconds,
+    Volts,
+    Other(String),
+}
+
+impl Unit {
+    /// Returns the given Unit's str representation.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Unit::Amperes => "amperes",
+            Unit::Bytes => "bytes",
+            Unit::Celsius => "celsius",
+            Unit::Grams => "grams",
+            Unit::Joules => "joules",
+            Unit::Meters => "meters",
+            Unit::Ratios => "ratios",
+            Unit::Seconds => "seconds",
+            Unit::Volts => "volts",
+            Unit::Other(other) => other.as_str(),
+        }
+    }
+}
+
+/// Super trait representing an abstract Prometheus metric.
+pub trait Metric: crate::encoding::EncodeMetric + Send + Sync + std::fmt::Debug + 'static {}
+
+impl<T> Metric for T where T: crate::encoding::EncodeMetric + Send + Sync + std::fmt::Debug + 'static
+{}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::metrics::counter::Counter;
+
+    #[test]
+    fn register_and_iterate() {
+        let mut registry = Registry::default();
+        let counter: Counter = Counter::default();
+        registry.register("my_counter", "My counter", counter);
+
+        assert_eq!(1, registry.iter().count())
+    }
+
+    #[test]
+    fn sub_registry_with_prefix_and_label() {
+        let top_level_metric_name = "my_top_level_metric";
+        let mut registry = Registry::default();
+        let counter: Counter = Counter::default();
+        registry.register(top_level_metric_name, "some help", counter.clone());
+
+        let prefix_1 = "prefix_1";
+        let prefix_1_metric_name = "my_prefix_1_metric";
+        let sub_registry = registry.sub_registry_with_prefix(prefix_1);
+        sub_registry.register(prefix_1_metric_name, "some help", counter.clone());
+
+        let prefix_1_1 = "prefix_1_1";
+        let prefix_1_1_metric_name = "my_prefix_1_1_metric";
+        let sub_sub_registry = sub_registry.sub_registry_with_prefix(prefix_1_1);
+        sub_sub_registry.register(prefix_1_1_metric_name, "some help", counter.clone());
+
+        let label_1_2 = (Cow::Borrowed("registry"), Cow::Borrowed("1_2"));
+        let prefix_1_2_metric_name = "my_prefix_1_2_metric";
+        let sub_sub_registry = sub_registry.sub_registry_with_label(label_1_2.clone());
+        sub_sub_registry.register(prefix_1_2_metric_name, "some help", counter.clone());
+
+        let prefix_1_2_1 = "prefix_1_2_1";
+        let prefix_1_2_1_metric_name = "my_prefix_1_2_1_metric";
+        let sub_sub_sub_registry = sub_sub_registry.sub_registry_with_prefix(prefix_1_2_1);
+        sub_sub_sub_registry.register(prefix_1_2_1_metric_name, "some help", counter.clone());
+
+        let prefix_2 = "prefix_2";
+        let _ = registry.sub_registry_with_prefix(prefix_2);
+
+        let prefix_3 = "prefix_3";
+        let prefix_3_metric_name = "my_prefix_3_metric";
+        let sub_registry = registry.sub_registry_with_prefix(prefix_3);
+        sub_registry.register(prefix_3_metric_name, "some help", counter);
+
+        let mut metric_iter = registry
+            .iter()
+            .map(|(desc, _)| (desc.name.clone(), desc.labels.clone()));
+        assert_eq!(
+            Some((top_level_metric_name.to_string(), vec![])),
+            metric_iter.next()
+        );
+        assert_eq!(
+            Some((prefix_1.to_string() + "_" + prefix_1_metric_name, vec![])),
+            metric_iter.next()
+        );
+        assert_eq!(
+            Some((
+                prefix_1.to_string() + "_" + prefix_1_1 + "_" + prefix_1_1_metric_name,
+                vec![]
+            )),
+            metric_iter.next()
+        );
+        assert_eq!(
+            Some((
+                prefix_1.to_string() + "_" + prefix_1_2_metric_name,
+                vec![label_1_2.clone()]
+            )),
+            metric_iter.next()
+        );
+        assert_eq!(
+            Some((
+                prefix_1.to_string() + "_" + prefix_1_2_1 + "_" + prefix_1_2_1_metric_name,
+                vec![label_1_2]
+            )),
+            metric_iter.next()
+        );
+        // No metric was registered with prefix 2.
+        assert_eq!(
+            Some((prefix_3.to_string() + "_" + prefix_3_metric_name, vec![])),
+            metric_iter.next()
+        );
+    }
+}

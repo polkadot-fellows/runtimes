@@ -1,0 +1,7 @@
+error: no rules expected the token `f`
+ --> tests/ui/type-fn-unexpected.rs:5:19
+  |
+5 |     input = [{ fn f }]
+  |                   ^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

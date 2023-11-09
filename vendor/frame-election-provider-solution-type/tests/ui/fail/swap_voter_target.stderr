@@ -1,0 +1,5 @@
+error: Expected `VoterIndex`
+  --> tests/ui/fail/swap_voter_target.rs:21:2
+   |
+21 |     TargetIndex = u16,
+   |     ^^^^^^^^^^^

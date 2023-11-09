@@ -1,0 +1,281 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = "true"
+
+[config]
+skip_core_tasks = true
+
+[tasks.default]
+description = "Builds, tests, & checks the project"
+dependencies = [
+  "clean",
+  "build",
+  "test",
+  "check",
+]
+
+[tasks.build]
+description = "Builds all the targets"
+category = "Build"
+dependencies = [
+  "build-lib",
+  "build-bin",
+]
+
+[tasks.build-bin]
+description = "Builds the binaries"
+category = "Build"
+command = "cargo"
+args = ["build", "--verbose", "--bins", "${@}"]
+
+[tasks.build-lib]
+description = "Builds the library"
+category = "Build"
+command = "cargo"
+args = ["build", "--verbose", "--no-default-features", "--lib", "${@}"]
+
+[tasks.build-release]
+description = "Builds a release build"
+category = "Build"
+command = "cargo"
+args = ["build", "--verbose", "--release", "${@}"]
+
+[tasks.check]
+description = "Checks all linting, formatting, & other rules"
+category = "Check"
+dependencies = [
+  "check-lint",
+  "check-format",
+]
+
+[tasks.check-format]
+description = "Checks all formatting"
+category = "Check"
+dependencies = [
+  "rustfmt-check",
+  # "readme-check",
+]
+
+[tasks.check-lint]
+description = "Checks all linting"
+category = "Check"
+dependencies = [
+  "clippy",
+]
+
+[tasks.clean]
+description = "Cleans the project"
+command = "cargo"
+args = ["clean", "${@}"]
+
+[tasks.clippy]
+description = "Runs Clippy for linting"
+category = "Check"
+dependencies = ["install-clippy"]
+command = "cargo"
+args = ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"]
+
+[tasks.help]
+description = "Displays this help"
+command = "cargo"
+args = ["make", "--list-all-steps"]
+
+[tasks.prepush]
+description = "Runs all checks/tests required before pushing commits"
+dependencies = [
+  "check",
+  "test-no-args",
+]
+
+[tasks.release-prepare]
+description = "Prepares for a release"
+category = "Release"
+dependencies = [
+  "prepush",
+  "release-invoke-cargo-release",
+  "release-push-branch",
+]
+
+[tasks.release-invoke-cargo-release]
+description = "Invokes cargo release"
+category = "Release"
+dependencies = ["install-cargo-release"]
+command = "cargo"
+args = ["release", "${@}"]
+
+[tasks.release-pre-release-hook]
+description = "Release preparation tasks"
+category = "Release"
+dependencies = [
+  "release-create-branch",
+  "readme",
+  "verify-version-numbers",
+]
+
+[tasks.release-create-branch]
+description = "Create a Git release branch"
+category = "Release"
+command = "git"
+args = ["checkout", "-b", "release-${NEW_VERSION}"]
+
+[tasks.release-push-branch]
+description = "Pushes the current Git branch to the origin remote"
+category = "Release"
+command = "git"
+args = ["push", "origin", "HEAD"]
+
+[tasks.readme]
+description = "Generates, updates, & formats the README"
+category = "Readme"
+dependencies = [
+  "readme-generate",
+  "readme-toc",
+  "readme-format",
+]
+
+[tasks.readme-check]
+description = "Checks the README freshness & formatting"
+category = "Check"
+dependencies = [
+  "readme-toc-check",
+  "readme-format-check",
+]
+
+[tasks.readme-generate]
+description = "Generates & updates the README"
+category = "Readme"
+dependencies = ["install-cargo-readme"]
+command = "cargo"
+args = ["readme", "--output", "README.md"]
+
+[tasks.readme-format]
+description = "Formats the README"
+category = "Readme"
+dependencies = ["install-prettier"]
+command = "prettier"
+args = ["--write", "README.md"]
+
+[tasks.readme-format-check]
+description = "Checks the README formatting"
+category = "Check"
+dependencies = ["install-prettier"]
+command = "prettier"
+args = ["--check", "README.md"]
+
+[tasks.readme-toc]
+description = "Updates the README table of contents"
+category = "Readme"
+dependencies = ["install-mtoc"]
+command = "mtoc"
+args = ["--in-place", "--format", "dashes", "README.md"]
+
+[tasks.readme-toc-check]
+description = "Checks the README table of contents"
+category = "Check"
+dependencies = ["install-mtoc"]
+command = "mtoc"
+args = ["--check", "--format", "dashes", "README.md"]
+
+[tasks.rustfmt]
+description = "Runs Rustfmt to format code"
+category = "Format"
+dependencies = ["install-rustfmt"]
+command = "cargo"
+args = ["fmt", "--verbose", "--"]
+
+[tasks.rustfmt-check]
+description = "Runs Rustfmt to check code formatting"
+category = "Check"
+dependencies = ["install-rustfmt"]
+command = "cargo"
+args = ["fmt", "--verbose", "--", "--check"]
+
+[tasks.test]
+description = "Runs all the tests"
+category = "Test"
+dependencies = [
+  "test-lib",
+  "test-bin",
+]
+
+[tasks.test-no-args]
+private = true
+dependencies = [
+  "test-lib-no-args",
+  "test-bin-no-args",
+]
+
+[tasks.test-lib]
+description = "Runs all the library tests"
+category = "Test"
+command = "cargo"
+args = ["test", "--no-default-features", "--lib", "${@}"]
+
+[tasks.test-lib-no-args]
+private = true
+command = "cargo"
+args = ["test", "--no-default-features", "--lib"]
+
+[tasks.test-bin]
+description = "Runs all the binary tests"
+category = "Test"
+command = "cargo"
+args = ["test", "--bins", "${@}"]
+
+[tasks.test-bin-no-args]
+private = true
+command = "cargo"
+args = ["test", "--bins"]
+
+[tasks.verify-version-numbers]
+command = "cargo"
+category = "Test"
+args = ["test", "--test", "version-numbers"]
+
+[tasks.install-cargo-readme]
+private = true
+[tasks.install-cargo-readme.install_crate]
+crate_name = "cargo-readme"
+binary = "cargo-readme"
+test_arg = "--help"
+
+[tasks.install-cargo-release]
+private = true
+[tasks.install-cargo-release.install_crate]
+crate_name = "cargo-release"
+binary = "cargo-release"
+test_arg = "--help"
+
+[tasks.install-clippy]
+private = true
+[tasks.install-clippy.install_crate]
+rustup_component_name = "clippy"
+binary = "cargo-clippy"
+test_arg = "--help"
+
+[tasks.install-mtoc]
+private = true
+[tasks.install-mtoc.install_crate]
+crate_name = "mtoc"
+binary = "mtoc"
+test_arg = "--help"
+
+[tasks.install-prettier]
+private = true
+install_script = '''
+  if ! command -v prettier; then
+    npm install --global prettier
+  fi
+'''
+[tasks.install-prettier.windows]
+install_script = '''
+  if (-Not (Get-Command prettier -ErrorAction SilentlyContinue)) {
+    npm install --global prettier
+  }
+'''
+
+[tasks.install-rustfmt]
+private = true
+[tasks.install-rustfmt.install_crate]
+rustup_component_name = "rustfmt"
+binary = "rustfmt"
+test_arg = "--help"

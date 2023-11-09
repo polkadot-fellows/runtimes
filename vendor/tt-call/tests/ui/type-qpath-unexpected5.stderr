@@ -1,0 +1,7 @@
+error: no rules expected the token `@`
+ --> tests/ui/type-qpath-unexpected5.rs:5:25
+  |
+5 |     input = [{ <T as F> @ }]
+  |                         ^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro

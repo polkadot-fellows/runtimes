@@ -1,0 +1,29 @@
+pre-release-replacements = [
+  # Update CHANGELOG.md
+  { file="CHANGELOG.md", prerelease=true, search="[Uu]nreleased", replace="{{version}}" },
+  { file="CHANGELOG.md", prerelease=true, search="\\.\\.\\.HEAD", replace="...{{tag_name}}" },
+  { file="CHANGELOG.md", prerelease=true, search="ReleaseDate", replace="{{date}}" },
+  { file="CHANGELOG.md", prerelease=true, search="<!-- next-header -->", replace="<!-- next-header -->\n\n## [Unreleased] - ReleaseDate" },
+  { file="CHANGELOG.md", prerelease=true, search="<!-- next-url -->", replace="<!-- next-url -->\n\n[unreleased]: https://github.com/fnichol/{{crate_name}}/compare/{{tag_name}}...HEAD" },
+  # Update html_root_url in lib.rs
+  { file = "src/lib.rs", search = "\"https://docs.rs/[^\"]+\"", replace = "\"https://docs.rs/{{crate_name}}/{{version}}\"", prerelease = true },
+  # Update dependencies usage of the form `{{crate_name}} = "{{version}}" (if present)
+  { file = "src/lib.rs", search = "(?P<deps>//! \\[(dev-|build-)?dependencies\\])\n(?P<crate_name>//! [[[:alnum:]]_-]+) = \"[^\"]+\"\n", replace = "$deps\n$crate_name = \"{{version}}\"\n", min = 0, prerelease = true },
+  # Update dependencies usage of the form `{{crate_name}} = { version = "{{version}}", ... } (if present)
+  { file = "src/lib.rs", search = "(?P<deps>//! \\[(dev-|build-)?dependencies\\])\n(?P<crate_name>//! [[[:alnum:]]_-]+) = \\{(?P<prever>.+)(?P<ver>version = )\"[^\"]+\"(?P<postver>.+)\\}\n", replace = "$deps\n$crate_name = {${prever}version = \"{{version}}\"$postver}\n", min = 0, prerelease = true },
+]
+pre-release-hook = ["cargo", "make", "release-pre-release-hook"]
+pre-release-commit-message = "release: {{crate_name}} {{version}}"
+
+tag-message = "release: {{crate_name}} {{version}}"
+
+dev-version-ext = "dev"
+
+post-release-replacements = [
+  # Update html_root_url in lib.rs
+  { file = "src/lib.rs", search = "\"https://docs.rs/[^\"]+\"", replace = "\"https://docs.rs/{{crate_name}}/{{next_version}}\"", prerelease = true },
+]
+post-release-commit-message = "chore: start next iteration {{next_version}}"
+
+disable-publish = true
+disable-push = true

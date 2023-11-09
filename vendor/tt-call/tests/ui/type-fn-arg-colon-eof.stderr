@@ -1,0 +1,7 @@
+error: no rules expected the token `:`
+ --> tests/ui/type-fn-arg-colon-eof.rs:5:20
+  |
+5 |     input = [{ fn(a:) }]
+  |                    ^ no rules expected this token in macro call
+  |
+  = note: while trying to match end of macro
