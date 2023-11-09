@@ -2,10 +2,13 @@
 
 Changelog for the runtimes governed by the Polkadot Fellowship.
 
-## [1.0.0]
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.0] 22.10.2023
 
 ### Changed
 
+- Update Polkadot ideal staking rate ([polkadot-fellows/runtimes#26](https://github.com/polkadot-fellows/runtimes/pull/26))
 - Treasury deprecate `propose_spend` dispatchable ([paritytech/substrate#14538](https://github.com/paritytech/substrate/pull/14538))
 - Use benchmarked weights for `XCM` ([paritytech/polkadot#7077](https://github.com/paritytech/polkadot/pull/7077))
 - Put HRMP Channel Management on General Admin Track ([paritytech/polkadot#7477](https://github.com/paritytech/polkadot/pull/7477))
@@ -31,6 +34,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 - Stabilize Metadata V15 ([paritytech/substrate#14481](https://github.com/paritytech/substrate/pull/14481))
 - Add Ability to Add/Remove Invulnerable Collators ([paritytech/cumulus#2596](https://github.com/paritytech/cumulus/pull/2596))
 - Polkadot Fellowship promotion/demotion periods, members activity and salaries ([paritytech/cumulus#2607](https://github.com/paritytech/cumulus/pull/2607))
+- Add asset conversion to asset hub Kusama ([paritytech/cumulus#2935](https://github.com/paritytech/cumulus/pull/2935))
 
 ### Fixed
 
@@ -39,4 +43,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 - XCM: Fix issue with RequestUnlock ([paritytech/polkadot#7278](https://github.com/paritytech/polkadot/pull/7278))
 - Clear Existing HRMP Channel Request When Force Opening ([paritytech/polkadot#7389](https://github.com/paritytech/polkadot/pull/7389))
 - Prune upgrade cooldowns ([paritytech/polkadot#7470](https://github.com/paritytech/polkadot/pull/7470))
-- Assets `destroy_accounts` releases the deposit ([paritytech/substrate#14443](https://github.com/paritytech/substrate/pull/14443))
+- Assets `destroy_accounts` releases the deposit
+  ([paritytech/substrate#14443](https://github.com/paritytech/substrate/pull/14443))
+- Update Polkadot Collectives to use `limited_teleport_assets` for automatic slash handling, as
+  `teleport_assets` is deprecated and caused a failing integration test. ([polkadot-fellows/runtimes#46](https://github.com/polkadot-fellows/runtimes/pull/46))
