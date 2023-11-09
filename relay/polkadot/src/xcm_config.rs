@@ -120,14 +120,17 @@ parameter_types! {
 
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
-pub type XcmRouter = WithUniqueTopic<(
-	// Only one router so far - use DMP to communicate with child parachains.
-	ChildParachainRouter<
-		Runtime,
-		XcmPallet,
-		ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>,
-	>,
-)>;
+pub type XcmRouter = WithUniqueTopic<
+	(
+		// Only one router so far - use DMP to communicate with child parachains.
+		ChildParachainRouter<
+			Runtime,
+			XcmPallet,
+			ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>,
+		>,
+	),
+	XcmPallet,
+>;
 
 parameter_types! {
 	pub const Dot: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
