@@ -1140,13 +1140,11 @@ dependencies = [
 
 [[package]]
 name = "bp-bridge-hub-polkadot"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b62dddd3374e6303a0918fdd64bfffb08eeac7208a85634abc27756a2651161"
+version = "1.0.0"
 dependencies = [
- "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-runtime",
+ "bridge-hub-common",
  "frame-support",
  "sp-api",
  "sp-runtime",

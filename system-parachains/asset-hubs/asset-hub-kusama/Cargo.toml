@@ -17,6 +17,7 @@ smallvec = "1.11.0"
 
 # Local
 bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
+bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
 
 # Substrate
@@ -89,7 +90,6 @@ assets-common = { default-features = false , version = "0.4.0" }
 # Bridges
 bp-asset-hub-kusama = { default-features = false , version = "0.2.0" }
 bp-asset-hub-polkadot = { default-features = false , version = "0.2.0" }
-bp-bridge-hub-polkadot = { default-features = false , version = "0.3.0" }
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 
 [dev-dependencies]

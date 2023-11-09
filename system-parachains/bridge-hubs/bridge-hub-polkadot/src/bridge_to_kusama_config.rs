@@ -417,7 +417,7 @@ mod tests {
 		assert_eq!(
 			BridgePolkadotToKusamaMessagesPalletInstance::get(),
 			X1(PalletInstance(
-				53, /* TODO: bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX */
+				bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX
 			))
 		);
 	}

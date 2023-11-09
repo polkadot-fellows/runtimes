@@ -14,10 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
-//! Module with configuration which reflects BridgeHubKusama runtime setup (AccountId, Headers,
-//! Hashes...)
+//! Module with configuration which reflects BridgeHubPolkadot runtime setup
+//! (AccountId, Headers, Hashes...)
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -26,17 +24,14 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
 };
 pub use bridge_hub_common::*;
-use frame_support::{
-	dispatch::DispatchClass,
-	sp_runtime::{MultiAddress, MultiSigner},
-};
+use frame_support::dispatch::DispatchClass;
 use sp_runtime::RuntimeDebug;
 
-/// BridgeHubKusama parachain.
+/// BridgeHubPolkadot parachain.
 #[derive(RuntimeDebug)]
-pub struct BridgeHubKusama;
+pub struct BridgeHubPolkadot;
 
-impl Chain for BridgeHubKusama {
+impl Chain for BridgeHubPolkadot {
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;
@@ -59,28 +54,22 @@ impl Chain for BridgeHubKusama {
 	}
 }
 
-impl Parachain for BridgeHubKusama {
-	const PARACHAIN_ID: u32 = BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
+impl Parachain for BridgeHubPolkadot {
+	const PARACHAIN_ID: u32 = BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
 }
 
-/// Public key of the chain account that may be used to verify signatures.
-pub type AccountSigner = MultiSigner;
+/// Identifier of BridgeHubPolkadot in the Polkadot relay chain.
+pub const BRIDGE_HUB_POLKADOT_PARACHAIN_ID: u32 = 1002;
 
-/// The address format for describing accounts.
-pub type Address = MultiAddress<AccountId, ()>;
+/// Name of the With-BridgeHubPolkadot messages pallet instance that is deployed at bridged chains.
+pub const WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME: &str = "BridgePolkadotMessages";
 
-/// Identifier of BridgeHubKusama in the Kusama relay chain.
-pub const BRIDGE_HUB_KUSAMA_PARACHAIN_ID: u32 = 1002;
-
-/// Name of the With-BridgeHubKusama messages pallet instance that is deployed at bridged chains.
-pub const WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME: &str = "BridgeKusamaMessages";
-
-/// Name of the With-BridgeHubKusama bridge-relayers pallet instance that is deployed at bridged
+/// Name of the With-BridgeHubPolkadot bridge-relayers pallet instance that is deployed at bridged
 /// chains.
-pub const WITH_BRIDGE_HUB_KUSAMA_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
+pub const WITH_BRIDGE_HUB_POLKADOT_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
 
-/// Pallet index of `BridgePolkadotMessages: pallet_bridge_messages::<Instance1>`.
-pub const WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX: u8 = 53;
+/// Pallet index of `BridgeKusamaMessages: pallet_bridge_messages::<Instance1>`.
+pub const WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX: u8 = 53;
 
-decl_bridge_finality_runtime_apis!(bridge_hub_kusama);
-decl_bridge_messages_runtime_apis!(bridge_hub_kusama);
+decl_bridge_finality_runtime_apis!(bridge_hub_polkadot);
+decl_bridge_messages_runtime_apis!(bridge_hub_polkadot);

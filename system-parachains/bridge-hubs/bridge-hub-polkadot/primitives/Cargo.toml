@@ -1,6 +1,6 @@
 [package]
-name = "bp-bridge-hub-kusama"
-description = "Primitives of BridgeHubKusama parachain runtime."
+name = "bp-bridge-hub-polkadot"
+description = "Primitives of BridgeHubPolkadot parachain runtime."
 repository.workspace = true
 version.workspace = true
 authors.workspace = true

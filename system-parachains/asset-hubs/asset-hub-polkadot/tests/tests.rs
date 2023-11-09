@@ -729,7 +729,7 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
 			(MultiLocation { parents: 2, interior: X1(GlobalConsensus(Kusama)) }, 1000000000000, 1_000_000_000),
 			bridging_to_asset_hub_kusama,
 			(
-				X1(PalletInstance(53)), // TODO X1(PalletInstance(bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX)),
+				X1(PalletInstance(bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX)),
 				GlobalConsensus(Kusama),
 				X1(Parachain(1000))
 			)
