@@ -113,7 +113,7 @@ use sp_runtime::traits::Get;
 pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
-use kusama_runtime_constants::{currency::*, fee::*, time::*};
+use kusama_runtime_constants::{currency::*, fee::*, time::*, TREASURY_PALLET_ID};
 
 // Weights used in the runtime.
 mod weights;
@@ -751,8 +751,8 @@ parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
-	// pallet instance (which sits at index 19).
-	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(18).into();
+	// pallet instance (which sits at index 18).
+	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(TREASURY_PALLET_ID).into();
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -2573,7 +2573,7 @@ mod fees_tests {
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
-	use frame_support::{dispatch::DispatchInfo, traits::OnFinalize};
+	use frame_support::{dispatch::DispatchInfo, traits::{OnFinalize, PalletInfoAccess}};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
@@ -2616,6 +2616,11 @@ mod multiplier_tests {
 		.ref_time() as f32;
 		println!("ratio of block weight for full batch fast-unstake {}", on_idle / block_time);
 		assert!(on_idle / block_time <= 0.5f32)
+	}
+
+	#[test]
+	fn treasury_pallet_index_is_correct() {
+		assert_eq!(TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
 
 	#[test]

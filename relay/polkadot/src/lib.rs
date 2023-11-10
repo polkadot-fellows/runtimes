@@ -112,7 +112,7 @@ use sp_runtime::traits::Get;
 pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
-use polkadot_runtime_constants::{currency::*, fee::*, time::*};
+use polkadot_runtime_constants::{currency::*, fee::*, time::*, TREASURY_PALLET_ID};
 
 // Weights used in the runtime.
 mod weights;
@@ -716,7 +716,7 @@ parameter_types! {
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 19).
-	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(19).into();
+	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(TREASURY_PALLET_ID).into();
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -2586,6 +2586,11 @@ mod multiplier_tests {
 		.ref_time() as f32;
 		println!("ratio of block weight for full batch fast-unstake {}", on_idle / block_time);
 		assert!(on_idle / block_time <= 0.5f32)
+	}
+
+	#[test]
+	fn treasury_pallet_index_is_correct() {
+		assert_eq!(TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
 
 	#[test]
