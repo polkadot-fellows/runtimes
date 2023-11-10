@@ -102,7 +102,7 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 500_000_000_000 picoseconds.
-		Weight::from_parts(500_000_000_000, 0)
+		Weight::from_parts(500_000_000, 0)
 	}
 	// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
 	// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)

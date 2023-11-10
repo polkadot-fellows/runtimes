@@ -100,7 +100,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::fungible::WeightInfo for We
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 500_000_000_000 picoseconds.
-		Weight::from_parts(500_000_000_000, 0)
+		Weight::from_parts(20_000_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
 	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
