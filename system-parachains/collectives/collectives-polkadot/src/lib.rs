@@ -63,6 +63,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, ConstBool, ConstU16, ConstU32, ConstU64, ConstU8,
@@ -386,14 +387,22 @@ parameter_types! {
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = Concrete(xcm_config::DotLocation::get());
 	/// The base fee for the message delivery fees.
-	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
+	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
+	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
 }
 
 pub type PriceForSiblingParachainDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
 	FeeAssetId,
-	BaseDeliveryFee,
+	ToSiblingBaseDeliveryFee,
 	TransactionByteFee,
 	XcmpQueue,
+>;
+
+pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
+	FeeAssetId,
+	ToParentBaseDeliveryFee,
+	TransactionByteFee,
+	ParachainSystem,
 >;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
