@@ -20,6 +20,7 @@ bp-asset-hub-kusama = { path = "../asset-hub-kusama/primitives", default-feature
 bp-asset-hub-polkadot = { path = "./primitives", default-features = false}
 bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
+kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
@@ -179,6 +180,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-asset-tx-payment/std",
 	"pallet-assets/std",

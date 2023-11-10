@@ -21,6 +21,7 @@ bp-asset-hub-polkadot = { path = "../asset-hub-polkadot/primitives", default-fea
 bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
@@ -223,6 +224,7 @@ std = [
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
+	"polkadot-runtime-constants/std",
 	"scale-info/std",
 	"sp-api/std",
 	"sp-block-builder/std",

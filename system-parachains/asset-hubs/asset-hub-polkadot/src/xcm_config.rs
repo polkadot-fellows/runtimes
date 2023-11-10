@@ -664,7 +664,7 @@ pub mod bridging {
 				2,
 				X2(
 					GlobalConsensus(KusamaNetwork::get()),
-					Parachain(1000), // TODO Parachain(bp_asset_hub_kusama::ASSET_HUB_KUSAMA_PARACHAIN_ID),
+					Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
 				),
 			);
 			pub KsmLocation: MultiLocation = MultiLocation::new(2, X1(GlobalConsensus(KusamaNetwork::get())));

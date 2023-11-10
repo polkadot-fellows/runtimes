@@ -772,7 +772,7 @@ pub mod bridging {
 				2,
 				X2(
 					GlobalConsensus(PolkadotNetwork::get()),
-					Parachain(1000), // TODO: Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID),
+					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				),
 			);
 			pub DotLocation: MultiLocation = MultiLocation::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
