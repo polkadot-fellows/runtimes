@@ -37,3 +37,14 @@ sp-consensus-beefy = "8.0.0"
 xcm = { package = "staging-xcm", version = "2.0.1" }
 parachains-common = { version = "2.0.0" }
 cumulus-primitives-core = { version = "0.2.0" }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"collectives-polkadot-runtime/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+]
