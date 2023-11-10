@@ -110,7 +110,14 @@ pub mod system_parachain {
 
 	frame_support::match_types! {
 		pub type SystemParachains: impl Contains<MultiLocation> = {
-			MultiLocation { parents: 0, interior: X1(Parachain(ASSET_HUB_ID | ENCOINTER_ID | BRIDGE_HUB_ID)) }
+			MultiLocation {
+				parents: 1,
+				interior: X1(Parachain(
+					ASSET_HUB_ID |
+					ENCOINTER_ID |
+					BRIDGE_HUB_ID
+				)),
+			}
 		};
 	}
 }
