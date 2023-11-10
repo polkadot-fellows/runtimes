@@ -344,7 +344,7 @@ fn collectives_polkadot_local_genesis(
 		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1002.into(),
+		1001.into(),
 	)
 }
 
@@ -369,7 +369,7 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 		None,
 		None,
 		Some(properties),
-		Extensions { relay_chain: "polkadot-local".into(), para_id: 1002 },
+		Extensions { relay_chain: "polkadot-local".into(), para_id: 1001 },
 	)))
 }
 
@@ -433,7 +433,7 @@ fn bridge_hub_polkadot_local_genesis(
 		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1003.into(),
+		1002.into(),
 	)
 }
 
@@ -458,7 +458,7 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 		None,
 		None,
 		Some(properties),
-		Extensions { relay_chain: "polkadot-local".into(), para_id: 1003 },
+		Extensions { relay_chain: "polkadot-local".into(), para_id: 1002 },
 	)))
 }
 
@@ -522,7 +522,7 @@ fn bridge_hub_kusama_local_genesis(
 		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1003.into(),
+		1002.into(),
 	)
 }
 
@@ -547,6 +547,6 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		None,
 		None,
 		Some(properties),
-		Extensions { relay_chain: "kusama-local".into(), para_id: 1003 },
+		Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
 	)))
 }
