@@ -27,7 +27,7 @@ use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{
 	impls::ToStakingPot,
-	xcm_config::{ConcreteNativeAssetFrom, RelayOrOtherSystemParachains},
+	xcm_config::{ConcreteAssetFromSystem, RelayOrOtherSystemParachains},
 	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -201,6 +201,10 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 );
 
+/// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
+/// - DOT with the parent Relay Chain and sibling parachains.
+pub type TrustedTeleporters = ConcreteAssetFromSystem<DotRelayLocation>;
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -210,8 +214,7 @@ impl xcm_executor::Config for XcmConfig {
 	// BridgeHub does not recognize a reserve location for any asset. Users must teleport DOT
 	// where allowed (e.g. with the Relay Chain).
 	type IsReserve = ();
-	/// Only allow teleportation of DOT.
-	type IsTeleporter = ConcreteNativeAssetFrom<DotRelayLocation>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
