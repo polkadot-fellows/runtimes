@@ -28,6 +28,7 @@ use frame_support::{
 	traits::{ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess},
 };
 use frame_system::EnsureRoot;
+use kusama_runtime_constants::system_parachain;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{
 	impls::ToStakingPot,
@@ -478,16 +479,24 @@ pub type AssetFeeAsExistentialDepositMultiplierFeeCharger = AssetFeeAsExistentia
 	TrustBackedAssetsInstance,
 >;
 
+match_types! {
+	pub type SystemParachains: impl Contains<MultiLocation> = {
+		MultiLocation {
+			parents: 1,
+			interior: X1(Parachain(
+				system_parachain::ASSET_HUB_ID |
+				system_parachain::ENCOINTER_ID |
+				system_parachain::BRIDGE_HUB_ID
+			)),
+		}
+	};
+}
+
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (
-	RelayOrOtherSystemParachains<
-		kusama_runtime_constants::system_parachain::SystemParachains,
-		Runtime,
-	>,
-	Equals<RelayTreasuryLocation>,
-);
+pub type WaivedLocations =
+	(RelayOrOtherSystemParachains<SystemParachains, Runtime>, Equals<RelayTreasuryLocation>);
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 ///
