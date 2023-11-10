@@ -16,6 +16,10 @@ bp-xcm-bridge-hub-router = { default-features = false , version = "0.3.0" }
 
 # Substrate Based Dependencies
 frame-support = { default-features = false, version = "25.0.0" }
+sp-std = { default-features = false, version = "12.0.0" }
+
+# Polkadot
+xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 
 [features]
 default = [ "std" ]
@@ -24,4 +28,6 @@ std = [
 	"codec/std",
 	"frame-support/std",
 	"scale-info/std",
+	"sp-std/std",
+	"xcm/std"
 ]

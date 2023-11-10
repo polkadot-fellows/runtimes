@@ -39,7 +39,6 @@ use bridge_runtime_common::{
 		RefundableMessagesLane, RefundableParachain,
 	},
 };
-use codec::Encode;
 use cumulus_primitives_core::ParentThen;
 use frame_support::{parameter_types, traits::PalletInfoAccess};
 use kusama_runtime_constants as constants;
@@ -88,11 +87,6 @@ parameter_types! {
 		ParentThen(X1(Parachain(AssetHubKusamaParaId::get().into()))).into(),
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	);
-
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes congested.
-	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
-	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
 }
 
 // Parameters, used by bridge transport code.
@@ -221,25 +215,6 @@ impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for R
 	type OnMessagesDelivered = OnMessagesDeliveredFromPolkadot;
 }
 
-fn build_congestion_message<Call>(is_congested: bool) -> sp_std::vec::Vec<Instruction<Call>> {
-	sp_std::vec![
-		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-		Transact {
-			origin_kind: OriginKind::Xcm,
-			require_weight_at_most:
-				bp_asset_hub_kusama::XcmBridgeHubRouterTransactCallMaxWeight::get(),
-			call: bp_asset_hub_kusama::Call::ToPolkadotXcmRouter(
-				bp_asset_hub_kusama::XcmBridgeHubRouterCall::report_bridge_status {
-					bridge_id: Default::default(),
-					is_congested,
-				}
-			)
-			.encode()
-			.into(),
-		}
-	]
-}
-
 /// Proof of messages, coming from Polkadot.
 pub type FromPolkadotBridgeHubMessagesProof =
 	FromBridgedChainMessagesProof<bp_bridge_hub_polkadot::Hash>;
@@ -267,8 +242,8 @@ impl XcmBlobHauler for ToBridgeHubPolkadotXcmBlobHauler {
 	type SenderAndLane = FromAssetHubKusamaToAssetHubPolkadotRoute;
 
 	type ToSourceChainSender = XcmRouter;
-	type CongestedMessage = CongestedMessage;
-	type UncongestedMessage = UncongestedMessage;
+	type CongestedMessage = bp_asset_hub_kusama::CongestedMessage;
+	type UncongestedMessage = bp_asset_hub_kusama::UncongestedMessage;
 }
 
 /// On messages delivered callback.

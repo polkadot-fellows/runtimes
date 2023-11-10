@@ -682,6 +682,7 @@ fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
 
 #[test]
 fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() {
+	// TODO: fails because delivery fee is too large now
 	asset_test_utils::test_cases_over_bridge::limited_reserve_transfer_assets_for_native_asset_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -737,55 +738,37 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
 }
 #[test]
 fn report_bridge_status_from_xcm_bridge_router_for_kusama_works() {
-	/* TODO
+	// TODO: fails because delivery fee is too large now
 	asset_test_utils::test_cases_over_bridge::report_bridge_status_from_xcm_bridge_router_works::<
 		Runtime,
 		AllPalletsWithoutSystem,
 		XcmConfig,
+		ParachainSystem,
+		XcmpQueue,
 		LocationToAccountId,
 		ToKusamaXcmRouterInstance,
 	>(
 		collator_session_keys(),
+		ExistentialDeposit::get(),
+		AccountId::from(ALICE),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+				_ => None,
+			}
+		}),
 		bridging_to_asset_hub_kusama,
-		|| {
-			sp_std::vec![
-				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-				Transact {
-					origin_kind: OriginKind::Xcm,
-					require_weight_at_most:
-						bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get(),
-					call: bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
-						bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
-							bridge_id: Default::default(),
-							is_congested: true,
-						}
-					)
-					.encode()
-					.into(),
-				}
-			]
-			.into()
-		},
-		|| {
-			sp_std::vec![
-				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-				Transact {
-					origin_kind: OriginKind::Xcm,
-					require_weight_at_most:
-						bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get(),
-					call: bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
-						bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
-							bridge_id: Default::default(),
-							is_congested: false,
-						}
-					)
-					.encode()
-					.into(),
-				}
-			]
-			.into()
-		},
-	)*/
+		WeightLimit::Unlimited,
+		Some(XcmBridgeHubRouterFeeAssetId::get()),
+		|| Decode::decode(&mut &bp_asset_hub_polkadot::CongestedMessage::get().encode()[..]).unwrap(),
+		|| Decode::decode(&mut &bp_asset_hub_polkadot::UncongestedMessage::get().encode()[..]).unwrap(),
+	)
 }
 
 #[test]

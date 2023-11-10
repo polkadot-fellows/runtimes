@@ -1092,6 +1092,8 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
+ "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -1102,6 +1104,8 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
+ "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]

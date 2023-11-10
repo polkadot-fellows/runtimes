@@ -19,7 +19,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use scale_info::TypeInfo;
+use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
 
@@ -41,10 +43,34 @@ pub enum Call {
 
 frame_support::parameter_types! {
 	/// Some sane weight to execute `xcm::Transact(pallet-xcm-bridge-hub-router::Call::report_bridge_status)`.
-	pub const XcmBridgeHubRouterTransactCallMaxWeight: frame_support::weights::Weight = frame_support::weights::Weight::from_parts(200_000_000, 6144);
+	pub const XcmBridgeHubRouterTransactCallMaxWeight: Weight = Weight::from_parts(200_000_000, 6144);
 
 	// TODO: generate new one when weights are ok
 	/// Base delivery fee to `BridgeHubPolkadot`.
 	/// (initially was calculated `51220000` + `10%` by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer`)
 	pub const BridgeHubPolkadotBaseFeeInDots: u128 = 56342000;
+
+	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes congested.
+	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
+	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
+	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
+}
+
+fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {
+	sp_std::vec![
+		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+		Transact {
+			origin_kind: OriginKind::Xcm,
+			require_weight_at_most:
+				XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			call: Call::ToKusamaXcmRouter(
+				XcmBridgeHubRouterCall::report_bridge_status {
+					bridge_id: Default::default(),
+					is_congested,
+				}
+			)
+			.encode()
+			.into(),
+		}
+	]
 }
