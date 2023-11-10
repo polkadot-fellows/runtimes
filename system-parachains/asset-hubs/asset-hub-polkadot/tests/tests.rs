@@ -766,8 +766,14 @@ fn report_bridge_status_from_xcm_bridge_router_for_kusama_works() {
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		|| Decode::decode(&mut &bp_asset_hub_polkadot::CongestedMessage::get().encode()[..]).unwrap(),
-		|| Decode::decode(&mut &bp_asset_hub_polkadot::UncongestedMessage::get().encode()[..]).unwrap(),
+		|| {
+			Decode::decode(&mut &bp_asset_hub_polkadot::CongestedMessage::get().encode()[..])
+				.unwrap()
+		},
+		|| {
+			Decode::decode(&mut &bp_asset_hub_polkadot::UncongestedMessage::get().encode()[..])
+				.unwrap()
+		},
 	)
 }
 

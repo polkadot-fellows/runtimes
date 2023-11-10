@@ -61,14 +61,11 @@ fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most:
-				XcmBridgeHubRouterTransactCallMaxWeight::get(),
-			call: Call::ToKusamaXcmRouter(
-				XcmBridgeHubRouterCall::report_bridge_status {
-					bridge_id: Default::default(),
-					is_congested,
-				}
-			)
+			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			call: Call::ToKusamaXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
+				bridge_id: Default::default(),
+				is_congested,
+			})
 			.encode()
 			.into(),
 		}
