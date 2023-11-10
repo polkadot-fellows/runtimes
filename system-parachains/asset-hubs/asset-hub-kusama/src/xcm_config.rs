@@ -47,7 +47,7 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
 	EnsureXcmOrigin, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
-	IsConcrete, LocalMint, NativeAsset, NoChecking, ParentAsSuperuser, ParentIsPreset,
+	IsConcrete, LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, StartsWith,
 	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
@@ -731,7 +731,7 @@ pub mod bridging {
 		///    converted into KSMs using 1:5 conversion rate;
 		///
 		/// 3) the approximate cost of Kusama -> Polkadot message confirmation transaction on Kusama Bridge Hub.
-		pub storage XcmBridgeHubRouterBaseFee: Balance = 1000000000;
+		pub storage XcmBridgeHubRouterBaseFee: Balance = 100000000000;
 		/* TODO
 			bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get()
 				.saturating_add(bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get().saturating_mul(5))

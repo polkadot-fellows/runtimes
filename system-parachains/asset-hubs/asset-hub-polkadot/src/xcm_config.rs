@@ -623,7 +623,7 @@ pub mod bridging {
 			///    converted into DOTs using 5:1 conversion rate;
 			///
 			/// 3) the approximate cost of Polkadot -> Kusama message confirmation transaction on Polkadot Bridge Hub.
-			pub storage XcmBridgeHubRouterBaseFee: Balance = 1000000000;
+			pub storage XcmBridgeHubRouterBaseFee: Balance = 100000000000;
 	/* TODO
 			bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get()
 					.saturating_add(bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms::get().saturating_div(5))
