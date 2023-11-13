@@ -17,6 +17,7 @@
 //! Bridge definitions used for bridging with Kusama Bridge Hub.
 
 use crate::{
+	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, Runtime, RuntimeEvent,
 	RuntimeOrigin,
@@ -145,7 +146,7 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaKusamaInstance> for Runtime {
 	type BridgedChain = bp_kusama::Kusama;
 	type MaxFreeMandatoryHeadersPerBlock = ConstU32<4>;
 	type HeadersToKeep = RelayChainHeadersToKeep;
-	type WeightInfo = (); // TODO: update me
+	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
 }
 
 /// Add parachain bridge pallet to track Kusama BridgeHub parachain.
