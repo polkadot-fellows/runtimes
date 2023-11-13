@@ -17,6 +17,12 @@
 
 //! Expose the auto generated weight files.
 
+use crate::Runtime;
+use ::pallet_bridge_messages::WeightInfoExt as MessagesWeightInfoExt;
+use ::pallet_bridge_parachains::WeightInfoExt as ParachainsWeightInfoExt;
+use ::pallet_bridge_relayers::WeightInfoExt as _;
+use frame_support::weights::Weight;
+
 pub mod block_weights;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
@@ -40,3 +46,24 @@ pub use block_weights::constants::BlockExecutionWeight;
 pub use extrinsic_weights::constants::ExtrinsicBaseWeight;
 pub use paritydb_weights::constants::ParityDbWeight;
 pub use rocksdb_weights::constants::RocksDbWeight;
+
+impl MessagesWeightInfoExt for pallet_bridge_messages::WeightInfo<Runtime> {
+	fn expected_extra_storage_proof_size() -> u32 {
+		bp_bridge_hub_polkadot::EXTRA_STORAGE_PROOF_SIZE
+	}
+
+	fn receive_messages_proof_overhead_from_runtime() -> Weight {
+		pallet_bridge_relayers::WeightInfo::<Runtime>::receive_messages_proof_overhead_from_runtime(
+		)
+	}
+
+	fn receive_messages_delivery_proof_overhead_from_runtime() -> Weight {
+		pallet_bridge_relayers::WeightInfo::<Runtime>::receive_messages_delivery_proof_overhead_from_runtime()
+	}
+}
+
+impl ParachainsWeightInfoExt for pallet_bridge_parachains::WeightInfo<Runtime> {
+	fn expected_extra_storage_proof_size() -> u32 {
+		bp_bridge_hub_polkadot::EXTRA_STORAGE_PROOF_SIZE
+	}
+}

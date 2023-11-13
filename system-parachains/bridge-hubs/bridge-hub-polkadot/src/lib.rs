@@ -867,7 +867,7 @@ impl_runtime_apis! {
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
-					Err(BenchmarkError::Skip)
+					Ok((DotRelayLocation::get(), NetworkId::Kusama, X1(Parachain(1000))))
 				}
 
 				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {
