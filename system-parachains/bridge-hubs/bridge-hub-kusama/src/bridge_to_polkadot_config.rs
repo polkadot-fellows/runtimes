@@ -17,6 +17,7 @@
 //! Bridge definitions used for bridging with Polkadot Bridge Hub.
 
 use crate::{
+	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, Runtime, RuntimeEvent,
 	RuntimeOrigin,
@@ -145,7 +146,7 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaPolkadotInstance> for Runtime {
 	type BridgedChain = bp_polkadot::Polkadot;
 	type MaxFreeMandatoryHeadersPerBlock = ConstU32<4>;
 	type HeadersToKeep = RelayChainHeadersToKeep;
-	type WeightInfo = (); // TODO: update me
+	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
 }
 
 /// Add parachain bridge pallet to track Polkadot BridgeHub parachain.
