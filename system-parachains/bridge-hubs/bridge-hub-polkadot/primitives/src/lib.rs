@@ -73,3 +73,19 @@ pub const WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX: u8 = 53;
 
 decl_bridge_finality_runtime_apis!(bridge_hub_polkadot);
 decl_bridge_messages_runtime_apis!(bridge_hub_polkadot);
+
+// TODO: generate new one when weights are ok
+frame_support::parameter_types! {
+	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
+	/// BridgeHub.
+	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: u128 = 16196533317;
+
+	/// Transaction fee that is paid at the Rococo BridgeHub for delivering single inbound message.
+	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: u128 = 0;
+
+	/// Transaction fee that is paid at the Rococo BridgeHub for delivering single outbound message confirmation.
+	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: u128 = 0;
+}

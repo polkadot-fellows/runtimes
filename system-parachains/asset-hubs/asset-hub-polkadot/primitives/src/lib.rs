@@ -45,11 +45,6 @@ frame_support::parameter_types! {
 	/// Some sane weight to execute `xcm::Transact(pallet-xcm-bridge-hub-router::Call::report_bridge_status)`.
 	pub const XcmBridgeHubRouterTransactCallMaxWeight: Weight = Weight::from_parts(200_000_000, 6144);
 
-	// TODO: generate new one when weights are ok
-	/// Base delivery fee to `BridgeHubPolkadot`.
-	/// (initially was calculated `51220000` + `10%` by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer`)
-	pub const BridgeHubPolkadotBaseFeeInDots: u128 = 56342000;
-
 	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes congested.
 	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
 	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.

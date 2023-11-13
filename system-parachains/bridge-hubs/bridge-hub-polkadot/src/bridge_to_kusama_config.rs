@@ -136,7 +136,7 @@ parameter_types! {
 	///
 	/// It is determined semi-automatically - see `FEE_BOOST_PER_MESSAGE` constant to get the
 	/// meaning of this value
-	pub PriorityBoostPerMessage: u64 = 182_044_444_444_444;
+	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
 }
 
 /// Add GRANDPA bridge pallet to track Kusama relay chain.
