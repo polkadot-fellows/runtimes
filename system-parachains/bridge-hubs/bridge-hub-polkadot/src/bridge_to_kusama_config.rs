@@ -176,7 +176,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 		RequiredStakeForStakeAndSlash,
 		RelayerStakeLease,
 	>;
-	type WeightInfo = (); // TODO
+	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubKusama.
