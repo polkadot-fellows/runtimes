@@ -49,7 +49,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_xcm_benchmarks::generic`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> WeightInfo<T> {
 	/// Storage: unknown `0x3a696e747261626c6f636b5f656e74726f7079` (r:1 w:1)
 	/// Proof Skipped: unknown `0x3a696e747261626c6f636b5f656e74726f7079` (r:1 w:1)
 	/// Storage: Dmp DeliveryFeeFactor (r:1 w:0)
@@ -64,7 +64,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn report_holding() -> Weight {
+	pub fn report_holding() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -74,7 +74,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
-	fn buy_execution() -> Weight {
+	pub fn buy_execution() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -84,7 +84,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: XcmPallet Queries (r:1 w:0)
 	/// Proof Skipped: XcmPallet Queries (max_values: None, max_size: None, mode: Measured)
-	fn query_response() -> Weight {
+	pub fn query_response() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `169`
 		//  Estimated: `3634`
@@ -93,7 +93,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(Weight::from_parts(0, 3634))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
-	fn transact() -> Weight {
+	pub fn transact() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -101,7 +101,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(12_740_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn refund_surplus() -> Weight {
+	pub fn refund_surplus() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -109,7 +109,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_200_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_error_handler() -> Weight {
+	pub fn set_error_handler() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -117,7 +117,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_060_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_appendix() -> Weight {
+	pub fn set_appendix() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -125,7 +125,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_048_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_error() -> Weight {
+	pub fn clear_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -133,7 +133,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(2_990_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn descend_origin() -> Weight {
+	pub fn descend_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -141,7 +141,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(4_005_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_origin() -> Weight {
+	pub fn clear_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -163,7 +163,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn report_error() -> Weight {
+	pub fn report_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -175,7 +175,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: XcmPallet AssetTraps (r:1 w:1)
 	/// Proof Skipped: XcmPallet AssetTraps (max_values: None, max_size: None, mode: Measured)
-	fn claim_asset() -> Weight {
+	pub fn claim_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `226`
 		//  Estimated: `3691`
@@ -185,7 +185,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	fn trap() -> Weight {
+	pub fn trap() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -209,7 +209,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn subscribe_version() -> Weight {
+	pub fn subscribe_version() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -221,7 +221,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: XcmPallet VersionNotifyTargets (r:0 w:1)
 	/// Proof Skipped: XcmPallet VersionNotifyTargets (max_values: None, max_size: None, mode: Measured)
-	fn unsubscribe_version() -> Weight {
+	pub fn unsubscribe_version() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -244,7 +244,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn initiate_reserve_withdraw() -> Weight {
+	pub fn initiate_reserve_withdraw() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -254,7 +254,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
-	fn burn_asset() -> Weight {
+	pub fn burn_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -262,7 +262,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(4_827_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_asset() -> Weight {
+	pub fn expect_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -270,7 +270,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_239_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_origin() -> Weight {
+	pub fn expect_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -278,7 +278,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_118_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_error() -> Weight {
+	pub fn expect_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -286,7 +286,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(2_990_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_transact_status() -> Weight {
+	pub fn expect_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -308,7 +308,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn query_pallet() -> Weight {
+	pub fn query_pallet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -318,7 +318,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
-	fn expect_pallet() -> Weight {
+	pub fn expect_pallet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -340,7 +340,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof Skipped: Dmp DownwardMessageQueues (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Dmp DownwardMessageQueueHeads (r:1 w:1)
 	/// Proof Skipped: Dmp DownwardMessageQueueHeads (max_values: None, max_size: None, mode: Measured)
-	fn report_transact_status() -> Weight {
+	pub fn report_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `211`
 		//  Estimated: `3676`
@@ -350,7 +350,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
-	fn clear_transact_status() -> Weight {
+	pub fn clear_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -358,7 +358,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_023_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_topic() -> Weight {
+	pub fn set_topic() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -366,7 +366,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(2_960_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_topic() -> Weight {
+	pub fn clear_topic() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -374,7 +374,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_022_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_fees_mode() -> Weight {
+	pub fn set_fees_mode() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -382,7 +382,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(3_021_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn unpaid_execution() -> Weight {
+	pub fn unpaid_execution() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`

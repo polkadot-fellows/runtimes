@@ -1368,7 +1368,13 @@ impl_runtime_apis! {
 					MultiAsset { fun: Fungible(UNITS), id: Concrete(KsmLocation::get()) },
 				));
 				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-				pub const TrustedReserve: Option<(MultiLocation, MultiAsset)> = None;
+				// AssetHubKusama trusts AssetHubPolkadot as reserve for DOTs
+				pub TrustedReserve: Option<(MultiLocation, MultiAsset)> = Some(
+					(
+						xcm_config::bridging::to_polkadot::AssetHubPolkadot::get(),
+						MultiAsset::from((xcm_config::bridging::to_polkadot::DotLocation::get(), 1000000000000 as u128))
+					)
+				);
 			}
 
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
