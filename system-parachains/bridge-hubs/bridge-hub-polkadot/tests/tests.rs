@@ -30,7 +30,7 @@ use bridge_hub_polkadot_runtime::{
 use codec::{Decode, Encode};
 use frame_support::{dispatch::GetDispatchInfo, parameter_types};
 use frame_system::pallet_prelude::HeaderFor;
-use parachains_common::{kusama::fee::WeightToFee, AccountId, AuraId, Balance};
+use parachains_common::{polkadot::fee::WeightToFee, AccountId, AuraId, Balance};
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
