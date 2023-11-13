@@ -95,6 +95,8 @@ pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
 
 [dev-dependencies]
 asset-test-utils = { version = "4.0.0" }
+parachains-runtimes-test-utils = { version = "4.0.0" }
+sp-io = { version = "27.0.0" }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "14.0.0" }
