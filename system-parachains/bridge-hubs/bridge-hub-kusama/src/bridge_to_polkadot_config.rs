@@ -153,7 +153,7 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaPolkadotInstance> for Runtime {
 pub type BridgeParachainPolkadotInstance = pallet_bridge_parachains::Instance1;
 impl pallet_bridge_parachains::Config<BridgeParachainPolkadotInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO
+	type WeightInfo = weights::pallet_bridge_parachains::WeightInfo<Runtime>;
 	type BridgesGrandpaPalletInstance = BridgeGrandpaPolkadotInstance;
 	type ParasPalletName = ParachainPalletNameAtPolkadot;
 	type ParaStoredHeaderDataBuilder =
