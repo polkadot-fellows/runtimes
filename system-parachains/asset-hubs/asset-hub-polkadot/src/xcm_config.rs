@@ -612,38 +612,35 @@ pub mod bridging {
 	use xcm_builder::NetworkExportTableItem;
 
 	parameter_types! {
-			/// Base price of every byte of the Polkadot -> Kusama message. Can be adjusted via
-			/// governance `set_storage` call.
-			///
-			/// Default value is our estimation of the:
-			///
-			/// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Polkadot bridge hub;
-			///
-			/// 2) the approximate cost of Polkadot -> Kusama message delivery transaction on Kusama Bridge Hub,
-			///    converted into DOTs using 5:1 conversion rate;
-			///
-			/// 3) the approximate cost of Polkadot -> Kusama message confirmation transaction on Polkadot Bridge Hub.
-			pub storage XcmBridgeHubRouterBaseFee: Balance = 100000000000;
-	/* TODO
-			bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get()
-					.saturating_add(bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms::get().saturating_div(5))
-					.saturating_add(bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots::get());
-	*/
-			/// Price of every byte of the Polkadot -> Kusama message. Can be adjusted via
-			/// governance `set_storage` call.
-			pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();
+		/// Base price of every byte of the Polkadot -> Kusama message. Can be adjusted via
+		/// governance `set_storage` call.
+		///
+		/// Default value is our estimation of the:
+		///
+		/// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Polkadot bridge hub;
+		///
+		/// 2) the approximate cost of Polkadot -> Kusama message delivery transaction on Kusama Bridge Hub,
+		///    converted into DOTs using 5:1 conversion rate;
+		///
+		/// 3) the approximate cost of Polkadot -> Kusama message confirmation transaction on Polkadot Bridge Hub.
+		pub storage XcmBridgeHubRouterBaseFee: Balance = bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get()
+				.saturating_add(bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms::get().saturating_div(5))
+				.saturating_add(bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots::get());
+		/// Price of every byte of the Polkadot -> Kusama message. Can be adjusted via
+		/// governance `set_storage` call.
+		pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();
 
-			pub SiblingBridgeHubParaId: u32 = bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
-			pub SiblingBridgeHub: MultiLocation = MultiLocation::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
-			/// Router expects payment with this `AssetId`.
-			/// (`AssetId` has to be aligned with `BridgeTable`)
-			pub XcmBridgeHubRouterFeeAssetId: AssetId = DotLocation::get().into();
+		pub SiblingBridgeHubParaId: u32 = bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
+		pub SiblingBridgeHub: MultiLocation = MultiLocation::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
+		/// Router expects payment with this `AssetId`.
+		/// (`AssetId` has to be aligned with `BridgeTable`)
+		pub XcmBridgeHubRouterFeeAssetId: AssetId = DotLocation::get().into();
 
-			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> =
-				sp_std::vec::Vec::new().into_iter()
-				.chain(to_kusama::BridgeTable::get())
-				.collect();
-		}
+		pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> =
+			sp_std::vec::Vec::new().into_iter()
+			.chain(to_kusama::BridgeTable::get())
+			.collect();
+	}
 
 	pub type NetworkExportTable = xcm_builder::NetworkExportTable<BridgeTable>;
 
