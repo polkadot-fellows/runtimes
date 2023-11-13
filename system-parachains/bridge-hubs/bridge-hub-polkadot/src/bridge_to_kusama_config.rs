@@ -183,7 +183,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 pub type WithBridgeHubKusamaMessagesInstance = pallet_bridge_messages::Instance1;
 impl pallet_bridge_messages::Config<WithBridgeHubKusamaMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO
+	type WeightInfo = weights::pallet_bridge_messages::WeightInfo<Runtime>;
 	type BridgedChainId = BridgeHubKusamaChainId;
 	type ActiveOutboundLanes = ActiveOutboundLanesToBridgeHubKusama;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
