@@ -153,7 +153,7 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaKusamaInstance> for Runtime {
 pub type BridgeParachainKusamaInstance = pallet_bridge_parachains::Instance1;
 impl pallet_bridge_parachains::Config<BridgeParachainKusamaInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = (); // TODO
+	type WeightInfo = weights::pallet_bridge_parachains::WeightInfo<Runtime>;
 	type BridgesGrandpaPalletInstance = BridgeGrandpaKusamaInstance;
 	type ParasPalletName = ParachainPalletNameAtKusama;
 	type ParaStoredHeaderDataBuilder =
