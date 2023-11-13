@@ -119,8 +119,6 @@ mod weights;
 
 mod bag_thresholds;
 
-// mod paras_scheduler_migration; // TODO: has it happened?
-
 // Governance configurations.
 pub mod governance;
 use governance::{
@@ -1631,7 +1629,7 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		// crate::paras_scheduler_migration::v1::MigrateToV1<Runtime>, // TODO: has it happened?
+		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Gov v1 storage migrations
@@ -2542,7 +2540,10 @@ mod test {
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
-	use frame_support::{dispatch::DispatchInfo, traits::OnFinalize};
+	use frame_support::{
+		dispatch::DispatchInfo,
+		traits::{OnFinalize, PalletInfoAccess},
+	};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use scale_info::TypeInfo;
 	use separator::Separatable;

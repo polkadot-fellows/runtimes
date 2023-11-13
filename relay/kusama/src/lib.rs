@@ -121,8 +121,6 @@ mod weights;
 // Voter bag threshold definitions.
 mod bag_thresholds;
 
-// mod paras_scheduler_migration; // TODO: has it happened?
-
 // Historical information of society finances.
 mod past_payouts;
 
@@ -1795,7 +1793,7 @@ pub mod migrations {
 		>,
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		// paras_scheduler_migration::v1::MigrateToV1<Runtime>, TODO: has it happened?
+		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Unlock/unreserve balances from Gov v1 pallets that hold them
@@ -2573,7 +2571,10 @@ mod fees_tests {
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
-	use frame_support::{dispatch::DispatchInfo, traits::{OnFinalize, PalletInfoAccess}};
+	use frame_support::{
+		dispatch::DispatchInfo,
+		traits::{OnFinalize, PalletInfoAccess},
+	};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
