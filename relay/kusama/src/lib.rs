@@ -109,6 +109,8 @@ mod weights;
 // Voter bag threshold definitions.
 mod bag_thresholds;
 
+mod paras_scheduler_migration;
+
 // Historical information of society finances.
 mod past_payouts;
 
@@ -137,10 +139,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 9430,
+	spec_version: 1_000_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 23,
+	transaction_version: 24,
 	state_version: 1,
 };
 
@@ -1734,7 +1736,7 @@ pub mod migrations {
 		>,
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		parachains_scheduler::migration::v1::MigrateToV1<Runtime>,
+		paras_scheduler_migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Unlock/unreserve balances from Gov v1 pallets that hold them
