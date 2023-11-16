@@ -311,7 +311,7 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = MaxLocks;
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances_balances::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_balances_native::WeightInfo<Runtime>;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -1402,7 +1402,7 @@ impl pallet_balances::Config<NisCounterpartInstance> for Runtime {
 	type MaxLocks = ConstU32<4>;
 	type MaxReserves = ConstU32<4>;
 	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances_nis_counterpart_balances::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_balances_nis::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<0>;
@@ -1573,7 +1573,6 @@ construct_runtime! {
 
 		// NIS pallet.
 		Nis: pallet_nis::{Pallet, Call, Storage, Event<T>, HoldReason} = 38,
-//		pub type NisCounterpartInstance = pallet_balances::Instance2;
 		NisCounterpartBalances: pallet_balances::<Instance2> = 45,
 
 		// Provides a semi-sorted list of nominators for staking.
@@ -1797,8 +1796,8 @@ mod benches {
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
 		// Substrate
-		[pallet_balances, Balances]
-		[pallet_balances, NisCounterpartBalances]
+		[pallet_balances, Native]
+		[pallet_balances, Nis]
 		[pallet_bags_list, VoterList]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
@@ -2333,6 +2332,13 @@ sp_api::impl_runtime_apis! {
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 
+			// Benchmark files generated for `Balances/NisCounterpartBalances` instances are by default
+			// `pallet_balances_balances.rs / pallet_balances_nis_counterpart_balances`, which is not really nice,
+			// so with this redefinition we can change names to nicer:
+			// `pallet_balances_native.rs / pallet_balances_nis.rs`.
+			type Native = pallet_balances::Pallet::<Runtime, ()>;
+			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
+
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -2456,6 +2462,9 @@ sp_api::impl_runtime_apis! {
 					Err(BenchmarkError::Skip)
 				}
 			}
+
+			type Native = pallet_balances::Pallet::<Runtime, ()>;
+			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
 
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
