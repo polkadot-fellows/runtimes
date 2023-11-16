@@ -104,6 +104,7 @@ pub mod v1 {
 		ValueQuery,
 	>;
 
+	#[allow(dead_code)]
 	#[allow(deprecated)]
 	pub type MigrateToV1<T> = VersionedMigration<
 		0,
