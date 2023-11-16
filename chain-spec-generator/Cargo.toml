@@ -27,3 +27,9 @@ sc-consensus-grandpa = "0.14.0"
 pallet-im-online = "22.0.0"
 sp-runtime = "26.0.0"
 sp-consensus-beefy = "8.0.0"
+
+[features]
+runtime-benchmarks = [
+	"kusama-runtime/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+]
