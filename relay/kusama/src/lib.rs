@@ -109,8 +109,6 @@ mod weights;
 // Voter bag threshold definitions.
 mod bag_thresholds;
 
-mod paras_scheduler_migration;
-
 // Historical information of society finances.
 mod past_payouts;
 
