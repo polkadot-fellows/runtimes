@@ -5,11 +5,10 @@ on:
   issue_comment:
     types: [created]
 
-env: master
-
 jobs:
   set-auto-merge:
     runs-on: ubuntu-latest
+    environment: master
     # Important! This forces the job to run only on comments on Pull Requests that starts with '/merge'
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/merge') }}
     steps:
