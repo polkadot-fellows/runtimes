@@ -7,7 +7,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-smallvec = "1.11.1"
+smallvec = "1.8.0"
 
 frame-support = { default-features = false , version = "25.0.0" }
 primitives = { package = "polkadot-primitives", default-features = false , version = "4.0.0" }

@@ -12,12 +12,12 @@ version.workspace = true
 substrate-wasm-builder = { optional = true , version = "14.0.0" }
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-serde = { version = "1.0.190", optional = true, features = ["derive"] }
-smallvec = "1.11.1"
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.188", optional = true, features = ["derive"] }
+smallvec = "1.11.0"
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
