@@ -2454,9 +2454,24 @@ sp_api::impl_runtime_apis! {
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
+			parameter_types! {
+				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+					TokenLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+				pub ToParachain: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+			}
+
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = XcmConfig;
 				type AccountIdConverter = SovereignAccountOf;
+				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					XcmConfig,
+					ExistentialDepositMultiAsset,
+					xcm_config::PriceForChildParachainDelivery,
+					ToParachain,
+					(),
+				>;
 				fn valid_destination() -> Result<MultiLocation, BenchmarkError> {
 					Ok(Statemine::get())
 				}
@@ -2493,6 +2508,7 @@ sp_api::impl_runtime_apis! {
 			}
 
 			impl pallet_xcm_benchmarks::generic::Config for Runtime {
+				type TransactAsset = Balances;
 				type RuntimeCall = RuntimeCall;
 
 				fn worst_case_response() -> (u64, Response) {
