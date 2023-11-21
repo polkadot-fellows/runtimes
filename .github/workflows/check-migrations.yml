@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: runtime
+       name: Extract tasks from matrix
         run: |
           # Filter out runtimes that don't have a URI
           TASKS=$(jq '[.[] | select(.uri != null)]' .github/workflows/runtimes-matrix.json)
