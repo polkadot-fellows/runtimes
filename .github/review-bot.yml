@@ -4,7 +4,7 @@ rules:
       include:
         - ^\.github/.*
     type: fellows
-    minRank: 4
+    minRank: 3
     minApprovals: 2
   - name: Relay and system files
     condition:
@@ -13,8 +13,8 @@ rules:
         - ^system-parachains\/.*
         - ^CHANGELOG.md$
     type: fellows
-    minRank: 3
-    minApprovals: 4
+    minRank: 2
+    minApprovals: 3
   - name: General Files
     condition:
       include:
@@ -25,4 +25,4 @@ rules:
         - ^\.github/.*
         - ^CHANGELOG.md$
     type: fellows
-    minRank: 2
+    minRank: 1
