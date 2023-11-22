@@ -95,8 +95,8 @@ pub mod pallet_origins {
 		}
 	}
 
-	/// Implementation of the [EnsureOrigin] trait for the plurality voice [Origin]s
-	/// from a given rank `R` with the success result of the corresponding [Rank].
+	/// Implementation of the [EnsureOrigin] trait for the plurality voice [Origin]s from a given
+	/// rank `R` with the success result of the corresponding [Rank].
 	pub struct EnsureAmbassadorsVoiceFrom<R>(PhantomData<R>);
 	impl<R: Get<Rank>, O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O>
 		for EnsureAmbassadorsVoiceFrom<R>
