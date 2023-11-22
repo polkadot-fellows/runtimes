@@ -107,7 +107,7 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type DemoteOrigin = DemoteOrigin;
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
-	type VoteWeight = pallet_ranked_collective::Linear;
+	type VoteWeight = pallet_ranked_collective::Geometric;
 }
 
 parameter_types! {
