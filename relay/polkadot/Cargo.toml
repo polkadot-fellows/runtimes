@@ -39,7 +39,6 @@ sp-storage = { default-features = false , version = "17.0.0" }
 sp-version = { default-features = false , version = "26.0.0" }
 sp-npos-elections = { default-features = false , version = "23.0.0" }
 
-pallet-asset-rate = { default-features = false , version = "4.0.0" }
 pallet-authority-discovery = { default-features = false , version = "25.0.0" }
 pallet-authorship = { default-features = false , version = "25.0.0" }
 pallet-babe = { default-features = false , version = "25.0.0" }
@@ -141,7 +140,6 @@ std = [
 	"inherents/std",
 	"log/std",
 	"offchain-primitives/std",
-	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
 	"pallet-babe/std",
@@ -222,7 +220,6 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"hex-literal",
-	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -275,7 +272,6 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-asset-rate/try-runtime",
 	"pallet-authority-discovery/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-babe/try-runtime",

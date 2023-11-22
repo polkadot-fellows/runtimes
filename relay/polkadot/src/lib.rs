@@ -84,7 +84,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Extrinsic as ExtrinsicT,
-		IdentityLookup, OpaqueKeys, SaturatedConversion, Verify,
+		OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -728,6 +728,28 @@ parameter_types! {
 	pub const CouncilSpendOriginMaxAmount: Balance = Balance::MAX;
 }
 
+#[cfg(not(feature = "runtime-benchmarks"))]
+mod disable_new_treasury_functionality {
+	use super::*;
+
+	/// Temporary workaround that disables new functionality from
+	/// https://github.com/paritytech/polkadot-sdk/pull/1333
+	pub struct NeverLookup;
+
+	impl sp_runtime::traits::StaticLookup for NeverLookup {
+		type Source = VersionedMultiLocation;
+		type Target = VersionedMultiLocation;
+
+		fn lookup(_s: Self::Source) -> Result<Self::Target, frame_support::error::LookupError> {
+			Err(frame_support::error::LookupError)
+		}
+
+		fn unlookup(t: Self::Target) -> Self::Source {
+			t
+		}
+	}
+}
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
@@ -747,7 +769,10 @@ impl pallet_treasury::Config for Runtime {
 	type SpendOrigin = TreasurySpender;
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedMultiLocation;
-	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type BeneficiaryLookup = disable_new_treasury_functionality::NeverLookup;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BeneficiaryLookup = sp_runtime::traits::IdentityLookup<Self::Beneficiary>;
 	type Paymaster = PayOverXcm<
 		TreasuryInteriorLocation,
 		crate::xcm_config::XcmRouter,
@@ -758,7 +783,7 @@ impl pallet_treasury::Config for Runtime {
 		LocatableAssetConverter,
 		VersionedMultiLocationConverter,
 	>;
-	type BalanceConverter = AssetRate;
+	type BalanceConverter = frame_support::traits::tokens::UnityAssetBalanceConversion;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
@@ -1413,18 +1438,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
 	}
 }
 
-impl pallet_asset_rate::Config for Runtime {
-	type WeightInfo = (); // TODO
-	type RuntimeEvent = RuntimeEvent;
-	type CreateOrigin = EnsureRoot<AccountId>;
-	type RemoveOrigin = EnsureRoot<AccountId>;
-	type UpdateOrigin = EnsureRoot<AccountId>;
-	type Currency = Balances;
-	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
-}
-
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1520,9 +1533,6 @@ construct_runtime! {
 
 		// Generalized message queue
 		MessageQueue: pallet_message_queue::{Pallet, Call, Storage, Event<T>} = 100,
-
-		// Asset rate.
-		AssetRate: pallet_asset_rate::{Pallet, Call, Storage, Event<T>} = 101,
 	}
 }
 

@@ -62,7 +62,7 @@ parameter_types! {
 	/// The check account that is allowed to mint assets locally.
 	pub LocalCheckAccount: (AccountId, MintLocation) = (CheckAccount::get(), MintLocation::Local);
 	/// Account of the treasury pallet.
-	pub TreasuryAccount: Option<AccountId> = Some(Treasury::account_id());
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to

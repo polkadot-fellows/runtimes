@@ -43,7 +43,6 @@ tx-pool-api = { package = "sp-transaction-pool", default-features = false , vers
 block-builder-api = { package = "sp-block-builder", default-features = false , version = "23.0.0" }
 sp-npos-elections = { default-features = false , version = "23.0.0" }
 
-pallet-asset-rate = { default-features = false , version = "4.0.0" }
 pallet-authority-discovery = { default-features = false , version = "25.0.0" }
 pallet-authorship = { default-features = false , version = "25.0.0" }
 pallet-babe = { default-features = false , version = "25.0.0" }
@@ -150,7 +149,6 @@ std = [
 	"inherents/std",
 	"kusama-runtime-constants/std",
 	"log/std",
-	"pallet-asset-rate/std",
 	"offchain-primitives/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
@@ -238,7 +236,6 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -297,7 +294,6 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-asset-rate/try-runtime",
 	"pallet-authority-discovery/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-babe/try-runtime",
