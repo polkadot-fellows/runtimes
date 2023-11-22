@@ -138,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_000_000,
+	spec_version: 1_001_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 24,
@@ -2692,45 +2692,40 @@ mod init_state_migration {
 	use super::Runtime;
 	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
-	#[cfg(feature = "try-runtime")]
-	use sp_runtime::DispatchError;
 	#[cfg(not(feature = "std"))]
 	use sp_std::prelude::*;
 
 	/// Initialize an automatic migration process.
 	pub struct InitMigrate;
 	impl OnRuntimeUpgrade for InitMigrate {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, DispatchError> {
-			frame_support::ensure!(
-				AutoLimits::<Runtime>::get().is_none(),
-				DispatchError::Other("Automigration already started.")
-			);
-			Ok(Default::default())
-		}
-
 		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			if MigrationProcess::<Runtime>::get() == Default::default() &&
-				AutoLimits::<Runtime>::get().is_none()
-			{
-				// We use limits to target 600ko proofs per block and
-				// avg 800_000_000_000 of weight per block.
-				// See spreadsheet 4800_400 in
-				// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
-				AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
-				log::info!("Automatic trie migration started.");
-				<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
-			} else {
-				log::info!("Automatic trie migration not started.");
-				<Runtime as frame_system::Config>::DbWeight::get().reads(2)
-			}
+			if !AutoLimits::<Runtime>::get().is_none() {
+				log::warn!("Automatic trie migration already started, not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+			};
+
+			if MigrationProcess::<Runtime>::get() != Default::default() {
+				log::warn!("MigrationProcess is not Default. Not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+			};
+
+			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
+			// migrations.
+			//
+			// We use limits to target 600ko proofs per block and
+			// avg 800_000_000_000 of weight per block.
+			// See spreadsheet 4800_400 in
+			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
+			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
+			log::info!("Automatic trie migration started.");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), DispatchError> {
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
 			frame_support::ensure!(
 				AutoLimits::<Runtime>::get().is_some(),
-				DispatchError::Other("Automigration started.")
+				sp_runtime::DispatchError::Other("Automigration did not start as expected.")
 			);
 			Ok(())
 		}
