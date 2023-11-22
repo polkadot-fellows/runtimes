@@ -2698,8 +2698,16 @@ mod init_state_migration {
 	/// Initialize an automatic migration process.
 	pub struct InitMigrate;
 	impl OnRuntimeUpgrade for InitMigrate {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
+			use parity_scale_codec::Encode;
+			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
+				MigrationProcess::<Runtime>::get() == Default::default();
+			Ok(migration_should_start.encode())
+		}
+
 		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			if !AutoLimits::<Runtime>::get().is_none() {
+			if AutoLimits::<Runtime>::get().is_some() {
 				log::warn!("Automatic trie migration already started, not proceeding.");
 				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
 			};
@@ -2722,11 +2730,21 @@ mod init_state_migration {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
-			frame_support::ensure!(
-				AutoLimits::<Runtime>::get().is_some(),
-				sp_runtime::DispatchError::Other("Automigration did not start as expected.")
-			);
+		fn post_upgrade(
+			migration_should_start_bytes: Vec<u8>,
+		) -> Result<(), sp_runtime::DispatchError> {
+			use parity_scale_codec::Decode;
+			let migration_should_start: bool =
+				Decode::decode(&mut migration_should_start_bytes.as_slice())
+					.expect("failed to decode migration should start");
+
+			if migration_should_start {
+				frame_support::ensure!(
+					AutoLimits::<Runtime>::get().is_some(),
+					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
+				);
+			}
+
 			Ok(())
 		}
 	}
