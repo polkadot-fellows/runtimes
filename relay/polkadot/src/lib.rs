@@ -1578,7 +1578,6 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		//crate::paras_scheduler_migration::v1::MigrateToV1<Runtime>, // TODO
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Gov v1 storage migrations
