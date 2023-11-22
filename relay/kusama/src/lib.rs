@@ -2042,7 +2042,7 @@ sp_api::impl_runtime_apis! {
 			)
 		}
 
-			fn minimum_backing_votes() -> u32 {
+		fn minimum_backing_votes() -> u32 {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
