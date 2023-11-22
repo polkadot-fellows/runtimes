@@ -16,7 +16,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Treasury may spend various asset kinds ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
 - Enable async backing on Kusama  ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
 - Implemented GenesisBuilder API for all runtimes ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
 - XCM transport fees are now exponential and are sent to a treasury account ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
