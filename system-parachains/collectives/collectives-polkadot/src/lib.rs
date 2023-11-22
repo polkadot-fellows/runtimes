@@ -64,7 +64,10 @@ use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOfDiverse, InstanceFilter},
+	traits::{
+		fungible::HoldConsideration, ConstBool, ConstU16, ConstU32, ConstU64, ConstU8,
+		EitherOfDiverse, InstanceFilter, LinearStoragePrice,
+	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
@@ -105,7 +108,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 10000,
+	spec_version: 1_000_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -542,6 +545,8 @@ impl pallet_scheduler::Config for Runtime {
 parameter_types! {
 	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -549,8 +554,12 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type BaseDeposit = PreimageBaseDeposit;
-	type ByteDeposit = PreimageByteDeposit;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+	>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -586,7 +595,7 @@ construct_runtime!(
 		Utility: pallet_utility::{Pallet, Call, Event} = 40,
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 43,
+		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 43,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 44,
 
 		// The main stage.
