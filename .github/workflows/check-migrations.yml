@@ -71,9 +71,10 @@ jobs:
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
           fi
-          # Disable idempotency checks for now. The Scheduler pallet MigrateToV1 migration is 
+          # Disable idempotency checks for now because the Scheduler pallet MigrateToV1 migration is
           # non-idempotent at its root in Polkadot SDK V1.2.0. In V1.3.0 we can re-enable 
           # idempotency checks.
+          EXTRA_ARGS="--disable-spec-version-check --disable-idempotency-checks"
           ./try-runtime \
               --runtime ./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
-              on-runtime-upgrade --checks=pre-and-post --disable-idempotency-checks $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
+              on-runtime-upgrade --checks=pre-and-post $EXTRA_ARGS $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
