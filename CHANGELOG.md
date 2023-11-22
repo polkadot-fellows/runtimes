@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Add missing weight functions for `runtime_parachains_hrmp` and `preimage` pallets ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
-- Fix for Reward Deficit in the pool ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
+- Fix for Reward Deficit in the pool. As a side effect, nomination pools pallet (used by Kusama and Polkadot runtimes) now exposes the `FreezeReason`, used by balances pallet ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
 
 ## [1.0.1] 22.10.2023
 
