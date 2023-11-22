@@ -1,0 +1,80 @@
+name: Check Migrations
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
+# triggered (ref https://stackoverflow.com/a/72408109)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    name: Extract tasks from matrix
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          # Filter out runtimes that don't have a URI
+          TASKS=$(jq '[.[] | select(.uri != null)]' .github/workflows/runtimes-matrix.json)
+          SKIPPED_TASKS=$(jq '[.[] | select(.uri == null)]' .github/workflows/runtimes-matrix.json)
+          echo --- Running the following tasks ---
+          echo $TASKS
+          echo --- Skipping the following tasks due to not having a uri field ---
+          echo $SKIPPED_TASKS
+          # Strip whitespace from Tasks now that we've logged it
+          TASKS=$(echo $TASKS | jq -c .)
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+
+  check-migrations:
+    needs: [runtime-matrix]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download try-runtime-cli
+        run: |
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          chmod +x ./try-runtime
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: "3.6.1"
+
+      - name: Add wasm32-unknown-unknown target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build ${{ matrix.runtime.name }}
+        run: |
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime
+
+      - name: Check migrations
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          # When running on relay, we don't need weight checks.
+          NO_WEIGHT_WARNINGS_FLAG=""
+          if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
+            NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
+          fi
+          # Disable idempotency checks for now because the Scheduler pallet MigrateToV1 migration is
+          # non-idempotent at its root in Polkadot SDK V1.2.0. In V1.3.0 we can re-enable 
+          # idempotency checks.
+          EXTRA_ARGS="--disable-spec-version-check --disable-idempotency-checks"
+          ./try-runtime \
+              --runtime ./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
+              on-runtime-upgrade --checks=pre-and-post $EXTRA_ARGS $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
