@@ -4,29 +4,25 @@ rules:
       include:
         - ^\.github/.*
     type: fellows
-    minRank: 4
+    minRank: 3
     minApprovals: 2
   - name: Relay and system files
     condition:
       include:
-        - ^relay\/kusama\/.*
-        - ^relay\/polkadot\/.*
+        - ^relay\/.*
         - ^system-parachains\/.*
-        - ^CHANGELOG$
-      exclude: 
-        - ^relay\/.+\.adoc$
+        - ^CHANGELOG.md$
     type: fellows
-    minRank: 3
-    minApprovals: 4
+    minRank: 2
+    minApprovals: 3
   - name: General Files
     condition:
       include:
         - '.*'
-      exclude: 
-        - ^relay\/kusama\/.*
-        - ^relay\/polkadot\/.*
-        - ^\.github/.*
+      exclude:
+        - ^relay\/.*
         - ^system-parachains\/.*
-        - ^target\/.*
+        - ^\.github/.*
+        - ^CHANGELOG.md$
     type: fellows
-    minRank: 2
+    minRank: 1

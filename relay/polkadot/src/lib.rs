@@ -34,7 +34,7 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v5 as parachains_runtime_api_impl,
+	runtime_api_impl::v7 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -47,8 +47,9 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter, KeyOwnerProofSystem,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
@@ -89,7 +90,7 @@ use xcm::latest::Junction;
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_election_provider_multi_phase::Call as EPMCall;
+pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 #[cfg(feature = "std")]
 pub use pallet_staking::StakerStatus;
 use pallet_staking::UseValidatorsMap;
@@ -105,8 +106,6 @@ use polkadot_runtime_constants::{currency::*, fee::*, time::*};
 mod weights;
 
 mod bag_thresholds;
-
-mod paras_scheduler_migration;
 
 // Governance configurations.
 pub mod governance;
@@ -132,7 +131,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_000_000,
+	spec_version: 1_000_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 24,
@@ -225,9 +224,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
 	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -235,8 +235,12 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type BaseDeposit = PreimageBaseDeposit;
-	type ByteDeposit = PreimageByteDeposit;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+	>;
 }
 
 parameter_types! {
@@ -381,8 +385,8 @@ parameter_types! {
 	// signed config
 	pub const SignedMaxSubmissions: u32 = 16;
 	pub const SignedMaxRefunds: u32 = 16 / 4;
-	// 40 DOTs fixed deposit..
-	pub const SignedDepositBase: Balance = deposit(2, 0);
+	pub const SignedFixedDeposit: Balance = deposit(2, 0);
+	pub const SignedDepositIncreaseFactor: Percent = Percent::from_percent(10);
 	// 0.01 DOT per KB of solution data.
 	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
 	// Each good submission will get 1 DOT as reward
@@ -455,7 +459,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxSubmissions = SignedMaxSubmissions;
 	type SignedMaxRefunds = SignedMaxRefunds;
 	type SignedRewardBase = SignedRewardBase;
-	type SignedDepositBase = SignedDepositBase;
+	type SignedDepositBase =
+		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
 	type SignedDepositByte = SignedDepositByte;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight =
@@ -1378,7 +1383,7 @@ construct_runtime! {
 		// Basic stuff; balances is uncallable initially.
 		System: frame_system::{Pallet, Call, Storage, Config<T>, Event<T>} = 0,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 1,
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 10,
+		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 10,
 
 		// Babe must be before session.
 		Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 2,
@@ -1573,7 +1578,6 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		crate::paras_scheduler_migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Gov v1 storage migrations
@@ -2399,7 +2403,7 @@ mod test_fees {
 	fn signed_deposit_is_sensible() {
 		// ensure this number does not change, or that it is checked after each change.
 		// a 1 MB solution should take (40 + 10) DOTs of deposit.
-		let deposit = SignedDepositBase::get() + (SignedDepositByte::get() * 1024 * 1024);
+		let deposit = SignedFixedDeposit::get() + (SignedDepositByte::get() * 1024 * 1024);
 		assert_eq_error_rate!(deposit, 50 * DOLLARS, DOLLARS);
 	}
 }

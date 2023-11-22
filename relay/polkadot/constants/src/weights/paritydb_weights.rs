@@ -44,34 +44,34 @@ pub mod constants {
 		/// `ParityDB` can be enabled with a feature flag, but is still experimental. These weights
 		/// are available for brave runtime engineers who may want to try this out as default.
 		pub const ParityDbWeight: RuntimeDbWeight = RuntimeDbWeight {
-			/// Time to read one storage item.
-			/// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
-			///
-			/// Stats [NS]:
-			///   Min, Max: 4_611, 13_478_005
-			///   Average:  10_750
-			///   Median:   10_655
-			///   Std-Dev:  12214.49
-			///
-			/// Percentiles [NS]:
-			///   99th: 14_451
-			///   95th: 12_588
-			///   75th: 11_200
+			// Time to read one storage item.
+			// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
+			//
+			// Stats [NS]:
+			//   Min, Max: 4_611, 13_478_005
+			//   Average:  10_750
+			//   Median:   10_655
+			//   Std-Dev:  12214.49
+			//
+			// Percentiles [NS]:
+			//   99th: 14_451
+			//   95th: 12_588
+			//   75th: 11_200
 			read: 11_826 * constants::WEIGHT_REF_TIME_PER_NANOS,
 
-			/// Time to write one storage item.
-			/// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
-			///
-			/// Stats [NS]:
-			///   Min, Max: 8_023, 47_367_740
-			///   Average:  34_592
-			///   Median:   32_703
-			///   Std-Dev:  49417.24
-			///
-			/// Percentiles [NS]:
-			///   99th: 69_379
-			///   95th: 47_168
-			///   75th: 35_252
+			// Time to write one storage item.
+			// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
+			//
+			// Stats [NS]:
+			//   Min, Max: 8_023, 47_367_740
+			//   Average:  34_592
+			//   Median:   32_703
+			//   Std-Dev:  49417.24
+			//
+			// Percentiles [NS]:
+			//   99th: 69_379
+			//   95th: 47_168
+			//   75th: 35_252
 			write: 38_052 * constants::WEIGHT_REF_TIME_PER_NANOS,
 		};
 	}
