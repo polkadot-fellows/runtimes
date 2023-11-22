@@ -2714,7 +2714,7 @@ mod init_state_migration {
 
 			if MigrationProcess::<Runtime>::get() != Default::default() {
 				log::warn!("MigrationProcess is not Default. Not proceeding.");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
 			};
 
 			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
