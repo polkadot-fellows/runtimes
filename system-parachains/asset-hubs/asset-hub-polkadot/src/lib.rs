@@ -854,6 +854,11 @@ impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
 			writes.saturating_inc();
 		}
 
+		if Uniques::on_chain_storage_version() == StorageVersion::new(0) {
+			Uniques::current_storage_version().put::<Uniques>();
+			writes.saturating_inc();
+		}
+
 		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(4, writes)
 	}
 }
