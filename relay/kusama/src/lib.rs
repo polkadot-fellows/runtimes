@@ -46,7 +46,7 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v5 as parachains_runtime_api_impl,
+	runtime_api_impl::v7 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -63,8 +63,9 @@ use frame_election_provider_support::{
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter, KeyOwnerProofSystem,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, StorageMapShim, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		StorageMapShim, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
@@ -92,7 +93,7 @@ use xcm::latest::Junction;
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_election_provider_multi_phase::Call as EPMCall;
+pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 #[cfg(feature = "std")]
 pub use pallet_staking::StakerStatus;
 use pallet_staking::UseValidatorsMap;
@@ -137,10 +138,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 9430,
+	spec_version: 1_000_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 23,
+	transaction_version: 24,
 	state_version: 1,
 };
 
@@ -239,6 +240,8 @@ impl pallet_scheduler::Config for Runtime {
 parameter_types! {
 	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -246,8 +249,12 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type BaseDeposit = PreimageBaseDeposit;
-	type ByteDeposit = PreimageByteDeposit;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+	>;
 }
 
 parameter_types! {
@@ -505,7 +512,8 @@ parameter_types! {
 	// signed config
 	pub const SignedMaxSubmissions: u32 = 16;
 	pub const SignedMaxRefunds: u32 = 16 / 4;
-	pub const SignedDepositBase: Balance = deposit(2, 0);
+	pub const SignedFixedDeposit: Balance = deposit(2, 0);
+	pub const SignedDepositIncreaseFactor: Percent = Percent::from_percent(10);
 	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
 	// Each good submission will get 1/10 KSM as reward
 	pub SignedRewardBase: Balance =  UNITS / 10;
@@ -578,7 +586,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxSubmissions = SignedMaxSubmissions;
 	type SignedMaxRefunds = SignedMaxRefunds;
 	type SignedRewardBase = SignedRewardBase;
-	type SignedDepositBase = SignedDepositBase;
+	type SignedDepositBase =
+		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
 	type SignedDepositByte = SignedDepositByte;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight =
@@ -1560,7 +1569,7 @@ construct_runtime! {
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 31,
 
 		// Preimage registrar.
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 32,
+		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 32,
 
 		// Bounties modules.
 		Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 35,
@@ -1734,7 +1743,6 @@ pub mod migrations {
 		>,
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		parachains_scheduler::migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Unlock/unreserve balances from Gov v1 pallets that hold them
@@ -2478,7 +2486,7 @@ mod fees_tests {
 	fn signed_deposit_is_sensible() {
 		// ensure this number does not change, or that it is checked after each change.
 		// a 1 MB solution should need around 0.16 KSM deposit
-		let deposit = SignedDepositBase::get() + (SignedDepositByte::get() * 1024 * 1024);
+		let deposit = SignedFixedDeposit::get() + (SignedDepositByte::get() * 1024 * 1024);
 		assert_eq_error_rate!(deposit, UNITS * 167 / 100, UNITS / 100);
 	}
 }
@@ -2684,8 +2692,6 @@ mod init_state_migration {
 	use super::Runtime;
 	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
-	#[cfg(feature = "try-runtime")]
-	use sp_runtime::DispatchError;
 	#[cfg(not(feature = "std"))]
 	use sp_std::prelude::*;
 
@@ -2693,37 +2699,52 @@ mod init_state_migration {
 	pub struct InitMigrate;
 	impl OnRuntimeUpgrade for InitMigrate {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, DispatchError> {
-			frame_support::ensure!(
-				AutoLimits::<Runtime>::get().is_none(),
-				DispatchError::Other("Automigration already started.")
-			);
-			Ok(Default::default())
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
+			use parity_scale_codec::Encode;
+			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
+				MigrationProcess::<Runtime>::get() == Default::default();
+			Ok(migration_should_start.encode())
 		}
 
 		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			if MigrationProcess::<Runtime>::get() == Default::default() &&
-				AutoLimits::<Runtime>::get().is_none()
-			{
-				// We use limits to target 600ko proofs per block and
-				// avg 800_000_000_000 of weight per block.
-				// See spreadsheet 4800_400 in
-				// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
-				AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
-				log::info!("Automatic trie migration started.");
-				<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
-			} else {
-				log::info!("Automatic trie migration not started.");
-				<Runtime as frame_system::Config>::DbWeight::get().reads(2)
-			}
+			if AutoLimits::<Runtime>::get().is_some() {
+				log::warn!("Automatic trie migration already started, not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+			};
+
+			if MigrationProcess::<Runtime>::get() != Default::default() {
+				log::warn!("MigrationProcess is not Default. Not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
+			};
+
+			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
+			// migrations.
+			//
+			// We use limits to target 600ko proofs per block and
+			// avg 800_000_000_000 of weight per block.
+			// See spreadsheet 4800_400 in
+			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
+			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
+			log::info!("Automatic trie migration started.");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), DispatchError> {
-			frame_support::ensure!(
-				AutoLimits::<Runtime>::get().is_some(),
-				DispatchError::Other("Automigration started.")
-			);
+		fn post_upgrade(
+			migration_should_start_bytes: Vec<u8>,
+		) -> Result<(), sp_runtime::DispatchError> {
+			use parity_scale_codec::Decode;
+			let migration_should_start: bool =
+				Decode::decode(&mut migration_should_start_bytes.as_slice())
+					.expect("failed to decode migration should start");
+
+			if migration_should_start {
+				frame_support::ensure!(
+					AutoLimits::<Runtime>::get().is_some(),
+					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
+				);
+			}
+
 			Ok(())
 		}
 	}
