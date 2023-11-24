@@ -301,8 +301,8 @@ parameter_types! {
 	/// The asset ID for the asset that we use to pay for message delivery fees.
 	pub FeeAssetId: AssetId = Concrete(xcm_config::DotRelayLocation::get());
 	/// The base fee for the message delivery fees.
-	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
-	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3); // TODO: proper price
+	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
+	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 }
 
 /// Privileged origin that represents Root or Fellows.
