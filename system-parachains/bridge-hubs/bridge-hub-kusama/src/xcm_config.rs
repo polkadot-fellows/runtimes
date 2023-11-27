@@ -193,8 +193,7 @@ match_types! {
 			parents: 1,
 			interior: X1(Parachain(
 				system_parachain::ASSET_HUB_ID |
-				system_parachain::ENCOINTER_ID |
-				system_parachain::BRIDGE_HUB_ID
+				system_parachain::ENCOINTER_ID
 			)),
 		}
 	};
