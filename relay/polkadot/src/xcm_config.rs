@@ -29,9 +29,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_constants::{
-	currency::CENTS,
-	system_parachain::*,
-	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use runtime_common::{
 	crowdloan, paras_registrar,
