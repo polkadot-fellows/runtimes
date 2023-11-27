@@ -82,9 +82,6 @@ parachains-common = { default-features = false , version = "4.0.0" }
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "14.0.0" }
 
-[dev-dependencies]
-sp-io = { default-features = false, version = "27.0.0" }
-
 [features]
 default = [ "std" ]
 runtime-benchmarks = [
@@ -201,7 +198,6 @@ std = [
 	"sp-core/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
-	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
