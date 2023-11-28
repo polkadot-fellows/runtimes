@@ -135,8 +135,11 @@ parameter_types! {
 	pub const KsmForBridgeHub: (MultiAssetFilter, MultiLocation) = (Ksm::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
-pub type TrustedTeleporters =
-	(xcm_builder::Case<KsmForAssetHub>, xcm_builder::Case<KsmForEncointer>, xcm_builder::Case<KsmForBridgeHub>);
+pub type TrustedTeleporters = (
+	xcm_builder::Case<KsmForAssetHub>,
+	xcm_builder::Case<KsmForEncointer>,
+	xcm_builder::Case<KsmForBridgeHub>,
+);
 
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {

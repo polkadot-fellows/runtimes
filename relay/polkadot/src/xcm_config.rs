@@ -142,8 +142,11 @@ parameter_types! {
 }
 
 /// Polkadot Relay recognizes/respects the asset hub chain as a teleporter.
-pub type TrustedTeleporters =
-	(xcm_builder::Case<DotForAssetHub>, xcm_builder::Case<DotForCollectives>, xcm_builder::Case<DotForBridgeHub>);
+pub type TrustedTeleporters = (
+	xcm_builder::Case<DotForAssetHub>,
+	xcm_builder::Case<DotForCollectives>,
+	xcm_builder::Case<DotForBridgeHub>,
+);
 
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {
