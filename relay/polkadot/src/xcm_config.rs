@@ -136,12 +136,14 @@ parameter_types! {
 	pub const DotForAssetHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), AssetHubLocation::get());
 	pub const CollectivesLocation: MultiLocation = Parachain(COLLECTIVES_ID).into_location();
 	pub const DotForCollectives: (MultiAssetFilter, MultiLocation) = (Dot::get(), CollectivesLocation::get());
+	pub const BridgeHubLocation: MultiLocation = Parachain(BRIDGE_HUB_ID).into_location();
+	pub const DotForBridgeHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
 /// Polkadot Relay recognizes/respects the asset hub chain as a teleporter.
 pub type TrustedTeleporters =
-	(xcm_builder::Case<DotForAssetHub>, xcm_builder::Case<DotForCollectives>);
+	(xcm_builder::Case<DotForAssetHub>, xcm_builder::Case<DotForCollectives>, xcm_builder::Case<DotForBridgeHub>);
 
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {
