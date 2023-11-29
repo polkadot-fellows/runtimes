@@ -462,7 +462,10 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent, its pluralities (i.e. governance bodies) and parent's treasury
 					// pallet get free execution.
-					AllowExplicitUnpaidExecutionFrom<(ParentOrParentsPlurality, Equals<RelayTreasuryLocation>)>,
+					AllowExplicitUnpaidExecutionFrom<(
+						ParentOrParentsPlurality,
+						Equals<RelayTreasuryLocation>,
+					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentOrSiblings>,
 				),
