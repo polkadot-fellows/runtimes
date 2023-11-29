@@ -195,9 +195,6 @@ match_types! {
 	pub type FellowshipSalaryPallet: impl Contains<MultiLocation> = {
 		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(64)) }
 	};
-	pub type TreasuryPallet: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: X1(PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)) }
-	};
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
