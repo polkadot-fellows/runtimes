@@ -239,9 +239,6 @@ match_types! {
 		MultiLocation { parents: 1, interior: Here } |
 		MultiLocation { parents: 1, interior: X1(_) }
 	};
-	pub type TreasuryPallet: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: X1(PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)) }
-	};
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
