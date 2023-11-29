@@ -380,7 +380,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						FellowshipSalaryPallet,
-						TreasuryPallet,
+						Equals<RelayTreasuryLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentOrSiblings>,
