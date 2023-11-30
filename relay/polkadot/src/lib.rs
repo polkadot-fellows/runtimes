@@ -1598,7 +1598,9 @@ pub mod migrations {
 		// Migrate parachain info format
 		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
 
-		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>
+		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>,
+
+		pallet_nomination_pools::migrations::versioned::V7ToV8<Runtime>
 	);
 }
 

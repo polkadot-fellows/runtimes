@@ -1627,7 +1627,9 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (
+		pallet_nomination_pools::migrations::versioned::V7ToV8<Runtime>
+	);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
