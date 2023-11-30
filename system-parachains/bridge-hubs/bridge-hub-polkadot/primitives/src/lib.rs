@@ -74,7 +74,6 @@ pub const WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX: u8 = 53;
 decl_bridge_finality_runtime_apis!(bridge_hub_polkadot);
 decl_bridge_messages_runtime_apis!(bridge_hub_polkadot);
 
-// TODO: generate new one when weights are ok
 frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
