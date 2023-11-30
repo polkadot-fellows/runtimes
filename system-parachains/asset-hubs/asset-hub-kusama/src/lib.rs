@@ -1023,6 +1023,8 @@ mod benches {
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
 		[pallet_xcm, PolkadotXcm]
+		// Bridges
+		[pallet_xcm_bridge_hub_router, ToPolkadot]
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
@@ -1270,6 +1272,7 @@ impl_runtime_apis! {
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+			use pallet_xcm_bridge_hub_router::benchmarking::Pallet as XcmBridgeHubRouterBench;
 
 			// This is defined once again in dispatch_benchmark, because list_benchmarks!
 			// and add_benchmarks! are macros exported by define_benchmarks! macros and those types
@@ -1284,6 +1287,8 @@ impl_runtime_apis! {
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
 			type Pool = pallet_assets::Pallet::<Runtime, PoolAssetsInstance>;
+
+			type ToPolkadot = XcmBridgeHubRouterBench<Runtime, ToPolkadotXcmRouterInstance>;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -1440,12 +1445,34 @@ impl_runtime_apis! {
 				}
 			}
 
+			use pallet_xcm_bridge_hub_router::benchmarking::{
+				Pallet as XcmBridgeHubRouterBench,
+				Config as XcmBridgeHubRouterConfig,
+			};
+
+			impl XcmBridgeHubRouterConfig<ToPolkadotXcmRouterInstance> for Runtime {
+				fn make_congested() {
+					cumulus_pallet_xcmp_queue::bridging::suspend_channel_for_benchmarks::<Runtime>(
+						xcm_config::bridging::SiblingBridgeHubParaId::get().into()
+					);
+				}
+
+				fn ensure_bridged_target_destination() -> MultiLocation {
+					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
+						xcm_config::bridging::SiblingBridgeHubParaId::get().into()
+					);
+					xcm_config::bridging::to_polkadot::AssetHubPolkadot::get()
+				}
+			}
+
 			type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet::<Runtime>;
 			type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet::<Runtime>;
 
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
 			type Pool = pallet_assets::Pallet::<Runtime, PoolAssetsInstance>;
+
+			type ToPolkadot = XcmBridgeHubRouterBench<Runtime, ToPolkadotXcmRouterInstance>;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
