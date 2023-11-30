@@ -71,6 +71,66 @@ cargo build --release -p chain-spec-generator --features runtime-benchmarks
 	--output=system-parachains/asset-hubs/asset-hub-kusama/src/weights/xcm \
 	--no-median-slopes \
 	--no-min-squares
+# xcm bridge hub router weights
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain ah-kusama-local-raw.json \
+	--pallet pallet-xcm-bridge-hub-router \
+	--extrinsic "*" \
+	--output=system-parachains/asset-hubs/asset-hub-kusama/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain ah-polkadot-local-raw.json \
+	--pallet pallet-xcm-bridge-hub-router \
+	--extrinsic "*" \
+	--output=system-parachains/asset-hubs/asset-hub-polkadot/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+# Bridge GRANDPA pallet weights
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-kusama-local-raw.json \
+	--pallet pallet-bridge-grandpa \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-kusama/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-polkadot-local-raw.json \
+	--pallet pallet-bridge-grandpa \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-polkadot/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+# Bridge Parachains pallet weights
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-kusama-local-raw.json \
+	--pallet pallet-bridge-parachains \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-kusama/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-polkadot-local-raw.json \
+	--pallet pallet-bridge-parachains \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-polkadot/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+# Bridge Messages pallet weights
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-kusama-local-raw.json \
+	--pallet pallet-bridge-messages \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-kusama/src/weights \
+	--no-median-slopes \
+	--no-min-squares
+../polkadot-sdk/target/release/polkadot-parachain-benchmarks benchmark pallet \
+	--chain bh-polkadot-local-raw.json \
+	--pallet pallet-bridge-messages \
+	--extrinsic "*" \
+	--output=system-parachains/bridge-hubs/bridge-hub-polkadot/src/weights \
+	--no-median-slopes \
+	--no-min-squares
 # patch generic weights
 PATCH="impl<T: frame_system::Config> WeightInfo<T> { pub fn expect_pallet() -> Weight { Weight::from_parts(5_756_000, 0) } }"
 echo $PATCH >>system-parachains/bridge-hubs/bridge-hub-polkadot/src/weights/xcm/pallet_xcm_benchmarks_generic.rs
