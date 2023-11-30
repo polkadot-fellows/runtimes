@@ -25,10 +25,10 @@ use bridge_hub_polkadot_runtime::{
 	xcm_config::{DotRelayLocation, RelayNetwork, XcmConfig},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
-	TransactionPayment, UncheckedExtrinsic,
+	UncheckedExtrinsic,
 };
 use codec::{Decode, Encode};
-use frame_support::{dispatch::GetDispatchInfo, parameter_types};
+use frame_support::parameter_types;
 use frame_system::pallet_prelude::HeaderFor;
 use parachains_common::{polkadot::fee::WeightToFee, AccountId, AuraId, Balance};
 use sp_keyring::AccountKeyring::Alice;
@@ -82,14 +82,7 @@ fn construct_and_apply_extrinsic(
 	let r = Executive::apply_extrinsic(xt);
 	r.unwrap()
 }
-/* TODO
-fn construct_and_estimate_extrinsic_fee(batch: pallet_utility::Call<Runtime>) -> Balance {
-	let batch_call = RuntimeCall::Utility(batch);
-	let batch_info = batch_call.get_dispatch_info();
-	let xt = construct_extrinsic(Alice, batch_call);
-	TransactionPayment::compute_fee(xt.encoded_size() as _, &batch_info, 0)
-}
-*/
+
 fn executive_init_block(header: &HeaderFor<Runtime>) {
 	Executive::initialize_block(header)
 }
@@ -294,50 +287,20 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 		);
 }
 
-/* TODO: depends on https://github.com/paritytech/polkadot-sdk/pull/2139
-#[test]
-pub fn can_calculate_fee_for_complex_message_delivery_transaction() {
-	let estimated = bridge_hub_test_utils::test_cases::can_calculate_fee_for_complex_message_delivery_transaction::<
-		Runtime,
-		BridgeGrandpaKusamaInstance,
-		BridgeParachainKusamaInstance,
-		WithBridgeHubKusamaMessagesInstance,
-		WithBridgeHubKusamaMessageBridge,
-	>(
-		collator_session_keys(),
-		construct_and_estimate_extrinsic_fee
-	);
-
-	// check if estimated value is sane
-	let max_expected = bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get();
-	assert!(
-		estimated <= max_expected,
-		"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots` value",
-		estimated,
-		max_expected
-	);
-}
+// Following two tests have to be implemented properly after upgrade to 1.4.
+// See https://github.com/paritytech/polkadot-sdk/pull/2139/ for impl details
+//
+// Until that, anyone can run it manually by doing following:
+//
+// 1) cargo vendor ../vendored-dependencies
+// 2) change workspace Cargo.toml:
+// [patch.crates-io]
+// bridge-hub-test-utils = { path = "../vendored-dependencies/bridge-hub-test-utils" }
+// bridge-runtime-common = { path = "../vendored-dependencies/bridge-runtime-common" }
+// 3) add actual tests code and do `cargo test -p bridge-hub-polkadot-runtime`
 
 #[test]
-pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
-	let estimated = bridge_hub_test_utils::test_cases::can_calculate_fee_for_complex_message_confirmation_transaction::<
-		Runtime,
-		BridgeGrandpaKusamaInstance,
-		BridgeParachainKusamaInstance,
-		WithBridgeHubKusamaMessagesInstance,
-		WithBridgeHubKusamaMessageBridge,
-	>(
-		collator_session_keys(),
-		construct_and_estimate_extrinsic_fee
-	);
+pub fn can_calculate_fee_for_complex_message_delivery_transaction() {}
 
-	// check if estimated value is sane
-	let max_expected = bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots::get();
-	assert!(
-		estimated <= max_expected,
-		"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots` value",
-		estimated,
-		max_expected
-	);
-}
-*/
+#[test]
+pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {}
