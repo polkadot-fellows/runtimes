@@ -45,6 +45,7 @@ pub mod fellowship;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use fellowship::{pallet_fellowship_origins, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -85,7 +86,9 @@ use parachains_common::{
 	SLOT_DURATION,
 };
 use sp_runtime::RuntimeDebug;
-use xcm_config::{GovernanceLocation, XcmConfig, XcmOriginToTransactDispatchOrigin};
+use xcm_config::{
+	GovernanceLocation, TreasurerBodyId, XcmConfig, XcmOriginToTransactDispatchOrigin,
+};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -586,6 +589,21 @@ impl pallet_preimage::Config for Runtime {
 	>;
 }
 
+impl pallet_asset_rate::Config for Runtime {
+	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type CreateOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
+	>;
+	type RemoveOrigin = Self::CreateOrigin;
+	type UpdateOrigin = Self::CreateOrigin;
+	type Currency = Balances;
+	type AssetKind = VersionedLocatableAsset;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -621,6 +639,7 @@ construct_runtime!(
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 43,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 44,
+		AssetRate: pallet_asset_rate::{Pallet, Call, Storage, Event<T>} = 45,
 
 		// The main stage.
 
@@ -638,6 +657,8 @@ construct_runtime!(
 		FellowshipCore: pallet_core_fellowship::<Instance1>::{Pallet, Call, Storage, Event<T>} = 63,
 		// pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 		FellowshipSalary: pallet_salary::<Instance1>::{Pallet, Call, Storage, Event<T>} = 64,
+		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
+		FellowshipTreasury: pallet_treasury::<Instance1>::{Pallet, Call, Storage, Event<T>} = 65,
 	}
 );
 
@@ -749,6 +770,8 @@ mod benches {
 		[pallet_ranked_collective, FellowshipCollective]
 		[pallet_core_fellowship, FellowshipCore]
 		[pallet_salary, FellowshipSalary]
+		[pallet_treasury, FellowshipTreasury]
+		[pallet_asset_rate, AssetRate]
 	);
 }
 

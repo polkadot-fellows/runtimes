@@ -19,16 +19,17 @@
 mod origins;
 mod tracks;
 use crate::{
-	impls::ToParentTreasury, weights, AccountId, Balance, Balances, FellowshipReferenda,
-	GovernanceLocation, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, Scheduler, DAYS,
+	impls::ToParentTreasury, weights, xcm_config::TreasurerBodyId, AccountId, AssetRate, Balance,
+	Balances, BlockNumber, FellowshipReferenda, GovernanceLocation, PolkadotTreasuryAccount,
+	Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
 };
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, TryWithMorphedArg},
+	PalletId,
 };
-use frame_system::EnsureRootWithSuccess;
+use frame_system::{EnsureRoot, EnsureRootWithSuccess};
 pub use origins::{
 	pallet_origins as pallet_fellowship_origins, Architects, EnsureCanPromoteTo, EnsureCanRetainAt,
 	EnsureFellowship, Fellows, Masters, Members, ToVoice,
@@ -36,9 +37,17 @@ pub use origins::{
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::polkadot::account;
-use polkadot_runtime_constants::{time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_common::impls::{
+	LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter,
+};
+use polkadot_runtime_constants::{
+	currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX, DOLLARS,
+};
+use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{AccountIdConversion, ConstU16, ConvertToValue, Replace, TakeFirst};
+use sp_runtime::traits::{
+	AccountIdConversion, ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst,
+};
 use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
@@ -243,4 +252,120 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 100_000 * USDT_UNITS }>;
+}
+
+parameter_types! {
+	// TODO: reference the constant value from common crate with polkadot-sdk 1.5
+	pub const FellowshipTreasuryPalletId: PalletId = PalletId(*b"py/feltr");
+	pub const ProposalBond: Permill = Permill::from_percent(1);
+	pub const ProposalBondMinimum: Balance = 5 * DOLLARS;
+	pub const ProposalBondMaximum: Balance = 10 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 7 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(0);
+	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	// The asset's interior location for the paying account. This is the Fellowship Treasury
+	// pallet instance (which sits at index 65).
+	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(65).into();
+}
+
+/// [`PayOverXcm`] setup to pay the Fellowship Treasury.
+pub type FellowshipTreasuryPaymaster = PayOverXcm<
+	FellowshipTreasuryInteriorLocation,
+	crate::xcm_config::XcmRouter,
+	crate::PolkadotXcm,
+	ConstU32<{ 6 * HOURS }>,
+	VersionedMultiLocation,
+	VersionedLocatableAsset,
+	LocatableAssetConverter,
+	VersionedMultiLocationConverter,
+>;
+
+pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
+
+impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
+	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+	type PalletId = FellowshipTreasuryPalletId;
+	type Currency = Balances;
+	// This parameter guards a deprecated call and should not be used.
+	// TODO: replace by NeverEnsure with polkadot-sdk 1.5
+	type ApproveOrigin = EnsureRoot<AccountId>;
+	type RejectOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
+	>;
+	type RuntimeEvent = RuntimeEvent;
+	// This type should never be triggered since it meant for deprecated functionality.
+	type OnSlash = ();
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type ProposalBondMaximum = ProposalBondMaximum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type BurnDestination = ();
+	type SpendFunds = ();
+	type MaxApprovals = ConstU32<100>;
+	type SpendOrigin = EitherOf<
+		EitherOf<
+			EnsureRootWithSuccess<AccountId, ConstU128<{ 10_000 * GRAND }>>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
+				Replace<ConstU128<{ 10_000 * GRAND }>>,
+			>,
+		>,
+		EitherOf<
+			MapSuccess<Architects, Replace<ConstU128<{ 10_000 * GRAND }>>>,
+			MapSuccess<Fellows, Replace<ConstU128<{ 10 * GRAND }>>>,
+		>,
+	>;
+	type AssetKind = VersionedLocatableAsset;
+	type Beneficiary = VersionedMultiLocation;
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Paymaster = FellowshipTreasuryPaymaster;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
+	type BalanceConverter = AssetRate;
+	type PayoutPeriod = PayoutSpendPeriod;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
+}
+
+// TODO: replace by [`polkadot_runtime_common::impls::benchmarks::TreasuryArguments`] with
+// polkadot-sdk 1.5
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarks {
+	use super::VersionedLocatableAsset;
+	use core::marker::PhantomData;
+	use frame_support::traits::Get;
+	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
+	use sp_core::{ConstU32, ConstU8};
+	use xcm::prelude::*;
+
+	/// Provide factory methods for the [`VersionedLocatableAsset`] and the `Beneficiary` of the
+	/// [`VersionedMultiLocation`]. The location of the asset is determined as a Parachain with an
+	/// ID equal to the passed seed.
+	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
+		PhantomData<(Parents, ParaId)>,
+	);
+	impl<Parents: Get<u8>, ParaId: Get<u32>>
+		TreasuryArgumentsFactory<VersionedLocatableAsset, VersionedMultiLocation>
+		for TreasuryArguments<Parents, ParaId>
+	{
+		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
+			VersionedLocatableAsset::V3 {
+				location: xcm::v3::MultiLocation::new(Parents::get(), X1(Parachain(ParaId::get()))),
+				asset_id: xcm::v3::MultiLocation::new(
+					0,
+					X2(PalletInstance(seed.try_into().unwrap()), GeneralIndex(seed.into())),
+				)
+				.into(),
+			}
+		}
+		fn create_beneficiary(seed: [u8; 32]) -> VersionedMultiLocation {
+			VersionedMultiLocation::V3(xcm::v3::MultiLocation::new(
+				0,
+				X1(AccountId32 { network: None, id: seed }),
+			))
+		}
+	}
 }
