@@ -81,7 +81,7 @@ parameter_types! {
 	);
 
 	/// Identifier of the sibling Polkadot Asset Hub parachain.
-	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = 1000.into(); // TODO: bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID.into();
+	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// A route (XCM location and bridge lane) that the Polkadot Asset Hub -> Kusama Asset Hub
 	/// message is following.
 	pub FromAssetHubPolkadotToAssetHubKusamaRoute: SenderAndLane = SenderAndLane::new(
