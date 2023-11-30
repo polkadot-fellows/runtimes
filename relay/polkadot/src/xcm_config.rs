@@ -19,7 +19,7 @@
 use super::{
 	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, FellowshipAdmin,
 	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
-	TransactionByteFee, WeightToFee, XcmPallet,
+	TransactionByteFee, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	match_types, parameter_types,
@@ -44,7 +44,7 @@ use xcm_builder::{
 	ChildParachainConvertsVia, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation,
 	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeesToAccount,
 };
 use xcm_executor::traits::WithOriginFilter;
 
@@ -61,6 +61,8 @@ parameter_types! {
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub LocalCheckAccount: (AccountId, MintLocation) = (CheckAccount::get(), MintLocation::Local);
+	/// Account of the treasury pallet.
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
@@ -118,29 +120,33 @@ parameter_types! {
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 }
 
+pub type PriceForChildParachainDelivery =
+	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
+
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
 pub type XcmRouter = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
-	ChildParachainRouter<
-		Runtime,
-		XcmPallet,
-		ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>,
-	>,
+	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
 
 parameter_types! {
 	pub const Dot: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
-	pub const StatemintLocation: MultiLocation = Parachain(STATEMINT_ID).into_location();
-	pub const DotForStatemint: (MultiAssetFilter, MultiLocation) = (Dot::get(), StatemintLocation::get());
+	pub const AssetHubLocation: MultiLocation = Parachain(ASSET_HUB_ID).into_location();
+	pub const DotForAssetHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), AssetHubLocation::get());
 	pub const CollectivesLocation: MultiLocation = Parachain(COLLECTIVES_ID).into_location();
 	pub const DotForCollectives: (MultiAssetFilter, MultiLocation) = (Dot::get(), CollectivesLocation::get());
+	pub const BridgeHubLocation: MultiLocation = Parachain(BRIDGE_HUB_ID).into_location();
+	pub const DotForBridgeHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Polkadot Relay recognizes/respects the Statemint chain as a teleporter.
-pub type TrustedTeleporters =
-	(xcm_builder::Case<DotForStatemint>, xcm_builder::Case<DotForCollectives>);
+/// Polkadot Relay recognizes/respects the asset hub chain as a teleporter.
+pub type TrustedTeleporters = (
+	xcm_builder::Case<DotForAssetHub>,
+	xcm_builder::Case<DotForCollectives>,
+	xcm_builder::Case<DotForBridgeHub>,
+);
 
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {
@@ -340,7 +346,7 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	type FeeManager = ();
+	type FeeManager = XcmFeesToAccount<Self, SystemParachains, AccountId, TreasuryAccount>;
 	// No bridges yet...
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
