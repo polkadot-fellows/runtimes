@@ -24,7 +24,7 @@ use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
 use sp_runtime::DispatchError;
 use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
-use xcm::latest::{Fungibility, Junction, Parent};
+use xcm::latest::{Fungibility, Junction, Parent, WeightLimit};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -63,7 +63,7 @@ where
 
 		<pallet_balances::Pallet<T>>::resolve_creating(&pallet_acc, amount);
 
-		let result = <pallet_xcm::Pallet<T>>::teleport_assets(
+		let result = <pallet_xcm::Pallet<T>>::limited_teleport_assets(
 			<<T as frame_system::Config>::RuntimeOrigin>::signed(pallet_acc.into()),
 			Box::new(Parent.into()),
 			Box::new(
@@ -73,6 +73,7 @@ where
 			),
 			Box::new((Parent, imbalance).into()),
 			0,
+			WeightLimit::Unlimited,
 		);
 
 		if let Err(err) = result {
@@ -184,7 +185,7 @@ pub mod benchmarks {
 	impl<I: Get<u32>> EnsureSuccessful for OpenHrmpChannel<I> {
 		fn ensure_successful() {
 			if let ChannelStatus::Closed = ParachainSystem::get_channel_status(I::get().into()) {
-				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks(I::get().into())
+				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(I::get().into())
 			}
 		}
 	}

@@ -22,8 +22,13 @@
 
 use pallet_transaction_payment::CurrencyAdapter;
 use runtime_common::{
-	auctions, claims, crowdloan, impl_runtime_weights, impls::DealWithFees, paras_registrar,
-	prod_or_fast, slots, BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
+	auctions, claims, crowdloan, impl_runtime_weights,
+	impls::{
+		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset,
+		VersionedMultiLocationConverter,
+	},
+	paras_registrar, prod_or_fast, slots, BlockHashCount, BlockLength, CurrencyToVote,
+	SlowAdjustingFeeUpdate,
 };
 
 use runtime_parachains::{
@@ -34,7 +39,7 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v5 as parachains_runtime_api_impl,
+	runtime_api_impl::v7 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -45,16 +50,20 @@ use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
 use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
+	genesis_builder_helper::{build_config, create_default_config},
+	parameter_types,
 	traits::{
-		ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter, KeyOwnerProofSystem,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
 };
 use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
+use pallet_identity::simple::IdentityInfo;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
@@ -75,7 +84,7 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Extrinsic as ExtrinsicT,
-		OpaqueKeys, SaturatedConversion, Verify,
+		IdentityLookup, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -85,11 +94,15 @@ use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::latest::Junction;
+use xcm::{
+	latest::{InteriorMultiLocation, Junction, Junction::PalletInstance},
+	VersionedMultiLocation,
+};
+use xcm_builder::PayOverXcm;
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_election_provider_multi_phase::Call as EPMCall;
+pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 #[cfg(feature = "std")]
 pub use pallet_staking::StakerStatus;
 use pallet_staking::UseValidatorsMap;
@@ -99,7 +112,7 @@ use sp_runtime::traits::Get;
 pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
-use polkadot_runtime_constants::{currency::*, fee::*, time::*};
+use polkadot_runtime_constants::{currency::*, fee::*, time::*, TREASURY_PALLET_ID};
 
 // Weights used in the runtime.
 mod weights;
@@ -115,6 +128,8 @@ use governance::{
 
 pub mod xcm_config;
 
+pub const LOG_TARGET: &'static str = "runtime::polkadot";
+
 impl_runtime_weights!(polkadot_runtime_constants);
 
 // Make the WASM binary available.
@@ -128,7 +143,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 9430,
+	spec_version: 1_000_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 24,
@@ -221,9 +236,10 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
 	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
 	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -231,8 +247,12 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type BaseDeposit = PreimageBaseDeposit;
-	type ByteDeposit = PreimageByteDeposit;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+	>;
 }
 
 parameter_types! {
@@ -296,9 +316,10 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
-	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type FreezeIdentifier = RuntimeFreezeReason;
+	type MaxHolds = ConstU32<1>;
+	type MaxFreezes = ConstU32<8>;
 }
 
 parameter_types! {
@@ -377,8 +398,8 @@ parameter_types! {
 	// signed config
 	pub const SignedMaxSubmissions: u32 = 16;
 	pub const SignedMaxRefunds: u32 = 16 / 4;
-	// 40 DOTs fixed deposit..
-	pub const SignedDepositBase: Balance = deposit(2, 0);
+	pub const SignedFixedDeposit: Balance = deposit(2, 0);
+	pub const SignedDepositIncreaseFactor: Percent = Percent::from_percent(10);
 	// 0.01 DOT per KB of solution data.
 	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
 	// Each good submission will get 1 DOT as reward
@@ -451,7 +472,8 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxSubmissions = SignedMaxSubmissions;
 	type SignedMaxRefunds = SignedMaxRefunds;
 	type SignedRewardBase = SignedRewardBase;
-	type SignedDepositBase = SignedDepositBase;
+	type SignedDepositBase =
+		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
 	type SignedDepositByte = SignedDepositByte;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight =
@@ -537,6 +559,54 @@ parameter_types! {
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
 }
 
+/// Custom version of `runtime_commong::era_payout` somewhat tailored for Polkadot's crowdloan
+/// unlock history. The only tweak should be
+///
+/// ```diff
+/// - let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 200u64);
+/// + let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 300u64);
+/// ```
+///
+/// See <https://forum.polkadot.network/t/adjusting-polkadots-ideal-staking-rate-calculation/3897>.
+fn polkadot_era_payout(
+	total_staked: Balance,
+	total_stakable: Balance,
+	max_annual_inflation: Perquintill,
+	period_fraction: Perquintill,
+	auctioned_slots: u64,
+) -> (Balance, Balance) {
+	use pallet_staking_reward_fn::compute_inflation;
+	use sp_runtime::traits::Saturating;
+
+	let min_annual_inflation = Perquintill::from_rational(25u64, 1000u64);
+	let delta_annual_inflation = max_annual_inflation.saturating_sub(min_annual_inflation);
+
+	// 20% reserved for up to 60 slots.
+	let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 300u64);
+
+	// Therefore the ideal amount at stake (as a percentage of total issuance) is 75% less the
+	// amount that we expect to be taken up with auctions.
+	let ideal_stake = Perquintill::from_percent(75).saturating_sub(auction_proportion);
+
+	let stake = Perquintill::from_rational(total_staked, total_stakable);
+	let falloff = Perquintill::from_percent(5);
+	let adjustment = compute_inflation(stake, ideal_stake, falloff);
+	let staking_inflation =
+		min_annual_inflation.saturating_add(delta_annual_inflation * adjustment);
+
+	let max_payout = period_fraction * max_annual_inflation * total_stakable;
+	let staking_payout = (period_fraction * staking_inflation) * total_stakable;
+	let rest = max_payout.saturating_sub(staking_payout);
+
+	let other_issuance = total_stakable.saturating_sub(total_staked);
+	if total_staked > other_issuance {
+		let _cap_rest = Perquintill::from_rational(other_issuance, total_staked) * staking_payout;
+		// We don't do anything with this, but if we wanted to, we could introduce a cap on the
+		// treasury amount with: `rest = rest.min(cap_rest);`
+	}
+	(staking_payout, rest)
+}
+
 pub struct EraPayout;
 impl pallet_staking::EraPayout<Balance> for EraPayout {
 	fn era_payout(
@@ -555,7 +625,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		runtime_common::impls::era_payout(
+		polkadot_era_payout(
 			total_staked,
 			total_issuance,
 			MAX_ANNUAL_INFLATION,
@@ -626,6 +696,7 @@ impl pallet_identity::Config for Runtime {
 	type SubAccountDeposit = SubAccountDeposit;
 	type MaxSubAccounts = MaxSubAccounts;
 	type MaxAdditionalFields = MaxAdditionalFields;
+	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
 	type MaxRegistrars = MaxRegistrars;
 	type Slashed = Treasury;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
@@ -640,6 +711,10 @@ parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	// The asset's interior location for the paying account. This is the Treasury
+	// pallet instance (which sits at index 19).
+	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(TREASURY_PALLET_ID).into();
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -670,6 +745,23 @@ impl pallet_treasury::Config for Runtime {
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendOrigin = TreasurySpender;
+	type AssetKind = VersionedLocatableAsset;
+	type Beneficiary = VersionedMultiLocation;
+	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
+	type Paymaster = PayOverXcm<
+		TreasuryInteriorLocation,
+		crate::xcm_config::XcmRouter,
+		crate::XcmPallet,
+		ConstU32<{ 6 * HOURS }>,
+		Self::Beneficiary,
+		Self::AssetKind,
+		LocatableAssetConverter,
+		VersionedMultiLocationConverter,
+	>;
+	type BalanceConverter = AssetRate;
+	type PayoutPeriod = PayoutSpendPeriod;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
 }
 
 parameter_types! {
@@ -795,7 +887,7 @@ where
 		);
 		let raw_payload = SignedPayload::new(call, extra)
 			.map_err(|e| {
-				log::warn!("Unable to create signed payload: {:?}", e);
+				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {:?}", e);
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
@@ -1283,6 +1375,7 @@ parameter_types! {
 impl pallet_nomination_pools::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = runtime_common::BalanceToU256;
 	type U256ToBalance = runtime_common::U256ToBalance;
@@ -1311,13 +1404,25 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
 			pallet_nomination_pools::MaxPoolMembersPerPool::<Runtime>::put(0);
 			pallet_nomination_pools::MaxPoolMembers::<Runtime>::put(0);
 
-			log::info!(target: "runtime::polkadot", "pools config initiated 🎉");
+			log::info!(target: LOG_TARGET, "pools config initiated 🎉");
 			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 5)
 		} else {
-			log::info!(target: "runtime::polkadot", "pools config already initiated 😏");
+			log::info!(target: LOG_TARGET, "pools config already initiated 😏");
 			<Runtime as frame_system::Config>::DbWeight::get().reads(1)
 		}
 	}
+}
+
+impl pallet_asset_rate::Config for Runtime {
+	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type CreateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type RemoveOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type UpdateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type Currency = Balances;
+	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
 construct_runtime! {
@@ -1326,7 +1431,7 @@ construct_runtime! {
 		// Basic stuff; balances is uncallable initially.
 		System: frame_system::{Pallet, Call, Storage, Config<T>, Event<T>} = 0,
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 1,
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 10,
+		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 10,
 
 		// Babe must be before session.
 		Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 2,
@@ -1382,7 +1487,7 @@ construct_runtime! {
 		VoterList: pallet_bags_list::<Instance1>::{Pallet, Call, Storage, Event<T>} = 37,
 
 		// Nomination pools: extension to staking.
-		NominationPools: pallet_nomination_pools::{Pallet, Call, Storage, Event<T>, Config<T>} = 39,
+		NominationPools: pallet_nomination_pools::{Pallet, Call, Storage, Event<T>, Config<T>, FreezeReason} = 39,
 
 		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 40,
@@ -1415,6 +1520,9 @@ construct_runtime! {
 
 		// Generalized message queue
 		MessageQueue: pallet_message_queue::{Pallet, Call, Storage, Event<T>} = 100,
+
+		// Asset rate.
+		AssetRate: pallet_asset_rate::{Pallet, Call, Storage, Event<T>} = 101,
 	}
 }
 
@@ -1521,7 +1629,6 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_im_online::migration::v1::Migration<Runtime>,
 		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		parachains_scheduler::migration::v1::MigrateToV1<Runtime>,
 		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
 
 		// Gov v1 storage migrations
@@ -1541,6 +1648,11 @@ pub mod migrations {
 		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
 		// Migrate parachain info format
 		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
+
+		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
+		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
+
+		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>
 	);
 }
 
@@ -1608,6 +1720,7 @@ mod benches {
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
+		[pallet_asset_rate, AssetRate]
 		// XCM
 		[pallet_xcm, XcmPallet]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
@@ -2042,10 +2155,20 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
+	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+		fn create_default_config() -> Vec<u8> {
+			create_default_config::<RuntimeGenesisConfig>()
+		}
+
+		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+			build_config::<RuntimeGenesisConfig>(config)
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
-			log::info!("try-runtime::on_runtime_upgrade polkadot.");
+			log::info!(target: LOG_TARGET, "try-runtime::on_runtime_upgrade polkadot.");
 			let weight = Executive::try_runtime_upgrade(checks).unwrap();
 			(weight, BlockWeights::get().max_block)
 		}
@@ -2103,7 +2226,7 @@ sp_api::impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 			use xcm::latest::prelude::*;
-			use xcm_config::{XcmConfig, StatemintLocation, TokenLocation, LocalCheckAccount, SovereignAccountOf};
+			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, LocalCheckAccount, SovereignAccountOf};
 
 			impl pallet_session_benchmarking::Config for Runtime {}
 			impl pallet_offences_benchmarking::Config for Runtime {}
@@ -2117,11 +2240,26 @@ sp_api::impl_runtime_apis! {
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
 			whitelist.push(treasury_key.to_vec().into());
 
+			parameter_types! {
+				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+					TokenLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+				pub ToParachain: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+			}
+
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = XcmConfig;
 				type AccountIdConverter = SovereignAccountOf;
+				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					XcmConfig,
+					ExistentialDepositMultiAsset,
+					xcm_config::PriceForChildParachainDelivery,
+					ToParachain,
+					(),
+				>;
 				fn valid_destination() -> Result<MultiLocation, BenchmarkError> {
-					Ok(StatemintLocation::get())
+					Ok(AssetHubLocation::get())
 				}
 				fn worst_case_holding(_depositable_count: u32) -> MultiAssets {
 					// Polkadot only knows about DOT
@@ -2131,7 +2269,7 @@ sp_api::impl_runtime_apis! {
 
 			parameter_types! {
 				pub const TrustedTeleporter: Option<(MultiLocation, MultiAsset)> = Some((
-					StatemintLocation::get(),
+					AssetHubLocation::get(),
 					MultiAsset { id: Concrete(TokenLocation::get()), fun: Fungible(1 * UNITS) }
 				));
 				pub const TrustedReserve: Option<(MultiLocation, MultiAsset)> = None;
@@ -2153,6 +2291,7 @@ sp_api::impl_runtime_apis! {
 			}
 
 			impl pallet_xcm_benchmarks::generic::Config for Runtime {
+				type TransactAsset = Balances;
 				type RuntimeCall = RuntimeCall;
 
 				fn worst_case_response() -> (u64, Response) {
@@ -2170,15 +2309,15 @@ sp_api::impl_runtime_apis! {
 				}
 
 				fn transact_origin_and_runtime_call() -> Result<(MultiLocation, RuntimeCall), BenchmarkError> {
-					Ok((StatemintLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
+					Ok((AssetHubLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
 				}
 
 				fn subscribe_origin() -> Result<MultiLocation, BenchmarkError> {
-					Ok(StatemintLocation::get())
+					Ok(AssetHubLocation::get())
 				}
 
 				fn claimable_asset() -> Result<(MultiLocation, MultiLocation, MultiAssets), BenchmarkError> {
-					let origin = StatemintLocation::get();
+					let origin = AssetHubLocation::get();
 					let assets: MultiAssets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
 					let ticket = MultiLocation { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
@@ -2347,7 +2486,7 @@ mod test_fees {
 	fn signed_deposit_is_sensible() {
 		// ensure this number does not change, or that it is checked after each change.
 		// a 1 MB solution should take (40 + 10) DOTs of deposit.
-		let deposit = SignedDepositBase::get() + (SignedDepositByte::get() * 1024 * 1024);
+		let deposit = SignedFixedDeposit::get() + (SignedDepositByte::get() * 1024 * 1024);
 		assert_eq_error_rate!(deposit, 50 * DOLLARS, DOLLARS);
 	}
 }
@@ -2406,8 +2545,12 @@ mod test {
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
-	use frame_support::{dispatch::DispatchInfo, traits::OnFinalize};
+	use frame_support::{
+		dispatch::DispatchInfo,
+		traits::{OnFinalize, PalletInfoAccess},
+	};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
+	use scale_info::TypeInfo;
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
 
@@ -2449,6 +2592,11 @@ mod multiplier_tests {
 		.ref_time() as f32;
 		println!("ratio of block weight for full batch fast-unstake {}", on_idle / block_time);
 		assert!(on_idle / block_time <= 0.5f32)
+	}
+
+	#[test]
+	fn treasury_pallet_index_is_correct() {
+		assert_eq!(TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
 
 	#[test]
@@ -2530,6 +2678,13 @@ mod multiplier_tests {
 			blocks += 1;
 		}
 	}
+
+	#[test]
+	fn ensure_xcm_metadata_is_correct() {
+		let path = xcm::VersionedXcm::<()>::type_info().path;
+		// Ensure that the name doesn't include `staging` (from the pallet name)
+		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
+	}
 }
 
 #[cfg(all(test, feature = "try-runtime"))]
@@ -2537,21 +2692,15 @@ mod remote_tests {
 	use super::*;
 	use frame_try_runtime::{runtime_decl_for_try_runtime::TryRuntime, UpgradeCheckSelect};
 	use remote_externalities::{
-		Builder, Mode, OfflineConfig, OnlineConfig, SnapshotConfig, Transport,
+		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig, Transport,
 	};
 	use std::env::var;
 
-	#[tokio::test]
-	async fn run_migrations() {
-		if var("RUN_MIGRATION_TESTS").is_err() {
-			return
-		}
-
-		sp_tracing::try_init_simple();
+	async fn remote_ext_test_setup() -> RemoteExternalities<Block> {
 		let transport: Transport =
 			var("WS").unwrap_or("wss://rpc.polkadot.io:443".to_string()).into();
 		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
-		let mut ext = Builder::<Block>::default()
+		Builder::<Block>::default()
 			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
 				Mode::OfflineOrElseOnline(
 					OfflineConfig { state_snapshot: state_snapshot.clone() },
@@ -2566,7 +2715,63 @@ mod remote_tests {
 			})
 			.build()
 			.await
-			.unwrap();
+			.unwrap()
+	}
+
+	#[tokio::test]
+	async fn dispatch_all_proposals() {
+		if var("RUN_OPENGOV_TEST").is_err() {
+			return
+		}
+
+		sp_tracing::try_init_simple();
+		let mut ext = remote_ext_test_setup().await;
+		ext.execute_with(|| {
+			type Ref = pallet_referenda::ReferendumInfoOf<Runtime, ()>;
+			type RefStatus = pallet_referenda::ReferendumStatusOf<Runtime, ()>;
+			use sp_runtime::traits::Dispatchable;
+			let all_refs: Vec<(u32, RefStatus)> =
+				pallet_referenda::ReferendumInfoFor::<Runtime>::iter()
+					.filter_map(|(idx, reff): (_, Ref)| {
+						if let Ref::Ongoing(ref_status) = reff {
+							Some((idx, ref_status))
+						} else {
+							None
+						}
+					})
+					.collect::<Vec<_>>();
+
+			for (ref_index, referenda) in all_refs {
+				log::info!(target: LOG_TARGET, "🚀 executing referenda #{}", ref_index);
+				let RefStatus { origin, proposal, .. } = referenda;
+				// we do more or less what the scheduler will do under the hood, as best as we can
+				// imitate:
+				let (call, _len) = match <
+					<Runtime as pallet_scheduler::Config>::Preimages
+					as
+					frame_support::traits::QueryPreimage
+				>::peek(&proposal) {
+					Ok(x) => x,
+					Err(e) => {
+						log::error!(target: LOG_TARGET, "failed to get preimage: {:?}", e);
+						continue;
+					}
+				};
+
+				let dispatch_result = call.dispatch(origin.clone().into());
+				log::info!(target: LOG_TARGET, "outcome of dispatch with origin {:?}: {:?}", origin, dispatch_result);
+			}
+		});
+	}
+
+	#[tokio::test]
+	async fn run_migrations() {
+		if var("RUN_MIGRATION_TESTS").is_err() {
+			return
+		}
+
+		sp_tracing::try_init_simple();
+		let mut ext = remote_ext_test_setup().await;
 		ext.execute_with(|| Runtime::on_runtime_upgrade(UpgradeCheckSelect::PreAndPost));
 	}
 
