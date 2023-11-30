@@ -136,7 +136,7 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Kusama Relay recognizes/respects AssetHub, Encointer, and BridgeHub chains as teleporters.
+/// Kusama Relay recognizes/respects AssetHub, Encointer and BridgeHub chains as teleporters.
 pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForAssetHub>,
 	xcm_builder::Case<KsmForEncointer>,

@@ -713,17 +713,6 @@ pub mod bridging {
 					// and nothing else
 				),
 			>;
-
-		impl Contains<RuntimeCall> for ToKusamaXcmRouter {
-			fn contains(call: &RuntimeCall) -> bool {
-				matches!(
-					call,
-					RuntimeCall::ToKusamaXcmRouter(
-						pallet_xcm_bridge_hub_router::Call::report_bridge_status { .. }
-					)
-				)
-			}
-		}
 	}
 
 	/// Benchmarks helper for bridging configuration.

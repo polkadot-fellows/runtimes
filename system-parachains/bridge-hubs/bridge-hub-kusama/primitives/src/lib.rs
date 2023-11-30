@@ -92,11 +92,11 @@ frame_support::parameter_types! {
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
 	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 16196533317;
 
-	/// Transaction fee that is paid at the Rococo BridgeHub for delivering single inbound message.
+	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
 	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 0;
 
-	/// Transaction fee that is paid at the Rococo BridgeHub for delivering single outbound message confirmation.
+	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
 	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 0;
 }

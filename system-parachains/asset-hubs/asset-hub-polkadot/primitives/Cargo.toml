@@ -8,8 +8,8 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive", "max-encoded-len"] }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 
 # Bridge Dependencies
 bp-xcm-bridge-hub-router = { default-features = false , version = "0.3.0" }

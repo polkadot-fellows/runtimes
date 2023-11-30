@@ -821,17 +821,6 @@ pub mod bridging {
 					// and nothing else
 				),
 			>;
-
-		impl Contains<RuntimeCall> for ToPolkadotXcmRouter {
-			fn contains(call: &RuntimeCall) -> bool {
-				matches!(
-					call,
-					RuntimeCall::ToPolkadotXcmRouter(
-						pallet_xcm_bridge_hub_router::Call::report_bridge_status { .. }
-					)
-				)
-			}
-		}
 	}
 
 	/// Benchmarks helper for bridging configuration.

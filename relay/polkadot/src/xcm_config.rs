@@ -141,7 +141,7 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Polkadot Relay recognizes/respects the asset hub chain as a teleporter.
+/// Polkadot Relay recognizes/respects AssetHub, Collectives and BridgeHub chains as teleporters.
 pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForAssetHub>,
 	xcm_builder::Case<DotForCollectives>,
