@@ -4,15 +4,15 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2023-11-30, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `MusXroom`, CPU: `13th Gen Intel(R) Core(TM) i7-13650HX`
-//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("ahk_local.json")`, DB CACHE: 1024
+//! HOSTNAME: `svyatonik-benchmarking`, CPU: `Intel(R) Xeon(R) CPU @ 2.80GHz`
+//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("ah-kusama-local-raw.json")`, DB CACHE: 1024
 
 // Executed Command:
 // ../polkadot-sdk/target/release/polkadot-parachain-benchmarks
 // benchmark
 // pallet
 // --chain
-// ahk_local.json
+// ah-kusama-local-raw.json
 // --pallet
 // pallet-xcm-bridge-hub-router
 // --extrinsic
@@ -42,8 +42,8 @@ impl<T: frame_system::Config> pallet_xcm_bridge_hub_router::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `159`
 		//  Estimated: `1644`
-		// Minimum execution time: 6_296_000 picoseconds.
-		Weight::from_parts(6_581_000, 0)
+		// Minimum execution time: 14_255_000 picoseconds.
+		Weight::from_parts(14_886_000, 0)
 			.saturating_add(Weight::from_parts(0, 1644))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -56,8 +56,8 @@ impl<T: frame_system::Config> pallet_xcm_bridge_hub_router::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `111`
 		//  Estimated: `1596`
-		// Minimum execution time: 3_176_000 picoseconds.
-		Weight::from_parts(3_422_000, 0)
+		// Minimum execution time: 6_385_000 picoseconds.
+		Weight::from_parts(6_602_000, 0)
 			.saturating_add(Weight::from_parts(0, 1596))
 			.saturating_add(T::DbWeight::get().reads(2))
 	}
@@ -67,8 +67,8 @@ impl<T: frame_system::Config> pallet_xcm_bridge_hub_router::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `83`
 		//  Estimated: `1502`
-		// Minimum execution time: 7_197_000 picoseconds.
-		Weight::from_parts(7_468_000, 0)
+		// Minimum execution time: 17_963_000 picoseconds.
+		Weight::from_parts(18_673_000, 0)
 			.saturating_add(Weight::from_parts(0, 1502))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -101,8 +101,8 @@ impl<T: frame_system::Config> pallet_xcm_bridge_hub_router::WeightInfo for Weigh
 		// Proof Size summary in bytes:
 		//  Measured:  `392`
 		//  Estimated: `3857`
-		// Minimum execution time: 34_121_000 picoseconds.
-		Weight::from_parts(34_917_000, 0)
+		// Minimum execution time: 79_192_000 picoseconds.
+		Weight::from_parts(81_737_000, 0)
 			.saturating_add(Weight::from_parts(0, 3857))
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(4))
