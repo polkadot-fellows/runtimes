@@ -1683,7 +1683,7 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
-    pallet_nomination_pools::migration::versioned_migrations::V7ToV8<Runtime>,
+		pallet_nomination_pools::migration::versioned_migrations::V7ToV8<Runtime>,
 	);
 }
 
