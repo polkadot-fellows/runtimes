@@ -722,18 +722,9 @@ pub mod bridging {
 	parameter_types! {
 		/// Base price of every byte of the Kusama -> Polkadot message. Can be adjusted via
 		/// governance `set_storage` call.
-		///
-		/// Default value is our estimation of the:
-		///
-		/// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Kusama bridge Hub;
-		///
-		/// 2) the approximate cost of Kusama -> Polkadot message delivery transaction on Polkadot Bridge Hub,
-		///    converted into KSMs using 1:5 conversion rate;
-		///
-		/// 3) the approximate cost of Kusama -> Polkadot message confirmation transaction on Kusama Bridge Hub.
-		pub storage XcmBridgeHubRouterBaseFee: Balance = bp_bridge_hub_kusama::BridgeHubKusamaBaseXcmFeeInKsms::get()
-				.saturating_add(bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get().saturating_mul(30))
-				.saturating_add(bp_bridge_hub_kusama::BridgeHubKusamaBaseConfirmationFeeInKsms::get());
+		pub storage XcmBridgeHubRouterBaseFee: Balance = bp_bridge_hub_kusama::estimate_kusama_to_polkadot_message_fee(
+			bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get()
+		);
 		/// Price of every byte of the Kusama -> Polkadot message. Can be adjusted via
 		/// governance `set_storage` call.
 		pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();

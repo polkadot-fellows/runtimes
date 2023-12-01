@@ -9,6 +9,10 @@ license.workspace = true
 
 [dependencies]
 
+# Local
+kusama-runtime-constants = { path = "../../../../relay/kusama/constants", default-features = false}
+polkadot-runtime-constants = { path = "../../../../relay/polkadot/constants", default-features = false}
+
 # Bridge Dependencies
 bp-bridge-hub-cumulus = { default-features = false , version = "0.4.0" }
 bp-runtime = { default-features = false , version = "0.4.0" }
@@ -27,6 +31,8 @@ std = [
 	"bp-messages/std",
 	"bp-runtime/std",
 	"frame-support/std",
+	"kusama-runtime-constants/std",
+	"polkadot-runtime-constants/std",
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-std/std",

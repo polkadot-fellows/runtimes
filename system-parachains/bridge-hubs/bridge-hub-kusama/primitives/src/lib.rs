@@ -30,7 +30,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
 
 /// BridgeHubKusama parachain.
 #[derive(RuntimeDebug)]
@@ -98,4 +98,53 @@ frame_support::parameter_types! {
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
 	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 61_600_495_508;
+}
+
+/// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending
+/// message from Kusama Bridge Hub to Polkadot Bridge Hub.
+pub fn estimate_kusama_to_polkadot_message_fee(
+	bridge_hub_polkadot_base_delivery_fee_in_udots: Balance,
+) -> Balance {
+	// Sender must pay:
+	//
+	// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Kusama bridge Hub;
+	//
+	// 2) the approximate cost of Kusama -> Polkadot message delivery transaction on Polkadot Bridge Hub,
+	//    converted into KSMs using 1:5 conversion rate;
+	//
+	// 3) the approximate cost of Kusama -> Polkadot message confirmation transaction on Kusama Bridge Hub.
+	BridgeHubKusamaBaseXcmFeeInKsms::get()
+		.saturating_add(convert_from_udot_to_uksm(bridge_hub_polkadot_base_delivery_fee_in_udots))
+		.saturating_add(BridgeHubKusamaBaseConfirmationFeeInKsms::get())
+}
+
+/// Convert from uDOTs to uKSMs.
+fn convert_from_udot_to_uksm(price_in_udot: Balance) -> Balance {
+	// assuming exchange rate is 5 DOTs for 1 KSM
+	let ksm_to_dot_economic_rate = FixedU128::from_rational(1, 5);
+	// tokens have different nominals and we need to take that into account
+	let nominal_ratio = FixedU128::from_rational(
+		kusama_runtime_constants::currency::UNITS,
+		polkadot_runtime_constants::currency::UNITS,
+	);
+
+	ksm_to_dot_economic_rate
+		.saturating_mul(nominal_ratio)
+		.saturating_mul(FixedU128::saturating_from_integer(price_in_udot))
+		.into_inner() / FixedU128::DIV
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn convert_from_udot_to_uksm_works() {
+		let price_in_udot = 77 * polkadot_runtime_constants::currency::UNITS;
+		let same_price_in_uksm = convert_from_udot_to_uksm(price_in_udot);
+
+		let price_in_dot = FixedU128::from_rational(price_in_udot, polkadot_runtime_constants::currency::UNITS);
+		let price_in_ksm = FixedU128::from_rational(same_price_in_uksm, kusama_runtime_constants::currency::UNITS);
+		assert_eq!(price_in_dot / FixedU128::saturating_from_integer(5), price_in_ksm);
+	}
 }
