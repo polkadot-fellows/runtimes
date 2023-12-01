@@ -20,8 +20,8 @@ mod origins;
 mod tracks;
 use crate::{
 	impls::ToParentTreasury, weights, xcm_config::TreasurerBodyId, AccountId, AssetRate, Balance,
-	Balances, BlockNumber, FellowshipReferenda, GovernanceLocation, PolkadotTreasuryAccount,
-	Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
+	Balances, FellowshipReferenda, GovernanceLocation, PolkadotTreasuryAccount, Preimage, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
 };
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
@@ -40,9 +40,7 @@ use parachains_common::polkadot::account;
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter,
 };
-use polkadot_runtime_constants::{
-	currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX, DOLLARS,
-};
+use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{
@@ -255,14 +253,10 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 }
 
 parameter_types! {
-	// TODO: reference the constant value from common crate with polkadot-sdk 1.5
+	// TODO: reference the constant value from common crate when polkadot-sdk 1.5 is released.
 	pub const FellowshipTreasuryPalletId: PalletId = PalletId(*b"py/feltr");
-	pub const ProposalBond: Permill = Permill::from_percent(1);
-	pub const ProposalBondMinimum: Balance = 5 * DOLLARS;
-	pub const ProposalBondMaximum: Balance = 10 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 7 * DAYS;
+	pub const HundredPercent: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
 	// pallet instance (which sits at index 65).
@@ -284,23 +278,27 @@ pub type FellowshipTreasuryPaymaster = PayOverXcm<
 pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 
 impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
+	// The creation of proposals via the treasury pallet is deprecated and should not be utilized.
+	// Instead, public or fellowship referenda should be used to propose and command the treasury
+	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
+	// discourage its use.
+	// TODO: replace with `NeverEnsure` once polkadot-sdk 1.5 is released.
+	type ApproveOrigin = EnsureRoot<AccountId>;
+	type OnSlash = ();
+	type ProposalBond = HundredPercent;
+	type ProposalBondMinimum = MaxBalance;
+	type ProposalBondMaximum = MaxBalance;
+	// end.
+
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
 	type PalletId = FellowshipTreasuryPalletId;
 	type Currency = Balances;
-	// This parameter guards a deprecated call and should not be used.
-	// TODO: replace by NeverEnsure with polkadot-sdk 1.5
-	type ApproveOrigin = EnsureRoot<AccountId>;
 	type RejectOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
 	>;
-	type RuntimeEvent = RuntimeEvent;
-	// This type should never be triggered since it meant for deprecated functionality.
-	type OnSlash = ();
-	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ProposalBondMinimum;
-	type ProposalBondMaximum = ProposalBondMaximum;
-	type SpendPeriod = SpendPeriod;
+	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
 	type BurnDestination = ();
 	type SpendFunds = ();
@@ -326,13 +324,13 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
 	type BalanceConverter = AssetRate;
-	type PayoutPeriod = PayoutSpendPeriod;
+	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
 }
 
-// TODO: replace by [`polkadot_runtime_common::impls::benchmarks::TreasuryArguments`] with
-// polkadot-sdk 1.5
+// TODO: replace by [`polkadot_runtime_common::impls::benchmarks::TreasuryArguments`] when
+// polkadot-sdk 1.5 is released.
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks {
 	use super::VersionedLocatableAsset;
