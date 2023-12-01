@@ -60,7 +60,7 @@ fn construct_extrinsic(
 		frame_system::CheckNonce::<Runtime>::from(0),
 		frame_system::CheckWeight::<Runtime>::new(),
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
-		BridgeRejectObsoleteHeadersAndMessages::default(),
+		BridgeRejectObsoleteHeadersAndMessages,
 		(RefundBridgeHubPolkadotMessages::default()),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
