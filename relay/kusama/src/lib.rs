@@ -2394,7 +2394,7 @@ sp_api::impl_runtime_apis! {
 				}
 
 				fn subscribe_origin() -> Result<MultiLocation, BenchmarkError> {
-					Ok(AssetHub::get())
+					Ok(AssetHubLocation::get())
 				}
 
 				fn claimable_asset() -> Result<(MultiLocation, MultiLocation, MultiAssets), BenchmarkError> {
