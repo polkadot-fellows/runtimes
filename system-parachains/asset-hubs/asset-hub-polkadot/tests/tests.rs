@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Tests for the Statemint (Polkadot Assets Hub) chain.
+//! Tests for the Polkadot Asset Hub (previously known as Statemint) chain.
 
 use asset_hub_polkadot_runtime::xcm_config::{
 	AssetFeeAsExistentialDepositMultiplierFeeCharger, CheckingAccount, DotLocation,
