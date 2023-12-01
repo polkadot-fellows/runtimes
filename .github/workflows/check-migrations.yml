@@ -42,6 +42,10 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: migrations-v0
+
       - name: Checkout sources
         uses: actions/checkout@v3
 
