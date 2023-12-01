@@ -114,9 +114,20 @@ jobs:
           EOF
 
           for JSON in $(<<<$CONTEXT sort -sr)
-          do tee -a DRAFT <<-EOF
+          do
+          SPEC_NAME=$(WASM 'core_version.specName')
+          # Check for spec names and adjust the heading accordingly
+          if [[ "$SPEC_NAME" == "statemint" ]]; then
+              HEADING="Asset Hub Polkadot (previously Statemint)"
+          elif [[ "$SPEC_NAME" == "statemine" ]]; then
+              HEADING="Asset Hub Kusama (previously Statemine)"
+          else
+              HEADING=$(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
+          fi
 
-          ### $(WASM 'core_version.specName / "-" | map(. / "" | first |= ascii_upcase | add) | join(" ")')
+          tee -a DRAFT <<-EOF
+
+          ### $HEADING
           ~~~
           🏋️ Runtime Size:           $(numfmt --to iec-i --format "%.2f" $(WASM size)) ($(WASM size) bytes)
           🗜 Compressed:             $(WASM 'compression | if .compressed then "Yes: \(1 - .size_compressed / .size_decompressed | . * 10000 | round / 100)%" else "No" end')
