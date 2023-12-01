@@ -81,7 +81,7 @@ parameter_types! {
 	);
 
 	/// Identifier of the sibling Kusama Asset Hub parachain.
-	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID;
+	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// A route (XCM location and bridge lane) that the Kusama Asset Hub -> Polkadot Asset Hub
 	/// message is following.
 	pub FromAssetHubKusamaToAssetHubPolkadotRoute: SenderAndLane = SenderAndLane::new(
