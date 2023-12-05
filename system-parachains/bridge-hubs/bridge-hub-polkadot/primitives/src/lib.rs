@@ -96,12 +96,14 @@ pub fn estimate_polkadot_to_kusama_message_fee(
 ) -> Balance {
 	// Sender must pay:
 	//
-	// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Polkadot bridge Hub;
+	// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Polkadot bridge
+	//    Hub;
 	//
-	// 2) the approximate cost of Polkadot -> Kusama message delivery transaction on Kusama Bridge Hub,
-	//    converted into KSMs using 1:5 conversion rate;
+	// 2) the approximate cost of Polkadot -> Kusama message delivery transaction on Kusama Bridge
+	//    Hub, converted into KSMs using 1:5 conversion rate;
 	//
-	// 3) the approximate cost of Polkadot -> Kusama message confirmation transaction on Polkadot Bridge Hub.
+	// 3) the approximate cost of Polkadot -> Kusama message confirmation transaction on Polkadot
+	//    Bridge Hub.
 	BridgeHubPolkadotBaseXcmFeeInDots::get()
 		.saturating_add(convert_from_uksm_to_udot(bridge_hub_kusama_base_delivery_fee_in_uksms))
 		.saturating_add(BridgeHubPolkadotBaseConfirmationFeeInDots::get())
@@ -120,7 +122,8 @@ fn convert_from_uksm_to_udot(price_in_uksm: Balance) -> Balance {
 	dot_to_ksm_economic_rate
 		.saturating_mul(nominal_ratio)
 		.saturating_mul(FixedU128::saturating_from_integer(price_in_uksm))
-		.into_inner() / FixedU128::DIV
+		.into_inner() /
+		FixedU128::DIV
 }
 
 #[cfg(test)]
@@ -132,8 +135,12 @@ mod tests {
 		let price_in_uksm = 77 * kusama_runtime_constants::currency::UNITS;
 		let same_price_in_udot = convert_from_uksm_to_udot(price_in_uksm);
 
-		let price_in_ksm = FixedU128::from_rational(price_in_uksm, kusama_runtime_constants::currency::UNITS);
-		let price_in_dot = FixedU128::from_rational(same_price_in_udot, polkadot_runtime_constants::currency::UNITS);
+		let price_in_ksm =
+			FixedU128::from_rational(price_in_uksm, kusama_runtime_constants::currency::UNITS);
+		let price_in_dot = FixedU128::from_rational(
+			same_price_in_udot,
+			polkadot_runtime_constants::currency::UNITS,
+		);
 		assert_eq!(price_in_dot / FixedU128::saturating_from_integer(5), price_in_ksm);
 	}
 }

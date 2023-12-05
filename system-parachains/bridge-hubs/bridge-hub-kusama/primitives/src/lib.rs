@@ -107,12 +107,14 @@ pub fn estimate_kusama_to_polkadot_message_fee(
 ) -> Balance {
 	// Sender must pay:
 	//
-	// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Kusama bridge Hub;
+	// 1) an approximate cost of XCM execution (`ExportMessage` and surroundings) at Kusama bridge
+	//    Hub;
 	//
-	// 2) the approximate cost of Kusama -> Polkadot message delivery transaction on Polkadot Bridge Hub,
-	//    converted into KSMs using 1:5 conversion rate;
+	// 2) the approximate cost of Kusama -> Polkadot message delivery transaction on Polkadot Bridge
+	//    Hub, converted into KSMs using 1:5 conversion rate;
 	//
-	// 3) the approximate cost of Kusama -> Polkadot message confirmation transaction on Kusama Bridge Hub.
+	// 3) the approximate cost of Kusama -> Polkadot message confirmation transaction on Kusama
+	//    Bridge Hub.
 	BridgeHubKusamaBaseXcmFeeInKsms::get()
 		.saturating_add(convert_from_udot_to_uksm(bridge_hub_polkadot_base_delivery_fee_in_udots))
 		.saturating_add(BridgeHubKusamaBaseConfirmationFeeInKsms::get())
@@ -131,7 +133,8 @@ fn convert_from_udot_to_uksm(price_in_udot: Balance) -> Balance {
 	ksm_to_dot_economic_rate
 		.saturating_mul(nominal_ratio)
 		.saturating_mul(FixedU128::saturating_from_integer(price_in_udot))
-		.into_inner() / FixedU128::DIV
+		.into_inner() /
+		FixedU128::DIV
 }
 
 #[cfg(test)]
@@ -143,8 +146,10 @@ mod tests {
 		let price_in_udot = 77 * polkadot_runtime_constants::currency::UNITS;
 		let same_price_in_uksm = convert_from_udot_to_uksm(price_in_udot);
 
-		let price_in_dot = FixedU128::from_rational(price_in_udot, polkadot_runtime_constants::currency::UNITS);
-		let price_in_ksm = FixedU128::from_rational(same_price_in_uksm, kusama_runtime_constants::currency::UNITS);
+		let price_in_dot =
+			FixedU128::from_rational(price_in_udot, polkadot_runtime_constants::currency::UNITS);
+		let price_in_ksm =
+			FixedU128::from_rational(same_price_in_uksm, kusama_runtime_constants::currency::UNITS);
 		assert_eq!(price_in_dot / FixedU128::saturating_from_integer(5), price_in_ksm);
 	}
 }
