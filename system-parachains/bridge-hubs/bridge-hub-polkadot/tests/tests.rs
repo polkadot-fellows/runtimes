@@ -287,17 +287,20 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 		);
 }
 
-// Following two tests have to be implemented properly after upgrade to 1.4.
-// See https://github.com/paritytech/polkadot-sdk/pull/2139/ for impl details
+// Following two tests have to be implemented properly after upgrade to 1.6.
+// See https://github.com/paritytech/polkadot-sdk/pull/2139/ and https://github.com/paritytech/parity-bridges-common/pull/2728
+// for impl details
 //
 // Until that, anyone can run it manually by doing following:
 //
 // 1) cargo vendor ../vendored-dependencies
-// 2) change workspace Cargo.toml:
+// 2) apply relevant changes from above PRs
+// 3) change workspace Cargo.toml:
 // [patch.crates-io]
+// bp-polkadot-core = { path = "../vendored-dependencies/bp-polkadot-core" }
 // bridge-hub-test-utils = { path = "../vendored-dependencies/bridge-hub-test-utils" }
 // bridge-runtime-common = { path = "../vendored-dependencies/bridge-runtime-common" }
-// 3) add actual tests code and do `cargo test -p bridge-hub-polkadot-runtime`
+// 4) add actual tests code and do `cargo test -p bridge-hub-polkadot-runtime`
 
 #[test]
 pub fn can_calculate_fee_for_complex_message_delivery_transaction() {}
