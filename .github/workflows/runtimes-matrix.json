@@ -1,0 +1,57 @@
+[
+  {
+    "name": "polkadot",
+    "package": "polkadot-runtime",
+    "path": "relay/polkadot",
+    "uri": "wss://polkadot-try-runtime-node.parity-chains.parity.io:443",
+    "is_relay": true
+  },
+  {
+    "name": "kusama",
+    "package": "staging-kusama-runtime",
+    "path": "relay/kusama",
+    "uri": "wss://kusama-try-runtime-node.parity-chains.parity.io:443",
+    "is_relay": true
+  },
+  {
+    "name": "glutton-kusama",
+    "package": "glutton-kusama-runtime",
+    "path": "system-parachains/gluttons/glutton-kusama",
+    "is_relay": false
+  },
+  {
+    "name": "asset-hub-kusama",
+    "package": "asset-hub-kusama-runtime",
+    "path": "system-parachains/asset-hubs/asset-hub-kusama",
+    "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
+    "is_relay": false
+  },
+  {
+    "name": "asset-hub-polkadot",
+    "package": "asset-hub-polkadot-runtime",
+    "path": "system-parachains/asset-hubs/asset-hub-polkadot",
+    "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
+    "is_relay": false
+  },
+  {
+    "name": "bridge-hub-kusama",
+    "package": "bridge-hub-kusama-runtime",
+    "path": "system-parachains/bridge-hubs/bridge-hub-kusama",
+    "uri": "wss://kusama-bridge-hub-rpc.polkadot.io:443",
+    "is_relay": false
+  },
+  {
+    "name": "bridge-hub-polkadot",
+    "package": "bridge-hub-polkadot-runtime",
+    "path": "system-parachains/bridge-hubs/bridge-hub-polkadot",
+    "uri": "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
+    "is_relay": false
+  },
+  {
+    "name": "collectives-polkadot",
+    "package": "collectives-polkadot-runtime",
+    "path": "system-parachains/collectives/collectives-polkadot",
+    "uri": "wss://polkadot-collectives-rpc.polkadot.io:443",
+    "is_relay": false
+  }
+]
