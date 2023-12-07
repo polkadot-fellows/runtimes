@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - XCM transport fees are now exponential and are sent to a treasury account ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1234
 - System parachains are now trusted teleporters of each other ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1368
 - Treasury is able to spend various asset kinds ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
+- Fellowship Treasury pallet on Polkadot Collectives ([polkadot-fellows/runtimes#109](https://github.com/polkadot-fellows/runtimes/pull/109))
 
 ### Fixed
 
