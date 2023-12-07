@@ -1,0 +1,76 @@
+[package]
+name = "emulated-integration-tests-common"
+version = "1.0.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Common resources for integration testing with xcm-emulator"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false }
+paste = "1.0.14"
+serde_json = "1.0.108"
+
+# Substrate
+grandpa-primitives = { package = "sp-consensus-grandpa", default-features = false, version = "10.0.0" }
+sp-authority-discovery = { default-features = false, version = "23.0.0" }
+sp-runtime = { default-features = false, version = "28.0.0" }
+frame-support = { default-features = false, version = "25.0.0" }
+sp-core = { default-features = false, version = "25.0.0" }
+sp-consensus-babe = { default-features = false, version = "0.29.0" }
+pallet-assets = { default-features = false, version = "26.0.0" }
+pallet-balances = { default-features = false, version = "25.0.0" }
+pallet-message-queue = { default-features = false, version = "28.0.0" }
+pallet-im-online = { default-features = false, version = "24.0.0" }
+pallet-staking = { default-features = false , version = "25.0.0" }
+beefy-primitives = { package = "sp-consensus-beefy", default-features = false, version = "10.0.0" }
+
+# Polkadot
+polkadot-service = { default-features = false, features = ["full-node"], version = "4.0.0" }
+polkadot-primitives = { default-features = false, version = "4.0.0" }
+polkadot-runtime-parachains = { default-features = false, version = "4.0.0" }
+xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
+pallet-xcm = { default-features = false, version = "4.0.0" }
+polkadot-core-primitives = { default-features = false, version = "4.0.0" }
+polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
+
+# Cumulus
+parachains-common = { default-features = false, version = "4.0.0" }
+cumulus-primitives-core = { default-features = false, version = "0.4.0" }
+xcm-emulator = { default-features = false, version = "0.2.0" }
+cumulus-pallet-xcmp-queue = { default-features = false, version = "0.4.0" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.4.0" }
+asset-test-utils = { version = "4.0.0" }
+cumulus-pallet-dmp-queue = { default-features = false , version = "0.4.0" }
+penpal-runtime = { default-features = false, version = "0.11.0" }
+
+# Local runtimes
+kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama", default-features = false }
+kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false }
+polkadot-runtime = { path = "../../../relay/polkadot", default-features = false }
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false }
+#asset-hub-polkadot-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-polkadot", default-features = false }
+#asset-hub-kusama-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-kusama", default-features = false }
+#collectives-polkadot-runtime = { path = "../../../system-parachains/collectives/collectives-polkadot", default-features = false }
+#bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama", default-features = false }
+#bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-polkadot", default-features = false }
+
+# Bridges
+bp-messages = { version = "0.4.0" }
+pallet-bridge-messages = { version = "0.4.0" }
+bridge-runtime-common = { version = "0.4.0" }
+
+[features]
+default = [ "std" ]
+
+std = [
+    "sp-core/std",
+    "bp-messages/std",
+    "pallet-bridge-messages/std",
+    "bridge-runtime-common/std",
+    "penpal-runtime/std",
+    "kusama-runtime/std",
+    "kusama-runtime-constants/std",
+    "polkadot-runtime/std",
+    "polkadot-runtime-constants/std",
+]
