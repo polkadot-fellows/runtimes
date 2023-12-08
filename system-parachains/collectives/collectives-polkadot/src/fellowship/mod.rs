@@ -256,7 +256,7 @@ parameter_types! {
 	// TODO: reference the constant value from common crate when polkadot-sdk 1.5 is released.
 	// https://github.com/polkadot-fellows/runtimes/issues/113
 	pub const FellowshipTreasuryPalletId: PalletId = PalletId(*b"py/feltr");
-	pub const HundredPercent: Permill = Permill::from_percent(100);
+	pub const ProposalBond: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
@@ -287,7 +287,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	// https://github.com/polkadot-fellows/runtimes/issues/113
 	type ApproveOrigin = EnsureRoot<AccountId>;
 	type OnSlash = ();
-	type ProposalBond = HundredPercent;
+	type ProposalBond = ProposalBond;
 	type ProposalBondMinimum = MaxBalance;
 	type ProposalBondMaximum = MaxBalance;
 	// end.
