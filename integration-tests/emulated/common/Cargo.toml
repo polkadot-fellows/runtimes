@@ -1,5 +1,5 @@
 [package]
-name = "emulated-integration-tests-common"
+name = "integration-tests-common"
 version = "1.0.0"
 authors.workspace = true
 edition.workspace = true
@@ -37,7 +37,7 @@ polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
 # Cumulus
 parachains-common = { default-features = false, version = "4.0.0" }
 cumulus-primitives-core = { default-features = false, version = "0.4.0" }
-xcm-emulator = { default-features = false, version = "0.2.0" }
+xcm-emulator = { version = "0.2.0" }
 cumulus-pallet-xcmp-queue = { default-features = false, version = "0.4.0" }
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.4.0" }
 asset-test-utils = { version = "4.0.0" }
@@ -49,11 +49,11 @@ kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/ku
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false }
 polkadot-runtime = { path = "../../../relay/polkadot", default-features = false }
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false }
-#asset-hub-polkadot-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-polkadot", default-features = false }
-#asset-hub-kusama-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-kusama", default-features = false }
-#collectives-polkadot-runtime = { path = "../../../system-parachains/collectives/collectives-polkadot", default-features = false }
-#bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama", default-features = false }
-#bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-polkadot", default-features = false }
+asset-hub-polkadot-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-polkadot", default-features = false }
+asset-hub-kusama-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-kusama", default-features = false }
+collectives-polkadot-runtime = { path = "../../../system-parachains/collectives/collectives-polkadot", default-features = false }
+bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-polkadot", default-features = false }
+bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama", default-features = false }
 
 # Bridges
 bp-messages = { version = "0.4.0" }
@@ -73,4 +73,9 @@ std = [
     "kusama-runtime-constants/std",
     "polkadot-runtime/std",
     "polkadot-runtime-constants/std",
+    "asset-hub-polkadot-runtime/std",
+    "asset-hub-kusama-runtime/std",
+    "collectives-polkadot-runtime/std",
+    "bridge-hub-polkadot-runtime/std",
+    "bridge-hub-kusama-runtime/std",
 ]

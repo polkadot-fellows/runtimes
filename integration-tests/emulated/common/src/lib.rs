@@ -19,7 +19,7 @@ pub mod xcm_helpers;
 
 use constants::{
 	accounts::{ALICE, BOB},
-	// asset_hub_kusama, asset_hub_polkadot, bridge_hub_kusama, bridge_hub_polkadot, collectives,
+	asset_hub_kusama, asset_hub_polkadot, bridge_hub_kusama, bridge_hub_polkadot, collectives,
 	kusama, penpal, polkadot,
 };
 
@@ -70,57 +70,57 @@ decl_test_relay_chains! {
 
 decl_test_parachains! {
 	// Polkadot Parachains
-	// pub struct AssetHubPolkadot {
-	// 	genesis = asset_hub_polkadot::genesis(),
-	// 	on_init = {
-	// 		asset_hub_polkadot_runtime::AuraExt::on_initialize(1);
-	// 	},
-	// 	runtime = asset_hub_polkadot_runtime,
-	// 	core = {
-	// 		XcmpMessageHandler: asset_hub_polkadot_runtime::XcmpQueue,
-	// 		DmpMessageHandler: asset_hub_polkadot_runtime::DmpQueue,
-	// 		LocationToAccountId: asset_hub_polkadot_runtime::xcm_config::LocationToAccountId,
-	// 		ParachainInfo: asset_hub_polkadot_runtime::ParachainInfo,
-	// 	},
-	// 	pallets = {
-	// 		PolkadotXcm: asset_hub_polkadot_runtime::PolkadotXcm,
-	// 		Assets: asset_hub_polkadot_runtime::Assets,
-	// 		Balances: asset_hub_polkadot_runtime::Balances,
-	// 	}
-	// },
-	// pub struct Collectives {
-	// 	genesis = collectives::genesis(),
-	// 	on_init = {
-	// 		collectives_polkadot_runtime::AuraExt::on_initialize(1);
-	// 	},
-	// 	runtime = collectives_polkadot_runtime,
-	// 	core = {
-	// 		XcmpMessageHandler: collectives_polkadot_runtime::XcmpQueue,
-	// 		DmpMessageHandler: collectives_polkadot_runtime::DmpQueue,
-	// 		LocationToAccountId: collectives_polkadot_runtime::xcm_config::LocationToAccountId,
-	// 		ParachainInfo: collectives_polkadot_runtime::ParachainInfo,
-	// 	},
-	// 	pallets = {
-	// 		PolkadotXcm: collectives_polkadot_runtime::PolkadotXcm,
-	// 		Balances: collectives_polkadot_runtime::Balances,
-	// 	}
-	// },
-	// pub struct BridgeHubPolkadot {
-	// 	genesis = bridge_hub_polkadot::genesis(),
-	// 	on_init = {
-	// 		bridge_hub_polkadot_runtime::AuraExt::on_initialize(1);
-	// 	},
-	// 	runtime = bridge_hub_polkadot_runtime,
-	// 	core = {
-	// 		XcmpMessageHandler: bridge_hub_polkadot_runtime::XcmpQueue,
-	// 		DmpMessageHandler: bridge_hub_polkadot_runtime::DmpQueue,
-	// 		LocationToAccountId: bridge_hub_polkadot_runtime::xcm_config::LocationToAccountId,
-	// 		ParachainInfo: bridge_hub_polkadot_runtime::ParachainInfo,
-	// 	},
-	// 	pallets = {
-	// 		PolkadotXcm: bridge_hub_polkadot_runtime::PolkadotXcm,
-	// 	}
-	// },
+	pub struct AssetHubPolkadot {
+		genesis = asset_hub_polkadot::genesis(),
+		on_init = {
+			asset_hub_polkadot_runtime::AuraExt::on_initialize(1);
+		},
+		runtime = asset_hub_polkadot_runtime,
+		core = {
+			XcmpMessageHandler: asset_hub_polkadot_runtime::XcmpQueue,
+			DmpMessageHandler: asset_hub_polkadot_runtime::DmpQueue,
+			LocationToAccountId: asset_hub_polkadot_runtime::xcm_config::LocationToAccountId,
+			ParachainInfo: asset_hub_polkadot_runtime::ParachainInfo,
+		},
+		pallets = {
+			PolkadotXcm: asset_hub_polkadot_runtime::PolkadotXcm,
+			Assets: asset_hub_polkadot_runtime::Assets,
+			Balances: asset_hub_polkadot_runtime::Balances,
+		}
+	},
+	pub struct Collectives {
+		genesis = collectives::genesis(),
+		on_init = {
+			collectives_polkadot_runtime::AuraExt::on_initialize(1);
+		},
+		runtime = collectives_polkadot_runtime,
+		core = {
+			XcmpMessageHandler: collectives_polkadot_runtime::XcmpQueue,
+			DmpMessageHandler: collectives_polkadot_runtime::DmpQueue,
+			LocationToAccountId: collectives_polkadot_runtime::xcm_config::LocationToAccountId,
+			ParachainInfo: collectives_polkadot_runtime::ParachainInfo,
+		},
+		pallets = {
+			PolkadotXcm: collectives_polkadot_runtime::PolkadotXcm,
+			Balances: collectives_polkadot_runtime::Balances,
+		}
+	},
+	pub struct BridgeHubPolkadot {
+		genesis = bridge_hub_polkadot::genesis(),
+		on_init = {
+			bridge_hub_polkadot_runtime::AuraExt::on_initialize(1);
+		},
+		runtime = bridge_hub_polkadot_runtime,
+		core = {
+			XcmpMessageHandler: bridge_hub_polkadot_runtime::XcmpQueue,
+			DmpMessageHandler: bridge_hub_polkadot_runtime::DmpQueue,
+			LocationToAccountId: bridge_hub_polkadot_runtime::xcm_config::LocationToAccountId,
+			ParachainInfo: bridge_hub_polkadot_runtime::ParachainInfo,
+		},
+		pallets = {
+			PolkadotXcm: bridge_hub_polkadot_runtime::PolkadotXcm,
+		}
+	},
 	pub struct PenpalPolkadotA {
 		genesis = penpal::genesis(penpal::PARA_ID_A),
 		on_init = {
@@ -156,43 +156,43 @@ decl_test_parachains! {
 		}
 	},
 	// Kusama Parachains
-	// pub struct AssetHubKusama {
-	// 	genesis = asset_hub_kusama::genesis(),
-	// 	on_init = {
-	// 		asset_hub_kusama_runtime::AuraExt::on_initialize(1);
-	// 	},
-	// 	runtime = asset_hub_kusama_runtime,
-	// 	core = {
-	// 		XcmpMessageHandler: asset_hub_kusama_runtime::XcmpQueue,
-	// 		DmpMessageHandler: asset_hub_kusama_runtime::DmpQueue,
-	// 		LocationToAccountId: asset_hub_kusama_runtime::xcm_config::LocationToAccountId,
-	// 		ParachainInfo: asset_hub_kusama_runtime::ParachainInfo,
-	// 	},
-	// 	pallets = {
-	// 		PolkadotXcm: asset_hub_kusama_runtime::PolkadotXcm,
-	// 		Assets: asset_hub_kusama_runtime::Assets,
-	// 		ForeignAssets: asset_hub_kusama_runtime::ForeignAssets,
-	// 		PoolAssets: asset_hub_kusama_runtime::PoolAssets,
-	// 		AssetConversion: asset_hub_kusama_runtime::AssetConversion,
-	// 		Balances: asset_hub_kusama_runtime::Balances,
-	// 	}
-	// },
-	// pub struct BridgeHubKusama {
-	// 	genesis = bridge_hub_kusama::genesis(),
-	// 	on_init = {
-	// 		bridge_hub_kusama_runtime::AuraExt::on_initialize(1);
-	// 	},
-	// 	runtime = bridge_hub_kusama_runtime,
-	// 	core = {
-	// 		XcmpMessageHandler: bridge_hub_kusama_runtime::XcmpQueue,
-	// 		DmpMessageHandler: bridge_hub_kusama_runtime::DmpQueue,
-	// 		LocationToAccountId: bridge_hub_kusama_runtime::xcm_config::LocationToAccountId,
-	// 		ParachainInfo: bridge_hub_kusama_runtime::ParachainInfo,
-	// 	},
-	// 	pallets = {
-	// 		PolkadotXcm: bridge_hub_kusama_runtime::PolkadotXcm,
-	// 	}
-	// },
+	pub struct AssetHubKusama {
+		genesis = asset_hub_kusama::genesis(),
+		on_init = {
+			asset_hub_kusama_runtime::AuraExt::on_initialize(1);
+		},
+		runtime = asset_hub_kusama_runtime,
+		core = {
+			XcmpMessageHandler: asset_hub_kusama_runtime::XcmpQueue,
+			DmpMessageHandler: asset_hub_kusama_runtime::DmpQueue,
+			LocationToAccountId: asset_hub_kusama_runtime::xcm_config::LocationToAccountId,
+			ParachainInfo: asset_hub_kusama_runtime::ParachainInfo,
+		},
+		pallets = {
+			PolkadotXcm: asset_hub_kusama_runtime::PolkadotXcm,
+			Assets: asset_hub_kusama_runtime::Assets,
+			ForeignAssets: asset_hub_kusama_runtime::ForeignAssets,
+			PoolAssets: asset_hub_kusama_runtime::PoolAssets,
+			AssetConversion: asset_hub_kusama_runtime::AssetConversion,
+			Balances: asset_hub_kusama_runtime::Balances,
+		}
+	},
+	pub struct BridgeHubKusama {
+		genesis = bridge_hub_kusama::genesis(),
+		on_init = {
+			bridge_hub_kusama_runtime::AuraExt::on_initialize(1);
+		},
+		runtime = bridge_hub_kusama_runtime,
+		core = {
+			XcmpMessageHandler: bridge_hub_kusama_runtime::XcmpQueue,
+			DmpMessageHandler: bridge_hub_kusama_runtime::DmpQueue,
+			LocationToAccountId: bridge_hub_kusama_runtime::xcm_config::LocationToAccountId,
+			ParachainInfo: bridge_hub_kusama_runtime::ParachainInfo,
+		},
+		pallets = {
+			PolkadotXcm: bridge_hub_kusama_runtime::PolkadotXcm,
+		}
+	},
 	pub struct PenpalKusamaA {
 		genesis = penpal::genesis(penpal::PARA_ID_A),
 		on_init = {
@@ -233,9 +233,9 @@ decl_test_networks! {
 	pub struct PolkadotMockNet {
 		relay_chain = Polkadot,
 		parachains = vec![
-			// AssetHubPolkadot,
-			// Collectives,
-			// BridgeHubPolkadot,
+			AssetHubPolkadot,
+			Collectives,
+			BridgeHubPolkadot,
 			PenpalPolkadotA,
 			PenpalPolkadotB,
 		],
@@ -246,8 +246,8 @@ decl_test_networks! {
 	pub struct KusamaMockNet {
 		relay_chain = Kusama,
 		parachains = vec![
-			// AssetHubKusama,
-			// BridgeHubKusama,
+			AssetHubKusama,
+			BridgeHubKusama,
 			PenpalKusamaA,
 			PenpalKusamaB,
 		],
@@ -281,47 +281,43 @@ impl_accounts_helpers_for_relay_chain!(Kusama);
 impl_assert_events_helpers_for_relay_chain!(Kusama);
 impl_hrmp_channels_helpers_for_relay_chain!(Kusama);
 
-// // AssetHubPolkadot implementation
-// impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
-// impl_assets_helpers_for_parachain!(AssetHubPolkadot, Polkadot);
-// impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
-//
-// // AssetHubKusama implementation
-// impl_accounts_helpers_for_parachain!(AssetHubKusama);
-// impl_assets_helpers_for_parachain!(AssetHubKusama, Kusama);
-// impl_assert_events_helpers_for_parachain!(AssetHubKusama);
-//
-// // PenpalPolkadot implementations
-// impl_assert_events_helpers_for_parachain!(PenpalPolkadotA);
-// impl_assert_events_helpers_for_parachain!(PenpalPolkadotB);
-//
-// // PenpalKusama implementations
-// impl_assert_events_helpers_for_parachain!(PenpalKusamaA);
-// impl_assert_events_helpers_for_parachain!(PenpalKusamaB);
-//
-// // Collectives implementation
-// impl_accounts_helpers_for_parachain!(Collectives);
-// impl_assert_events_helpers_for_parachain!(Collectives);
+// AssetHubPolkadot implementation
+impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
+impl_assets_helpers_for_parachain!(AssetHubPolkadot, Polkadot);
+impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
+
+// AssetHubKusama implementation
+impl_accounts_helpers_for_parachain!(AssetHubKusama);
+impl_assets_helpers_for_parachain!(AssetHubKusama, Kusama);
+impl_assert_events_helpers_for_parachain!(AssetHubKusama);
+
+// PenpalPolkadot implementations
+impl_assert_events_helpers_for_parachain!(PenpalPolkadotA);
+impl_assert_events_helpers_for_parachain!(PenpalPolkadotB);
+
+// PenpalKusama implementations
+impl_assert_events_helpers_for_parachain!(PenpalKusamaA);
+impl_assert_events_helpers_for_parachain!(PenpalKusamaB);
+
+// Collectives implementation
+impl_accounts_helpers_for_parachain!(Collectives);
+impl_assert_events_helpers_for_parachain!(Collectives);
 
 decl_test_sender_receiver_accounts_parameter_types! {
 	// Relays
 	Polkadot { sender: ALICE, receiver: BOB },
 	Kusama { sender: ALICE, receiver: BOB },
-	// // Asset Hubs
-	// AssetHubPolkadot { sender: ALICE, receiver: BOB },
-	// AssetHubKusama { sender: ALICE, receiver: BOB },
-	// // Collectives
-	// Collectives { sender: ALICE, receiver: BOB },
-	// // Bridged Hubs
-	// BridgeHubPolkadot { sender: ALICE, receiver: BOB },
-	// BridgeHubKusama { sender: ALICE, receiver: BOB },
+	// Asset Hubs
+	AssetHubPolkadot { sender: ALICE, receiver: BOB },
+	AssetHubKusama { sender: ALICE, receiver: BOB },
+	// Collectives
+	Collectives { sender: ALICE, receiver: BOB },
+	// Bridged Hubs
+	BridgeHubPolkadot { sender: ALICE, receiver: BOB },
+	BridgeHubKusama { sender: ALICE, receiver: BOB },
 	// Penpals
 	PenpalPolkadotA { sender: ALICE, receiver: BOB },
 	PenpalPolkadotB { sender: ALICE, receiver: BOB },
 	PenpalKusamaA { sender: ALICE, receiver: BOB },
 	PenpalKusamaB { sender: ALICE, receiver: BOB }
 }
-
-// decl_test_sender_receiver_accounts_parameter_types! {
-// 	Kusama { sender: ALICE, receiver: BOB }
-// }

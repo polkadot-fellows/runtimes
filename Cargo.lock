@@ -3099,9 +3099,14 @@ dependencies = [
 name = "emulated-integration-tests-common"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "bp-messages",
+ "bridge-hub-kusama-runtime",
+ "bridge-hub-polkadot-runtime",
  "bridge-runtime-common",
+ "collectives-polkadot-runtime",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
