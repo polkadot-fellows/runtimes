@@ -11829,6 +11829,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "parachains-common",
+ "polkadot-core-primitives",
+ "polkadot-primitives",
+ "smallvec",
+ "sp-runtime",
+]
+
+[[package]]
 name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
