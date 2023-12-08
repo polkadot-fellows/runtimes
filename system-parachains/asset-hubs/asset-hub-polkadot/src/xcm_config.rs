@@ -189,11 +189,13 @@ match_types! {
 		MultiLocation { parents: 1, interior: Here } |
 		MultiLocation { parents: 1, interior: X1(_) }
 	};
-	pub type FellowsPlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), Plurality { id: BodyId::Technical, ..}) }
-	};
-	pub type FellowshipSalaryPallet: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(64)) }
+	pub type FellowshipEntities: impl Contains<MultiLocation> = {
+		// Fellowship Plurality
+		MultiLocation { parents: 1, interior: X2(Parachain(1001), Plurality { id: BodyId::Technical, ..}) } |
+		// Fellowship Salary Pallet
+		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(64)) } |
+		// Fellowship Treasury Pallet
+		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(65)) }
 	};
 }
 
@@ -380,8 +382,7 @@ pub type Barrier = TrailingSetTopicAsId<
 					// The locations listed below get free execution.
 					AllowExplicitUnpaidExecutionFrom<(
 						ParentOrParentsPlurality,
-						FellowsPlurality,
-						FellowshipSalaryPallet,
+						FellowshipEntities,
 						Equals<RelayTreasuryLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
@@ -419,8 +420,7 @@ match_types! {
 pub type WaivedLocations = (
 	RelayOrOtherSystemParachains<SystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	FellowsPlurality,
-	FellowshipSalaryPallet,
+	FellowshipEntities,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
