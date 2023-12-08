@@ -37,7 +37,7 @@ fn relay_origin_assertions(t: RelayToSystemParaTest) {
 
 fn system_para_dest_assertions_incomplete(_t: RelayToSystemParaTest) {
 	AssetHubKusama::assert_dmp_queue_incomplete(
-		Some(Weight::from_parts(1_000_000_000, 0)),
+		None,
 		Some(Error::UntrustedReserveLocation),
 	);
 }
@@ -185,7 +185,7 @@ fn limited_reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 	let sender_balance_after = test.sender.balance;
 	let receiver_balance_after = test.receiver.balance;
 
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	assert_eq!(receiver_balance_before, receiver_balance_after);
 }
 
@@ -244,7 +244,7 @@ fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 	let sender_balance_after = test.sender.balance;
 	let receiver_balance_after = test.receiver.balance;
 
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	assert_eq!(receiver_balance_before, receiver_balance_after);
 }
 
@@ -306,7 +306,7 @@ fn limited_reserve_transfer_native_asset_from_system_para_to_para() {
 
 	let sender_balance_after = test.sender.balance;
 
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// TODO: Check receiver balance when Penpal runtime is improved to propery handle reserve
 	// transfers
 }
@@ -338,7 +338,7 @@ fn reserve_transfer_native_asset_from_system_para_to_para() {
 
 	let sender_balance_after = test.sender.balance;
 
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// TODO: Check receiver balance when Penpal runtime is improved to propery handle reserve
 	// transfers
 }

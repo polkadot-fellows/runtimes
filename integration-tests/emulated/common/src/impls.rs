@@ -329,7 +329,7 @@ macro_rules! impl_hrmp_channels_helpers_for_relay_chain {
 						// Force process HRMP open channel requests without waiting for the next session
 						$crate::impls::assert_ok!(<Self as [<$chain Pallet>]>::Hrmp::force_process_hrmp_open(
 							relay_root_origin,
-							0
+							u32::MAX,
 						));
 
 						let channel_id = $crate::impls::HrmpChannelId { sender, recipient };
@@ -338,7 +338,7 @@ macro_rules! impl_hrmp_channels_helpers_for_relay_chain {
 							<Self as Chain>::Runtime,
 						>::contains_key(&channel_id);
 
-						// Check the HRMP channel has been successfully registrered
+						// Check the HRMP channel has been successfully registered
 						assert!(hrmp_channel_exist)
 					});
 				}
