@@ -612,7 +612,7 @@ pub mod bridging {
 	use xcm_builder::NetworkExportTableItem;
 
 	parameter_types! {
-		/// Base price of every byte of the Polkadot -> Kusama message. Can be adjusted via
+		/// Base price of every Polkadot -> Kusama message. Can be adjusted via
 		/// governance `set_storage` call.
 		pub storage XcmBridgeHubRouterBaseFee: Balance = bp_bridge_hub_polkadot::estimate_polkadot_to_kusama_message_fee(
 			bp_bridge_hub_kusama::BridgeHubKusamaBaseDeliveryFeeInKsms::get()
