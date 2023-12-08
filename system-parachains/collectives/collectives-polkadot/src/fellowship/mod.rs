@@ -254,6 +254,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 
 parameter_types! {
 	// TODO: reference the constant value from common crate when polkadot-sdk 1.5 is released.
+	// https://github.com/polkadot-fellows/runtimes/issues/113
 	pub const FellowshipTreasuryPalletId: PalletId = PalletId(*b"py/feltr");
 	pub const HundredPercent: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
@@ -283,6 +284,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
 	// discourage its use.
 	// TODO: replace with `NeverEnsure` once polkadot-sdk 1.5 is released.
+	// https://github.com/polkadot-fellows/runtimes/issues/113
 	type ApproveOrigin = EnsureRoot<AccountId>;
 	type OnSlash = ();
 	type ProposalBond = HundredPercent;
@@ -331,6 +333,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 
 // TODO: replace by [`polkadot_runtime_common::impls::benchmarks::TreasuryArguments`] when
 // polkadot-sdk 1.5 is released.
+// https://github.com/polkadot-fellows/runtimes/issues/113
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks {
 	use super::VersionedLocatableAsset;
