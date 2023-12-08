@@ -26,7 +26,9 @@ use crate::{
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
-	traits::{EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, TryWithMorphedArg},
+	traits::{
+		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+	},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
@@ -261,7 +263,8 @@ parameter_types! {
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
 	// pallet instance (which sits at index 65).
-	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(65).into();
+	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation =
+		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
 }
 
 /// [`PayOverXcm`] setup to pay the Fellowship Treasury.
