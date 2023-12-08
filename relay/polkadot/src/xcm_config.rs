@@ -143,7 +143,7 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Polkadot Relay recognizes/respects the asset hub chain as a teleporter.
+/// Polkadot Relay recognizes/respects AssetHub, Collectives, and BridgeHub chains as teleporters.
 pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForAssetHub>,
 	xcm_builder::Case<DotForCollectives>,
@@ -168,7 +168,7 @@ pub type Barrier = TrailingSetTopicAsId<(
 	AllowKnownQueryResponses<XcmPallet>,
 	WithComputedOrigin<
 		(
-			// If the message is one that immediately attemps to pay for execution, then allow it.
+			// If the message is one that immediately attempts to pay for execution, then allow it.
 			AllowTopLevelPaidExecutionFrom<Everything>,
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
