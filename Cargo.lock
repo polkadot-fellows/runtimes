@@ -531,6 +531,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "asset-hub-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "assert_matches",
+ "asset-hub-kusama-runtime",
+ "frame-support",
+ "frame-system",
+ "integration-tests-common",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-parachains",
+ "sp-runtime",
+ "staging-xcm",
+ "xcm-emulator",
+]
+
+[[package]]
 name = "asset-hub-kusama-runtime"
 version = "1.0.0"
 dependencies = [
@@ -3096,54 +3119,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "emulated-integration-tests-common"
-version = "1.0.0"
-dependencies = [
- "asset-hub-kusama-runtime",
- "asset-hub-polkadot-runtime",
- "asset-test-utils",
- "bp-messages",
- "bridge-hub-kusama-runtime",
- "bridge-hub-polkadot-runtime",
- "bridge-runtime-common",
- "collectives-polkadot-runtime",
- "cumulus-pallet-dmp-queue",
- "cumulus-pallet-parachain-system",
- "cumulus-pallet-xcmp-queue",
- "cumulus-primitives-core",
- "frame-support",
- "kusama-runtime-constants",
- "pallet-assets",
- "pallet-balances",
- "pallet-bridge-messages",
- "pallet-im-online",
- "pallet-message-queue",
- "pallet-staking",
- "pallet-xcm",
- "parachains-common",
- "parity-scale-codec",
- "paste",
- "penpal-runtime",
- "polkadot-core-primitives",
- "polkadot-parachain-primitives",
- "polkadot-primitives",
- "polkadot-runtime",
- "polkadot-runtime-constants",
- "polkadot-runtime-parachains",
- "polkadot-service",
- "serde_json",
- "sp-authority-discovery",
- "sp-consensus-babe",
- "sp-consensus-beefy",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-runtime",
- "staging-kusama-runtime",
- "staging-xcm",
- "xcm-emulator",
-]
-
-[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4598,6 +4573,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "integration-tests-common"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-hub-polkadot-runtime",
+ "asset-test-utils",
+ "bp-messages",
+ "bridge-hub-kusama-runtime",
+ "bridge-hub-polkadot-runtime",
+ "bridge-runtime-common",
+ "collectives-polkadot-runtime",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "frame-support",
+ "kusama-runtime-constants",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-bridge-messages",
+ "pallet-im-online",
+ "pallet-message-queue",
+ "pallet-staking",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "paste",
+ "penpal-runtime",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains",
+ "polkadot-service",
+ "serde_json",
+ "sp-authority-discovery",
+ "sp-consensus-babe",
+ "sp-consensus-beefy",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "xcm-emulator",
 ]
 
 [[package]]
