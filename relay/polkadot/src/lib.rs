@@ -731,7 +731,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		// all para-ids that are not active.
 		let auctioned_slots = Paras::parachains()
 			.into_iter()
-			// all active para-ids that do not belong to a system or common good chain is the number
+			// all active para-ids that do not belong to a system chain is the number
 			// of parachains that we should take into account for inflation.
 			.filter(|i| *i >= LOWEST_PUBLIC_ID)
 			.count() as u64;
@@ -2664,6 +2664,7 @@ mod test {
 
 	use super::*;
 	use frame_support::traits::WhitelistedStorageKeys;
+	use scale_info::TypeInfo;
 	use sp_core::hexdisplay::HexDisplay;
 
 	#[test]
@@ -2707,6 +2708,21 @@ mod test {
 			whitelist.contains("1405f2411d0af5a7ff397e7c9dc68d196323ae84c43568be0d1394d5d0d522c4")
 		);
 	}
+
+	#[test]
+	fn check_treasury_pallet_id() {
+		assert_eq!(
+			<Treasury as frame_support::traits::PalletInfoAccess>::index() as u8,
+			polkadot_runtime_constants::TREASURY_PALLET_ID
+		);
+	}
+
+	#[test]
+	fn ensure_xcm_metadata_is_correct() {
+		let path = xcm::VersionedXcm::<()>::type_info().path;
+		// Ensure that the name doesn't include `staging` (from the pallet name)
+		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
+	}
 }
 
 #[cfg(test)]
@@ -2717,7 +2733,6 @@ mod multiplier_tests {
 		traits::{OnFinalize, PalletInfoAccess},
 	};
 	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
-	use scale_info::TypeInfo;
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
 
@@ -2844,13 +2859,6 @@ mod multiplier_tests {
 			});
 			blocks += 1;
 		}
-	}
-
-	#[test]
-	fn ensure_xcm_metadata_is_correct() {
-		let path = xcm::VersionedXcm::<()>::type_info().path;
-		// Ensure that the name doesn't include `staging` (from the pallet name)
-		assert_eq!(vec!["xcm", "VersionedXcm"], path.segments);
 	}
 }
 
