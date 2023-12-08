@@ -1,5 +1,5 @@
 [package]
-name = "system-parachains-common"
+name = "system-parachains-constants"
 repository.workspace = true
 version.workspace = true
 authors.workspace = true
