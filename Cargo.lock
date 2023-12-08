@@ -596,7 +596,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -667,7 +667,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1327,7 +1327,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1392,7 +1392,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1894,7 +1894,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -3966,7 +3966,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "system-parachains-common",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -11835,7 +11835,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "system-parachains-common"
+name = "system-parachains-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
