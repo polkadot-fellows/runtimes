@@ -21,6 +21,7 @@ smallvec = "1.8.0"
 authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "23.0.0" }
 babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.29.0" }
 beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "10.0.0" }
+binary-merkle-tree = { default-features = false , version = "10.0.0" }
 block-builder-api = { package = "sp-block-builder", default-features = false , version = "23.0.0" }
 inherents = { package = "sp-inherents", default-features = false , version = "23.0.0" }
 offchain-primitives = { package = "sp-offchain", default-features = false , version = "23.0.0" }
@@ -29,6 +30,7 @@ sp-arithmetic = { default-features = false , version = "20.0.0" }
 sp-api = { default-features = false , version = "23.0.0" }
 sp-genesis-builder = { default-features = false , version = "0.4.0" }
 sp-std = { default-features = false , version = "12.0.0" }
+sp-application-crypto = { default-features = false , version = "27.0.0" }
 sp-io = { default-features = false , version = "27.0.0" }
 sp-mmr-primitives = { default-features = false , version = "23.0.0" }
 sp-runtime = { default-features = false , version = "28.0.0" }
@@ -45,6 +47,8 @@ pallet-authorship = { default-features = false , version = "25.0.0" }
 pallet-babe = { default-features = false , version = "25.0.0" }
 pallet-bags-list = { default-features = false , version = "24.0.0" }
 pallet-balances = { default-features = false , version = "25.0.0" }
+pallet-beefy = { default-features = false , version = "25.0.0" }
+pallet-beefy-mmr = { default-features = false , version = "25.0.0" }
 pallet-bounties = { default-features = false , version = "24.0.0" }
 pallet-child-bounties = { default-features = false , version = "24.0.0" }
 pallet-transaction-payment = { default-features = false , version = "25.0.0" }
@@ -62,6 +66,7 @@ pallet-im-online = { default-features = false , version = "24.0.0" }
 pallet-indices = { default-features = false , version = "25.0.0" }
 pallet-membership = { default-features = false , version = "25.0.0" }
 pallet-message-queue = { default-features = false , version = "28.0.0" }
+pallet-mmr = { default-features = false , version = "24.0.0" }
 pallet-multisig = { default-features = false , version = "25.0.0" }
 pallet-nomination-pools = { default-features = false , version = "22.0.0" }
 pallet-nomination-pools-runtime-api = { default-features = false , version = "20.0.0" }
@@ -128,6 +133,7 @@ std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
 	"beefy-primitives/std",
+	"binary-merkle-tree/std",
 	"bitvec/std",
 	"block-builder-api/std",
 	"frame-benchmarking?/std",
@@ -147,6 +153,8 @@ std = [
 	"pallet-babe/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
+	"pallet-beefy/std",
+	"pallet-beefy-mmr/std",
 	"pallet-bounties/std",
 	"pallet-child-bounties/std",
 	"pallet-collective/std",
@@ -162,6 +170,7 @@ std = [
 	"pallet-indices/std",
 	"pallet-membership/std",
 	"pallet-message-queue/std",
+	"pallet-mmr/std",
 	"pallet-multisig/std",
 	"pallet-nomination-pools-benchmarking?/std",
 	"pallet-nomination-pools-runtime-api/std",
@@ -197,6 +206,7 @@ std = [
 	"serde/std",
 	"serde_derive",
 	"sp-api/std",
+	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
 	"sp-genesis-builder/std",
@@ -241,6 +251,7 @@ runtime-benchmarks = [
 	"pallet-indices/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-mmr/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
@@ -281,6 +292,8 @@ try-runtime = [
 	"pallet-babe/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-beefy-mmr/try-runtime",
+	"pallet-beefy/try-runtime",
 	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-collective/try-runtime",
@@ -295,6 +308,7 @@ try-runtime = [
 	"pallet-indices/try-runtime",
 	"pallet-membership/try-runtime",
 	"pallet-message-queue/try-runtime",
+	"pallet-mmr/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-offences/try-runtime",
