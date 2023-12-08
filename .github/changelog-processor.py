@@ -26,21 +26,38 @@ group.add_argument(
     help="Should a release be made? Prints `1` or `0`.",
     action="store_true"
 )
+group.add_argument(
+    "--print-changelog-until-previous-version",
+    dest="changelog_until_previous",
+    help="Print the entire changelog until the previous version.",
+    action="store_true"
+)
 
 args = parser.parse_args()
 
 with open(args.changelog, "r") as changelog:
     lines = changelog.readlines()
 
+    changelog_until_previous_version = ""
+    found_last_version = False
+
     # Find the latest version
     for line in lines:
         if not line.startswith("## ["):
+            changelog_until_previous_version += line
             continue
+        elif not found_last_version:
+            changelog_until_previous_version += line
+            found_last_version = True
+            version = line.strip().removeprefix("## [").split("]")[0]
+        else:
+            break
 
-        version = line.strip().removeprefix("## [").split("]")[0]
-        break
 
-    if args.print_latest_version:
+    if args.changelog_until_previous:
+        print(changelog_until_previous_version, end = "")
+        sys.exit(0)
+    elif args.print_latest_version:
         print(version, end = "")
         sys.exit(0)
     elif args.should_release:
