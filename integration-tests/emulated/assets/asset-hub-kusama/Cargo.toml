@@ -25,7 +25,6 @@ polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
 polkadot-runtime-parachains = { default-features = false, version = "4.0.0" }
 xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 pallet-xcm = { default-features = false, version = "4.0.0" }
-#staging-kusama-runtime = { path = "../../../../relay/kusama", default-features = false }
 
 # Cumulus
 parachains-common = { default-features = false, version = "4.0.0" }

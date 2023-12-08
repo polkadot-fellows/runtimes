@@ -175,7 +175,7 @@ fn force_open_hrmp_channel_for_system_para_works() {
 			vec![
 				// HRMP channel forced opened
 				RuntimeEvent::Hrmp(
-					polkadot_runtime_parachains::hrmp::Event::HrmpChannelForceOpened{
+					polkadot_runtime_parachains::hrmp::Event::HrmpChannelForceOpened {
 						sender, recipient, proposed_max_capacity: max_capacity, proposed_max_message_size: max_message_size
 					}
 				) => {
@@ -187,6 +187,4 @@ fn force_open_hrmp_channel_for_system_para_works() {
 			]
 		);
 	});
-
-	Polkadot::force_process_hrmp_open(system_para_id, para_a_id);
 }

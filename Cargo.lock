@@ -628,6 +628,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "asset-hub-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "integration-tests-common",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-parachains",
+ "sp-runtime",
+ "staging-xcm",
+ "xcm-emulator",
+]
+
+[[package]]
 name = "asset-hub-polkadot-runtime"
 version = "1.0.0"
 dependencies = [

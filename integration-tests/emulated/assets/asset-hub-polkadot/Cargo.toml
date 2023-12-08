@@ -24,12 +24,29 @@ polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
 polkadot-runtime-parachains = { default-features = false, version = "4.0.0" }
 xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 pallet-xcm = { default-features = false, version = "4.0.0" }
-#polkadot-runtime = { path = "../../../../relay/polkadot", default-features = false }
 
 # Cumulus
 parachains-common = { default-features = false, version = "4.0.0" }
-xcm-emulator = { default-features = false, version = "0.2.0" }
-asset-hub-polkadot-runtime = { path = "../../../../system-parachains/asset-hubs/asset-hub-polkadot", default-features = false }
+xcm-emulator = { version = "0.2.0" }
 
 # Local
 integration-tests-common = { path = "../../common", default-features = false}
+
+[features]
+default = [ "std" ]
+
+std = [
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-assets/std",
+    "pallet-balances/std",
+    "pallet-asset-conversion/std",
+    "polkadot-core-primitives/std",
+    "polkadot-parachain-primitives/std",
+    "polkadot-runtime-parachains/std",
+    "xcm/std",
+    "pallet-xcm/std",
+    "parachains-common/std",
+    "integration-tests-common/std",
+]

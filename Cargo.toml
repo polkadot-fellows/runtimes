@@ -21,7 +21,7 @@ members = [
 	"system-parachains/gluttons/glutton-kusama",
 	"integration-tests/emulated/common",
 	"integration-tests/emulated/assets/asset-hub-kusama",
-#	"integration-tests/emulated/assets/asset-hub-polkadot",
+	"integration-tests/emulated/assets/asset-hub-polkadot",
 ]
 
 [profile.release]

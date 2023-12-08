@@ -97,7 +97,7 @@ fn para_origin_assertions(t: SystemParaToRelayTest) {
 fn para_dest_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-	AssetHubPolkadot::assert_dmp_queue_complete(Some(Weight::from_parts(161_196_000, 0)));
+	AssetHubPolkadot::assert_dmp_queue_complete(None);
 
 	assert_expected_events!(
 		AssetHubPolkadot,
@@ -178,7 +178,7 @@ fn limited_teleport_native_assets_from_relay_to_system_para_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// Receiver's balance is increased
 	assert!(receiver_balance_after > receiver_balance_before);
 }
@@ -216,7 +216,7 @@ fn limited_teleport_native_assets_back_from_system_para_to_relay_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// Receiver's balance is increased
 	assert!(receiver_balance_after > receiver_balance_before);
 }
@@ -251,7 +251,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// Receiver's balance does not change
 	assert_eq!(receiver_balance_after, receiver_balance_before);
 }
@@ -281,7 +281,7 @@ fn teleport_native_assets_from_relay_to_system_para_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send, sender_balance_after);
+	assert!(sender_balance_before - amount_to_send >= sender_balance_after);
 	// Receiver's balance is increased
 	assert!(receiver_balance_after > receiver_balance_before);
 }

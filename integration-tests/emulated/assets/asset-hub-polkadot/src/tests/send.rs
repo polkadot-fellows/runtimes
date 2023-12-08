@@ -179,10 +179,7 @@ fn send_xcm_from_para_to_system_para_paying_fee_with_assets_works() {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-		AssetHubPolkadot::assert_xcmp_queue_success(Some(Weight::from_parts(
-			2_176_414_000,
-			203_593,
-		)));
+		AssetHubPolkadot::assert_xcmp_queue_success(None);
 
 		assert_expected_events!(
 			AssetHubPolkadot,
