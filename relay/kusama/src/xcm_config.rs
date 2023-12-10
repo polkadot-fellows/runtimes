@@ -228,7 +228,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			) |
 			RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 			RuntimeCall::Grandpa(..) |
-			RuntimeCall::ImOnline(..) |
 			RuntimeCall::Treasury(..) |
 			RuntimeCall::ConvictionVoting(..) |
 			RuntimeCall::Referenda(
