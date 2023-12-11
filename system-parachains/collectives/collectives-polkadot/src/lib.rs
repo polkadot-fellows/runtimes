@@ -685,11 +685,7 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
-type Migrations = (
-	// unreleased
-	pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,
-	InitStorageVersions,
-);
+type Migrations = ();
 
 /// Migration to initialize storage versions for pallets added after genesis.
 ///
