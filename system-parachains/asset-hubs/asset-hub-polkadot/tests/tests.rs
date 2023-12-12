@@ -818,6 +818,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 }
 
 // missing stuff from asset_test_utils::test_cases_over_bridge
+// TODO: replace me with direct usages of `asset_test_utils` after deps are bumped to (at least) 1.4
 mod missing_asset_test_utils_test_cases_over_bridge {
 	use asset_test_utils::test_cases_over_bridge::TestBridgingConfig;
 	use codec::Encode;

@@ -287,6 +287,9 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 		);
 }
 
+// TODO: replace me with direct usages of `bridge_hub_test_utils` after deps are bumped to (at
+// least) 1.4
+//
 // Following two tests have to be implemented properly after upgrade to 1.6.
 // See https://github.com/paritytech/polkadot-sdk/pull/2139/ and https://github.com/paritytech/parity-bridges-common/pull/2728
 // for impl details
