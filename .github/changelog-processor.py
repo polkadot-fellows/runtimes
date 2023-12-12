@@ -27,9 +27,9 @@ group.add_argument(
     action="store_true"
 )
 group.add_argument(
-    "--print-changelog-until-previous-version",
-    dest="changelog_until_previous",
-    help="Print the entire changelog until the previous version.",
+    "--print-changelog-from-last-release",
+    dest="changelog_last_release",
+    help="Print the changelog from the last release.",
     action="store_true"
 )
 
@@ -38,24 +38,24 @@ args = parser.parse_args()
 with open(args.changelog, "r") as changelog:
     lines = changelog.readlines()
 
-    changelog_until_previous_version = ""
+    changelog_last_release = ""
     found_last_version = False
 
     # Find the latest version
     for line in lines:
         if not line.startswith("## ["):
-            changelog_until_previous_version += line
+            changelog_last_release += line
             continue
         elif not found_last_version:
-            changelog_until_previous_version += line
+            changelog_last_release += line
             found_last_version = True
             version = line.strip().removeprefix("## [").split("]")[0]
         else:
             break
 
 
-    if args.changelog_until_previous:
-        print(changelog_until_previous_version, end = "")
+    if args.changelog_last_release:
+        print(changelog_last_release, end = "")
         sys.exit(0)
     elif args.print_latest_version:
         print(version, end = "")

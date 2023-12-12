@@ -107,7 +107,7 @@ jobs:
           WASM() { <${JSON} jq -r ".runtimes.compressed.subwasm.$1"; }
 
           # Copy the relevant parts of the changelog
-          .github/changelog-processor.py CHANGELOG.md --print-changelog-until-previous-version > DRAFT
+          .github/changelog-processor.py CHANGELOG.md --print-changelog-from-last-release > DRAFT
 
           tee -a DRAFT <<-EOF
           # Runtime info
