@@ -1739,6 +1739,7 @@ pub mod migrations {
 				Weight::from_parts(reads, writes)
 			}
 
+			#[cfg(feature = "try-runtime")]
 			fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
 				log::info!("Checking if all Locks are removed");
 				for a in ADDRESS_HASHES.into_iter() {
