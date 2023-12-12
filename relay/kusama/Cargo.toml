@@ -106,6 +106,7 @@ pallet-nomination-pools-benchmarking = { default-features = false, optional = tr
 frame-system-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
 pallet-election-provider-support-benchmarking = { default-features = false, optional = true , version = "24.0.0" }
 hex-literal = "0.4.1"
+hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 
 runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "4.0.0" }
 runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "4.0.0" }

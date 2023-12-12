@@ -1677,10 +1677,90 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::Runtime;
+	use super::*;
+
+	/// Clean up undecodable 2019 Locks.
+	/// See <https://github.com/polkadot-fellows/runtimes/issues/104>
+	mod clean_up_undecodable_locks {
+		use super::*;
+		use hex_literal::hex;
+		use sp_runtime::Saturating;
+
+		#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+		/// Original Lock <https://github.com/paritytech/substrate/blob/20a9b15cdbed4bf962a4447e8bfb812f766f2fbc/frame/balances/src/lib.rs#L324-L330>
+		pub struct OldBalanceLock<Balance, BlockNumber> {
+			pub id: [u8; 8],
+			pub amount: Balance,
+			pub until: BlockNumber,
+			pub reasons: u8,
+		}
+
+		pub struct Migration;
+
+		const LOCKS_PREFIX: [u8; 32] =
+			hex!("c2261276cc9d1f8598ea4b6a74b15c2f218f26c73add634897550b4003b26bc6");
+
+		const ADDRESS_HASHES: [[u8; 32]; 6] = [
+			hex!("25dd314d5cf9255ed0f3bdf2589adc292f47aed28c0690f788ed2dbceb1fc3ff"),
+			hex!("386a9e3f0e74067eef90a9a281c234e05d6fa9c4a25b20fd03913b81d7fccf13"),
+			hex!("402fc69a7eb122806b64c9e27735e45009aa922e1ba4675758c75607a96a2172"),
+			hex!("45c200adc666cca26df86e2e4a5aa1af186606b9e2a5b86c14cc954228a3cd00"),
+			hex!("51e634907ab2f0b63eadc4091e366f51bcf6f73763f216dcf716cfe7757813e7"),
+			hex!("5abb1b03f39287c41885312b50a18dc337de40d15f99c182eba0e5aa6629b9bc"),
+		];
+
+		impl frame_support::traits::OnRuntimeUpgrade for Migration {
+			fn on_runtime_upgrade() -> Weight {
+				let mut reads = 0;
+				let mut writes = 0;
+
+				for a in ADDRESS_HASHES.into_iter() {
+					let combined_key = [LOCKS_PREFIX.as_ref(), a.as_ref()].concat();
+					log::info!("Getting Lock from storage {:?}", hex::encode(&combined_key));
+
+					reads.saturating_inc();
+					let lock = match frame_support::storage::unhashed::get::<
+						OldBalanceLock<Balance, BlockNumber>,
+					>(&combined_key)
+					{
+						Some(lock) => lock,
+						None => {
+							log::warn!("Lock not found, skipping.");
+							continue;
+						},
+					};
+
+					log::info!("Killing Lock {:?}", lock);
+					writes.saturating_inc();
+					frame_support::storage::unhashed::kill(&combined_key);
+					log::info!("Killed");
+				}
+
+				Weight::from_parts(reads, writes)
+			}
+
+			fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
+				log::info!("Checking if all Locks are removed");
+				for a in ADDRESS_HASHES.into_iter() {
+					let combined_key = [LOCKS_PREFIX.as_ref(), a.as_ref()].concat();
+					if let Some(_) = frame_support::storage::unhashed::get::<
+						OldBalanceLock<Balance, BlockNumber>,
+					>(&combined_key)
+					{
+						log::error!("Lock {:?} not removed", hex::encode(combined_key));
+						return Err(sp_runtime::DispatchError::Other("Lock not removed"));
+					};
+				}
+
+				log::info!("✅ All Locks are removed");
+				Ok(())
+			}
+		}
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		clean_up_undecodable_locks::Migration,
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
 	);
