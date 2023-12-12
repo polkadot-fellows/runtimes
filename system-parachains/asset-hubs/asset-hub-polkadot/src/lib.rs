@@ -817,7 +817,7 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
 pub type Migrations =
-	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, Weight>;
+	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, RocksDbWeight>;
 
 /// Migration for Uniques to V1
 pub struct UniquesMigration;
