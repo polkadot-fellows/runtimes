@@ -88,7 +88,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		InstanceFilter,
+		InstanceFilter, OnRuntimeUpgrade,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -816,7 +816,17 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
-pub type Migrations = ();
+pub type Migrations =
+	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, Weight>;
+
+/// Migration for Uniques to V1
+pub struct UniquesMigration;
+
+impl OnRuntimeUpgrade for UniquesMigration {
+	fn on_runtime_upgrade() -> Weight {
+		pallet_uniques::migration::migrate_to_v1::<Runtime, (), pallet_uniques::Pallet<Runtime>>()
+	}
+}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
