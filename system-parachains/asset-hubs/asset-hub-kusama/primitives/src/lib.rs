@@ -37,7 +37,7 @@ pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
 	/// `ToPolkadotXcmRouter` bridge pallet.
-	#[codec(index = 43)]
+	#[codec(index = 34)]
 	ToPolkadotXcmRouter(XcmBridgeHubRouterCall),
 }
 
