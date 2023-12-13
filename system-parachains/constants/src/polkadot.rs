@@ -51,8 +51,9 @@ pub mod consensus {
 pub mod currency {
 	use polkadot_core_primitives::Balance;
 
-	/// The existential deposit. Set to 1/10 of its parent Relay Chain.
-	pub const EXISTENTIAL_DEPOSIT: Balance = 100 * CENTS / 10;
+	/// The existential deposit.
+	pub const EXISTENTIAL_DEPOSIT: Balance =
+		polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT / 10;
 
 	pub const UNITS: Balance = 10_000_000_000;
 	pub const DOLLARS: Balance = UNITS; // 10_000_000_000
@@ -61,8 +62,7 @@ pub mod currency {
 	pub const MILLICENTS: Balance = CENTS / 1_000; // 100_000
 
 	pub const fn deposit(items: u32, bytes: u32) -> Balance {
-		// 1/100 of Polkadot
-		(items as Balance * 20 * DOLLARS + (bytes as Balance) * 100 * MILLICENTS) / 100
+		polkadot_runtime_constants::currency::deposit(items, bytes) / 100
 	}
 }
 

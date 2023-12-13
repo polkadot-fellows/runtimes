@@ -11846,9 +11846,11 @@ name = "system-parachains-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "kusama-runtime-constants",
  "parachains-common",
  "polkadot-core-primitives",
  "polkadot-primitives",
+ "polkadot-runtime-constants",
  "smallvec",
  "sp-runtime",
 ]
