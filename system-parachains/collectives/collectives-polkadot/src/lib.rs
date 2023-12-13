@@ -87,7 +87,8 @@ use parachains_common::{
 };
 use sp_runtime::RuntimeDebug;
 use xcm_config::{
-	GovernanceLocation, TreasurerBodyId, XcmConfig, XcmOriginToTransactDispatchOrigin,
+	GovernanceLocation, LocationToAccountId, TreasurerBodyId, XcmConfig,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -509,9 +510,6 @@ pub const MAX_ALLIES: u32 = 100;
 
 parameter_types! {
 	pub const AllyDeposit: Balance = 1_000 * UNITS; // 1,000 DOT bond to join as an Ally
-	// The Alliance pallet account, used as a temporary place to deposit a slashed imbalance
-	// before the teleport to the Treasury.
-	pub AlliancePalletAccount: AccountId = ALLIANCE_PALLET_ID.into_account_truncating();
 	pub PolkadotTreasuryAccount: AccountId = POLKADOT_TREASURY_PALLET_ID.into_account_truncating();
 	// The number of blocks a member must wait between giving a retirement notice and retiring.
 	// Supposed to be greater than time required to `kick_member` with alliance motion.
@@ -525,7 +523,7 @@ impl pallet_alliance::Config for Runtime {
 	type MembershipManager = RootOrAllianceTwoThirdsMajority;
 	type AnnouncementOrigin = RootOrAllianceTwoThirdsMajority;
 	type Currency = Balances;
-	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, AlliancePalletAccount, Runtime>;
+	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type InitializeMembers = AllianceMotion;
 	type MembershipChanged = AllianceMotion;
 	type RetirementPeriod = AllianceRetirementPeriod;

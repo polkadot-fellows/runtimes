@@ -161,6 +161,9 @@ match_types! {
 		MultiLocation { parents: 0, interior: X1(Parachain(COLLECTIVES_ID)) } |
 		MultiLocation { parents: 0, interior: X2(Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }) }
 	};
+	pub type LocalPlurality: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 0, interior: X1(Plurality { .. }) }
+	};
 }
 
 /// The barriers one of which must be passed for an XCM message to be executed.
@@ -324,6 +327,10 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 	}
 }
 
+/// Locations that will not be charged fees in the executor, either execution or delivery.
+/// We only waive fees for system functions, which these locations represent.
+pub type WaivedLocations = (SystemParachains, LocalPlurality);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -351,7 +358,7 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	type FeeManager = XcmFeesToAccount<Self, SystemParachains, AccountId, TreasuryAccount>;
+	type FeeManager = XcmFeesToAccount<Self, WaivedLocations, AccountId, TreasuryAccount>;
 	// No bridges yet...
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
