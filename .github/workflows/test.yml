@@ -55,7 +55,6 @@ jobs:
         run: cargo test --workspace --release --locked -q --features=runtime-metrics,try-runtime
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
-          SKIP_WASM_BUILD: 0
 
       - name: Test all features
         run: cargo test --workspace --release --locked -q --features=runtime-benchmarks,runtime-metrics,try-runtime
