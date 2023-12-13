@@ -170,6 +170,7 @@ pub mod polkadot {
 		para_validator: ValidatorId,
 		para_assignment: AssignmentId,
 		authority_discovery: AuthorityDiscoveryId,
+		beefy: BeefyId,
 	) -> polkadot_runtime::SessionKeys {
 		polkadot_runtime::SessionKeys {
 			babe,
@@ -178,6 +179,7 @@ pub mod polkadot {
 			para_validator,
 			para_assignment,
 			authority_discovery,
+			beefy,
 		}
 	}
 
@@ -208,6 +210,7 @@ pub mod polkadot {
 								x.5.clone(),
 								x.6.clone(),
 								x.7.clone(),
+								get_from_seed::<BeefyId>("Alice"),
 							),
 						)
 					})
