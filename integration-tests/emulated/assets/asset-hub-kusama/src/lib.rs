@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(not(feature = "runtime-benchmarks"))]
+
 pub use codec::Encode;
 pub use frame_support::{
 	assert_err, assert_ok,
@@ -49,7 +51,7 @@ pub type RelayToSystemParaTest = Test<Kusama, AssetHubKusama>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalKusamaA>;
 
-/// Returns a `TestArgs` instance to de used for the Relay Chain accross integraton tests
+/// Returns a `TestArgs` instance to be used for the Relay Chain across integration tests
 pub fn relay_test_args(amount: Balance) -> TestArgs {
 	TestArgs {
 		dest: Kusama::child_location_of(AssetHubKusama::para_id()),
@@ -66,7 +68,7 @@ pub fn relay_test_args(amount: Balance) -> TestArgs {
 	}
 }
 
-/// Returns a `TestArgs` instance to de used for the System Parachain accross integraton tests
+/// Returns a `TestArgs` instance to be used for the System Parachain across integration tests
 pub fn system_para_test_args(
 	dest: MultiLocation,
 	beneficiary_id: AccountId32,

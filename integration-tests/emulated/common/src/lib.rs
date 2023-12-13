@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(not(feature = "runtime-benchmarks"))]
+
 pub mod constants;
 pub mod impls;
 pub mod xcm_helpers;
