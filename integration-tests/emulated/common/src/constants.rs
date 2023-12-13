@@ -241,16 +241,26 @@ pub mod polkadot {
 			configuration: polkadot_runtime::ConfigurationConfig { config: get_host_config() },
 			paras: polkadot_runtime::ParasConfig {
 				paras: vec![
-					// (
-					// 	asset_hub_polkadot::PARA_ID.into(),
-					// 	ParaGenesisArgs {
-					// 		genesis_head: HeadData::default(),
-					// 		validation_code: ValidationCode(
-					// 			asset_hub_polkadot_runtime::WASM_BINARY.unwrap().to_vec(),
-					// 		),
-					// 		para_kind: ParaKind::Parachain,
-					// 	},
-					// ),
+					(
+						asset_hub_polkadot::PARA_ID.into(),
+						ParaGenesisArgs {
+							genesis_head: HeadData::default(),
+							validation_code: ValidationCode(
+								asset_hub_polkadot_runtime::WASM_BINARY.unwrap().to_vec(),
+							),
+							para_kind: ParaKind::Parachain,
+						},
+					),
+					(
+						bridge_hub_polkadot::PARA_ID.into(),
+						ParaGenesisArgs {
+							genesis_head: HeadData::default(),
+							validation_code: ValidationCode(
+								bridge_hub_polkadot_runtime::WASM_BINARY.unwrap().to_vec(),
+							),
+							para_kind: ParaKind::Parachain,
+						},
+					),
 					(
 						penpal::PARA_ID_A.into(),
 						ParaGenesisArgs {
@@ -384,16 +394,26 @@ pub mod kusama {
 			configuration: kusama_runtime::ConfigurationConfig { config: get_host_config() },
 			paras: kusama_runtime::ParasConfig {
 				paras: vec![
-					// (
-					// 	asset_hub_kusama::PARA_ID.into(),
-					// 	ParaGenesisArgs {
-					// 		genesis_head: HeadData::default(),
-					// 		validation_code: ValidationCode(
-					// 			asset_hub_kusama_runtime::WASM_BINARY.unwrap().to_vec(),
-					// 		),
-					// 		para_kind: ParaKind::Parachain,
-					// 	},
-					// ),
+					(
+						asset_hub_kusama::PARA_ID.into(),
+						ParaGenesisArgs {
+							genesis_head: HeadData::default(),
+							validation_code: ValidationCode(
+								asset_hub_kusama_runtime::WASM_BINARY.unwrap().to_vec(),
+							),
+							para_kind: ParaKind::Parachain,
+						},
+					),
+					(
+						bridge_hub_kusama::PARA_ID.into(),
+						ParaGenesisArgs {
+							genesis_head: HeadData::default(),
+							validation_code: ValidationCode(
+								bridge_hub_kusama_runtime::WASM_BINARY.unwrap().to_vec(),
+							),
+							para_kind: ParaKind::Parachain,
+						},
+					),
 					(
 						penpal::PARA_ID_A.into(),
 						ParaGenesisArgs {
