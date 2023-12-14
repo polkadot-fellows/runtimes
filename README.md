@@ -60,7 +60,7 @@ The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](http
 
 # Weight Generation
 
-To generate weights for a runtime, run:
+To generate weights for a runtime
 
 1. Build `chain-spec-generator` with `--features runtime-benchmarks`
 2. Use it to build a chain spec for your runtime, e.g. `./target/release/chain-spec-generator --raw polkadot-local > polkadot-chain-spec.json`
@@ -89,7 +89,7 @@ To generate weights for a runtime, run:
 
 6. Create output directories for the weights on the benchmark machine
 
-7. Run (on the benchmark machine):
+7. Run on the benchmark machine:
 
 ```bash
 for pallet in \
@@ -119,6 +119,10 @@ Rename `fn add_scrupulous_items` to `fn add_unscrupulous_items` (see `https://gi
 8. `rsync` the weights back to your local machine
 
 ## FAQ
+
+### What benchmark machine spec should I use?
+
+We currently use a machine with a Intel(R) Xeon(R) CPU @ 2.60GHz.
 
 ### Why not use `--pallet=*` when generating benchmarks?
 
