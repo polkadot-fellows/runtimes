@@ -39,7 +39,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Restore governance lock periods to 7 days in Polkadot ([polkadot-fellows/runtimes#86](https://github.com/polkadot-fellows/runtimes/pull/86))
-  > > > > > > > main
 
 ## [1.0.0] 22.10.2023
 
