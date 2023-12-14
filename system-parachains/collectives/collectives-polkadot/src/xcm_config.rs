@@ -282,7 +282,7 @@ match_types! {
 pub type WaivedLocations = (
 	RelayOrOtherSystemParachains<SystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	// Equals<RootLocation>, TODO
+	Equals<RootLocation>,
 	LocalPlurality,
 );
 
