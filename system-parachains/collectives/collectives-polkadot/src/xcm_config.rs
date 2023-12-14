@@ -81,7 +81,7 @@ pub struct DescribeLocal;
 impl DescribeLocation for DescribeLocal {
 	fn describe_location(l: &MultiLocation) -> Option<Vec<u8>> {
 		if matches!(l, MultiLocation { parents: 0, interior: Here }) {
-			Some(b"Local".encode())
+			Some(b"LocalChain".encode())
 		} else {
 			None
 		}
