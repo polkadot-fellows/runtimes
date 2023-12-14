@@ -57,3 +57,79 @@ Releases are automatically pushed on commits merged to master that fulfill the f
 The release process is building all runtimes and then puts them into a release in this github repository.
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+# Weight Generation
+
+To generate weights for a runtime, run:
+
+1. Build `chain-spec-generator` with `--features runtime-benchmarks`
+2. Use it to build a chain spec for your runtime, e.g. `./target/release/chain-spec-generator --raw polkadot-local > polkadot-chain-spec.json`
+3. Create `file_header.txt`
+
+```text
+// Copyright (C) Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+```
+
+4. `rsync` chain spec/s and the file header to a benchmark machine
+
+5. Build `polkadot-sdk` with `--features runtime-benchmarks` on the benchmark machine
+
+6. Create output directories for the weights on the benchmark machine
+
+7. Run (on the benchmark machine):
+
+```bash
+for pallet in \
+  frame_system \
+  # other pallets you want to benchmark
+  pallet_proxy; do
+  echo "Running benchmark for $pallet"
+  ./target/release/polkadot benchmark pallet \
+    --chain=/path/to/chain-spec.json \
+    --steps 50 \
+    --repeat 20 \
+    --pallet=$pallet \
+    --extrinsic=* \
+    --wasm-execution=compiled \
+    --heap-pages=4096 \
+    --output /path/to/runtime/weights/directory \
+    --header /path/to/file_header.txt
+done
+```
+
+You probably want to do this inside a `tmux` session or similar, as it will take a while.
+
+7a. If benchmarking `pallet_alliance`
+
+Rename `fn add_scrupulous_items` to `fn add_unscrupulous_items` (see `https://github.com/paritytech/polkadot-sdk/pull/2173`).
+
+8. `rsync` the weights back to your local machine
+
+## FAQ
+
+### Why not use `--pallet=*` when generating benchmarks?
+
+XCM benchmarks are broken until runtimes repo gets <https://github.com/paritytech/polkadot-sdk/pull/2288>. Once this is fixed, we can use `--pallet=*` instead of a list of pallets.
+
+### Why is this such a manual task?
+
+It shouldn't be. Now that we have a process to follow, it should be automated by a script that takes as input:
+
+1. List of runtimes & pallets to bench
+2. SSH credentials for a benchmark machine
+3. Output dir
+
+and writes the weights to the local output dir.
