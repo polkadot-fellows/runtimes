@@ -379,7 +379,7 @@ pub fn polkadot_development_config() -> Result<Box<dyn ChainSpec>, String> {
 		polkadot_runtime::WASM_BINARY.ok_or("Polkadot development wasm not available")?;
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
-		"Development",
+		"Polakdot Development",
 		"polkadot_dev",
 		ChainType::Development,
 		move || polkadot_development_config_genesis(wasm_binary),
@@ -397,7 +397,7 @@ pub fn kusama_development_config() -> Result<Box<dyn ChainSpec>, String> {
 	let wasm_binary = kusama_runtime::WASM_BINARY.ok_or("Kusama development wasm not available")?;
 
 	Ok(Box::new(KusamaChainSpec::from_genesis(
-		"Development",
+		"Kusama Development",
 		"kusama_dev",
 		ChainType::Development,
 		move || kusama_development_config_genesis(wasm_binary),
@@ -425,8 +425,8 @@ pub fn polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 		polkadot_runtime::WASM_BINARY.ok_or("Polkadot development wasm not available")?;
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
-		"Local Testnet",
-		"local_testnet",
+		"Polkadot Local Testnet",
+		"polkadot_testnet",
 		ChainType::Local,
 		move || polkadot_local_testnet_genesis(wasm_binary),
 		vec![],
@@ -463,16 +463,6 @@ pub fn kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 		None,
 		Default::default(),
 	)))
-}
-
-pub fn from_json_file(filepath: &str) -> Result<Box<dyn ChainSpec>, String> {
-	let path = std::path::PathBuf::from(&filepath);
-	let chain_spec = PolkadotChainSpec::from_json_file(path.clone())?;
-	match chain_spec.id() {
-		x if x.starts_with("kusama") | x.starts_with("ksm") =>
-			Ok(Box::new(KusamaChainSpec::from_json_file(path)?)),
-		_ => Ok(Box::new(chain_spec)),
-	}
 }
 
 #[cfg(test)]
