@@ -122,7 +122,7 @@ Rename `fn add_scrupulous_items` to `fn add_unscrupulous_items` (see `https://gi
 
 ### What benchmark machine spec should I use?
 
-We currently use a machine with a Intel(R) Xeon(R) CPU @ 2.60GHz.
+Google Cloud `n2-standard-8` or equivalent.
 
 ### Why not use `--pallet=*` when generating benchmarks?
 
