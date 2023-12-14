@@ -318,7 +318,10 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type AssetIdParameter = MultiLocationForAssetId;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
-		(FromSiblingParachain<parachain_info::Pallet<Runtime>>,),
+		(
+			FromSiblingParachain<parachain_info::Pallet<Runtime>>,
+			snowbridge_router_primitives::inbound::FromEthereumGlobalConsensus<EthereumLocation>,
+		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
 	>;
@@ -749,6 +752,38 @@ impl pallet_nfts::Config for Runtime {
 	type Helper = ();
 }
 
+/// XCM router instance to BridgeHub with bridging capabilities for `Ethereum` global
+/// consensus with dynamic fees and back-pressure.
+pub type ToEthereumXcmRouterInstance = pallet_xcm_bridge_hub_router::Instance4;
+impl pallet_xcm_bridge_hub_router::Config<ToEthereumXcmRouterInstance> for Runtime {
+	type WeightInfo = weights::pallet_xcm_bridge_hub_router::WeightInfo<Runtime>;
+
+	type UniversalLocation = xcm_config::UniversalLocation;
+	type BridgedNetworkId = snowbridge_polkadot_common::EthereumNetwork;
+	type Bridges = xcm_config::bridging::NetworkExportTable;
+	type DestinationVersion = PolkadotXcm;
+
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type BridgeHubOrigin = EnsureXcm<Equals<xcm_config::bridging::SiblingBridgeHub>>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BridgeHubOrigin = EitherOfDiverse<
+		// for running benchmarks
+		EnsureRoot<AccountId>,
+		// for running tests with `--feature runtime-benchmarks`
+		EnsureXcm<Equals<xcm_config::bridging::SiblingBridgeHub>>,
+	>;
+
+	type ToBridgeHubSender = XcmpQueue;
+	type WithBridgeHubChannel =
+	cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<
+		xcm_config::bridging::SiblingBridgeHubParaId,
+		Runtime,
+	>;
+
+	type ByteFee = xcm_config::bridging::XcmBridgeHubRouterByteFee;
+	type FeeAsset = xcm_config::bridging::XcmBridgeHubRouterFeeAssetId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -784,6 +819,9 @@ construct_runtime!(
 		Utility: pallet_utility::{Pallet, Call, Event} = 40,
 		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
+
+		// Bridge utilities.
+		ToEthereumXcmRouter: pallet_xcm_bridge_hub_router::<Instance4>::{Pallet, Storage, Call} = 46,
 
 		// The main stage.
 		Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>} = 50,
@@ -893,6 +931,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[pallet_xcm_bridge_hub_router, ToEthereum]
 		// XCM
 		[pallet_xcm, PolkadotXcm]
 		// NOTE: Make sure you point to the individual modules below.
@@ -1132,6 +1171,8 @@ impl_runtime_apis! {
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
 
+			type ToEthereum = XcmBridgeHubRouterBench<Runtime, ToEthereumXcmRouterInstance>;
+
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -1284,6 +1325,8 @@ impl_runtime_apis! {
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
 
+			type ToEthereum = XcmBridgeHubRouterBench<Runtime, ToEthereumXcmRouterInstance>;
+
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
@@ -1304,6 +1347,35 @@ impl_runtime_apis! {
 			add_benchmarks!(params, batches);
 
 			Ok(batches)
+		}
+
+		impl XcmBridgeHubRouterConfig<ToEthereumXcmRouterInstance> for Runtime {
+			fn make_congested() {
+				cumulus_pallet_xcmp_queue::bridging::suspend_channel_for_benchmarks::<Runtime>(
+					xcm_config::bridging::SiblingBridgeHubParaId::get().into()
+				);
+			}
+			fn ensure_bridged_target_destination() -> Result<MultiLocation, BenchmarkError> {
+				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
+					xcm_config::bridging::SiblingBridgeHubParaId::get().into()
+				);
+				let bridged_network = xcm_config::bridging::to_ethereum::EthereumLocation::get();
+				let _ = PolkadotXcm::force_xcm_version(
+					RuntimeOrigin::root(),
+					Box::new(bridged_network),
+					XCM_VERSION,
+				).map_err(|e| {
+					log::error!(
+						"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+						RuntimeOrigin::root(),
+						bridged_network,
+						XCM_VERSION,
+						e
+					);
+					BenchmarkError::Stop("XcmVersion was not stored!")
+				})?;
+				Ok(bridged_network)
+			}
 		}
 	}
 }
