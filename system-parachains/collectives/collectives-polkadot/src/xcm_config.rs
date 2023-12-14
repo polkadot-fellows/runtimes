@@ -18,6 +18,7 @@ use super::{
 	PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	WeightToFee, XcmpQueue,
 };
+use codec::Encode;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
@@ -38,15 +39,16 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FixedWeightBounds, HashedDescription, IsConcrete, OriginToPluralityVoice,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WithComputedOrigin, WithUniqueTopic, XcmFeesToAccount,
+	DescribeLocation, EnsureXcmOrigin, FixedWeightBounds, HashedDescription, IsConcrete,
+	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WithComputedOrigin, WithUniqueTopic, XcmFeesToAccount,
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 parameter_types! {
+	pub const RootLocation: MultiLocation = MultiLocation::here();
 	pub const DotLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -71,7 +73,20 @@ pub type LocationToAccountId = (
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	// Foreign locations alias into accounts according to a hash of their standard description.
 	HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,
+	// Here/local root location to `AccountId`.
+	HashedDescription<AccountId, DescribeLocal>,
 );
+
+pub struct DescribeLocal;
+impl DescribeLocation for DescribeLocal {
+	fn describe_location(l: &MultiLocation) -> Option<Vec<u8>> {
+		if matches!(l, MultiLocation { parents: 0, interior: Here }) {
+			Some(b"Local".encode())
+		} else {
+			None
+		}
+	}
+}
 
 /// Means for transacting the native currency on this chain.
 pub type CurrencyTransactor = CurrencyAdapter<
@@ -267,6 +282,7 @@ match_types! {
 pub type WaivedLocations = (
 	RelayOrOtherSystemParachains<SystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
+	// Equals<RootLocation>, TODO
 	LocalPlurality,
 );
 
