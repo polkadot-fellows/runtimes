@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Introduce chain spec generator ([polkadot-fellows/runtimes#78](https://github.com/polkadot-fellows/runtimes/pull/78))
+- Introduce chain spec generator ([polkadot-fellows/runtimes#127](https://github.com/polkadot-fellows/runtimes/pull/127))
 
 ### Changed
 
