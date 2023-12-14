@@ -183,7 +183,19 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-				>::initialize { .. })
+				>::initialize { .. }) |
+				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
+					Runtime,
+					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
+				>::set_operating_mode { .. }) |
+				RuntimeCall::BridgeKusamaParachains(pallet_bridge_parachains::Call::<
+					Runtime,
+					crate::bridge_to_kusama_config::BridgeParachainKusamaInstance,
+				>::set_operating_mode { .. }) |
+				RuntimeCall::BridgeKusamaMessages(pallet_bridge_messages::Call::<
+					Runtime,
+					crate::bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
+				>::set_operating_mode { .. })
 		)
 	}
 }

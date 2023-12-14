@@ -180,7 +180,19 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				RuntimeCall::BridgePolkadotGrandpa(pallet_bridge_grandpa::Call::<
 					Runtime,
 					crate::bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
-				>::initialize { .. })
+				>::initialize { .. }) |
+				RuntimeCall::BridgePolkadotGrandpa(pallet_bridge_grandpa::Call::<
+					Runtime,
+					crate::bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
+				>::set_operating_mode { .. }) |
+				RuntimeCall::BridgePolkadotParachains(pallet_bridge_parachains::Call::<
+					Runtime,
+					crate::bridge_to_polkadot_config::BridgeParachainPolkadotInstance,
+				>::set_operating_mode { .. }) |
+				RuntimeCall::BridgePolkadotMessages(pallet_bridge_messages::Call::<
+					Runtime,
+					crate::bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+				>::set_operating_mode { .. })
 		)
 	}
 }
