@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	match_types, parameter_types,
-	traits::{Contains, Everything, Nothing},
+	traits::{Contains, Equals, Everything, Nothing},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
@@ -52,6 +52,7 @@ use xcm_builder::{
 use xcm_executor::traits::WithOriginFilter;
 
 parameter_types! {
+	pub const RootLocation: MultiLocation = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
@@ -329,7 +330,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 
 /// Locations that will not be charged fees in the executor, either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, LocalPlurality);
+pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
