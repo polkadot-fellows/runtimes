@@ -18,7 +18,6 @@ use super::{
 	PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	WeightToFee, XcmpQueue,
 };
-use codec::Encode;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
@@ -39,7 +38,7 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	DescribeLocation, EnsureXcmOrigin, FixedWeightBounds, HashedDescription, IsConcrete,
+	DescribeTerminus, EnsureXcmOrigin, FixedWeightBounds, HashedDescription, IsConcrete,
 	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
@@ -74,19 +73,8 @@ pub type LocationToAccountId = (
 	// Foreign locations alias into accounts according to a hash of their standard description.
 	HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,
 	// Here/local root location to `AccountId`.
-	HashedDescription<AccountId, DescribeLocal>,
+	HashedDescription<AccountId, DescribeTerminus>,
 );
-
-pub struct DescribeLocal;
-impl DescribeLocation for DescribeLocal {
-	fn describe_location(l: &MultiLocation) -> Option<Vec<u8>> {
-		if matches!(l, MultiLocation { parents: 0, interior: Here }) {
-			Some(b"LocalChain".encode())
-		} else {
-			None
-		}
-	}
-}
 
 /// Means for transacting the native currency on this chain.
 pub type CurrencyTransactor = CurrencyAdapter<
