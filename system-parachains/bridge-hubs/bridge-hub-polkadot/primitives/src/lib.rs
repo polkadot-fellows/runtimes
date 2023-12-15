@@ -82,11 +82,11 @@ frame_support::parameter_types! {
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 14_063_699_613;
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 16_954_899_613;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 13_291_899_613;
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 16_183_099_613;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending
