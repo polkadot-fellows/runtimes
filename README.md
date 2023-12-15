@@ -62,8 +62,8 @@ The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](http
 
 To generate weights for a runtime
 
-1. Build `chain-spec-generator` with `--features runtime-benchmarks`
-2. Use it to build a chain spec for your runtime, e.g. `./target/release/chain-spec-generator --raw polkadot-local > polkadot-chain-spec.json`
+1. Build `chain-spec-generator` with `--profile production --features runtime-benchmarks`
+2. Use it to build a chain spec for your runtime, e.g. `./target/production/chain-spec-generator --raw polkadot-local > polkadot-chain-spec.json`
 3. Create `file_header.txt`
 
 ```text
@@ -85,7 +85,7 @@ To generate weights for a runtime
 
 4. `rsync` chain spec/s and the file header to a benchmark machine
 
-5. Build `polkadot-sdk` with `--features runtime-benchmarks` on the benchmark machine
+5. Build `polkadot-sdk` with `--profile production --features runtime-benchmarks` on the benchmark machine
 
 6. Create output directories for the weights on the benchmark machine
 
@@ -97,7 +97,7 @@ for pallet in \
   # other pallets you want to benchmark
   pallet_proxy; do
   echo "Running benchmark for $pallet"
-  ./target/release/polkadot benchmark pallet \
+  ./target/production/polkadot benchmark pallet \
     --chain=/path/to/chain-spec.json \
     --steps 50 \
     --repeat 20 \
