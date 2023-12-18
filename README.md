@@ -92,7 +92,7 @@ To generate weights for a runtime
 7. Run on the benchmark machine:
 
 ```bash
-local pallets=($(
+pallets=($(
   ./target/production/polkadot benchmark pallet --list \
     --chain=/path/to/chain-spec.json |
     tail -n+2 |
