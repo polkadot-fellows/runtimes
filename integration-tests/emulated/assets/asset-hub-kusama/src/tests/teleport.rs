@@ -20,7 +20,7 @@ use crate::*;
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 
-	Kusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(631_531_000, 7_186)));
+	Kusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(630_000_000, 7_000)));
 
 	assert_expected_events!(
 		Kusama,
@@ -45,7 +45,7 @@ fn relay_dest_assertions(t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(
 		true,
 		Some(AssetHubKusama::para_id()),
-		Some(Weight::from_parts(307_225_000, 7_186)),
+		Some(Weight::from_parts(310_000_000, 7_000)),
 	);
 
 	assert_expected_events!(
@@ -68,7 +68,7 @@ fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(
 		false,
 		Some(AssetHubKusama::para_id()),
-		Some(Weight::from_parts(148_433_000, 3_593)),
+		Some(Weight::from_parts(150_000_000, 3_500)),
 	);
 }
 
@@ -76,8 +76,8 @@ fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		534_872_000,
-		7_133,
+		535_000_000,
+		7_000,
 	)));
 
 	AssetHubKusama::assert_parachain_system_ump_sent();

@@ -62,7 +62,7 @@ fn open_hrmp_channel_between_paras_works() {
 		Kusama::assert_ump_queue_processed(
 			true,
 			Some(para_a_id),
-			Some(Weight::from_parts(1_312_558_000, 200000)),
+			Some(Weight::from_parts(1_300_000_000, 200000)),
 		);
 
 		assert_expected_events!(
@@ -119,7 +119,7 @@ fn open_hrmp_channel_between_paras_works() {
 		Kusama::assert_ump_queue_processed(
 			true,
 			Some(para_b_id),
-			Some(Weight::from_parts(1_312_558_000, 200_000)),
+			Some(Weight::from_parts(1_300_000_000, 200_000)),
 		);
 
 		assert_expected_events!(

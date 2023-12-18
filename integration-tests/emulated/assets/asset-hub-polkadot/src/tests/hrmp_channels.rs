@@ -62,7 +62,7 @@ fn open_hrmp_channel_between_paras_works() {
 		Polkadot::assert_ump_queue_processed(
 			true,
 			Some(para_a_id),
-			Some(Weight::from_parts(1_282_426_000, 207_186)),
+			Some(Weight::from_parts(1_300_000_000, 207_000)),
 		);
 
 		assert_expected_events!(
@@ -116,7 +116,7 @@ fn open_hrmp_channel_between_paras_works() {
 		Polkadot::assert_ump_queue_processed(
 			true,
 			Some(para_b_id),
-			Some(Weight::from_parts(1_282_426_000, 207_186)),
+			Some(Weight::from_parts(1_300_000_000, 207_000)),
 		);
 
 		assert_expected_events!(

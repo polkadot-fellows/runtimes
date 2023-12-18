@@ -79,7 +79,7 @@ fn system_para_sets_relay_xcm_supported_version() {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		AssetHubPolkadot::assert_dmp_queue_complete(Some(Weight::from_parts(
-			1_019_210_000,
+			1_020_000_000,
 			200_000,
 		)));
 

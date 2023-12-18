@@ -45,7 +45,7 @@ fn send_transact_sudo_from_relay_to_system_para_works() {
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
-		AssetHubKusama::assert_dmp_queue_complete(Some(Weight::from_parts(1_019_445_000, 200_000)));
+		AssetHubKusama::assert_dmp_queue_complete(Some(Weight::from_parts(1_020_000_000, 200_000)));
 
 		assert_expected_events!(
 			AssetHubKusama,

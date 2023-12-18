@@ -46,7 +46,7 @@ fn send_transact_sudo_from_relay_to_system_para_works() {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		AssetHubPolkadot::assert_dmp_queue_complete(Some(Weight::from_parts(
-			1_019_445_000,
+			1_020_000_000,
 			200_000,
 		)));
 

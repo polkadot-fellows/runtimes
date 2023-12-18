@@ -18,7 +18,7 @@ use crate::*;
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 
-	Kusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(630_092_000, 6_196)));
+	Kusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(630_000_000, 6_000)));
 
 	assert_expected_events!(
 		Kusama,
@@ -47,8 +47,8 @@ fn system_para_to_para_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		630_092_000,
-		6_196,
+		630_000_000,
+		6_000,
 	)));
 
 	assert_expected_events!(
@@ -72,8 +72,8 @@ fn system_para_to_para_assets_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		676_119_000,
-		6196,
+		680_000_000,
+		6000,
 	)));
 
 	assert_expected_events!(

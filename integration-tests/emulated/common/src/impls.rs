@@ -616,7 +616,7 @@ macro_rules! impl_assets_helpers_for_parachain {
 					});
 
 					Self::execute_with(|| {
-						Self::assert_dmp_queue_complete(Some($crate::impls::Weight::from_parts(1_019_445_000, 200_000)));
+						Self::assert_dmp_queue_complete(Some($crate::impls::Weight::from_parts(1_020_000_000, 200_000)));
 
 						type RuntimeEvent = <$chain as $crate::impls::Chain>::RuntimeEvent;
 
