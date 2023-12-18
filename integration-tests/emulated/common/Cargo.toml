@@ -26,7 +26,6 @@ pallet-staking = { version = "25.0.0" }
 beefy-primitives = { package = "sp-consensus-beefy", version = "10.0.0" }
 
 # Polkadot
-polkadot-service = { features = ["full-node"], version = "4.0.0" }
 polkadot-primitives = { version = "4.0.0" }
 polkadot-runtime-parachains = { version = "4.0.0" }
 xcm = { package = "staging-xcm", version = "4.0.0" }

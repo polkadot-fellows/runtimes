@@ -33,7 +33,6 @@ use polkadot_runtime_parachains::{
 	configuration::HostConfiguration,
 	paras::{ParaGenesisArgs, ParaKind},
 };
-use polkadot_service::chain_spec::get_authority_keys_from_seed_no_beefy;
 use xcm;
 
 pub const XCM_V2: u32 = 3;
@@ -131,8 +130,20 @@ pub mod validators {
 		ValidatorId,
 		AssignmentId,
 		AuthorityDiscoveryId,
+		BeefyId,
 	)> {
-		vec![get_authority_keys_from_seed_no_beefy("Alice")]
+		let seed = "Alice";
+		vec![(
+			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+			get_account_id_from_seed::<sr25519::Public>(seed),
+			get_from_seed::<BabeId>(seed),
+			get_from_seed::<GrandpaId>(seed),
+			get_from_seed::<ImOnlineId>(seed),
+			get_from_seed::<ValidatorId>(seed),
+			get_from_seed::<AssignmentId>(seed),
+			get_from_seed::<AuthorityDiscoveryId>(seed),
+			get_from_seed::<BeefyId>(seed),
+		)]
 	}
 }
 
@@ -210,7 +221,7 @@ pub mod polkadot {
 								x.5.clone(),
 								x.6.clone(),
 								x.7.clone(),
-								get_from_seed::<BeefyId>("Alice"),
+								x.8.clone(),
 							),
 						)
 					})
@@ -363,7 +374,7 @@ pub mod kusama {
 								x.5.clone(),
 								x.6.clone(),
 								x.7.clone(),
-								get_from_seed::<BeefyId>("Alice"),
+								x.8.clone(),
 							),
 						)
 					})
