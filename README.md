@@ -92,10 +92,16 @@ To generate weights for a runtime
 7. Run on the benchmark machine:
 
 ```bash
-for pallet in \
-  frame_system \
-  # other pallets you want to benchmark
-  pallet_proxy; do
+local pallets=($(
+  ./target/production/polkadot benchmark pallet --list \
+    --chain=/path/to/chain-spec.json |
+    tail -n+2 |
+    cut -d',' -f1 |
+    sort |
+    uniq
+))
+
+for pallet in "${pallets[@]}"; do
   echo "Running benchmark for $pallet"
   ./target/production/polkadot benchmark pallet \
     --chain=/path/to/chain-spec.json \
