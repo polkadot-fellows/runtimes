@@ -118,7 +118,11 @@ done
 
 You probably want to do this inside a `tmux` session or similar, as it will take a while.
 
-8. `rsync` the weights back to your local machine
+8. `rsync` the weights back to your local machine, replacing the existing weights.
+
+9. Commit the weight changes.
+
+10. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./relay/polkadot/src/weights/*.rs" --method asymptotic --ignore-errors HEAD HEAD^1`. Ensure the changes are reasonable.
 
 ## FAQ
 
