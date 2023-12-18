@@ -102,7 +102,7 @@ local pallets=($(
 ))
 
 for pallet in "${pallets[@]}"; do
-  echo "Running benchmark for $pallet"
+  echo "Running benchmarks for $pallet"
   ./target/production/polkadot benchmark pallet \
     --chain=/path/to/chain-spec.json \
     --steps 50 \
@@ -118,28 +118,17 @@ done
 
 You probably want to do this inside a `tmux` session or similar, as it will take a while.
 
-7a. If benchmarking `pallet_alliance`
-
-Rename `fn add_scrupulous_items` to `fn add_unscrupulous_items` (see `https://github.com/paritytech/polkadot-sdk/pull/2173`).
-
 8. `rsync` the weights back to your local machine
 
 ## FAQ
 
 ### What benchmark machine spec should I use?
 
-Google Cloud `n2-standard-8` or equivalent.
-
-### Why not use `--pallet=*` when generating benchmarks?
-
-XCM benchmarks are broken until runtimes repo gets <https://github.com/paritytech/polkadot-sdk/pull/2288>. Once this is fixed, we can use `--pallet=*` instead of a list of pallets.
+See the [Polkadot Wiki Reference Hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#standard-hardware).
 
 ### Why is this such a manual task?
 
-It shouldn't be. Now that we have a process to follow, it should be automated by a script that takes as input:
+It shouldn't be. Now that we have a process to follow, it should be automated by a script that takes as input.
 
-1. List of runtimes & pallets to bench
-2. SSH credentials for a benchmark machine
-3. Output dir
+Tracked in [this issue](https://github.com/polkadot-fellows/runtimes/issues/128).
 
-and writes the weights to the local output dir.
