@@ -92,27 +92,32 @@ To generate weights for a runtime
 7. Run on the benchmark machine:
 
 ```bash
+#!/bin/bash
+
+# Default value is 'polkadot', but you can override it by passing a different value as an argument
+CHAIN=${1:-polkadot}
+
 pallets=($(
   ./target/production/polkadot benchmark pallet --list \
-    --chain=/path/to/chain-spec.json |
+    --chain=./$CHAIN-chain-spec.json |
     tail -n+2 |
     cut -d',' -f1 |
     sort |
     uniq
-))
+);
 
 for pallet in "${pallets[@]}"; do
   echo "Running benchmarks for $pallet"
   ./target/production/polkadot benchmark pallet \
-    --chain=/path/to/chain-spec.json \
-    --steps 50 \
-    --repeat 20 \
+    --chain=./$CHAIN-chain-spec.json \
+    --steps=50 \
+    --repeat=20 \
     --pallet=$pallet \
     --extrinsic=* \
     --wasm-execution=compiled \
     --heap-pages=4096 \
-    --output /path/to/runtime/weights/directory \
-    --header /path/to/file_header.txt
+    --output=./$CHAIN-weights \
+    --header=./file_header.txt
 done
 ```
 
