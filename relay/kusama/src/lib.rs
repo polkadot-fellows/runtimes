@@ -1764,7 +1764,10 @@ pub mod migrations {
 						OldBalanceLock<Balance, BlockNumber>,
 					>(&combined_key)
 					{
-						log::error!("Lock {:?} not removed", hex::encode(combined_key));
+						log::error!(
+							"Lock {:?} not removed",
+							array_bytes::bytes2hex("0x", combined_key)
+						);
 						return Err(sp_runtime::DispatchError::Other("Lock not removed"));
 					};
 				}
