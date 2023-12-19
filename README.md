@@ -120,9 +120,13 @@ You probably want to do this inside a `tmux` session or similar, as it will take
 
 8. `rsync` the weights back to your local machine, replacing the existing weights.
 
-9. Commit the weight changes.
+9. Manually fix XCM weights by
+- Resetting the `impl<T: frame_system::Config> xxx::WeightInfo<T> {` to just `impl<T: frame_system::Config> WeightInfo<T> {`
+- Marking all functions `pub(crate)`
 
-10. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./relay/polkadot/src/weights/*.rs" --method asymptotic --ignore-errors HEAD HEAD^1`. Ensure the changes are reasonable.
+10. Commit the weight changes.
+
+11. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./relay/polkadot/src/weights/*.rs" --method asymptotic --ignore-errors HEAD HEAD^1`. Ensure the changes are reasonable.
 
 ## FAQ
 
