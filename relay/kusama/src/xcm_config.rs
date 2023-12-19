@@ -325,7 +325,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 	}
 }
 
-/// Locations that will not be charged fees in the executor, either execution or delivery.
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
 
