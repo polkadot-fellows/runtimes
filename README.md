@@ -126,9 +126,9 @@ You probably want to do this inside a `tmux` session or similar, as it will take
 8. `rsync` the weights back to your local machine, replacing the existing weights.
 
 9. Manually fix XCM weights by
-- Resetting the `impl<T: frame_system::Config> xxx::yyy::WeightInfo<T> for WeightInfo<T> {` to just `impl<T: frame_system::Config> WeightInfo<T> {`
+- Replacing `impl<T: frame_system::Config> xxx::yyy::WeightInfo<T> for WeightInfo<T> {` with `impl<T: frame_system::Config> WeightInfo<T> {`
 - Marking all functions `pub(crate)`
-- Remove any unused functions
+- Removing any unused functions
 
 10. Commit the weight changes.
 
