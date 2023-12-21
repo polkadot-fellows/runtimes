@@ -67,8 +67,6 @@ use frame_system::{
 };
 use pallet_asset_conversion_tx_payment::AssetConversionAdapter;
 use pallet_nfts::PalletFeatures;
-// TODO make combined mod to re-export
-pub use parachains_common as common;
 use parachains_common::{
 	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
 	Hash, Header, Nonce, Signature,

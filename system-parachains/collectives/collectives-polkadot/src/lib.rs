@@ -77,8 +77,6 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
-// TODO make combined mod to re-export
-pub use parachains_common as common;
 use parachains_common::{
 	impls::DealWithFees, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };

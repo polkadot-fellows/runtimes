@@ -98,8 +98,6 @@ use frame_system::{
 	EnsureRoot, EnsureSigned,
 };
 use pallet_nfts::PalletFeatures;
-// TODO make combined mod to re-export
-pub use parachains_common as common;
 use parachains_common::{
 	impls::{AssetsToBlockAuthor, DealWithFees},
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance, BlockNumber,
