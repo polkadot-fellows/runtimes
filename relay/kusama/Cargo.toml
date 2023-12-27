@@ -218,6 +218,7 @@ std = [
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
+	"sp-debug-derive/std",
 	"sp-genesis-builder/std",
 	"sp-io/std",
 	"sp-mmr-primitives/std",
