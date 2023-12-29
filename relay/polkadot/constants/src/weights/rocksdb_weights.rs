@@ -43,34 +43,34 @@ pub mod constants {
 		/// By default, Substrate uses `RocksDB`, so this will be the weight used throughout
 		/// the runtime.
 		pub const RocksDbWeight: RuntimeDbWeight = RuntimeDbWeight {
-			/// Time to read one storage item.
-			/// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
-			///
-			/// Stats [NS]:
-			///   Min, Max: 5_015, 1_441_022
-			///   Average:  18_635
-			///   Median:   17_795
-			///   Std-Dev:  4829.75
-			///
-			/// Percentiles [NS]:
-			///   99th: 32_074
-			///   95th: 26_658
-			///   75th: 19_363
+			// Time to read one storage item.
+			// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
+			//
+			// Stats [NS]:
+			//   Min, Max: 5_015, 1_441_022
+			//   Average:  18_635
+			//   Median:   17_795
+			//   Std-Dev:  4829.75
+			//
+			// Percentiles [NS]:
+			//   99th: 32_074
+			//   95th: 26_658
+			//   75th: 19_363
 			read: 20_499 * constants::WEIGHT_REF_TIME_PER_NANOS,
 
-			/// Time to write one storage item.
-			/// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
-			///
-			/// Stats [NS]:
-			///   Min, Max: 16_368, 34_500_937
-			///   Average:  75_882
-			///   Median:   74_236
-			///   Std-Dev:  64706.41
-			///
-			/// Percentiles [NS]:
-			///   99th: 111_151
-			///   95th: 92_666
-			///   75th: 80_297
+			// Time to write one storage item.
+			// Calculated by multiplying the *Average* of all values with `1.1` and adding `0`.
+			//
+			// Stats [NS]:
+			//   Min, Max: 16_368, 34_500_937
+			//   Average:  75_882
+			//   Median:   74_236
+			//   Std-Dev:  64706.41
+			//
+			// Percentiles [NS]:
+			//   99th: 111_151
+			//   95th: 92_666
+			//   75th: 80_297
 			write: 83_471 * constants::WEIGHT_REF_TIME_PER_NANOS,
 		};
 	}

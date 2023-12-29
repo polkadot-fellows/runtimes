@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Tests for the Statemine (Kusama Assets Hub) chain.
+//! Tests for the Kusama Asset Hub (previously known as Statemine) chain.
 
 use asset_hub_kusama_runtime::xcm_config::{
 	AssetFeeAsExistentialDepositMultiplierFeeCharger, KsmLocation, TrustBackedAssetsPalletLocation,
