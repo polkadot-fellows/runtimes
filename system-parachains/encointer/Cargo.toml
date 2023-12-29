@@ -2,7 +2,7 @@
 name = 'encointer-runtime'
 # major.minor revision must match collator node
 # patch revision must match runtime spec_version
-version = '1.5.16'
+version = '1.5.17'
 authors = ["Encointer <info@encointer.org>"]
 edition = "2021"
 description = "Runtime for Encointer Network (kusama system chain)"
