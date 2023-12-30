@@ -111,7 +111,7 @@ xcm = { package = "staging-xcm", default-features = false , version = "4.0.0" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "4.0.0" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "4.0.0" }
 
-sp-debug-derive = { default-features = false , version = "10.0.0" }
+sp-debug-derive = { default-features = false, version = "10.0.0" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
