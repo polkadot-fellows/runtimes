@@ -35,7 +35,8 @@ The approval rights are configured in [`review-bot.yml`](.github/review-bot.yml)
 
 The review-bot uses the on-chain identity to map from a GitHub account to a Fellowship member. This requires that each Fellowship member add their GitHub handle to their on-chain identity. Check [here](docs/on-chain-identity.md) for instructions.
 
-Find a list of all Fellows and their GitHub handles [here](https://fellowship.tasty.limo/ )
+- [Official List of Fellows](https://polkadot-fellows.github.io/dashboard/#/members)
+- [List of Fellows with their GitHub handles](https://fellowship.tasty.limo/)
 
 # Working on Pull Requests
 
