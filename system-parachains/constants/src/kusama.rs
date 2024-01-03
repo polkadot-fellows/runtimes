@@ -29,7 +29,7 @@ pub mod consensus {
 pub mod currency {
 	use polkadot_core_primitives::Balance;
 
-	/// The existential deposit.
+	/// The existential deposit. 1/10th of the relay deposit.
 	pub const EXISTENTIAL_DEPOSIT: Balance =
 		kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT / 10;
 
@@ -39,6 +39,7 @@ pub mod currency {
 	pub const GRAND: Balance = QUID * 1_000;
 	pub const MILLICENTS: Balance = CENTS / 1_000;
 
+	/// Deposit for stored data. 1/100th of the relay deposit.
 	pub const fn deposit(items: u32, bytes: u32) -> Balance {
 		kusama_runtime_constants::currency::deposit(items, bytes) / 100
 	}
