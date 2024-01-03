@@ -1,5 +1,6 @@
 [package]
 name = "system-parachains-constants"
+description = "Common constants for System Parachains runtimes"
 repository.workspace = true
 version.workspace = true
 authors.workspace = true
