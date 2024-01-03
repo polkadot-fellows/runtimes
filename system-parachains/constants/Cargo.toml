@@ -10,18 +10,13 @@ license.workspace = true
 [dependencies]
 smallvec = "1.8.0"
 
-# Substrate
 frame-support = { default-features = false , version = "25.0.0" }
-sp-runtime = { default-features = false , version = "28.0.0" }
-
-# Polkadot
+kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
+parachains-common = { default-features = false , version = "4.0.0" }
 polkadot-core-primitives = { default-features = false, version = "4.0.0"}
 polkadot-primitives = { default-features = false , version = "4.0.0" }
 polkadot-runtime-constants = { path = "../../relay/polkadot/constants", default-features = false}
-kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
-
-# Cumulus
-parachains-common = { default-features = false , version = "4.0.0" }
+sp-runtime = { default-features = false , version = "28.0.0" }
 
 [features]
 default = [ "std" ]
