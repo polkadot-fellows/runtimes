@@ -525,6 +525,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "asset-hub-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "assert_matches",
+ "asset-hub-kusama-runtime",
+ "frame-support",
+ "frame-system",
+ "integration-tests-common",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-parachains",
+ "sp-runtime",
+ "staging-xcm",
+ "xcm-emulator",
+]
+
+[[package]]
 name = "asset-hub-kusama-runtime"
 version = "1.0.0"
 dependencies = [
@@ -596,6 +619,27 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+]
+
+[[package]]
+name = "asset-hub-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "integration-tests-common",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-parachains",
+ "sp-runtime",
+ "staging-xcm",
+ "xcm-emulator",
 ]
 
 [[package]]
@@ -4453,6 +4497,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration-tests-common"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-hub-polkadot-runtime",
+ "asset-test-utils",
+ "bp-messages",
+ "bridge-hub-kusama-runtime",
+ "bridge-hub-polkadot-runtime",
+ "bridge-runtime-common",
+ "collectives-polkadot-runtime",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "frame-support",
+ "kusama-runtime-constants",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-bridge-messages",
+ "pallet-im-online",
+ "pallet-message-queue",
+ "pallet-staking",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "paste",
+ "penpal-runtime",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains",
+ "serde_json",
+ "sp-authority-discovery",
+ "sp-consensus-babe",
+ "sp-consensus-beefy",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "xcm-emulator",
+]
+
+[[package]]
 name = "interceptor"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7795,6 +7886,68 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24d159833a9105500e0398934e205e0773f0b27529557134ecfc51c27646adac"
 dependencies = [
  "base64ct",
+]
+
+[[package]]
+name = "penpal-runtime"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63d1c2aa2cbc5012e6af2781ff7fb0bf7188ff4d25643a0f36a44f327b779fb4"
+dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-session-benchmarking",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-utility",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "hex-literal",
+ "log",
+ "pallet-asset-tx-payment",
+ "pallet-assets",
+ "pallet-aura",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-session",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime-common",
+ "scale-info",
+ "smallvec",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-genesis-builder",
+ "sp-inherents",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-storage",
+ "sp-transaction-pool",
+ "sp-version",
+ "staging-parachain-info",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "substrate-wasm-builder",
 ]
 
 [[package]]
@@ -13583,6 +13736,39 @@ dependencies = [
  "rusticata-macros",
  "thiserror",
  "time 0.3.27",
+]
+
+[[package]]
+name = "xcm-emulator"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd344ca12e6217fbbc6ee27bedb01113357ea31bea198e74b76f618102b6f06c"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "cumulus-primitives-parachain-inherent",
+ "cumulus-test-relay-sproof-builder",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "lazy_static",
+ "log",
+ "pallet-balances",
+ "pallet-message-queue",
+ "parachains-common",
+ "parity-scale-codec",
+ "paste",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-tracing",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
