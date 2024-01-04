@@ -60,17 +60,44 @@ jobs:
 
       - name: Build ${{ matrix.runtime.name }}
         run: |
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
 
       - name: Check migrations
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+
           # When running on relay, we don't need weight checks.
           NO_WEIGHT_WARNINGS_FLAG=""
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
           fi
+
+          # Disable the spec version check when we dont want to release.
+          EXTRA_FLAGS=""
+          if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
+            EXTRA_FLAGS="--disable-spec-version-check"
+          fi
+
+          # First create a snapshot that we can re-use for the two other commands:
           ./try-runtime \
-              --runtime ./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
-              on-runtime-upgrade --checks=pre-and-post $EXTRA_ARGS $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
+            --runtime $RUNTIME_BLOB_PATH \
+            create-snapshot --uri ${{ matrix.runtime.uri }} \
+            onchain.snap
+          
+          # Check with pre-and-post
+          ./try-runtime \
+            --runtime $RUNTIME_BLOB_PATH \
+            on-runtime-upgrade --checks=pre-and-post \
+            $EXTRA_FLAGS $NO_WEIGHT_WARNINGS_FLAG \
+            snap -p onchain.snap
+        
+          # Optional: also check try-state invariants
+          ./try-runtime \
+            --runtime $RUNTIME_BLOB_PATH \
+            on-runtime-upgrade --checks=all \
+            $EXTRA_FLAGS $NO_WEIGHT_WARNINGS_FLAG \
+            snap -p onchain.snap || echo "###
+            DECODING FAILED
+            ###"
