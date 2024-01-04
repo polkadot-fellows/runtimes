@@ -77,15 +77,15 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
-pub use parachains_common as common;
 use parachains_common::{
-	impls::DealWithFees,
+	impls::DealWithFees, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+};
+use sp_runtime::RuntimeDebug;
+use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
-	AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
-use sp_runtime::RuntimeDebug;
 use xcm_config::{
 	GovernanceLocation, TreasurerBodyId, XcmConfig, XcmOriginToTransactDispatchOrigin,
 };

@@ -35,10 +35,10 @@ use frame_support::{
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
 use parachains_common::{
-	polkadot::fee::WeightToFee, AccountId, AssetHubPolkadotAuraId as AuraId,
-	AssetIdForTrustBackedAssets, Balance,
+	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance,
 };
 use sp_runtime::traits::MaybeEquivalence;
+use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Identity, JustTry, WeightTrader};
 

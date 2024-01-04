@@ -67,15 +67,16 @@ use frame_system::{
 };
 use pallet_asset_conversion_tx_payment::AssetConversionAdapter;
 use pallet_nfts::PalletFeatures;
-pub use parachains_common as common;
 use parachains_common::{
-	impls::DealWithFees,
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash, Header, Nonce,
-	Signature, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT,
-	NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
+	Hash, Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
+use system_parachains_constants::{
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
+	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	SLOT_DURATION,
+};
 use xcm::opaque::v3::MultiLocation;
 use xcm_config::{
 	FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation, KsmLocation,
@@ -1440,9 +1441,9 @@ fn ensure_key_ss58() {
 mod tests {
 	use super::*;
 	use crate::{CENTS, MILLICENTS};
-	use parachains_common::kusama::fee;
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
+	use system_parachains_constants::kusama::fee;
 
 	/// We can fit at least 1000 transfers in a block.
 	#[test]

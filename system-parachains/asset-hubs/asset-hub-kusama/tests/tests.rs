@@ -34,10 +34,9 @@ use frame_support::{
 	traits::fungibles::InspectEnumerable,
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
-use parachains_common::{
-	kusama::fee::WeightToFee, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance,
-};
+use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_runtime::traits::MaybeEquivalence;
+use system_parachains_constants::kusama::fee::WeightToFee;
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Identity, JustTry, WeightTrader};
 
