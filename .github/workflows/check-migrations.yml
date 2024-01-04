@@ -82,7 +82,6 @@ jobs:
 
           # First create a snapshot that we can re-use for the two other commands:
           ./try-runtime \
-            --runtime $RUNTIME_BLOB_PATH \
             create-snapshot --uri ${{ matrix.runtime.uri }} \
             onchain.snap
           
