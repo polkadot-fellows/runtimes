@@ -71,7 +71,6 @@ jobs:
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
           fi
-          EXTRA_ARGS="--disable-spec-version-check"
           ./try-runtime \
               --runtime ./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
               on-runtime-upgrade --checks=pre-and-post $EXTRA_ARGS $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
