@@ -98,15 +98,18 @@ use frame_system::{
 	EnsureRoot, EnsureSigned,
 };
 use pallet_nfts::PalletFeatures;
-pub use parachains_common as common;
 use parachains_common::{
 	impls::{AssetsToBlockAuthor, DealWithFees},
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
 	AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets, Balance, BlockNumber,
-	Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT,
-	NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	Hash, Header, Nonce, Signature,
 };
+
 use sp_runtime::RuntimeDebug;
+use system_parachains_constants::{
+	polkadot::{consensus::*, currency::*, fee::WeightToFee},
+	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	SLOT_DURATION,
+};
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation,
 	TrustBackedAssetsConvertedConcreteId, XcmConfig, XcmOriginToTransactDispatchOrigin,
@@ -1317,9 +1320,9 @@ cumulus_pallet_parachain_system::register_validate_block! {
 mod tests {
 	use super::*;
 	use crate::{CENTS, MILLICENTS};
-	use parachains_common::polkadot::fee;
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
+	use system_parachains_constants::polkadot::fee;
 
 	/// We can fit at least 1000 transfers in a block.
 	#[test]

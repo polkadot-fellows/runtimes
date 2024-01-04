@@ -20,7 +20,8 @@ pub use bridge_hub_kusama_runtime::{
 };
 use codec::Decode;
 use frame_support::parameter_types;
-use parachains_common::{kusama::fee::WeightToFee, AccountId, AuraId};
+use parachains_common::{AccountId, AuraId};
+use system_parachains_constants::kusama::fee::WeightToFee;
 
 const ALICE: [u8; 32] = [1u8; 32];
 

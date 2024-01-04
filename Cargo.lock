@@ -619,6 +619,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -710,6 +711,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1369,6 +1371,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1433,6 +1436,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1936,6 +1940,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -4007,6 +4012,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -11986,6 +11992,20 @@ checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-constants"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "kusama-runtime-constants",
+ "parachains-common",
+ "polkadot-core-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime-constants",
+ "smallvec",
+ "sp-runtime",
 ]
 
 [[package]]
