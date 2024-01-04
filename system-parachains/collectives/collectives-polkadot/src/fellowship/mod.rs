@@ -38,7 +38,6 @@ pub use origins::{
 };
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use parachains_common::polkadot::account;
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter,
 };
@@ -48,6 +47,7 @@ use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{
 	AccountIdConversion, ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst,
 };
+use system_parachains_constants::polkadot::account;
 use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
