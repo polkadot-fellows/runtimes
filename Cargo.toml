@@ -20,6 +20,8 @@ members = [
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/constants",
 	"system-parachains/gluttons/glutton-kusama",
+	"integration-tests/emulated/assets/asset-hub-kusama",
+	"integration-tests/emulated/assets/asset-hub-polkadot",
 ]
 
 [profile.release]
