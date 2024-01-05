@@ -69,24 +69,34 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
 
           # When running on relay, we don't need weight checks.
-          NO_WEIGHT_WARNINGS_FLAG=""
+          EXTRA_FLAGS=""
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
-            NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
+            EXTRA_FLAGS+="--no-weight-warnings"
+            echo "Disabling weight checks since we are on a relay"
+          else
+            echo "Enabling weight checks since we are not on a relay"
           fi
 
           # Disable the spec version check when we dont want to release.
-          EXTRA_FLAGS=""
           if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
-            EXTRA_FLAGS="--disable-spec-version-check"
+            EXTRA_FLAGS+=" --disable-spec-version-check"
             echo "Disabling the spec version check since we are not releasing"
           else
             echo "Enabling the spec version check since we are releasing"
           fi
 
-          echo $EXTRA_FLAGS $NO_WEIGHT_WARNINGS_FLAG
+          # Disable idemepotency checks on Polkadot until we enact them.
+          if [[ "${{ matrix.runtime.name }}" == "polkadot" ]]; then
+            echo "Disabling the idempotency check since we are on Polkadot"
+            EXTRA_FLAGS+=" --disable-idempotency-checks"
+          else
+            echo "Enabling the idempotency check since we are not on Polkadot"
+          fi
+
+          echo "Flags: $EXTRA_FLAGS"
 
           ./try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             on-runtime-upgrade --checks=pre-and-post \
-            $EXTRA_FLAGS $NO_WEIGHT_WARNINGS_FLAG \
+            $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}
