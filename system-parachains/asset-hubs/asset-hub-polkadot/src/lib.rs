@@ -88,7 +88,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		InstanceFilter,
+		InstanceFilter, OnRuntimeUpgrade,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -820,49 +820,14 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
 pub type Migrations =
-	(pallet_collator_selection::migration::v1::MigrateToV1<Runtime>, InitStorageVersions);
+	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, RocksDbWeight>;
 
-/// Migration to initialize storage versions for pallets added after genesis.
-///
-/// Ideally this would be done automatically (see
-/// <https://github.com/paritytech/polkadot-sdk/pull/1297>), but it probably won't be ready for some
-/// time and it's beneficial to get storage version issues smoothed over before merging
-/// <https://github.com/polkadot-fellows/runtimes/pull/28> so we're just setting them manually.
-pub struct InitStorageVersions;
+/// Migration for Uniques to V1
+pub struct UniquesMigration;
 
-impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
+impl OnRuntimeUpgrade for UniquesMigration {
 	fn on_runtime_upgrade() -> Weight {
-		use frame_support::traits::{GetStorageVersion, StorageVersion};
-		use sp_runtime::traits::Saturating;
-
-		let mut writes = 0;
-
-		if Multisig::on_chain_storage_version() == StorageVersion::new(0) {
-			Multisig::current_storage_version().put::<Multisig>();
-			writes.saturating_inc();
-		}
-
-		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
-			writes.saturating_inc();
-		}
-
-		if Nfts::on_chain_storage_version() == StorageVersion::new(0) {
-			Nfts::current_storage_version().put::<Nfts>();
-			writes.saturating_inc();
-		}
-
-		if ForeignAssets::on_chain_storage_version() == StorageVersion::new(0) {
-			ForeignAssets::current_storage_version().put::<ForeignAssets>();
-			writes.saturating_inc();
-		}
-
-		if Uniques::on_chain_storage_version() == StorageVersion::new(0) {
-			Uniques::current_storage_version().put::<Uniques>();
-			writes.saturating_inc();
-		}
-
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(4, writes)
+		pallet_uniques::migration::migrate_to_v1::<Runtime, (), pallet_uniques::Pallet<Runtime>>()
 	}
 }
 
