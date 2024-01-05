@@ -78,7 +78,12 @@ jobs:
           EXTRA_FLAGS=""
           if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
             EXTRA_FLAGS="--disable-spec-version-check"
+            echo "Disabling the spec version check since we are not releasing"
+          else
+            echo "Enabling the spec version check since we are releasing"
           fi
+
+          echo $EXTRA_FLAGS $NO_WEIGHT_WARNINGS_FLAG
 
           ./try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
