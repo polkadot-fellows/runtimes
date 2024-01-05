@@ -36,7 +36,7 @@ fn relay_origin_assertions(t: RelayToSystemParaTest) {
 }
 
 fn system_para_dest_assertions_incomplete(_t: RelayToSystemParaTest) {
-	AssetHubPolkadot::assert_dmp_queue_incomplete(None, Some(Error::UntrustedReserveLocation));
+	AssetHubPolkadot::assert_dmp_queue_incomplete(Some(Error::WeightNotComputable));
 }
 
 fn system_para_to_relay_assertions(_t: SystemParaToRelayTest) {

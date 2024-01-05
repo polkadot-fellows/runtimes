@@ -474,20 +474,14 @@ macro_rules! impl_assert_events_helpers_for_parachain {
 
 				/// Asserts a XCM from Relay Chain is incompletely executed
 				pub fn assert_dmp_queue_incomplete(
-					expected_weight: Option<$crate::impls::Weight>,
 					expected_error: Option<$crate::impls::Error>,
 				) {
 					$crate::impls::assert_expected_events!(
 						Self,
 						vec![
 							[<$chain RuntimeEvent>]::DmpQueue($crate::impls::cumulus_pallet_dmp_queue::Event::ExecutedDownward {
-								outcome: $crate::impls::Outcome::Incomplete(weight, error), ..
+								outcome: $crate::impls::Outcome::Error(error), ..
 							}) => {
-								weight: $crate::impls::weight_within_threshold(
-									($crate::impls::REF_TIME_THRESHOLD, $crate::impls::PROOF_SIZE_THRESHOLD),
-									expected_weight.unwrap_or(*weight),
-									*weight
-								),
 								error: *error == expected_error.unwrap_or(*error),
 							},
 						]
