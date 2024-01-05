@@ -45,7 +45,7 @@ fn relay_dest_assertions(t: SystemParaToRelayTest) {
 	Polkadot::assert_ump_queue_processed(
 		true,
 		Some(AssetHubPolkadot::para_id()),
-		Some(Weight::from_parts(370_000_000, 7_000)),
+		Some(Weight::from_parts(254_182_000, 7_186)),
 	);
 
 	assert_expected_events!(
@@ -68,7 +68,7 @@ fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Polkadot::assert_ump_queue_processed(
 		false,
 		Some(AssetHubPolkadot::para_id()),
-		Some(Weight::from_parts(235_000_000, 3_500)),
+		Some(Weight::from_parts(122_581_000, 3_593)),
 	);
 }
 
