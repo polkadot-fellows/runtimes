@@ -190,7 +190,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => matches!(c, RuntimeCall::EncointerBazaar(..)),
+			ProxyType::NonTransfer =>
+				!matches!(c, RuntimeCall::Balances { .. } | RuntimeCall::EncointerBalances { .. }),
 			ProxyType::BazaarEdit => matches!(
 				c,
 				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. }) |
@@ -205,7 +206,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
-			(ProxyType::NonTransfer, _) => true,
+			(ProxyType::NonTransfer, ProxyType::BazaarEdit) => true,
 			_ => false,
 		}
 	}
