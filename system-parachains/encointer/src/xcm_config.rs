@@ -27,15 +27,18 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain_primitives::primitives::Sibling;
+use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use sp_core::ConstU32;
-use xcm::latest::prelude::*;
+use sp_runtime::traits::IdentityLookup;
+use xcm::{latest::prelude::*, VersionedMultiLocation};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	DenyReserveTransferToRelayChain, DenyThenTry, EnsureXcmOrigin, FixedWeightBounds, IsConcrete,
-	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	DenyReserveTransferToRelayChain, DenyThenTry, DescribeTerminus, EnsureXcmOrigin,
+	FixedWeightBounds, HashedDescription, IsConcrete, NativeAsset, ParentAsSuperuser,
+	ParentIsPreset, PayOverXcm, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 };
 use xcm_executor::XcmExecutor;
 

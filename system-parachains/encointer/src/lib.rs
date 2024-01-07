@@ -35,23 +35,18 @@ mod deal_with_fees;
 mod weights;
 pub mod xcm_config;
 
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
-use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill,
-};
-
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
 use codec::{Decode, Encode, MaxEncodedLen};
+use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use deal_with_fees::FeesToTreasury;
 use encointer_balances_tx_payment::{AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance};
+pub use encointer_primitives::{
+	balances::{BalanceEntry, BalanceType, Demurrage},
+	bazaar::{BusinessData, BusinessIdentifier, OfferingData},
+	ceremonies::{AggregatedAccountData, CeremonyIndexType, CeremonyInfo, CommunityReputation},
+	common::PalletString,
+	communities::{CommunityIdentifier, Location},
+	scheduler::CeremonyPhaseType,
+};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -67,19 +62,6 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
-pub use parachains_common as common;
-use sp_runtime::RuntimeDebug;
-
-use parachains_common::{
-	kusama::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-};
-use xcm_config::{KsmLocation, XcmConfig, XcmOriginToTransactDispatchOrigin};
-
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
-// A few exports that help ease life for downstream crates.
 pub use pallet_encointer_balances::Call as EncointerBalancesCall;
 pub use pallet_encointer_bazaar::Call as EncointerBazaarCall;
 pub use pallet_encointer_ceremonies::Call as EncointerCeremoniesCall;
@@ -87,28 +69,38 @@ pub use pallet_encointer_communities::Call as EncointerCommunitiesCall;
 pub use pallet_encointer_faucet::Call as EncointerFaucetCall;
 pub use pallet_encointer_reputation_commitments::Call as EncointerReputationCommitmentsCall;
 pub use pallet_encointer_scheduler::Call as EncointerSchedulerCall;
-
-pub use encointer_primitives::{
-	balances::{BalanceEntry, BalanceType, Demurrage},
-	bazaar::{BusinessData, BusinessIdentifier, OfferingData},
-	ceremonies::{AggregatedAccountData, CeremonyIndexType, CeremonyInfo, CommunityReputation},
-	common::PalletString,
-	communities::{CommunityIdentifier, Location},
-	scheduler::CeremonyPhaseType,
-};
-use sp_core::ConstU32;
-
-// XCM imports
-// Polkadot imports
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody};
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use xcm::latest::BodyId;
-use xcm_executor::XcmExecutor;
-
-// adopt all currency-related constants identical to other system chains
-use deal_with_fees::FeesToTreasury;
-use parachains_common::kusama::{currency::*, fee::WeightToFee};
+pub use parachains_common as common;
+use parachains_common::{
+	kusama::{consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::*, fee::WeightToFee},
+	AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+};
+use polkadot_runtime_common::{
+	impls::{LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter},
+	BlockHashCount, SlowAdjustingFeeUpdate,
+};
+use sp_api::impl_runtime_apis;
+use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+	create_runtime_str, generic, impl_opaque_keys,
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentityLookup, Verify},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+};
+use sp_std::prelude::*;
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+use xcm::{
+	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
+	VersionedMultiLocation,
+};
+use xcm_builder::PayOverXcm;
+use xcm_config::{KsmLocation, XcmConfig, XcmOriginToTransactDispatchOrigin};
+use xcm_executor::XcmExecutor;
 
 /// A type to hold UTC unix epoch [ms]
 pub type Moment = u64;
@@ -348,6 +340,8 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
+pub const ENCOINTER_TREASURY_PALLET_ID: u8 = 43;
+
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 100 * MILLICENTS;
@@ -355,6 +349,10 @@ parameter_types! {
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	// The asset's interior location for the paying account. This is the Treasury
+	// pallet instance (which sits at index 18).
+	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
 }
 
@@ -376,20 +374,21 @@ impl pallet_treasury::Config for Runtime {
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>; //No spend, no bounty
+																	  //fixme: we want the treasury to only spend native tokens (legacy behaviour)
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedMultiLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
 	type Paymaster = PayOverXcm<
 		TreasuryInteriorLocation,
 		crate::xcm_config::XcmRouter,
-		crate::XcmPallet,
+		crate::PolkadotXcm,
 		ConstU32<{ 6 * HOURS }>,
 		Self::Beneficiary,
 		Self::AssetKind,
 		LocatableAssetConverter,
 		VersionedMultiLocationConverter,
 	>;
-	type BalanceConverter = AssetRate;
+	type BalanceConverter = ();
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
@@ -444,7 +443,6 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	>;
 }
 
-// Added by encointer
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 impl parachain_info::Config for Runtime {}
@@ -453,7 +451,19 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
+	/// The asset ID for the asset that we use to pay for message delivery fees.
+	pub FeeAssetId: AssetId = AssetId::Concrete(xcm_config::KsmLocation::get());
+	/// The base fee for the message delivery fees.
+	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
+	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 }
+
+pub type PriceForSiblingParachainDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
+	FeeAssetId,
+	ToSiblingBaseDeliveryFee,
+	TransactionByteFee,
+	XcmpQueue,
+>;
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -467,7 +477,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
-	type PriceForSiblingDelivery = ();
+	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -968,4 +978,14 @@ impl_runtime_apis! {
 cumulus_pallet_parachain_system::register_validate_block! {
 	Runtime = Runtime,
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
+}
+
+#[cfg(test)]
+mod multiplier_tests {
+	use super::*;
+
+	#[test]
+	fn treasury_pallet_index_is_correct() {
+		assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
+	}
 }
