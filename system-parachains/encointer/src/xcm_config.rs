@@ -26,6 +26,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
+use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use sp_core::ConstU32;
@@ -147,6 +148,7 @@ impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
 
 parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
+	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 }
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -155,7 +157,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = CurrencyTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
-	type IsTeleporter = NativeAsset; // <- should be enough to allow teleportation of KSM
+	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
