@@ -19,9 +19,12 @@
 mod origins;
 mod tracks;
 use crate::{
-	impls::ToParentTreasury, weights, xcm_config::TreasurerBodyId, AccountId, AssetRate, Balance,
-	Balances, FellowshipReferenda, GovernanceLocation, PolkadotTreasuryAccount, Preimage, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
+	impls::ToParentTreasury,
+	weights,
+	xcm_config::{LocationToAccountId, TreasurerBodyId},
+	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
+	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	Scheduler, DAYS,
 };
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
@@ -38,16 +41,13 @@ pub use origins::{
 };
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use parachains_common::polkadot::account;
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter,
 };
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{
-	AccountIdConversion, ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst,
-};
+use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
 use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
@@ -70,8 +70,6 @@ pub mod ranks {
 }
 
 parameter_types! {
-	// Referenda pallet account, used to temporarily deposit slashed imbalance before teleporting.
-	pub ReferendaPalletAccount: AccountId = account::REFERENDA_PALLET_ID.into_account_truncating();
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 }
 
@@ -101,7 +99,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	>;
 	type CancelOrigin = Architects;
 	type KillOrigin = Masters;
-	type Slash = ToParentTreasury<PolkadotTreasuryAccount, ReferendaPalletAccount, Runtime>;
+	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, FellowshipCollectiveInstance>;
 	type SubmissionDeposit = ConstU128<0>;
