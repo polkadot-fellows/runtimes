@@ -13,9 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! XcmConfig for our launch-runtime.
-//!
-//! Almost identical to cumulus/parachains/runtimes/statemine
+//! Almost identical to ../asset-hubs/asset-hub-kusama
 
 use super::{
 	AccountId, Balances, FeesToTreasury, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
@@ -133,7 +131,7 @@ pub type Barrier = TrailingSetTopicAsId<
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<ParentOrSiblings>,
 		),
-	>
+	>,
 >;
 pub struct SafeCallFilter;
 impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
