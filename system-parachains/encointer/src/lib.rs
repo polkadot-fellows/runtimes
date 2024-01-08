@@ -52,8 +52,8 @@ use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,
 	traits::{
-		tokens::ConversionToAssetBalance, ConstBool, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-		InstanceFilter,
+		tokens::{pay::PayFromAccount, ConversionFromAssetBalance, ConversionToAssetBalance},
+		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -355,6 +355,17 @@ parameter_types! {
 	// pallet instance (which sits at index 18).
 	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
+}
+
+pub struct NoConversion;
+impl ConversionFromAssetBalance<u128, (), u128> for NoConversion {
+	type Error = ();
+	fn from_asset_balance(balance: Balance, _asset_id: ()) -> Result<Balance, Self::Error> {
+		return Ok(balance)
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful(_: ()) {}
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -376,20 +387,11 @@ impl pallet_treasury::Config for Runtime {
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>; //No spend, no bounty
 																	  //fixme: we want the treasury to only spend native tokens (legacy behaviour)
-	type AssetKind = VersionedLocatableAsset;
-	type Beneficiary = VersionedMultiLocation;
+	type AssetKind = ();
+	type Beneficiary = AccountId;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = PayOverXcm<
-		TreasuryInteriorLocation,
-		crate::xcm_config::XcmRouter,
-		crate::PolkadotXcm,
-		ConstU32<{ 6 * HOURS }>,
-		Self::Beneficiary,
-		Self::AssetKind,
-		LocatableAssetConverter,
-		VersionedMultiLocationConverter,
-	>;
-	type BalanceConverter = ();
+	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type BalanceConverter = NoConversion;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
