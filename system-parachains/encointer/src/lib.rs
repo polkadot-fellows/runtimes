@@ -34,7 +34,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod deal_with_fees;
 mod weights;
 pub mod xcm_config;
-
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use deal_with_fees::FeesToTreasury;
@@ -96,6 +95,7 @@ use sp_version::RuntimeVersion;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
+	v3::AssetId as XcmAssetId,
 	VersionedMultiLocation,
 };
 use xcm_builder::PayOverXcm;
@@ -455,7 +455,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = AssetId::Concrete(xcm_config::KsmLocation::get());
+	pub FeeAssetId: XcmAssetId = XcmAssetId::Concrete(xcm_config::KsmLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
