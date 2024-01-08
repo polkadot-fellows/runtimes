@@ -727,8 +727,7 @@ pub mod bridging {
 						false => None,
 					}
 				});
-			assert!(alias.is_some(), "we expect here BridgeHubPolkadot to Kusama mapping at least");
-			Some(alias.unwrap())
+			Some(alias.expect("we expect here BridgeHubPolkadot to Kusama mapping at least"))
 		}
 	}
 }
