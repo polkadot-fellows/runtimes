@@ -1,14 +1,12 @@
 [package]
-name = 'encointer-runtime'
-# major.minor revision must match collator node
-# patch revision must match runtime spec_version
-version = '1.5.17'
 authors = ["Encointer <info@encointer.org>"]
-edition = "2021"
 description = "Runtime for Encointer Network (kusama system chain)"
+edition.workspace = true
 homepage = "https://encointer.org"
-repository = "https://github.com/polkadot-fellows/runtimes"
-license = "GPL-3.0-or-later"
+license.workspace = true
+name = 'encointer-runtime'
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
@@ -21,19 +19,19 @@ scale-info = { version = "2.10.0", default-features = false, features = [
 ] }
 
 # encointer deps
-encointer-balances-tx-payment = { default-features = false, version = "2.0.0" }
-encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "2.0.0" }
-encointer-primitives = { default-features = false, version = "2.0.0" }
-pallet-encointer-balances = { default-features = false, version = "2.0.0" }
-pallet-encointer-bazaar = { default-features = false, version = "2.0.0" }
-pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "2.0.0" }
-pallet-encointer-ceremonies = { default-features = false, version = "2.0.0" }
-pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "2.0.0" }
-pallet-encointer-communities = { default-features = false, version = "2.0.0" }
-pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "2.0.0" }
-pallet-encointer-faucet = { default-features = false, version = "2.0.0" }
-pallet-encointer-reputation-commitments = { default-features = false, version = "2.0.0" }
-pallet-encointer-scheduler = { default-features = false, version = "2.0.0" }
+encointer-balances-tx-payment = { default-features = false, version = "3.0.0" }
+encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "3.0.0" }
+encointer-primitives = { default-features = false, version = "3.0.0" }
+pallet-encointer-balances = { default-features = false, version = "3.0.0" }
+pallet-encointer-bazaar = { default-features = false, version = "3.0.0" }
+pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "3.0.0" }
+pallet-encointer-ceremonies = { default-features = false, version = "3.0.0" }
+pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "3.0.0" }
+pallet-encointer-communities = { default-features = false, version = "3.0.0" }
+pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "3.0.0" }
+pallet-encointer-faucet = { default-features = false, version = "3.0.0" }
+pallet-encointer-reputation-commitments = { default-features = false, version = "3.0.0" }
+pallet-encointer-scheduler = { default-features = false, version = "3.0.0" }
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }

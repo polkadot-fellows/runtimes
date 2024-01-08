@@ -2779,7 +2779,9 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "encointer-balances-tx-payment"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43209a12c52d8cb232a62f0bf895f95284a13027d9375509e47c0455efc911fc"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -2794,7 +2796,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-balances-tx-payment-rpc-runtime-api"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b14de1996634612f93cce57f73ed9092740e72998d1f6a8338fdba3b60c4de1d"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -2806,7 +2810,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-ceremonies-assignment"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef035f7db2e953dfd2b701f7c5f7b1a9976b2795784e3988458a4cfc52d745a3"
 dependencies = [
  "encointer-primitives",
  "sp-runtime",
@@ -2815,7 +2821,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-meetup-validation"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7858f37247f000e78081cbbf9c183c169d148d607b6053f4a6ce5db7c030ae61"
 dependencies = [
  "encointer-primitives",
  "parity-scale-codec",
@@ -2827,7 +2835,9 @@ dependencies = [
 
 [[package]]
 name = "encointer-primitives"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ce032b5bfa12aa72b662ee014f880a464e051d9605e990ed1ef9b43a4c5ac92"
 dependencies = [
  "bs58 0.4.0",
  "crc",
@@ -2846,7 +2856,7 @@ dependencies = [
 
 [[package]]
 name = "encointer-runtime"
-version = "1.5.17"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -2979,7 +2989,9 @@ checksum = "e48c92028aaa870e83d51c64e5d4e0b6981b360c522198c23959f219a4e1b15b"
 
 [[package]]
 name = "ep-core"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc1006e88f9a58b847ad4a8b9059fd3e5c051696d4ddbf6677b4515433a16c1a"
 dependencies = [
  "array-bytes 6.2.2",
  "impl-serde",
@@ -6406,7 +6418,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-balances"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88b0f108766e8837670c8fc949a80d66c467d466601aa46ddb0a5196d3ba79c3"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -6424,7 +6438,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-bazaar"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3255ef9891baebab1f6316f84c3cf0030ee9095434f882ba10b27764783275c8"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -6440,7 +6456,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-bazaar-rpc-runtime-api"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14e1bee6888981a36ff44ee012c5095466b6e9fcc81312b91ba96203a55db571"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -6450,7 +6468,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4076f2d440a84a29b9dee0ad8b9c550c15ddcc425098fc86288b9f2c3eda921"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -6474,7 +6494,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies-rpc-runtime-api"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36ff0a83a9ba473f5bf271204172f769b96e89bb4cfee4633265cd04194c6985"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -6484,7 +6506,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a88feb85d6d1e756d5aca17f07cdfaf2717df3a98e9346e0910d284a7f57eb6"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -6502,7 +6526,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities-rpc-runtime-api"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0162aa998fb7895e8aef034de334d6d81b8989f628858a6700c153a75529d31f"
 dependencies = [
  "encointer-primitives",
  "sp-api",
@@ -6511,7 +6537,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-faucet"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76664c513b68b4e97900a23d4c99ab1d3ff13f4573fcb24637955a06e0031b7a"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -6531,7 +6559,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-reputation-commitments"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f20115d92f0c70896d384efac9f5f89dc2277758e9db77b707840e19e6820c96"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -6552,7 +6582,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-scheduler"
-version = "2.0.0"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "957a425dc03a0713aa49199aa9dde10afa9bb1505de3cf32e5156551d103fa88"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -13399,23 +13431,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "encointer-balances-tx-payment-rpc"
-version = "2.0.0"
-
-[[patch.unused]]
-name = "pallet-encointer-bazaar-rpc"
-version = "2.0.0"
-
-[[patch.unused]]
-name = "pallet-encointer-ceremonies-rpc"
-version = "2.0.0"
-
-[[patch.unused]]
-name = "pallet-encointer-communities-rpc"
-version = "2.0.0"
-
-[[patch.unused]]
-name = "pallet-encointer-democracy"
-version = "2.0.0"
