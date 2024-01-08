@@ -4,7 +4,7 @@ description = "Runtime for Encointer Network (kusama system chain)"
 edition.workspace = true
 homepage = "https://encointer.org"
 license.workspace = true
-name = 'encointer-runtime'
+name = 'encointer-kusama-runtime'
 repository.workspace = true
 version.workspace = true
 
