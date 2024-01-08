@@ -17,6 +17,8 @@
 //! Module with configuration which reflects BridgeHubKusama runtime setup (AccountId, Headers,
 //! Hashes...)
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
