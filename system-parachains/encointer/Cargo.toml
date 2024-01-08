@@ -220,4 +220,4 @@ try-runtime = [
   "parachain-info/try-runtime",
 ]
 
-experimental = [ "pallet-aura/experimental" ]
+experimental = ["pallet-aura/experimental"]
