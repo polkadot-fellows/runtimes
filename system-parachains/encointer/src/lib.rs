@@ -979,6 +979,7 @@ cumulus_pallet_parachain_system::register_validate_block! {
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
+	use frame_support::pallet_prelude::PalletInfoAccess;
 
 	#[test]
 	fn treasury_pallet_index_is_correct() {
