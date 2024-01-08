@@ -61,5 +61,12 @@ bridge-runtime-common = { version = "0.4.0" }
 
 [features]
 runtime-benchmarks = [
-    "penpal-runtime/runtime-benchmarks"
+	"penpal-runtime/runtime-benchmarks",
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"collectives-polkadot-runtime/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks"
 ]

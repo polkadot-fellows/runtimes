@@ -19,19 +19,19 @@ scale-info = { version = "2.10.0", default-features = false, features = [
 ] }
 
 # encointer deps
-encointer-balances-tx-payment = { default-features = false, version = "3.0.0" }
-encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "3.0.0" }
-encointer-primitives = { default-features = false, version = "3.0.0" }
-pallet-encointer-balances = { default-features = false, version = "3.0.0" }
-pallet-encointer-bazaar = { default-features = false, version = "3.0.0" }
-pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "3.0.0" }
-pallet-encointer-ceremonies = { default-features = false, version = "3.0.0" }
-pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "3.0.0" }
-pallet-encointer-communities = { default-features = false, version = "3.0.0" }
-pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "3.0.0" }
-pallet-encointer-faucet = { default-features = false, version = "3.0.0" }
-pallet-encointer-reputation-commitments = { default-features = false, version = "3.0.0" }
-pallet-encointer-scheduler = { default-features = false, version = "3.0.0" }
+encointer-balances-tx-payment = { default-features = false, version = "3.0.1" }
+encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "3.0.1" }
+encointer-primitives = { default-features = false, version = "3.0.1" }
+pallet-encointer-balances = { default-features = false, version = "3.0.1" }
+pallet-encointer-bazaar = { default-features = false, version = "3.0.1" }
+pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "3.0.1" }
+pallet-encointer-ceremonies = { default-features = false, version = "3.0.1" }
+pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "3.0.1" }
+pallet-encointer-communities = { default-features = false, version = "3.0.1" }
+pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "3.0.1" }
+pallet-encointer-faucet = { default-features = false, version = "3.0.1" }
+pallet-encointer-reputation-commitments = { default-features = false, version = "3.0.1" }
+pallet-encointer-scheduler = { default-features = false, version = "3.0.1" }
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
@@ -98,6 +98,7 @@ substrate-wasm-builder = { optional = true, version = "14.0.0" }
 default = ["std"]
 runtime-benchmarks = [
   "cumulus-pallet-xcmp-queue/runtime-benchmarks",
+  "cumulus-pallet-parachain-system/runtime-benchmarks",
   "frame-benchmarking/runtime-benchmarks",
   "frame-support/runtime-benchmarks",
   "frame-system-benchmarking/runtime-benchmarks",
@@ -118,6 +119,7 @@ runtime-benchmarks = [
   "pallet-treasury/runtime-benchmarks",
   "pallet-utility/runtime-benchmarks",
   "pallet-xcm/runtime-benchmarks",
+  "polkadot-runtime-common/runtime-benchmarks",
   "sp-runtime/runtime-benchmarks",
   "xcm-builder/runtime-benchmarks",
   "xcm-executor/runtime-benchmarks",
