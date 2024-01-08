@@ -33,11 +33,11 @@ use parachains_common::{
 		AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
 		RelayOrOtherSystemParachains,
 	},
-	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,

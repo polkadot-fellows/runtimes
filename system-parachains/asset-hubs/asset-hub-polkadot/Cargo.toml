@@ -83,6 +83,7 @@ cumulus-primitives-utility = { default-features = false , version = "0.4.0" }
 pallet-collator-selection = { default-features = false , version = "6.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.4.0" }
 parachains-common = { default-features = false , version = "4.0.0" }
+system-parachains-constants = { path = "../../constants", default-features = false }
 assets-common = { default-features = false , version = "0.4.0" }
 
 # Bridges
@@ -224,6 +225,7 @@ std = [
 	"sp-version/std",
 	"sp-weights/std",
 	"substrate-wasm-builder",
+	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",

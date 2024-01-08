@@ -70,10 +70,11 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{
-	impls::DealWithFees,
+	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+};
+use system_parachains_constants::{
 	polkadot::{consensus::*, currency::*, fee::WeightToFee},
-	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 // XCM Imports
 use xcm::prelude::*;
@@ -120,7 +121,7 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// Migrations to apply on runtime upgrade.
-pub type Migrations = (pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,);
+pub type Migrations = ();
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<

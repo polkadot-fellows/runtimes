@@ -69,10 +69,11 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{
-	impls::DealWithFees,
+	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+};
+use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 
 // XCM Imports
@@ -120,32 +121,7 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// Migrations to apply on runtime upgrade.
-pub type Migrations =
-	(pallet_collator_selection::migration::v1::MigrateToV1<Runtime>, InitStorageVersions);
-
-/// Migration to initialize storage versions for pallets added after genesis.
-///
-/// Ideally this would be done automatically (see
-/// <https://github.com/paritytech/polkadot-sdk/pull/1297>), but it probably won't be ready for some
-/// time and it's beneficial to get storage version issues smoothed over before merging
-/// <https://github.com/polkadot-fellows/runtimes/pull/28> so we're just setting them manually.
-pub struct InitStorageVersions;
-
-impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
-	fn on_runtime_upgrade() -> Weight {
-		use frame_support::traits::{GetStorageVersion, StorageVersion};
-		use sp_runtime::traits::Saturating;
-
-		let mut writes = 0;
-
-		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
-			writes.saturating_inc();
-		}
-
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, writes)
-	}
-}
+pub type Migrations = ();
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<

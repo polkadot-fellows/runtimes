@@ -31,11 +31,11 @@ use pallet_xcm::XcmPassthrough;
 use parachains_common::{
 	impls::ToStakingPot,
 	xcm_config::{ConcreteAssetFromSystem, RelayOrOtherSystemParachains},
-	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::AccountIdConversion;
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
