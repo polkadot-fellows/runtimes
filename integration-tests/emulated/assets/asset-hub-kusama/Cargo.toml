@@ -36,6 +36,5 @@ integration-tests-common = { path = "../../common" }
 
 [features]
 runtime-benchmarks = [
-	"integration-tests-common/runtime-benchmarks",
-	"asset-hub-kusama-runtime/runtime-benchmarks"
+    "integration-tests-common/runtime-benchmarks"
 ]
