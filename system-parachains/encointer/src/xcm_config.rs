@@ -28,16 +28,16 @@ use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_common::impls::VersionedLocatableAsset;
+
 use sp_core::ConstU32;
-use sp_runtime::traits::IdentityLookup;
-use xcm::{latest::prelude::*, VersionedMultiLocation};
+
+use xcm::{latest::prelude::*};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeTerminus, EnsureXcmOrigin,
 	FixedWeightBounds, HashedDescription, IsConcrete, NativeAsset, ParentAsSuperuser,
-	ParentIsPreset, PayOverXcm, RelayChainAsNative, SiblingParachainAsNative,
+	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 };
