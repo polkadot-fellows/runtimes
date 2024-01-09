@@ -32,6 +32,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod deal_with_fees;
+mod migrations_fix;
 mod weights;
 pub mod xcm_config;
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -691,6 +692,25 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
+
+/// Migrations to apply on runtime upgrade.
+pub type Migrations = (
+	// fixing the scheduler with a local migration is necessary because we have missed intermediate
+	// migrations. the safest migration is, therefore, to clear all storage and bump StorageVersion
+	migrations_fix::scheduler::v4::MigrateToV4<Runtime>,
+	// also here we're actually too late with applying the migration. however, the migration does
+	// work as-is.
+	pallet_xcm::migration::v1::VersionUncheckedMigrateToV1<Runtime>,
+	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
+	// state which can't be decoded to V0, yet the StorageVersion is V0.
+	// the strategy is to: just pretend we're on V1
+	migrations_fix::balances::v1::BruteForceToV1<Runtime>,
+	// then reset to V0
+	pallet_balances::migration::ResetInactive<Runtime>,
+	//then apply the proper migration as we should have done earlier
+	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
+);
+
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -698,7 +718,7 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	(), //add pallet migrations here
+	Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
