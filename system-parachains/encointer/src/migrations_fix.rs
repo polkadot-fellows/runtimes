@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Encointer.  If not, see <http://www.gnu.org/licenses/>.
 
+//
 // the following are temporary local migration fixes to solve inconsistencies caused by not
 // migrating Storage at the time of migrating runtime code
+//
 
 pub mod balances {
 	use frame_support::traits::OnRuntimeUpgrade;
