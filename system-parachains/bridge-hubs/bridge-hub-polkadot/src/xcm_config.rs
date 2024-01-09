@@ -50,7 +50,7 @@ use xcm_builder::{
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeesToAccount,
+	XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
 use xcm_executor::{traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
 				   XcmExecutor};
@@ -66,7 +66,7 @@ parameter_types! {
 	pub FellowshipLocation: MultiLocation = MultiLocation::new(1, Parachain(1001));
 	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
 	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	pub TreasuryAccount: Option<AccountId> = Some(TREASURY_PALLET_ID.into_account_truncating());
+	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
