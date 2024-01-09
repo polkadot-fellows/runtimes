@@ -279,7 +279,7 @@ impl pallet_babe::Config for Runtime {
 	type WeightInfo = ();
 
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 
 	type KeyOwnerProof =
 		<Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
@@ -330,7 +330,7 @@ parameter_types! {
 impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 	type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
 	type OnNewValidatorSet = BeefyMmrLeaf;
 	type WeightInfo = ();
@@ -667,7 +667,12 @@ parameter_types! {
 		"DOT_SLASH_DEFER_DURATION"
 	);
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
-	pub const MaxNominatorRewardedPerValidator: u32 = 512;
+	// TODO:(PR#137) - check MaxExposurePageSize/MaxNominators 512?
+	pub const MaxExposurePageSize: u32 = 512;
+	// Note: this is not really correct as Max Nominators is (MaxExposurePageSize * page_count) but
+	// this is an unbounded number. We just set it to a reasonably high value, 1 full page
+	// of nominators.
+	pub const MaxNominators: u32 = 512;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 16
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
@@ -764,7 +769,7 @@ impl pallet_staking::Config for Runtime {
 	type AdminOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
-	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+	type MaxExposurePageSize = MaxExposurePageSize;
 	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
 	type NextNewSession = Session;
 	type ElectionProvider = ElectionProviderMultiPhase;
@@ -787,8 +792,6 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type MaxBackersPerValidator = MaxNominatorRewardedPerValidator;
 	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
 }
 
@@ -953,7 +956,7 @@ impl pallet_grandpa::Config for Runtime {
 
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 	type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
 
 	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
@@ -1705,6 +1708,7 @@ pub mod migrations {
 		UpgradeSessionKeys,
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
+		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 	);
 }
 
@@ -1848,9 +1852,13 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+	impl pallet_staking_runtime_api::StakingApi<Block, Balance, AccountId> for Runtime {
 		fn nominations_quota(balance: Balance) -> u32 {
 			Staking::api_nominations_quota(balance)
+		}
+
+		fn eras_stakers_page_count(era: sp_staking::EraIndex, account: AccountId) -> sp_staking::Page {
+			Staking::api_eras_stakers_page_count(era, account)
 		}
 	}
 
@@ -2449,7 +2457,7 @@ mod test_fees {
 		use pallet_staking::WeightInfo;
 		let payout_weight =
 			<Runtime as pallet_staking::Config>::WeightInfo::payout_stakers_alive_staked(
-				MaxNominatorRewardedPerValidator::get(),
+				MaxNominators::get(),
 			)
 			.ref_time() as f64;
 		let block_weight = BlockWeights::get().max_block.ref_time() as f64;
