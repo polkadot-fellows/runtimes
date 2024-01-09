@@ -7,16 +7,16 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-smallvec = "1.8.0"
+smallvec = "1.11.2"
 
-frame-support = { default-features = false , version = "25.0.0" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "4.0.0" }
-runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "4.0.0" }
-sp-runtime = { default-features = false , version = "28.0.0" }
-sp-weights = { default-features = false , version = "24.0.0" }
-sp-core = { default-features = false , version = "25.0.0" }
+frame-support = { default-features = false , version = "27.0.0" }
+primitives = { package = "polkadot-primitives", default-features = false , version = "6.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "6.0.0" }
+sp-runtime = { default-features = false , version = "30.0.1" }
+sp-weights = { default-features = false , version = "26.0.0" }
+sp-core = { default-features = false , version = "27.0.0" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "4.0.0" }
+xcm = { package = "staging-xcm", default-features = false , version = "6.0.0" }
 
 [features]
 default = [ "std" ]

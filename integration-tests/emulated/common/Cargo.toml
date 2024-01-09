@@ -7,41 +7,41 @@ license = "Apache-2.0"
 description = "Common resources for integration testing with xcm-emulator"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.4.0" }
+codec = { package = "parity-scale-codec", version = "3.6.9" }
 paste = "1.0.14"
-serde_json = "1.0.108"
+serde_json = "1.0.111"
 
 # Substrate
-grandpa-primitives = { package = "sp-consensus-grandpa", version = "10.0.0" }
-sp-authority-discovery = { version = "23.0.0" }
-sp-runtime = { version = "28.0.0" }
-frame-support = { version = "25.0.0" }
-sp-core = { version = "25.0.0" }
-sp-consensus-babe = { version = "0.29.0" }
-pallet-assets = { version = "26.0.0" }
-pallet-balances = { version = "25.0.0" }
-pallet-message-queue = { version = "28.0.0" }
-pallet-im-online = { version = "24.0.0" }
-pallet-staking = { version = "25.0.0" }
-beefy-primitives = { package = "sp-consensus-beefy", version = "10.0.0" }
+grandpa-primitives = { package = "sp-consensus-grandpa", version = "12.0.0" }
+sp-authority-discovery = { version = "25.0.0" }
+sp-runtime = { version = "30.0.1" }
+frame-support = { version = "27.0.0" }
+sp-core = { version = "27.0.0" }
+sp-consensus-babe = { version = "0.31.0" }
+pallet-assets = { version = "28.0.0" }
+pallet-balances = { version = "27.0.0" }
+pallet-message-queue = { version = "30.0.0" }
+pallet-im-online = { version = "26.0.0" }
+pallet-staking = { version = "27.0.0" }
+beefy-primitives = { package = "sp-consensus-beefy", version = "12.0.0" }
 
 # Polkadot
-polkadot-primitives = { version = "4.0.0" }
-polkadot-runtime-parachains = { version = "4.0.0" }
-xcm = { package = "staging-xcm", version = "4.0.0" }
-pallet-xcm = { version = "4.0.0" }
-polkadot-core-primitives = { version = "4.0.0" }
-polkadot-parachain-primitives = { version = "3.0.0" }
+polkadot-primitives = { version = "6.0.0" }
+polkadot-runtime-parachains = { version = "6.0.0" }
+xcm = { package = "staging-xcm", version = "6.0.0" }
+pallet-xcm = { version = "6.0.0" }
+polkadot-core-primitives = { version = "6.0.0" }
+polkadot-parachain-primitives = { version = "5.0.0" }
 
 # Cumulus
-parachains-common = { version = "4.0.0" }
-cumulus-primitives-core = { version = "0.4.0" }
-xcm-emulator = { version = "0.2.0" }
-cumulus-pallet-xcmp-queue = { version = "0.4.0" }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , version = "0.4.0" }
-asset-test-utils = { version = "4.0.0" }
-cumulus-pallet-dmp-queue = { version = "0.4.0" }
-penpal-runtime = { version = "0.11.0" }
+parachains-common = { version = "6.0.0" }
+cumulus-primitives-core = { version = "0.6.0" }
+xcm-emulator = { version = "0.4.0" }
+cumulus-pallet-xcmp-queue = { version = "0.6.0" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , version = "0.6.0" }
+asset-test-utils = { version = "6.0.0" }
+cumulus-pallet-dmp-queue = { version = "0.6.0" }
+penpal-runtime = { version = "0.13.0" }
 
 # Local runtimes
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }
@@ -55,9 +55,9 @@ bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/b
 bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
 
 # Bridges
-bp-messages = { version = "0.4.0" }
-pallet-bridge-messages = { version = "0.4.0" }
-bridge-runtime-common = { version = "0.4.0" }
+bp-messages = { version = "0.6.0" }
+pallet-bridge-messages = { version = "0.6.0" }
+bridge-runtime-common = { version = "0.6.0" }
 
 [features]
 runtime-benchmarks = [
