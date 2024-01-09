@@ -66,7 +66,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
-use pallet_identity::simple::IdentityInfo;
+use pallet_identity::legacy::IdentityInfo;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
@@ -795,7 +795,8 @@ impl pallet_fast_unstake::Config for Runtime {
 parameter_types! {
 	// Minimum 4 CENTS/byte
 	pub const BasicDeposit: Balance = deposit(1, 258);
-	pub const FieldDeposit: Balance = deposit(0, 66);
+	// TODO:(PR#137) - check ByteDeposit?
+	pub const ByteDeposit: Balance = deposit(0, 1);
 	pub const SubAccountDeposit: Balance = deposit(1, 53);
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
@@ -806,10 +807,9 @@ impl pallet_identity::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BasicDeposit = BasicDeposit;
-	type FieldDeposit = FieldDeposit;
+	type ByteDeposit = ByteDeposit;
 	type SubAccountDeposit = SubAccountDeposit;
 	type MaxSubAccounts = MaxSubAccounts;
-	type MaxAdditionalFields = MaxAdditionalFields;
 	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
 	type MaxRegistrars = MaxRegistrars;
 	type Slashed = Treasury;
