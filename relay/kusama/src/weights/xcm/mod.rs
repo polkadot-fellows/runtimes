@@ -36,9 +36,8 @@ pub enum AssetTypes {
 impl From<&MultiAsset> for AssetTypes {
 	fn from(asset: &MultiAsset) -> Self {
 		match asset {
-			MultiAsset { id: Concrete(MultiLocation { parents: 0, interior: Here }), .. } => {
-				AssetTypes::Balances
-			},
+			MultiAsset { id: Concrete(MultiLocation { parents: 0, interior: Here }), .. } =>
+				AssetTypes::Balances,
 			_ => AssetTypes::Unknown,
 		}
 	}
@@ -66,9 +65,8 @@ impl WeighMultiAssets for MultiAssetFilter {
 			// We don't support any NFTs on Kusama, so these two variants will always match
 			// only 1 kind of fungible asset.
 			Self::Wild(AllOf { .. } | AllOfCounted { .. }) => balances_weight,
-			Self::Wild(AllCounted(count)) => {
-				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64))
-			},
+			Self::Wild(AllCounted(count)) =>
+				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
 			Self::Wild(All) => balances_weight.saturating_mul(MAX_ASSETS),
 		}
 	}

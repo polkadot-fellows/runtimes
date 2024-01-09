@@ -131,8 +131,8 @@ fn convert_from_udot_to_uksm(price_in_udot: Balance) -> Balance {
 	ksm_to_dot_economic_rate
 		.saturating_mul(nominal_ratio)
 		.saturating_mul(FixedU128::saturating_from_integer(price_in_udot))
-		.into_inner()
-		/ FixedU128::DIV
+		.into_inner() /
+		FixedU128::DIV
 }
 
 #[cfg(test)]
