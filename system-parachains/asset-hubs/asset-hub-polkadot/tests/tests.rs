@@ -872,8 +872,9 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 			})
 			.expect("expected instruction BuyExecution")
 			.match_next_inst(|instr| match instr {
-				DepositAsset { assets: _, beneficiary } if beneficiary == expected_beneficiary =>
-					Ok(()),
+				DepositAsset { assets: _, beneficiary } if beneficiary == expected_beneficiary => {
+					Ok(())
+				},
 				_ => Err(ProcessMessageError::BadFormat),
 			})
 			.expect("expected instruction DepositAsset");
@@ -979,9 +980,9 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 				// we just check here, that user retains enough balance after withdrawal
 				// and also we check if `balance_to_transfer` is more than `existential_deposit`,
 				assert!(
-					(<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account) -
-						balance_to_transfer.into()) >=
-						existential_deposit
+					(<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account)
+						- balance_to_transfer.into())
+						>= existential_deposit
 				);
 				// SA has just ED
 				assert_eq!(
@@ -1098,8 +1099,9 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 					.into_iter()
 					.filter_map(|e| unwrap_xcmp_queue_event(e.event.encode()))
 					.find_map(|e| match e {
-						cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { message_hash } =>
-							Some(message_hash),
+						cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { message_hash } => {
+							Some(message_hash)
+						},
 						_ => None,
 					});
 
@@ -1128,8 +1130,9 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 						})
 						.expect("contains WithdrawAsset")
 						.match_next_inst(|instr| match instr {
-							BuyExecution { fees, .. } if fees.id.eq(&expected_fee_asset_id) =>
-								Ok(()),
+							BuyExecution { fees, .. } if fees.id.eq(&expected_fee_asset_id) => {
+								Ok(())
+							},
 							_ => Err(ProcessMessageError::BadFormat),
 						})
 						.expect("contains BuyExecution")
@@ -1142,7 +1145,9 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 							// explicit unpaid execution on BridgeHub)
 							UnpaidExecution { weight_limit, check_origin }
 								if weight_limit == &Unlimited && check_origin.is_none() =>
-								Ok(()),
+							{
+								Ok(())
+							},
 							_ => Err(ProcessMessageError::BadFormat),
 						})
 						.expect("contains UnpaidExecution")
@@ -1194,8 +1199,8 @@ mod missing_asset_test_utils_test_cases_over_bridge {
 								&delivery_fees_account,
 							);
 						assert!(
-							delivery_fees_account_balance_after >
-								delivery_fees_account_balance_before
+							delivery_fees_account_balance_after
+								> delivery_fees_account_balance_before
 						);
 					}
 				}

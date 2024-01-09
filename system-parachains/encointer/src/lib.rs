@@ -186,13 +186,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer =>
-				!matches!(c, RuntimeCall::Balances { .. } | RuntimeCall::EncointerBalances { .. }),
+			ProxyType::NonTransfer => {
+				!matches!(c, RuntimeCall::Balances { .. } | RuntimeCall::EncointerBalances { .. })
+			},
 			ProxyType::BazaarEdit => matches!(
 				c,
-				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. }) |
-					RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. }) |
-					RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
+				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. })
+					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::update_offering { .. })
+					| RuntimeCall::EncointerBazaar(EncointerBazaarCall::delete_offering { .. })
 			),
 		}
 	}
@@ -358,7 +359,7 @@ pub struct NoConversion;
 impl ConversionFromAssetBalance<u128, (), u128> for NoConversion {
 	type Error = ();
 	fn from_asset_balance(balance: Balance, _asset_id: ()) -> Result<Balance, Self::Error> {
-		return Ok(balance)
+		return Ok(balance);
 	}
 	#[cfg(feature = "runtime-benchmarks")]
 	fn ensure_successful(_: ()) {}
@@ -698,10 +699,7 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	(
-		//pallet_encointer_communities::migrations::v2::MigrateV0orV1toV2<Runtime>,
-		//pallet_encointer_ceremonies::migrations::v1::MigrateToV1<Runtime>,
-	),
+	(), //add pallet migrations here
 >;
 
 #[cfg(feature = "runtime-benchmarks")]

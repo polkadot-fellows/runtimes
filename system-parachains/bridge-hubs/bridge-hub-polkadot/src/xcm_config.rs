@@ -141,7 +141,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		#[cfg(feature = "runtime-benchmarks")]
 		{
 			if matches!(call, RuntimeCall::System(frame_system::Call::remark_with_event { .. })) {
-				return true
+				return true;
 			}
 		}
 
@@ -149,50 +149,52 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		match call {
 			RuntimeCall::System(frame_system::Call::set_storage { items })
 				if items.iter().all(|(k, _)| {
-					k.eq(&DeliveryRewardInBalance::key()) ||
-						k.eq(&RequiredStakeForStakeAndSlash::key())
+					k.eq(&DeliveryRewardInBalance::key())
+						|| k.eq(&RequiredStakeForStakeAndSlash::key())
 				}) =>
-				return true,
+			{
+				return true
+			},
 			_ => (),
 		};
 
 		matches!(
 			call,
 			RuntimeCall::PolkadotXcm(
-				pallet_xcm::Call::force_xcm_version { .. } |
-					pallet_xcm::Call::force_default_xcm_version { .. }
+				pallet_xcm::Call::force_xcm_version { .. }
+					| pallet_xcm::Call::force_default_xcm_version { .. }
 			) | RuntimeCall::System(
-				frame_system::Call::set_heap_pages { .. } |
-					frame_system::Call::set_code { .. } |
-					frame_system::Call::set_code_without_checks { .. } |
-					frame_system::Call::kill_prefix { .. },
-			) | RuntimeCall::ParachainSystem(..) |
-				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Balances(..) |
-				RuntimeCall::CollatorSelection(
-					pallet_collator_selection::Call::set_desired_candidates { .. } |
-						pallet_collator_selection::Call::set_candidacy_bond { .. } |
-						pallet_collator_selection::Call::register_as_candidate { .. } |
-						pallet_collator_selection::Call::leave_intent { .. } |
-						pallet_collator_selection::Call::set_invulnerables { .. } |
-						pallet_collator_selection::Call::add_invulnerable { .. } |
-						pallet_collator_selection::Call::remove_invulnerable { .. },
-				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
+				frame_system::Call::set_heap_pages { .. }
+					| frame_system::Call::set_code { .. }
+					| frame_system::Call::set_code_without_checks { .. }
+					| frame_system::Call::kill_prefix { .. },
+			) | RuntimeCall::ParachainSystem(..)
+				| RuntimeCall::Timestamp(..)
+				| RuntimeCall::Balances(..)
+				| RuntimeCall::CollatorSelection(
+					pallet_collator_selection::Call::set_desired_candidates { .. }
+						| pallet_collator_selection::Call::set_candidacy_bond { .. }
+						| pallet_collator_selection::Call::register_as_candidate { .. }
+						| pallet_collator_selection::Call::leave_intent { .. }
+						| pallet_collator_selection::Call::set_invulnerables { .. }
+						| pallet_collator_selection::Call::add_invulnerable { .. }
+						| pallet_collator_selection::Call::remove_invulnerable { .. },
+				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. })
+				| RuntimeCall::XcmpQueue(..)
+				| RuntimeCall::DmpQueue(..)
+				| RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-				>::initialize { .. }) |
-				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
+				>::initialize { .. })
+				| RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-				>::set_operating_mode { .. }) |
-				RuntimeCall::BridgeKusamaParachains(pallet_bridge_parachains::Call::<
+				>::set_operating_mode { .. })
+				| RuntimeCall::BridgeKusamaParachains(pallet_bridge_parachains::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::BridgeParachainKusamaInstance,
-				>::set_operating_mode { .. }) |
-				RuntimeCall::BridgeKusamaMessages(pallet_bridge_messages::Call::<
+				>::set_operating_mode { .. })
+				| RuntimeCall::BridgeKusamaMessages(pallet_bridge_messages::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
 				>::set_operating_mode { .. })
