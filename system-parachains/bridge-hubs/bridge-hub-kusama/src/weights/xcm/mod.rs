@@ -18,6 +18,7 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::{xcm_config::MaxAssetsIntoHolding, Runtime};
+use codec::Encode;
 use frame_support::weights::Weight;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmFungibleWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
@@ -61,16 +62,8 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn withdraw_asset(assets: &MultiAssets) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::withdraw_asset())
 	}
-	// Currently there is no trusted reserve (`IsReserve = ()`),
-	// but we need this hack for `pallet_xcm::reserve_transfer_assets`
-	// (TODO) fix https://github.com/paritytech/polkadot/pull/7424
-	// (TODO) fix https://github.com/paritytech/polkadot/pull/7546
-	fn reserve_asset_deposited(_assets: &MultiAssets) -> Weight {
-		// TODO: if we change `IsReserve = ...` then use this line...
-		// TODO: or if remote weight estimation is fixed, then remove
-		// TODO: hardcoded - fix https://github.com/paritytech/cumulus/issues/1974
-		let hardcoded_weight = Weight::from_parts(1_000_000_000_u64, 0);
-		hardcoded_weight.min(XcmFungibleWeight::<Runtime>::reserve_asset_deposited())
+	fn reserve_asset_deposited(assets: &MultiAssets) -> Weight {
+		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::reserve_asset_deposited())
 	}
 	fn receive_teleported_asset(assets: &MultiAssets) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::receive_teleported_asset())
@@ -127,10 +120,7 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	}
 
 	fn deposit_asset(assets: &MultiAssetFilter, _dest: &MultiLocation) -> Weight {
-		// Hardcoded till the XCM pallet is fixed
-		let hardcoded_weight = Weight::from_parts(1_000_000_000_u64, 0);
-		let weight = assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_asset());
-		hardcoded_weight.min(weight)
+		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_asset())
 	}
 	fn deposit_reserve_asset(
 		assets: &MultiAssetFilter,
@@ -222,8 +212,9 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn universal_origin(_: &Junction) -> Weight {
 		Weight::MAX
 	}
-	fn export_message(_: &NetworkId, _: &Junctions, _: &Xcm<()>) -> Weight {
-		Weight::MAX
+	fn export_message(_: &NetworkId, _: &Junctions, inner: &Xcm<()>) -> Weight {
+		let inner_encoded_len = inner.encode().len() as u32;
+		XcmGeneric::<Runtime>::export_message(inner_encoded_len)
 	}
 	fn lock_asset(_: &MultiAsset, _: &MultiLocation) -> Weight {
 		Weight::MAX

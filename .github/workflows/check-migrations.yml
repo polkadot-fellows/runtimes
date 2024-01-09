@@ -1,0 +1,102 @@
+name: Check Migrations
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
+# triggered (ref https://stackoverflow.com/a/72408109)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    name: Extract tasks from matrix
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          # Filter out runtimes that don't have a URI
+          TASKS=$(jq '[.[] | select(.uri != null)]' .github/workflows/runtimes-matrix.json)
+          SKIPPED_TASKS=$(jq '[.[] | select(.uri == null)]' .github/workflows/runtimes-matrix.json)
+          echo --- Running the following tasks ---
+          echo $TASKS
+          echo --- Skipping the following tasks due to not having a uri field ---
+          echo $SKIPPED_TASKS
+          # Strip whitespace from Tasks now that we've logged it
+          TASKS=$(echo $TASKS | jq -c .)
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+
+  check-migrations:
+    needs: [runtime-matrix]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download try-runtime-cli
+        run: |
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.2/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          chmod +x ./try-runtime
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: "3.6.1"
+
+      - name: Add wasm32-unknown-unknown target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build ${{ matrix.runtime.name }}
+        run: |
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
+
+      - name: Check migrations
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+
+          # When running on relay, we don't need weight checks.
+          EXTRA_FLAGS=""
+          if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
+            EXTRA_FLAGS+="--no-weight-warnings"
+            echo "Disabling weight checks since we are on a relay"
+          else
+            echo "Enabling weight checks since we are not on a relay"
+          fi
+
+          # Disable the spec version check when we dont want to release.
+          if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
+            EXTRA_FLAGS+=" --disable-spec-version-check"
+            echo "Disabling the spec version check since we are not releasing"
+          else
+            echo "Enabling the spec version check since we are releasing"
+          fi
+
+          # Disable idemepotency checks on Polkadot until we enact them.
+          if [[ "${{ matrix.runtime.name }}" == "polkadot" ]]; then
+            echo "Disabling the idempotency check since we are on Polkadot"
+            EXTRA_FLAGS+=" --disable-idempotency-checks"
+          else
+            echo "Enabling the idempotency check since we are not on Polkadot"
+          fi
+
+          echo "Flags: $EXTRA_FLAGS"
+
+          ./try-runtime \
+            --runtime $RUNTIME_BLOB_PATH \
+            on-runtime-upgrade --checks=pre-and-post \
+            $EXTRA_FLAGS \
+            live --uri ${{ matrix.runtime.uri }}
