@@ -1763,7 +1763,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		// XCM
-		[pallet_xcm, XcmPallet]
+		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
@@ -2291,6 +2291,7 @@ sp_api::impl_runtime_apis! {
 			use pallet_session_benchmarking::Pallet as SessionBench;
 			use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
@@ -2338,6 +2339,32 @@ sp_api::impl_runtime_apis! {
 			impl frame_benchmarking::baseline::Config for Runtime {}
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
+
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+			impl pallet_xcm::benchmarking::Config for Runtime {
+				fn reachable_dest() -> Option<MultiLocation> {
+					Some(crate::xcm_config::AssetHubLocation::get())
+				}
+
+				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay/native token can be teleported to/from AH.
+					Some((
+						MultiAsset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						crate::xcm_config::AssetHubLocation::get(),
+					))
+				}
+
+				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay can reserve transfer native token to some random parachain.
+					Some((
+						MultiAsset {
+							fun: Fungible(EXISTENTIAL_DEPOSIT),
+							id: Concrete(Here.into())
+						},
+						crate::Junction::Parachain(43211234).into(),
+					))
+				}
+			}
 
 			parameter_types! {
 				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((

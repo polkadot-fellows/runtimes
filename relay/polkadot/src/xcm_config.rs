@@ -382,11 +382,6 @@ parameter_types! {
 	pub const TreasurerBodyId: BodyId = BodyId::Index(TREASURER_INDEX);
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parachain(1000).into());
-}
-
 /// Type to convert the `GeneralAdmin` origin to a Plurality `MultiLocation` value.
 pub type GeneralAdminToPlurality =
 	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
@@ -454,7 +449,5 @@ impl pallet_xcm::Config for Runtime {
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = crate::weights::pallet_xcm::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ReachableDest = ReachableDest;
 	type AdminOrigin = EnsureRoot<AccountId>;
 }

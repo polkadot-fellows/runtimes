@@ -1779,7 +1779,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		// XCM
-		[pallet_xcm, XcmPallet]
+		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
@@ -2291,6 +2291,7 @@ sp_api::impl_runtime_apis! {
 			use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 
@@ -2329,9 +2330,31 @@ sp_api::impl_runtime_apis! {
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
-			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
-			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
-			whitelist.push(treasury_key.to_vec().into());
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+			impl pallet_xcm::benchmarking::Config for Runtime {
+				fn reachable_dest() -> Option<MultiLocation> {
+					Some(crate::xcm_config::AssetHubLocation::get())
+				}
+
+				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay/native token can be teleported to/from AH.
+					Some((
+						MultiAsset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						crate::xcm_config::AssetHubLocation::get(),
+					))
+				}
+
+				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay can reserve transfer native token to some random parachain.
+					Some((
+						MultiAsset {
+							fun: Fungible(EXISTENTIAL_DEPOSIT),
+							id: Concrete(Here.into())
+						},
+						crate::Junction::Parachain(43211234).into(),
+					))
+				}
+			}
 
 			parameter_types! {
 				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
@@ -2432,6 +2455,10 @@ sp_api::impl_runtime_apis! {
 					Err(BenchmarkError::Skip)
 				}
 			}
+
+			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
+			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
+			whitelist.push(treasury_key.to_vec().into());
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
