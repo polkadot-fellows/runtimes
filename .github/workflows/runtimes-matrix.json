@@ -53,5 +53,12 @@
     "path": "system-parachains/collectives/collectives-polkadot",
     "uri": "wss://polkadot-collectives-rpc.polkadot.io:443",
     "is_relay": false
+  },
+  {
+    "name": "encointer-kusama",
+    "package": "encointer-kusama-runtime",
+    "path": "system-parachains/encointer",
+    "uri": "wss://kusama.api.encointer.org:443",
+    "is_relay": false
   }
 ]
