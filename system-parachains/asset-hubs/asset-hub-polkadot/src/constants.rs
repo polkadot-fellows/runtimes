@@ -17,8 +17,8 @@ pub mod currency {
 	use polkadot_core_primitives::Balance;
 	use polkadot_runtime_constants as constants;
 
-	/// The existential deposit. Set to 1/10 of its parent Relay Chain.
-	pub const EXISTENTIAL_DEPOSIT: Balance = constants::currency::EXISTENTIAL_DEPOSIT / 10;
+	/// The existential deposit. Set to 1/100 of its parent Relay Chain.
+	pub const EXISTENTIAL_DEPOSIT: Balance = constants::currency::EXISTENTIAL_DEPOSIT / 100;
 
 	pub const UNITS: Balance = constants::currency::UNITS;
 	pub const DOLLARS: Balance = constants::currency::DOLLARS;
