@@ -3,7 +3,7 @@ name: Keep PR up to date
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   updatePullRequests:
