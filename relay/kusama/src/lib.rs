@@ -1669,13 +1669,14 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::Runtime;
+	use super::{Runtime, parachains_configuration};
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
+		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
 	);
 }
 
