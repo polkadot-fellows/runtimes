@@ -24,6 +24,7 @@ bp-asset-hub-kusama = { path = "../../asset-hubs/asset-hub-kusama/primitives", d
 bp-asset-hub-polkadot = { path = "../../asset-hubs/asset-hub-polkadot/primitives", default-features = false}
 bp-bridge-hub-kusama = { path = "../bridge-hub-kusama/primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../bridge-hub-polkadot/primitives", default-features = false}
+kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
@@ -97,6 +98,7 @@ pallet-bridge-grandpa = { default-features = false , version = "0.6.0" }
 pallet-bridge-messages = { default-features = false , version = "0.6.0" }
 pallet-bridge-parachains = { default-features = false , version = "0.6.0" }
 pallet-bridge-relayers = { default-features = false , version = "0.6.0" }
+pallet-xcm-bridge-hub =  { default-features = false , version = "0.1.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.6.0" }
@@ -137,6 +139,7 @@ std = [
 	"frame-system/std",
 	"frame-try-runtime?/std",
 	"log/std",
+	"kusama-runtime-constants/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
@@ -153,6 +156,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-utility/std",
 	"pallet-xcm-benchmarks?/std",
+	"pallet-xcm-bridge-hub/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
@@ -205,6 +209,7 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
+	"pallet-xcm-bridge-hub/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
@@ -237,6 +242,7 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-xcm-bridge-hub/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",

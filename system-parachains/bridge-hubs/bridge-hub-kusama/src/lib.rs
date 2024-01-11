@@ -506,6 +506,7 @@ construct_runtime!(
 		BridgePolkadotGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
 		BridgePolkadotParachains: pallet_bridge_parachains::<Instance1>::{Pallet, Call, Storage, Event<T>} = 52,
 		BridgePolkadotMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 53,
+		XcmOverBridgeHubPolkadot: pallet_xcm_bridge_hub::<Instance1>::{Pallet} = 54,
 	}
 );
 
@@ -934,7 +935,13 @@ impl_runtime_apis! {
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
-					Ok((KsmRelayLocation::get(), NetworkId::Polkadot, X1(Parachain(1000))))
+					Ok(
+						(
+							bridge_to_polkadot_config::FromAssetHubKusamaToAssetHubPolkadotRoute::get().location,
+							NetworkId::Polkadot,
+							X1(Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()))
+						)
+					)
 				}
 
 				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {

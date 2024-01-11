@@ -25,6 +25,7 @@ bp-asset-hub-polkadot = { path = "../../asset-hubs/asset-hub-polkadot/primitives
 bp-bridge-hub-kusama = { path = "./primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../bridge-hub-polkadot/primitives", default-features = false}
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "27.0.0" }
@@ -97,6 +98,7 @@ pallet-bridge-grandpa = { default-features = false , version = "0.6.0" }
 pallet-bridge-messages = { default-features = false , version = "0.6.0" }
 pallet-bridge-parachains = { default-features = false , version = "0.6.0" }
 pallet-bridge-relayers = { default-features = false , version = "0.6.0" }
+pallet-xcm-bridge-hub =  { default-features = false , version = "0.1.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.6.0" }
@@ -154,12 +156,14 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-utility/std",
 	"pallet-xcm-benchmarks?/std",
+	"pallet-xcm-bridge-hub/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
+	"polkadot-runtime-constants/std",
 	"scale-info/std",
 	"serde",
 	"sp-api/std",
@@ -205,6 +209,7 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
+	"pallet-xcm-bridge-hub/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -238,6 +243,7 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-xcm-bridge-hub/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",

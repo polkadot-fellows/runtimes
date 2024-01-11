@@ -20,7 +20,7 @@ use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, Runtime, RuntimeEvent,
-	RuntimeOrigin,
+	RuntimeOrigin, XcmOverBridgeHubPolkadot,
 };
 use bp_messages::LaneId;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
@@ -48,7 +48,7 @@ use xcm::{
 	latest::prelude::*,
 	prelude::{InteriorMultiLocation, NetworkId},
 };
-use xcm_builder::{BridgeBlobDispatcher, HaulBlobExporter};
+use xcm_builder::BridgeBlobDispatcher;
 
 /// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
 pub const XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT: LaneId = LaneId([0, 0, 0, 1]);
@@ -82,12 +82,30 @@ parameter_types! {
 
 	/// Identifier of the sibling Kusama Asset Hub parachain.
 	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+	/// Identifier of the bridged Polkadot Asset Hub parachain.
+	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+
 	/// A route (XCM location and bridge lane) that the Kusama Asset Hub -> Polkadot Asset Hub
 	/// message is following.
 	pub FromAssetHubKusamaToAssetHubPolkadotRoute: SenderAndLane = SenderAndLane::new(
 		ParentThen(X1(Parachain(AssetHubKusamaParaId::get().into()))).into(),
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	);
+
+	/// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
+	pub const AssetHubKusamaToAssetHubPolkadotMessagesLane: bp_messages::LaneId
+		= XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT;
+	/// All active lanes that the current bridge supports.
+	pub ActiveOutboundLanesToBridgeHubPolkadot: &'static [bp_messages::LaneId]
+		= &[XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT];
+
+	/// Lanes
+	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorMultiLocation))> = sp_std::vec![
+			(
+				FromAssetHubKusamaToAssetHubPolkadotRoute::get(),
+				(PolkadotGlobalConsensusNetwork::get(), X1(Parachain(AssetHubPolkadotParaId::get().into())))
+			)
+	];
 }
 
 // Parameters, used by bridge transport code.
@@ -119,13 +137,6 @@ parameter_types! {
 	/// uncinfirmed messages that the single confirmation transaction at Polkadot Bridge Hub may process.
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-
-	/// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
-	pub const AssetHubKusamaToAssetHubPolkadotMessagesLane: bp_messages::LaneId
-		= XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT;
-	/// All active lanes that the current bridge supports.
-	pub ActiveOutboundLanesToBridgeHubPolkadot: &'static [bp_messages::LaneId]
-		= &[XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT];
 
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
 	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
@@ -231,24 +242,30 @@ type FromPolkadotMessageBlobDispatcher = BridgeBlobDispatcher<
 >;
 
 /// Export XCM messages to be relayed to the other side
-pub type ToBridgeHubPolkadotHaulBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToBridgeHubPolkadotXcmBlobHauler>,
-	PolkadotGlobalConsensusNetwork,
-	(),
->;
+pub type ToBridgeHubPolkadotHaulBlobExporter = XcmOverBridgeHubPolkadot;
 pub struct ToBridgeHubPolkadotXcmBlobHauler;
 impl XcmBlobHauler for ToBridgeHubPolkadotXcmBlobHauler {
 	type Runtime = Runtime;
 	type MessagesInstance = WithBridgeHubPolkadotMessagesInstance;
-	type SenderAndLane = FromAssetHubKusamaToAssetHubPolkadotRoute;
 
 	type ToSourceChainSender = XcmRouter;
 	type CongestedMessage = bp_asset_hub_kusama::CongestedMessage;
 	type UncongestedMessage = bp_asset_hub_kusama::UncongestedMessage;
 }
 
+/// Add support for the export and dispatch of XCM programs.
+pub type XcmOverBridgeHubPolkadotInstance = pallet_xcm_bridge_hub::Instance1;
+impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubPolkadotInstance> for Runtime {
+	type UniversalLocation = UniversalLocation;
+	type BridgedNetworkId = PolkadotGlobalConsensusNetwork;
+	type BridgeMessagesPalletInstance = WithBridgeHubPolkadotMessagesInstance;
+	type MessageExportPrice = ();
+	type Lanes = ActiveLanes;
+	type LanesSupport = ToBridgeHubPolkadotXcmBlobHauler;
+}
+
 /// On messages delivered callback.
-type OnMessagesDeliveredFromPolkadot = XcmBlobHaulerAdapter<ToBridgeHubPolkadotXcmBlobHauler>;
+type OnMessagesDeliveredFromPolkadot = XcmBlobHaulerAdapter<ToBridgeHubPolkadotXcmBlobHauler, ActiveLanes>;
 
 /// Messaging Bridge configuration for BridgeHubKusama -> BridgeHubPolkadot
 pub struct WithBridgeHubPolkadotMessageBridge;
