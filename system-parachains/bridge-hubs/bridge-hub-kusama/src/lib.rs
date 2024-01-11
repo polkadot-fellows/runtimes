@@ -674,17 +674,16 @@ construct_runtime!(
 		// Pallets that may be used by all bridges.
 		BridgeRelayers: pallet_bridge_relayers = 50,
 
-		//// todo add message queue pallet
+		// Polkadot bridge pallets.
 		BridgePolkadotGrandpa: pallet_bridge_grandpa::<Instance1> = 51,
 		BridgePolkadotParachains: pallet_bridge_parachains::<Instance1> = 52,
 		BridgePolkadotMessages: pallet_bridge_messages::<Instance1> = 53,
+		XcmOverBridgeHubPolkadot: pallet_xcm_bridge_hub::<Instance1> = 54,
 
 		EthereumInboundQueue: snowbridge_inbound_queue = 80,
 		EthereumOutboundQueue: snowbridge_outbound_queue = 81,
 		EthereumBeaconClient: snowbridge_ethereum_beacon_client = 82,
 		EthereumSystem: snowbridge_system = 83,
-
-
 	}
 );
 
@@ -1142,7 +1141,13 @@ impl_runtime_apis! {
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
-					Ok((KsmRelayLocation::get(), NetworkId::Polkadot, X1(Parachain(1000))))
+					Ok(
+						(
+							bridge_to_polkadot_config::FromAssetHubKusamaToAssetHubPolkadotRoute::get().location,
+							NetworkId::Polkadot,
+							X1(Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()))
+						)
+					)
 				}
 
 				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {

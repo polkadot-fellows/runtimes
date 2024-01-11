@@ -678,6 +678,7 @@ construct_runtime!(
 		BridgeKusamaGrandpa: pallet_bridge_grandpa::<Instance1> = 51,
 		BridgeKusamaParachains: pallet_bridge_parachains::<Instance1> = 52,
 		BridgeKusamaMessages: pallet_bridge_messages::<Instance1> = 53,
+		XcmOverBridgeHubKusama: pallet_xcm_bridge_hub::<Instance1> = 54,
 
 		EthereumInboundQueue: snowbridge_inbound_queue = 80,
 		EthereumOutboundQueue: snowbridge_outbound_queue = 81,
@@ -1139,7 +1140,13 @@ impl_runtime_apis! {
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
-					Ok((DotRelayLocation::get(), NetworkId::Kusama, X1(Parachain(1000))))
+					Ok(
+						(
+							bridge_to_kusama_config::FromAssetHubPolkadotToAssetHubKusamaRoute::get().location,
+							NetworkId::Kusama,
+							X1(Parachain(bridge_to_kusama_config::AssetHubKusamaParaId::get().into()))
+						)
+					)
 				}
 
 				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {
