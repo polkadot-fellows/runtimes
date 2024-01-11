@@ -37,6 +37,7 @@ frame-try-runtime = { default-features = false, optional = true, version = "0.33
 pallet-aura = { default-features = false, version = "26.0.0" }
 pallet-authorship = { default-features = false, version = "27.0.0" }
 pallet-balances = { default-features = false, version = "27.0.0" }
+pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-multisig = { default-features = false, version = "27.0.0" }
 pallet-session = { default-features = false, version = "27.0.0" }
 pallet-timestamp = { default-features = false, version = "26.0.0" }
@@ -145,6 +146,7 @@ std = [
 	"pallet-bridge-parachains/std",
 	"pallet-bridge-relayers/std",
 	"pallet-collator-selection/std",
+	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
@@ -183,6 +185,7 @@ std = [
 
 runtime-benchmarks = [
 	"bridge-runtime-common/runtime-benchmarks",
+	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -197,6 +200,7 @@ runtime-benchmarks = [
 	"pallet-bridge-parachains/runtime-benchmarks",
 	"pallet-bridge-relayers/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -228,6 +232,7 @@ try-runtime = [
 	"pallet-bridge-parachains/try-runtime",
 	"pallet-bridge-relayers/try-runtime",
 	"pallet-collator-selection/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",

@@ -21,6 +21,7 @@ frame-system-rpc-runtime-api = { default-features = false, version = "25.0.0" }
 frame-system-benchmarking = { default-features = false, optional = true, version = "27.0.0" }
 frame-try-runtime = { default-features = false, optional = true, version = "0.33.0" }
 pallet-glutton = { default-features = false, optional = true, version = "13.0.0" }
+pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-sudo = { default-features = false, optional = true, version = "27.0.0" }
 sp-api = { default-features = false, version = "25.0.0" }
 sp-block-builder = { default-features = false, version = "25.0.0" }
@@ -60,6 +61,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-glutton/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-sudo?/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
@@ -79,6 +81,7 @@ std = [
 	"frame-system/std",
 	"frame-try-runtime?/std",
 	"pallet-glutton/std",
+	"pallet-message-queue/std",
 	"pallet-sudo/std",
 	"parachain-info/std",
 	"parachains-common/std",
@@ -108,6 +111,7 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-glutton/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-sudo/try-runtime",
 	"parachain-info/try-runtime",
 	"sp-runtime/try-runtime",

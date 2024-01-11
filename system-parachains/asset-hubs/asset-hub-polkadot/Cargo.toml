@@ -36,6 +36,7 @@ pallet-assets = { default-features = false, version = "28.0.0" }
 pallet-aura = { default-features = false, version = "26.0.0" }
 pallet-authorship = { default-features = false, version = "27.0.0" }
 pallet-balances = { default-features = false, version = "27.0.0" }
+pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-multisig = { default-features = false, version = "27.0.0" }
 pallet-nfts = { default-features = false, version = "21.0.0" }
 pallet-nfts-runtime-api = { default-features = false, version = "13.0.0" }
@@ -102,6 +103,7 @@ substrate-wasm-builder = { optional = true , version = "16.0.0" }
 default = [ "std" ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
+	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -115,6 +117,7 @@ runtime-benchmarks = [
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -146,6 +149,7 @@ try-runtime = [
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-collator-selection/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
@@ -190,6 +194,7 @@ std = [
 	"pallet-authorship/std",
 	"pallet-balances/std",
 	"pallet-collator-selection/std",
+	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",

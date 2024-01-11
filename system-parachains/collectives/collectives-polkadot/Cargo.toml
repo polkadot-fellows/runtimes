@@ -29,6 +29,7 @@ pallet-aura = { default-features = false, version = "26.0.0" }
 pallet-authorship = { default-features = false, version = "27.0.0" }
 pallet-balances = { default-features = false, version = "27.0.0" }
 pallet-collective = { default-features = false, version = "27.0.0" }
+pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-multisig = { default-features = false, version = "27.0.0" }
 pallet-preimage = { default-features = false , version = "27.0.0" }
 pallet-proxy = { default-features = false, version = "27.0.0" }
@@ -88,6 +89,7 @@ substrate-wasm-builder = { optional = true , version = "16.0.0" }
 [features]
 default = [ "std" ]
 runtime-benchmarks = [
+	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -101,6 +103,7 @@ runtime-benchmarks = [
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-core-fellowship/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -136,6 +139,7 @@ try-runtime = [
 	"pallet-collator-selection/try-runtime",
 	"pallet-collective/try-runtime",
 	"pallet-core-fellowship/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
@@ -179,6 +183,7 @@ std = [
 	"pallet-collator-selection/std",
 	"pallet-collective/std",
 	"pallet-core-fellowship/std",
+	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
