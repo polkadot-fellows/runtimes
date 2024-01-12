@@ -1,0 +1,48 @@
+[package]
+name = "emulated-chains"
+version = "1.0.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Definitions of the fellows emulated relay+para runtimes"
+
+[dependencies]
+
+# Substrate
+grandpa-primitives = { package = "sp-consensus-grandpa", version = "12.0.0" }
+sp-authority-discovery = { version = "25.0.0" }
+sp-runtime = { version = "30.0.1" }
+frame-support = { version = "27.0.0" }
+sp-core = { version = "27.0.0" }
+sp-consensus-babe = { version = "0.31.0" }
+pallet-im-online = { version = "26.0.0" }
+pallet-staking = { version = "27.0.0" }
+beefy-primitives = { package = "sp-consensus-beefy", version = "12.0.0" }
+
+# Polkadot
+polkadot-primitives = { version = "6.0.0" }
+polkadot-runtime-parachains = { version = "6.0.0" }
+polkadot-parachain-primitives = { version = "5.0.0" }
+
+# Cumulus
+parachains-common = { version = "6.0.0" }
+xcm-emulator = { version = "0.4.0" }
+penpal-runtime = { version = "0.13.0" }
+
+# Local runtimes
+kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }
+kusama-runtime-constants = { path = "../../../relay/kusama/constants" }
+polkadot-runtime = { path = "../../../relay/polkadot" }
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants" }
+asset-hub-polkadot-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-polkadot" }
+asset-hub-kusama-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-kusama" }
+collectives-polkadot-runtime = { path = "../../../system-parachains/collectives/collectives-polkadot" }
+bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
+bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
+# TODO: replace with `emulated-integration-tests-common@X.Y.Z` from `polkadot-sdk`
+integration-tests-common = { path = "../common" }
+
+[features]
+runtime-benchmarks = [
+    "penpal-runtime/runtime-benchmarks",
+]

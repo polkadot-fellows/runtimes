@@ -13,11 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(not(feature = "runtime-benchmarks"))]
-
-mod hrmp_channels;
 mod reserve_transfer;
 mod send;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
+
+use crate::*;
+integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
+	PenpalKusamaA,
+	AssetHubKusama,
+	KUSAMA_ED,
+	parachains_common::kusama::fee::WeightToFee
+);

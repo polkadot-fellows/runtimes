@@ -421,20 +421,21 @@ version = "1.0.0"
 dependencies = [
  "assert_matches",
  "asset-hub-kusama-runtime",
+ "asset-test-utils",
+ "emulated-chains",
  "frame-support 27.0.0",
- "frame-system 27.0.0",
  "integration-tests-common",
  "pallet-asset-conversion",
  "pallet-assets 28.0.0",
  "pallet-balances 27.0.0",
+ "pallet-message-queue 30.0.0",
  "pallet-xcm 6.0.0",
  "parachains-common 6.0.0",
  "parity-scale-codec",
- "polkadot-core-primitives 6.0.0",
- "polkadot-parachain-primitives 5.0.0",
- "polkadot-runtime-parachains 6.0.0",
  "sp-runtime 30.0.1",
+ "staging-kusama-runtime",
  "staging-xcm 6.0.0",
+ "staging-xcm-executor 6.0.0",
  "xcm-emulator",
 ]
 
@@ -526,20 +527,21 @@ dependencies = [
 name = "asset-hub-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
+ "asset-test-utils",
+ "emulated-chains",
  "frame-support 27.0.0",
- "frame-system 27.0.0",
  "integration-tests-common",
- "pallet-asset-conversion",
  "pallet-assets 28.0.0",
  "pallet-balances 27.0.0",
+ "pallet-message-queue 30.0.0",
  "pallet-xcm 6.0.0",
  "parachains-common 6.0.0",
  "parity-scale-codec",
- "polkadot-core-primitives 6.0.0",
- "polkadot-parachain-primitives 5.0.0",
- "polkadot-runtime-parachains 6.0.0",
+ "polkadot-runtime",
  "sp-runtime 30.0.1",
  "staging-xcm 6.0.0",
+ "staging-xcm-executor 6.0.0",
  "xcm-emulator",
 ]
 
@@ -3241,6 +3243,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulated-chains"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "asset-hub-polkadot-runtime",
+ "bridge-hub-kusama-runtime",
+ "bridge-hub-polkadot-runtime",
+ "collectives-polkadot-runtime",
+ "frame-support 27.0.0",
+ "integration-tests-common",
+ "kusama-runtime-constants",
+ "pallet-im-online",
+ "pallet-staking 27.0.0",
+ "parachains-common 6.0.0",
+ "penpal-runtime",
+ "polkadot-parachain-primitives 5.0.0",
+ "polkadot-primitives 6.0.0",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains 6.0.0",
+ "sp-authority-discovery 25.0.0",
+ "sp-consensus-babe 0.31.0",
+ "sp-consensus-beefy",
+ "sp-consensus-grandpa 12.0.0",
+ "sp-core 27.0.0",
+ "sp-runtime 30.0.1",
+ "staging-kusama-runtime",
+ "xcm-emulator",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4963,45 +4996,31 @@ dependencies = [
 name = "integration-tests-common"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
- "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "bp-messages",
- "bridge-hub-kusama-runtime",
- "bridge-hub-polkadot-runtime",
  "bridge-runtime-common",
- "collectives-polkadot-runtime",
  "cumulus-pallet-dmp-queue 0.6.0",
  "cumulus-pallet-parachain-system 0.6.0",
  "cumulus-pallet-xcmp-queue 0.6.0",
  "cumulus-primitives-core 0.6.0",
  "frame-support 27.0.0",
- "kusama-runtime-constants",
  "pallet-assets 28.0.0",
  "pallet-balances 27.0.0",
  "pallet-bridge-messages",
  "pallet-im-online 26.0.0",
  "pallet-message-queue 30.0.0",
- "pallet-staking 27.0.0",
  "pallet-xcm 6.0.0",
  "parachains-common 6.0.0",
  "parity-scale-codec",
  "paste",
- "penpal-runtime",
- "polkadot-core-primitives 6.0.0",
- "polkadot-parachain-primitives 5.0.0",
  "polkadot-primitives 6.0.0",
- "polkadot-runtime",
- "polkadot-runtime-constants",
  "polkadot-runtime-parachains 6.0.0",
- "serde_json",
  "sp-authority-discovery 25.0.0",
  "sp-consensus-babe 0.31.0",
  "sp-consensus-beefy 12.0.0",
  "sp-consensus-grandpa 12.0.0",
  "sp-core 27.0.0",
  "sp-runtime 30.0.1",
- "staging-kusama-runtime",
  "staging-xcm 6.0.0",
  "xcm-emulator",
 ]
