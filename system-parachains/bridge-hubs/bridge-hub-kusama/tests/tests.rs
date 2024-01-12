@@ -17,10 +17,11 @@
 use bp_polkadot_core::Signature;
 use bridge_hub_kusama_runtime::{
 	bridge_to_polkadot_config::{
-		AssetHubPolkadotParaId, BridgeGrandpaPolkadotInstance, BridgeHubPolkadotChainId, BridgeParachainPolkadotInstance,
-		DeliveryRewardInBalance, PolkadotGlobalConsensusNetwork, RefundBridgeHubPolkadotMessages,
-		RequiredStakeForStakeAndSlash, WithBridgeHubPolkadotMessageBridge,
-		WithBridgeHubPolkadotMessagesInstance, XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
+		AssetHubPolkadotParaId, BridgeGrandpaPolkadotInstance, BridgeHubPolkadotChainId,
+		BridgeParachainPolkadotInstance, DeliveryRewardInBalance, PolkadotGlobalConsensusNetwork,
+		RefundBridgeHubPolkadotMessages, RequiredStakeForStakeAndSlash,
+		WithBridgeHubPolkadotMessageBridge, WithBridgeHubPolkadotMessagesInstance,
+		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	},
 	xcm_config::{KsmRelayLocation, RelayNetwork, XcmConfig},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,

@@ -265,7 +265,8 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubPolkadotInstance> for Runtime
 }
 
 /// On messages delivered callback.
-type OnMessagesDeliveredFromPolkadot = XcmBlobHaulerAdapter<ToBridgeHubPolkadotXcmBlobHauler, ActiveLanes>;
+type OnMessagesDeliveredFromPolkadot =
+	XcmBlobHaulerAdapter<ToBridgeHubPolkadotXcmBlobHauler, ActiveLanes>;
 
 /// Messaging Bridge configuration for BridgeHubKusama -> BridgeHubPolkadot
 pub struct WithBridgeHubPolkadotMessageBridge;

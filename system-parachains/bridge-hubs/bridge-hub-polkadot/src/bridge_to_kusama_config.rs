@@ -265,7 +265,8 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubKusamaInstance> for Runtime {
 }
 
 /// On messages delivered callback.
-type OnMessagesDeliveredFromKusama = XcmBlobHaulerAdapter<ToBridgeHubKusamaXcmBlobHauler, ActiveLanes>;
+type OnMessagesDeliveredFromKusama =
+	XcmBlobHaulerAdapter<ToBridgeHubKusamaXcmBlobHauler, ActiveLanes>;
 
 /// Messaging Bridge configuration for BridgeHubPolkadot -> BridgeHubKusama
 pub struct WithBridgeHubKusamaMessageBridge;

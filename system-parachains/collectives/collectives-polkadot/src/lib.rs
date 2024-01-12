@@ -79,7 +79,8 @@ use frame_system::{
 	EnsureRoot,
 };
 use parachains_common::{
-	impls::DealWithFees, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature, message_queue::*,
+	impls::DealWithFees, message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header,
+	Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
@@ -88,8 +89,7 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, LocationToAccountId, TreasurerBodyId,
-	XcmOriginToTransactDispatchOrigin,
+	GovernanceLocation, LocationToAccountId, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]

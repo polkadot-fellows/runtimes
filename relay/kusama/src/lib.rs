@@ -1681,7 +1681,7 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::{Runtime, parachains_configuration};
+	use super::{parachains_configuration, Runtime};
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
