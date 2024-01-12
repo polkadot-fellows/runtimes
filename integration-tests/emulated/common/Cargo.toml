@@ -9,7 +9,6 @@ description = "Common resources for integration testing with xcm-emulator"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9" }
 paste = "1.0.14"
-serde_json = "1.0.111"
 
 # Substrate
 grandpa-primitives = { package = "sp-consensus-grandpa", version = "12.0.0" }
@@ -22,7 +21,6 @@ pallet-assets = { version = "28.0.0" }
 pallet-balances = { version = "27.0.0" }
 pallet-message-queue = { version = "30.0.0" }
 pallet-im-online = { version = "26.0.0" }
-pallet-staking = { version = "27.0.0" }
 beefy-primitives = { package = "sp-consensus-beefy", version = "12.0.0" }
 
 # Polkadot
@@ -30,8 +28,6 @@ polkadot-primitives = { version = "6.0.0" }
 polkadot-runtime-parachains = { version = "6.0.0" }
 xcm = { package = "staging-xcm", version = "6.0.0" }
 pallet-xcm = { version = "6.0.0" }
-polkadot-core-primitives = { version = "6.0.0" }
-polkadot-parachain-primitives = { version = "5.0.0" }
 
 # Cumulus
 parachains-common = { version = "6.0.0" }
@@ -41,25 +37,8 @@ cumulus-pallet-xcmp-queue = { version = "0.6.0" }
 cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , version = "0.6.0" }
 asset-test-utils = { version = "6.0.0" }
 cumulus-pallet-dmp-queue = { version = "0.6.0" }
-penpal-runtime = { version = "0.13.0" }
-
-# Local runtimes
-kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }
-kusama-runtime-constants = { path = "../../../relay/kusama/constants" }
-polkadot-runtime = { path = "../../../relay/polkadot" }
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants" }
-asset-hub-polkadot-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-hub-kusama-runtime = { path = "../../../system-parachains/asset-hubs/asset-hub-kusama" }
-collectives-polkadot-runtime = { path = "../../../system-parachains/collectives/collectives-polkadot" }
-bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
 
 # Bridges
 bp-messages = { version = "0.6.0" }
 pallet-bridge-messages = { version = "0.6.0" }
 bridge-runtime-common = { version = "0.6.0" }
-
-[features]
-runtime-benchmarks = [
-    "penpal-runtime/runtime-benchmarks"
-]

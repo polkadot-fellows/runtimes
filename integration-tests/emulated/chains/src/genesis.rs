@@ -13,143 +13,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use integration_tests_common::{
+	accounts, collators, get_account_id_from_seed, validators, SAFE_XCM_VERSION,
+};
+
 // Substrate
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::{sr25519, storage::Storage, Pair, Public};
-use sp_runtime::{
-	traits::{IdentifyAccount, Verify},
-	BuildStorage, MultiSignature, Perbill,
-};
+use sp_core::{sr25519, storage::Storage};
+use sp_runtime::{BuildStorage, Perbill};
 
 // Cumulus
-use parachains_common::{AccountId, AssetHubPolkadotAuraId, AuraId, Balance, BlockNumber};
+use parachains_common::{AccountId, Balance, BlockNumber};
 use polkadot_parachain_primitives::primitives::{HeadData, ValidationCode};
 use polkadot_primitives::{AssignmentId, ValidatorId};
 use polkadot_runtime_parachains::{
 	configuration::HostConfiguration,
 	paras::{ParaGenesisArgs, ParaKind},
 };
-use xcm;
-
-pub const XCM_V2: u32 = 3;
-pub const XCM_V3: u32 = 2;
-pub const REF_TIME_THRESHOLD: u64 = 33;
-pub const PROOF_SIZE_THRESHOLD: u64 = 33;
-
-type AccountPublic = <MultiSignature as Verify>::Signer;
-
-/// Helper function to generate a crypto pair from seed
-fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
-		.expect("static values are valid; qed")
-		.public()
-}
-
-/// Helper function to generate an account ID from seed.
-fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
-	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
-}
-
-pub mod accounts {
-	use super::*;
-	pub const ALICE: &str = "Alice";
-	pub const BOB: &str = "Bob";
-	pub const CHARLIE: &str = "Charlie";
-	pub const DAVE: &str = "Dave";
-	pub const EVE: &str = "Eve";
-	pub const FERDIE: &str = "Ferdei";
-	pub const ALICE_STASH: &str = "Alice//stash";
-	pub const BOB_STASH: &str = "Bob//stash";
-	pub const CHARLIE_STASH: &str = "Charlie//stash";
-	pub const DAVE_STASH: &str = "Dave//stash";
-	pub const EVE_STASH: &str = "Eve//stash";
-	pub const FERDIE_STASH: &str = "Ferdie//stash";
-	pub const FERDIE_BEEFY: &str = "Ferdie//stash";
-
-	pub fn init_balances() -> Vec<AccountId> {
-		vec![
-			get_account_id_from_seed::<sr25519::Public>(ALICE),
-			get_account_id_from_seed::<sr25519::Public>(BOB),
-			get_account_id_from_seed::<sr25519::Public>(CHARLIE),
-			get_account_id_from_seed::<sr25519::Public>(DAVE),
-			get_account_id_from_seed::<sr25519::Public>(EVE),
-			get_account_id_from_seed::<sr25519::Public>(FERDIE),
-			get_account_id_from_seed::<sr25519::Public>(ALICE_STASH),
-			get_account_id_from_seed::<sr25519::Public>(BOB_STASH),
-			get_account_id_from_seed::<sr25519::Public>(CHARLIE_STASH),
-			get_account_id_from_seed::<sr25519::Public>(DAVE_STASH),
-			get_account_id_from_seed::<sr25519::Public>(EVE_STASH),
-			get_account_id_from_seed::<sr25519::Public>(FERDIE_STASH),
-		]
-	}
-}
-
-pub mod collators {
-	use super::*;
-
-	pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
-		vec![
-			(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
-			),
-			(
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
-			),
-		]
-	}
-
-	pub fn invulnerables() -> Vec<(AccountId, AuraId)> {
-		vec![
-			(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_from_seed::<AuraId>("Alice"),
-			),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
-		]
-	}
-}
-
-pub mod validators {
-	use super::*;
-
-	pub fn initial_authorities() -> Vec<(
-		AccountId,
-		AccountId,
-		BabeId,
-		GrandpaId,
-		ImOnlineId,
-		ValidatorId,
-		AssignmentId,
-		AuthorityDiscoveryId,
-		BeefyId,
-	)> {
-		let seed = "Alice";
-		vec![(
-			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
-			get_account_id_from_seed::<sr25519::Public>(seed),
-			get_from_seed::<BabeId>(seed),
-			get_from_seed::<GrandpaId>(seed),
-			get_from_seed::<ImOnlineId>(seed),
-			get_from_seed::<ValidatorId>(seed),
-			get_from_seed::<AssignmentId>(seed),
-			get_from_seed::<AuthorityDiscoveryId>(seed),
-			get_from_seed::<BeefyId>(seed),
-		)]
-	}
-}
-
-/// The default XCM version to set in genesis config.
-const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
-
 // Polkadot
 pub mod polkadot {
 	use super::*;
@@ -196,10 +80,7 @@ pub mod polkadot {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = polkadot_runtime::RuntimeGenesisConfig {
-			system: polkadot_runtime::SystemConfig {
-				code: polkadot_runtime::WASM_BINARY.unwrap().to_vec(),
-				..Default::default()
-			},
+			system: polkadot_runtime::SystemConfig::default(),
 			balances: polkadot_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
@@ -350,10 +231,7 @@ pub mod kusama {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = kusama_runtime::RuntimeGenesisConfig {
-			system: kusama_runtime::SystemConfig {
-				code: kusama_runtime::WASM_BINARY.unwrap().to_vec(),
-				..Default::default()
-			},
+			system: kusama_runtime::SystemConfig::default(),
 			balances: kusama_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
@@ -463,17 +341,12 @@ pub mod asset_hub_polkadot {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = asset_hub_polkadot_runtime::RuntimeGenesisConfig {
-			system: asset_hub_polkadot_runtime::SystemConfig {
-				code: asset_hub_polkadot_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: asset_hub_polkadot_runtime::SystemConfig::default(),
 			balances: asset_hub_polkadot_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
 					.cloned()
-					.map(|k| (k, ED * 4096))
+					.map(|k| (k, ED * 4096 * 4096))
 					.collect(),
 			},
 			parachain_info: asset_hub_polkadot_runtime::ParachainInfoConfig {
@@ -520,17 +393,12 @@ pub mod asset_hub_kusama {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
-			system: asset_hub_kusama_runtime::SystemConfig {
-				code: asset_hub_kusama_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: asset_hub_kusama_runtime::SystemConfig::default(),
 			balances: asset_hub_kusama_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
 					.cloned()
-					.map(|k| (k, ED * 4096))
+					.map(|k| (k, ED * 4096 * 4096))
 					.collect(),
 			},
 			parachain_info: asset_hub_kusama_runtime::ParachainInfoConfig {
@@ -577,12 +445,7 @@ pub mod bridge_hub_polkadot {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
-			system: bridge_hub_polkadot_runtime::SystemConfig {
-				code: bridge_hub_polkadot_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: bridge_hub_polkadot_runtime::SystemConfig::default(),
 			balances: bridge_hub_polkadot_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
@@ -634,12 +497,7 @@ pub mod bridge_hub_kusama {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = bridge_hub_kusama_runtime::RuntimeGenesisConfig {
-			system: bridge_hub_kusama_runtime::SystemConfig {
-				code: bridge_hub_kusama_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: bridge_hub_kusama_runtime::SystemConfig::default(),
 			balances: bridge_hub_kusama_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
@@ -691,12 +549,7 @@ pub mod collectives {
 
 	pub fn genesis() -> Storage {
 		let genesis_config = collectives_polkadot_runtime::RuntimeGenesisConfig {
-			system: collectives_polkadot_runtime::SystemConfig {
-				code: collectives_polkadot_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: collectives_polkadot_runtime::SystemConfig::default(),
 			balances: collectives_polkadot_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
@@ -749,17 +602,12 @@ pub mod penpal {
 
 	pub fn genesis(para_id: u32) -> Storage {
 		let genesis_config = penpal_runtime::RuntimeGenesisConfig {
-			system: penpal_runtime::SystemConfig {
-				code: penpal_runtime::WASM_BINARY
-					.expect("WASM binary was not build, please build it!")
-					.to_vec(),
-				..Default::default()
-			},
+			system: penpal_runtime::SystemConfig::default(),
 			balances: penpal_runtime::BalancesConfig {
 				balances: accounts::init_balances()
 					.iter()
 					.cloned()
-					.map(|k| (k, ED * 4096))
+					.map(|k| (k, ED * 4096 * 4096))
 					.collect(),
 			},
 			parachain_info: penpal_runtime::ParachainInfoConfig {
