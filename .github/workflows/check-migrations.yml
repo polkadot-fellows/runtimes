@@ -62,6 +62,9 @@ jobs:
       - name: Add wasm32-unknown-unknown target
         run: rustup target add wasm32-unknown-unknown
 
+      - name: Add rust-src component
+        run: rustup component add rust-src
+
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
