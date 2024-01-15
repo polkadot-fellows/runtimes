@@ -37,6 +37,8 @@ asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-k
 collectives-polkadot-runtime = { path = "../system-parachains/collectives/collectives-polkadot" }
 bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-polkadot" }
 bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
+encointer-kusama-runtime = { path = "../system-parachains/encointer" }
+glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
 
 [features]
 runtime-benchmarks = [
