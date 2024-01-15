@@ -413,6 +413,8 @@ fn bridge_hub_polkadot_genesis(
 				})
 				.collect(),
 		},
+		bridge_kusama_grandpa: Default::default(),
+		bridge_kusama_messages: Default::default(),
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this.
 		aura: Default::default(),
@@ -502,6 +504,8 @@ fn bridge_hub_kusama_genesis(
 				})
 				.collect(),
 		},
+		bridge_polkadot_grandpa: Default::default(),
+		bridge_polkadot_messages: Default::default(),
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this.
 		aura: Default::default(),
