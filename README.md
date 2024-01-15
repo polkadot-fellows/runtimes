@@ -85,7 +85,7 @@ To generate weights for a runtime
 
 4. `rsync` chain spec/s and the file header to a benchmark machine
 
-5. Build `polkadot-sdk` with `--profile production --features runtime-benchmarks` on the benchmark machine
+5. Build `polkadot` binary from the latest release of `polkadot-sdk` with `--profile production --features runtime-benchmarks --bin polkadot` on the benchmark machine
 
 6. Create output directories for the weights on the benchmark machine
 
