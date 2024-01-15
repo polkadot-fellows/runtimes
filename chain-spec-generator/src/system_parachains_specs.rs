@@ -30,6 +30,9 @@ pub type BridgeHubPolkadotChainSpec =
 pub type BridgeHubKusamaChainSpec =
 	sc_chain_spec::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
 
+pub type GluttonKusamaChainSpec =
+	sc_chain_spec::GenericChainSpec<glutton_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+
 const ASSET_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
 const ASSET_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
@@ -546,6 +549,57 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		"bridge-hub-kusama-local",
 		ChainType::Local,
 		move || bridge_hub_kusama_local_genesis(wasm_binary),
+		Vec::new(),
+		None,
+		None,
+		None,
+		Some(properties),
+		Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
+	)))
+}
+
+// GluttonKusama
+fn glutton_kusama_genesis(
+	wasm_binary: &[u8],
+	id: ParaId,
+) -> glutton_kusama_runtime::RuntimeGenesisConfig {
+	glutton_kusama_runtime::RuntimeGenesisConfig {
+		system: glutton_kusama_runtime::SystemConfig {
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
+		glutton: Default::default(),
+		sudo: Default::default(),
+		parachain_system: Default::default(),
+		parachain_info: glutton_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
+	}
+}
+
+fn glutton_kusama_local_genesis(
+	wasm_binary: &[u8],
+) -> glutton_kusama_runtime::RuntimeGenesisConfig {
+	glutton_kusama_genesis(wasm_binary, 1002.into())
+}
+
+pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	let wasm_binary =
+		glutton_kusama_runtime::WASM_BINARY.ok_or("GluttonKusama wasm not available")?;
+
+	Ok(Box::new(GluttonKusamaChainSpec::from_genesis(
+		// Name
+		"Glutton Kusama Local",
+		// ID
+		"glutton-kusama-local",
+		ChainType::Local,
+		move || glutton_kusama_local_genesis(wasm_binary),
 		Vec::new(),
 		None,
 		None,

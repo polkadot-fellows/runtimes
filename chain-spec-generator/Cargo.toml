@@ -49,4 +49,6 @@ runtime-benchmarks = [
 	"collectives-polkadot-runtime/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",
+	"encointer-kusama-runtime/runtime-benchmarks",
+	"glutton-kusama-runtime/runtime-benchmarks",
 ]

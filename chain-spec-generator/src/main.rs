@@ -59,6 +59,11 @@ fn main() -> Result<(), String> {
 				Box::new(|| system_parachains_specs::bridge_hub_kusama_local_testnet_config())
 					as Box<_>,
 			),
+			(
+				"glutton-kusama-local",
+				Box::new(|| system_parachains_specs::glutton_kusama_local_testnet_config())
+					as Box<_>,
+			),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {

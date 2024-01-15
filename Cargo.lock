@@ -1880,6 +1880,8 @@ dependencies = [
  "clap",
  "collectives-polkadot-runtime",
  "cumulus-primitives-core",
+ "encointer-kusama-runtime",
+ "glutton-kusama-runtime",
  "hex-literal",
  "kusama-runtime-constants",
  "pallet-im-online",
