@@ -883,8 +883,11 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
-pub type Migrations =
-	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, RocksDbWeight>;
+pub type Migrations = (
+	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, RocksDbWeight>,
+	// unreleased
+	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+);
 
 /// Migration for Uniques to V1
 pub struct UniquesMigration;
