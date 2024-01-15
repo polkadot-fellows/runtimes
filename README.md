@@ -140,9 +140,3 @@ You probably want to do this inside a `tmux` session or similar, as it will take
 
 See the [Polkadot Wiki Reference Hardware](https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#standard-hardware).
 
-### Why is this such a manual task?
-
-It shouldn't be. Now that we have a process to follow, it should be automated by a script that takes as input.
-
-Tracked in [this issue](https://github.com/polkadot-fellows/runtimes/issues/128).
-
