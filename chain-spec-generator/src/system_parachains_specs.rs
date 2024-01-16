@@ -33,6 +33,9 @@ pub type BridgeHubKusamaChainSpec =
 pub type GluttonKusamaChainSpec =
 	sc_chain_spec::GenericChainSpec<glutton_kusama_runtime::RuntimeGenesisConfig, Extensions>;
 
+pub type EncointerKusamaChainSpec =
+	sc_chain_spec::GenericChainSpec<encointer_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+
 const ASSET_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
 const ASSET_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
@@ -42,6 +45,8 @@ const COLLECTIVES_POLKADOT_ED: Balance = parachains_common::polkadot::currency::
 const BRIDGE_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
 const BRIDGE_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+
+const ENCOINTER_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
@@ -606,5 +611,83 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 		None,
 		Some(properties),
 		Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
+	)))
+}
+
+// EncointerKusama
+fn encointer_kusama_genesis(
+	wasm_binary: &[u8],
+	endowed_accounts: Vec<AccountId>,
+	id: ParaId,
+) -> encointer_kusama_runtime::RuntimeGenesisConfig {
+	encointer_kusama_runtime::RuntimeGenesisConfig {
+		system: encointer_kusama_runtime::SystemConfig {
+			code: wasm_binary.to_vec(),
+			..Default::default()
+		},
+		balances: encointer_kusama_runtime::BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
+				.collect(),
+		},
+		parachain_info: encointer_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
+		collective: Default::default(),
+		encointer_balances: Default::default(),
+		encointer_ceremonies: Default::default(),
+		encointer_communities: Default::default(),
+		encointer_faucet: Default::default(),
+		encointer_scheduler: Default::default(),
+		membership: Default::default(),
+		treasury: Default::default(),
+		aura: encointer_kusama_runtime::AuraConfig {
+			authorities: vec![get_from_seed::<sr25519::Public>("Alice").into()],
+		},
+		aura_ext: Default::default(),
+		parachain_system: Default::default(),
+		polkadot_xcm: encointer_kusama_runtime::PolkadotXcmConfig {
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+	}
+}
+
+fn encointer_kusama_local_genesis(
+	wasm_binary: &[u8],
+) -> encointer_kusama_runtime::RuntimeGenesisConfig {
+	encointer_kusama_genesis(
+		// initial collators.
+		wasm_binary,
+		testnet_accounts(),
+		1002.into(),
+	)
+}
+
+pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	let wasm_binary =
+		encointer_kusama_runtime::WASM_BINARY.ok_or("EncointerKusama wasm not available")?;
+
+	Ok(Box::new(EncointerKusamaChainSpec::from_genesis(
+		// Name
+		"Kusama Encointer Local",
+		// ID
+		"encointer-kusama-local",
+		ChainType::Local,
+		move || encointer_kusama_local_genesis(wasm_binary),
+		Vec::new(),
+		None,
+		None,
+		None,
+		Some(properties),
+		Extensions { relay_chain: "kusama-local".into(), para_id: 1001 },
 	)))
 }
