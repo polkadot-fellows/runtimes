@@ -110,7 +110,12 @@ pallets=($(
 ));
 
 for pallet in "${pallets[@]}"; do
-  echo "Running benchmarks for $pallet"
+  output_file=./$CHAIN-weights/
+  # a little hack for pallet_xcm_benchmarks - we want to force custom implementation for XcmWeightInfo
+  if [[ "$pallet" == "pallet_xcm_benchmarks::generic" ]] || [[ "$pallet" == "pallet_xcm_benchmarks::fungible" ]]; then
+    output_file="${output_file}xcm/${pallet//::/_}.rs"
+  fi
+  echo "Running benchmarks for $pallet to $output_file"
   ./target/production/polkadot benchmark pallet \
     --chain=./$CHAIN-chain-spec.json \
     --steps=50 \
