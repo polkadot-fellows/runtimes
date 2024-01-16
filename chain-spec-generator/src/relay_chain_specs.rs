@@ -380,7 +380,7 @@ pub fn polkadot_development_config() -> Result<Box<dyn ChainSpec>, String> {
 
 	Ok(Box::new(PolkadotChainSpec::from_genesis(
 		"Polakdot Development",
-		"polkadot_dev",
+		"polkadot-dev",
 		ChainType::Development,
 		move || polkadot_development_config_genesis(wasm_binary),
 		vec![],
