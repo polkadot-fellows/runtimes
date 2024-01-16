@@ -398,7 +398,7 @@ pub fn kusama_development_config() -> Result<Box<dyn ChainSpec>, String> {
 
 	Ok(Box::new(KusamaChainSpec::from_genesis(
 		"Kusama Development",
-		"kusama_dev",
+		"kusama-dev",
 		ChainType::Development,
 		move || kusama_development_config_genesis(wasm_binary),
 		vec![],
