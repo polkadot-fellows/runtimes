@@ -107,7 +107,7 @@ pallets=($(
     cut -d',' -f1 |
     sort |
     uniq
-);
+));
 
 for pallet in "${pallets[@]}"; do
   echo "Running benchmarks for $pallet"
