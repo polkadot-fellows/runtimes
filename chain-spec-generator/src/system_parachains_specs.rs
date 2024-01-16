@@ -663,7 +663,7 @@ fn encointer_kusama_local_genesis(
 		// initial collators.
 		wasm_binary,
 		testnet_accounts(),
-		1002.into(),
+		1001.into(),
 	)
 }
 
