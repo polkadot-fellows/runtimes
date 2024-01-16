@@ -124,7 +124,7 @@ for pallet in "${pallets[@]}"; do
     --extrinsic=* \
     --wasm-execution=compiled \
     --heap-pages=4096 \
-    --output=./$CHAIN-weights \
+    --output="$output_file" \
     --header=./file_header.txt
 done
 ```
