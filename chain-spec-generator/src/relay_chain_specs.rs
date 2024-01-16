@@ -453,7 +453,7 @@ pub fn kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 
 	Ok(Box::new(KusamaChainSpec::from_genesis(
 		"Kusama Local Testnet",
-		"kusama_local_testnet",
+		"kusama-local",
 		ChainType::Local,
 		move || kusama_local_testnet_genesis(wasm_binary),
 		vec![],
