@@ -1706,11 +1706,15 @@ pub mod migrations {
 	pub type Unreleased = (
 		// Upgrade SessionKeys to include BEEFY key
 		UpgradeSessionKeys,
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
-		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
+		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
+		// TODO:(PR#137) - replace with fixed/released version
+		crate::test_oliverfix_migration::V6ToV7<Runtime>,
+		// pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
+		// TODO:(PR#137) - replace with fixed/released version
+		crate::test_oliverfix_migration::V7ToV8<Runtime>,
+		// pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 	);
 }
 
@@ -2945,5 +2949,205 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
+	}
+}
+
+// TODO:(PR#137) - replace with fixed/released version
+mod test_oliverfix_migration {
+	use super::*;
+	use frame_support::{
+		traits::OnRuntimeUpgrade, DebugNoBound, RuntimeDebugNoBound, Twox64Concat,
+	};
+	use frame_system::pallet_prelude::BlockNumberFor;
+	use pallet_nomination_pools::*;
+	use sp_runtime::Saturating;
+
+	pub type V7ToV8<T> = frame_support::migrations::VersionedMigration<
+		7,
+		8,
+		v8::VersionUncheckedMigrateV7ToV8<T>,
+		pallet_nomination_pools::pallet::Pallet<T>,
+		<T as frame_system::Config>::DbWeight,
+	>;
+
+	pub type V6ToV7<T> = frame_support::migrations::VersionedMigration<
+		6,
+		7,
+		v7::VersionUncheckedMigrateV6ToV7<T>,
+		pallet_nomination_pools::pallet::Pallet<T>,
+		<T as frame_system::Config>::DbWeight,
+	>;
+
+	pub mod v8 {
+		use super::*;
+
+		use super::v7::BondedPoolInner as OldBondedPoolInner;
+
+		impl<T: Config> OldBondedPoolInner<T> {
+			fn migrate_to_v8(self) -> BondedPoolInner<T> {
+				BondedPoolInner {
+					commission: Commission {
+						current: self.commission.current,
+						max: self.commission.max,
+						change_rate: self.commission.change_rate,
+						throttle_from: self.commission.throttle_from,
+						// `claim_permission` is a new field.
+						claim_permission: None,
+					},
+					member_counter: self.member_counter,
+					points: self.points,
+					roles: self.roles,
+					state: self.state,
+				}
+			}
+		}
+
+		pub struct VersionUncheckedMigrateV7ToV8<T>(sp_std::marker::PhantomData<T>);
+
+		impl<T: Config> OnRuntimeUpgrade for VersionUncheckedMigrateV7ToV8<T> {
+			#[cfg(feature = "try-runtime")]
+			fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+				Ok(Vec::new())
+			}
+
+			fn on_runtime_upgrade() -> Weight {
+				let mut translated = 0u64;
+				BondedPools::<T>::translate::<OldBondedPoolInner<T>, _>(|_key, old_value| {
+					translated.saturating_inc();
+					Some(old_value.migrate_to_v8())
+				});
+				T::DbWeight::get().reads_writes(translated, translated + 1)
+			}
+
+			#[cfg(feature = "try-runtime")]
+			fn post_upgrade(_: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+				// Check new `claim_permission` field is present.
+				frame_support::ensure!(
+					BondedPools::<T>::iter()
+						.all(|(_, inner)| inner.commission.claim_permission.is_none()),
+					"`claim_permission` value has not been set correctly."
+				);
+				Ok(())
+			}
+		}
+	}
+
+	mod v7 {
+		use super::*;
+
+		use scale_info::TypeInfo;
+		use sp_staking::StakingInterface;
+		// use frame_support::traits::GetStorageVersion;
+
+		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
+		#[codec(mel_bound(T: Config))]
+		#[scale_info(skip_type_params(T))]
+		pub struct Commission<T: Config> {
+			pub current: Option<(Perbill, T::AccountId)>,
+			pub max: Option<Perbill>,
+			pub change_rate: Option<CommissionChangeRate<BlockNumberFor<T>>>,
+			pub throttle_from: Option<BlockNumberFor<T>>,
+		}
+
+		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
+		#[codec(mel_bound(T: Config))]
+		#[scale_info(skip_type_params(T))]
+		pub struct BondedPoolInner<T: Config> {
+			pub commission: Commission<T>,
+			pub member_counter: u32,
+			pub points: BalanceOf<T>,
+			pub roles: PoolRoles<T::AccountId>,
+			pub state: PoolState,
+		}
+
+		#[derive(RuntimeDebugNoBound)]
+		#[cfg_attr(feature = "std", derive(Clone, PartialEq))]
+		pub struct BondedPool<T: Config> {
+			/// The identifier of the pool.
+			id: PoolId,
+			/// The inner fields.
+			inner: BondedPoolInner<T>,
+		}
+
+		impl<T: Config> BondedPool<T> {
+			fn bonded_account(&self) -> T::AccountId {
+				Pallet::<T>::create_bonded_account(self.id)
+			}
+		}
+
+		#[frame_support::storage_alias]
+		pub type BondedPools<T: Config> =
+			CountedStorageMap<Pallet<T>, Twox64Concat, PoolId, BondedPoolInner<T>>;
+
+		pub struct VersionUncheckedMigrateV6ToV7<T>(sp_std::marker::PhantomData<T>);
+		impl<T: Config> VersionUncheckedMigrateV6ToV7<T> {
+			fn calculate_tvl_by_total_stake() -> BalanceOf<T> {
+				BondedPools::<T>::iter()
+					.map(|(id, inner)| {
+						T::Staking::total_stake(
+							&BondedPool { id, inner: inner.clone() }.bonded_account(),
+						)
+						.unwrap_or_default()
+					})
+					.reduce(|acc, total_balance| acc + total_balance)
+					.unwrap_or_default()
+			}
+		}
+
+		impl<T: Config> OnRuntimeUpgrade for VersionUncheckedMigrateV6ToV7<T> {
+			fn on_runtime_upgrade() -> Weight {
+				let migrated = BondedPools::<T>::count();
+				// The TVL should be the sum of all the funds that are actively staked and in the
+				// unbonding process of the account of each pool.
+				let tvl: BalanceOf<T> = Self::calculate_tvl_by_total_stake();
+
+				TotalValueLocked::<T>::set(tvl);
+
+				log!(info, "Upgraded {} pools with a TVL of {:?}", migrated, tvl);
+
+				// reads: migrated * (BondedPools +  Staking::total_stake) + count + onchain
+				// version
+				//
+				// writes: current version + TVL
+				T::DbWeight::get()
+					.reads_writes(migrated.saturating_mul(2).saturating_add(2).into(), 2)
+			}
+
+			#[cfg(feature = "try-runtime")]
+			fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+				Ok(Vec::new())
+			}
+
+			#[cfg(feature = "try-runtime")]
+			fn post_upgrade(_data: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+				// check that the `TotalValueLocked` written is actually the sum of `total_stake` of
+				// the `BondedPools``
+				let tvl: BalanceOf<T> = Self::calculate_tvl_by_total_stake();
+				frame_support::ensure!(
+					TotalValueLocked::<T>::get() == tvl,
+					"TVL written is not equal to `Staking::total_stake` of all `BondedPools`."
+				);
+
+				// TODO: skip for now
+				// calculate the sum of `total_balance` of all `PoolMember` as the upper bound for
+				// the `TotalValueLocked`.
+				// let total_balance_members: BalanceOf<T> = PoolMembers::<T>::iter()
+				// 	.map(|(_, member)| member.total_balance())
+				// 	.reduce(|acc, total_balance| acc + total_balance)
+				// 	.unwrap_or_default();
+				//
+				// frame_support::ensure!(
+				// 	TotalValueLocked::<T>::get() <= total_balance_members,
+				// 	"TVL is greater than the balance of all PoolMembers."
+				// );
+				//
+				// frame_support::ensure!(
+				// 	Pallet::<T>::on_chain_storage_version() >= 7,
+				// 	"nomination-pools::migration::v7: wrong storage version"
+				// );
+
+				Ok(())
+			}
+		}
 	}
 }
