@@ -90,9 +90,7 @@ To generate weights for a runtime
 
 5. Build `polkadot` binary from the latest release of `polkadot-sdk` with `--profile production --features runtime-benchmarks --bin polkadot` on the benchmark machine
 
-6. Create output directories for the weights on the benchmark machine
-
-7. Run on the benchmark machine:
+6. Run on the benchmark machine:
 
 ```bash
 #!/bin/bash
@@ -109,10 +107,12 @@ pallets=($(
     uniq
 ));
 
+mkdir -p ./$CHAIN-weights
 for pallet in "${pallets[@]}"; do
   output_file=./$CHAIN-weights/
-  # a little hack for pallet_xcm_benchmarks - we want to force custom implementation for XcmWeightInfo
+  # a little hack for pallet_xcm_benchmarks - we want to output them to a nested directory
   if [[ "$pallet" == "pallet_xcm_benchmarks::generic" ]] || [[ "$pallet" == "pallet_xcm_benchmarks::fungible" ]]; then
+    mkdir -p ./$CHAIN-weights/xcm
     output_file="${output_file}xcm/${pallet//::/_}.rs"
   fi
   echo "Running benchmarks for $pallet to $output_file"
@@ -131,16 +131,16 @@ done
 
 You probably want to do this inside a `tmux` session or similar, as it will take a while.
 
-8. `rsync` the weights back to your local machine, replacing the existing weights.
+7. `rsync` the weights back to your local machine, replacing the existing weights.
 
-9. Manually fix XCM weights by
+8. Manually fix XCM weights by
 - Replacing `impl<T: frame_system::Config> xxx::yyy::WeightInfo<T> for WeightInfo<T> {` with `impl<T: frame_system::Config> WeightInfo<T> {`
 - Marking all functions `pub(crate)`
 - Removing any unused functions
 
-10. Commit the weight changes.
+9. Commit the weight changes.
 
-11. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./**/weights/*.rs" --method asymptotic --ignore-errors HEAD origin/main`. Ensure the changes are reasonable.
+10. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./**/weights/*.rs" --method asymptotic --ignore-errors HEAD origin/main`. Ensure the changes are reasonable.
 
 ## FAQ
 
