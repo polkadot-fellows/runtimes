@@ -70,7 +70,8 @@ To generate weights for a runtime
 3. Create `file_header.txt`
 
 ```text
-// Copyright (C) Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies and the various Polkadot contributors, see Contributions.md
+// for a list of specific contributors.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
