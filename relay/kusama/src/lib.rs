@@ -1687,6 +1687,7 @@ pub mod migrations {
 	pub type Unreleased = (
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
+		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		// TODO:(PR#137) - replace with fixed/released version
 		crate::test_oliverfix_migration::V6ToV7<Runtime>,
