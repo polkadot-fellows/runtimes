@@ -9,6 +9,7 @@ license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/is
 resolver = "2"
 
 members = [
+	"chain-spec-generator",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
