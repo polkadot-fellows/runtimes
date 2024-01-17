@@ -38,7 +38,7 @@ use xcm_emulator::{
 	DefaultMessageProcessor,
 };
 
-use polkadot_primitives::runtime_api::runtime_decl_for_parachain_host::ParachainHostV7;
+use polkadot_primitives::runtime_api::runtime_decl_for_parachain_host::ParachainHostV8;
 
 decl_test_relay_chains! {
 	#[api_version(5)]
