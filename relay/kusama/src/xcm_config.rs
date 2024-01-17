@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	match_types, parameter_types,
-	traits::{Contains, Everything, Nothing},
+	traits::{Contains, Equals, Everything, Nothing},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
@@ -38,8 +38,8 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
-	ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
-	CurrencyAdapter as XcmCurrencyAdapter, IsChildSystemParachain, IsConcrete, MintLocation,
+	ChildParachainConvertsVia, CurrencyAdapter as XcmCurrencyAdapter, DescribeAllTerminal,
+	DescribeFamily, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
 	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeesToAccount,
@@ -47,6 +47,7 @@ use xcm_builder::{
 use xcm_executor::traits::WithOriginFilter;
 
 parameter_types! {
+	pub const RootLocation: MultiLocation = Here.into_location();
 	/// The location of the KSM token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
@@ -72,6 +73,8 @@ pub type SovereignAccountOf = (
 	ChildParachainConvertsVia<ParaId, AccountId>,
 	// We can directly alias an `AccountId32` into a local account.
 	AccountId32Aliases<ThisNetwork, AccountId>,
+	// Foreign locations alias into accounts according to a hash of their standard description.
+	HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,
 );
 
 /// Our asset transactor. This is what allows us to interest with the runtime facilities from the
@@ -99,8 +102,6 @@ type LocalOriginConverter = (
 	ChildParachainAsNative<parachains_origin::Origin, RuntimeOrigin>,
 	// The AccountId32 location type can be expressed natively as a `Signed` origin.
 	SignedAccountId32AsNative<ThisNetwork, RuntimeOrigin>,
-	// A system child parachain, expressed as a Superuser, converts to the `Root` origin.
-	ChildSystemParachainAsSuperuser<ParaId, RuntimeOrigin>,
 );
 
 parameter_types! {
@@ -135,6 +136,8 @@ parameter_types! {
 	pub const KsmForBridgeHub: (MultiAssetFilter, MultiLocation) = (Ksm::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
+
+/// Kusama Relay recognizes/respects AssetHub, Encointer, and BridgeHub chains as teleporters.
 pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForAssetHub>,
 	xcm_builder::Case<KsmForEncointer>,
@@ -144,6 +147,9 @@ pub type TrustedTeleporters = (
 match_types! {
 	pub type OnlyParachains: impl Contains<MultiLocation> = {
 		MultiLocation { parents: 0, interior: X1(Parachain(_)) }
+	};
+	pub type LocalPlurality: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 0, interior: X1(Plurality { .. }) }
 	};
 }
 
@@ -319,6 +325,10 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 	}
 }
 
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
+/// We only waive fees for system functions, which these locations represent.
+pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -345,7 +355,7 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	type FeeManager = XcmFeesToAccount<Self, SystemParachains, AccountId, TreasuryAccount>;
+	type FeeManager = XcmFeesToAccount<Self, WaivedLocations, AccountId, TreasuryAccount>;
 	// No bridges yet...
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;

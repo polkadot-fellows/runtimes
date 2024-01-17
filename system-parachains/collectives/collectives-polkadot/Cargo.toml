@@ -23,6 +23,7 @@ frame-system = { default-features = false, version = "25.0.0" }
 frame-system-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
 frame-system-rpc-runtime-api = { default-features = false, version = "23.0.0" }
 frame-try-runtime = { default-features = false, optional = true, version = "0.31.0" }
+pallet-asset-rate = { default-features = false , version = "4.0.0" }
 pallet-alliance = { default-features = false, version = "24.0.0" }
 pallet-aura = { default-features = false, version = "24.0.0" }
 pallet-authorship = { default-features = false, version = "25.0.0" }
@@ -36,6 +37,7 @@ pallet-session = { default-features = false, version = "25.0.0" }
 pallet-timestamp = { default-features = false, version = "24.0.0" }
 pallet-transaction-payment = { default-features = false, version = "25.0.0" }
 pallet-transaction-payment-rpc-runtime-api = { default-features = false, version = "25.0.0" }
+pallet-treasury = { default-features = false , version = "24.0.0" }
 pallet-utility = { default-features = false, version = "25.0.0" }
 pallet-referenda = { default-features = false, version = "25.0.0" }
 pallet-ranked-collective = { default-features = false, version = "25.0.0" }
@@ -78,6 +80,7 @@ cumulus-primitives-utility = { default-features = false , version = "0.4.0" }
 pallet-collator-selection = { default-features = false , version = "6.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.4.0" }
 parachains-common = { default-features = false , version = "4.0.0" }
+system-parachains-constants = { path = "../../constants", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "14.0.0" }
@@ -93,6 +96,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-alliance/runtime-benchmarks",
+	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
@@ -105,6 +109,7 @@ runtime-benchmarks = [
 	"pallet-salary/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -124,6 +129,7 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-alliance/try-runtime",
+	"pallet-asset-rate/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
@@ -140,6 +146,7 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
+	"pallet-treasury/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
@@ -165,6 +172,7 @@ std = [
 	"frame-try-runtime?/std",
 	"log/std",
 	"pallet-alliance/std",
+	"pallet-asset-rate/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
@@ -182,6 +190,7 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-treasury/std",
 	"pallet-utility/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
@@ -206,6 +215,7 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",

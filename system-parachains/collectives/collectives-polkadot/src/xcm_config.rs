@@ -28,16 +28,17 @@ use pallet_xcm::XcmPassthrough;
 use parachains_common::{
 	impls::ToStakingPot,
 	xcm_config::{ConcreteAssetFromSystem, RelayOrOtherSystemParachains},
-	TREASURY_PALLET_ID,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{system_parachain, xcm as xcm_constants};
 use sp_runtime::traits::AccountIdConversion;
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
-	DenyReserveTransferToRelayChain, DenyThenTry, EnsureXcmOrigin, FixedWeightBounds, IsConcrete,
+	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
+	DescribeTerminus, EnsureXcmOrigin, FixedWeightBounds, HashedDescription, IsConcrete,
 	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
@@ -46,6 +47,7 @@ use xcm_builder::{
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 parameter_types! {
+	pub const RootLocation: MultiLocation = MultiLocation::here();
 	pub const DotLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -55,6 +57,7 @@ parameter_types! {
 	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
 	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: Option<AccountId> = Some(TREASURY_PALLET_ID.into_account_truncating());
+	pub const TreasurerBodyId: BodyId = BodyId::Index(xcm_constants::body::TREASURER_INDEX);
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -67,6 +70,10 @@ pub type LocationToAccountId = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	// Straight up local `AccountId32` origins just alias directly to `AccountId`.
 	AccountId32Aliases<RelayNetwork, AccountId>,
+	// Foreign locations alias into accounts according to a hash of their standard description.
+	HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,
+	// Here/local root location to `AccountId`.
+	HashedDescription<AccountId, DescribeTerminus>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -128,6 +135,9 @@ match_types! {
 		MultiLocation { parents: 1, interior: Here } |
 		MultiLocation { parents: 1, interior: X1(Parachain(_)) }
 	};
+	pub type LocalPlurality: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 0, interior: X1(Plurality { .. }) }
+	};
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
@@ -166,8 +176,10 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::add_invulnerable { .. } |
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-				RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
-				RuntimeCall::XcmpQueue(..) |
+				RuntimeCall::PolkadotXcm(
+					pallet_xcm::Call::force_xcm_version { .. } |
+						pallet_xcm::Call::force_default_xcm_version { .. }
+				) | RuntimeCall::XcmpQueue(..) |
 				RuntimeCall::DmpQueue(..) |
 				RuntimeCall::Alliance(
 					// `init_members` accepts unbounded vecs as arguments,
@@ -221,7 +233,7 @@ pub type Barrier = TrailingSetTopicAsId<
 			// Allow XCMs with some computed origins to pass through.
 			WithComputedOrigin<
 				(
-					// If the message is one that immediately attemps to pay for execution, then
+					// If the message is one that immediately attempts to pay for execution, then
 					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) and relay treasury get
@@ -255,8 +267,12 @@ match_types! {
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations =
-	(RelayOrOtherSystemParachains<SystemParachains, Runtime>, Equals<RelayTreasuryLocation>);
+pub type WaivedLocations = (
+	RelayOrOtherSystemParachains<SystemParachains, Runtime>,
+	Equals<RelayTreasuryLocation>,
+	Equals<RootLocation>,
+	LocalPlurality,
+);
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 /// - DOT with the parent Relay Chain and sibling parachains.
