@@ -29,9 +29,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_constants::{
-	currency::CENTS,
-	system_parachain::*,
-	xcm::body::{FELLOWSHIP_ADMIN_INDEX, TREASURER_INDEX},
+	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
 use runtime_common::{
 	crowdloan, paras_registrar,
@@ -376,7 +374,7 @@ parameter_types! {
 	// FellowshipAdmin pluralistic body.
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	// `Treasurer` pluralistic body.
-	pub const TreasurerBodyId: BodyId = BodyId::Index(TREASURER_INDEX);
+	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
