@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Upgrade parachains runtime API from v7 to v8 in Kusama ([polkadot-fellows/runtimes#148](https://github.com/polkadot-fellows/runtimes/pull/148)). Context: https://paritytech.github.io/polkadot-sdk/book/protocol-validator-disabling.html
 - Deprecate the `xcm::body::TREASURER_INDEX` constant and use the standard `Treasury` variant from the `xcm::BodyId` type instead ([polkadot-fellows/runtimes#149](https://github.com/polkadot-fellows/runtimes/pull/149))
 
 ## [1.1.0] 10.01.2024
