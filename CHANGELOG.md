@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Introduce chain spec generator ([polkadot-fellows/runtimes#127](https://github.com/polkadot-fellows/runtimes/pull/127))
 - Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
 
+### Changed
+
+- Upgrade parachains runtime API from v7 to v8 in Kusama ([polkadot-fellows/runtimes#148](https://github.com/polkadot-fellows/runtimes/pull/148)). Context: https://paritytech.github.io/polkadot-sdk/book/protocol-validator-disabling.html
+
 ## [1.1.0] 10.01.2024
 
 ### Changed
