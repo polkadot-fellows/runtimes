@@ -1699,8 +1699,34 @@ pub mod migrations {
 		}
 	}
 
+	/// Clean up undecodable Proxy with sudo balances type.
+	/// See <https://github.com/polkadot-fellows/runtimes/issues/145>
+	mod clean_up_undecodable_proxy {
+		use super::*;
+		use hex_literal::hex;
+
+		pub struct Migration;
+
+		const SUDO_BALANCES_PROXY_KEY: [u8; 72] =
+			hex!("1809d78346727a0ef58c0fa03bafa3231d885dcfb277f185f2d8e62a5f290c854d2d16b4be62d0e00e6de68b13b82479fbe988ab9ecb16bad446b67b993cdd9198cd41c7c6259c49");
+
+		impl frame_support::traits::OnRuntimeUpgrade for Migration {
+			fn on_runtime_upgrade() -> Weight {
+				if frame_support::storage::unhashed::exists(&SUDO_BALANCES_PROXY_KEY) {
+					log::info!(target: LOG_TARGET, "Removing old SudoBalances proxy storage key");
+					frame_support::storage::unhashed::kill(&SUDO_BALANCES_PROXY_KEY);
+					<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 1)
+				} else {
+					log::info!(target: LOG_TARGET, "Old SudoBalances proxy storage key already removed");
+					<Runtime as frame_system::Config>::DbWeight::get().reads(1)
+				}
+			}
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		clean_up_undecodable_proxy::Migration,
 		// Upgrade SessionKeys to include BEEFY key
 		UpgradeSessionKeys,
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,

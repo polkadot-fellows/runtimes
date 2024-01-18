@@ -101,7 +101,7 @@ pallet-election-provider-support-benchmarking = { default-features = false, opti
 pallet-offences-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
 pallet-session-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
 pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "23.0.0" }
-hex-literal = { version = "0.4.1", optional = true }
+hex-literal = { version = "0.4.1" }
 
 runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "4.0.0" }
 runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "4.0.0" }
@@ -112,7 +112,6 @@ xcm-executor = { package = "staging-xcm-executor", default-features = false , ve
 xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "4.0.0" }
 
 [dev-dependencies]
-hex-literal = "0.4.1"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 keyring = { package = "sp-keyring", version = "28.0.0" }
 sp-trie = { version = "26.0.0" }
@@ -231,7 +230,6 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"hex-literal",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
