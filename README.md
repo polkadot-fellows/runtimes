@@ -35,6 +35,9 @@ The approval rights are configured in [`review-bot.yml`](.github/review-bot.yml)
 
 The review-bot uses the on-chain identity to map from a GitHub account to a Fellowship member. This requires that each Fellowship member add their GitHub handle to their on-chain identity. Check [here](docs/on-chain-identity.md) for instructions.
 
+- [Official List of Fellows](https://polkadot-fellows.github.io/dashboard/#/members)
+- [List of Fellows with their GitHub handles](https://fellowship.tasty.limo/)
+
 # Working on Pull Requests
 
 To merge a pull request, we use [Auto Merge Bot](https://github.com/paritytech/auto-merge-bot).
@@ -57,3 +60,4 @@ Releases are automatically pushed on commits merged to master that fulfill the f
 The release process is building all runtimes and then puts them into a release in this github repository.
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+

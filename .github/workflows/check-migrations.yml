@@ -13,6 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# drop permissions for default token
+permissions: {}
+
 jobs:
   runtime-matrix:
     runs-on: ubuntu-latest
@@ -47,34 +50,62 @@ jobs:
 
       - name: Download try-runtime-cli
         run: |
-          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.0/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.2/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x ./try-runtime
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@149f6c87b92550901b26acd1632e11c3662e381f # v1.3.0
         with:
           version: "3.6.1"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add wasm32-unknown-unknown target
         run: rustup target add wasm32-unknown-unknown
 
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-migrations"
+
       - name: Build ${{ matrix.runtime.name }}
         run: |
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
 
       - name: Check migrations
         run: |
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+
           # When running on relay, we don't need weight checks.
-          NO_WEIGHT_WARNINGS_FLAG=""
+          EXTRA_FLAGS=""
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
-            NO_WEIGHT_WARNINGS_FLAG="--no-weight-warnings"
+            EXTRA_FLAGS+="--no-weight-warnings"
+            echo "Disabling weight checks since we are on a relay"
+          else
+            echo "Enabling weight checks since we are not on a relay"
           fi
-          # Disable idempotency checks for now because the Scheduler pallet MigrateToV1 migration is
-          # non-idempotent at its root in Polkadot SDK V1.2.0. In V1.3.0 we can re-enable 
-          # idempotency checks.
-          EXTRA_ARGS="--disable-spec-version-check --disable-idempotency-checks"
+
+          # Disable the spec version check when we dont want to release.
+          if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
+            EXTRA_FLAGS+=" --disable-spec-version-check"
+            echo "Disabling the spec version check since we are not releasing"
+          else
+            echo "Enabling the spec version check since we are releasing"
+          fi
+
+          # Disable idemepotency checks on Polkadot until we enact them.
+          if [[ "${{ matrix.runtime.name }}" == "polkadot" ]]; then
+            echo "Disabling the idempotency check since we are on Polkadot"
+            EXTRA_FLAGS+=" --disable-idempotency-checks"
+          else
+            echo "Enabling the idempotency check since we are not on Polkadot"
+          fi
+
+          echo "Flags: $EXTRA_FLAGS"
+
           ./try-runtime \
-              --runtime ./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME \
-              on-runtime-upgrade --checks=pre-and-post $EXTRA_ARGS $NO_WEIGHT_WARNINGS_FLAG live --uri ${{ matrix.runtime.uri }}
+            --runtime $RUNTIME_BLOB_PATH \
+            on-runtime-upgrade --checks=pre-and-post \
+            $EXTRA_FLAGS \
+            live --uri ${{ matrix.runtime.uri }}

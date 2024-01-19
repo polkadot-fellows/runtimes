@@ -57,9 +57,9 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Get, InstanceFilter,
+		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
@@ -144,10 +144,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_000_001,
+	spec_version: 1_001_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 24,
+	transaction_version: 25,
 	state_version: 0,
 };
 
@@ -437,6 +437,7 @@ pub struct OldSessionKeys {
 	pub para_validator: <Initializer as BoundToRuntimeAppPublic>::Public,
 	pub para_assignment: <ParaSessionInfo as BoundToRuntimeAppPublic>::Public,
 	pub authority_discovery: <AuthorityDiscovery as BoundToRuntimeAppPublic>::Public,
+	pub beefy: <Beefy as BoundToRuntimeAppPublic>::Public,
 }
 
 impl OpaqueKeys for OldSessionKeys {
@@ -449,6 +450,7 @@ impl OpaqueKeys for OldSessionKeys {
 			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID,
 			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID,
 			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID,
+			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID,
 		]
 	}
 	fn get_raw(&self, i: KeyTypeId) -> &[u8] {
@@ -461,6 +463,7 @@ impl OpaqueKeys for OldSessionKeys {
 				self.para_assignment.as_ref(),
 			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID =>
 				self.authority_discovery.as_ref(),
+			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID => self.beefy.as_ref(),
 			_ => &[],
 		}
 	}
@@ -485,20 +488,7 @@ fn transform_session_keys(v: AccountId, old: OldSessionKeys) -> SessionKeys {
 		para_validator: old.para_validator,
 		para_assignment: old.para_assignment,
 		authority_discovery: old.authority_discovery,
-		beefy: {
-			// From Session::upgrade_keys():
-			//
-			// Care should be taken that the raw versions of the
-			// added keys are unique for every `ValidatorId, KeyTypeId` combination.
-			// This is an invariant that the session pallet typically maintains internally.
-			//
-			// So, produce a dummy value that's unique for the `ValidatorId, KeyTypeId` combination.
-			let mut id: BeefyId = sp_application_crypto::ecdsa::Public::from_raw([0u8; 33]).into();
-			let id_raw: &mut [u8] = id.as_mut();
-			id_raw[1..33].copy_from_slice(v.as_ref());
-			id_raw[0..4].copy_from_slice(b"beef");
-			id
-		},
+		beefy: old.beefy,
 	}
 }
 
@@ -1697,53 +1687,11 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::LockIdentifier;
-	use frame_system::pallet_prelude::BlockNumberFor;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
 
 	parameter_types! {
-		pub const DemocracyPalletName: &'static str = "Democracy";
-		pub const CouncilPalletName: &'static str = "Council";
-		pub const TechnicalCommitteePalletName: &'static str = "TechnicalCommittee";
-		pub const PhragmenElectionPalletName: &'static str = "PhragmenElection";
-		pub const TechnicalMembershipPalletName: &'static str = "TechnicalMembership";
-		pub const TipsPalletName: &'static str = "Tips";
-		pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
-	}
-
-	// Special Config for Gov V1 pallets, allowing us to run migrations for them without
-	// implementing their configs on [`Runtime`].
-	pub struct UnlockConfig;
-	impl pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockConfig for UnlockConfig {
-		type Currency = Balances;
-		type MaxVotes = ConstU32<100>;
-		type MaxDeposits = ConstU32<100>;
-		type AccountId = AccountId;
-		type BlockNumber = BlockNumberFor<Runtime>;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = DemocracyPalletName;
-	}
-	impl pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockConfig
-		for UnlockConfig
-	{
-		type Currency = Balances;
-		type MaxVotesPerVoter = ConstU32<16>;
-		type PalletId = PhragmenElectionPalletId;
-		type AccountId = AccountId;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = PhragmenElectionPalletName;
-	}
-	impl pallet_tips::migrations::unreserve_deposits::UnlockConfig<()> for UnlockConfig {
-		type Currency = Balances;
-		type Hash = Hash;
-		type DataDepositPerByte = DataDepositPerByte;
-		type TipReportDepositBase = TipReportDepositBase;
-		type AccountId = AccountId;
-		type BlockNumber = BlockNumberFor<Runtime>;
-		type DbWeight = <Runtime as frame_system::Config>::DbWeight;
-		type PalletName = TipsPalletName;
 	}
 
 	/// Upgrade Session keys to exclude `ImOnline` key and include `Beefy`.
@@ -1760,7 +1708,7 @@ pub mod migrations {
 			}
 
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
+			let key_ids = SessionKeys::key_ids();
 			frame_support::ensure!(
 				key_ids.into_iter().find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) == None,
 				"New session keys contain the ImOnline key that should have been removed",
@@ -1801,7 +1749,7 @@ pub mod migrations {
 				return Ok(())
 			}
 
-			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
+			let key_ids = SessionKeys::key_ids();
 			let mut new_state: Vec<u8> = Vec::new();
 			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
 				new_state.extend_from_slice(id.as_slice());
@@ -1819,52 +1767,17 @@ pub mod migrations {
 		}
 	}
 
-	pub struct ParachainsToUnlock;
-	impl Contains<ParaId> for ParachainsToUnlock {
-		fn contains(id: &ParaId) -> bool {
-			let id: u32 = (*id).into();
-			// polkadot parachains/parathreads that are locked and never produced block
-			match id {
-				2003 | 2015 | 2017 | 2018 | 2025 | 2028 | 2036 | 2038 | 2053 | 2055 | 2090 |
-				2097 | 2106 | 3336 | 3338 | 3342 => true,
-				_ => false,
-			}
-		}
-	}
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		parachains_configuration::migration::v7::MigrateToV7<Runtime>,
-		parachains_configuration::migration::v8::MigrateToV8<Runtime>,
-
-		// Gov v1 storage migrations
-		// https://github.com/paritytech/polkadot/issues/6749
-		pallet_elections_phragmen::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_democracy::migrations::unlock_and_unreserve_all_funds::UnlockAndUnreserveAllFunds<UnlockConfig>,
-		pallet_tips::migrations::unreserve_deposits::UnreserveDeposits<UnlockConfig, ()>,
-
-		// Delete all Gov v1 pallet storage key/values.
-		frame_support::migrations::RemovePallet<DemocracyPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<CouncilPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalCommitteePalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<PhragmenElectionPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TechnicalMembershipPalletName, <Runtime as frame_system::Config>::DbWeight>,
-		frame_support::migrations::RemovePallet<TipsPalletName, <Runtime as frame_system::Config>::DbWeight>,
-
-		parachains_configuration::migration::v9::MigrateToV9<Runtime>,
-		// Migrate parachain info format
-		paras_registrar::migration::VersionCheckedMigrateToV1<Runtime, ParachainsToUnlock>,
-
-		// Upgrade SessionKeys to include BEEFY key
+		// Upgrade SessionKeys to exclude ImOnline key
 		UpgradeSessionKeys,
-
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
-
-		runtime_parachains::scheduler::migration::v1::MigrateToV1<Runtime>,
-
 		// Remove `im-online` pallet on-chain storage
-		frame_support::migrations::RemovePallet<ImOnlinePalletName, <Runtime as frame_system::Config>::DbWeight>,
+		frame_support::migrations::RemovePallet<
+			ImOnlinePalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
 	);
 }
 

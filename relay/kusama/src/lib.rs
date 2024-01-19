@@ -50,7 +50,9 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v7 as parachains_runtime_api_impl,
+	runtime_api_impl::{
+		v7 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
+	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -149,10 +151,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_000_001,
+	spec_version: 1_001_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 24,
+	transaction_version: 25,
 	state_version: 1,
 };
 
@@ -327,7 +329,7 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = MaxLocks;
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_balances_native::WeightInfo<Runtime>;
 	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<8>;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -1440,7 +1442,7 @@ impl pallet_balances::Config<NisCounterpartInstance> for Runtime {
 	type MaxLocks = ConstU32<4>;
 	type MaxReserves = ConstU32<4>;
 	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances_nis_counterpart_balances::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_balances_nis::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
@@ -1624,7 +1626,6 @@ construct_runtime! {
 
 		// NIS pallet.
 		Nis: pallet_nis::{Pallet, Call, Storage, Event<T>, HoldReason} = 38,
-//		pub type NisCounterpartInstance = pallet_balances::Instance2;
 		NisCounterpartBalances: pallet_balances::<Instance2> = 45,
 
 		// Provides a semi-sorted list of nominators for staking.
@@ -1840,8 +1841,8 @@ mod benches {
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
 		// Substrate
-		[pallet_balances, Balances]
-		[pallet_balances, NisCounterpartBalances]
+		[pallet_balances, Native]
+		[pallet_balances, Nis]
 		[pallet_bags_list, VoterList]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
@@ -1947,7 +1948,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(7)]
+	#[api_version(8)]
 	impl primitives::runtime_api::ParachainHost<Block, Hash, BlockNumber> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2089,6 +2090,10 @@ sp_api::impl_runtime_apis! {
 
 		fn async_backing_params() -> primitives::AsyncBackingParams {
 			parachains_runtime_api_impl::async_backing_params::<Runtime>()
+		}
+
+		fn disabled_validators() -> Vec<ValidatorIndex> {
+			parachains_vstaging_api_impl::disabled_validators::<Runtime>()
 		}
 	}
 
@@ -2399,6 +2404,13 @@ sp_api::impl_runtime_apis! {
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 
+			// Benchmark files generated for `Balances/NisCounterpartBalances` instances are by default
+			// `pallet_balances_balances.rs / pallet_balances_nis_counterpart_balances`, which is not really nice,
+			// so with this redefinition we can change names to nicer:
+			// `pallet_balances_native.rs / pallet_balances_nis.rs`.
+			type Native = pallet_balances::Pallet::<Runtime, ()>;
+			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
+
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -2538,6 +2550,9 @@ sp_api::impl_runtime_apis! {
 					Err(BenchmarkError::Skip)
 				}
 			}
+
+			type Native = pallet_balances::Pallet::<Runtime, ()>;
+			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
 
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());

@@ -19,6 +19,13 @@ scale-info = { version = "2.9.0", default-features = false, features = ["derive"
 serde = { version = "1.0.188", optional = true, features = ["derive"] }
 smallvec = "1.11.0"
 
+# Local
+bp-asset-hub-kusama = { path = "../../asset-hubs/asset-hub-kusama/primitives", default-features = false}
+bp-asset-hub-polkadot = { path = "../../asset-hubs/asset-hub-polkadot/primitives", default-features = false}
+bp-bridge-hub-kusama = { path = "../bridge-hub-kusama/primitives", default-features = false}
+bp-bridge-hub-polkadot = { path = "../bridge-hub-polkadot/primitives", default-features = false}
+polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
+
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
 frame-executive = { default-features = false, version = "25.0.0" }
@@ -52,7 +59,6 @@ sp-transaction-pool = { default-features = false, version = "23.0.0" }
 sp-version = { default-features = false, version = "26.0.0" }
 
 # Polkadot
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 pallet-xcm = { default-features = false, version = "4.0.0" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "4.0.0" }
 polkadot-core-primitives = { default-features = false, version = "4.0.0" }
@@ -68,19 +74,51 @@ cumulus-pallet-dmp-queue = { default-features = false , version = "0.4.0" }
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.4.0" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "6.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.4.0" }
-cumulus-pallet-xcmp-queue = { default-features = false , version = "0.4.0" }
+cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.4.0" }
 cumulus-primitives-core = { default-features = false , version = "0.4.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.4.0" }
 pallet-collator-selection = { default-features = false , version = "6.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.4.0" }
 parachains-common = { default-features = false , version = "4.0.0" }
+system-parachains-constants = { path = "../../constants", default-features = false }
+
+# Bridges
+bp-header-chain = { default-features = false , version = "0.4.0" }
+bp-messages = { default-features = false , version = "0.4.0" }
+bp-parachains = { default-features = false , version = "0.4.0" }
+bp-polkadot-core = { default-features = false , version = "0.4.0" }
+bp-relayers = { default-features = false , version = "0.4.0" }
+bp-runtime = { default-features = false , version = "0.4.0" }
+bp-kusama = { default-features = false , version = "0.2.0" }
+bp-polkadot = { default-features = false , version = "0.2.0" }
+bridge-runtime-common = { default-features = false , version = "0.4.0" }
+pallet-bridge-grandpa = { default-features = false , version = "0.4.0" }
+pallet-bridge-messages = { default-features = false , version = "0.4.0" }
+pallet-bridge-parachains = { default-features = false , version = "0.4.0" }
+pallet-bridge-relayers = { default-features = false , version = "0.4.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.4.0" }
+bridge-runtime-common = { version = "0.4.0", features = ["integrity-test"] }
+sp-keyring = { version = "28.0.0" }
+static_assertions = { version = "1.1.0" }
 
 [features]
 default = [ "std" ]
 std = [
+	"bp-asset-hub-kusama/std",
+	"bp-asset-hub-polkadot/std",
+	"bp-bridge-hub-kusama/std",
+	"bp-bridge-hub-polkadot/std",
+	"bp-header-chain/std",
+	"bp-messages/std",
+	"bp-parachains/std",
+	"bp-polkadot-core/std",
+	"bp-relayers/std",
+	"bp-runtime/std",
+	"bp-kusama/std",
+	"bp-polkadot/std",
+	"bridge-runtime-common/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-dmp-queue/std",
@@ -101,6 +139,10 @@ std = [
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
+	"pallet-bridge-grandpa/std",
+	"pallet-bridge-messages/std",
+	"pallet-bridge-parachains/std",
+	"pallet-bridge-relayers/std",
 	"pallet-collator-selection/std",
 	"pallet-multisig/std",
 	"pallet-session/std",
@@ -133,12 +175,14 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
 ]
 
 runtime-benchmarks = [
+	"bridge-runtime-common/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -148,6 +192,10 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-bridge-grandpa/runtime-benchmarks",
+	"pallet-bridge-messages/runtime-benchmarks",
+	"pallet-bridge-parachains/runtime-benchmarks",
+	"pallet-bridge-relayers/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -174,6 +222,10 @@ try-runtime = [
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-bridge-grandpa/try-runtime",
+	"pallet-bridge-messages/try-runtime",
+	"pallet-bridge-parachains/try-runtime",
+	"pallet-bridge-relayers/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-session/try-runtime",
