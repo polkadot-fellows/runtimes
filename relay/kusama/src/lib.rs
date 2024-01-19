@@ -1751,7 +1751,8 @@ pub mod migrations {
 					log::info!("Killed");
 				}
 
-				Weight::from_parts(reads, writes)
+				<Runtime as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
+
 			}
 
 			#[cfg(feature = "try-runtime")]
