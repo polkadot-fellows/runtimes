@@ -178,6 +178,9 @@ fn asset_hub_polkadot_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
+		assets: Default::default(),
+		foreign_assets: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -267,6 +270,10 @@ fn asset_hub_kusama_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
+		assets: Default::default(),
+		foreign_assets: Default::default(),
+		pool_assets: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -358,6 +365,8 @@ fn collectives_polkadot_genesis(
 		},
 		alliance: Default::default(),
 		alliance_motion: Default::default(),
+		fellowship_treasury: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -449,6 +458,8 @@ fn bridge_hub_polkadot_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
+		bridge_kusama_parachains: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -540,6 +551,8 @@ fn bridge_hub_kusama_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
+		bridge_polkadot_parachains: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -670,6 +683,7 @@ fn encointer_kusama_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
+		transaction_payment: Default::default(),
 	}
 }
 

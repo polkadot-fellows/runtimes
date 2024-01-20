@@ -22,7 +22,6 @@ pub mod balances {
 	use pallet_balances::*;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
-	use sp_std::vec::Vec;
 
 	/// The log target.
 	const TARGET: &'static str = "runtime::fix::balances::migration";
