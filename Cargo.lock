@@ -1757,29 +1757,30 @@ dependencies = [
  "bridge-hub-polkadot-runtime",
  "clap",
  "collectives-polkadot-runtime",
- "cumulus-primitives-core 0.4.0",
+ "cumulus-primitives-core 0.6.0",
  "encointer-kusama-runtime",
  "glutton-kusama-runtime",
  "hex-literal",
  "kusama-runtime-constants",
- "pallet-im-online 24.0.0",
- "pallet-staking 25.0.0",
- "parachains-common 4.0.0",
- "polkadot-primitives 4.0.0",
+ "pallet-im-online",
+ "pallet-staking 27.0.0",
+ "parachains-common 6.0.0",
+ "polkadot-primitives 6.0.0",
  "polkadot-runtime",
  "polkadot-runtime-constants",
- "polkadot-runtime-parachains 4.0.0",
- "sc-chain-spec 24.0.0",
+ "polkadot-runtime-parachains 6.0.0",
+ "sc-chain-spec 26.0.0",
  "sc-consensus-grandpa",
  "serde",
  "serde_json",
- "sp-authority-discovery 23.0.0",
- "sp-consensus-babe 0.29.0",
- "sp-consensus-beefy 10.0.0",
+ "sp-authority-discovery 25.0.0",
+ "sp-consensus-babe 0.31.0",
+ "sp-consensus-beefy",
  "sp-core 25.0.0",
- "sp-runtime 28.0.0",
+ "sp-core 27.0.0",
+ "sp-runtime 30.0.1",
  "staging-kusama-runtime",
- "staging-xcm 4.0.0",
+ "staging-xcm 6.0.0",
 ]
 
 [[package]]
@@ -3254,7 +3255,7 @@ dependencies = [
  "frame-support 27.0.0",
  "integration-tests-common",
  "kusama-runtime-constants",
- "pallet-im-online 26.0.0",
+ "pallet-im-online",
  "pallet-staking 27.0.0",
  "parachains-common 6.0.0",
  "penpal-runtime",
@@ -3265,7 +3266,7 @@ dependencies = [
  "polkadot-runtime-parachains 6.0.0",
  "sp-authority-discovery 25.0.0",
  "sp-consensus-babe 0.31.0",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-consensus-grandpa 12.0.0",
  "sp-core 27.0.0",
  "sp-runtime 30.0.1",
@@ -5007,7 +5008,7 @@ dependencies = [
  "pallet-assets 28.0.0",
  "pallet-balances 27.0.0",
  "pallet-bridge-messages",
- "pallet-im-online 26.0.0",
+ "pallet-im-online",
  "pallet-message-queue 30.0.0",
  "pallet-xcm 6.0.0",
  "parachains-common 6.0.0",
@@ -5017,7 +5018,7 @@ dependencies = [
  "polkadot-runtime-parachains 6.0.0",
  "sp-authority-discovery 25.0.0",
  "sp-consensus-babe 0.31.0",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-consensus-grandpa 12.0.0",
  "sp-core 27.0.0",
  "sp-runtime 30.0.1",
@@ -7050,7 +7051,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-runtime 30.0.1",
  "sp-session 26.0.0",
  "sp-staking 25.0.0",
@@ -7075,7 +7076,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-api 25.0.0",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-core 27.0.0",
  "sp-io 29.0.0",
  "sp-runtime 30.0.1",
@@ -7721,27 +7722,6 @@ dependencies = [
 
 [[package]]
 name = "pallet-im-online"
-version = "24.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59eb1c68cc6b4700ad1d2a81ba847ff7b37406aa0326b7716825155d3f985762"
-dependencies = [
- "frame-benchmarking 25.0.0",
- "frame-support 25.0.0",
- "frame-system 25.0.0",
- "log",
- "pallet-authorship 25.0.0",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto 27.0.0",
- "sp-core 25.0.0",
- "sp-io 27.0.0",
- "sp-runtime 28.0.0",
- "sp-staking 23.0.0",
- "sp-std 12.0.0",
-]
-
-[[package]]
-name = "pallet-im-online"
 version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "273b6bd0c0f098b935714a59f9487e64382e87de49a7cf6d6dd8cdeb63be0aed"
@@ -7884,7 +7864,7 @@ dependencies = [
  "scale-info",
  "sp-core 27.0.0",
  "sp-io 29.0.0",
- "sp-mmr-primitives 25.0.0",
+ "sp-mmr-primitives",
  "sp-runtime 30.0.1",
  "sp-std 13.0.0",
 ]
@@ -8057,7 +8037,7 @@ dependencies = [
  "pallet-babe 27.0.0",
  "pallet-balances 27.0.0",
  "pallet-grandpa",
- "pallet-im-online 26.0.0",
+ "pallet-im-online",
  "pallet-offences",
  "pallet-session 27.0.0",
  "pallet-staking 27.0.0",
@@ -9688,7 +9668,7 @@ dependencies = [
  "pallet-fast-unstake 26.0.0",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online 26.0.0",
+ "pallet-im-online",
  "pallet-indices",
  "pallet-membership 27.0.0",
  "pallet-message-queue 30.0.0",
@@ -9737,13 +9717,13 @@ dependencies = [
  "sp-authority-discovery 25.0.0",
  "sp-block-builder 25.0.0",
  "sp-consensus-babe 0.31.0",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-core 27.0.0",
  "sp-genesis-builder 0.6.0",
  "sp-inherents 25.0.0",
  "sp-io 29.0.0",
  "sp-keyring 30.0.0",
- "sp-mmr-primitives 25.0.0",
+ "sp-mmr-primitives",
  "sp-npos-elections 25.0.0",
  "sp-offchain 25.0.0",
  "sp-runtime 30.0.1",
@@ -11376,9 +11356,9 @@ dependencies = [
 
 [[package]]
 name = "sc-consensus-grandpa"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30cbc5db21ea2c4ba65b23315e73e69e8155630fb47c84b93d40b0e759c9d86d"
+checksum = "923ca35a57239e8d25f458d8edd075e1c051d64e388963b497fd5d8ab005f2c7"
 dependencies = [
  "ahash 0.8.7",
  "array-bytes 6.2.2",
@@ -11392,26 +11372,27 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "rand 0.8.5",
- "sc-block-builder 0.30.0",
- "sc-chain-spec 24.0.0",
- "sc-client-api 25.0.0",
- "sc-consensus 0.30.0",
- "sc-network 0.31.0",
- "sc-network-common 0.30.0",
+ "sc-block-builder 0.32.0",
+ "sc-chain-spec 26.0.0",
+ "sc-client-api 27.0.0",
+ "sc-consensus 0.32.0",
+ "sc-network 0.33.0",
+ "sc-network-common 0.32.0",
  "sc-network-gossip",
- "sc-telemetry 12.0.0",
- "sc-transaction-pool-api 25.0.0",
- "sc-utils 11.0.0",
+ "sc-network-sync 0.32.0",
+ "sc-telemetry 14.0.0",
+ "sc-transaction-pool-api 27.0.0",
+ "sc-utils 13.0.0",
  "serde_json",
- "sp-api 23.0.0",
- "sp-application-crypto 27.0.0",
- "sp-arithmetic 20.0.0",
- "sp-blockchain 25.0.0",
- "sp-consensus 0.29.0",
- "sp-consensus-grandpa 10.0.0",
- "sp-core 25.0.0",
- "sp-keystore 0.31.0",
- "sp-runtime 28.0.0",
+ "sp-api 25.0.0",
+ "sp-application-crypto 29.0.0",
+ "sp-arithmetic 22.0.0",
+ "sp-blockchain 27.0.0",
+ "sp-consensus 0.31.0",
+ "sp-consensus-grandpa 12.0.0",
+ "sp-core 27.0.0",
+ "sp-keystore 0.33.0",
+ "sp-runtime 30.0.1",
  "substrate-prometheus-endpoint",
  "thiserror",
 ]
@@ -11816,19 +11797,20 @@ dependencies = [
 
 [[package]]
 name = "sc-network-gossip"
-version = "0.31.0"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b884a9f7cd348c4c1899c0bbf95237e39dffba4baec48d4b98c1046f6bb04fa5"
+checksum = "fc9f9e0267f58062280f7249eea969a0c9f479c9ad08049ffb39a6f88e515a34"
 dependencies = [
  "ahash 0.8.7",
  "futures",
  "futures-timer",
  "libp2p",
  "log",
- "sc-network 0.31.0",
- "sc-network-common 0.30.0",
+ "sc-network 0.33.0",
+ "sc-network-common 0.32.0",
+ "sc-network-sync 0.32.0",
  "schnellru",
- "sp-runtime 28.0.0",
+ "sp-runtime 30.0.1",
  "substrate-prometheus-endpoint",
  "tracing",
 ]
@@ -13414,26 +13396,6 @@ dependencies = [
 
 [[package]]
 name = "sp-consensus-beefy"
-version = "10.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90e18fe984ea745727e645c43d6a955bc471b3bcd36aa8d260c3bd0deeada0c5"
-dependencies = [
- "lazy_static",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api 23.0.0",
- "sp-application-crypto 27.0.0",
- "sp-core 25.0.0",
- "sp-io 27.0.0",
- "sp-mmr-primitives 23.0.0",
- "sp-runtime 28.0.0",
- "sp-std 12.0.0",
- "strum",
-]
-
-[[package]]
-name = "sp-consensus-beefy"
 version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b9b2a4f6aac1f224dd3c4cdb2637c3c1a1c518a5af816fd87b4978c5a61a4cf"
@@ -13446,7 +13408,7 @@ dependencies = [
  "sp-application-crypto 29.0.0",
  "sp-core 27.0.0",
  "sp-io 29.0.0",
- "sp-mmr-primitives 25.0.0",
+ "sp-mmr-primitives",
  "sp-runtime 30.0.1",
  "sp-std 13.0.0",
  "strum",
@@ -13937,25 +13899,6 @@ dependencies = [
  "sp-api 25.0.0",
  "sp-application-crypto 29.0.0",
  "sp-std 13.0.0",
-]
-
-[[package]]
-name = "sp-mmr-primitives"
-version = "23.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c3b33c20a4b1dd5a0069ced6997078a2af5d625f2c53d1b69bef9e131f42d77"
-dependencies = [
- "ckb-merkle-mountain-range",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api 23.0.0",
- "sp-core 25.0.0",
- "sp-debug-derive 12.0.0",
- "sp-runtime 28.0.0",
- "sp-std 12.0.0",
- "thiserror",
 ]
 
 [[package]]
@@ -14727,7 +14670,7 @@ dependencies = [
  "pallet-fast-unstake 26.0.0",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online 26.0.0",
+ "pallet-im-online",
  "pallet-indices",
  "pallet-membership 27.0.0",
  "pallet-message-queue 30.0.0",
@@ -14778,13 +14721,13 @@ dependencies = [
  "sp-authority-discovery 25.0.0",
  "sp-block-builder 25.0.0",
  "sp-consensus-babe 0.31.0",
- "sp-consensus-beefy 12.0.0",
+ "sp-consensus-beefy",
  "sp-core 27.0.0",
  "sp-genesis-builder 0.6.0",
  "sp-inherents 25.0.0",
  "sp-io 29.0.0",
  "sp-keyring 30.0.0",
- "sp-mmr-primitives 25.0.0",
+ "sp-mmr-primitives",
  "sp-npos-elections 25.0.0",
  "sp-offchain 25.0.0",
  "sp-runtime 30.0.1",
