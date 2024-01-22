@@ -798,7 +798,6 @@ impl pallet_fast_unstake::Config for Runtime {
 parameter_types! {
 	// Minimum 4 CENTS/byte
 	pub const BasicDeposit: Balance = deposit(1, 258);
-	// TODO:(PR#137) - check ByteDeposit?
 	pub const ByteDeposit: Balance = deposit(0, 1);
 	pub const SubAccountDeposit: Balance = deposit(1, 53);
 	pub const MaxSubAccounts: u32 = 100;
