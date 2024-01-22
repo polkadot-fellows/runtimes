@@ -41,8 +41,6 @@ use xcm_emulator::{
 	decl_test_sender_receiver_accounts_parameter_types,
 };
 
-use polkadot_primitives::runtime_api::runtime_decl_for_parachain_host::ParachainHostV7;
-
 decl_test_relay_chains! {
 	#[api_version(5)]
 	pub struct Polkadot {
@@ -58,7 +56,7 @@ decl_test_relay_chains! {
 			Hrmp: polkadot_runtime::Hrmp,
 		}
 	},
-	#[api_version(5)]
+	#[api_version(8)]
 	pub struct Kusama {
 		genesis = kusama::genesis(),
 		on_init = (),
