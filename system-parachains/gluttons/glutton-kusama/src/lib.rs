@@ -232,7 +232,6 @@ construct_runtime! {
 		ParachainSystem: cumulus_pallet_parachain_system = 1,
 		ParachainInfo: parachain_info = 2,
 
-		// TODO:(PR#137) - do we still need this?
 		// DMP handler.
 		CumulusXcm: cumulus_pallet_xcm = 10,
 		MessageQueue: pallet_message_queue = 11,

@@ -667,7 +667,6 @@ parameter_types! {
 		"DOT_SLASH_DEFER_DURATION"
 	);
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
-	// TODO:(PR#137) - check MaxExposurePageSize/MaxNominators 512?
 	pub const MaxExposurePageSize: u32 = 512;
 	// Note: this is not really correct as Max Nominators is (MaxExposurePageSize * page_count) but
 	// this is an unbounded number. We just set it to a reasonably high value, 1 full page

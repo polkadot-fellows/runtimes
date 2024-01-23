@@ -649,7 +649,6 @@ parameter_types! {
 		27,
 		"DOT_SLASH_DEFER_DURATION"
 	);
-	// TODO:(PR#137) - check MaxExposurePageSize/MaxNominators 512?
 	pub const MaxExposurePageSize: u32 = 512;
 	// Note: this is not really correct as Max Nominators is (MaxExposurePageSize * page_count) but
 	// this is an unbounded number. We just set it to a reasonably high value, 1 full page
@@ -917,7 +916,6 @@ impl claims::Config for Runtime {
 parameter_types! {
 	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
 	pub const BasicDeposit: Balance = 1000 * CENTS;       // 258 bytes on-chain
-	// TODO:(PR#137) - check ByteDeposit?
 	pub const ByteDeposit: Balance = deposit(0, 1);
 	pub const SubAccountDeposit: Balance = 200 * CENTS;   // 53 bytes on-chain
 	pub const MaxSubAccounts: u32 = 100;
