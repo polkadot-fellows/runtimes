@@ -9,7 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = [
   "derive",
 ] }
 hex-literal = { version = "0.4.1", optional = true }
@@ -65,6 +65,7 @@ sp-session = { default-features = false, version = "24.0.0" }
 sp-std = { default-features = false, version = "12.0.0" }
 sp-transaction-pool = { default-features = false, version = "23.0.0" }
 sp-version = { default-features = false, version = "26.0.0" }
+sp-genesis-builder = { default-features = false , version = "0.4.0" }
 
 # Polkadot dependencies
 pallet-xcm = { default-features = false, version = "4.0.0" }
@@ -174,6 +175,7 @@ std = [
   "sp-block-builder/std",
   "sp-consensus-aura/std",
   "sp-core/std",
+  "sp-genesis-builder/std",
   "sp-inherents/std",
   "sp-offchain/std",
   "sp-runtime/std",
@@ -220,4 +222,9 @@ try-runtime = [
   "parachain-info/try-runtime",
 ]
 
-experimental = ["pallet-aura/experimental"]
+experimental = [ "pallet-aura/experimental" ]
+
+# A feature that should be enabled when the runtime should be built for on-chain
+# deployment. This will disable stuff that shouldn't be part of the on-chain wasm
+# to make it smaller, like logging for example.
+on-chain-release-build = [ "sp-api/disable-logging" ]
