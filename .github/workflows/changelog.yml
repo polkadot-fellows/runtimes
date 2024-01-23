@@ -1,0 +1,20 @@
+name: Modify Changelog
+
+on:
+  pull_request_target:
+
+jobs:
+
+  verifyChangelogIsUpdated:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Get Changed Files
+        id: changed
+        uses: foodee/pr-includes-file-change@master
+        with:
+          paths: ^CHANGELOG.md
+      - name: Set error
+        if: steps.changed.outputs.matched != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
+        run: echo "::error::CHANGELOG.md has not been modified. Either modify the file or check the checkbox in the body" && exit 1
