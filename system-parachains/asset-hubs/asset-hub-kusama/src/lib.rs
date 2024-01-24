@@ -210,7 +210,7 @@ impl pallet_authorship::Config for Runtime {
 parameter_types! {
 	// This comes from system_parachains_constants::kusama::currency and is the ED for all system
 	// parachains. For Asset Hub in particular, we set it to 1/10th of the amount.
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 10;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT / 10;
 }
 
 impl pallet_balances::Config for Runtime {
