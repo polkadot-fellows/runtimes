@@ -70,6 +70,23 @@ fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
 }
 
 #[test]
+fn test_ed_is_one_hundredth_of_relay() {
+	ExtBuilder::<Runtime>::default()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+			let ah_ed = ExistentialDeposit::get();
+			assert_eq!(relay_ed / 100, ah_ed);
+		});
+}
+
+#[test]
 fn test_asset_xcm_trader() {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
@@ -257,7 +274,7 @@ fn test_asset_xcm_trader_refund_not_possible_since_amount_less_than_ed() {
 			RuntimeHelper::run_to_block(2, AccountId::from(ALICE));
 
 			// We are going to buy small amount
-			let bought = Weight::from_parts(500_000_000u64, 0);
+			let bought = Weight::from_parts(50_000_000u64, 0);
 
 			let asset_multilocation = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
 
