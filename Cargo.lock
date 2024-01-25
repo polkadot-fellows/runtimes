@@ -3368,9 +3368,12 @@ dependencies = [
  "pallet-xcm 4.0.0",
  "parachains-common 4.0.0",
  "parity-scale-codec",
+ "polkadot-core-primitives 4.0.0",
  "polkadot-parachain-primitives 3.0.0",
+ "polkadot-primitives 4.0.0",
  "polkadot-runtime-common 4.0.0",
  "scale-info",
+ "smallvec",
  "sp-api 23.0.0",
  "sp-block-builder 23.0.0",
  "sp-consensus-aura 0.29.0",
@@ -9706,7 +9709,6 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "smallvec",
  "sp-api 25.0.0",
  "sp-application-crypto 29.0.0",
  "sp-arithmetic 22.0.0",
@@ -12996,9 +12998,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.12.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2593d31f82ead8df961d8bd23a64c2ccf2eb5dd34b0a34bfb4dd54011c72009e"
+checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
 
 [[package]]
 name = "snap"
@@ -14710,7 +14712,6 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "smallvec",
  "sp-api 25.0.0",
  "sp-application-crypto 29.0.0",
  "sp-arithmetic 22.0.0",

@@ -8,7 +8,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-smallvec = "1.11.2"
+smallvec = "1.13.1"
 
 frame-support = { default-features = false , version = "27.0.0" }
 kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
