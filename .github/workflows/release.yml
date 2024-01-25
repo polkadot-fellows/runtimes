@@ -28,9 +28,9 @@ jobs:
 
           To replicate the build, use the following command:
           \`\`\`sh
-          srtool build \
-                 --root --profile production \
-                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE \
+          srtool build
+                 --root --profile production
+                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE
                  --build-opts="--features=on-chain-release-build"
           \`\`\`
           EOF
@@ -130,9 +130,9 @@ jobs:
 
           To replicate the build, use the following command:
           \`\`\`sh
-          srtool build \
-                 --root --profile production \
-                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE \
+          srtool build
+                 --root --profile production
+                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE
                  --build-opts="--features=on-chain-release-build"
           \`\`\`
           EOF
