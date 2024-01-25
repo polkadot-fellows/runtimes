@@ -4,8 +4,6 @@ on:
   push:
     branches: [ "main" ]
     paths: [ "CHANGELOG.md" ]
-  pull_request:
-    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -21,19 +19,6 @@ jobs:
           echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
           echo "version=$(.github/changelog-processor.py CHANGELOG.md --print-latest-version)" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
-          SRTOOL=echo
-          tee -a DRAFT <<-EOF
-          # Runtime info
-          *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
-
-          To replicate the build, use the following command:
-          \`\`\`sh
-          srtool build
-                 --root --profile production
-                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE
-                 --build-opts="--features=on-chain-release-build"
-          \`\`\`
-          EOF
   runtime-matrix:
     needs: [ collect-release-information ]
     if: needs.collect-release-information.outputs.should-release == '1'
