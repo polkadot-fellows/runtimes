@@ -792,6 +792,7 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type UniversalLocation = xcm_config::UniversalLocation;
 	type BridgedNetworkId = xcm_config::bridging::to_kusama::KusamaNetwork;
 	type Bridges = xcm_config::bridging::NetworkExportTable;
+	type DestinationVersion = PolkadotXcm;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type BridgeHubOrigin = EnsureXcm<Equals<xcm_config::bridging::SiblingBridgeHub>>;
@@ -1426,11 +1427,26 @@ impl_runtime_apis! {
 					);
 				}
 
-				fn ensure_bridged_target_destination() -> MultiLocation {
+				fn ensure_bridged_target_destination() -> Result<MultiLocation, BenchmarkError> {
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
 						xcm_config::bridging::SiblingBridgeHubParaId::get().into()
 					);
-					xcm_config::bridging::to_kusama::AssetHubKusama::get()
+					let bridged_asset_hub = xcm_config::bridging::to_kusama::AssetHubKusama::get();
+					let _ = PolkadotXcm::force_xcm_version(
+						RuntimeOrigin::root(),
+						Box::new(bridged_asset_hub),
+						XCM_VERSION,
+					).map_err(|e| {
+						log::error!(
+							"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+							RuntimeOrigin::root(),
+							bridged_asset_hub,
+							XCM_VERSION,
+							e
+						);
+						BenchmarkError::Stop("XcmVersion was not stored!")
+					})?;
+					Ok(bridged_asset_hub)
 				}
 			}
 
