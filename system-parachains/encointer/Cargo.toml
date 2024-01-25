@@ -88,12 +88,16 @@ cumulus-primitives-timestamp = { default-features = false, version = "0.4.0" }
 cumulus-primitives-utility = { default-features = false, version = "0.4.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.4.0" }
 parachains-common = { default-features = false, version = "4.0.0" }
+system-parachains-constants = { path = "../constants", default-features = false }
 
 # Used for runtime benchmarking
 
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, version = "14.0.0" }
+
+[dev-dependencies]
+kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
 
 [features]
 default = ["std"]

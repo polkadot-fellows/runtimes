@@ -197,7 +197,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -236,9 +236,9 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const DepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = system_para_deposit(0, 32);
 }
 
 impl pallet_multisig::Config for Runtime {
@@ -260,12 +260,12 @@ impl pallet_utility::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 }
 
 /// The type used to represent the kinds of proxying allowed.
@@ -597,8 +597,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
-	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageBaseDeposit: Balance = system_para_deposit(2, 64);
+	pub const PreimageByteDeposit: Balance = system_para_deposit(0, 1);
 	pub const PreimageHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
@@ -1052,4 +1052,11 @@ fn fellowship_treasury_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
 	assert_eq!(<FellowshipTreasury as PalletInfoAccess>::index() as u8, 65u8);
+}
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let collectives_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, collectives_ed);
 }
