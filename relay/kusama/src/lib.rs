@@ -189,6 +189,7 @@ impl frame_system::Config for Runtime {
 	type Lookup = AccountIdLookup<AccountId, ()>;
 	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeTask = RuntimeTask;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = RocksDbWeight;
 	type Version = Version;
