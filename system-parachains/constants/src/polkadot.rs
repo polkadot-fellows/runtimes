@@ -65,7 +65,7 @@ pub mod currency {
 
 	/// Deposit rate for stored data. 1/100th of the Relay Chain's deposit rate. `items` is the
 	/// number of keys in storage and `bytes` is the size of the value.
-	pub const fn deposit(items: u32, bytes: u32) -> Balance {
+	pub const fn system_para_deposit(items: u32, bytes: u32) -> Balance {
 		polkadot_runtime_constants::currency::deposit(items, bytes) / 100
 	}
 }

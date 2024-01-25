@@ -251,12 +251,12 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
 	pub const AssetDeposit: Balance = UNITS / 10; // 1 / 10 UNITS deposit to create asset
-	pub const AssetAccountDeposit: Balance = deposit(1, 16);
+	pub const AssetAccountDeposit: Balance = system_para_deposit(1, 16);
 	pub const AssetsStringLimit: u32 = 50;
 	/// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
 	// https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
-	pub const MetadataDepositBase: Balance = deposit(1, 68);
-	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+	pub const MetadataDepositBase: Balance = system_para_deposit(1, 68);
+	pub const MetadataDepositPerByte: Balance = system_para_deposit(0, 1);
 }
 
 /// We allow root to execute privileged asset operations.
@@ -403,9 +403,9 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const DepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = system_para_deposit(0, 32);
 	pub const MaxSignatories: u32 = 100;
 }
 
@@ -428,13 +428,13 @@ impl pallet_utility::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	pub const MaxProxies: u16 = 32;
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 	pub const MaxPending: u16 = 32;
 }
 
@@ -744,9 +744,9 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 parameter_types! {
 	pub const UniquesCollectionDeposit: Balance = UNITS / 10; // 1 / 10 UNIT deposit to create a collection
 	pub const UniquesItemDeposit: Balance = UNITS / 1_000; // 1 / 1000 UNIT deposit to mint an item
-	pub const UniquesMetadataDepositBase: Balance = deposit(1, 129);
-	pub const UniquesAttributeDepositBase: Balance = deposit(1, 0);
-	pub const UniquesDepositPerByte: Balance = deposit(0, 1);
+	pub const UniquesMetadataDepositBase: Balance = system_para_deposit(1, 129);
+	pub const UniquesAttributeDepositBase: Balance = system_para_deposit(1, 0);
+	pub const UniquesDepositPerByte: Balance = system_para_deposit(0, 1);
 }
 
 impl pallet_uniques::Config for Runtime {
