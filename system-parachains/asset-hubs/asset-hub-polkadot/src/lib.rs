@@ -1216,7 +1216,7 @@ impl_runtime_apis! {
 					// Relay/native token can be teleported between AH and Relay.
 					Some((
 						MultiAsset {
-							fun: Fungible(EXISTENTIAL_DEPOSIT),
+							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						},
 						Parent.into(),
@@ -1231,7 +1231,7 @@ impl_runtime_apis! {
 					);
 					Some((
 						MultiAsset {
-							fun: Fungible(EXISTENTIAL_DEPOSIT),
+							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						},
 						ParentThen(Parachain(random_para_id).into()).into(),
@@ -1245,12 +1245,12 @@ impl_runtime_apis! {
 					// (We don't care that Relay doesn't accept incoming unknown AH local asset)
 					let dest = Parent.into();
 
-					let fee_amount = EXISTENTIAL_DEPOSIT;
+					let fee_amount = ExistentialDeposit::get();
 					let fee_asset: MultiAsset = (MultiLocation::parent(), fee_amount).into();
 
 					let who = frame_benchmarking::whitelisted_caller();
 					// Give some multiple of the existential deposit
-					let balance = fee_amount + EXISTENTIAL_DEPOSIT * 1000;
+					let balance = fee_amount + ExistentialDeposit::get() * 1000;
 					let _ = <Balances as frame_support::traits::Currency<_>>::make_free_balance_be(
 						&who, balance,
 					);
