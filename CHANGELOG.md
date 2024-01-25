@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.1] 25.01.2024
+
+### Changed
+
+- Fixed the lowering of Asset Hub existential deposits ([polkadot-fellows/runtimes#158](https://github.com/polkadot-fellows/runtimes/pull/158)).
+
 ## [1.1.0] 10.01.2024
 
 ### Changed
