@@ -113,8 +113,9 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation,
-	TrustBackedAssetsConvertedConcreteId, XcmOriginToTransactDispatchOrigin,
+	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
+	ForeignCreatorsSovereignAccountOf, GovernanceLocation, TrustBackedAssetsConvertedConcreteId,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -125,7 +126,6 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use xcm::prelude::*;
 
-use crate::xcm_config::ForeignCreatorsSovereignAccountOf;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {

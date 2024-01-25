@@ -29,7 +29,7 @@ pub mod xcm_config;
 
 use assets_common::{
 	foreign_creators::ForeignCreators,
-	local_and_foreign_assets::{LocalAndForeignAssets, MultiLocationConverter},
+	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
 	matching::FromSiblingParachain,
 	AssetIdForTrustBackedAssetsConvert, MultiLocationForAssetId,
 };
@@ -56,8 +56,9 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	ord_parameter_types, parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		Equals, InstanceFilter, TransformOrigin,
+		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
+		ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter,
+		TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -80,8 +81,9 @@ use system_parachains_constants::{
 };
 use xcm::opaque::v3::MultiLocation;
 use xcm_config::{
-	FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation, KsmLocation,
-	PoolAssetsConvertedConcreteId, TrustBackedAssetsConvertedConcreteId,
+	FellowshipLocation, ForeignAssetsConvertedConcreteId, ForeignCreatorsSovereignAccountOf,
+	GovernanceLocation, KsmLocation, PoolAssetsConvertedConcreteId,
+	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -92,10 +94,6 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use xcm::prelude::*;
 
-use crate::xcm_config::{
-	ForeignCreatorsSovereignAccountOf, LocalAndForeignAssetsMultiLocationMatcher,
-	TrustBackedAssetsPalletLocation,
-};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
@@ -293,8 +291,6 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
-	pub const AllowMultiAssetPools: bool = false;
-	// should be non-zero if AllowMultiAssetPools is true, otherwise can be zero
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 }
 
@@ -329,35 +325,50 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type BenchmarkHelper = ();
 }
 
+/// Union fungibles implementation for `Assets`` and `ForeignAssets`.
+pub type LocalAndForeignAssets = fungibles::UnionOf<
+	Assets,
+	ForeignAssets,
+	LocalFromLeft<
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>,
+		AssetIdForTrustBackedAssets,
+	>,
+	MultiLocation,
+	AccountId,
+>;
+
 impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
-	type Currency = Balances;
-	type AssetId = MultiLocation;
-	type Assets = LocalAndForeignAssets<
-		Assets,
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>,
-		ForeignAssets,
+	type AssetKind = MultiLocation;
+	type Assets = fungible::UnionOf<
+		Balances,
+		LocalAndForeignAssets,
+		TargetFromLeft<KsmLocation>,
+		Self::AssetKind,
+		Self::AccountId,
 	>;
-	type PoolAssets = PoolAssets;
+	type PoolId = (Self::AssetKind, Self::AssetKind);
+	type PoolLocator =
+		pallet_asset_conversion::WithFirstAsset<KsmLocation, AccountId, Self::AssetKind>;
 	type PoolAssetId = u32;
+	type PoolAssets = PoolAssets;
 	type PoolSetupFee = ConstU128<0>; // Asset class deposit fees are sufficient to prevent spam
-	type PoolSetupFeeReceiver = AssetConversionOrigin;
-	// should be non-zero if `AllowMultiAssetPools` is true, otherwise can be zero.
+	type PoolSetupFeeAsset = KsmLocation;
+	type PoolSetupFeeTarget = ResolveAssetTo<AssetConversionOrigin, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
 	type PalletId = AssetConversionPalletId;
-	type AllowMultiAssetPools = AllowMultiAssetPools;
 	type MaxSwapPathLength = ConstU32<4>;
-	type MultiAssetId = MultiLocation;
-	type MultiAssetIdConverter =
-		MultiLocationConverter<KsmLocation, LocalAndForeignAssetsMultiLocationMatcher>;
 	type MintMinLiquidity = ConstU128<100>;
 	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper =
-		crate::xcm_config::BenchmarkMultiLocationConverter<parachain_info::Pallet<Runtime>>;
+	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
+		KsmLocation,
+		parachain_info::Pallet<Runtime>,
+		xcm_config::AssetsPalletIndex,
+	>;
 }
 
 parameter_types! {
@@ -762,12 +773,8 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Fungibles = LocalAndForeignAssets<
-		Assets,
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>,
-		ForeignAssets,
-	>;
-	type OnChargeAssetTransaction = AssetConversionAdapter<Balances, AssetConversion>;
+	type Fungibles = LocalAndForeignAssets;
+	type OnChargeAssetTransaction = AssetConversionAdapter<Balances, AssetConversion, KsmLocation>;
 }
 
 parameter_types! {
@@ -1127,7 +1134,7 @@ impl_runtime_apis! {
 		}
 
 		fn get_reserves(asset1: MultiLocation, asset2: MultiLocation) -> Option<(Balance, Balance)> {
-			AssetConversion::get_reserves(&asset1, &asset2).ok()
+			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
 
