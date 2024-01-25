@@ -71,9 +71,9 @@ pub use pallet_encointer_faucet::Call as EncointerFaucetCall;
 pub use pallet_encointer_reputation_commitments::Call as EncointerReputationCommitmentsCall;
 pub use pallet_encointer_scheduler::Call as EncointerSchedulerCall;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody};
-use parachains_common::{
-	kusama::{consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::*, fee::WeightToFee},
-	AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+pub use parachains_common::{
+	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
+	Hash, Header, Nonce, Signature,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
@@ -90,6 +90,10 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use system_parachains_constants::{
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
+	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
@@ -148,13 +152,13 @@ pub fn native_version() -> NativeVersion {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	pub const MaxProxies: u16 = 32;
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 	pub const MaxPending: u16 = 32;
 }
 
@@ -297,7 +301,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
@@ -663,11 +667,6 @@ construct_runtime! {
 	}
 }
 
-/// `parachains_common` is an upstream crate, where they are started to define common types.
-///
-/// The re-export is added by encointer.
-pub use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature};
-
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block type as expected by this runtime.
@@ -1017,4 +1016,11 @@ mod multiplier_tests {
 	fn treasury_pallet_index_is_correct() {
 		assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
+}
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let encointer_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, encointer_ed);
 }

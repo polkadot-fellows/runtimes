@@ -13,7 +13,6 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 hex-literal = { version = "0.4.1", optional = true }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-smallvec = "1.11.1"
 
 # Local
 bp-asset-hub-kusama = { path = "../asset-hub-kusama/primitives", default-features = false}

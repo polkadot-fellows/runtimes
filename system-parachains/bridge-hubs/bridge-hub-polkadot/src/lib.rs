@@ -245,7 +245,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -413,9 +413,9 @@ impl pallet_collator_selection::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const DepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = system_para_deposit(0, 32);
 }
 
 impl pallet_multisig::Config for Runtime {
