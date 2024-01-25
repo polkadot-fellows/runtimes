@@ -81,8 +81,8 @@ fn test_ed_is_one_hundredth_of_relay() {
 		.build()
 		.execute_with(|| {
 			let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
-			let ah_ed = ExistentialDeposit::get();
-			assert_eq!(relay_ed / 100, ah_ed);
+			let asset_hub_ed = ExistentialDeposit::get();
+			assert_eq!(relay_ed / 100, asset_hub_ed);
 		});
 }
 

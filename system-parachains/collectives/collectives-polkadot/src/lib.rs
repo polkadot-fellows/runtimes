@@ -978,3 +978,10 @@ fn fellowship_treasury_pallet_index() {
 	// Remote accounts with funds depend on this pallet staying in the same index.
 	assert_eq!(<FellowshipTreasury as PalletInfoAccess>::index() as u8, 65u8);
 }
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let collectives_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, collectives_ed);
+}

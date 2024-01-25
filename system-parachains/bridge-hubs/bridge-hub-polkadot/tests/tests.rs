@@ -124,6 +124,13 @@ bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 );
 
 #[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let bridge_hub_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, bridge_hub_ed);
+}
+
+#[test]
 fn initialize_bridge_by_governance_works() {
 	bridge_hub_test_utils::test_cases::initialize_bridge_by_governance_works::<
 		Runtime,

@@ -3384,6 +3384,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
+ "kusama-runtime-constants",
  "log",
  "pallet-asset-tx-payment",
  "pallet-aura",

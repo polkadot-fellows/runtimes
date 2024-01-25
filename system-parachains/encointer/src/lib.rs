@@ -1017,3 +1017,10 @@ mod multiplier_tests {
 		assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
 }
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let encointer_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, encointer_ed);
+}
