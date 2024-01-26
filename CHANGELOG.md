@@ -19,6 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed the lowering of Asset Hub existential deposits.
 - Upgrade dependencies to the `polkadot-sdk@1.5.0` release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
 
+## [1.1.1] 25.01.2024
+
+### Fixed
+
+- Fixed the lowering of Asset Hub existential deposits ([polkadot-fellows/runtimes#158](https://github.com/polkadot-fellows/runtimes/pull/158)).
+
 ## [1.1.0] 10.01.2024
 
 ### Changed
