@@ -3972,7 +3972,7 @@ dependencies = [
  "sp-arithmetic",
  "sp-core",
  "sp-core-hashing-proc-macro",
- "sp-debug-derive",
+ "sp-debug-derive 12.0.0",
  "sp-genesis-builder",
  "sp-inherents",
  "sp-io",
@@ -8886,6 +8886,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-beefy",
  "sp-core",
+ "sp-debug-derive 10.0.0",
  "sp-genesis-builder",
  "sp-inherents",
  "sp-io",
@@ -11647,7 +11648,7 @@ dependencies = [
  "secrecy",
  "serde",
  "sp-core-hashing",
- "sp-debug-derive",
+ "sp-debug-derive 12.0.0",
  "sp-externalities",
  "sp-runtime-interface",
  "sp-std",
@@ -11694,6 +11695,17 @@ checksum = "9c6e8c710d6a71512af6f42d9dba9c3d1f6ad793846480babf459bbde3d60a94"
 dependencies = [
  "kvdb",
  "parking_lot 0.12.1",
+]
+
+[[package]]
+name = "sp-debug-derive"
+version = "10.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4b235a0ad7124d58e6f0a728c8354da5b185b77bcf18b131b3a480cdaa23d95"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -11844,7 +11856,7 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-core",
- "sp-debug-derive",
+ "sp-debug-derive 12.0.0",
  "sp-runtime",
  "sp-std",
  "thiserror",
@@ -12047,7 +12059,7 @@ dependencies = [
  "parity-scale-codec",
  "ref-cast",
  "serde",
- "sp-debug-derive",
+ "sp-debug-derive 12.0.0",
  "sp-std",
 ]
 
@@ -12185,7 +12197,7 @@ dependencies = [
  "smallvec",
  "sp-arithmetic",
  "sp-core",
- "sp-debug-derive",
+ "sp-debug-derive 12.0.0",
  "sp-std",
 ]
 
@@ -12337,6 +12349,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-beefy",
  "sp-core",
+ "sp-debug-derive 10.0.0",
  "sp-genesis-builder",
  "sp-inherents",
  "sp-io",
