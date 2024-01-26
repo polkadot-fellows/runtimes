@@ -110,6 +110,8 @@ xcm = { package = "staging-xcm", default-features = false , version = "6.0.0" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "6.0.0" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "6.0.0" }
 
+sp-debug-derive = { default-features = false, version = "13.0.0" }
+
 [dev-dependencies]
 hex-literal = "0.4.1"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
@@ -208,6 +210,7 @@ std = [
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
+	"sp-debug-derive/std",
 	"sp-genesis-builder/std",
 	"sp-io/std",
 	"sp-mmr-primitives/std",
@@ -339,3 +342,5 @@ on-chain-release-build = [ "sp-api/disable-logging" ]
 fast-runtime = []
 
 runtime-metrics = [ "runtime-parachains/runtime-metrics", "sp-io/with-tracing" ]
+
+force-debug = [ "sp-debug-derive/force-debug" ]
