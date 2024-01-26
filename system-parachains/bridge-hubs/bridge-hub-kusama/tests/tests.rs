@@ -31,6 +31,7 @@ use codec::{Decode, Encode};
 use frame_support::parameter_types;
 use frame_system::pallet_prelude::HeaderFor;
 use parachains_common::{kusama::fee::WeightToFee, AccountId, AuraId, Balance};
+use sp_core::H160;
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
@@ -292,6 +293,21 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 			estimated,
 			max_expected
 		);
+}
+
+#[test]
+fn change_ethereum_gateway_by_governance_works() {
+	bridge_hub_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		EthereumGatewayAddress,
+		H160,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
+		|_| [1; 20].into(),
+	)
 }
 
 // TODO: replace me with direct usages of `bridge_hub_test_utils` after deps are bumped to (at

@@ -92,6 +92,8 @@ assets-common = { default-features = false , version = "0.4.0" }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.2.0" }
+snowbridge-router-primitives = { default-features = false , version = "1.0.0" } #todo publish
+snowbridge-kusama-common = { default-features = false , version = "1.0.0" } #todo publish
 
 [dev-dependencies]
 asset-test-utils = { version = "4.0.0" }
@@ -138,6 +140,8 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"snowbridge-kusama-common/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -228,6 +232,8 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
+	"snowbridge-kusama-common/std",
+	"snowbridge-router-primitives/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",

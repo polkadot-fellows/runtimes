@@ -18,7 +18,7 @@ use super::{
 	bridge_to_polkadot_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubPolkadotHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo, ParachainSystem, PolkadotXcm,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
 	XcmpQueue,
 };
@@ -34,7 +34,12 @@ use parachains_common::{
 	xcm_config::{ConcreteAssetFromSystem, RelayOrOtherSystemParachains},
 };
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_core::DescribeHere;
+use snowbridge_kusama_common::EthereumNetwork;
+use snowbridge_runtime_common::XcmExportFeeToSibling;
+use sp_core::{Get, H256};
 use sp_runtime::traits::AccountIdConversion;
+use sp_std::marker::PhantomData;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -47,7 +52,8 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeesToAccount,
 };
-use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
+use xcm_executor::{traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
+				   XcmExecutor};
 
 parameter_types! {
 	pub const KsmRelayLocation: MultiLocation = MultiLocation::parent();
@@ -146,8 +152,9 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		match call {
 			RuntimeCall::System(frame_system::Call::set_storage { items })
 				if items.iter().all(|(k, _)| {
-					k.eq(&DeliveryRewardInBalance::key()) ||
-						k.eq(&RequiredStakeForStakeAndSlash::key())
+					k.eq(&DeliveryRewardInBalance::key()) || // todo one or two slashes?
+						k.eq(&RequiredStakeForStakeAndSlash::key()) |
+							k.eq(&EthereumGatewayAddress::key())
 				}) =>
 				return true,
 			_ => (),
@@ -192,7 +199,15 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				RuntimeCall::BridgePolkadotMessages(pallet_bridge_messages::Call::<
 					Runtime,
 					crate::bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
-				>::set_operating_mode { .. })
+				>::set_operating_mode { .. }) |
+				RuntimeCall::EthereumBeaconClient(
+					snowbridge_ethereum_beacon_client::Call::force_checkpoint { .. } |
+						snowbridge_ethereum_beacon_client::Call::set_operating_mode { .. },
+				) | RuntimeCall::EthereumInboundQueue(
+				snowbridge_inbound_queue::Call::set_operating_mode { .. },
+			) | RuntimeCall::EthereumOutboundQueue(
+				snowbridge_outbound_queue::Call::set_operating_mode { .. },
+			) | RuntimeCall::EthereumSystem(..)
 		)
 	}
 }
@@ -275,8 +290,24 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type FeeManager = XcmFeesToAccount<Self, WaivedLocations, AccountId, TreasuryAccount>;
-	type MessageExporter = ToBridgeHubPolkadotHaulBlobExporter;
+	type FeeManager = XcmFeeManagerFromComponentsBridgeHub<
+		WaivedLocations,
+		(
+			XcmExportFeeToSibling<
+				bp_kusama::Balance,
+				AccountId,
+				TokenLocation,
+				EthereumNetwork,
+				Self::AssetTransactor,
+				crate::EthereumOutboundQueue,
+			>,
+			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>, // todo check if right
+		),
+	>;
+	type MessageExporter = (
+		ToBridgeHubPolkadotHaulBlobExporter,
+		crate::bridge_to_ethereum_config::SnowbridgeExporter
+	);
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
@@ -340,4 +371,42 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
+}
+
+pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
+	PhantomData<(WaivedLocations, HandleFee)>,
+);
+impl<WaivedLocations: Contains<MultiLocation>, FeeHandler: HandleFee> FeeManager
+for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
+{
+	fn is_waived(origin: Option<&MultiLocation>, fee_reason: FeeReason) -> bool {
+		let Some(loc) = origin else { return false };
+		if let Export { network, destination: Here } = fee_reason {
+			return !(network == EthereumNetwork::get())
+		}
+		WaivedLocations::contains(loc)
+	}
+
+	fn handle_fee(fee: MultiAssets, context: Option<&XcmContext>, reason: FeeReason) {
+		FeeHandler::handle_fee(fee, context, reason);
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmark_helpers {
+	use crate::{MultiAssets, MultiLocation, SendError, SendResult, SendXcm, Xcm, XcmHash};
+
+	pub struct DoNothingRouter;
+	impl SendXcm for DoNothingRouter {
+		type Ticket = ();
+		fn validate(
+			_dest: &mut Option<MultiLocation>,
+			_msg: &mut Option<Xcm<()>>,
+		) -> SendResult<()> {
+			Ok(((), MultiAssets::new()))
+		}
+		fn deliver(_: ()) -> Result<XcmHash, SendError> {
+			Ok([0; 32])
+		}
+	}
 }
