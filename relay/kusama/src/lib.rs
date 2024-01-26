@@ -1671,9 +1671,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
-		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
-		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		// TODO:(PR#137) - replace with fixed/released version
 		crate::test_oliverfix_migration::V6ToV7<Runtime>,
@@ -1681,6 +1678,9 @@ pub mod migrations {
 		// TODO:(PR#137) - replace with fixed/released version
 		crate::test_oliverfix_migration::V7ToV8<Runtime>,
 		// pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
+		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
+		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
+		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 	);
 }
 
@@ -2807,11 +2807,9 @@ mod test_oliverfix_migration {
 	>;
 
 	pub mod v8 {
-		use super::*;
+		use super::{v7::V7BondedPoolInner, *};
 
-		use super::v7::BondedPoolInner as OldBondedPoolInner;
-
-		impl<T: Config> OldBondedPoolInner<T> {
+		impl<T: Config> V7BondedPoolInner<T> {
 			fn migrate_to_v8(self) -> BondedPoolInner<T> {
 				BondedPoolInner {
 					commission: Commission {
@@ -2831,7 +2829,6 @@ mod test_oliverfix_migration {
 		}
 
 		pub struct VersionUncheckedMigrateV7ToV8<T>(sp_std::marker::PhantomData<T>);
-
 		impl<T: Config> OnRuntimeUpgrade for VersionUncheckedMigrateV7ToV8<T> {
 			#[cfg(feature = "try-runtime")]
 			fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
@@ -2840,7 +2837,7 @@ mod test_oliverfix_migration {
 
 			fn on_runtime_upgrade() -> Weight {
 				let mut translated = 0u64;
-				BondedPools::<T>::translate::<OldBondedPoolInner<T>, _>(|_key, old_value| {
+				BondedPools::<T>::translate::<V7BondedPoolInner<T>, _>(|_key, old_value| {
 					translated.saturating_inc();
 					Some(old_value.migrate_to_v8())
 				});
@@ -2855,21 +2852,30 @@ mod test_oliverfix_migration {
 						.all(|(_, inner)| inner.commission.claim_permission.is_none()),
 					"`claim_permission` value has not been set correctly."
 				);
+				use frame_support::traits::GetStorageVersion;
+				frame_support::ensure!(
+					Pallet::<T>::on_chain_storage_version() >= 8,
+					"nomination-pools::migration::v8: wrong storage version"
+				);
 				Ok(())
 			}
 		}
 	}
 
-	mod v7 {
+	/// This migration accumulates and initializes the [`TotalValueLocked`] for all pools.
+	///
+	/// WARNING: This migration works under the assumption that the [`BondedPools`] cannot be
+	/// inflated arbitrarily. Otherwise this migration could fail due to too high weight.
+	pub(crate) mod v7 {
 		use super::*;
-
-		use sp_staking::StakingInterface;
-		// use frame_support::traits::GetStorageVersion;
+		use frame_support::{BoundedBTreeMap, DefaultNoBound};
+		use sp_runtime::traits::{Convert, Zero};
+		use sp_staking::EraIndex;
 
 		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
 		#[codec(mel_bound(T: Config))]
 		#[scale_info(skip_type_params(T))]
-		pub struct Commission<T: Config> {
+		pub struct V7Commission<T: Config> {
 			pub current: Option<(Perbill, T::AccountId)>,
 			pub max: Option<Perbill>,
 			pub change_rate: Option<CommissionChangeRate<BlockNumberFor<T>>>,
@@ -2879,40 +2885,49 @@ mod test_oliverfix_migration {
 		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
 		#[codec(mel_bound(T: Config))]
 		#[scale_info(skip_type_params(T))]
-		pub struct BondedPoolInner<T: Config> {
-			pub commission: Commission<T>,
+		pub struct V7BondedPoolInner<T: Config> {
+			pub commission: V7Commission<T>,
 			pub member_counter: u32,
 			pub points: BalanceOf<T>,
 			pub roles: PoolRoles<T::AccountId>,
 			pub state: PoolState,
 		}
 
+		#[allow(dead_code)]
 		#[derive(RuntimeDebugNoBound)]
 		#[cfg_attr(feature = "std", derive(Clone, PartialEq))]
-		pub struct BondedPool<T: Config> {
+		pub struct V7BondedPool<T: Config> {
 			/// The identifier of the pool.
 			id: PoolId,
 			/// The inner fields.
-			inner: BondedPoolInner<T>,
+			inner: V7BondedPoolInner<T>,
 		}
 
-		impl<T: Config> BondedPool<T> {
+		impl<T: Config> V7BondedPool<T> {
 			fn bonded_account(&self) -> T::AccountId {
 				Pallet::<T>::create_bonded_account(self.id)
 			}
+			fn points_to_balance(&self, points: BalanceOf<T>) -> BalanceOf<T> {
+				use sp_staking::StakingInterface;
+				let bonded_balance =
+					T::Staking::active_stake(&self.bonded_account()).unwrap_or(Zero::zero());
+				point_to_balance::<T>(bonded_balance, self.inner.points, points)
+			}
 		}
 
+		// NOTE: We cannot put a V7 prefix here since that would change the storage key.
 		#[frame_support::storage_alias]
 		pub type BondedPools<T: Config> =
-			CountedStorageMap<Pallet<T>, Twox64Concat, PoolId, BondedPoolInner<T>>;
+			CountedStorageMap<Pallet<T>, Twox64Concat, PoolId, V7BondedPoolInner<T>>;
 
 		pub struct VersionUncheckedMigrateV6ToV7<T>(sp_std::marker::PhantomData<T>);
 		impl<T: Config> VersionUncheckedMigrateV6ToV7<T> {
 			fn calculate_tvl_by_total_stake() -> BalanceOf<T> {
+				use sp_staking::StakingInterface;
 				BondedPools::<T>::iter()
 					.map(|(id, inner)| {
 						T::Staking::total_stake(
-							&BondedPool { id, inner: inner.clone() }.bonded_account(),
+							&V7BondedPool { id, inner: inner.clone() }.bonded_account(),
 						)
 						.unwrap_or_default()
 					})
@@ -2955,26 +2970,112 @@ mod test_oliverfix_migration {
 					"TVL written is not equal to `Staking::total_stake` of all `BondedPools`."
 				);
 
-				// TODO: skip for now
 				// calculate the sum of `total_balance` of all `PoolMember` as the upper bound for
 				// the `TotalValueLocked`.
-				// let total_balance_members: BalanceOf<T> = PoolMembers::<T>::iter()
-				// 	.map(|(_, member)| member.total_balance())
-				// 	.reduce(|acc, total_balance| acc + total_balance)
-				// 	.unwrap_or_default();
-				//
-				// frame_support::ensure!(
-				// 	TotalValueLocked::<T>::get() <= total_balance_members,
-				// 	"TVL is greater than the balance of all PoolMembers."
-				// );
-				//
-				// frame_support::ensure!(
-				// 	Pallet::<T>::on_chain_storage_version() >= 7,
-				// 	"nomination-pools::migration::v7: wrong storage version"
-				// );
+				let total_balance_members: BalanceOf<T> = PoolMembers::<T>::iter()
+					.map(|(_, member)| total_balance(&member))
+					.reduce(|acc, total_balance| acc + total_balance)
+					.unwrap_or_default();
+
+				frame_support::ensure!(
+					TotalValueLocked::<T>::get() <= total_balance_members,
+					"TVL is greater than the balance of all PoolMembers."
+				);
+
+				use frame_support::traits::GetStorageVersion;
+				frame_support::ensure!(
+					Pallet::<T>::on_chain_storage_version() >= 7,
+					"nomination-pools::migration::v7: wrong storage version"
+				);
 
 				Ok(())
 			}
+		}
+
+		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DefaultNoBound, RuntimeDebugNoBound)]
+		#[cfg_attr(feature = "std", derive(Clone, PartialEq, Eq))]
+		#[codec(mel_bound(T: Config))]
+		#[scale_info(skip_type_params(T))]
+		pub struct UnbondPool<T: Config> {
+			/// The points in this pool.
+			points: BalanceOf<T>,
+			/// The funds in the pool.
+			balance: BalanceOf<T>,
+		}
+
+		impl<T: Config> UnbondPool<T> {
+			fn point_to_balance(&self, points: BalanceOf<T>) -> BalanceOf<T> {
+				point_to_balance::<T>(self.balance, self.points, points)
+			}
+		}
+
+		#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DefaultNoBound, RuntimeDebugNoBound)]
+		#[cfg_attr(feature = "std", derive(Clone, PartialEq))]
+		#[codec(mel_bound(T: Config))]
+		#[scale_info(skip_type_params(T))]
+		pub struct SubPools<T: Config> {
+			/// A general, era agnostic pool of funds that have fully unbonded. The pools
+			/// of `Self::with_era` will lazily be merged into into this pool if they are
+			/// older then `current_era - TotalUnbondingPools`.
+			no_era: UnbondPool<T>,
+			/// Map of era in which a pool becomes unbonded in => unbond pools.
+			with_era: BoundedBTreeMap<EraIndex, UnbondPool<T>, TotalUnbondingPools<T>>,
+		}
+
+		#[frame_support::storage_alias]
+		pub type SubPoolsStorage<T: Config> =
+			CountedStorageMap<Pallet<T>, Twox64Concat, PoolId, SubPools<T>>;
+
+		// TODO:(PR#137) - hacky copy of pallet-nomination-pools, because lots of this stuff is
+		// private there.
+		fn total_balance<T: Config>(self_as_member: &PoolMember<T>) -> BalanceOf<T> {
+			// let pool = V7BondedPool::<T>::get(self_as_member.pool_id).unwrap();
+			let id = self_as_member.pool_id;
+			let pool = BondedPools::<T>::try_get(id)
+				.ok()
+				.map(|inner| V7BondedPool { id, inner })
+				.unwrap();
+			let active_balance = pool.points_to_balance(self_as_member.points);
+
+			let sub_pools = match SubPoolsStorage::<T>::get(self_as_member.pool_id) {
+				Some(sub_pools) => sub_pools,
+				None => return active_balance,
+			};
+
+			let unbonding_balance = self_as_member.unbonding_eras.iter().fold(
+				BalanceOf::<T>::zero(),
+				|accumulator, (era, unlocked_points)| {
+					// if the `SubPools::with_era` has already been merged into the
+					// `SubPools::no_era` use this pool instead.
+					let era_pool = sub_pools.with_era.get(era).unwrap_or(&sub_pools.no_era);
+					accumulator + (era_pool.point_to_balance(*unlocked_points))
+				},
+			);
+
+			active_balance + unbonding_balance
+		}
+
+		fn point_to_balance<T: Config>(
+			current_balance: BalanceOf<T>,
+			current_points: BalanceOf<T>,
+			points: BalanceOf<T>,
+		) -> BalanceOf<T> {
+			let u256 = T::BalanceToU256::convert;
+			let balance = T::U256ToBalance::convert;
+			if current_balance.is_zero() || current_points.is_zero() || points.is_zero() {
+				// There is nothing to unbond
+				return Zero::zero()
+			}
+
+			use sp_std::ops::Div;
+
+			// Equivalent of (current_balance / current_points) * points
+			balance(
+				u256(current_balance)
+					.saturating_mul(u256(points))
+					// We check for zero above
+					.div(u256(current_points)),
+			)
 		}
 	}
 }
