@@ -90,18 +90,19 @@ cumulus-primitives-utility = { default-features = false, version = "0.4.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.4.0" }
 parachains-common = { default-features = false, version = "4.0.0" }
 
-# TODO:(PR#137) - Encointer pallets do not have compatible `polkadot-sdk` versions with the rest,
-# so we need to copy all the stuff from `system-parachains-constants`.
-# system-parachains-constants = { path = "../constants", default-features = false }
+# TODO: Encointer pallets does not have compatible `polkadot-sdk` versions,
+# so we need to copy all the stuff from `system-parachains-constants` and `kusama-runtime-constants`.
+#system-parachains-constants = { path = "../constants", default-features = false }
+#kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
 polkadot-core-primitives = { default-features = false, version = "4.0.0"}
 polkadot-primitives = { default-features = false , version = "4.0.0" }
-kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, version = "14.0.0" }
 
 [dev-dependencies]
-kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
+system-parachains-constants = { path = "../constants" }
+kusama-runtime-constants = { path = "../../relay/kusama/constants" }
 
 [features]
 default = ["std"]
@@ -152,7 +153,7 @@ std = [
   "frame-system-rpc-runtime-api/std",
   "frame-system/std",
   "frame-try-runtime/std",
-  "kusama-runtime-constants/std",
+#  "kusama-runtime-constants/std",
   "log/std",
   "pallet-asset-tx-payment/std",
   "pallet-aura/std",
