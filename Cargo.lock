@@ -3380,6 +3380,7 @@ dependencies = [
  "staging-xcm-builder 4.0.1",
  "staging-xcm-executor 4.0.2",
  "substrate-wasm-builder 14.0.0",
+ "system-parachains-constants",
 ]
 
 [[package]]
