@@ -87,7 +87,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, TreasurerBodyId, XcmConfig, XcmOriginToTransactDispatchOrigin,
+	GovernanceLocation, LocationToAccountId, TreasurerBodyId, XcmConfig,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -112,10 +113,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_000_000,
+	spec_version: 1_001_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 5,
+	transaction_version: 6,
 	state_version: 0,
 };
 
@@ -196,7 +197,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -235,9 +236,9 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const DepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = system_para_deposit(0, 32);
 }
 
 impl pallet_multisig::Config for Runtime {
@@ -259,12 +260,12 @@ impl pallet_utility::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 }
 
 /// The type used to represent the kinds of proxying allowed.
@@ -509,9 +510,6 @@ pub const MAX_ALLIES: u32 = 100;
 
 parameter_types! {
 	pub const AllyDeposit: Balance = 1_000 * UNITS; // 1,000 DOT bond to join as an Ally
-	// The Alliance pallet account, used as a temporary place to deposit a slashed imbalance
-	// before the teleport to the Treasury.
-	pub AlliancePalletAccount: AccountId = ALLIANCE_PALLET_ID.into_account_truncating();
 	pub PolkadotTreasuryAccount: AccountId = POLKADOT_TREASURY_PALLET_ID.into_account_truncating();
 	// The number of blocks a member must wait between giving a retirement notice and retiring.
 	// Supposed to be greater than time required to `kick_member` with alliance motion.
@@ -525,7 +523,7 @@ impl pallet_alliance::Config for Runtime {
 	type MembershipManager = RootOrAllianceTwoThirdsMajority;
 	type AnnouncementOrigin = RootOrAllianceTwoThirdsMajority;
 	type Currency = Balances;
-	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, AlliancePalletAccount, Runtime>;
+	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type InitializeMembers = AllianceMotion;
 	type MembershipChanged = AllianceMotion;
 	type RetirementPeriod = AllianceRetirementPeriod;
@@ -570,8 +568,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
-	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+	pub const PreimageBaseDeposit: Balance = system_para_deposit(2, 64);
+	pub const PreimageByteDeposit: Balance = system_para_deposit(0, 1);
 	pub const PreimageHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
@@ -685,55 +683,7 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
-type Migrations = (
-	// unreleased
-	pallet_collator_selection::migration::v1::MigrateToV1<Runtime>,
-	InitStorageVersions,
-);
-
-/// Migration to initialize storage versions for pallets added after genesis.
-///
-/// Ideally this would be done automatically (see
-/// <https://github.com/paritytech/polkadot-sdk/pull/1297>), but it probably won't be ready for some
-/// time and it's beneficial to get storage version issues smoothed over before merging
-/// <https://github.com/polkadot-fellows/runtimes/pull/28> so we're just setting them manually.
-pub struct InitStorageVersions;
-
-impl frame_support::traits::OnRuntimeUpgrade for InitStorageVersions {
-	fn on_runtime_upgrade() -> Weight {
-		use frame_support::traits::{GetStorageVersion, StorageVersion};
-		use sp_runtime::traits::Saturating;
-
-		let mut writes = 0;
-
-		if Multisig::on_chain_storage_version() == StorageVersion::new(0) {
-			Multisig::current_storage_version().put::<Multisig>();
-			writes.saturating_inc();
-		}
-
-		if PolkadotXcm::on_chain_storage_version() == StorageVersion::new(0) {
-			PolkadotXcm::current_storage_version().put::<PolkadotXcm>();
-			writes.saturating_inc();
-		}
-
-		if Preimage::on_chain_storage_version() == StorageVersion::new(0) {
-			Preimage::current_storage_version().put::<Preimage>();
-			writes.saturating_inc();
-		}
-
-		if Scheduler::on_chain_storage_version() == StorageVersion::new(0) {
-			Scheduler::current_storage_version().put::<Scheduler>();
-			writes.saturating_inc();
-		}
-
-		if FellowshipReferenda::on_chain_storage_version() == StorageVersion::new(0) {
-			FellowshipReferenda::current_storage_version().put::<FellowshipReferenda>();
-			writes.saturating_inc();
-		}
-
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(5, writes)
-	}
-}
+type Migrations = ();
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -746,12 +696,8 @@ pub type Executive = frame_executive::Executive<
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
-#[macro_use]
-extern crate frame_benchmarking;
-
-#[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	define_benchmarks!(
+	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_multisig, Multisig]
@@ -1031,4 +977,11 @@ fn fellowship_treasury_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
 	assert_eq!(<FellowshipTreasury as PalletInfoAccess>::index() as u8, 65u8);
+}
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let collectives_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, collectives_ed);
 }

@@ -19,9 +19,12 @@
 mod origins;
 mod tracks;
 use crate::{
-	impls::ToParentTreasury, weights, xcm_config::TreasurerBodyId, AccountId, AssetRate, Balance,
-	Balances, FellowshipReferenda, GovernanceLocation, PolkadotTreasuryAccount, Preimage, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
+	impls::ToParentTreasury,
+	weights,
+	xcm_config::{LocationToAccountId, TreasurerBodyId},
+	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
+	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	Scheduler, DAYS,
 };
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
@@ -44,10 +47,7 @@ use polkadot_runtime_common::impls::{
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{
-	AccountIdConversion, ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst,
-};
-use system_parachains_constants::polkadot::account;
+use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
 use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
@@ -70,8 +70,6 @@ pub mod ranks {
 }
 
 parameter_types! {
-	// Referenda pallet account, used to temporarily deposit slashed imbalance before teleporting.
-	pub ReferendaPalletAccount: AccountId = account::REFERENDA_PALLET_ID.into_account_truncating();
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 }
 
@@ -101,7 +99,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	>;
 	type CancelOrigin = Architects;
 	type KillOrigin = Masters;
-	type Slash = ToParentTreasury<PolkadotTreasuryAccount, ReferendaPalletAccount, Runtime>;
+	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, FellowshipCollectiveInstance>;
 	type SubmissionDeposit = ConstU128<0>;
@@ -251,7 +249,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 100_000 * USDT_UNITS }>;
+	type Budget = ConstU128<{ 250_000 * USDT_UNITS }>;
 }
 
 parameter_types! {
