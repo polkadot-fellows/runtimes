@@ -817,6 +817,13 @@ impl pallet_identity::Config for Runtime {
 	type Slashed = Treasury;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type RegistrarOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
+	// TODO:(PR#159) check adds bellow and remove this comment!
+	type OffchainSignature = Signature;
+	type SigningPublicKey = <Signature as Verify>::Signer;
+	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
+	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
+	type MaxSuffixLength = ConstU32<7>;
+	type MaxUsernameLength = ConstU32<32>;
 	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
@@ -1691,6 +1698,9 @@ pub type Migrations = migrations::Unreleased;
 pub mod migrations {
 	use super::*;
 
+	// We don't have a limit in the Relay Chain.
+	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
+
 	/// Upgrade Session keys to include BEEFY key.
 	/// When this is removed, should also remove `OldSessionKeys`.
 	pub struct UpgradeSessionKeys;
@@ -1715,6 +1725,8 @@ pub mod migrations {
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
 		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
+		// Migrate Identity pallet for Usernames
+		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
 	);
 }
 
