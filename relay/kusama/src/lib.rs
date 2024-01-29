@@ -1226,6 +1226,8 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
+	// TODO:(PR#159)(PR#1694): check `AssignCoretime` bellow and remove this comment!
+	type AssignCoretime = ();
 }
 
 parameter_types! {
@@ -1292,7 +1294,9 @@ impl parachains_paras_inherent::Config for Runtime {
 }
 
 impl parachains_scheduler::Config for Runtime {
-	type AssignmentProvider = ParaAssignmentProvider;
+	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
+	// otherwise provide a migration.
+	type AssignmentProvider = ParachainsAssignmentProvider;
 }
 
 impl parachains_assigner_parachains::Config for Runtime {}
@@ -1301,6 +1305,8 @@ impl parachains_initializer::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::runtime_parachains_initializer::WeightInfo<Runtime>;
+	// TODO:(PR#159)(PR#1694): check `CoretimeOnNewSession` bellow and remove this comment!
+	type CoretimeOnNewSession = ();
 }
 
 impl parachains_disputes::Config for Runtime {
@@ -1609,7 +1615,8 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		ParaAssignmentProvider: parachains_assigner_parachains = 64,
+		// TODO:(PR#159)(PR#1694): check rename `ParachainsAssignmentProvider` and remove `Storage` bellow and remove this comment!
+		ParachainsAssignmentProvider: parachains_assigner_parachains = 64,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
@@ -1676,7 +1683,7 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::{parachains_configuration, Runtime};
+	use super::{parachains_configuration, parachains_scheduler, Runtime};
 
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
@@ -1695,6 +1702,9 @@ pub mod migrations {
 		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 		// Migrate Identity pallet for Usernames
 		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
+		// TODO:(PR#159)(PR#1694): check `parachains_scheduler::MigrateV1ToV2` bellow and remove
+		// this comment!
+		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
 	);
 }
 
