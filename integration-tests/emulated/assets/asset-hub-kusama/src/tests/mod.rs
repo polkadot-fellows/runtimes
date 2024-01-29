@@ -24,5 +24,5 @@ integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
 	PenpalKusamaA,
 	AssetHubKusama,
 	KUSAMA_ED,
-	parachains_common::kusama::fee::WeightToFee
+	system_parachains_constants::kusama::fee::WeightToFee
 );

@@ -436,6 +436,7 @@ dependencies = [
  "staging-kusama-runtime",
  "staging-xcm 6.0.0",
  "staging-xcm-executor 6.0.0",
+ "system-parachains-constants",
  "xcm-emulator",
 ]
 
@@ -541,6 +542,7 @@ dependencies = [
  "sp-runtime 30.0.1",
  "staging-xcm 6.0.0",
  "staging-xcm-executor 6.0.0",
+ "system-parachains-constants",
  "xcm-emulator",
 ]
 

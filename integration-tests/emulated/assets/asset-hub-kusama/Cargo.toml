@@ -34,6 +34,7 @@ emulated-chains = { path = "../../chains" }
 integration-tests-common = { path = "../../common" }
 asset-hub-kusama-runtime = { path = "../../../../system-parachains/asset-hubs/asset-hub-kusama" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../relay/kusama" }
+system-parachains-constants = { path = "../../../../system-parachains/constants" }
 
 [features]
 runtime-benchmarks = []

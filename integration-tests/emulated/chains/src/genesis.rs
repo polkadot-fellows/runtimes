@@ -337,7 +337,7 @@ pub mod kusama {
 pub mod asset_hub_polkadot {
 	use super::*;
 	pub const PARA_ID: u32 = 1000;
-	pub const ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+	pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
 	pub fn genesis() -> Storage {
 		let genesis_config = asset_hub_polkadot_runtime::RuntimeGenesisConfig {
@@ -389,7 +389,7 @@ pub mod asset_hub_polkadot {
 pub mod asset_hub_kusama {
 	use super::*;
 	pub const PARA_ID: u32 = 1000;
-	pub const ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+	pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 
 	pub fn genesis() -> Storage {
 		let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
@@ -441,7 +441,7 @@ pub mod asset_hub_kusama {
 pub mod bridge_hub_polkadot {
 	use super::*;
 	pub const PARA_ID: u32 = 1002;
-	pub const ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+	pub const ED: Balance = bridge_hub_polkadot_runtime::ExistentialDeposit::get();
 
 	pub fn genesis() -> Storage {
 		let genesis_config = bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
@@ -493,7 +493,7 @@ pub mod bridge_hub_polkadot {
 pub mod bridge_hub_kusama {
 	use super::*;
 	pub const PARA_ID: u32 = 1002;
-	pub const ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+	pub const ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
 	pub fn genesis() -> Storage {
 		let genesis_config = bridge_hub_kusama_runtime::RuntimeGenesisConfig {
@@ -545,7 +545,7 @@ pub mod bridge_hub_kusama {
 pub mod collectives {
 	use super::*;
 	pub const PARA_ID: u32 = 1001;
-	pub const ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+	pub const ED: Balance = collectives_polkadot_runtime::ExistentialDeposit::get();
 
 	pub fn genesis() -> Storage {
 		let genesis_config = collectives_polkadot_runtime::RuntimeGenesisConfig {
