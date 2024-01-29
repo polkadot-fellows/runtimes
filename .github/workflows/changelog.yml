@@ -8,7 +8,8 @@ on:
 
 jobs:
 
-  verifyChangelogIsUpdated:
+  verifyChangelog:
+    name: Verify that Changelog is Updated
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ github.token }}
