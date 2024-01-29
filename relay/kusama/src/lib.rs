@@ -1699,6 +1699,7 @@ pub mod migrations {
 		// pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
+		parachains_configuration::migration::v11::MigrateToV11<Runtime>,
 		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 		// Migrate Identity pallet for Usernames
 		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
