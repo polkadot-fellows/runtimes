@@ -81,6 +81,7 @@ pallet-staking = { default-features = false , version = "25.0.0" }
 pallet-staking-reward-fn = { default-features = false, version = "16.0.0" }
 pallet-staking-reward-curve = { version = "10.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "11.0.0" }
+pallet-state-trie-migration = { default-features = false , version = "26.0.0" }
 frame-system = { default-features = false , version = "25.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "23.0.0" }
 polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }

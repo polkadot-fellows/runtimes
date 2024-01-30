@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 25,
-	state_version: 0,
+	state_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
@@ -1527,6 +1527,26 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
 	}
 }
 
+parameter_types! {
+	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
+	pub const MigrationSignedDepositPerItem: Balance = 1 * CENTS;
+	pub const MigrationSignedDepositBase: Balance = 20 * CENTS * 100;
+	pub const MigrationMaxKeyLen: u32 = 512;
+}
+
+impl pallet_state_trie_migration::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type SignedDepositPerItem = MigrationSignedDepositPerItem;
+	type SignedDepositBase = MigrationSignedDepositBase;
+	type ControlOrigin = EnsureRoot<AccountId>;
+	type SignedFilter = frame_support::traits::NeverEnsureOrigin<AccountId>;
+
+	// Use same weights as substrate ones.
+	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
+	type MaxKeyLen = MigrationMaxKeyLen;
+}
+
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
@@ -1636,6 +1656,9 @@ construct_runtime! {
 		Slots: slots::{Pallet, Call, Storage, Event<T>} = 71,
 		Auctions: auctions::{Pallet, Call, Storage, Event<T>} = 72,
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 73,
+
+		// State trie migration pallet, only temporary.
+		StateTrieMigration: pallet_state_trie_migration = 98,
 
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 99,
@@ -2894,5 +2917,67 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
+	}
+}
+
+mod init_state_migration {
+	use super::Runtime;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
+	#[cfg(not(feature = "std"))]
+	use sp_std::prelude::*;
+
+	/// Initialize an automatic migration process.
+	pub struct InitMigrate;
+	impl OnRuntimeUpgrade for InitMigrate {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
+			use parity_scale_codec::Encode;
+			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
+				MigrationProcess::<Runtime>::get() == Default::default();
+			Ok(migration_should_start.encode())
+		}
+
+		fn on_runtime_upgrade() -> frame_support::weights::Weight {
+			if AutoLimits::<Runtime>::get().is_some() {
+				log::warn!("Automatic trie migration already started, not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+			};
+
+			if MigrationProcess::<Runtime>::get() != Default::default() {
+				log::warn!("MigrationProcess is not Default. Not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
+			};
+
+			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
+			// migrations.
+			//
+			// We use limits to target 600ko proofs per block and
+			// avg 800_000_000_000 of weight per block.
+			// See spreadsheet 4800_400 in
+			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
+			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
+			log::info!("Automatic trie migration started.");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(
+			migration_should_start_bytes: Vec<u8>,
+		) -> Result<(), sp_runtime::DispatchError> {
+			use parity_scale_codec::Decode;
+			let migration_should_start: bool =
+				Decode::decode(&mut migration_should_start_bytes.as_slice())
+					.expect("failed to decode migration should start");
+
+			if migration_should_start {
+				frame_support::ensure!(
+					AutoLimits::<Runtime>::get().is_some(),
+					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
+				);
+			}
+
+			Ok(())
+		}
 	}
 }
