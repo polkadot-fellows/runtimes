@@ -29,7 +29,6 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
 use runtime_common::{
-	crowdloan, paras_registrar,
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
 };
@@ -44,7 +43,6 @@ use xcm_builder::{
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeesToAccount,
 };
-use xcm_executor::traits::WithOriginFilter;
 
 parameter_types! {
 	pub const RootLocation: MultiLocation = Here.into_location();
