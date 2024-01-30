@@ -12433,9 +12433,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a85a421053f810f3ed988ba3cc39d926c95f70f1ae73282aa8cd5c50072173b"
+checksum = "1b4dacd371948daee7daf1744d869c9f378aca4ba5181b2821c7c73e4662d31b"
 dependencies = [
  "environmental",
  "frame-benchmarking",
