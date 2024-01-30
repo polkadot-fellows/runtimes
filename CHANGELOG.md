@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Remove state-trie-migration pallet from kusama, add state trie migration to V1 on polkadot ([polkadot-fellows/runtimes#170](https://github.com/polkadot-fellows/runtimes/pull/170))
 - Introduce chain spec generator ([polkadot-fellows/runtimes#127](https://github.com/polkadot-fellows/runtimes/pull/127))
 - Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/
 0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))

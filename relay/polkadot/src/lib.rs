@@ -1726,6 +1726,8 @@ pub mod migrations {
 	pub type Unreleased = (
 		// Upgrade SessionKeys to include BEEFY key
 		UpgradeSessionKeys,
+		init_state_migration::InitMigrate,
+		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
 	);
