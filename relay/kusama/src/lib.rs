@@ -66,13 +66,12 @@ use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, NposSolution,
 	SequentialPhragmen,
 };
-use frame_support::traits::Contains;
 use frame_support::{
 	construct_runtime,
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, EverythingBut,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
