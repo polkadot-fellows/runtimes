@@ -38,7 +38,7 @@ sp-version = { default-features = false, version = "26.0.0" }
 # Polkadot
 xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "4.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.1" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.2" }
 
 # Cumulus
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.4.0" }

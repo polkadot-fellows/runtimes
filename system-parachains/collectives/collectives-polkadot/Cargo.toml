@@ -65,7 +65,7 @@ polkadot-runtime-common = { default-features = false, version = "4.0.0" }
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "4.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.1" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.2" }
 
 # Cumulus
 cumulus-pallet-aura-ext = { default-features = false , version = "0.4.0" }
