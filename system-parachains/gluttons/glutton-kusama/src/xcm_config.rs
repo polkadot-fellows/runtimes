@@ -24,8 +24,8 @@ use frame_support::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AllowExplicitUnpaidExecutionFrom, FixedWeightBounds, ParentAsSuperuser, ParentIsPreset,
-	SovereignSignedViaLocation, FrameTransactionalProcessor,
+	AllowExplicitUnpaidExecutionFrom, FixedWeightBounds, FrameTransactionalProcessor,
+	ParentAsSuperuser, ParentIsPreset, SovereignSignedViaLocation,
 };
 
 parameter_types! {
