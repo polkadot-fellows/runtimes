@@ -1636,7 +1636,7 @@ construct_runtime! {
 		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
-		MmrLeaf: pallet_beefy_mmr = 202,
+		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 	}
 }
 
