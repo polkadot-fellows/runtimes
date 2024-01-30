@@ -26,6 +26,7 @@ polkadot-parachain-primitives = { version = "6.0.0" }
 
 # Cumulus
 parachains-common = { version = "7.0.0" }
+cumulus-primitives-core = { version = "0.7.0" }
 xcm-emulator = { version = "0.5.0" }
 penpal-runtime = { version = "0.14.0" }
 
