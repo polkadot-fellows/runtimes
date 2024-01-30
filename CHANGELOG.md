@@ -4,6 +4,17 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2] 31.01.2024
+
+### Fixed
+
+- Fix Kusama XCM delivery fee ([polkadot-fellows/runtimes#165](https://github.com/polkadot-fellows/runtimes/pull/165))
+- Fix pallet nomination pool payout ([polkadot-fellows/runtimes#165](https://github.com/polkadot-fellows/runtimes/pull/165))
+
+### Changed
+
+- XCM transactional processing ([polkadot-fellows/runtimes#165](https://github.com/polkadot-fellows/runtimes/pull/165))
+
 ## [1.1.1] 25.01.2024
 
 ### Fixed
