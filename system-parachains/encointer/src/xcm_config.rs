@@ -39,7 +39,7 @@ use xcm_builder::{
 	FixedWeightBounds, HashedDescription, IsConcrete, NativeAsset, ParentAsSuperuser,
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents,
+	TrailingSetTopicAsId, UsingComponents, FrameTransactionalProcessor,
 };
 use xcm_executor::XcmExecutor;
 
@@ -179,6 +179,7 @@ impl xcm_executor::Config for XcmConfig {
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = SafeCallFilter;
 	type Aliasers = Nothing;
+	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
 /// Converts a local signed origin into an XCM multilocation.
