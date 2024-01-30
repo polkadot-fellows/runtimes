@@ -41,7 +41,7 @@ cumulus-pallet-xcmp-queue = { version = "0.4.0" }
 cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , version = "0.4.0" }
 asset-test-utils = { version = "4.0.0" }
 cumulus-pallet-dmp-queue = { version = "0.4.0" }
-penpal-runtime = { version = "0.11.0" }
+penpal-runtime = { version = "0.11.1" }
 
 # Local runtimes
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }

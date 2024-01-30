@@ -8459,9 +8459,9 @@ dependencies = [
 
 [[package]]
 name = "penpal-runtime"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63d1c2aa2cbc5012e6af2781ff7fb0bf7188ff4d25643a0f36a44f327b779fb4"
+checksum = "bbfc3b8710f83bcaed4e9e944f17805be08857563ac7e59b64ff2b184ff7927e"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
