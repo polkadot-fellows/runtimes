@@ -21,7 +21,6 @@ use parachains_common::{AccountId, AssetHubPolkadotAuraId, AuraId, Balance};
 use sc_chain_spec::{ChainSpec, ChainSpecExtension, ChainSpecGroup, ChainType};
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
-use sp_runtime::traits::Get;
 
 /// Generic extensions for Parachain ChainSpecs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
