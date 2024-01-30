@@ -15,13 +15,13 @@
 
 //! # Collectives Parachain
 //!
-//! This parachain is for collectives that serve the Polkadot network.
-//! Each collective is defined by a specialized (possibly instanced) pallet.
+//! This parachain is for collectives that serve the Polkadot network. Each collective is defined by
+//! a specialized (possibly instanced) pallet.
 //!
 //! ### Governance
 //!
-//! As a system parachain, Collectives defers its governance (namely, its `Root` origin), to
-//! its Relay Chain parent, Polkadot.
+//! As a system parachain, Collectives defers its governance (namely, its `Root` origin), to its
+//! Relay Chain parent, Polkadot.
 //!
 //! ### Collator Selection
 //!
