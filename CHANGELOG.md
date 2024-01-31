@@ -17,7 +17,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Upgrade parachains runtime API from v7 to v8 in Kusama ([context](https://paritytech.github.io/polkadot-sdk/book/protocol-validator-disabling.html), [polkadot-fellows/runtimes#148](https://github.com/polkadot-fellows/runtimes/pull/148)).
 - Fixed the lowering of Asset Hub existential deposits.
-- Disable calls to the identity pallets ([polkadot-fellows/runtimes#172](https://github.com/polkadot-fellows/runtimes/pull/172)).
 
 ### Removed
 
