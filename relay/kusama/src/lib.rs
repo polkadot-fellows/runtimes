@@ -178,7 +178,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IdentityCalls>;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
