@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Removed the `SafeCallFilter` from the Relay Chain XCM config ([polkadot-fellows/runtimes#172](https://github.com/polkadot-fellows/runtimes/pull/172)).
 
+### Fixed
+
+- Fixed the cost of a single byte, sent over bridge to use the `TransactionByteFee` constant of the bridged chain [polkadot-fellows/runtimes#174](https://github.com/polkadot-fellows/runtimes/pull/174).
+
 ## [1.1.1] 25.01.2024
 
 ### Fixed
