@@ -1081,9 +1081,10 @@ dependencies = [
  "frame-support 27.0.0",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
- "sp-api 25.0.0",
- "sp-runtime 30.0.1",
- "sp-std 13.0.0",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1096,9 +1097,40 @@ dependencies = [
  "frame-support 27.0.0",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
- "sp-api 25.0.0",
- "sp-runtime 30.0.1",
- "sp-std 13.0.0",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+ "system-parachains-constants",
+]
+
+[[package]]
+name = "bp-bridge-hub-rococo"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dcb3425030c446f51c0d9bc71605b42dc96acff94b2feff51cd09a5e58dc0dd"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-bridge-hub-wococo"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ecd2e53fcb7b489a544e27474839586b662bd0c5eea0a9bd21d5eaeae8e6b0b"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

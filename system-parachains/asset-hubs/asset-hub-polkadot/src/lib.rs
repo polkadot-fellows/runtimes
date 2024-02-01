@@ -108,7 +108,11 @@ use parachains_common::{
 
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
+	polkadot::{
+		consensus::*,
+		currency::*,
+		fee::{WeightToFee, TRANSACTION_BYTE_FEE},
+	},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
@@ -247,7 +251,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = MILLICENTS;
+	pub const TransactionByteFee: Balance = TRANSACTION_BYTE_FEE;
 }
 
 impl pallet_transaction_payment::Config for Runtime {

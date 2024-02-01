@@ -109,6 +109,18 @@ pub fn estimate_polkadot_to_kusama_message_fee(
 		.saturating_add(BridgeHubPolkadotBaseConfirmationFeeInDots::get())
 }
 
+/// Compute the per-byte fee that needs to be paid in DOTs by the sender when sending
+/// message from Polkadot Bridge Hub to Kusama Bridge Hub.
+pub fn estimate_polkadot_to_kusama_byte_fee() -> Balance {
+	// the sender pays for the same byte twice:
+	// 1) the first part comes from the HRMP, when message travels from Polkadot Asset Hub to
+	//    Polkadot Bridge Hub;
+	// 2) the second part is the payment for bytes of the message delivery transaction, which is
+	//    "mined" at Kusama Bridge Hub. Hence, we need to use byte fees from that chain and convert
+	//    it to DOTs here.
+	convert_from_uksm_to_udot(system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE)
+}
+
 /// Convert from uKSMs to uDOTs.
 fn convert_from_uksm_to_udot(price_in_uksm: Balance) -> Balance {
 	// assuming exchange rate is 5 DOTs for 1 KSM

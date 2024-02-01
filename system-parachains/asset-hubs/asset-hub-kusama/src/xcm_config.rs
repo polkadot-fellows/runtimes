@@ -16,8 +16,8 @@
 use super::{
 	AccountId, AllPalletsWithSystem, Assets, Authorship, Balance, Balances, ParachainInfo,
 	ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeOrigin, ToPolkadotXcmRouter, TransactionByteFee,
-	TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
+	RuntimeEvent, RuntimeOrigin, ToPolkadotXcmRouter, TrustBackedAssetsInstance, WeightToFee,
+	XcmpQueue,
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
 use assets_common::{
@@ -727,7 +727,7 @@ pub mod bridging {
 		);
 		/// Price of every byte of the Kusama -> Polkadot message. Can be adjusted via
 		/// governance `set_storage` call.
-		pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();
+		pub storage XcmBridgeHubRouterByteFee: Balance = bp_bridge_hub_kusama::estimate_kusama_to_polkadot_byte_fee();
 
 		pub SiblingBridgeHubParaId: u32 = bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
 		pub SiblingBridgeHub: MultiLocation = MultiLocation::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
