@@ -281,6 +281,8 @@ pub fn polkadot_testnet_genesis(
 		paras: Default::default(),
 		xcm_pallet: Default::default(),
 		nomination_pools: Default::default(),
+		registrar: Default::default(),
+		transaction_payment: Default::default(),
 	}
 }
 
@@ -367,6 +369,9 @@ pub fn kusama_testnet_genesis(
 		xcm_pallet: Default::default(),
 		nomination_pools: Default::default(),
 		nis_counterpart_balances: Default::default(),
+		registrar: Default::default(),
+		transaction_payment: Default::default(),
+		society: Default::default(),
 	}
 }
 
