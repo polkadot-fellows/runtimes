@@ -610,45 +610,43 @@ impl pallet_asset_tx_payment::Config for Runtime {
 construct_runtime! {
 	pub enum Runtime {
 		// System support stuff.
-		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
-		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
-		} = 1,
-		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 4,
+		System: frame_system = 0,
+		ParachainSystem: cumulus_pallet_parachain_system = 1,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 2,
+		Timestamp: pallet_timestamp = 3,
+		ParachainInfo: parachain_info = 4,
 
 		// Monetary stuff.
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
-		AssetTxPayment: pallet_asset_tx_payment::{Pallet, Storage, Event<T>} = 12,
+		Balances: pallet_balances = 10,
+		TransactionPayment: pallet_transaction_payment = 11,
+		AssetTxPayment: pallet_asset_tx_payment = 12,
 
-		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
-		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 24,
+		Aura: pallet_aura = 23,
+		AuraExt: cumulus_pallet_aura_ext = 24,
 
 		// XCM helpers.
-		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-		PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 31,
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
-		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
+		PolkadotXcm: pallet_xcm = 31,
+		CumulusXcm: cumulus_pallet_xcm = 32,
+		DmpQueue: cumulus_pallet_dmp_queue = 33,
 
 		// Handy utilities.
-		Utility: pallet_utility::{Pallet, Call, Event} = 40,
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 43,
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 44,
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 48,
+		Utility: pallet_utility = 40,
+		Treasury: pallet_treasury = 43,
+		Proxy: pallet_proxy = 44,
+		Scheduler: pallet_scheduler = 48,
 
 		// Encointer council.
-		Collective: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Config<T>, Event<T> } = 50,
-		Membership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+		Collective: pallet_collective::<Instance1> = 50,
+		Membership: pallet_membership::<Instance1> = 51,
 
-		EncointerScheduler: pallet_encointer_scheduler::{Pallet, Call, Storage, Config<T>, Event} = 60,
-		EncointerCeremonies: pallet_encointer_ceremonies::{Pallet, Call, Storage, Config<T>, Event<T>} = 61,
-		EncointerCommunities: pallet_encointer_communities::{Pallet, Call, Storage, Config<T>, Event<T>} = 62,
-		EncointerBalances: pallet_encointer_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 63,
-		EncointerBazaar: pallet_encointer_bazaar::{Pallet, Call, Storage, Event<T>} = 64,
-		EncointerReputationCommitments: pallet_encointer_reputation_commitments::{Pallet, Call, Storage, Event<T>} = 65,
-		EncointerFaucet: pallet_encointer_faucet::{Pallet, Call, Storage, Config<T>, Event<T>} = 66,
+		EncointerScheduler: pallet_encointer_scheduler = 60,
+		EncointerCeremonies: pallet_encointer_ceremonies = 61,
+		EncointerCommunities: pallet_encointer_communities = 62,
+		EncointerBalances: pallet_encointer_balances = 63,
+		EncointerBazaar: pallet_encointer_bazaar = 64,
+		EncointerReputationCommitments: pallet_encointer_reputation_commitments = 65,
+		EncointerFaucet: pallet_encointer_faucet = 66,
 	}
 }
 
