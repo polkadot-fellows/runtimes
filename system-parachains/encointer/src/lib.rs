@@ -50,6 +50,7 @@ pub use encointer_primitives::{
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
 		tokens::{pay::PayFromAccount, ConversionFromAssetBalance, ConversionToAssetBalance},
@@ -70,10 +71,9 @@ pub use pallet_encointer_faucet::Call as EncointerFaucetCall;
 pub use pallet_encointer_reputation_commitments::Call as EncointerReputationCommitmentsCall;
 pub use pallet_encointer_scheduler::Call as EncointerSchedulerCall;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody};
-pub use parachains_common as common;
-use parachains_common::{
-	kusama::{consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::*, fee::WeightToFee},
-	AuraId, AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+pub use parachains_common::{
+	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
+	Hash, Header, Nonce, Signature,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
@@ -90,6 +90,10 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use system_parachains_constants::{
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
+	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
@@ -148,13 +152,13 @@ pub fn native_version() -> NativeVersion {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	pub const MaxProxies: u16 = 32;
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 	pub const MaxPending: u16 = 32;
 }
 
@@ -297,7 +301,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
@@ -621,52 +625,45 @@ impl pallet_asset_tx_payment::Config for Runtime {
 construct_runtime! {
 	pub enum Runtime {
 		// System support stuff.
-		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
-		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
-		} = 1,
-		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage} = 2,
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 4,
+		System: frame_system = 0,
+		ParachainSystem: cumulus_pallet_parachain_system = 1,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip = 2,
+		Timestamp: pallet_timestamp = 3,
+		ParachainInfo: parachain_info = 4,
 
 		// Monetary stuff.
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
-		AssetTxPayment: pallet_asset_tx_payment::{Pallet, Storage, Event<T>} = 12,
+		Balances: pallet_balances = 10,
+		TransactionPayment: pallet_transaction_payment = 11,
+		AssetTxPayment: pallet_asset_tx_payment = 12,
 
-		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
-		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 24,
+		Aura: pallet_aura = 23,
+		AuraExt: cumulus_pallet_aura_ext = 24,
 
 		// XCM helpers.
-		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-		PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 31,
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
-		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
+		PolkadotXcm: pallet_xcm = 31,
+		CumulusXcm: cumulus_pallet_xcm = 32,
+		DmpQueue: cumulus_pallet_dmp_queue = 33,
 
 		// Handy utilities.
-		Utility: pallet_utility::{Pallet, Call, Event} = 40,
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 43,
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 44,
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 48,
+		Utility: pallet_utility = 40,
+		Treasury: pallet_treasury = 43,
+		Proxy: pallet_proxy = 44,
+		Scheduler: pallet_scheduler = 48,
 
 		// Encointer council.
-		Collective: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Config<T>, Event<T> } = 50,
-		Membership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+		Collective: pallet_collective::<Instance1> = 50,
+		Membership: pallet_membership::<Instance1> = 51,
 
-		EncointerScheduler: pallet_encointer_scheduler::{Pallet, Call, Storage, Config<T>, Event} = 60,
-		EncointerCeremonies: pallet_encointer_ceremonies::{Pallet, Call, Storage, Config<T>, Event<T>} = 61,
-		EncointerCommunities: pallet_encointer_communities::{Pallet, Call, Storage, Config<T>, Event<T>} = 62,
-		EncointerBalances: pallet_encointer_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 63,
-		EncointerBazaar: pallet_encointer_bazaar::{Pallet, Call, Storage, Event<T>} = 64,
-		EncointerReputationCommitments: pallet_encointer_reputation_commitments::{Pallet, Call, Storage, Event<T>} = 65,
-		EncointerFaucet: pallet_encointer_faucet::{Pallet, Call, Storage, Config<T>, Event<T>} = 66,
+		EncointerScheduler: pallet_encointer_scheduler = 60,
+		EncointerCeremonies: pallet_encointer_ceremonies = 61,
+		EncointerCommunities: pallet_encointer_communities = 62,
+		EncointerBalances: pallet_encointer_balances = 63,
+		EncointerBazaar: pallet_encointer_bazaar = 64,
+		EncointerReputationCommitments: pallet_encointer_reputation_commitments = 65,
+		EncointerFaucet: pallet_encointer_faucet = 66,
 	}
 }
-
-/// `parachains_common` is an upstream crate, where they are started to define common types.
-///
-/// The re-export is added by encointer.
-pub use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature};
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
@@ -722,12 +719,8 @@ pub type Executive = frame_executive::Executive<
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
-#[macro_use]
-extern crate frame_benchmarking;
-
-#[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	define_benchmarks!(
+	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_collective, Collective]
@@ -915,6 +908,16 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+		fn create_default_config() -> Vec<u8> {
+			create_default_config::<RuntimeGenesisConfig>()
+		}
+
+		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+			build_config::<RuntimeGenesisConfig>(config)
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -957,11 +960,20 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch};
+			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use frame_support::traits::TrackedStorageKey;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
-			impl frame_system_benchmarking::Config for Runtime {}
+			impl frame_system_benchmarking::Config for Runtime {
+				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+					ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
+					Ok(())
+				}
+
+				fn verify_set_code() {
+					System::assert_last_event(cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into());
+				}
+			}
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1002,4 +1014,11 @@ mod multiplier_tests {
 	fn treasury_pallet_index_is_correct() {
 		assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
+}
+
+#[test]
+fn test_ed_is_one_tenth_of_relay() {
+	let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let encointer_ed = ExistentialDeposit::get();
+	assert_eq!(relay_ed / 10, encointer_ed);
 }

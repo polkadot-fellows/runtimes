@@ -113,7 +113,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_001_000,
+	spec_version: 1_001_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 14,
@@ -129,7 +129,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_001_000,
+	spec_version: 1_001_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 14,
@@ -208,7 +208,9 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	// This comes from system_parachains_constants::kusama::currency and is the ED for all system
+	// parachains. For Asset Hub in particular, we set it to 1/10th of the amount.
+	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT / 10;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -249,13 +251,12 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
 	pub const AssetDeposit: Balance = UNITS / 10; // 1 / 10 UNITS deposit to create asset
-	pub const AssetAccountDeposit: Balance = deposit(1, 16);
-	pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
+	pub const AssetAccountDeposit: Balance = system_para_deposit(1, 16);
 	pub const AssetsStringLimit: u32 = 50;
 	/// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
 	// https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
-	pub const MetadataDepositBase: Balance = deposit(1, 68);
-	pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+	pub const MetadataDepositBase: Balance = system_para_deposit(1, 68);
+	pub const MetadataDepositPerByte: Balance = system_para_deposit(0, 1);
 }
 
 /// We allow root to execute privileged asset operations.
@@ -277,7 +278,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type AssetDeposit = AssetDeposit;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
-	type ApprovalDeposit = ApprovalDeposit;
+	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
 	type Freezer = ();
 	type Extra = ();
@@ -317,7 +318,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type AssetAccountDeposit = ConstU128<0>;
 	type MetadataDepositBase = ConstU128<0>;
 	type MetadataDepositPerByte = ConstU128<0>;
-	type ApprovalDeposit = ApprovalDeposit;
+	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ConstU32<50>;
 	type Freezer = ();
 	type Extra = ();
@@ -363,7 +364,6 @@ parameter_types! {
 	// we just reuse the same deposits
 	pub const ForeignAssetsAssetDeposit: Balance = AssetDeposit::get();
 	pub const ForeignAssetsAssetAccountDeposit: Balance = AssetAccountDeposit::get();
-	pub const ForeignAssetsApprovalDeposit: Balance = ApprovalDeposit::get();
 	pub const ForeignAssetsAssetsStringLimit: u32 = AssetsStringLimit::get();
 	pub const ForeignAssetsMetadataDepositBase: Balance = MetadataDepositBase::get();
 	pub const ForeignAssetsMetadataDepositPerByte: Balance = MetadataDepositPerByte::get();
@@ -389,7 +389,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type AssetDeposit = ForeignAssetsAssetDeposit;
 	type MetadataDepositBase = ForeignAssetsMetadataDepositBase;
 	type MetadataDepositPerByte = ForeignAssetsMetadataDepositPerByte;
-	type ApprovalDeposit = ForeignAssetsApprovalDeposit;
+	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ForeignAssetsAssetsStringLimit;
 	type Freezer = ();
 	type Extra = ();
@@ -403,9 +403,9 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-	pub const DepositBase: Balance = deposit(1, 88);
+	pub const DepositBase: Balance = system_para_deposit(1, 88);
 	// Additional storage item size of 32 bytes.
-	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = system_para_deposit(0, 32);
 	pub const MaxSignatories: u32 = 100;
 }
 
@@ -428,13 +428,13 @@ impl pallet_utility::Config for Runtime {
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
-	pub const ProxyDepositBase: Balance = deposit(1, 40);
+	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = deposit(0, 33);
+	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	pub const MaxProxies: u16 = 32;
 	// One storage item; key size 32, value size 16
-	pub const AnnouncementDepositBase: Balance = deposit(1, 48);
-	pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
+	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 	pub const MaxPending: u16 = 32;
 }
 
@@ -744,9 +744,9 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 parameter_types! {
 	pub const UniquesCollectionDeposit: Balance = UNITS / 10; // 1 / 10 UNIT deposit to create a collection
 	pub const UniquesItemDeposit: Balance = UNITS / 1_000; // 1 / 1000 UNIT deposit to mint an item
-	pub const UniquesMetadataDepositBase: Balance = deposit(1, 129);
-	pub const UniquesAttributeDepositBase: Balance = deposit(1, 0);
-	pub const UniquesDepositPerByte: Balance = deposit(0, 1);
+	pub const UniquesMetadataDepositBase: Balance = system_para_deposit(1, 129);
+	pub const UniquesAttributeDepositBase: Balance = system_para_deposit(1, 0);
+	pub const UniquesDepositPerByte: Balance = system_para_deposit(0, 1);
 }
 
 impl pallet_uniques::Config for Runtime {
@@ -872,47 +872,45 @@ construct_runtime!(
 	pub enum Runtime
 	{
 		// System support stuff.
-		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
-		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
-		} = 1,
+		System: frame_system = 0,
+		ParachainSystem: cumulus_pallet_parachain_system = 1,
 		// RandomnessCollectiveFlip = 2 removed
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 4,
+		Timestamp: pallet_timestamp = 3,
+		ParachainInfo: parachain_info = 4,
 
 		// Monetary stuff.
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
-		AssetTxPayment: pallet_asset_conversion_tx_payment::{Pallet, Event<T>} = 13,
+		Balances: pallet_balances = 10,
+		TransactionPayment: pallet_transaction_payment = 11,
+		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
 
 		// Collator support. the order of these 5 are important and shall not change.
-		Authorship: pallet_authorship::{Pallet, Storage} = 20,
-		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
-		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
-		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 24,
+		Authorship: pallet_authorship = 20,
+		CollatorSelection: pallet_collator_selection = 21,
+		Session: pallet_session = 22,
+		Aura: pallet_aura = 23,
+		AuraExt: cumulus_pallet_aura_ext = 24,
 
 		// XCM helpers.
-		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-		PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 31,
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
-		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
-		ToPolkadotXcmRouter: pallet_xcm_bridge_hub_router::<Instance1>::{Pallet, Storage, Call} = 34,
+		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
+		PolkadotXcm: pallet_xcm = 31,
+		CumulusXcm: cumulus_pallet_xcm = 32,
+		DmpQueue: cumulus_pallet_dmp_queue = 33,
+		ToPolkadotXcmRouter: pallet_xcm_bridge_hub_router::<Instance1> = 34,
 
 		// Handy utilities.
-		Utility: pallet_utility::{Pallet, Call, Event} = 40,
-		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 42,
+		Utility: pallet_utility = 40,
+		Multisig: pallet_multisig = 41,
+		Proxy: pallet_proxy = 42,
 
 		// The main stage.
-		Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>} = 50,
-		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>} = 51,
-		Nfts: pallet_nfts::{Pallet, Call, Storage, Event<T>} = 52,
-		ForeignAssets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>} = 53,
-		NftFractionalization: pallet_nft_fractionalization::{Pallet, Call, Storage, Event<T>, HoldReason} = 54,
+		Assets: pallet_assets::<Instance1> = 50,
+		Uniques: pallet_uniques = 51,
+		Nfts: pallet_nfts = 52,
+		ForeignAssets: pallet_assets::<Instance2> = 53,
+		NftFractionalization: pallet_nft_fractionalization = 54,
 
-		PoolAssets: pallet_assets::<Instance3>::{Pallet, Call, Storage, Event<T>} = 55,
-		AssetConversion: pallet_asset_conversion::{Pallet, Call, Storage, Event<T>} = 56,
+		PoolAssets: pallet_assets::<Instance3> = 55,
+		AssetConversion: pallet_asset_conversion = 56,
 
 		#[cfg(feature = "state-trie-version-1")]
 		StateTrieMigration: pallet_state_trie_migration = 70,
@@ -955,12 +953,8 @@ pub type Executive = frame_executive::Executive<
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
-#[macro_use]
-extern crate frame_benchmarking;
-
-#[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	define_benchmarks!(
+	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
@@ -1383,6 +1377,13 @@ impl_runtime_apis! {
 					let assets: MultiAssets = (Concrete(KsmLocation::get()), 1_000 * UNITS).into();
 					let ticket = MultiLocation { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
+				}
+
+				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
+					Ok(MultiAsset {
+						id: Concrete(KsmLocation::get()),
+						fun: Fungible(1_000_000 * UNITS),
+					})
 				}
 
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
