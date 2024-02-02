@@ -39,10 +39,9 @@ use parachains_common::{
 	},
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_kusama_common::EthereumNetwork;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
-use system_parachains_constants::TREASURY_PALLET_ID;
+use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
@@ -96,6 +95,9 @@ pub type LocationToAccountId = (
 	// Different global consensus parachain sovereign account.
 	// (Used for over-bridge transfers and reserve processing)
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
+	// Ethereum contract sovereign account.
+	// (Used to get convert ethereum contract locations to sovereign account)
+	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -880,7 +882,7 @@ pub mod bridging {
 				1,
 				X2(
 					Parachain(SiblingBridgeHubParaId::get()),
-					PalletInstance(snowbridge_kusama_common::INBOUND_QUEUE_MESSAGES_PALLET_INDEX)
+					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_MESSAGES_PALLET_INDEX),
 				)
 			);
 

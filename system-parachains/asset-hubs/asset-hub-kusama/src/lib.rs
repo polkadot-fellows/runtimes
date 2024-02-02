@@ -35,7 +35,6 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use snowbridge_kusama_common::EthereumNetwork;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -75,8 +74,9 @@ use parachains_common::{
 };
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	kusama::{consensus::*, currency::*, fee::WeightToFee, snowbridge::EthereumNetwork},
+	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT,
+	NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
 use xcm::opaque::v3::MultiLocation;

@@ -67,7 +67,6 @@ use assets_common::{
 	MultiLocationForAssetId,
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
-use snowbridge_polkadot_common::EthereumNetwork;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -110,7 +109,7 @@ use parachains_common::{
 
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
+	polkadot::{consensus::*, currency::*, fee::WeightToFee, snowbridge::EthereumNetwork},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
