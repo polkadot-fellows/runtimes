@@ -109,6 +109,7 @@ bp-relayers = { default-features = false , version = "0.4.0" }
 bp-runtime = { default-features = false , version = "0.4.0" }
 bp-kusama = { default-features = false , version = "0.2.0" }
 bp-polkadot = { default-features = false , version = "0.2.0" }
+bridge-hub-common = { default-features = false , version = "0.4.0" } #todo publish
 bridge-runtime-common = { default-features = false , version = "0.4.0" }
 pallet-bridge-grandpa = { default-features = false , version = "0.4.0" }
 pallet-bridge-messages = { default-features = false , version = "0.4.0" }
@@ -120,13 +121,12 @@ snowbridge-beacon-primitives = { default-features = false , version = "1.0.0" }
 snowbridge-system = { default-features = false , version = "1.0.0" }
 snowbridge-system-runtime-api = { default-features = false , version = "1.0.0" }
 snowbridge-core = { default-features = false , version = "1.0.0" }
-snowbridge-ethereum-beacon-client = { default-features = false , version = "1.0.0" }
-snowbridge-inbound-queue = { default-features = false , version = "1.0.0" }
-snowbridge-outbound-queue = { default-features = false , version = "1.0.0" }
+snowbridge-pallet-ethereum-client = { default-features = false , version = "1.0.0" }
+snowbridge-pallet-inbound-queue = { default-features = false , version = "1.0.0" }
+snowbridge-pallet-outbound-queue = { default-features = false , version = "1.0.0" }
 snowbridge-outbound-queue-runtime-api = { default-features = false , version = "1.0.0" }
 snowbridge-router-primitives = { default-features = false , version = "1.0.0" }
 snowbridge-runtime-common = { default-features = false , version = "1.0.0" }
-snowbridge-kusama-common = { default-features = false , version = "1.0.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.6.0" }

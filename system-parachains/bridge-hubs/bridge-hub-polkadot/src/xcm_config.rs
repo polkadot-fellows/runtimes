@@ -22,6 +22,7 @@ use super::{
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
 	XcmpQueue,
 };
+use crate::EthereumGatewayAddress;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
@@ -35,11 +36,10 @@ use parachains_common::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_core::DescribeHere;
-use snowbridge_polkadot_common::EthereumNetwork;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_core::{Get, H256};
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
+use system_parachains_constants::{polkadot::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -50,7 +50,7 @@ use xcm_builder::{
 	ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	XcmFeeToAccount,
 };
 use xcm_executor::{traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
 				   XcmExecutor};
@@ -155,9 +155,12 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		match call {
 			RuntimeCall::System(frame_system::Call::set_storage { items })
 				if items.iter().all(|(k, _)| {
-					k.eq(&DeliveryRewardInBalance::key()) || // todo one or two slashes?
-						k.eq(&RequiredStakeForStakeAndSlash::key()) |
-							k.eq(&EthereumGatewayAddress::key())
+					k.eq(&DeliveryRewardInBalance::key()) ||
+						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
+						k.eq(&EthereumGatewayAddress::key()) ||
+						// Allow resetting of Ethereum nonces in Rococo only.
+						k.starts_with(&snowbridge_pallet_inbound_queue::Nonce::<Runtime>::final_prefix()) ||
+						k.starts_with(&snowbridge_pallet_outbound_queue::Nonce::<Runtime>::final_prefix())
 				}) =>
 				return true,
 			_ => (),
@@ -204,13 +207,20 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					crate::bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
 				>::set_operating_mode { .. }) |
 				RuntimeCall::EthereumBeaconClient(
-					snowbridge_ethereum_beacon_client::Call::force_checkpoint { .. } |
-						snowbridge_ethereum_beacon_client::Call::set_operating_mode { .. },
+					snowbridge_pallet_ethereum_client::Call::force_checkpoint { .. } |
+						snowbridge_pallet_ethereum_client::Call::set_operating_mode { .. },
 				) | RuntimeCall::EthereumInboundQueue(
-				snowbridge_inbound_queue::Call::set_operating_mode { .. },
+				snowbridge_pallet_inbound_queue::Call::set_operating_mode { .. },
 			) | RuntimeCall::EthereumOutboundQueue(
-				snowbridge_outbound_queue::Call::set_operating_mode { .. },
-			) | RuntimeCall::EthereumSystem(..)
+				snowbridge_pallet_outbound_queue::Call::set_operating_mode { .. },
+			) | RuntimeCall::EthereumSystem(
+				snowbridge_pallet_system::Call::upgrade { .. } |
+					snowbridge_pallet_system::Call::set_operating_mode { .. } |
+					snowbridge_pallet_system::Call::set_pricing_parameters { .. } |
+					snowbridge_pallet_system::Call::force_update_channel { .. } |
+					snowbridge_pallet_system::Call::force_transfer_native_from_agent { .. } |
+					snowbridge_pallet_system::Call::set_token_transfer_fees { .. },
+			)
 		)
 	}
 }
@@ -308,7 +318,7 @@ impl xcm_executor::Config for XcmConfig {
 				Self::AssetTransactor,
 				crate::EthereumOutboundQueue,
 			>,
-			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>, // todo check if right
+			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
 		),
 	>;
 	type MessageExporter = (
@@ -389,24 +399,5 @@ for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
 
 	fn handle_fee(fee: MultiAssets, context: Option<&XcmContext>, reason: FeeReason) {
 		FeeHandler::handle_fee(fee, context, reason);
-	}
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmark_helpers {
-	use crate::{MultiAssets, MultiLocation, SendError, SendResult, SendXcm, Xcm, XcmHash};
-
-	pub struct DoNothingRouter;
-	impl SendXcm for DoNothingRouter {
-		type Ticket = ();
-		fn validate(
-			_dest: &mut Option<MultiLocation>,
-			_msg: &mut Option<Xcm<()>>,
-		) -> SendResult<()> {
-			Ok(((), MultiAssets::new()))
-		}
-		fn deliver(_: ()) -> Result<XcmHash, SendError> {
-			Ok([0; 32])
-		}
 	}
 }

@@ -18,7 +18,7 @@ use crate::{
     xcm_config::UniversalLocation,
     Runtime,
 };
-use snowbridge_polkadot_common::EthereumNetwork;
+use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 use snowbridge_router_primitives::outbound::EthereumBlobExporter;
 
 /// Exports message to the Ethereum Gateway contract.
