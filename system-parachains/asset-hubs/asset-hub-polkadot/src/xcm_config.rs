@@ -784,7 +784,7 @@ pub mod bridging {
 		}
 
 		pub type IsTrustedBridgedReserveLocationForForeignAsset =
-		matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
+			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
 		impl Contains<(MultiLocation, Junction)> for UniversalAliases {
 			fn contains(alias: &(MultiLocation, Junction)) -> bool {
@@ -810,7 +810,8 @@ pub mod bridging {
 					}
 				});
 			assert!(alias.is_some(), "we expect here BridgeHubPolkadot to Kusama mapping at least");
-			Some(alias.unwrap())		}
+			Some(alias.unwrap())
+		}
 	}
 }
 

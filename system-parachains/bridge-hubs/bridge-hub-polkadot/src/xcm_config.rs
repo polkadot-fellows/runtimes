@@ -18,11 +18,10 @@ use super::{
 	bridge_to_kusama_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubKusamaHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
-	XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
-use crate::EthereumGatewayAddress;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
@@ -39,8 +38,8 @@ use snowbridge_core::DescribeHere;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_core::{Get, H256};
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::{polkadot::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use sp_std::marker::PhantomData;
+use system_parachains_constants::{polkadot::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
@@ -52,8 +51,10 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeToAccount,
 };
-use xcm_executor::{traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
-				   XcmExecutor};
+use xcm_executor::{
+	traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
+	XcmExecutor,
+};
 
 parameter_types! {
 	pub const DotRelayLocation: MultiLocation = MultiLocation::parent();
@@ -321,10 +322,8 @@ impl xcm_executor::Config for XcmConfig {
 			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
 		),
 	>;
-	type MessageExporter = (
-		ToBridgeHubKusamaHaulBlobExporter,
-		crate::bridge_to_ethereum_config::SnowbridgeExporter
-	);
+	type MessageExporter =
+		(ToBridgeHubKusamaHaulBlobExporter, crate::bridge_to_ethereum_config::SnowbridgeExporter);
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
@@ -387,7 +386,7 @@ pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
 	PhantomData<(WaivedLocations, HandleFee)>,
 );
 impl<WaivedLocations: Contains<MultiLocation>, FeeHandler: HandleFee> FeeManager
-for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
+	for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
 {
 	fn is_waived(origin: Option<&MultiLocation>, fee_reason: FeeReason) -> bool {
 		let Some(loc) = origin else { return false };

@@ -140,4 +140,3 @@ pub mod snowbridge {
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
 	}
 }
-

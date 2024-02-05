@@ -18,11 +18,10 @@ use super::{
 	bridge_to_polkadot_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubPolkadotHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
-	XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
-use crate::EthereumGatewayAddress;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
@@ -52,8 +51,10 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeToAccount,
 };
-use xcm_executor::{traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
-				   XcmExecutor};
+use xcm_executor::{
+	traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
+	XcmExecutor,
+};
 
 parameter_types! {
 	pub const KsmRelayLocation: MultiLocation = MultiLocation::parent();
@@ -314,10 +315,8 @@ impl xcm_executor::Config for XcmConfig {
 			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
 		),
 	>;
-	type MessageExporter = (
-		ToBridgeHubPolkadotHaulBlobExporter,
-		crate::bridge_to_ethereum_config::SnowbridgeExporter,
-	);
+	type MessageExporter =
+		(ToBridgeHubPolkadotHaulBlobExporter, crate::bridge_to_ethereum_config::SnowbridgeExporter);
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
@@ -380,7 +379,7 @@ pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
 	PhantomData<(WaivedLocations, HandleFee)>,
 );
 impl<WaivedLocations: Contains<MultiLocation>, FeeHandler: HandleFee> FeeManager
-for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
+	for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
 {
 	fn is_waived(origin: Option<&MultiLocation>, fee_reason: FeeReason) -> bool {
 		let Some(loc) = origin else { return false };
