@@ -39,7 +39,7 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
 	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
 	DescribeTerminus, EnsureXcmOrigin,
-	FixedWeightBounds, /* TODO:(PR#137) - wait for xcm-executor patch
+	FixedWeightBounds, /* TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
 	                    * FrameTransactionalProcessor, */
 	HashedDescription, IsConcrete, OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
@@ -313,7 +313,7 @@ impl xcm_executor::Config for XcmConfig {
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
 	type Aliasers = Nothing;
-	// TODO:(PR#137) - wait for xcm-executor patch
+	// TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
 	// type TransactionalProcessor = FrameTransactionalProcessor;
 }
 

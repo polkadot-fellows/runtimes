@@ -44,7 +44,8 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, CurrencyAdapter as XcmCurrencyAdapter, DescribeAllTerminal,
 	DescribeFamily,
-	/* TODO:(PR#137) - wait for xcm-executor patch FrameTransactionalProcessor, */
+	/* TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
+	 * FrameTransactionalProcessor, */
 	HashedDescription, IsConcrete, MintLocation, OriginToPluralityVoice, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -228,7 +229,7 @@ impl xcm_executor::Config for XcmConfig {
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
-	// TODO:(PR#137) - wait for xcm-executor patch
+	// TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
 	// type TransactionalProcessor = FrameTransactionalProcessor;
 }
 

@@ -2457,12 +2457,13 @@ sp_api::impl_runtime_apis! {
 					Ok((origin, ticket, assets))
 				}
 
-				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-					Ok(MultiAsset {
-						id: Concrete(TokenLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					})
-				}
+				// TODO:(PR#137) - revert back with `polkadot-sdk@1.6.0` or  `polkadot-sdk@1.7.0`
+				// fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
+				// 	Ok(MultiAsset {
+				// 		id: Concrete(TokenLocation::get()),
+				// 		fun: Fungible(1_000_000 * UNITS),
+				// 	})
+				// }
 
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
 					// Polkadot doesn't support asset locking
