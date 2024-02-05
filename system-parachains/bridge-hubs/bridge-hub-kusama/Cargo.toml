@@ -93,6 +93,7 @@ bp-relayers = { default-features = false , version = "0.6.0" }
 bp-runtime = { default-features = false , version = "0.6.0" }
 bp-kusama = { default-features = false , version = "0.4.0" }
 bp-polkadot = { default-features = false , version = "0.4.0" }
+bridge-hub-common = { default-features = false , version = "0.4.0" } #todo publish
 bridge-runtime-common = { default-features = false , version = "0.6.0" }
 pallet-bridge-grandpa = { default-features = false , version = "0.6.0" }
 pallet-bridge-messages = { default-features = false , version = "0.6.0" }
@@ -100,25 +101,9 @@ pallet-bridge-parachains = { default-features = false , version = "0.6.0" }
 pallet-bridge-relayers = { default-features = false , version = "0.6.0" }
 pallet-xcm-bridge-hub =  { default-features = false , version = "0.1.0" }
 
-# Bridges
-bp-header-chain = { default-features = false , version = "0.4.0" }
-bp-messages = { default-features = false , version = "0.4.0" }
-bp-parachains = { default-features = false , version = "0.4.0" }
-bp-polkadot-core = { default-features = false , version = "0.4.0" }
-bp-relayers = { default-features = false , version = "0.4.0" }
-bp-runtime = { default-features = false , version = "0.4.0" }
-bp-kusama = { default-features = false , version = "0.2.0" }
-bp-polkadot = { default-features = false , version = "0.2.0" }
-bridge-hub-common = { default-features = false , version = "0.4.0" } #todo publish
-bridge-runtime-common = { default-features = false , version = "0.4.0" }
-pallet-bridge-grandpa = { default-features = false , version = "0.4.0" }
-pallet-bridge-messages = { default-features = false , version = "0.4.0" }
-pallet-bridge-parachains = { default-features = false , version = "0.4.0" }
-pallet-bridge-relayers = { default-features = false , version = "0.4.0" }
-
 # Ethereum Bridge (Snowbridge)
 snowbridge-beacon-primitives = { default-features = false , version = "1.0.0" }
-snowbridge-system = { default-features = false , version = "1.0.0" }
+snowbridge-pallet-system = { default-features = false , version = "1.0.0" }
 snowbridge-system-runtime-api = { default-features = false , version = "1.0.0" }
 snowbridge-core = { default-features = false , version = "1.0.0" }
 snowbridge-pallet-ethereum-client = { default-features = false , version = "1.0.0" }
@@ -197,15 +182,14 @@ std = [
 	"serde",
 	"snowbridge-beacon-primitives/std",
 	"snowbridge-core/std",
-	"snowbridge-ethereum-beacon-client/std",
-	"snowbridge-inbound-queue/std",
+	"snowbridge-pallet-ethereum-client/std",
+	"snowbridge-pallet-inbound-queue/std",
 	"snowbridge-outbound-queue-runtime-api/std",
-	"snowbridge-outbound-queue/std",
-	"snowbridge-kusama-common/std",
+	"snowbridge-pallet-outbound-queue/std",
 	"snowbridge-router-primitives/std",
 	"snowbridge-runtime-common/std",
 	"snowbridge-system-runtime-api/std",
-	"snowbridge-system/std",
+	"snowbridge-pallet-system/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
@@ -256,13 +240,12 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
-	"snowbridge-ethereum-beacon-client/runtime-benchmarks",
-	"snowbridge-inbound-queue/runtime-benchmarks",
-	"snowbridge-outbound-queue/runtime-benchmarks",
-	"snowbridge-kusama-common/runtime-benchmarks",
+	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
+	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
+	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"snowbridge-runtime-common/runtime-benchmarks",
-	"snowbridge-system/runtime-benchmarks",
+	"snowbridge-pallet-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -296,16 +279,16 @@ try-runtime = [
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
-	"snowbridge-ethereum-beacon-client/try-runtime",
-	"snowbridge-inbound-queue/try-runtime",
-	"snowbridge-outbound-queue/try-runtime",
-	"snowbridge-system/try-runtime",
+	"snowbridge-pallet-ethereum-client/try-runtime",
+	"snowbridge-pallet-inbound-queue/try-runtime",
+	"snowbridge-pallet-outbound-queue/try-runtime",
+	"snowbridge-pallet-system/try-runtime",
 	"sp-runtime/try-runtime",
 ]
 
 experimental = [ "pallet-aura/experimental" ]
 beacon-spec-mainnet = [
-	"snowbridge-ethereum-beacon-client/beacon-spec-mainnet",
+	"snowbridge-pallet-ethereum-client/beacon-spec-mainnet",
 ]
 
 # A feature that should be enabled when the runtime should be built for on-chain
