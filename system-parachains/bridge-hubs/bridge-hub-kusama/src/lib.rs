@@ -495,7 +495,6 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm = 32,
 		// Temporary to migrate the remaining DMP messages:
 		DmpQueue: cumulus_pallet_dmp_queue = 33,
-		MessageQueue: pallet_message_queue = 34,
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,
@@ -509,6 +508,10 @@ construct_runtime!(
 		BridgePolkadotParachains: pallet_bridge_parachains::<Instance1> = 52,
 		BridgePolkadotMessages: pallet_bridge_messages::<Instance1> = 53,
 		XcmOverBridgeHubPolkadot: pallet_xcm_bridge_hub::<Instance1> = 54,
+
+		// Message Queue. Importantly, it is registered after Snowbridge pallets
+		// so that messages are processed after the `on_initialize` hooks of bridging pallets.
+		MessageQueue: pallet_message_queue = 175,
 	}
 );
 
