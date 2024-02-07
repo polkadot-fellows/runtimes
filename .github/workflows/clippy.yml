@@ -2,13 +2,12 @@ name: "Clippy"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
-# Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
-# triggered (ref https://stackoverflow.com/a/72408109)
+# cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -33,6 +32,8 @@ jobs:
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
         run: cargo +nightly clippy --all-targets --locked -q
