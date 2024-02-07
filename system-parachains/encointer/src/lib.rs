@@ -357,7 +357,6 @@ parameter_types! {
 	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
-	pub const MaxBalance: Balance = Balance::max_value();
 }
 
 pub struct NoConversion;
@@ -387,7 +386,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = (); //No spend, no bounty
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
-	type SpendOrigin = frame_system::EnsureRootWithSuccess<Self::AccountId, MaxBalance>;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>; //No spend, no bounty
 	type AssetKind = ();
 	type Beneficiary = AccountId;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
