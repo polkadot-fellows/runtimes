@@ -7165,9 +7165,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-bazaar"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0858d85b205d1026ccfc7e617d0028357efcfdaa9918e6ad4896f93eda3bc960"
+checksum = "c2f5797985a0a1d94338ab69659e62fb3b9435f070db39a0e610fd1757cf77fd"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -7195,9 +7195,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies"
-version = "3.0.2"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a35401aa2ffbae97ba5f981542c20ca4c8609c115078a2a84835336921d5208"
+checksum = "3712bb0ba1f1645cf1744d56c2fcb237a1b82319709db7d383a2d219449a5383"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -7233,9 +7233,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b78031c09e3adc31ba279bb18186e379222a7b54a14d59288040dc205621e49"
+checksum = "88164fe398f45a0af98c74115e27c2c19cbdb218da7a1ba2269c12e92574779c"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -7264,9 +7264,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-faucet"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64fdd1b8885dfb83e249af6a8914a38e3d5ea5f01d196ae35ec1420e502a54ef"
+checksum = "749e2e516dd7d0c5901920c866f8ae0c6d76665df07e5acd5fbccc5938bb9193"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -7309,9 +7309,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-scheduler"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffe4e1efc5084466c4c0ae1d835651a29ab3ee8fc68933ae14df00d0875441b"
+checksum = "a90e9127e0ed2392545ea4178b82f25ac987cb1228e6d90c77875d559a7a1578"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
