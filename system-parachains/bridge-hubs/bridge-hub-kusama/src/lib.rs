@@ -639,7 +639,7 @@ parameter_types! {
 		},
 		deneb: Fork {
 			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 99999999, // TODO update when epoch becomes known
+			epoch: 269568,
 		},
 	};
 }
