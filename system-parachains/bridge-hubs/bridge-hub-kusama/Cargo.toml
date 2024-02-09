@@ -17,7 +17,6 @@ hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.188", optional = true, features = ["derive"] }
-smallvec = "1.11.0"
 
 # Local
 bp-asset-hub-kusama = { path = "../../asset-hubs/asset-hub-kusama/primitives", default-features = false}
@@ -66,7 +65,7 @@ polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
 polkadot-runtime-common = { default-features = false, version = "4.0.0" }
 xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "4.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.2" }
 
 # Cumulus
 cumulus-pallet-aura-ext = { default-features = false , version = "0.4.0" }
@@ -241,7 +240,7 @@ try-runtime = [
 
 experimental = [ "pallet-aura/experimental" ]
 
-# A feature that should be enabled when the runtime should be build for on-chain
+# A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
-# to make it smaller like logging for example.
+# to make it smaller, like logging for example.
 on-chain-release-build = [ "sp-api/disable-logging" ]

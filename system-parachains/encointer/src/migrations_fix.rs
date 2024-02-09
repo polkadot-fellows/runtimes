@@ -22,7 +22,6 @@ pub mod balances {
 	use pallet_balances::*;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
-	use sp_std::vec::Vec;
 
 	/// The log target.
 	const TARGET: &'static str = "runtime::fix::balances::migration";
@@ -33,7 +32,7 @@ pub mod balances {
 
 		impl<T: Config> OnRuntimeUpgrade for BruteForceToV1<T> {
 			#[cfg(feature = "try-runtime")]
-			fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
+			fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, TryRuntimeError> {
 				Ok(().encode())
 			}
 
@@ -53,7 +52,7 @@ pub mod balances {
 			}
 
 			#[cfg(feature = "try-runtime")]
-			fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
+			fn post_upgrade(_state: sp_std::vec::Vec<u8>) -> Result<(), TryRuntimeError> {
 				ensure!(StorageVersion::get::<Pallet<T>>() == 1, "Must upgrade");
 				Ok(())
 			}
@@ -136,8 +135,10 @@ pub mod scheduler {
 			ValueQuery,
 		>;
 
+		#[cfg(feature = "try-runtime")]
 		pub(crate) type TaskName = [u8; 32];
 
+		#[cfg(feature = "try-runtime")]
 		#[frame_support::storage_alias]
 		pub(crate) type Lookup<T: Config> =
 			StorageMap<Pallet<T>, Twox64Concat, TaskName, TaskAddress<BlockNumberFor<T>>>;
