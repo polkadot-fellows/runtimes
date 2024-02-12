@@ -30,6 +30,7 @@ members = [
 	"integration-tests/emulated/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains",
 	"integration-tests/emulated/chains/relays/kusama",
+	"integration-tests/emulated/chains/relays/polkadot",
 	"integration-tests/emulated/common",
 ]
 
