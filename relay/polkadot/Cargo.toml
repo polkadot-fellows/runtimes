@@ -67,7 +67,7 @@ pallet-membership = { default-features = false , version = "27.0.0" }
 pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-mmr = { default-features = false , version = "26.0.0" }
 pallet-multisig = { default-features = false , version = "27.0.0" }
-pallet-nomination-pools = { default-features = false , version = "24.0.0" }
+pallet-nomination-pools = { default-features = false , version = "24.0.1" }
 pallet-nomination-pools-runtime-api = { default-features = false , version = "22.0.0" }
 pallet-offences = { default-features = false , version = "26.0.0" }
 pallet-preimage = { default-features = false , version = "27.0.0" }
