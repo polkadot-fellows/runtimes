@@ -436,6 +436,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "asset-hub-kusama-emulated-chain"
+version = "0.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "cumulus-primitives-core 0.7.0",
+ "emulated-integration-tests-common",
+ "frame-support 28.0.0",
+ "kusama-emulated-chain",
+ "parachains-common 7.0.0",
+ "serde_json",
+ "sp-core 28.0.0",
+ "sp-runtime 31.0.1",
+ "system-parachains-constants",
+]
+
+[[package]]
 name = "asset-hub-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
@@ -540,6 +556,22 @@ dependencies = [
  "staging-xcm-builder 7.0.0",
  "staging-xcm-executor 7.0.0",
  "substrate-wasm-builder 17.0.0",
+ "system-parachains-constants",
+]
+
+[[package]]
+name = "asset-hub-polkadot-emulated-chain"
+version = "0.0.0"
+dependencies = [
+ "asset-hub-polkadot-runtime",
+ "cumulus-primitives-core 0.7.0",
+ "emulated-integration-tests-common",
+ "frame-support 28.0.0",
+ "parachains-common 7.0.0",
+ "polkadot-emulated-chain",
+ "serde_json",
+ "sp-core 28.0.0",
+ "sp-runtime 31.0.1",
  "system-parachains-constants",
 ]
 

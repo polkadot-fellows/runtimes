@@ -31,6 +31,8 @@ members = [
 	"integration-tests/emulated/chains",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
+	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
+	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/common",
 ]
 
