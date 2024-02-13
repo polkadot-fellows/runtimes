@@ -726,7 +726,8 @@ mod benches {
 		[pallet_collective, Collective]
 		[pallet_membership, Membership]
 		[pallet_timestamp, Timestamp]
-		[pallet_treasury, Treasury]
+		// todo: treasury will be removed in separate PR, so no need to fix broken benchmarks: https://github.com/polkadot-fellows/runtimes/issues/176
+		//[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_proxy, Proxy]
 		[pallet_encointer_balances, EncointerBalances]
