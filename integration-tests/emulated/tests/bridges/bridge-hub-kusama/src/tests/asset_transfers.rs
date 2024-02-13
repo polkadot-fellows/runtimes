@@ -18,7 +18,7 @@ use crate::tests::*;
 fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: MultiLocation, amount: u128) {
 	let destination = asset_hub_polkadot_location();
 
-	// fund the AHR's SA on BHR for paying bridge transport fees
+	// fund the AHK's SA on BHK for paying bridge transport fees
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
 
 	// set XCM versions
@@ -44,13 +44,13 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		ASSET_MIN_BALANCE,
 		vec![],
 	);
-	let sov_ahw_on_ahr = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
+	let sov_ahp_on_ahk = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		NetworkId::Polkadot,
 		AssetHubPolkadot::para_id(),
 	);
 
-	let ksms_in_reserve_on_ahr_before =
-		<AssetHubKusama as Chain>::account_data_of(sov_ahw_on_ahr.clone()).free;
+	let ksms_in_reserve_on_ahk_before =
+		<AssetHubKusama as Chain>::account_data_of(sov_ahp_on_ahk.clone()).free;
 	let sender_ksms_before =
 		<AssetHubKusama as Chain>::account_data_of(AssetHubKusamaSender::get()).free;
 	let receiver_ksms_before = AssetHubPolkadot::execute_with(|| {
@@ -65,7 +65,7 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				// issue KSMs on AHW
+				// issue KSMs on AHP
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == ksm_at_asset_hub_kusama,
 					owner: *owner == AssetHubPolkadotReceiver::get(),
@@ -84,15 +84,15 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(ksm_at_asset_hub_polkadot, &AssetHubPolkadotReceiver::get())
 	});
-	let ksms_in_reserve_on_ahr_after =
-		<AssetHubKusama as Chain>::account_data_of(sov_ahw_on_ahr.clone()).free;
+	let ksms_in_reserve_on_ahk_after =
+		<AssetHubKusama as Chain>::account_data_of(sov_ahp_on_ahk.clone()).free;
 
 	// Sender's balance is reduced
 	assert!(sender_ksms_before > sender_ksms_after);
 	// Receiver's balance is increased
 	assert!(receiver_ksms_after > receiver_ksms_before);
 	// Reserve balance is reduced by sent amount
-	assert_eq!(ksms_in_reserve_on_ahr_after, ksms_in_reserve_on_ahr_before + amount);
+	assert_eq!(ksms_in_reserve_on_ahk_after, ksms_in_reserve_on_ahk_before + amount);
 }
 
 #[test]
@@ -109,16 +109,16 @@ fn send_dots_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		vec![(AssetHubKusamaSender::get(), prefund_amount)],
 	);
 
-	// fund the AHR's SA on AHW with the DOT tokens held in reserve
-	let sov_ahr_on_ahw = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
+	// fund the AHK's SA on AHP with the DOT tokens held in reserve
+	let sov_ahk_on_ahp = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
 		NetworkId::Kusama,
 		AssetHubKusama::para_id(),
 	);
-	AssetHubPolkadot::fund_accounts(vec![(sov_ahr_on_ahw.clone(), prefund_amount)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_ahk_on_ahp.clone(), prefund_amount)]);
 
-	let dots_in_reserve_on_ahw_before =
-		<AssetHubPolkadot as Chain>::account_data_of(sov_ahr_on_ahw.clone()).free;
-	assert_eq!(dots_in_reserve_on_ahw_before, prefund_amount);
+	let dots_in_reserve_on_ahp_before =
+		<AssetHubPolkadot as Chain>::account_data_of(sov_ahk_on_ahp.clone()).free;
+	assert_eq!(dots_in_reserve_on_ahp_before, prefund_amount);
 	let sender_dots_before = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(dot_at_asset_hub_kusama, &AssetHubKusamaSender::get())
@@ -134,11 +134,11 @@ fn send_dots_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				// DOT is withdrawn from AHR's SA on AHW
+				// DOT is withdrawn from AHK's SA on AHP
 				RuntimeEvent::Balances(
 					pallet_balances::Event::Withdraw { who, amount }
 				) => {
-					who: *who == sov_ahr_on_ahw,
+					who: *who == sov_ahk_on_ahp,
 					amount: *amount == amount_to_send,
 				},
 				// DOTs deposited to beneficiary
@@ -159,13 +159,13 @@ fn send_dots_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	});
 	let receiver_dots_after =
 		<AssetHubPolkadot as Chain>::account_data_of(AssetHubPolkadotReceiver::get()).free;
-	let dots_in_reserve_on_ahw_after =
-		<AssetHubPolkadot as Chain>::account_data_of(sov_ahr_on_ahw).free;
+	let dots_in_reserve_on_ahp_after =
+		<AssetHubPolkadot as Chain>::account_data_of(sov_ahk_on_ahp).free;
 
 	// Sender's balance is reduced
 	assert!(sender_dots_before > sender_dots_after);
 	// Receiver's balance is increased
 	assert!(receiver_dots_after > receiver_dots_before);
 	// Reserve balance is reduced by sent amount
-	assert_eq!(dots_in_reserve_on_ahw_after, dots_in_reserve_on_ahw_before - amount_to_send);
+	assert_eq!(dots_in_reserve_on_ahp_after, dots_in_reserve_on_ahp_before - amount_to_send);
 }

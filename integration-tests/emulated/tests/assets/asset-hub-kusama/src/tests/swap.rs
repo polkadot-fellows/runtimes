@@ -136,7 +136,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	);
 
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
-	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
+	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![
 		(AssetHubKusamaSender::get().into(), 5_000_000 * KUSAMA_ED), /* An account to swap dot
 		                                                              * for something else. */
@@ -151,9 +151,9 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 		// 3. Mint foreign asset (in reality this should be a teleport or some such)
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahr.clone().into()),
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone().into()),
 			foreign_asset_at_asset_hub_kusama,
-			sov_penpal_on_ahr.clone().into(),
+			sov_penpal_on_ahk.clone().into(),
 			3_000_000_000_000,
 		));
 
@@ -180,14 +180,14 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 		// 5. Add liquidity:
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahr.clone()),
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			Box::new(asset_native),
 			Box::new(foreign_asset_at_asset_hub_kusama),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
 			0,
-			sov_penpal_on_ahr.clone().into()
+			sov_penpal_on_ahk.clone().into()
 		));
 
 		assert_expected_events!(
@@ -225,13 +225,13 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 		// 7. Remove liquidity
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::remove_liquidity(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahr.clone()),
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			Box::new(asset_native),
 			Box::new(foreign_asset_at_asset_hub_kusama),
 			1414213562273 - 2_000_000_000, // all but the 2 EDs can't be retrieved.
 			0,
 			0,
-			sov_penpal_on_ahr.clone().into(),
+			sov_penpal_on_ahk.clone().into(),
 		));
 	});
 }

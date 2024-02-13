@@ -93,7 +93,7 @@ fn para_to_system_para_sender_assertions(t: ParaToSystemParaTest) {
 
 fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(
+	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
 	assert_expected_events!(
@@ -103,7 +103,7 @@ fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Withdraw { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahr.clone().into(),
+				who: *who == sov_penpal_on_ahk.clone().into(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
@@ -361,11 +361,11 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
 
-	let penpal_location_as_seen_by_ahr = AssetHubKusama::sibling_location_of(PenpalA::para_id());
-	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(penpal_location_as_seen_by_ahr);
+	let penpal_location_as_seen_by_ahk = AssetHubKusama::sibling_location_of(PenpalA::para_id());
+	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_location_as_seen_by_ahk);
 
-	// fund the Penpal's SA on AHR with the native tokens held in reserve
-	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahr.into(), amount_to_send * 2)]);
+	// fund the Penpal's SA on AHK with the native tokens held in reserve
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk.into(), amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalA>(para_to_system_para_sender_assertions);
 	test.set_assertion::<AssetHubKusama>(para_to_system_para_receiver_assertions);
@@ -445,10 +445,10 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 
 	let mut test = SystemParaToParaTest::new(para_test_args);
 
-	// Create SA-of-Penpal-on-AHR with ED.
+	// Create SA-of-Penpal-on-AHK with ED.
 	let penpal_location = AssetHubKusama::sibling_location_of(PenpalA::para_id());
-	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(penpal_location);
-	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahr.into(), KUSAMA_ED)]);
+	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_location);
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk.into(), KUSAMA_ED)]);
 
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;

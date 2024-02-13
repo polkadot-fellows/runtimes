@@ -100,7 +100,7 @@ fn para_to_system_para_sender_assertions(t: ParaToSystemParaTest) {
 fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-	let sov_penpal_on_ahw = AssetHubPolkadot::sovereign_account_id_of(
+	let sov_penpal_on_ahp = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
 	);
 
@@ -111,7 +111,7 @@ fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Withdraw { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahw.clone().into(),
+				who: *who == sov_penpal_on_ahp.clone().into(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
@@ -370,12 +370,12 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
 
-	let penpal_location_as_seen_by_ahw = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
-	let sov_penpal_on_ahw =
-		AssetHubPolkadot::sovereign_account_id_of(penpal_location_as_seen_by_ahw);
+	let penpal_location_as_seen_by_ahp = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let sov_penpal_on_ahp =
+		AssetHubPolkadot::sovereign_account_id_of(penpal_location_as_seen_by_ahp);
 
-	// fund the Penpal's SA on AHW with the native tokens held in reserve
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahw.into(), amount_to_send * 2)]);
+	// fund the Penpal's SA on AHP with the native tokens held in reserve
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp.into(), amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalB>(para_to_system_para_sender_assertions);
 	test.set_assertion::<AssetHubPolkadot>(para_to_system_para_receiver_assertions);
@@ -455,10 +455,10 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 
 	let mut test = SystemParaToParaTest::new(para_test_args);
 
-	// Create SA-of-Penpal-on-AHW with ED.
+	// Create SA-of-Penpal-on-AHP with ED.
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
-	let sov_penpal_on_ahw = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahw.into(), POLKADOT_ED)]);
+	let sov_penpal_on_ahp = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp.into(), POLKADOT_ED)]);
 
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;

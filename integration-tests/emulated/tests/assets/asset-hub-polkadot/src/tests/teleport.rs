@@ -138,7 +138,7 @@ fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 
 fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	let sov_penpal_on_ahr = AssetHubPolkadot::sovereign_account_id_of(
+	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
 	);
 	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
@@ -150,7 +150,7 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Withdraw { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahr.clone().into(),
+				who: *who == sov_penpal_on_ahk.clone().into(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
