@@ -41,6 +41,7 @@ members = [
 	"integration-tests/emulated/tests/assets/asset-hub-kusama",
 	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
+	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/common",
 ]
 

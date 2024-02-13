@@ -1491,6 +1491,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "bridge-hub-polkadot-integration-tests"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bridge-hub-polkadot-runtime",
+ "cumulus-pallet-xcmp-queue 0.7.0",
+ "emulated-integration-tests-common",
+ "frame-support 28.0.0",
+ "kusama-polkadot-system-emulated-network",
+ "pallet-assets 29.0.0",
+ "pallet-balances 28.0.0",
+ "pallet-bridge-messages",
+ "pallet-message-queue 31.0.0",
+ "pallet-xcm 7.0.0",
+ "parachains-common 7.0.0",
+ "parity-scale-codec",
+ "sp-runtime 31.0.1",
+ "staging-xcm 7.0.0",
+ "staging-xcm-executor 7.0.0",
+]
+
+[[package]]
 name = "bridge-hub-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
