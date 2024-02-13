@@ -13,7 +13,6 @@ codec = { package = "parity-scale-codec", version = "3.6.9", default-features = 
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-smallvec = "1.11.2"
 
 # Local
 bp-asset-hub-kusama = { path = "./primitives", default-features = false}
@@ -68,14 +67,14 @@ sp-weights = { default-features = false, version = "26.0.0" }
 primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "num-traits"] }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "6.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "6.0.0" }
-polkadot-core-primitives = { default-features = false, version = "6.0.0" }
-polkadot-parachain-primitives = { default-features = false, version = "5.0.0" }
-polkadot-runtime-common = { default-features = false, version = "6.0.0" }
-xcm = { package = "staging-xcm", default-features = false, version = "6.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "6.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "6.0.0" }
+pallet-xcm = { default-features = false, version = "4.0.0" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "4.0.0" }
+polkadot-core-primitives = { default-features = false, version = "4.0.0" }
+polkadot-parachain-primitives = { default-features = false, version = "3.0.0" }
+polkadot-runtime-common = { default-features = false, version = "4.0.0" }
+xcm = { package = "staging-xcm", default-features = false, version = "4.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "4.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "4.0.2" }
 
 # Cumulus
 cumulus-pallet-aura-ext = { default-features = false , version = "0.6.0" }
@@ -85,7 +84,7 @@ cumulus-pallet-session-benchmarking = { default-features = false, version = "8.0
 cumulus-pallet-xcm = { default-features = false , version = "0.6.0" }
 cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.6.0" }
 cumulus-primitives-core = { default-features = false , version = "0.6.0" }
-cumulus-primitives-utility = { default-features = false , version = "0.6.0" }
+cumulus-primitives-utility = { default-features = false , version = "0.6.2" }
 pallet-collator-selection = { default-features = false , version = "8.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.6.0" }
 parachains-common = { default-features = false , version = "6.0.0" }

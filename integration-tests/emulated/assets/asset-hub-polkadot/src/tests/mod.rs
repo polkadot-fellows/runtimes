@@ -23,5 +23,5 @@ integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
 	PenpalPolkadotA,
 	AssetHubPolkadot,
 	POLKADOT_ED,
-	parachains_common::polkadot::fee::WeightToFee
+	system_parachains_constants::polkadot::fee::WeightToFee
 );

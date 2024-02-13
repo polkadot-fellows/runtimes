@@ -694,6 +694,7 @@ construct_runtime!(
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
 		PolkadotXcm: pallet_xcm = 31,
 		CumulusXcm: cumulus_pallet_xcm = 32,
+		// Temporary to migrate the remaining DMP messages:
 		DmpQueue: cumulus_pallet_dmp_queue = 33,
 		MessageQueue: pallet_message_queue = 34,
 
@@ -716,7 +717,9 @@ construct_runtime!(
 		EthereumBeaconClient: snowbridge_pallet_ethereum_client = 82,
 		EthereumSystem: snowbridge_pallet_system = 83,
 
-		// todo add message queue pallet here
+		// Message Queue. Importantly, it is registered after Snowbridge pallets
+		// so that messages are processed after the `on_initialize` hooks of bridging pallets.
+		MessageQueue: pallet_message_queue = 175,
 	}
 );
 
@@ -1166,7 +1169,6 @@ impl_runtime_apis! {
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
-
 
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
 					Err(BenchmarkError::Skip)

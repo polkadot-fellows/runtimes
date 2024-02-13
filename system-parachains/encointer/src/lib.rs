@@ -1009,7 +1009,66 @@ fn test_ed_is_one_tenth_of_relay() {
 	assert_eq!(relay_ed / 10, encointer_ed);
 }
 
-// TODO:(PR#137) - encointer pallets does not have compatible `polkadot-sdk` versions,
+#[test]
+fn test_constants_compatiblity() {
+	assert_eq!(
+		::kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT,
+		system_parachains_constants::kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT
+	);
+	assert_eq!(
+		::kusama_runtime_constants::currency::deposit(5, 3),
+		system_parachains_constants::kusama_runtime_constants::currency::deposit(5, 3)
+	);
+	assert_eq!(
+		::system_parachains_constants::AVERAGE_ON_INITIALIZE_RATIO * 1u32,
+		system_parachains_constants::AVERAGE_ON_INITIALIZE_RATIO * 1u32
+	);
+	assert_eq!(
+		::system_parachains_constants::NORMAL_DISPATCH_RATIO * 1u32,
+		system_parachains_constants::NORMAL_DISPATCH_RATIO * 1u32
+	);
+	assert_eq!(
+		::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT.encode(),
+		system_parachains_constants::MAXIMUM_BLOCK_WEIGHT.encode()
+	);
+	assert_eq!(::system_parachains_constants::MINUTES, system_parachains_constants::MINUTES);
+	assert_eq!(::system_parachains_constants::HOURS, system_parachains_constants::HOURS);
+	assert_eq!(::system_parachains_constants::DAYS, system_parachains_constants::DAYS);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
+		system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::UNITS,
+		system_parachains_constants::kusama::currency::UNITS
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::QUID,
+		system_parachains_constants::kusama::currency::QUID
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::CENTS,
+		system_parachains_constants::kusama::currency::CENTS
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::MILLICENTS,
+		system_parachains_constants::kusama::currency::MILLICENTS
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::currency::system_para_deposit(5, 3),
+		system_parachains_constants::kusama::currency::system_para_deposit(5, 3)
+	);
+	assert_eq!(
+		::system_parachains_constants::kusama::fee::calculate_weight_to_fee(
+			&::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
+		),
+		system_parachains_constants::kusama::fee::calculate_weight_to_fee(
+			&system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
+		)
+	);
+}
+
+// TODO: Encointer pallets does not have compatible `polkadot-sdk` versions,
 // so we cannot easily reuse `system-parachains-constants` module.
 mod system_parachains_constants {
 	use super::*;
@@ -1057,6 +1116,7 @@ mod system_parachains_constants {
 
 		/// Constants relating to KSM.
 		pub mod currency {
+			use super::super::kusama_runtime_constants;
 			use polkadot_core_primitives::Balance;
 
 			/// The default existential deposit for system chains. 1/10th of the Relay Chain's
@@ -1152,6 +1212,32 @@ mod system_parachains_constants {
 						coeff_integer: p / q,
 					}]
 				}
+			}
+
+			#[cfg(test)]
+			pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
+				<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
+			}
+		}
+	}
+
+	// TODO: Encointer pallets does not have compatible `polkadot-sdk` versions,
+	// so we cannot easily reuse `kusama-runtime-constants` module.
+	pub(crate) mod kusama_runtime_constants {
+		/// Money matters.
+		pub mod currency {
+			use polkadot_primitives::Balance;
+
+			/// The existential deposit.
+			pub const EXISTENTIAL_DEPOSIT: Balance = 1 * CENTS;
+
+			pub const UNITS: Balance = 1_000_000_000_000;
+			pub const QUID: Balance = UNITS / 30;
+			pub const CENTS: Balance = QUID / 100;
+			pub const MILLICENTS: Balance = CENTS / 1_000;
+
+			pub const fn deposit(items: u32, bytes: u32) -> Balance {
+				items as Balance * 2_000 * CENTS + (bytes as Balance) * 100 * MILLICENTS
 			}
 		}
 	}

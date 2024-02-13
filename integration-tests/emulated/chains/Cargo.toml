@@ -27,7 +27,7 @@ polkadot-parachain-primitives = { version = "5.0.0" }
 # Cumulus
 parachains-common = { version = "6.0.0" }
 xcm-emulator = { version = "0.4.0" }
-penpal-runtime = { version = "0.13.0" }
+penpal-runtime = { version = "0.13.2" }
 
 # Local runtimes
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }

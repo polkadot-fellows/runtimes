@@ -71,7 +71,7 @@ pallet-membership = { default-features = false , version = "27.0.0" }
 pallet-message-queue = { default-features = false , version = "30.0.0" }
 pallet-mmr = { default-features = false , version = "26.0.0" }
 pallet-multisig = { default-features = false , version = "27.0.0" }
-pallet-nomination-pools = { default-features = false , version = "24.0.0" }
+pallet-nomination-pools = { default-features = false , version = "24.0.2" }
 pallet-offences = { default-features = false , version = "26.0.0" }
 pallet-preimage = { default-features = false , version = "27.0.0" }
 pallet-proxy = { default-features = false , version = "27.0.0" }
@@ -94,7 +94,7 @@ pallet-utility = { default-features = false , version = "27.0.0" }
 pallet-vesting = { default-features = false , version = "27.0.0" }
 pallet-whitelist = { default-features = false , version = "26.0.0" }
 pallet-xcm = { default-features = false , version = "6.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "6.0.0" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "6.0.2" }
 frame-election-provider-support = { default-features = false , version = "27.0.0" }
 
 frame-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
@@ -111,10 +111,10 @@ runtime-parachains = { package = "polkadot-runtime-parachains", default-features
 primitives = { package = "polkadot-primitives", default-features = false , version = "6.0.0" }
 
 xcm = { package = "staging-xcm", default-features = false , version = "6.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "6.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "6.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "6.0.2" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "6.0.2" }
 
-sp-debug-derive = { default-features = false, version = "10.0.0" }
+sp-debug-derive = { default-features = false, version = "13.0.0" }
 
 [dev-dependencies]
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }

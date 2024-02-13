@@ -46,17 +46,17 @@ pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions
 
 pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-const ASSET_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_POLKADOT_ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
-const ASSET_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_KUSAMA_ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 
-const COLLECTIVES_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const COLLECTIVES_POLKADOT_ED: Balance = collectives_polkadot_runtime::ExistentialDeposit::get();
 
-const BRIDGE_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::ExistentialDeposit::get();
 
-const BRIDGE_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
-const ENCOINTER_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;

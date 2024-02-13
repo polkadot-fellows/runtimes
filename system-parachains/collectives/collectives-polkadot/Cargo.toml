@@ -13,7 +13,6 @@ codec = { package = "parity-scale-codec", version = "3.6.9", default-features = 
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-smallvec = "1.11.2"
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "27.0.0" }
@@ -66,8 +65,8 @@ polkadot-parachain-primitives = { default-features = false, version = "5.0.0" }
 polkadot-runtime-common = { default-features = false, version = "6.0.0" }
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 xcm = { package = "staging-xcm", default-features = false, version = "6.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "6.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "6.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "6.0.2" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "6.0.2" }
 
 # Cumulus
 cumulus-pallet-aura-ext = { default-features = false , version = "0.6.0" }
@@ -77,7 +76,7 @@ cumulus-pallet-session-benchmarking = { default-features = false, version = "8.0
 cumulus-pallet-xcm = { default-features = false , version = "0.6.0" }
 cumulus-pallet-xcmp-queue = { default-features = false , version = "0.6.0" }
 cumulus-primitives-core = { default-features = false , version = "0.6.0" }
-cumulus-primitives-utility = { default-features = false , version = "0.6.0" }
+cumulus-primitives-utility = { default-features = false , version = "0.6.2" }
 pallet-collator-selection = { default-features = false , version = "8.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.6.0" }
 parachains-common = { default-features = false , version = "6.0.0" }

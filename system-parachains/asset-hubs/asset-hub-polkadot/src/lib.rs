@@ -844,6 +844,7 @@ construct_runtime!(
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
 		PolkadotXcm: pallet_xcm = 31,
 		CumulusXcm: cumulus_pallet_xcm = 32,
+		// Temporary to migrate the remaining DMP messages:
 		DmpQueue: cumulus_pallet_dmp_queue = 33,
 		ToKusamaXcmRouter: pallet_xcm_bridge_hub_router::<Instance1> = 34,
 		MessageQueue: pallet_message_queue = 35,
