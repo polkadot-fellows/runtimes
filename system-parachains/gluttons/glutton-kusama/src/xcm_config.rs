@@ -24,9 +24,7 @@ use frame_support::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AllowExplicitUnpaidExecutionFrom,
-	FixedWeightBounds, /* TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
-	                    * FrameTransactionalProcessor, */
+	AllowExplicitUnpaidExecutionFrom, FixedWeightBounds, FrameTransactionalProcessor,
 	ParentAsSuperuser, ParentIsPreset, SovereignSignedViaLocation,
 };
 
@@ -86,8 +84,7 @@ impl xcm_executor::Config for XcmConfig {
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
-	// TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
-	// type TransactionalProcessor = FrameTransactionalProcessor;
+	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
