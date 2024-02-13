@@ -210,8 +210,9 @@ parameter_types! {
 		asset_id: AssetHubUsdtId::get(),
 	};
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
-	// pallet instance (which sits at index 64). This sovereign account will need funding.
-	pub Interior: InteriorMultiLocation = PalletInstance(64).into();
+	// pallet instance. This sovereign account will need funding.
+	pub Interior: InteriorMultiLocation =
+		PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
 }
 
 const USDT_UNITS: u128 = 1_000_000;
@@ -260,7 +261,7 @@ parameter_types! {
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
-	// pallet instance (which sits at index 65).
+	// pallet instance.
 	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation =
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
 }
