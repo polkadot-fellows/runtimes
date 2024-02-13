@@ -23,15 +23,15 @@ encointer-balances-tx-payment = { default-features = false, version = "3.0.2" }
 encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "3.0.2" }
 encointer-primitives = { default-features = false, version = "3.0.2" }
 pallet-encointer-balances = { default-features = false, version = "3.0.2" }
-pallet-encointer-bazaar = { default-features = false, version = "3.0.2" }
+pallet-encointer-bazaar = { default-features = false, version = "3.0.3" }
 pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "3.0.2" }
-pallet-encointer-ceremonies = { default-features = false, version = "3.0.2" }
+pallet-encointer-ceremonies = { default-features = false, version = "3.0.4" }
 pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "3.0.2" }
-pallet-encointer-communities = { default-features = false, version = "3.0.2" }
+pallet-encointer-communities = { default-features = false, version = "3.0.3" }
 pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "3.0.2" }
-pallet-encointer-faucet = { default-features = false, version = "3.0.2" }
+pallet-encointer-faucet = { default-features = false, version = "3.0.3" }
 pallet-encointer-reputation-commitments = { default-features = false, version = "3.0.2" }
-pallet-encointer-scheduler = { default-features = false, version = "3.0.2" }
+pallet-encointer-scheduler = { default-features = false, version = "3.0.3" }
 
 # Substrate
 frame-benchmarking = { default-features = false, optional = true, version = "25.0.0" }
