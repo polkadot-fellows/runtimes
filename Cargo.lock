@@ -3384,38 +3384,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "emulated-chains"
-version = "1.0.0"
-dependencies = [
- "asset-hub-kusama-runtime",
- "asset-hub-polkadot-runtime",
- "bridge-hub-kusama-runtime",
- "bridge-hub-polkadot-runtime",
- "collectives-polkadot-runtime",
- "cumulus-primitives-core 0.7.0",
- "frame-support 28.0.0",
- "integration-tests-common",
- "kusama-runtime-constants",
- "pallet-im-online",
- "pallet-staking 28.0.0",
- "parachains-common 7.0.0",
- "penpal-runtime",
- "polkadot-parachain-primitives 6.0.0",
- "polkadot-primitives 7.0.0",
- "polkadot-runtime",
- "polkadot-runtime-constants",
- "polkadot-runtime-parachains 7.0.0",
- "sp-authority-discovery 26.0.0",
- "sp-consensus-babe 0.32.0",
- "sp-consensus-beefy",
- "sp-consensus-grandpa 13.0.0",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
- "staging-kusama-runtime",
- "xcm-emulator",
-]
-
-[[package]]
 name = "emulated-integration-tests-common"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5301,39 +5269,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
 dependencies = [
  "num-traits",
-]
-
-[[package]]
-name = "integration-tests-common"
-version = "1.0.0"
-dependencies = [
- "asset-test-utils",
- "bp-messages",
- "bridge-runtime-common",
- "cumulus-pallet-dmp-queue 0.7.0",
- "cumulus-pallet-parachain-system 0.7.0",
- "cumulus-pallet-xcmp-queue 0.7.0",
- "cumulus-primitives-core 0.7.0",
- "frame-support 28.0.0",
- "pallet-assets 29.0.0",
- "pallet-balances 28.0.0",
- "pallet-bridge-messages",
- "pallet-im-online",
- "pallet-message-queue 31.0.0",
- "pallet-xcm 7.0.0",
- "parachains-common 7.0.0",
- "parity-scale-codec",
- "paste",
- "polkadot-primitives 7.0.0",
- "polkadot-runtime-parachains 7.0.0",
- "sp-authority-discovery 26.0.0",
- "sp-consensus-babe 0.32.0",
- "sp-consensus-beefy",
- "sp-consensus-grandpa 13.0.0",
- "sp-core 28.0.0",
- "sp-runtime 31.0.1",
- "staging-xcm 7.0.0",
- "xcm-emulator",
 ]
 
 [[package]]
@@ -9611,7 +9546,6 @@ dependencies = [
  "frame-system-benchmarking 28.0.0",
  "frame-system-rpc-runtime-api 26.0.0",
  "frame-try-runtime 0.34.0",
- "hex-literal",
  "log",
  "pallet-asset-tx-payment 28.0.0",
  "pallet-assets 29.0.0",
