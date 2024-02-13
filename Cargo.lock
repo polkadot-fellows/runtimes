@@ -453,14 +453,14 @@ dependencies = [
 
 [[package]]
 name = "asset-hub-kusama-integration-tests"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "assert_matches",
  "asset-hub-kusama-runtime",
  "asset-test-utils",
- "emulated-chains",
+ "emulated-integration-tests-common",
  "frame-support 28.0.0",
- "integration-tests-common",
+ "kusama-system-emulated-network",
  "pallet-asset-conversion",
  "pallet-assets 29.0.0",
  "pallet-balances 28.0.0",
@@ -473,7 +473,6 @@ dependencies = [
  "staging-xcm 7.0.0",
  "staging-xcm-executor 7.0.0",
  "system-parachains-constants",
- "xcm-emulator",
 ]
 
 [[package]]
