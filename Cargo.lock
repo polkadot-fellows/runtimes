@@ -7956,9 +7956,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "24.0.1"
+version = "24.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc4d609e5aed9d34a5d64c9564008b44afc16d3fc16b9642fe3c32aa91ab5648"
+checksum = "32950c1329132fbb7f0f70efddafbbe103fc15bcb9528e3a3406639935d1c6e4"
 dependencies = [
  "frame-support 27.0.0",
  "frame-system 27.0.0",
