@@ -93,7 +93,7 @@ bp-relayers = { default-features = false , version = "0.6.0" }
 bp-runtime = { default-features = false , version = "0.6.0" }
 bp-kusama = { default-features = false , version = "0.4.0" }
 bp-polkadot = { default-features = false , version = "0.4.0" }
-bridge-hub-common = { default-features = false , version = "0.4.0" } #todo publish
+bridge-hub-common = { default-features = false , version = "0.1.0" }
 bridge-runtime-common = { default-features = false , version = "0.6.0" }
 pallet-bridge-grandpa = { default-features = false , version = "0.6.0" }
 pallet-bridge-messages = { default-features = false , version = "0.6.0" }
@@ -287,9 +287,6 @@ try-runtime = [
 ]
 
 experimental = [ "pallet-aura/experimental" ]
-beacon-spec-mainnet = [
-	"snowbridge-pallet-ethereum-client/beacon-spec-mainnet",
-]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
