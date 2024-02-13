@@ -5574,6 +5574,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kusama-polkadot-system-emulated-network"
+version = "0.1.0"
+dependencies = [
+ "asset-hub-kusama-emulated-chain",
+ "asset-hub-polkadot-emulated-chain",
+ "bridge-hub-kusama-emulated-chain",
+ "bridge-hub-polkadot-emulated-chain",
+ "emulated-integration-tests-common",
+ "kusama-emulated-chain",
+ "penpal-emulated-chain",
+ "polkadot-emulated-chain",
+]
+
+[[package]]
 name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
@@ -5585,6 +5599,17 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-weights 27.0.0",
  "staging-xcm 7.0.0",
+]
+
+[[package]]
+name = "kusama-system-emulated-network"
+version = "0.1.0"
+dependencies = [
+ "asset-hub-kusama-emulated-chain",
+ "bridge-hub-kusama-emulated-chain",
+ "emulated-integration-tests-common",
+ "kusama-emulated-chain",
+ "penpal-emulated-chain",
 ]
 
 [[package]]
@@ -11239,6 +11264,18 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "sp-core 28.0.0",
+]
+
+[[package]]
+name = "polkadot-system-emulated-network"
+version = "0.1.0"
+dependencies = [
+ "asset-hub-polkadot-emulated-chain",
+ "bridge-hub-polkadot-emulated-chain",
+ "collectives-polkadot-emulated-chain",
+ "emulated-integration-tests-common",
+ "penpal-emulated-chain",
+ "polkadot-emulated-chain",
 ]
 
 [[package]]
