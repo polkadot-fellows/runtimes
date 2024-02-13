@@ -26,7 +26,6 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
-	"integration-tests/emulated/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
@@ -40,6 +39,7 @@ members = [
 	"integration-tests/emulated/networks/polkadot-system",
 	"integration-tests/emulated/networks/kusama-polkadot-system",
 	"integration-tests/emulated/tests/assets/asset-hub-kusama",
+	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/common",
 ]
 

@@ -33,7 +33,7 @@ fn send_transact_as_superuser_from_relay_to_system_para_works() {
 #[test]
 fn send_xcm_from_para_to_system_para_paying_fee_with_assets_works() {
 	let para_sovereign_account = AssetHubPolkadot::sovereign_account_id_of(
-		AssetHubPolkadot::sibling_location_of(PenpalPolkadotA::para_id()),
+		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
 	);
 
 	// Force create and mint assets for Parachain's sovereign account
@@ -60,9 +60,8 @@ fn send_xcm_from_para_to_system_para_paying_fee_with_assets_works() {
 	let native_asset =
 		(X2(PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())), fee_amount).into();
 
-	let root_origin = <PenpalPolkadotA as Chain>::RuntimeOrigin::root();
-	let system_para_destination =
-		PenpalPolkadotA::sibling_location_of(AssetHubPolkadot::para_id()).into();
+	let root_origin = <PenpalB as Chain>::RuntimeOrigin::root();
+	let system_para_destination = PenpalB::sibling_location_of(AssetHubPolkadot::para_id()).into();
 	let xcm = xcm_transact_paid_execution(
 		call,
 		origin_kind,
@@ -70,21 +69,21 @@ fn send_xcm_from_para_to_system_para_paying_fee_with_assets_works() {
 		para_sovereign_account.clone(),
 	);
 
-	PenpalPolkadotA::execute_with(|| {
-		assert_ok!(<PenpalPolkadotA as PenpalPolkadotAPallet>::PolkadotXcm::send(
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as PenpalBPallet>::PolkadotXcm::send(
 			root_origin,
 			bx!(system_para_destination),
 			bx!(xcm),
 		));
 
-		PenpalPolkadotA::assert_xcm_pallet_sent();
+		PenpalB::assert_xcm_pallet_sent();
 	});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		AssetHubPolkadot::assert_xcmp_queue_success(Some(Weight::from_parts(
-			15_594_564_000,
+			16_290_336_000,
 			562_893,
 		)));
 

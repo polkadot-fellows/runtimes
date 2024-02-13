@@ -576,25 +576,34 @@ dependencies = [
 
 [[package]]
 name = "asset-hub-polkadot-integration-tests"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
+ "assert_matches",
  "asset-hub-polkadot-runtime",
  "asset-test-utils",
- "emulated-chains",
+ "cumulus-pallet-dmp-queue 0.7.0",
+ "cumulus-pallet-parachain-system 0.7.0",
+ "cumulus-pallet-xcmp-queue 0.7.0",
+ "emulated-integration-tests-common",
  "frame-support 28.0.0",
- "integration-tests-common",
+ "pallet-asset-conversion",
+ "pallet-asset-rate 7.0.0",
  "pallet-assets 29.0.0",
  "pallet-balances 28.0.0",
  "pallet-message-queue 31.0.0",
+ "pallet-treasury 27.0.0",
  "pallet-xcm 7.0.0",
  "parachains-common 7.0.0",
  "parity-scale-codec",
  "polkadot-runtime",
+ "polkadot-runtime-common 7.0.0",
+ "polkadot-runtime-constants",
+ "polkadot-system-emulated-network",
  "sp-runtime 31.0.1",
  "staging-xcm 7.0.0",
+ "staging-xcm-builder 7.0.0",
  "staging-xcm-executor 7.0.0",
  "system-parachains-constants",
- "xcm-emulator",
 ]
 
 [[package]]
