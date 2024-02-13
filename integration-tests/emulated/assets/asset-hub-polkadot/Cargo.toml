@@ -34,4 +34,16 @@ asset-hub-polkadot-runtime = { path = "../../../../system-parachains/asset-hubs/
 polkadot-runtime = { path = "../../../../relay/polkadot" }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"emulated-chains/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks"
+]

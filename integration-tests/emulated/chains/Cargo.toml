@@ -44,5 +44,20 @@ integration-tests-common = { path = "../common" }
 
 [features]
 runtime-benchmarks = [
-    "penpal-runtime/runtime-benchmarks",
+	"penpal-runtime/runtime-benchmarks",
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"collectives-polkadot-runtime/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"pallet-im-online/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"polkadot-runtime-parachains/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks"
 ]

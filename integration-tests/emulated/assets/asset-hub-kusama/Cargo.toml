@@ -36,4 +36,17 @@ asset-hub-kusama-runtime = { path = "../../../../system-parachains/asset-hubs/as
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../relay/kusama" }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"emulated-chains/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks"
+]

@@ -36,7 +36,6 @@ use parachains_common::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
-use snowbridge_polkadot_common::EthereumNetwork;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::{polkadot::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
@@ -48,10 +47,10 @@ use xcm_builder::{
 	EnsureXcmOrigin, FrameTransactionalProcessor, FungiblesAdapter,
 	GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete, LocalMint, NoChecking,
 	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignPaidRemoteExporter,
 	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeesToAccount,
+	XcmFeeManagerFromComponents, XcmFeeToAccount
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
@@ -755,7 +754,7 @@ pub mod bridging {
 				1,
 				X2(
 					Parachain(SiblingBridgeHubParaId::get()),
-					PalletInstance(system_parachains_constants::polkadot::snowbridge::INBOUND_QUEUE_MESSAGES_PALLET_INDEX)
+					PalletInstance(system_parachains_constants::polkadot::snowbridge::INBOUND_QUEUE_PALLET_INDEX)
 				)
 			);
 

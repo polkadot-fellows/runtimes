@@ -47,7 +47,7 @@ use xcm_builder::{
 	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
-	XcmFeesToAccount,
+	XcmFeeToAccount,
 };
 
 parameter_types! {

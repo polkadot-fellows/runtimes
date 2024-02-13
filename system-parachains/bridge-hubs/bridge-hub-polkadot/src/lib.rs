@@ -27,6 +27,8 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
+use crate::xcm_config::XcmRouter;
+use bridge_hub_common::AggregateMessageOrigin;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
@@ -40,8 +42,9 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult,
+	ApplyExtrinsicResult, FixedU128
 };
+use parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -504,7 +507,7 @@ parameter_types! {
 parameter_types! {
 	pub const CreateAssetCall: [u8;2] = [53, 0];
 	pub const CreateAssetDeposit: u128 = (UNITS / 10) + EXISTENTIAL_DEPOSIT;
-	pub const InboundQueuePalletInstance: u8 = system_parachains_constants::polkadot::snowbridge::INBOUND_QUEUE_MESSAGES_PALLET_INDEX;
+	pub const InboundQueuePalletInstance: u8 = system_parachains_constants::polkadot::snowbridge::INBOUND_QUEUE_PALLET_INDEX;
 	pub Parameters: PricingParameters<u128> = PricingParameters {
 		exchange_rate: FixedU128::from_rational(1, 400),
 		fee_per_gas: gwei(20),

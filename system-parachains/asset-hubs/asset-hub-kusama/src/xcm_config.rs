@@ -21,7 +21,6 @@ use super::{
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
 use assets_common::{
-	local_and_foreign_assets::MatchesLocalAndForeignAssetsMultiLocation,
 	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
 };
 use frame_support::{
@@ -50,10 +49,10 @@ use xcm_builder::{
 	EnsureXcmOrigin, FrameTransactionalProcessor, FungiblesAdapter,
 	GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete, LocalMint, NoChecking,
 	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignPaidRemoteExporter,
 	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeesToAccount,
+	XcmFeeManagerFromComponents, XcmFeeToAccount
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
@@ -191,23 +190,6 @@ pub type PoolFungiblesTransactor = FungiblesAdapter<
 pub type AssetTransactors =
 	(CurrencyTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
 
-/// Simple `MultiLocation` matcher for Local and Foreign asset `MultiLocation`.
-pub struct LocalAndForeignAssetsMultiLocationMatcher;
-impl MatchesLocalAndForeignAssetsMultiLocation for LocalAndForeignAssetsMultiLocationMatcher {
-	fn is_local(location: &MultiLocation) -> bool {
-		use assets_common::fungible_conversion::MatchesMultiLocation;
-		TrustBackedAssetsConvertedConcreteId::contains(location)
-	}
-	fn is_foreign(location: &MultiLocation) -> bool {
-		use assets_common::fungible_conversion::MatchesMultiLocation;
-		ForeignAssetsConvertedConcreteId::contains(location)
-	}
-}
-impl Contains<MultiLocation> for LocalAndForeignAssetsMultiLocationMatcher {
-	fn contains(location: &MultiLocation) -> bool {
-		Self::is_local(location) || Self::is_foreign(location)
-	}
-}
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
@@ -880,7 +862,7 @@ pub mod bridging {
 				1,
 				X2(
 					Parachain(SiblingBridgeHubParaId::get()),
-					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_MESSAGES_PALLET_INDEX),
+					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX),
 				)
 			);
 

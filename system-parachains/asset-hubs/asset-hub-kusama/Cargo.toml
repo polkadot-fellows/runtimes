@@ -90,7 +90,7 @@ pallet-collator-selection = { default-features = false , version = "8.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.6.0" }
 parachains-common = { default-features = false , version = "6.0.0" }
 system-parachains-constants = { path = "../../constants", default-features = false }
-assets-common = { default-features = false , version = "0.6.0" }
+assets-common = { default-features = false , version = "0.8.0" }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.4.0" }
@@ -147,6 +147,8 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -256,6 +258,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"primitive-types/std"
 ]
 
 experimental = [ "pallet-aura/experimental" ]
