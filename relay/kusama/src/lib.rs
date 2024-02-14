@@ -2646,6 +2646,7 @@ mod clean_state_migration {
 	use super::Runtime;
 	use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 	use pallet_state_trie_migration::MigrationLimits;
+	use std_std::vec::Vec;
 
 	#[storage_alias]
 	type AutoLimits = StorageValue<StateTrieMigration, Option<MigrationLimits>, ValueQuery>;
