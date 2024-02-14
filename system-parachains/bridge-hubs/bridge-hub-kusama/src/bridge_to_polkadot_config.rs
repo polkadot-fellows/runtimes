@@ -272,6 +272,9 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubPolkadotInstance> for Runtime
 	type UniversalLocation = UniversalLocation;
 	type BridgedNetwork = PolkadotGlobalConsensusNetworkLocation;
 	type BridgeMessagesPalletInstance = WithBridgeHubPolkadotMessagesInstance;
+	// `MessageExportPrice` is simply propagated to the inner `xcm_builder::HaulBlobExporter`, and
+	// we do not need or want to add any additional price for exporting here, as it is already
+	// covered by the measured weight of the `ExportMessage` instruction.
 	type MessageExportPrice = ();
 	type DestinationVersion =
 		XcmVersionOfDestAndRemoteBridge<PolkadotXcm, BridgeHubPolkadotLocation>;

@@ -52,7 +52,10 @@ use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
-use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
+use crate::{
+	impls::benchmarks::{OpenHrmpChannel, PayWithEnsure},
+	ExistentialDeposit,
+};
 
 /// The Fellowship members' ranks.
 pub mod ranks {
@@ -263,6 +266,11 @@ parameter_types! {
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub const ProposalBondForBenchmark: Permill = Permill::from_percent(5);
+}
+
 /// [`PayOverXcm`] setup to pay the Fellowship Treasury.
 pub type FellowshipTreasuryPaymaster = PayOverXcm<
 	FellowshipTreasuryInteriorLocation,
@@ -282,11 +290,23 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	// Instead, public or fellowship referenda should be used to propose and command the treasury
 	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
 	// discourage its use.
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ApproveOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ApproveOrigin = EnsureRoot<AccountId>;
 	type OnSlash = ();
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBond = ProposalBond;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBond = ProposalBondForBenchmark;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBondMinimum = MaxBalance;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBondMinimum = ConstU128<{ ExistentialDeposit::get() * 100 }>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBondMaximum = MaxBalance;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;

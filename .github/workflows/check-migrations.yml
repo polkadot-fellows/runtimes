@@ -2,9 +2,8 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "release-*"]
   pull_request:
-    branches: ["main"]
   workflow_dispatch:
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
