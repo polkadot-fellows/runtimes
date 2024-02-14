@@ -149,9 +149,9 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.7.6"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
+checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
 dependencies = [
  "getrandom 0.2.10",
  "once_cell",
@@ -160,14 +160,15 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.3"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
+checksum = "42cd52102d3df161c77a887b608d7a4897d7cc112886a9537b738a887a03aaff"
 dependencies = [
  "cfg-if",
  "getrandom 0.2.10",
  "once_cell",
  "version_check",
+ "zerocopy",
 ]
 
 [[package]]
@@ -2714,9 +2715,9 @@ dependencies = [
 
 [[package]]
 name = "cumulus-primitives-utility"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b4ef704f5a346711d0448f82e57dc5784b186f4bf5e3efbbca0df814b203539"
+checksum = "2d0ad7498cb748684f0f309ee037e9a29a91fb3ec5b5276b5fc723c3716bdd8a"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -2795,9 +2796,9 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "4.0.0"
+version = "4.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f711ade317dd348950a9910f81c5947e3d8907ebd2b83f76203ff1807e6a2bc2"
+checksum = "0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -3244,7 +3245,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7277392b266383ef8396db7fdeb1e77b6c52fed775f5df15bb24f35b72156980"
 dependencies = [
- "curve25519-dalek 4.0.0",
+ "curve25519-dalek 4.1.2",
  "ed25519",
  "rand_core 0.6.4",
  "serde",
@@ -3727,9 +3728,9 @@ dependencies = [
 
 [[package]]
 name = "fiat-crypto"
-version = "0.1.20"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e825f6987101665dea6ec934c09ec6d721de7bc1bf92248e1d5810c8cd636b77"
+checksum = "1676f435fc1dadde4d03e43f5d62b259e1ce5f40bd4ffb21db2b42ebe59c1382"
 
 [[package]]
 name = "file-per-thread-logger"
@@ -4442,7 +4443,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
- "ahash 0.7.6",
+ "ahash 0.7.8",
 ]
 
 [[package]]
@@ -4451,7 +4452,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
 ]
 
 [[package]]
@@ -4460,7 +4461,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c6201b9ff9fd90a5a3bac2e56a830d0caa509576f0e503818ee82c181b3437a"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
  "allocator-api2",
 ]
 
@@ -6122,7 +6123,7 @@ dependencies = [
  "bitflags 1.3.2",
  "blake2 0.10.6",
  "c2-chacha",
- "curve25519-dalek 4.0.0",
+ "curve25519-dalek 4.1.2",
  "either",
  "hashlink",
  "lioness",
@@ -7165,9 +7166,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-bazaar"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0858d85b205d1026ccfc7e617d0028357efcfdaa9918e6ad4896f93eda3bc960"
+checksum = "c2f5797985a0a1d94338ab69659e62fb3b9435f070db39a0e610fd1757cf77fd"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -7195,9 +7196,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies"
-version = "3.0.2"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a35401aa2ffbae97ba5f981542c20ca4c8609c115078a2a84835336921d5208"
+checksum = "3712bb0ba1f1645cf1744d56c2fcb237a1b82319709db7d383a2d219449a5383"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -7233,9 +7234,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b78031c09e3adc31ba279bb18186e379222a7b54a14d59288040dc205621e49"
+checksum = "88164fe398f45a0af98c74115e27c2c19cbdb218da7a1ba2269c12e92574779c"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -7264,9 +7265,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-faucet"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64fdd1b8885dfb83e249af6a8914a38e3d5ea5f01d196ae35ec1420e502a54ef"
+checksum = "749e2e516dd7d0c5901920c866f8ae0c6d76665df07e5acd5fbccc5938bb9193"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -7309,9 +7310,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-scheduler"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffe4e1efc5084466c4c0ae1d835651a29ab3ee8fc68933ae14df00d0875441b"
+checksum = "a90e9127e0ed2392545ea4178b82f25ac987cb1228e6d90c77875d559a7a1578"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -7601,9 +7602,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "22.0.0"
+version = "22.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1896f33fff0c41934532fb492078d78b784f301ddd81e5041dd8e8279e652c49"
+checksum = "72cec44f1a5752ace99cfc5472d79a758b1cca25b9cc5b2d62ffd8aba6e66a8a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8153,9 +8154,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6bfdc94e39541b111db7d2c2a95a18a3c3bb42dd37c20b8705727e617ce00c9"
+checksum = "d7f50852380d3272accbf4532dc2e46cdc7f66f5452600bfd7d33fc208a5ff1e"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8459,9 +8460,9 @@ dependencies = [
 
 [[package]]
 name = "penpal-runtime"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63d1c2aa2cbc5012e6af2781ff7fb0bf7188ff4d25643a0f36a44f327b779fb4"
+checksum = "bbfc3b8710f83bcaed4e9e944f17805be08857563ac7e59b64ff2b184ff7927e"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -10259,7 +10260,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30cbc5db21ea2c4ba65b23315e73e69e8155630fb47c84b93d40b0e759c9d86d"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
  "array-bytes 6.1.0",
  "async-trait",
  "dyn-clone",
@@ -10498,7 +10499,7 @@ version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b884a9f7cd348c4c1899c0bbf95237e39dffba4baec48d4b98c1046f6bb04fa5"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
  "futures",
  "futures-timer",
  "libp2p",
@@ -10947,7 +10948,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772575a524feeb803e5b0fcbc6dd9f367e579488197c94c6e4023aad2305774d"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
  "cfg-if",
  "hashbrown 0.13.2",
 ]
@@ -11353,7 +11354,7 @@ dependencies = [
  "aes-gcm 0.9.4",
  "blake2 0.10.6",
  "chacha20poly1305",
- "curve25519-dalek 4.0.0",
+ "curve25519-dalek 4.1.2",
  "rand_core 0.6.4",
  "ring",
  "rustc_version 0.4.0",
@@ -12025,7 +12026,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b8654bcd37602b1811414050d34d14f543873bd4e64e50d210a0116b660c600"
 dependencies = [
  "aes-gcm 0.10.2",
- "curve25519-dalek 4.0.0",
+ "curve25519-dalek 4.1.2",
  "ed25519-dalek",
  "hkdf",
  "parity-scale-codec",
@@ -12122,7 +12123,7 @@ version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e359b358263cc322c3f678c272a3a519621d9853dcfa1374dfcbdb5f54c6f85"
 dependencies = [
- "ahash 0.8.3",
+ "ahash 0.8.8",
  "hash-db",
  "hashbrown 0.13.2",
  "lazy_static",
@@ -12410,9 +12411,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa3b14246daaf0301dd35d698bac570d82ba0c6c6c1d3e149b93bcf377b2fc6b"
+checksum = "8628fd8878df3978a34da0ef75722b118f4bc40bb47fb3c687cc0899f7ede43c"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -12433,9 +12434,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "4.0.0"
+version = "4.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a85a421053f810f3ed988ba3cc39d926c95f70f1ae73282aa8cd5c50072173b"
+checksum = "49bc3b2b8429aacca1897c72b786e7c21d36170a919e9333fe533868d32d2774"
 dependencies = [
  "environmental",
  "frame-benchmarking",
@@ -14513,7 +14514,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb66477291e7e8d2b0ff1bcb900bf29489a9692816d79874bea351e7a8b6de96"
 dependencies = [
- "curve25519-dalek 4.0.0",
+ "curve25519-dalek 4.1.2",
  "rand_core 0.6.4",
  "serde",
  "zeroize",
@@ -14622,6 +14623,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e17bb3549cc1321ae1296b9cdc2698e2b6cb1992adfa19a8c72e5b7a738f44cd"
 dependencies = [
  "time 0.3.27",
+]
+
+[[package]]
+name = "zerocopy"
+version = "0.7.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74d4d3961e53fa4c9a25a8637fc2bfaf2595b3d3ae34875568a5cf64787716be"
+dependencies = [
+ "zerocopy-derive",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.7.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]

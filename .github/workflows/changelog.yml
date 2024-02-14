@@ -2,10 +2,14 @@ name: Modify Changelog
 
 on:
   pull_request_target:
+    types:
+      - synchronize
+      - edited
 
 jobs:
 
-  verifyChangelogIsUpdated:
+  verifyChangelog:
+    name: Verify that Changelog is Updated
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ github.token }}
