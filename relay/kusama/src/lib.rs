@@ -2664,7 +2664,7 @@ mod clean_state_migration {
 
 	impl OnRuntimeUpgrade for CleanMigrate {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchErroR> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
 			Ok(Default::default())
 		}
 
