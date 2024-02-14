@@ -97,7 +97,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 16
 	(
 		2,
 		pallet_referenda::TrackInfo {
-			name: "root_signaller",
+			name: "wish_for_change",
 			max_deciding: 10,
 			decision_deposit: 20 * GRAND,
 			prepare_period: 2 * HOURS,
@@ -308,7 +308,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		} else if let Ok(custom_origin) = origins::Origin::try_from(id.clone()) {
 			match custom_origin {
 				origins::Origin::WhitelistedCaller => Ok(1),
-				origins::Origin::RootSignaller => Ok(2),
+				origins::Origin::WishForChange => Ok(2),
 				// General admin
 				origins::Origin::StakingAdmin => Ok(10),
 				origins::Origin::Treasurer => Ok(11),

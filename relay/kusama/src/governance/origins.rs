@@ -86,8 +86,8 @@ pub mod pallet_custom_origins {
 		Fellowship8Dan,
 		/// Origin commanded by rank 9 of the Polkadot Fellowship and with a success of 9.
 		Fellowship9Dan,
-		/// Origin for signaling wishes of the network.
-		RootSignaller,
+		/// Origin for signaling that the network wishes for some change.
+		WishForChange,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -130,7 +130,7 @@ pub mod pallet_custom_origins {
 		ReferendumCanceller,
 		ReferendumKiller,
 		WhitelistedCaller,
-		RootSignaller,
+		WishForChange,
 		FellowshipInitiates: u16 = 0,
 		Fellows: u16 = 3,
 		FellowshipExperts: u16 = 5,
