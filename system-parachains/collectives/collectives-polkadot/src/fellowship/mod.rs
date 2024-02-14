@@ -24,7 +24,7 @@ use crate::{
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
 	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	Scheduler, DAYS,
+	Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
 use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
@@ -52,7 +52,10 @@ use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
-use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
+use crate::{
+	impls::benchmarks::{OpenHrmpChannel, PayWithEnsure},
+	ExistentialDeposit,
+};
 
 /// The Fellowship members' ranks.
 pub mod ranks {
@@ -254,9 +257,7 @@ impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
 }
 
 parameter_types! {
-	// TODO: reference the constant value from common crate when polkadot-sdk 1.5 is released.
-	// https://github.com/polkadot-fellows/runtimes/issues/113
-	pub const FellowshipTreasuryPalletId: PalletId = PalletId(*b"py/feltr");
+	pub const FellowshipTreasuryPalletId: PalletId = FELLOWSHIP_TREASURY_PALLET_ID;
 	pub const ProposalBond: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const MaxBalance: Balance = Balance::max_value();
@@ -264,6 +265,11 @@ parameter_types! {
 	// pallet instance.
 	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation =
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub const ProposalBondForBenchmark: Permill = Permill::from_percent(5);
 }
 
 /// [`PayOverXcm`] setup to pay the Fellowship Treasury.
@@ -285,13 +291,23 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	// Instead, public or fellowship referenda should be used to propose and command the treasury
 	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
 	// discourage its use.
-	// TODO: replace with `NeverEnsure` once polkadot-sdk 1.5 is released.
-	// https://github.com/polkadot-fellows/runtimes/issues/113
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type ApproveOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+	#[cfg(feature = "runtime-benchmarks")]
 	type ApproveOrigin = EnsureRoot<AccountId>;
 	type OnSlash = ();
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBond = ProposalBond;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBond = ProposalBondForBenchmark;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBondMinimum = MaxBalance;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBondMinimum = ConstU128<{ ExistentialDeposit::get() * 100 }>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type ProposalBondMaximum = MaxBalance;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
@@ -330,46 +346,5 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type BalanceConverter = AssetRate;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmarks::TreasuryArguments<sp_core::ConstU8<1>, ConstU32<1000>>;
-}
-
-// TODO: replace by [`polkadot_runtime_common::impls::benchmarks::TreasuryArguments`] when
-// polkadot-sdk 1.5 is released.
-// https://github.com/polkadot-fellows/runtimes/issues/113
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarks {
-	use super::VersionedLocatableAsset;
-	use core::marker::PhantomData;
-	use frame_support::traits::Get;
-	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
-	use sp_core::{ConstU32, ConstU8};
-	use xcm::prelude::*;
-
-	/// Provide factory methods for the [`VersionedLocatableAsset`] and the `Beneficiary` of the
-	/// [`VersionedMultiLocation`]. The location of the asset is determined as a Parachain with an
-	/// ID equal to the passed seed.
-	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
-		PhantomData<(Parents, ParaId)>,
-	);
-	impl<Parents: Get<u8>, ParaId: Get<u32>>
-		TreasuryArgumentsFactory<VersionedLocatableAsset, VersionedMultiLocation>
-		for TreasuryArguments<Parents, ParaId>
-	{
-		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
-			VersionedLocatableAsset::V3 {
-				location: xcm::v3::MultiLocation::new(Parents::get(), X1(Parachain(ParaId::get()))),
-				asset_id: xcm::v3::MultiLocation::new(
-					0,
-					X2(PalletInstance(seed.try_into().unwrap()), GeneralIndex(seed.into())),
-				)
-				.into(),
-			}
-		}
-		fn create_beneficiary(seed: [u8; 32]) -> VersionedMultiLocation {
-			VersionedMultiLocation::V3(xcm::v3::MultiLocation::new(
-				0,
-				X1(AccountId32 { network: None, id: seed }),
-			))
-		}
-	}
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 }
