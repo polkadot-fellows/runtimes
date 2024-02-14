@@ -84,6 +84,7 @@ pallet-session = { default-features = false , version = "25.0.0" }
 pallet-society = { default-features = false, version = "25.0.0" }
 frame-support = { default-features = false , version = "25.0.0" }
 pallet-staking = { default-features = false , version = "25.0.0" }
+pallet-state-trie-migration = { default-features = false , version = "26.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "11.0.0" }
 frame-system = { default-features = false , version = "25.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "23.0.0" }
@@ -194,6 +195,7 @@ std = [
 	"pallet-society/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
+	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-tips/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -274,6 +276,7 @@ runtime-benchmarks = [
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-tips/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
@@ -333,6 +336,7 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-society/try-runtime",
 	"pallet-staking/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-tips/try-runtime",
 	"pallet-transaction-payment/try-runtime",
