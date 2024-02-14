@@ -23,7 +23,7 @@ use emulated_integration_tests_common::{
 use parachains_common::Balance;
 
 pub const ASSETHUB_PARA_ID: u32 = 1000;
-pub const PARA_ID: u32 = 1013;
+pub const PARA_ID: u32 = 1002;
 pub const ED: Balance =
 	system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
