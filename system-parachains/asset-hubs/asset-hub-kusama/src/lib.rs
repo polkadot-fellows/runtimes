@@ -1508,13 +1508,12 @@ impl_runtime_apis! {
 					Ok((origin, ticket, assets))
 				}
 
-				// TODO:(PR#137) - revert back with `polkadot-sdk@1.6.0` or  `polkadot-sdk@1.7.0`
-				// fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-				// 	Ok(MultiAsset {
-				// 		id: Concrete(KsmLocation::get()),
-				// 		fun: Fungible(1_000_000 * UNITS),
-				// 	})
-				// }
+				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
+					Ok(MultiAsset {
+						id: Concrete(KsmLocation::get()),
+						fun: Fungible(1_000_000 * UNITS),
+					})
+				}
 
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
 					Err(BenchmarkError::Skip)

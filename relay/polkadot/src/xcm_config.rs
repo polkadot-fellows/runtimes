@@ -45,9 +45,7 @@ use xcm_builder::CurrencyAdapter as XcmCurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
-	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily,
-	/* TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
-	 * FrameTransactionalProcessor, */
+	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
 	HashedDescription, IsConcrete, MintLocation, OriginToPluralityVoice, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -232,8 +230,7 @@ impl xcm_executor::Config for XcmConfig {
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
-	// TODO:(PR#137) - wait for xcm-executor patch or `polkadot-sdk@1.7.0`
-	// type TransactionalProcessor = FrameTransactionalProcessor;
+	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
 parameter_types! {

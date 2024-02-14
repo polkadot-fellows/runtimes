@@ -73,9 +73,9 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a824f2aa7e75a0c98c5a504fceb80649e9c35265d44525b5f94de4771a395cd"
+checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
 dependencies = [
  "getrandom 0.2.12",
  "once_cell",
@@ -84,9 +84,9 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.7"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c3a9648d43b9cd48db467b3f87fdd6e146bcc88ab0180006cef2179fe11d01"
+checksum = "42cd52102d3df161c77a887b608d7a4897d7cc112886a9537b738a887a03aaff"
 dependencies = [
  "cfg-if",
  "getrandom 0.2.12",
@@ -449,7 +449,7 @@ dependencies = [
  "sp-runtime 31.0.1",
  "staging-kusama-runtime",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
  "system-parachains-constants",
  "xcm-emulator",
 ]
@@ -471,7 +471,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -503,7 +503,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
@@ -531,8 +531,8 @@ dependencies = [
  "sp-weights 27.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
 ]
@@ -555,7 +555,7 @@ dependencies = [
  "polkadot-runtime",
  "sp-runtime 31.0.1",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
  "system-parachains-constants",
  "xcm-emulator",
 ]
@@ -577,7 +577,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -606,7 +606,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
@@ -633,8 +633,8 @@ dependencies = [
  "sp-weights 27.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
 ]
@@ -670,8 +670,8 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
 ]
 
@@ -695,8 +695,8 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
 ]
 
@@ -1332,7 +1332,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -1359,7 +1359,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "pallet-xcm-bridge-hub",
  "parachains-common 7.0.0",
  "parity-scale-codec",
@@ -1386,8 +1386,8 @@ dependencies = [
  "sp-version 29.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
@@ -1418,7 +1418,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -1445,7 +1445,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "pallet-xcm-bridge-hub",
  "parachains-common 7.0.0",
  "parity-scale-codec",
@@ -1472,8 +1472,8 @@ dependencies = [
  "sp-version 29.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
@@ -1511,7 +1511,7 @@ dependencies = [
  "pallet-session 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -1523,8 +1523,8 @@ dependencies = [
  "sp-tracing 16.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -1560,7 +1560,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-trie 29.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
+ "staging-xcm-builder 7.0.3",
  "static_assertions",
 ]
 
@@ -1937,7 +1937,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -1993,8 +1993,8 @@ dependencies = [
  "sp-version 29.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
 ]
@@ -2607,7 +2607,7 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -2734,14 +2734,14 @@ dependencies = [
 
 [[package]]
 name = "cumulus-primitives-utility"
-version = "0.7.0"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99542836a3b341249f4b4f54eca7cd5d42a99d38fd7dc6974d19899a90b2f82d"
+checksum = "d2ece52eeb7e87faea0d374356571ebc13f279df3bf79a1dc8a0db6c49d6ba23"
 dependencies = [
  "cumulus-primitives-core 0.7.0",
  "frame-support 28.0.0",
  "log",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "parity-scale-codec",
  "polkadot-runtime-common 7.0.0",
  "polkadot-runtime-parachains 7.0.0",
@@ -2749,8 +2749,8 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -2830,9 +2830,9 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "4.1.1"
+version = "4.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c"
+checksum = "0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -3179,7 +3179,7 @@ version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f628eaec48bfd21b865dc2950cfa014450c01d2fa2b69a86c2fd5844ec523c0"
 dependencies = [
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "ed25519",
  "rand_core 0.6.4",
  "serde",
@@ -3667,9 +3667,9 @@ dependencies = [
 
 [[package]]
 name = "fiat-crypto"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27573eac26f4dd11e2b1916c3fe1baa56407c83c71a773a8ba17ec0bca03b6b7"
+checksum = "1676f435fc1dadde4d03e43f5d62b259e1ce5f40bd4ffb21db2b42ebe59c1382"
 
 [[package]]
 name = "file-per-thread-logger"
@@ -4543,8 +4543,8 @@ dependencies = [
  "sp-version 29.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
  "system-parachains-constants",
 ]
@@ -4600,7 +4600,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
- "ahash 0.7.7",
+ "ahash 0.7.8",
 ]
 
 [[package]]
@@ -4609,7 +4609,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
 ]
 
 [[package]]
@@ -4618,7 +4618,7 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "allocator-api2",
 ]
 
@@ -6208,7 +6208,7 @@ dependencies = [
  "bitflags 1.3.2",
  "blake2 0.10.6",
  "c2-chacha",
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "either",
  "hashlink",
  "lioness",
@@ -7456,9 +7456,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-bazaar"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0858d85b205d1026ccfc7e617d0028357efcfdaa9918e6ad4896f93eda3bc960"
+checksum = "c2f5797985a0a1d94338ab69659e62fb3b9435f070db39a0e610fd1757cf77fd"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking 25.0.0",
@@ -7486,9 +7486,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-ceremonies"
-version = "3.0.2"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a35401aa2ffbae97ba5f981542c20ca4c8609c115078a2a84835336921d5208"
+checksum = "3712bb0ba1f1645cf1744d56c2fcb237a1b82319709db7d383a2d219449a5383"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -7524,9 +7524,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-communities"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b78031c09e3adc31ba279bb18186e379222a7b54a14d59288040dc205621e49"
+checksum = "88164fe398f45a0af98c74115e27c2c19cbdb218da7a1ba2269c12e92574779c"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking 25.0.0",
@@ -7555,9 +7555,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-faucet"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64fdd1b8885dfb83e249af6a8914a38e3d5ea5f01d196ae35ec1420e502a54ef"
+checksum = "749e2e516dd7d0c5901920c866f8ae0c6d76665df07e5acd5fbccc5938bb9193"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -7600,9 +7600,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-scheduler"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffe4e1efc5084466c4c0ae1d835651a29ab3ee8fc68933ae14df00d0875441b"
+checksum = "a90e9127e0ed2392545ea4178b82f25ac987cb1228e6d90c77875d559a7a1578"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking 25.0.0",
@@ -7953,9 +7953,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "25.0.0"
+version = "25.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4eca0c1399f1c48b3051b33d6624021ae2b3791139461427cfc99a1e64f0cb8"
+checksum = "d5989ca1100694371c9951118d58e84e93b60c1919006e9d4ad0f7537952c388"
 dependencies = [
  "frame-support 28.0.0",
  "frame-system 28.0.0",
@@ -8719,8 +8719,8 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -8745,9 +8745,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "7.0.0"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b2846fe0a9fe3e103dea417da9d41d4f59e32aa2f2ee79e9bf424d1c99e4ba1"
+checksum = "890bbad7a5752c8d4c3681457bac4e87fafc79cd9dd5b1a94e6f237f93a795a3"
 dependencies = [
  "frame-benchmarking 28.0.0",
  "frame-support 28.0.0",
@@ -8759,8 +8759,8 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -8783,8 +8783,8 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -8804,7 +8804,7 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
+ "staging-xcm-builder 7.0.3",
 ]
 
 [[package]]
@@ -8849,7 +8849,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ceadd4f51620023871ece5eeda64734acd17d84d49b45473d335e900a012fdde"
 dependencies = [
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-support 28.0.0",
  "frame-system 28.0.0",
  "log",
@@ -8874,8 +8874,8 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
  "westend-runtime-constants 7.0.0",
 ]
@@ -8910,7 +8910,7 @@ dependencies = [
  "sp-tracing 16.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
 ]
 
@@ -9104,9 +9104,9 @@ dependencies = [
 
 [[package]]
 name = "penpal-runtime"
-version = "0.14.0"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "352fa44dc0bb228e1e0235e0af1308b7d6a8b907a8190d10a2a7c54b4a708455"
+checksum = "73556f5783be7b2045e55625ae72da8c9ca255bbd9c14184c8c18b76ef6f81e2"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext 0.7.0",
@@ -9116,7 +9116,7 @@ dependencies = [
  "cumulus-pallet-xcm 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
- "cumulus-primitives-utility 0.7.0",
+ "cumulus-primitives-utility 0.7.3",
  "frame-benchmarking 28.0.0",
  "frame-executive 28.0.0",
  "frame-support 28.0.0",
@@ -9162,8 +9162,8 @@ dependencies = [
  "sp-version 29.0.0",
  "staging-parachain-info 0.7.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "substrate-wasm-builder 17.0.0",
 ]
 
@@ -9561,7 +9561,7 @@ dependencies = [
  "pallet-vesting 28.0.0",
  "pallet-whitelist",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-common 7.0.0",
@@ -9599,8 +9599,8 @@ dependencies = [
  "sp-trie 29.0.0",
  "sp-version 29.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "tiny-keccak",
@@ -9687,7 +9687,7 @@ dependencies = [
  "pallet-transaction-payment 28.0.0",
  "pallet-treasury 27.0.0",
  "pallet-vesting 28.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-parachains 7.0.0",
@@ -9706,8 +9706,8 @@ dependencies = [
  "sp-staking 26.0.0",
  "sp-std 14.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
 ]
 
@@ -9848,7 +9848,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-tracing 16.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
 ]
 
@@ -10591,7 +10591,7 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-weights 27.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
+ "staging-xcm-builder 7.0.3",
 ]
 
 [[package]]
@@ -11144,7 +11144,7 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a824457a3384e7bc19d7ee587dffa5b646deb81a2351be0dd075c2110a3d677a"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "array-bytes 6.2.2",
  "async-trait",
  "dyn-clone",
@@ -11531,7 +11531,7 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd92792f3a04fcb1f21018c9f8a5d6d438d705a2548ffcdc7730280c667b8386"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "futures",
  "futures-timer",
  "libp2p",
@@ -12092,7 +12092,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772575a524feeb803e5b0fcbc6dd9f367e579488197c94c6e4023aad2305774d"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "cfg-if",
  "hashbrown 0.13.2",
 ]
@@ -12124,7 +12124,7 @@ dependencies = [
  "aead",
  "arrayref",
  "arrayvec 0.7.4",
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "getrandom_or_panic",
  "merlin 3.0.0",
  "rand_core 0.6.4",
@@ -12506,7 +12506,7 @@ dependencies = [
  "aes-gcm",
  "blake2 0.10.6",
  "chacha20poly1305",
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "rand_core 0.6.4",
  "ring 0.17.7",
  "rustc_version 0.4.0",
@@ -13749,7 +13749,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b8654bcd37602b1811414050d34d14f543873bd4e64e50d210a0116b660c600"
 dependencies = [
  "aes-gcm",
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "ed25519-dalek",
  "hkdf",
  "parity-scale-codec",
@@ -13774,7 +13774,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fee6d4ceb2513f180e6e017fd6d6f3c9a1a122dcedee5fc8e4254d8a7ecf793d"
 dependencies = [
  "aes-gcm",
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "ed25519-dalek",
  "hkdf",
  "parity-scale-codec",
@@ -13928,7 +13928,7 @@ version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e359b358263cc322c3f678c272a3a519621d9853dcfa1374dfcbdb5f54c6f85"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "hash-db",
  "hashbrown 0.13.2",
  "lazy_static",
@@ -13953,7 +13953,7 @@ version = "29.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e4d24d84a0beb44a71dcac1b41980e1edf7fb722c7f3046710136a283cd479b"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.8",
  "hash-db",
  "lazy_static",
  "memory-db",
@@ -14216,7 +14216,7 @@ dependencies = [
  "pallet-vesting 28.0.0",
  "pallet-whitelist",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.0",
+ "pallet-xcm-benchmarks 7.0.3",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-common 7.0.0",
@@ -14253,8 +14253,8 @@ dependencies = [
  "sp-trie 29.0.0",
  "sp-version 29.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-builder 7.0.3",
+ "staging-xcm-executor 7.0.3",
  "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "tiny-keccak",
@@ -14353,9 +14353,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "7.0.0"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f7a45adc5b85ac35d2245833967772cc74af10899143ebfa4df3c7eb494edb0"
+checksum = "3ba4f214fe99d79ffcc266f431abbb32d3596788327b925d469c7bb6a3c84d3c"
 dependencies = [
  "frame-support 28.0.0",
  "frame-system 28.0.0",
@@ -14371,7 +14371,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-weights 27.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
@@ -14397,9 +14397,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "7.0.0"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2493cf438497734b64cdeb55dbee9872bd598f7b08649e9a3bd56d7939360a80"
+checksum = "5f1dea1e33eefee513c197c24255670951a2c515a6ce2c7049fe86385400074f"
 dependencies = [
  "environmental",
  "frame-benchmarking 28.0.0",
@@ -15853,7 +15853,7 @@ dependencies = [
  "sp-runtime 31.0.1",
  "sp-weights 27.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-builder 7.0.0",
+ "staging-xcm-builder 7.0.3",
 ]
 
 [[package]]
@@ -16177,7 +16177,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb66477291e7e8d2b0ff1bcb900bf29489a9692816d79874bea351e7a8b6de96"
 dependencies = [
- "curve25519-dalek 4.1.1",
+ "curve25519-dalek 4.1.2",
  "rand_core 0.6.4",
  "serde",
  "zeroize",
@@ -16232,7 +16232,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-tracing 16.0.0",
  "staging-xcm 7.0.0",
- "staging-xcm-executor 7.0.0",
+ "staging-xcm-executor 7.0.3",
 ]
 
 [[package]]
