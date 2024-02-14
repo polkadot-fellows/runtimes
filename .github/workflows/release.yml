@@ -3,6 +3,7 @@ name: Create Release
 on:
   push:
     branches: [ "main" ]
+    paths: [ "CHANGELOG.md" ]
   workflow_dispatch:
 
 jobs:
@@ -20,7 +21,7 @@ jobs:
           cat $GITHUB_OUTPUT
   runtime-matrix:
     needs: [ collect-release-information ]
-    if: needs.collect-release-information.outputs.should-release == '0'
+    if: needs.collect-release-information.outputs.should-release == '1'
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
@@ -156,7 +157,7 @@ jobs:
           tag_name: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
           release_name: Runtimes ${{ needs.collect-release-information.outputs.version }}
           body_path: DRAFT
-          draft: true
+          draft: false
 
   publish-runtimes:
     needs: [ runtime-matrix, publish-release ]
