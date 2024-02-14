@@ -39,9 +39,6 @@ use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
-// TODO:(PR#159) change to FungibleAdapter
-#[allow(deprecated)]
-use xcm_builder::CurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
@@ -51,7 +48,7 @@ use xcm_builder::{
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus,
 	TakeWeightCredit, TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
-	WithUniqueTopic, XcmFeeManagerFromComponents, XcmFeeToAccount,
+	WithUniqueTopic, XcmFeeManagerFromComponents, XcmFeeToAccount, FungibleAdapter,
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
@@ -89,8 +86,7 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting the native currency on this chain.
-#[allow(deprecated)]
-pub type CurrencyTransactor = CurrencyAdapter<
+pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
@@ -156,7 +152,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 >;
 
 /// Means for transacting assets on this chain.
-pub type AssetTransactors = (CurrencyTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
+pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can

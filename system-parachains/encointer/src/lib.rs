@@ -77,7 +77,7 @@ pub use parachains_common::{
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU32, ConstU64, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
