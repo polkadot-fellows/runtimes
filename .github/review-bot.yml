@@ -14,7 +14,8 @@ rules:
         - ^CHANGELOG.md$
     type: fellows
     minRank: 2
-    minApprovals: 3
+    minApprovals: 2
+    minTotalScore: 6
   - name: General Files
     condition:
       include:
@@ -26,3 +27,13 @@ rules:
         - ^CHANGELOG.md$
     type: fellows
     minRank: 1
+scores:
+  dan1: 1
+  dan2: 2
+  dan3: 5
+  dan4: 9
+  dan5: 10
+  dan6: 15
+  dan7: 20
+  dan8: 25
+  dan9: 30
