@@ -9,28 +9,28 @@ license.workspace = true
 [dependencies]
 clap = { version = "4.4.4", features = [ "derive" ] }
 hex-literal = "0.4.1"
-serde_json = "1.0.107"
-serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.111"
+serde = { version = "1.0.195", features = ["derive"] }
 
 polkadot-runtime = { path = "../relay/polkadot" }
 polkadot-runtime-constants = { path = "../relay/polkadot/constants" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" }
 kusama-runtime-constants = { path = "../relay/kusama/constants" }
 
-sc-chain-spec = "24.0.0"
-polkadot-runtime-parachains = "4.0.0"
-polkadot-primitives = "4.0.0"
-sp-consensus-babe = "0.29.0"
-sp-authority-discovery = "23.0.0"
-sp-core = "25.0.0"
-pallet-staking = "25.0.0"
-sc-consensus-grandpa = "0.16.0"
-pallet-im-online = "24.0.0"
-sp-runtime = "28.0.0"
-sp-consensus-beefy = "10.0.0"
-xcm = { package = "staging-xcm", version = "4.0.0" }
-parachains-common = { version = "4.0.0" }
-cumulus-primitives-core = { version = "0.4.0" }
+sc-chain-spec = "26.0.0"
+polkadot-runtime-parachains = "6.0.0"
+polkadot-primitives = "6.0.0"
+sp-consensus-babe = "0.31.0"
+sp-authority-discovery = "25.0.0"
+sp-core = "27.0.0"
+pallet-staking = "27.0.0"
+sc-consensus-grandpa = "0.18.0"
+pallet-im-online = "26.0.0"
+sp-runtime = "30.0.1"
+sp-consensus-beefy = "12.0.0"
+xcm = { package = "staging-xcm", version = "6.0.0" }
+parachains-common = { version = "6.0.0" }
+cumulus-primitives-core = { version = "0.6.0" }
 
 asset-hub-polkadot-runtime = { path = "../system-parachains/asset-hubs/asset-hub-polkadot" }
 asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-kusama" }
@@ -39,6 +39,9 @@ bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-
 bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
 encointer-kusama-runtime = { path = "../system-parachains/encointer" }
 glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
+
+# encointer is not migrated to the latest release, so we use compatible deps, when needed
+sp-core-encointer-compatible = { package = "sp-core",  version = "25.0.0" }
 
 [features]
 runtime-benchmarks = [
