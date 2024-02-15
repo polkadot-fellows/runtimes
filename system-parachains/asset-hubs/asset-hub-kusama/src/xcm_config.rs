@@ -40,16 +40,13 @@ use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
-// TODO:(PR#159) change to FungibleAdapter
-#[allow(deprecated)]
-use xcm_builder::CurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
-	FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete,
-	LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignPaidRemoteExporter,
+	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
+	IsConcrete, LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignPaidRemoteExporter
 	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus,
 	TakeWeightCredit, TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
 	WithUniqueTopic, XcmFeeManagerFromComponents, XcmFeeToAccount,
@@ -97,8 +94,7 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting the native currency on this chain.
-#[allow(deprecated)]
-pub type CurrencyTransactor = CurrencyAdapter<
+pub type CurrencyTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:

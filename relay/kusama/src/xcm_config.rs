@@ -34,17 +34,15 @@ use runtime_common::{
 };
 use sp_core::ConstU32;
 use xcm::latest::prelude::*;
-// TODO:(PR#159) change to FungibleAdapter
-#[allow(deprecated)]
-use xcm_builder::CurrencyAdapter as XcmCurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
-	HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation, OriginToPluralityVoice,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
+	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	XcmFeeToAccount,
 };
 
 parameter_types! {
@@ -82,8 +80,7 @@ pub type SovereignAccountOf = (
 /// point of view of XCM-only concepts like `MultiLocation` and `MultiAsset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
-#[allow(deprecated)]
-pub type LocalAssetTransactor = XcmCurrencyAdapter<
+pub type LocalAssetTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:

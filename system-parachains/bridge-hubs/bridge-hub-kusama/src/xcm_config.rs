@@ -41,17 +41,14 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_std::marker::PhantomData;
 use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
-// TODO:(PR#159) change to FungibleAdapter
-#[allow(deprecated)]
-use xcm_builder::CurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
-	HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
 use xcm_executor::{
@@ -88,8 +85,7 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting the native currency on this chain.
-#[allow(deprecated)]
-pub type CurrencyTransactor = CurrencyAdapter<
+pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
@@ -282,7 +278,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = CurrencyTransactor;
+	type AssetTransactor = FungibleTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// BridgeHub does not recognize a reserve location for any asset. Users must teleport KSM
 	// where allowed (e.g. with the Relay Chain).

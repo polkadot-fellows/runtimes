@@ -103,12 +103,12 @@ fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 		vec![
 			// Amount to reserve transfer is withdrawn from Parachain's Sovereign account
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Withdraw { who, amount }
+				pallet_balances::Event::Burned { who, amount }
 			) => {
 				who: *who == sov_penpal_on_ahr.clone().into(),
 				amount: *amount == t.args.amount,
 			},
-			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
+			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
 			RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},
