@@ -1065,6 +1065,10 @@ fn test_constants_compatiblity() {
 		system_parachains_constants::kusama::currency::system_para_deposit(5, 3)
 	);
 	assert_eq!(
+		::system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE,
+		system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE
+	);
+	assert_eq!(
 		::system_parachains_constants::kusama::fee::calculate_weight_to_fee(
 			&::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
 		),
@@ -1155,6 +1159,11 @@ mod system_parachains_constants {
 			use polkadot_core_primitives::Balance;
 			use smallvec::smallvec;
 			pub use sp_runtime::Perbill;
+
+			/// Cost of every transaction byte at Kusama system parachains.
+			///
+			/// It is the Relay Chain (Kusama) `TransactionByteFee` / 10.
+			pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
 
 			/// Handles converting a weight scalar to a fee value, based on the scale and
 			/// granularity of the node's balance type.
