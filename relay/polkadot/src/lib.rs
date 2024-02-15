@@ -437,7 +437,6 @@ pub struct OldSessionKeys {
 	pub para_validator: <Initializer as BoundToRuntimeAppPublic>::Public,
 	pub para_assignment: <ParaSessionInfo as BoundToRuntimeAppPublic>::Public,
 	pub authority_discovery: <AuthorityDiscovery as BoundToRuntimeAppPublic>::Public,
-	pub beefy: <Beefy as BoundToRuntimeAppPublic>::Public,
 }
 
 impl OpaqueKeys for OldSessionKeys {
@@ -450,7 +449,6 @@ impl OpaqueKeys for OldSessionKeys {
 			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID,
 			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID,
 			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID,
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID,
 		]
 	}
 	fn get_raw(&self, i: KeyTypeId) -> &[u8] {
@@ -463,7 +461,6 @@ impl OpaqueKeys for OldSessionKeys {
 				self.para_assignment.as_ref(),
 			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID =>
 				self.authority_discovery.as_ref(),
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID => self.beefy.as_ref(),
 			_ => &[],
 		}
 	}
@@ -488,7 +485,20 @@ fn transform_session_keys(_v: AccountId, old: OldSessionKeys) -> SessionKeys {
 		para_validator: old.para_validator,
 		para_assignment: old.para_assignment,
 		authority_discovery: old.authority_discovery,
-		beefy: old.beefy,
+		beefy: {
+			// From Session::upgrade_keys():
+			//
+			// Care should be taken that the raw versions of the
+			// added keys are unique for every `ValidatorId, KeyTypeId` combination.
+			// This is an invariant that the session pallet typically maintains internally.
+			//
+			// So, produce a dummy value that's unique for the `ValidatorId, KeyTypeId` combination.
+			let mut id: BeefyId = sp_application_crypto::ecdsa::Public::from_raw([0u8; 33]).into();
+			let id_raw: &mut [u8] = id.as_mut();
+			id_raw[1..33].copy_from_slice(v.as_ref());
+			id_raw[0..4].copy_from_slice(b"beef");
+			id
+		},
 	}
 }
 
@@ -1709,7 +1719,7 @@ pub mod migrations {
 			}
 
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids();
+			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
 			frame_support::ensure!(
 				key_ids.into_iter().find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) == None,
 				"New session keys contain the ImOnline key that should have been removed",
@@ -1750,7 +1760,7 @@ pub mod migrations {
 				return Ok(())
 			}
 
-			let key_ids = SessionKeys::key_ids();
+			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
 			let mut new_state: Vec<u8> = Vec::new();
 			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
 				new_state.extend_from_slice(id.as_slice());
@@ -1770,7 +1780,7 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		// Upgrade SessionKeys to exclude ImOnline key
+		// Upgrade SessionKeys to exclude ImOnline key and include BEEFY
 		UpgradeSessionKeys,
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
