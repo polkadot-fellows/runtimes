@@ -33,6 +33,3 @@ integration-tests-common = { path = "../../common" }
 asset-hub-polkadot-runtime = { path = "../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
 polkadot-runtime = { path = "../../../../relay/polkadot" }
 system-parachains-constants = { path = "../../../../system-parachains/constants" }
-
-[features]
-runtime-benchmarks = []

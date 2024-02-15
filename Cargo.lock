@@ -9124,7 +9124,6 @@ dependencies = [
  "frame-system-benchmarking 27.0.0",
  "frame-system-rpc-runtime-api 25.0.0",
  "frame-try-runtime 0.33.0",
- "hex-literal",
  "log",
  "pallet-asset-tx-payment 27.0.0",
  "pallet-assets 28.0.0",
