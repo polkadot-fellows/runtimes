@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 - Removed the `SafeCallFilter` from the Relay Chain XCM config ([polkadot-fellows/runtimes#172](https://github.com/polkadot-fellows/runtimes/pull/172)).
+- Removed the `ImOnline` pallet ([polkadot-fellows/runtimes#178](https://github.com/polkadot-fellows/runtimes/pull/178))
 
 ## [1.1.1] 25.01.2024
 
