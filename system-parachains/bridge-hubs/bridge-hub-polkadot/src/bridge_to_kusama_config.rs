@@ -24,6 +24,7 @@ use crate::{
 };
 use bp_messages::LaneId;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+use bp_runtime::Chain;
 use bridge_runtime_common::{
 	messages,
 	messages::{
@@ -137,7 +138,7 @@ parameter_types! {
 	pub const MaxParaHeadDataSize: u32 = bp_kusama::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 
 	/// Bridge specific chain (network) identifier of the Kusama Bridge Hub.
-	pub const BridgeHubKusamaChainId: bp_runtime::ChainId = bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID;
+	pub const BridgeHubKusamaChainId: bp_runtime::ChainId = bp_bridge_hub_kusama::BridgeHubKusama::ID;
 	/// Name of the `paras` pallet at Kusama that tracks all parachain heads.
 	pub const ParachainPalletNameAtKusama: &'static str = bp_kusama::PARAS_PALLET_NAME;
 
@@ -221,7 +222,6 @@ impl pallet_bridge_messages::Config<WithBridgeHubKusamaMessagesInstance> for Run
 	type DeliveryPayments = ();
 
 	type TargetHeaderChain = TargetHeaderChainAdapter<WithBridgeHubKusamaMessageBridge>;
-	type LaneMessageVerifier = ToBridgeHubKusamaMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
@@ -298,10 +298,6 @@ impl MessageBridge for WithBridgeHubKusamaMessageBridge {
 		bp_bridge_hub_kusama::BridgeHubKusama,
 	>;
 }
-
-/// Message verifier for BridgeHubKusama messages sent from BridgeHubPolkadot
-pub type ToBridgeHubKusamaMessageVerifier =
-	messages::source::FromThisChainMessageVerifier<WithBridgeHubKusamaMessageBridge>;
 
 /// Maximal outbound payload size of BridgeHubPolkadot -> BridgeHubKusama messages.
 pub type ToBridgeHubKusamaMaximalOutboundPayloadSize =
@@ -408,7 +404,7 @@ mod tests {
 					bp_bridge_hub_kusama::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 				max_unconfirmed_messages_in_bridged_confirmation_tx:
 					bp_bridge_hub_kusama::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID,
+				bridged_chain_id: bp_bridge_hub_kusama::BridgeHubKusama::ID,
 			},
 			pallet_names: AssertBridgePalletNames {
 				with_this_chain_messages_pallet_name:

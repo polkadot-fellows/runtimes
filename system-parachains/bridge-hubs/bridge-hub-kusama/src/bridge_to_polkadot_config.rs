@@ -24,6 +24,7 @@ use crate::{
 };
 use bp_messages::LaneId;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+use bp_runtime::Chain;
 use bridge_runtime_common::{
 	messages,
 	messages::{
@@ -137,7 +138,7 @@ parameter_types! {
 	pub const MaxParaHeadDataSize: u32 = bp_polkadot::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 
 	/// Bridge specific chain (network) identifier of the Polkadot Bridge Hub.
-	pub const BridgeHubPolkadotChainId: bp_runtime::ChainId = bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID;
+	pub const BridgeHubPolkadotChainId: bp_runtime::ChainId = bp_bridge_hub_polkadot::BridgeHubPolkadot::ID;
 	/// Name of the `paras` pallet at Polkadot that tracks all parachain heads.
 	pub const ParachainPalletNameAtPolkadot: &'static str = bp_polkadot::PARAS_PALLET_NAME;
 
@@ -221,7 +222,6 @@ impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for R
 	type DeliveryPayments = ();
 
 	type TargetHeaderChain = TargetHeaderChainAdapter<WithBridgeHubPolkadotMessageBridge>;
-	type LaneMessageVerifier = ToBridgeHubPolkadotMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubPolkadotMessagesInstance,
@@ -299,10 +299,6 @@ impl MessageBridge for WithBridgeHubPolkadotMessageBridge {
 		bp_bridge_hub_polkadot::BridgeHubPolkadot,
 	>;
 }
-
-/// Message verifier for BridgeHubPolkadot messages sent from BridgeHubKusama
-pub type ToBridgeHubPolkadotMessageVerifier =
-	messages::source::FromThisChainMessageVerifier<WithBridgeHubPolkadotMessageBridge>;
 
 /// Maximal outbound payload size of BridgeHubKusama -> BridgeHubPolkadot messages.
 pub type ToBridgeHubPolkadotMaximalOutboundPayloadSize =
@@ -412,7 +408,7 @@ mod tests {
 					bp_bridge_hub_polkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 				max_unconfirmed_messages_in_bridged_confirmation_tx:
 					bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID,
+				bridged_chain_id: bp_bridge_hub_polkadot::BridgeHubPolkadot::ID,
 			},
 			pallet_names: AssertBridgePalletNames {
 				with_this_chain_messages_pallet_name:

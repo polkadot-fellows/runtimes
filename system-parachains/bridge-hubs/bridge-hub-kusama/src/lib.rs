@@ -1050,7 +1050,7 @@ impl_runtime_apis! {
 			impl BridgeMessagesConfig<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance> for Runtime {
 				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
 					let bench_lane_id = <Self as BridgeMessagesConfig<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>>::bench_lane_id();
-					let bridged_chain_id = bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID;
+					let bridged_chain_id = bridge_to_polkadot_config::BridgeHubPolkadotChainId::get();
 					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
 						relayer,
 						bp_relayers::RewardsAccountParams::new(
