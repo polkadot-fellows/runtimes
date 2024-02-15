@@ -100,6 +100,18 @@ pallet-bridge-parachains = { default-features = false , version = "0.6.0" }
 pallet-bridge-relayers = { default-features = false , version = "0.6.0" }
 pallet-xcm-bridge-hub =  { default-features = false , version = "0.1.0" }
 
+# Ethereum Bridge (Snowbridge)
+snowbridge-beacon-primitives = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-system = { default-features = false , version = "0.1.0" }
+snowbridge-system-runtime-api = { default-features = false , version = "0.1.0" }
+snowbridge-core = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-ethereum-client = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-inbound-queue = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-outbound-queue = { default-features = false , version = "0.1.0" }
+snowbridge-outbound-queue-runtime-api = { default-features = false , version = "0.1.0" }
+snowbridge-router-primitives = { default-features = false , version = "0.1.0" }
+snowbridge-runtime-common = { default-features = false , version = "0.1.0" }
+
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.6.0" }
 bridge-runtime-common = { version = "0.6.0", features = ["integrity-test"] }
