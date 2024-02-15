@@ -12,9 +12,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  runtime-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
+    name: Extract tasks from matrix
+    steps:
+      - uses: actions/checkout@v2
+      - id: runtime
+        run: |
+          TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
+          echo $TASKS
+          echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
+  integration-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      itest: ${{ steps.itest.outputs.itest }}
+    name: Extract tasks from matrix
+    steps:
+      - uses: actions/checkout@v2
+      - id: itest
+        run: |
+          TASKS=$(echo $(cat .github/workflows/integration-tests-matrix.json) | sed 's/ //g' )
+          echo $TASKS
+          echo "itest=$TASKS" >> $GITHUB_OUTPUT
+
+  test-runtime:
+    needs: [ runtime-matrix ]
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -58,13 +88,119 @@ jobs:
         with:
           shared-key: "fellowship-cache-tests"
 
-      - name: Test
-        run: cargo test --workspace --release --locked -q --features=runtime-metrics,try-runtime
+      - name: Test ${{ matrix.runtime.name }}
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=runtime-metrics,try-runtime
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
-      - name: Test all features
-        run: cargo test --workspace --release --locked -q --features=runtime-benchmarks,runtime-metrics,try-runtime
+      - name: Test all features ${{ matrix.runtime.name }}
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=runtime-benchmarks,runtime-metrics,try-runtime
+        env:
+          RUSTFLAGS: "-C debug-assertions -D warnings"
+          SKIP_WASM_BUILD: 1
+
+  integration-test:
+    needs: [ integration-test-matrix ]
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
+
+      - name: Free space on the runner
+        run: |
+          df -h
+          sudo apt -y autoremove --purge
+          sudo apt -y autoclean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-tests"
+
+      - name: Test ${{ matrix.itest.name }}
+        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q --features=runtime-metrics,try-runtime
+        env:
+          RUSTFLAGS: "-C debug-assertions -D warnings"
+
+  build-chain-spec-generator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
+
+      - name: Free space on the runner
+        run: |
+          df -h
+          sudo apt -y autoremove --purge
+          sudo apt -y autoclean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-tests"
+
+      - name: Build all features
+        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks,runtime-metrics,try-runtime
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
