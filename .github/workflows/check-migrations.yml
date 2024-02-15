@@ -2,9 +2,8 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "release-*"]
   pull_request:
-    branches: ["main"]
   workflow_dispatch:
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
@@ -50,7 +49,7 @@ jobs:
 
       - name: Download try-runtime-cli
         run: |
-          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.2/try-runtime-x86_64-unknown-linux-musl -o try-runtime
+          curl -sL https://github.com/paritytech/try-runtime-cli/releases/download/v0.5.4/try-runtime-x86_64-unknown-linux-musl -o try-runtime
           chmod +x ./try-runtime
 
       - name: Install Protoc

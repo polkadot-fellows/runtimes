@@ -259,6 +259,9 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubKusamaInstance> for Runtime {
 	type UniversalLocation = UniversalLocation;
 	type BridgedNetworkId = KusamaGlobalConsensusNetwork;
 	type BridgeMessagesPalletInstance = WithBridgeHubKusamaMessagesInstance;
+	// `MessageExportPrice` is simply propagated to the inner `xcm_builder::HaulBlobExporter`, and
+	// we do not need or want to add any additional price for exporting here, as it is already
+	// covered by the measured weight of the `ExportMessage` instruction.
 	type MessageExportPrice = ();
 	type Lanes = ActiveLanes;
 	type LanesSupport = ToBridgeHubKusamaXcmBlobHauler;
