@@ -5418,7 +5418,7 @@ dependencies = [
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
- "staging-xcm 8.0.0",
+ "staging-xcm-builder 8.0.0",
 ]
 
 [[package]]
@@ -9811,7 +9811,7 @@ dependencies = [
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
- "staging-xcm 8.0.0",
+ "staging-xcm-builder 8.0.0",
 ]
 
 [[package]]

@@ -16,7 +16,7 @@ sp-runtime = { default-features = false , version = "32.0.0" }
 sp-weights = { default-features = false , version = "28.0.0" }
 sp-core = { default-features = false , version = "29.0.0" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "8.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.0" }
 
 [features]
 default = [ "std" ]
@@ -27,5 +27,5 @@ std = [
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-weights/std",
-	"xcm/std"
+	"xcm-builder/std"
 ]
