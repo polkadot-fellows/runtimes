@@ -150,7 +150,7 @@ jobs:
           shared-key: "fellowship-cache-tests"
 
       - name: Test ${{ matrix.itest.name }}
-        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q --features=runtime-metrics,try-runtime
+        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
