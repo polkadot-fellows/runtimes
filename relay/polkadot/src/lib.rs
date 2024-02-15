@@ -1719,7 +1719,10 @@ pub mod migrations {
 			}
 
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
+			let key_ids = SessionKeys::key_ids()
+				.into_iter()
+				.filter(|&k| *k != sp_core::crypto::key_types::BEEFY)
+				.collect();
 			frame_support::ensure!(
 				key_ids.into_iter().find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) == None,
 				"New session keys contain the ImOnline key that should have been removed",
@@ -1760,7 +1763,10 @@ pub mod migrations {
 				return Ok(())
 			}
 
-			let key_ids = SessionKeys::key_ids().into_iter().filter(|&k| *k != sp_core::crypto::key_types::BEEFY).collect();
+			let key_ids = SessionKeys::key_ids()
+				.into_iter()
+				.filter(|&k| *k != sp_core::crypto::key_types::BEEFY)
+				.collect();
 			let mut new_state: Vec<u8> = Vec::new();
 			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
 				new_state.extend_from_slice(id.as_slice());
