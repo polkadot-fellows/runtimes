@@ -16,7 +16,6 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use kusama_runtime_constants::currency::UNITS as KSM;
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_staking::Forcing;
 use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
 use polkadot_runtime_constants::currency::UNITS as DOT;
@@ -84,7 +83,6 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 fn polkadot_session_keys(
 	babe: BabeId,
 	grandpa: GrandpaId,
-	im_online: ImOnlineId,
 	para_validator: ValidatorId,
 	para_assignment: AssignmentId,
 	authority_discovery: AuthorityDiscoveryId,
@@ -93,7 +91,6 @@ fn polkadot_session_keys(
 	polkadot_runtime::SessionKeys {
 		babe,
 		grandpa,
-		im_online,
 		para_validator,
 		para_assignment,
 		authority_discovery,
@@ -104,7 +101,6 @@ fn polkadot_session_keys(
 fn kusama_session_keys(
 	babe: BabeId,
 	grandpa: GrandpaId,
-	im_online: ImOnlineId,
 	para_validator: ValidatorId,
 	para_assignment: AssignmentId,
 	authority_discovery: AuthorityDiscoveryId,
@@ -113,7 +109,6 @@ fn kusama_session_keys(
 	kusama_runtime::SessionKeys {
 		babe,
 		grandpa,
-		im_online,
 		para_validator,
 		para_assignment,
 		authority_discovery,
@@ -144,35 +139,24 @@ pub fn get_authority_keys_from_seed(
 	AccountId,
 	BabeId,
 	GrandpaId,
-	ImOnlineId,
 	ValidatorId,
 	AssignmentId,
 	AuthorityDiscoveryId,
 	BeefyId,
 ) {
 	let keys = get_authority_keys_from_seed_no_beefy(seed);
-	(keys.0, keys.1, keys.2, keys.3, keys.4, keys.5, keys.6, keys.7, get_from_seed::<BeefyId>(seed))
+	(keys.0, keys.1, keys.2, keys.3, keys.4, keys.5, keys.6, get_from_seed::<BeefyId>(seed))
 }
 
 /// Helper function to generate stash, controller and session key from seed
 pub fn get_authority_keys_from_seed_no_beefy(
 	seed: &str,
-) -> (
-	AccountId,
-	AccountId,
-	BabeId,
-	GrandpaId,
-	ImOnlineId,
-	ValidatorId,
-	AssignmentId,
-	AuthorityDiscoveryId,
-) {
+) -> (AccountId, AccountId, BabeId, GrandpaId, ValidatorId, AssignmentId, AuthorityDiscoveryId) {
 	(
 		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
 		get_account_id_from_seed::<sr25519::Public>(seed),
 		get_from_seed::<BabeId>(seed),
 		get_from_seed::<GrandpaId>(seed),
-		get_from_seed::<ImOnlineId>(seed),
 		get_from_seed::<ValidatorId>(seed),
 		get_from_seed::<AssignmentId>(seed),
 		get_from_seed::<AuthorityDiscoveryId>(seed),
@@ -202,7 +186,6 @@ pub fn polkadot_testnet_genesis(
 		AccountId,
 		BabeId,
 		GrandpaId,
-		ImOnlineId,
 		ValidatorId,
 		AssignmentId,
 		AuthorityDiscoveryId,
@@ -234,7 +217,6 @@ pub fn polkadot_testnet_genesis(
 							x.5.clone(),
 							x.6.clone(),
 							x.7.clone(),
-							x.8.clone(),
 						),
 					)
 				})
@@ -266,7 +248,6 @@ pub fn kusama_testnet_genesis(
 		AccountId,
 		BabeId,
 		GrandpaId,
-		ImOnlineId,
 		ValidatorId,
 		AssignmentId,
 		AuthorityDiscoveryId,
@@ -298,7 +279,6 @@ pub fn kusama_testnet_genesis(
 							x.5.clone(),
 							x.6.clone(),
 							x.7.clone(),
-							x.8.clone(),
 						),
 					)
 				})

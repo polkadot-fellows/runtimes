@@ -20,7 +20,6 @@ pub mod xcm_helpers;
 // Substrate
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa_primitives::AuthorityId as GrandpaId;
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, Pair, Public};
@@ -127,7 +126,6 @@ pub mod validators {
 		AccountId,
 		BabeId,
 		GrandpaId,
-		ImOnlineId,
 		ValidatorId,
 		AssignmentId,
 		AuthorityDiscoveryId,
@@ -139,7 +137,6 @@ pub mod validators {
 			get_account_id_from_seed::<sr25519::Public>(seed),
 			get_from_seed::<BabeId>(seed),
 			get_from_seed::<GrandpaId>(seed),
-			get_from_seed::<ImOnlineId>(seed),
 			get_from_seed::<ValidatorId>(seed),
 			get_from_seed::<AssignmentId>(seed),
 			get_from_seed::<AuthorityDiscoveryId>(seed),

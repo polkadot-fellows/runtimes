@@ -20,7 +20,6 @@ use integration_tests_common::{
 // Substrate
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa_primitives::AuthorityId as GrandpaId;
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, storage::Storage};
@@ -61,7 +60,6 @@ pub mod polkadot {
 	fn session_keys(
 		babe: BabeId,
 		grandpa: GrandpaId,
-		im_online: ImOnlineId,
 		para_validator: ValidatorId,
 		para_assignment: AssignmentId,
 		authority_discovery: AuthorityDiscoveryId,
@@ -70,7 +68,6 @@ pub mod polkadot {
 		polkadot_runtime::SessionKeys {
 			babe,
 			grandpa,
-			im_online,
 			para_validator,
 			para_assignment,
 			authority_discovery,
@@ -102,7 +99,6 @@ pub mod polkadot {
 								x.5.clone(),
 								x.6.clone(),
 								x.7.clone(),
-								x.8.clone(),
 							),
 						)
 					})
@@ -212,7 +208,6 @@ pub mod kusama {
 	fn session_keys(
 		babe: BabeId,
 		grandpa: GrandpaId,
-		im_online: ImOnlineId,
 		para_validator: ValidatorId,
 		para_assignment: AssignmentId,
 		authority_discovery: AuthorityDiscoveryId,
@@ -221,7 +216,6 @@ pub mod kusama {
 		kusama_runtime::SessionKeys {
 			babe,
 			grandpa,
-			im_online,
 			para_validator,
 			para_assignment,
 			authority_discovery,
@@ -252,7 +246,6 @@ pub mod kusama {
 								x.5.clone(),
 								x.6.clone(),
 								x.7.clone(),
-								x.8.clone(),
 							),
 						)
 					})
