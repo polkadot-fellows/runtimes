@@ -13,316 +13,137 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(not(feature = "runtime-benchmarks"))]
-
-pub mod constants;
 pub mod impls;
+pub mod macros;
 pub mod xcm_helpers;
 
-use constants::{
-	accounts::{ALICE, BOB},
-	asset_hub_kusama, asset_hub_polkadot, bridge_hub_kusama, bridge_hub_polkadot, collectives,
-	kusama, penpal, polkadot,
-};
-
 // Substrate
-use frame_support::traits::OnInitialize;
+use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
+use grandpa_primitives::AuthorityId as GrandpaId;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
+use sp_consensus_babe::AuthorityId as BabeId;
+use sp_core::{sr25519, Pair, Public};
+use sp_runtime::{
+	traits::{IdentifyAccount, Verify},
+	MultiSignature,
+};
 
 // Cumulus
-use xcm_emulator::{
-	// decl_test_bridges,
-	decl_test_networks,
-	decl_test_parachains,
-	decl_test_relay_chains,
-	decl_test_sender_receiver_accounts_parameter_types,
-	DefaultMessageProcessor,
-};
+use parachains_common::{AccountId, AssetHubPolkadotAuraId, AuraId};
+use polkadot_primitives::{AssignmentId, ValidatorId};
 
-use polkadot_primitives::runtime_api::runtime_decl_for_parachain_host::ParachainHostV8;
+/// The default XCM version to set in genesis config.
+pub const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-decl_test_relay_chains! {
-	#[api_version(5)]
-	pub struct Polkadot {
-		genesis = polkadot::genesis(),
-		on_init = (),
-		runtime = polkadot_runtime,
-		core = {
-			MessageProcessor: DefaultMessageProcessor<Polkadot>,
-			SovereignAccountOf: polkadot_runtime::xcm_config::SovereignAccountOf,
-		},
-		pallets = {
-			XcmPallet: polkadot_runtime::XcmPallet,
-			Balances: polkadot_runtime::Balances,
-			Hrmp: polkadot_runtime::Hrmp,
-		}
-	},
-	#[api_version(5)]
-	pub struct Kusama {
-		genesis = kusama::genesis(),
-		on_init = (),
-		runtime = kusama_runtime,
-		core = {
-			MessageProcessor: DefaultMessageProcessor<Kusama>,
-			SovereignAccountOf: kusama_runtime::xcm_config::SovereignAccountOf,
-		},
-		pallets = {
-			XcmPallet: kusama_runtime::XcmPallet,
-			Balances: kusama_runtime::Balances,
-			Hrmp: kusama_runtime::Hrmp,
-		}
-	},
+pub const XCM_V2: u32 = 3;
+pub const XCM_V3: u32 = 2;
+pub const REF_TIME_THRESHOLD: u64 = 33;
+pub const PROOF_SIZE_THRESHOLD: u64 = 33;
+
+type AccountPublic = <MultiSignature as Verify>::Signer;
+
+/// Helper function to generate a crypto pair from seed
+fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+	TPublic::Pair::from_string(&format!("//{}", seed), None)
+		.expect("static values are valid; qed")
+		.public()
 }
 
-decl_test_parachains! {
-	// Polkadot Parachains
-	pub struct AssetHubPolkadot {
-		genesis = asset_hub_polkadot::genesis(),
-		on_init = {
-			asset_hub_polkadot_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = asset_hub_polkadot_runtime,
-		core = {
-			XcmpMessageHandler: asset_hub_polkadot_runtime::XcmpQueue,
-			DmpMessageHandler: asset_hub_polkadot_runtime::DmpQueue,
-			LocationToAccountId: asset_hub_polkadot_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: asset_hub_polkadot_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: asset_hub_polkadot_runtime::PolkadotXcm,
-			Assets: asset_hub_polkadot_runtime::Assets,
-			Balances: asset_hub_polkadot_runtime::Balances,
-		}
-	},
-	pub struct Collectives {
-		genesis = collectives::genesis(),
-		on_init = {
-			collectives_polkadot_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = collectives_polkadot_runtime,
-		core = {
-			XcmpMessageHandler: collectives_polkadot_runtime::XcmpQueue,
-			DmpMessageHandler: collectives_polkadot_runtime::DmpQueue,
-			LocationToAccountId: collectives_polkadot_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: collectives_polkadot_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: collectives_polkadot_runtime::PolkadotXcm,
-			Balances: collectives_polkadot_runtime::Balances,
-		}
-	},
-	pub struct BridgeHubPolkadot {
-		genesis = bridge_hub_polkadot::genesis(),
-		on_init = {
-			bridge_hub_polkadot_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = bridge_hub_polkadot_runtime,
-		core = {
-			XcmpMessageHandler: bridge_hub_polkadot_runtime::XcmpQueue,
-			DmpMessageHandler: bridge_hub_polkadot_runtime::DmpQueue,
-			LocationToAccountId: bridge_hub_polkadot_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: bridge_hub_polkadot_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: bridge_hub_polkadot_runtime::PolkadotXcm,
-		}
-	},
-	pub struct PenpalPolkadotA {
-		genesis = penpal::genesis(penpal::PARA_ID_A),
-		on_init = {
-			penpal_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = penpal_runtime,
-		core = {
-			XcmpMessageHandler: penpal_runtime::XcmpQueue,
-			DmpMessageHandler: penpal_runtime::DmpQueue,
-			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: penpal_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: penpal_runtime::PolkadotXcm,
-			Assets: penpal_runtime::Assets,
-		}
-	},
-	pub struct PenpalPolkadotB {
-		genesis = penpal::genesis(penpal::PARA_ID_B),
-		on_init = {
-			penpal_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = penpal_runtime,
-		core = {
-			XcmpMessageHandler: penpal_runtime::XcmpQueue,
-			DmpMessageHandler: penpal_runtime::DmpQueue,
-			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: penpal_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: penpal_runtime::PolkadotXcm,
-			Assets: penpal_runtime::Assets,
-		}
-	},
-	// Kusama Parachains
-	pub struct AssetHubKusama {
-		genesis = asset_hub_kusama::genesis(),
-		on_init = {
-			asset_hub_kusama_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = asset_hub_kusama_runtime,
-		core = {
-			XcmpMessageHandler: asset_hub_kusama_runtime::XcmpQueue,
-			DmpMessageHandler: asset_hub_kusama_runtime::DmpQueue,
-			LocationToAccountId: asset_hub_kusama_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: asset_hub_kusama_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: asset_hub_kusama_runtime::PolkadotXcm,
-			Assets: asset_hub_kusama_runtime::Assets,
-			ForeignAssets: asset_hub_kusama_runtime::ForeignAssets,
-			PoolAssets: asset_hub_kusama_runtime::PoolAssets,
-			AssetConversion: asset_hub_kusama_runtime::AssetConversion,
-			Balances: asset_hub_kusama_runtime::Balances,
-		}
-	},
-	pub struct BridgeHubKusama {
-		genesis = bridge_hub_kusama::genesis(),
-		on_init = {
-			bridge_hub_kusama_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = bridge_hub_kusama_runtime,
-		core = {
-			XcmpMessageHandler: bridge_hub_kusama_runtime::XcmpQueue,
-			DmpMessageHandler: bridge_hub_kusama_runtime::DmpQueue,
-			LocationToAccountId: bridge_hub_kusama_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: bridge_hub_kusama_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: bridge_hub_kusama_runtime::PolkadotXcm,
-		}
-	},
-	pub struct PenpalKusamaA {
-		genesis = penpal::genesis(penpal::PARA_ID_A),
-		on_init = {
-			penpal_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = penpal_runtime,
-		core = {
-			XcmpMessageHandler: penpal_runtime::XcmpQueue,
-			DmpMessageHandler: penpal_runtime::DmpQueue,
-			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: penpal_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: penpal_runtime::PolkadotXcm,
-			Assets: penpal_runtime::Assets,
-		}
-	},
-	pub struct PenpalKusamaB {
-		genesis = penpal::genesis(penpal::PARA_ID_B),
-		on_init = {
-			penpal_runtime::AuraExt::on_initialize(1);
-		},
-		runtime = penpal_runtime,
-		core = {
-			XcmpMessageHandler: penpal_runtime::XcmpQueue,
-			DmpMessageHandler: penpal_runtime::DmpQueue,
-			LocationToAccountId: penpal_runtime::xcm_config::LocationToAccountId,
-			ParachainInfo: penpal_runtime::ParachainInfo,
-		},
-		pallets = {
-			PolkadotXcm: penpal_runtime::PolkadotXcm,
-			Assets: penpal_runtime::Assets,
-		}
-	},
+/// Helper function to generate an account ID from seed.
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-decl_test_networks! {
-	pub struct PolkadotMockNet {
-		relay_chain = Polkadot,
-		parachains = vec![
-			AssetHubPolkadot,
-			Collectives,
-			BridgeHubPolkadot,
-			PenpalPolkadotA,
-			PenpalPolkadotB,
-		],
-		// TODO: uncomment when https://github.com/polkadot-fellows/runtimes/pull/108 is merged
-		// bridge = PolkadotKusamaMockBridge
-		bridge = ()
-	},
-	pub struct KusamaMockNet {
-		relay_chain = Kusama,
-		parachains = vec![
-			AssetHubKusama,
-			BridgeHubKusama,
-			PenpalKusamaA,
-			PenpalKusamaB,
-		],
-		// TODO: uncomment when https://github.com/polkadot-fellows/runtimes/pull/108 is merged
-		// bridge = KusamaPolkadotMockBridge
-		bridge = ()
-	},
+pub mod accounts {
+	use super::*;
+	pub const ALICE: &str = "Alice";
+	pub const BOB: &str = "Bob";
+	pub const CHARLIE: &str = "Charlie";
+	pub const DAVE: &str = "Dave";
+	pub const EVE: &str = "Eve";
+	pub const FERDIE: &str = "Ferdei";
+	pub const ALICE_STASH: &str = "Alice//stash";
+	pub const BOB_STASH: &str = "Bob//stash";
+	pub const CHARLIE_STASH: &str = "Charlie//stash";
+	pub const DAVE_STASH: &str = "Dave//stash";
+	pub const EVE_STASH: &str = "Eve//stash";
+	pub const FERDIE_STASH: &str = "Ferdie//stash";
+	pub const FERDIE_BEEFY: &str = "Ferdie//stash";
+
+	pub fn init_balances() -> Vec<AccountId> {
+		vec![
+			get_account_id_from_seed::<sr25519::Public>(ALICE),
+			get_account_id_from_seed::<sr25519::Public>(BOB),
+			get_account_id_from_seed::<sr25519::Public>(CHARLIE),
+			get_account_id_from_seed::<sr25519::Public>(DAVE),
+			get_account_id_from_seed::<sr25519::Public>(EVE),
+			get_account_id_from_seed::<sr25519::Public>(FERDIE),
+			get_account_id_from_seed::<sr25519::Public>(ALICE_STASH),
+			get_account_id_from_seed::<sr25519::Public>(BOB_STASH),
+			get_account_id_from_seed::<sr25519::Public>(CHARLIE_STASH),
+			get_account_id_from_seed::<sr25519::Public>(DAVE_STASH),
+			get_account_id_from_seed::<sr25519::Public>(EVE_STASH),
+			get_account_id_from_seed::<sr25519::Public>(FERDIE_STASH),
+		]
+	}
 }
 
-// TODO: uncomment when https://github.com/polkadot-fellows/runtimes/pull/108 is merged
-// decl_test_bridges! {
-// 	pub struct PolkadotKusamaMockBridge {
-// 		source = BridgeHubPolkadot,
-// 		target = BridgeHubKusama,
-// 	 handler = PolkadotKusamaMessageHandler
-// 	},
-// 	pub struct KusamaPolkadotMockBridge {
-// 		source = BridgeHubKusama,
-// 		target = BridgeHubPolkadot,
-// 		handler = KusamaPolkadotMessageHandler
-// 	}
-// }
+pub mod collators {
+	use super::*;
 
-// Polkadot implementation
-impl_accounts_helpers_for_relay_chain!(Polkadot);
-impl_assert_events_helpers_for_relay_chain!(Polkadot);
-impl_hrmp_channels_helpers_for_relay_chain!(Polkadot);
+	pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
+		vec![
+			(
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
+			),
+			(
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
+			),
+		]
+	}
 
-// Kusama implementation
-impl_accounts_helpers_for_relay_chain!(Kusama);
-impl_assert_events_helpers_for_relay_chain!(Kusama);
-impl_hrmp_channels_helpers_for_relay_chain!(Kusama);
+	pub fn invulnerables() -> Vec<(AccountId, AuraId)> {
+		vec![
+			(
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_from_seed::<AuraId>("Alice"),
+			),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
+		]
+	}
+}
 
-// AssetHubPolkadot implementation
-impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
-impl_assets_helpers_for_parachain!(AssetHubPolkadot, Polkadot);
-impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
+pub mod validators {
+	use super::*;
 
-// AssetHubKusama implementation
-impl_accounts_helpers_for_parachain!(AssetHubKusama);
-impl_assets_helpers_for_parachain!(AssetHubKusama, Kusama);
-impl_assert_events_helpers_for_parachain!(AssetHubKusama);
-
-// PenpalPolkadot implementations
-impl_assert_events_helpers_for_parachain!(PenpalPolkadotA);
-impl_assert_events_helpers_for_parachain!(PenpalPolkadotB);
-
-// PenpalKusama implementations
-impl_assert_events_helpers_for_parachain!(PenpalKusamaA);
-impl_assert_events_helpers_for_parachain!(PenpalKusamaB);
-
-// Collectives implementation
-impl_accounts_helpers_for_parachain!(Collectives);
-impl_assert_events_helpers_for_parachain!(Collectives);
-
-decl_test_sender_receiver_accounts_parameter_types! {
-	// Relays
-	Polkadot { sender: ALICE, receiver: BOB },
-	Kusama { sender: ALICE, receiver: BOB },
-	// Asset Hubs
-	AssetHubPolkadot { sender: ALICE, receiver: BOB },
-	AssetHubKusama { sender: ALICE, receiver: BOB },
-	// Collectives
-	Collectives { sender: ALICE, receiver: BOB },
-	// Bridged Hubs
-	BridgeHubPolkadot { sender: ALICE, receiver: BOB },
-	BridgeHubKusama { sender: ALICE, receiver: BOB },
-	// Penpals
-	PenpalPolkadotA { sender: ALICE, receiver: BOB },
-	PenpalPolkadotB { sender: ALICE, receiver: BOB },
-	PenpalKusamaA { sender: ALICE, receiver: BOB },
-	PenpalKusamaB { sender: ALICE, receiver: BOB }
+	pub fn initial_authorities() -> Vec<(
+		AccountId,
+		AccountId,
+		BabeId,
+		GrandpaId,
+		ImOnlineId,
+		ValidatorId,
+		AssignmentId,
+		AuthorityDiscoveryId,
+		BeefyId,
+	)> {
+		let seed = "Alice";
+		vec![(
+			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+			get_account_id_from_seed::<sr25519::Public>(seed),
+			get_from_seed::<BabeId>(seed),
+			get_from_seed::<GrandpaId>(seed),
+			get_from_seed::<ImOnlineId>(seed),
+			get_from_seed::<ValidatorId>(seed),
+			get_from_seed::<AssignmentId>(seed),
+			get_from_seed::<AuthorityDiscoveryId>(seed),
+			get_from_seed::<BeefyId>(seed),
+		)]
+	}
 }
