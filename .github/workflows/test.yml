@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
-    name: Extract tasks from matrix
+    name: Extract runtimes from matrix
     steps:
       - uses: actions/checkout@v2
       - id: runtime
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
-    name: Extract tasks from matrix
+    name: Extract integration tests from matrix
     steps:
       - uses: actions/checkout@v2
       - id: itest
@@ -38,7 +38,7 @@ jobs:
           echo $TASKS
           echo "itest=$TASKS" >> $GITHUB_OUTPUT
 
-  test-runtime:
+  runtime:
     needs: [ runtime-matrix ]
     continue-on-error: true
     runs-on: ubuntu-22.04
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        runtime: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
+        itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
