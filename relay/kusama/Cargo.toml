@@ -18,116 +18,116 @@ serde = { version = "1.0.195", default-features = false }
 serde_derive = { version = "1.0.195", optional = true }
 static_assertions = "1.1.0"
 
-authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "25.0.0" }
-babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.31.0" }
-beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "12.0.0" }
-binary-merkle-tree = { default-features = false , version = "12.0.0" }
+authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "26.0.0" }
+babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.32.0" }
+beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "13.0.0" }
+binary-merkle-tree = { default-features = false , version = "13.0.0" }
 kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
-sp-api = { default-features = false , version = "25.0.0" }
-inherents = { package = "sp-inherents", default-features = false , version = "25.0.0" }
-offchain-primitives = { package = "sp-offchain", default-features = false , version = "25.0.0" }
-sp-std = { package = "sp-std", default-features = false , version = "13.0.0" }
-sp-application-crypto = { default-features = false , version = "29.0.0" }
-sp-arithmetic = { default-features = false , version = "22.0.0" }
-sp-genesis-builder = { default-features = false , version = "0.6.0" }
-sp-io = { default-features = false , version = "29.0.0" }
-sp-mmr-primitives = { default-features = false , version = "25.0.0" }
-sp-runtime = { default-features = false , version = "30.0.1" }
-sp-staking = { default-features = false , version = "25.0.0" }
-sp-core = { default-features = false , version = "27.0.0" }
-sp-session = { default-features = false , version = "26.0.0" }
-sp-storage = { default-features = false , version = "18.0.0" }
-sp-version = { default-features = false , version = "28.0.0" }
-tx-pool-api = { package = "sp-transaction-pool", default-features = false , version = "25.0.0" }
-block-builder-api = { package = "sp-block-builder", default-features = false , version = "25.0.0" }
-sp-npos-elections = { default-features = false , version = "25.0.0" }
+sp-api = { default-features = false , version = "26.0.0" }
+inherents = { package = "sp-inherents", default-features = false , version = "26.0.0" }
+offchain-primitives = { package = "sp-offchain", default-features = false , version = "26.0.0" }
+sp-std = { package = "sp-std", default-features = false , version = "14.0.0" }
+sp-application-crypto = { default-features = false , version = "30.0.0" }
+sp-arithmetic = { default-features = false , version = "23.0.0" }
+sp-genesis-builder = { default-features = false , version = "0.7.0" }
+sp-io = { default-features = false , version = "30.0.0" }
+sp-mmr-primitives = { default-features = false , version = "26.0.0" }
+sp-runtime = { default-features = false , version = "31.0.1" }
+sp-staking = { default-features = false , version = "26.0.0" }
+sp-core = { default-features = false , version = "28.0.0" }
+sp-session = { default-features = false , version = "27.0.0" }
+sp-storage = { default-features = false , version = "19.0.0" }
+sp-version = { default-features = false , version = "29.0.0" }
+tx-pool-api = { package = "sp-transaction-pool", default-features = false , version = "26.0.0" }
+block-builder-api = { package = "sp-block-builder", default-features = false , version = "26.0.0" }
+sp-npos-elections = { default-features = false , version = "26.0.0" }
 
-pallet-asset-rate = { default-features = false , version = "6.0.0" }
-pallet-authority-discovery = { default-features = false , version = "27.0.0" }
-pallet-authorship = { default-features = false , version = "27.0.0" }
-pallet-babe = { default-features = false , version = "27.0.0" }
-pallet-bags-list = { default-features = false , version = "26.0.0" }
-pallet-balances = { default-features = false , version = "27.0.0" }
-pallet-beefy = { default-features = false , version = "27.0.0" }
-pallet-beefy-mmr = { default-features = false , version = "27.0.0" }
-pallet-bounties = { default-features = false , version = "26.0.0" }
-pallet-child-bounties = { default-features = false , version = "26.0.0" }
-pallet-transaction-payment = { default-features = false , version = "27.0.0" }
-pallet-transaction-payment-rpc-runtime-api = { default-features = false , version = "27.0.0" }
-pallet-nomination-pools-runtime-api = { default-features = false , version = "22.0.0" }
-pallet-collective = { default-features = false , version = "27.0.0" }
-pallet-conviction-voting = { default-features = false , version = "27.0.0" }
-pallet-democracy = { default-features = false , version = "27.0.0" }
-pallet-elections-phragmen = { default-features = false , version = "28.0.0" }
-pallet-election-provider-multi-phase = { default-features = false , version = "26.0.0" }
-pallet-fast-unstake = { default-features = false , version = "26.0.0" }
-frame-executive = { default-features = false , version = "27.0.0" }
-pallet-grandpa = { default-features = false , version = "27.0.0" }
-pallet-nis = { default-features = false , version = "27.0.0" }
-pallet-identity = { default-features = false , version = "27.0.0" }
-pallet-im-online = { default-features = false , version = "26.0.0" }
-pallet-indices = { default-features = false , version = "27.0.0" }
-pallet-membership = { default-features = false , version = "27.0.0" }
-pallet-message-queue = { default-features = false , version = "30.0.0" }
-pallet-mmr = { default-features = false , version = "26.0.0" }
-pallet-multisig = { default-features = false , version = "27.0.0" }
-pallet-nomination-pools = { default-features = false , version = "24.0.2" }
-pallet-offences = { default-features = false , version = "26.0.0" }
-pallet-preimage = { default-features = false , version = "27.0.0" }
-pallet-proxy = { default-features = false , version = "27.0.0" }
-pallet-ranked-collective = { default-features = false , version = "27.0.0" }
-pallet-recovery = { default-features = false , version = "27.0.0" }
-pallet-referenda = { default-features = false , version = "27.0.0" }
-pallet-scheduler = { default-features = false , version = "28.0.0" }
-pallet-session = { default-features = false , version = "27.0.0" }
-pallet-society = { default-features = false, version = "27.0.0" }
-frame-support = { default-features = false , version = "27.0.0" }
-pallet-staking = { default-features = false , version = "27.0.0" }
-pallet-state-trie-migration = { default-features = false , version = "28.0.0" }
-pallet-staking-runtime-api = { default-features = false , version = "13.0.0" }
-frame-system = { default-features = false , version = "27.0.0" }
-frame-system-rpc-runtime-api = { default-features = false , version = "25.0.0" }
-pallet-timestamp = { default-features = false , version = "26.0.0" }
-pallet-tips = { default-features = false , version = "26.0.0" }
-pallet-treasury = { default-features = false , version = "26.0.0" }
-pallet-utility = { default-features = false , version = "27.0.0" }
-pallet-vesting = { default-features = false , version = "27.0.0" }
-pallet-whitelist = { default-features = false , version = "26.0.0" }
-pallet-xcm = { default-features = false , version = "6.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "6.0.2" }
-frame-election-provider-support = { default-features = false , version = "27.0.0" }
+pallet-asset-rate = { default-features = false , version = "7.0.0" }
+pallet-authority-discovery = { default-features = false , version = "28.0.0" }
+pallet-authorship = { default-features = false , version = "28.0.0" }
+pallet-babe = { default-features = false , version = "28.0.0" }
+pallet-bags-list = { default-features = false , version = "27.0.0" }
+pallet-balances = { default-features = false , version = "28.0.0" }
+pallet-beefy = { default-features = false , version = "28.0.0" }
+pallet-beefy-mmr = { default-features = false , version = "28.0.0" }
+pallet-bounties = { default-features = false , version = "27.0.0" }
+pallet-child-bounties = { default-features = false , version = "27.0.0" }
+pallet-transaction-payment = { default-features = false , version = "28.0.0" }
+pallet-transaction-payment-rpc-runtime-api = { default-features = false , version = "28.0.0" }
+pallet-nomination-pools-runtime-api = { default-features = false , version = "23.0.0" }
+pallet-collective = { default-features = false , version = "28.0.0" }
+pallet-conviction-voting = { default-features = false , version = "28.0.0" }
+pallet-democracy = { default-features = false , version = "28.0.0" }
+pallet-elections-phragmen = { default-features = false , version = "29.0.0" }
+pallet-election-provider-multi-phase = { default-features = false , version = "27.0.0" }
+pallet-fast-unstake = { default-features = false , version = "27.0.0" }
+frame-executive = { default-features = false , version = "28.0.0" }
+pallet-grandpa = { default-features = false , version = "28.0.0" }
+pallet-nis = { default-features = false , version = "28.0.0" }
+pallet-identity = { default-features = false , version = "28.0.0" }
+pallet-im-online = { default-features = false , version = "27.0.0" }
+pallet-indices = { default-features = false , version = "28.0.0" }
+pallet-membership = { default-features = false , version = "28.0.0" }
+pallet-message-queue = { default-features = false , version = "31.0.0" }
+pallet-mmr = { default-features = false , version = "27.0.0" }
+pallet-multisig = { default-features = false , version = "28.0.0" }
+pallet-nomination-pools = { default-features = false , version = "25.0.3" }
+pallet-offences = { default-features = false , version = "27.0.0" }
+pallet-preimage = { default-features = false , version = "28.0.0" }
+pallet-proxy = { default-features = false , version = "28.0.0" }
+pallet-ranked-collective = { default-features = false , version = "28.0.0" }
+pallet-recovery = { default-features = false , version = "28.0.0" }
+pallet-referenda = { default-features = false , version = "28.0.0" }
+pallet-scheduler = { default-features = false , version = "29.0.0" }
+pallet-session = { default-features = false , version = "28.0.0" }
+pallet-society = { default-features = false, version = "28.0.0" }
+frame-support = { default-features = false , version = "28.0.0" }
+pallet-staking = { default-features = false , version = "28.0.0" }
+pallet-state-trie-migration = { default-features = false , version = "29.0.0" }
+pallet-staking-runtime-api = { default-features = false , version = "14.0.0" }
+frame-system = { default-features = false , version = "28.0.0" }
+frame-system-rpc-runtime-api = { default-features = false , version = "26.0.0" }
+pallet-timestamp = { default-features = false , version = "27.0.0" }
+pallet-tips = { default-features = false , version = "27.0.0" }
+pallet-treasury = { default-features = false , version = "27.0.0" }
+pallet-utility = { default-features = false , version = "28.0.0" }
+pallet-vesting = { default-features = false , version = "28.0.0" }
+pallet-whitelist = { default-features = false , version = "27.0.0" }
+pallet-xcm = { default-features = false , version = "7.0.0" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "7.0.3" }
+frame-election-provider-support = { default-features = false , version = "28.0.0" }
 
-frame-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
-frame-try-runtime = { default-features = false, optional = true , version = "0.33.0" }
-pallet-offences-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
-pallet-session-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
-pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "25.0.0" }
-frame-system-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
-pallet-election-provider-support-benchmarking = { default-features = false, optional = true , version = "26.0.0" }
+frame-benchmarking = { default-features = false, optional = true , version = "28.0.0" }
+frame-try-runtime = { default-features = false, optional = true , version = "0.34.0" }
+pallet-offences-benchmarking = { default-features = false, optional = true , version = "28.0.0" }
+pallet-session-benchmarking = { default-features = false, optional = true , version = "28.0.0" }
+pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "26.0.0" }
+frame-system-benchmarking = { default-features = false, optional = true , version = "28.0.0" }
+pallet-election-provider-support-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
 hex-literal = "0.4.1"
 
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "6.0.0" }
-runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "6.0.0" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "6.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "7.0.0" }
+runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "7.0.0" }
+primitives = { package = "polkadot-primitives", default-features = false , version = "7.0.0" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "6.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "6.0.2" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "6.0.2" }
+xcm = { package = "staging-xcm", default-features = false , version = "7.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "7.0.3" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "7.0.3" }
 
-sp-debug-derive = { default-features = false, version = "13.0.0" }
+sp-debug-derive = { default-features = false, version = "14.0.0" }
 
 [dev-dependencies]
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
-keyring = { package = "sp-keyring", version = "30.0.0" }
-sp-trie = { version = "28.0.0" }
+keyring = { package = "sp-keyring", version = "31.0.0" }
+sp-trie = { version = "29.0.0" }
 separator = "0.4.1"
 serde_json = "1.0.111"
-remote-externalities = { package = "frame-remote-externalities", version = "0.34.0" }
+remote-externalities = { package = "frame-remote-externalities", version = "0.35.0" }
 tokio = { version = "1.35.1", features = ["macros"] }
-sp-tracing = { default-features = false , version = "15.0.0" }
+sp-tracing = { default-features = false , version = "16.0.0" }
 
 [build-dependencies]
-substrate-wasm-builder = { version = "16.0.0" }
+substrate-wasm-builder = { version = "17.0.0" }
 
 [features]
 default = [ "std" ]

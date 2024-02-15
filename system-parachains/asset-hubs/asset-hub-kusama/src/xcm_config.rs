@@ -20,9 +20,7 @@ use super::{
 	TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
-use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
-};
+use assets_common::matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset};
 use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess},
@@ -42,22 +40,21 @@ use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
+// TODO:(PR#159) change to FungibleAdapter
+#[allow(deprecated)]
+use xcm_builder::CurrencyAdapter;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
-	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, CurrencyAdapter,
-	DenyReserveTransferToRelayChain, DenyThenTry, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FrameTransactionalProcessor, FungiblesAdapter,
-	GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete, LocalMint, NoChecking,
-	ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignPaidRemoteExporter,
-	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
+	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
+	FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription, IsConcrete,
+	LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignPaidRemoteExporter,
+	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus,
+	TakeWeightCredit, TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	WithUniqueTopic, XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
-
-#[cfg(feature = "runtime-benchmarks")]
-use {cumulus_primitives_core::ParaId, sp_core::Get};
 
 parameter_types! {
 	pub const KsmLocation: MultiLocation = MultiLocation::parent();
@@ -66,8 +63,8 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation =
 		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
-	pub TrustBackedAssetsPalletLocation: MultiLocation =
-		PalletInstance(<Assets as PalletInfoAccess>::index() as u8).into();
+	pub AssetsPalletIndex: u32 = <Assets as PalletInfoAccess>::index() as u32;
+	pub TrustBackedAssetsPalletLocation: MultiLocation = PalletInstance(AssetsPalletIndex::get() as u8).into();
 	pub ForeignAssetsPalletLocation: MultiLocation =
 		PalletInstance(<ForeignAssets as PalletInfoAccess>::index() as u8).into();
 	pub PoolAssetsPalletLocation: MultiLocation =
@@ -100,6 +97,7 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting the native currency on this chain.
+#[allow(deprecated)]
 pub type CurrencyTransactor = CurrencyAdapter<
 	// Use this currency:
 	Balances,
@@ -189,7 +187,6 @@ pub type PoolFungiblesTransactor = FungiblesAdapter<
 /// Means for transacting assets on this chain.
 pub type AssetTransactors =
 	(CurrencyTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
-
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
@@ -690,33 +687,6 @@ pub struct XcmBenchmarkHelper;
 impl pallet_assets::BenchmarkHelper<MultiLocation> for XcmBenchmarkHelper {
 	fn create_asset_id_parameter(id: u32) -> MultiLocation {
 		MultiLocation { parents: 1, interior: X1(Parachain(id)) }
-	}
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub struct BenchmarkMultiLocationConverter<SelfParaId> {
-	_phantom: sp_std::marker::PhantomData<SelfParaId>,
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-impl<SelfParaId>
-	pallet_asset_conversion::BenchmarkHelper<MultiLocation, sp_std::boxed::Box<MultiLocation>>
-	for BenchmarkMultiLocationConverter<SelfParaId>
-where
-	SelfParaId: Get<ParaId>,
-{
-	fn asset_id(asset_id: u32) -> MultiLocation {
-		MultiLocation {
-			parents: 1,
-			interior: X3(
-				Parachain(SelfParaId::get().into()),
-				PalletInstance(<Assets as PalletInfoAccess>::index() as u8),
-				GeneralIndex(asset_id.into()),
-			),
-		}
-	}
-	fn multiasset_id(asset_id: u32) -> sp_std::boxed::Box<MultiLocation> {
-		sp_std::boxed::Box::new(Self::asset_id(asset_id))
 	}
 }
 

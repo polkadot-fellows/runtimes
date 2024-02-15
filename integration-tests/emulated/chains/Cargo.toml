@@ -9,25 +9,26 @@ description = "Definitions of the fellows emulated relay+para runtimes"
 [dependencies]
 
 # Substrate
-grandpa-primitives = { package = "sp-consensus-grandpa", version = "12.0.0" }
-sp-authority-discovery = { version = "25.0.0" }
-sp-runtime = { version = "30.0.1" }
-frame-support = { version = "27.0.0" }
-sp-core = { version = "27.0.0" }
-sp-consensus-babe = { version = "0.31.0" }
-pallet-im-online = { version = "26.0.0" }
-pallet-staking = { version = "27.0.0" }
-beefy-primitives = { package = "sp-consensus-beefy", version = "12.0.0" }
+grandpa-primitives = { package = "sp-consensus-grandpa", version = "13.0.0" }
+sp-authority-discovery = { version = "26.0.0" }
+sp-runtime = { version = "31.0.1" }
+frame-support = { version = "28.0.0" }
+sp-core = { version = "28.0.0" }
+sp-consensus-babe = { version = "0.32.0" }
+pallet-im-online = { version = "27.0.0" }
+pallet-staking = { version = "28.0.0" }
+beefy-primitives = { package = "sp-consensus-beefy", version = "13.0.0" }
 
 # Polkadot
-polkadot-primitives = { version = "6.0.0" }
-polkadot-runtime-parachains = { version = "6.0.0" }
-polkadot-parachain-primitives = { version = "5.0.0" }
+polkadot-primitives = { version = "7.0.0" }
+polkadot-runtime-parachains = { version = "7.0.0" }
+polkadot-parachain-primitives = { version = "6.0.0" }
 
 # Cumulus
-parachains-common = { version = "6.0.0" }
-xcm-emulator = { version = "0.4.0" }
-penpal-runtime = { version = "0.13.2" }
+parachains-common = { version = "7.0.0" }
+cumulus-primitives-core = { version = "0.7.0" }
+xcm-emulator = { version = "0.5.0" }
+penpal-runtime = { version = "0.14.3" }
 
 # Local runtimes
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../relay/kusama" }
