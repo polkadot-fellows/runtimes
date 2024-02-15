@@ -451,7 +451,7 @@ fn test_assets_balances_api_works() {
 		.execute_with(|| {
 			let local_asset_id = 1;
 			let foreign_asset_id_multilocation =
-				MultiLocation { parents: 1, interior: X2(Parachain(1234), GeneralIndex(12345)) };
+				Location { parents: 1, interior: X2(Parachain(1234), GeneralIndex(12345)) };
 
 			// check before
 			assert_eq!(Assets::balance(local_asset_id, AccountId::from(ALICE)), 0);
@@ -631,7 +631,7 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	Runtime,
 	XcmConfig,
 	ForeignAssetsInstance,
-	MultiLocation,
+	Location,
 	JustTry,
 	asset_test_utils::CollatorSessionKeys::new(
 		AccountId::from(ALICE),
@@ -639,7 +639,7 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 		SessionKeys { aura: AuraId::from(sp_core::ed25519::Public::from_raw(ALICE)) }
 	),
 	ExistentialDeposit::get(),
-	MultiLocation { parents: 1, interior: X2(Parachain(1313), GeneralIndex(12345)) },
+	Location { parents: 1, interior: X2(Parachain(1313), GeneralIndex(12345)) },
 	Box::new(|| {
 		assert!(Assets::asset_ids().collect::<Vec<_>>().is_empty());
 	}),
@@ -654,7 +654,7 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 	WeightToFee,
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
-	MultiLocation,
+	Location,
 	JustTry,
 	asset_test_utils::CollatorSessionKeys::new(
 		AccountId::from(ALICE),
@@ -743,7 +743,7 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
 			AccountId::from([73; 32]),
 			AccountId::from(BLOCK_AUTHOR_ACCOUNT),
 			// receiving ROCs
-			(MultiLocation { parents: 2, interior: X1(GlobalConsensus(Kusama)) }, 1000000000000, 1_000_000_000),
+			(Location { parents: 2, interior: X1(GlobalConsensus(Kusama)) }, 1000000000000, 1_000_000_000),
 			bridging_to_asset_hub_kusama,
 			(
 				X1(PalletInstance(bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX)),

@@ -19,7 +19,7 @@ use sp_runtime::ModuleError;
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
 	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
-	let asset_one = Box::new(MultiLocation {
+	let asset_one = Box::new(Location {
 		parents: 0,
 		interior: X2(PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())),
 	});
@@ -119,7 +119,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	};
 	let asset_owner_on_penpal = PenpalKusamaASender::get();
 	let foreign_asset_at_asset_hub_kusama =
-		MultiLocation { parents: 1, interior: X1(Parachain(PenpalKusamaA::para_id().into())) }
+		Location { parents: 1, interior: X1(Parachain(PenpalKusamaA::para_id().into())) }
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 

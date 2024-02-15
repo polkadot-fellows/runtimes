@@ -35,7 +35,7 @@ pub fn xcm_transact_paid_execution(
 		RefundSurplus,
 		DepositAsset {
 			assets: All.into(),
-			beneficiary: MultiLocation {
+			beneficiary: Location {
 				parents: 0,
 				interior: X1(AccountId32 { network: None, id: beneficiary.into() }),
 			},
@@ -58,7 +58,7 @@ pub fn xcm_transact_unpaid_execution(
 	]))
 }
 /// Helper method to get the non-fee asset used in multiple assets transfer
-pub fn non_fee_asset(assets: &MultiAssets, fee_idx: usize) -> Option<(MultiLocation, u128)> {
+pub fn non_fee_asset(assets: &MultiAssets, fee_idx: usize) -> Option<(Location, u128)> {
 	let asset = assets.inner().into_iter().enumerate().find(|a| a.0 != fee_idx)?.1.clone();
 	let asset_id = match asset.id {
 		Concrete(id) => id,

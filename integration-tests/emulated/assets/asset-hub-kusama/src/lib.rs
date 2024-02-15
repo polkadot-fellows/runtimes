@@ -66,11 +66,7 @@ pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalKusamaA>;
 pub type ParaToSystemParaTest = Test<PenpalKusamaA, AssetHubKusama>;
 
 /// Returns a `TestArgs` instance to be used for the Relay Chain across integration tests
-pub fn relay_test_args(
-	dest: MultiLocation,
-	beneficiary_id: AccountId32,
-	amount: Balance,
-) -> TestArgs {
+pub fn relay_test_args(dest: Location, beneficiary_id: AccountId32, amount: Balance) -> TestArgs {
 	TestArgs {
 		dest,
 		beneficiary: AccountId32Junction { network: None, id: beneficiary_id.into() }.into(),
@@ -84,7 +80,7 @@ pub fn relay_test_args(
 
 /// Returns a `TestArgs` instance to be used by parachains across integration tests
 pub fn para_test_args(
-	dest: MultiLocation,
+	dest: Location,
 	beneficiary_id: AccountId32,
 	amount: Balance,
 	assets: MultiAssets,

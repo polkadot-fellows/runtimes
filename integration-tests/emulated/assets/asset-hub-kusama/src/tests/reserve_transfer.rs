@@ -192,7 +192,7 @@ fn para_to_system_para_reserve_transfer_assets(t: ParaToSystemParaTest) -> Dispa
 fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 	let signed_origin = <Kusama as Chain>::RuntimeOrigin::signed(KusamaSender::get().into());
 	let destination = Kusama::child_location_of(AssetHubKusama::para_id());
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
 	let assets: MultiAssets = (Here, amount_to_send).into();
@@ -227,7 +227,7 @@ fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
 	let destination = AssetHubKusama::parent_location();
 	let beneficiary_id = KusamaReceiver::get();
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: beneficiary_id.into() }.into();
 	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 1000;
 

@@ -50,15 +50,15 @@ use xcm_builder::{
 };
 
 parameter_types! {
-	pub const RootLocation: MultiLocation = Here.into_location();
+	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
-	pub const TokenLocation: MultiLocation = Here.into_location();
+	pub const TokenLocation: Location = Here.into_location();
 	/// The Polkadot network ID. This is named.
 	pub const ThisNetwork: NetworkId = NetworkId::Polkadot;
 	/// Our location in the universe of consensus systems.
-	pub const UniversalLocation: InteriorMultiLocation = X1(GlobalConsensus(ThisNetwork::get()));
+	pub const UniversalLocation: InteriorLocation = X1(GlobalConsensus(ThisNetwork::get()));
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
@@ -67,7 +67,7 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
-/// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
+/// The canonical means of converting a `Location` into an `AccountId`, used when we want to
 /// determine the sovereign account controlled by a location.
 pub type SovereignAccountOf = (
 	// We can convert a child parachain using the standard `AccountId` conversion.
@@ -79,7 +79,7 @@ pub type SovereignAccountOf = (
 );
 
 /// Our asset transactor. This is what allows us to interact with the runtime assets from the point
-/// of view of XCM-only concepts like `MultiLocation` and `MultiAsset`.
+/// of view of XCM-only concepts like `Location` and `MultiAsset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
 pub type LocalAssetTransactor = FungibleAdapter<
@@ -87,7 +87,7 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	IsConcrete<TokenLocation>,
-	// We can convert the MultiLocations with our converter above:
+	// We can convert the Locations with our converter above:
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -95,9 +95,9 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	LocalCheckAccount,
 >;
 
-/// The means that we convert an XCM origin `MultiLocation` into the runtime's `Origin` type for
+/// The means that we convert an XCM origin `Location` into the runtime's `Origin` type for
 /// local dispatch. This is a conversion function from an `OriginKind` type along with the
-/// `MultiLocation` value and returns an `Origin` value or an error.
+/// `Location` value and returns an `Origin` value or an error.
 type LocalOriginConverter = (
 	// If the origin kind is `Sovereign`, then return a `Signed` origin with the account determined
 	// by the `SovereignAccountOf` converter.
@@ -136,12 +136,12 @@ pub type XcmRouter = WithUniqueTopic<(
 
 parameter_types! {
 	pub const Dot: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
-	pub const AssetHubLocation: MultiLocation = Parachain(ASSET_HUB_ID).into_location();
-	pub const DotForAssetHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), AssetHubLocation::get());
-	pub const CollectivesLocation: MultiLocation = Parachain(COLLECTIVES_ID).into_location();
-	pub const DotForCollectives: (MultiAssetFilter, MultiLocation) = (Dot::get(), CollectivesLocation::get());
-	pub const BridgeHubLocation: MultiLocation = Parachain(BRIDGE_HUB_ID).into_location();
-	pub const DotForBridgeHub: (MultiAssetFilter, MultiLocation) = (Dot::get(), BridgeHubLocation::get());
+	pub const AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub const DotForAssetHub: (MultiAssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
+	pub const CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
+	pub const DotForCollectives: (MultiAssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub const BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
+	pub const DotForBridgeHub: (MultiAssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -153,15 +153,15 @@ pub type TrustedTeleporters = (
 );
 
 match_types! {
-	pub type OnlyParachains: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 0, interior: X1(Parachain(_)) }
+	pub type OnlyParachains: impl Contains<Location> = {
+		Location { parents: 0, interior: X1(Parachain(_)) }
 	};
-	pub type CollectivesOrFellows: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 0, interior: X1(Parachain(COLLECTIVES_ID)) } |
-		MultiLocation { parents: 0, interior: X2(Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }) }
+	pub type CollectivesOrFellows: impl Contains<Location> = {
+		Location { parents: 0, interior: X1(Parachain(COLLECTIVES_ID)) } |
+		Location { parents: 0, interior: X2(Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }) }
 	};
-	pub type LocalPlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 0, interior: X1(Plurality { .. }) }
+	pub type LocalPlurality: impl Contains<Location> = {
+		Location { parents: 0, interior: X1(Plurality { .. }) }
 	};
 }
 
@@ -240,11 +240,11 @@ parameter_types! {
 	pub const TreasurerBodyId: BodyId = BodyId::Index(TREASURER_INDEX);
 }
 
-/// Type to convert the `GeneralAdmin` origin to a Plurality `MultiLocation` value.
+/// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
 pub type GeneralAdminToPlurality =
 	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
 
-/// Type to convert an `Origin` type value into a `MultiLocation` value which represents an interior
+/// Type to convert an `Origin` type value into a `Location` value which represents an interior
 /// location of this chain.
 pub type LocalOriginToLocation = (
 	GeneralAdminToPlurality,
@@ -252,27 +252,27 @@ pub type LocalOriginToLocation = (
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
-/// Type to convert the `StakingAdmin` origin to a Plurality `MultiLocation` value.
+/// Type to convert the `StakingAdmin` origin to a Plurality `Location` value.
 pub type StakingAdminToPlurality =
 	OriginToPluralityVoice<RuntimeOrigin, StakingAdmin, StakingAdminBodyId>;
 
-/// Type to convert the `FellowshipAdmin` origin to a Plurality `MultiLocation` value.
+/// Type to convert the `FellowshipAdmin` origin to a Plurality `Location` value.
 pub type FellowshipAdminToPlurality =
 	OriginToPluralityVoice<RuntimeOrigin, FellowshipAdmin, FellowshipAdminBodyId>;
 
-/// Type to convert the `Treasurer` origin to a Plurality `MultiLocation` value.
+/// Type to convert the `Treasurer` origin to a Plurality `Location` value.
 pub type TreasurerToPlurality = OriginToPluralityVoice<RuntimeOrigin, Treasurer, TreasurerBodyId>;
 
-/// Type to convert a pallet `Origin` type value into a `MultiLocation` value which represents an
+/// Type to convert a pallet `Origin` type value into a `Location` value which represents an
 /// interior location of this chain for a destination chain.
 pub type LocalPalletOriginToLocation = (
-	// GeneralAdmin origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
+	// GeneralAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	GeneralAdminToPlurality,
-	// StakingAdmin origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
+	// StakingAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	StakingAdminToPlurality,
-	// FellowshipAdmin origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
+	// FellowshipAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	FellowshipAdminToPlurality,
-	// `Treasurer` origin to be used in XCM as a corresponding Plurality `MultiLocation` value.
+	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
 	TreasurerToPlurality,
 );
 

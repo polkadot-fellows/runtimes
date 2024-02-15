@@ -192,7 +192,7 @@ fn para_to_system_para_reserve_transfer_assets(t: ParaToSystemParaTest) -> Dispa
 fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 	let signed_origin = <Polkadot as Chain>::RuntimeOrigin::signed(PolkadotSender::get().into());
 	let destination = Polkadot::child_location_of(AssetHubPolkadot::para_id());
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
 	let amount_to_send: Balance = POLKADOT_ED * 1000;
 	let assets: MultiAssets = (Here, amount_to_send).into();
@@ -227,7 +227,7 @@ fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get().into());
 	let destination = AssetHubPolkadot::parent_location();
 	let beneficiary_id = PolkadotReceiver::get();
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: beneficiary_id.into() }.into();
 	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
 

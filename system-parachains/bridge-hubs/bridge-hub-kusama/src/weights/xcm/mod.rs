@@ -72,18 +72,14 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 		_query_id: &u64,
 		_response: &Response,
 		_max_weight: &Weight,
-		_querier: &Option<MultiLocation>,
+		_querier: &Option<Location>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::query_response()
 	}
-	fn transfer_asset(assets: &MultiAssets, _dest: &MultiLocation) -> Weight {
+	fn transfer_asset(assets: &MultiAssets, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::transfer_asset())
 	}
-	fn transfer_reserve_asset(
-		assets: &MultiAssets,
-		_dest: &MultiLocation,
-		_xcm: &Xcm<()>,
-	) -> Weight {
+	fn transfer_reserve_asset(assets: &MultiAssets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::transfer_reserve_asset())
 	}
 	fn transact(
@@ -112,19 +108,19 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn clear_origin() -> Weight {
 		XcmGeneric::<Runtime>::clear_origin()
 	}
-	fn descend_origin(_who: &InteriorMultiLocation) -> Weight {
+	fn descend_origin(_who: &InteriorLocation) -> Weight {
 		XcmGeneric::<Runtime>::descend_origin()
 	}
 	fn report_error(_query_response_info: &QueryResponseInfo) -> Weight {
 		XcmGeneric::<Runtime>::report_error()
 	}
 
-	fn deposit_asset(assets: &MultiAssetFilter, _dest: &MultiLocation) -> Weight {
+	fn deposit_asset(assets: &MultiAssetFilter, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_asset())
 	}
 	fn deposit_reserve_asset(
 		assets: &MultiAssetFilter,
-		_dest: &MultiLocation,
+		_dest: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_reserve_asset())
@@ -134,16 +130,12 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	}
 	fn initiate_reserve_withdraw(
 		assets: &MultiAssetFilter,
-		_reserve: &MultiLocation,
+		_reserve: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::initiate_reserve_withdraw())
 	}
-	fn initiate_teleport(
-		assets: &MultiAssetFilter,
-		_dest: &MultiLocation,
-		_xcm: &Xcm<()>,
-	) -> Weight {
+	fn initiate_teleport(assets: &MultiAssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::initiate_teleport())
 	}
 	fn report_holding(_response_info: &QueryResponseInfo, _assets: &MultiAssetFilter) -> Weight {
@@ -164,7 +156,7 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn clear_error() -> Weight {
 		XcmGeneric::<Runtime>::clear_error()
 	}
-	fn claim_asset(_assets: &MultiAssets, _ticket: &MultiLocation) -> Weight {
+	fn claim_asset(_assets: &MultiAssets, _ticket: &Location) -> Weight {
 		XcmGeneric::<Runtime>::claim_asset()
 	}
 	fn trap(_code: &u64) -> Weight {
@@ -182,7 +174,7 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn expect_asset(assets: &MultiAssets) -> Weight {
 		assets.weigh_multi_assets(XcmGeneric::<Runtime>::expect_asset())
 	}
-	fn expect_origin(_origin: &Option<MultiLocation>) -> Weight {
+	fn expect_origin(_origin: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::expect_origin()
 	}
 	fn expect_error(_error: &Option<(u32, XcmError)>) -> Weight {
@@ -216,16 +208,16 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 		let inner_encoded_len = inner.encode().len() as u32;
 		XcmGeneric::<Runtime>::export_message(inner_encoded_len)
 	}
-	fn lock_asset(_: &MultiAsset, _: &MultiLocation) -> Weight {
+	fn lock_asset(_: &MultiAsset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn unlock_asset(_: &MultiAsset, _: &MultiLocation) -> Weight {
+	fn unlock_asset(_: &MultiAsset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn note_unlockable(_: &MultiAsset, _: &MultiLocation) -> Weight {
+	fn note_unlockable(_: &MultiAsset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn request_unlock(_: &MultiAsset, _: &MultiLocation) -> Weight {
+	fn request_unlock(_: &MultiAsset, _: &Location) -> Weight {
 		Weight::MAX
 	}
 	fn set_fees_mode(_: &bool) -> Weight {
@@ -237,11 +229,11 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubKusamaXcmWeight<Call> {
 	fn clear_topic() -> Weight {
 		XcmGeneric::<Runtime>::clear_topic()
 	}
-	fn alias_origin(_: &MultiLocation) -> Weight {
+	fn alias_origin(_: &Location) -> Weight {
 		// XCM Executor does not currently support alias origin operations
 		Weight::MAX
 	}
-	fn unpaid_execution(_: &WeightLimit, _: &Option<MultiLocation>) -> Weight {
+	fn unpaid_execution(_: &WeightLimit, _: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::unpaid_execution()
 	}
 }

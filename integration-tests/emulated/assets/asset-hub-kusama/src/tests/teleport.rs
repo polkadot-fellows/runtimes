@@ -562,7 +562,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	};
 	let asset_owner_on_penpal = PenpalKusamaASender::get();
 	let foreign_asset_at_asset_hub_kusama =
-		MultiLocation { parents: 1, interior: X1(Parachain(PenpalKusamaA::para_id().into())) }
+		Location { parents: 1, interior: X1(Parachain(PenpalKusamaA::para_id().into())) }
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	super::penpal_create_foreign_asset_on_asset_hub(

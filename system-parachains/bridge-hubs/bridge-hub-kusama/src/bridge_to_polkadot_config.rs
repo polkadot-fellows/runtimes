@@ -47,7 +47,7 @@ use kusama_runtime_constants as constants;
 use sp_runtime::{traits::ConstU32, RuntimeDebug};
 use xcm::{
 	latest::prelude::*,
-	prelude::{InteriorMultiLocation, NetworkId},
+	prelude::{InteriorLocation, NetworkId},
 };
 use xcm_builder::BridgeBlobDispatcher;
 
@@ -77,12 +77,12 @@ parameter_types! {
 	/// Polkadot Network identifier.
 	pub PolkadotGlobalConsensusNetwork: NetworkId = NetworkId::Polkadot;
 	/// Polkadot Network as `Location`.
-	pub PolkadotGlobalConsensusNetworkLocation: MultiLocation = MultiLocation {
+	pub PolkadotGlobalConsensusNetworkLocation: Location = Location {
 		parents: 2,
 		interior: X1(GlobalConsensus(PolkadotGlobalConsensusNetwork::get()))
 	};
 	/// Interior location (relative to this runtime) of the with-Polkadot messages pallet.
-	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorMultiLocation = X1(
+	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = X1(
 		PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8),
 	);
 
@@ -91,7 +91,7 @@ parameter_types! {
 	/// Identifier of the bridged Polkadot Asset Hub parachain.
 	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Location of the bridged Polkadot Bridge Hub parachain.
-	pub BridgeHubPolkadotLocation: MultiLocation = MultiLocation {
+	pub BridgeHubPolkadotLocation: Location = Location {
 		parents: 2,
 		interior: X2(
 			GlobalConsensus(PolkadotGlobalConsensusNetwork::get()),
@@ -114,7 +114,7 @@ parameter_types! {
 		= &[XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT];
 
 	/// Lanes
-	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorMultiLocation))> = sp_std::vec![
+	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorLocation))> = sp_std::vec![
 			(
 				FromAssetHubKusamaToAssetHubPolkadotRoute::get(),
 				(PolkadotGlobalConsensusNetwork::get(), X1(Parachain(AssetHubPolkadotParaId::get().into())))

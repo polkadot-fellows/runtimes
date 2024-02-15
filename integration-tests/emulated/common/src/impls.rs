@@ -58,7 +58,7 @@ pub use polkadot_runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 };
 pub use xcm::{
-	prelude::{Junction, Junctions, MultiLocation, NetworkId, OriginKind, Outcome, VersionedXcm},
+	prelude::{Junction, Junctions, Location, NetworkId, OriginKind, Outcome, VersionedXcm},
 	v3::Error,
 	DoubleEncoded,
 };
@@ -366,7 +366,7 @@ macro_rules! impl_send_transact_helpers_for_relay_chain {
 
 					<Self as $crate::impls::TestExt>::execute_with(|| {
 						let root_origin = <Self as Chain>::RuntimeOrigin::root();
-						let destination:  $crate::impls::MultiLocation = <Self as RelayChain>::child_location_of(recipient);
+						let destination:  $crate::impls::Location = <Self as RelayChain>::child_location_of(recipient);
 						let xcm = $crate::impls::xcm_transact_unpaid_execution(call, $crate::impls::OriginKind::Superuser);
 
 						// Send XCM `Transact`
@@ -406,7 +406,7 @@ macro_rules! impl_accounts_helpers_for_parachain {
 					network_id: $crate::impls::NetworkId,
 					para_id: $crate::impls::ParaId,
 				) -> $crate::impls::AccountId {
-					let remote_location = $crate::impls::MultiLocation {
+					let remote_location = $crate::impls::Location {
 						parents: 2,
 						interior: $crate::impls::Junctions::X2(
 							$crate::impls::Junction::GlobalConsensus(network_id),
@@ -710,7 +710,7 @@ macro_rules! impl_foreign_assets_helpers_for_parachain {
 			impl<N: $crate::impls::Network> $chain<N> {
 				/// Create foreign assets using sudo `ForeignAssets::force_create()`
 				pub fn force_create_foreign_asset(
-					id: $crate::impls::MultiLocation,
+					id: $crate::impls::Location,
 					owner: $crate::impls::AccountId,
 					is_sufficient: bool,
 					min_balance: u128,
@@ -752,7 +752,7 @@ macro_rules! impl_foreign_assets_helpers_for_parachain {
 				/// Mint assets making use of the ForeignAssets pallet-assets instance
 				pub fn mint_foreign_asset(
 					signed_origin: <Self as $crate::impls::Chain>::RuntimeOrigin,
-					id: $crate::impls::MultiLocation,
+					id: $crate::impls::Location,
 					beneficiary: $crate::impls::AccountId,
 					amount_to_mint: u128,
 				) {
