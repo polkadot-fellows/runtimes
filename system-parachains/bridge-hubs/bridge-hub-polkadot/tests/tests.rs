@@ -326,7 +326,7 @@ pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
 	)
 }
 
-// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump
+// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
 /// A helper function for comparing the actual value of a fee constant with its estimated value. The
 /// estimated value can be overestimated (`overestimate_in_percent`), and if the difference to the
 /// actual value is below `margin_overestimate_diff_in_percent_for_lowering`, we should lower the
@@ -369,7 +369,7 @@ pub fn check_sane_fees_values(
 	}
 }
 
-// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump
+// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
 pub fn diff_as_percent(left: u128, right: u128) -> f64 {
 	let left = left as f64;
 	let right = right as f64;
