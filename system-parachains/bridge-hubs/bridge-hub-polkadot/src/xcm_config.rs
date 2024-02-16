@@ -57,7 +57,7 @@ parameter_types! {
 		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub FellowshipLocation: MultiLocation = MultiLocation::new(1, Parachain(1001));
+	pub FellowshipLocation: MultiLocation = MultiLocation::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
 	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
@@ -125,7 +125,7 @@ match_types! {
 		MultiLocation { parents: 1, interior: X1(_) }
 	};
 	pub type FellowsPlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), Plurality { id: BodyId::Technical, ..}) }
+		MultiLocation { parents: 1, interior: X2(Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, ..}) }
 	};
 }
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly

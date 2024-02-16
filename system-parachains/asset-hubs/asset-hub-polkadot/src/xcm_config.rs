@@ -63,7 +63,7 @@ parameter_types! {
 	pub TrustBackedAssetsPalletLocation: MultiLocation =
 		PalletInstance(<Assets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub FellowshipLocation: MultiLocation = MultiLocation::new(1, Parachain(1001));
+	pub FellowshipLocation: MultiLocation = MultiLocation::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
 	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
@@ -196,11 +196,11 @@ match_types! {
 	};
 	pub type FellowshipEntities: impl Contains<MultiLocation> = {
 		// Fellowship Plurality
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), Plurality { id: BodyId::Technical, ..}) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(system_parachain::COLLECTIVES_ID), Plurality { id: BodyId::Technical, ..}) } |
 		// Fellowship Salary Pallet
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX)) } |
+		MultiLocation { parents: 1, interior: X2(Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX)) } |
 		// Fellowship Treasury Pallet
-		MultiLocation { parents: 1, interior: X2(Parachain(1001), PalletInstance(collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX)) }
+		MultiLocation { parents: 1, interior: X2(Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX)) }
 	};
 }
 
