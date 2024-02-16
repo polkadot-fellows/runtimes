@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
+use bp_bridge_hub_kusama::Perbill;
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_kusama_config::{
@@ -26,11 +27,11 @@ use bridge_hub_polkadot_runtime::{
 	xcm_config::{DotRelayLocation, RelayNetwork, XcmConfig},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	SignedExtra, UncheckedExtrinsic,
+	SignedExtra, TransactionPayment, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::test_cases::from_parachain;
 use codec::{Decode, Encode};
-use frame_support::{parameter_types, traits::ConstU8};
+use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8};
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
@@ -95,6 +96,13 @@ fn construct_and_apply_extrinsic(
 	let xt = construct_extrinsic(relayer_at_target, call);
 	let r = Executive::apply_extrinsic(xt);
 	r.unwrap()
+}
+
+fn construct_and_estimate_extrinsic_fee(batch: pallet_utility::Call<Runtime>) -> Balance {
+	let batch_call = RuntimeCall::Utility(batch);
+	let batch_info = batch_call.get_dispatch_info();
+	let xt = construct_extrinsic(Alice, batch_call);
+	TransactionPayment::compute_fee(xt.encoded_size() as _, &batch_info, 0)
 }
 
 fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
@@ -261,42 +269,109 @@ pub fn complex_relay_extrinsic_works() {
 
 #[test]
 pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
-	let estimated = bridge_hub_test_utils::test_cases::can_calculate_weight_for_paid_export_message_with_reserve_transfer::<
-			Runtime,
-			XcmConfig,
-			WeightToFee,
-		>();
-
-	// check if estimated value is sane
-	let max_expected = bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get();
-	assert!(
-			estimated <= max_expected,
-			"calculated: {:?}, max_expected: {:?}, please adjust `bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots` value",
-			estimated,
-			max_expected
-		);
+	check_sane_fees_values(
+		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots",
+		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get(),
+		|| {
+			bridge_hub_test_utils::test_cases::can_calculate_weight_for_paid_export_message_with_reserve_transfer::<
+				Runtime,
+				XcmConfig,
+				WeightToFee,
+			>()
+		},
+		Perbill::from_percent(33),
+		Some(-33),
+		&format!(
+			"Estimate fee for `ExportMessage` for runtime: {:?}",
+			<Runtime as frame_system::Config>::Version::get()
+		),
+	)
 }
 
-// TODO: replace me with direct usages of `bridge_hub_test_utils` after deps are bumped to (at
-// least) 1.4
-//
-// Following two tests have to be implemented properly after upgrade to 1.6.
-// See https://github.com/paritytech/polkadot-sdk/pull/2139/ and https://github.com/paritytech/parity-bridges-common/pull/2728
-// for impl details
-//
-// Until that, anyone can run it manually by doing following:
-//
-// 1) cargo vendor ../vendored-dependencies
-// 2) apply relevant changes from above PRs
-// 3) change workspace Cargo.toml:
-// [patch.crates-io]
-// bp-polkadot-core = { path = "../vendored-dependencies/bp-polkadot-core" }
-// bridge-hub-test-utils = { path = "../vendored-dependencies/bridge-hub-test-utils" }
-// bridge-runtime-common = { path = "../vendored-dependencies/bridge-runtime-common" }
-// 4) add actual tests code and do `cargo test -p bridge-hub-polkadot-runtime`
+#[test]
+pub fn can_calculate_fee_for_complex_message_delivery_transaction() {
+	check_sane_fees_values(
+		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots",
+		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get(),
+		|| {
+			from_parachain::can_calculate_fee_for_complex_message_delivery_transaction::<
+				RuntimeTestsAdapter,
+			>(collator_session_keys(), construct_and_estimate_extrinsic_fee)
+		},
+		Perbill::from_percent(33),
+		Some(-33),
+		&format!(
+			"Estimate fee for `single message delivery` for runtime: {:?}",
+			<Runtime as frame_system::Config>::Version::get()
+		),
+	)
+}
 
 #[test]
-pub fn can_calculate_fee_for_complex_message_delivery_transaction() {}
+pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
+	check_sane_fees_values(
+		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots",
+		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots::get(),
+		|| {
+			from_parachain::can_calculate_fee_for_complex_message_confirmation_transaction::<
+				RuntimeTestsAdapter,
+			>(collator_session_keys(), construct_and_estimate_extrinsic_fee)
+		},
+		Perbill::from_percent(33),
+		Some(-33),
+		&format!(
+			"Estimate fee for `single message confirmation` for runtime: {:?}",
+			<Runtime as frame_system::Config>::Version::get()
+		),
+	)
+}
 
-#[test]
-pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {}
+// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
+/// A helper function for comparing the actual value of a fee constant with its estimated value. The
+/// estimated value can be overestimated (`overestimate_in_percent`), and if the difference to the
+/// actual value is below `margin_overestimate_diff_in_percent_for_lowering`, we should lower the
+/// actual value.
+pub fn check_sane_fees_values(
+	const_name: &str,
+	actual: u128,
+	calculate_estimated_fee: fn() -> u128,
+	overestimate_in_percent: Perbill,
+	margin_overestimate_diff_in_percent_for_lowering: Option<i16>,
+	label: &str,
+) {
+	let estimated = calculate_estimated_fee();
+	let estimated_plus_overestimate = estimated + (overestimate_in_percent * estimated);
+	let diff_to_estimated = diff_as_percent(actual, estimated);
+	let diff_to_estimated_plus_overestimate = diff_as_percent(actual, estimated_plus_overestimate);
+
+	log::error!(
+		target: "bridges::estimate",
+		"{label}:\nconstant: {const_name}\n[+] actual: {actual}\n[+] estimated: {estimated} ({diff_to_estimated:.2?})\n[+] estimated(+33%): {estimated_plus_overestimate} ({diff_to_estimated_plus_overestimate:.2?})",
+	);
+
+	// check if estimated value is sane
+	assert!(
+		estimated <= actual,
+		"estimated: {estimated}, actual: {actual}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
+	);
+	assert!(
+		estimated_plus_overestimate <= actual,
+		"estimated_plus_overestimate: {estimated_plus_overestimate}, actual: {actual}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
+	);
+
+	if let Some(margin_overestimate_diff_in_percent_for_lowering) =
+		margin_overestimate_diff_in_percent_for_lowering
+	{
+		assert!(
+			diff_to_estimated_plus_overestimate > margin_overestimate_diff_in_percent_for_lowering as f64,
+			"diff_to_estimated_plus_overestimate: {diff_to_estimated_plus_overestimate:.2}, overestimate_diff_in_percent_for_lowering: {margin_overestimate_diff_in_percent_for_lowering}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
+		);
+	}
+}
+
+// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
+pub fn diff_as_percent(left: u128, right: u128) -> f64 {
+	let left = left as f64;
+	let right = right as f64;
+	((left - right).abs() / left) * 100f64 * (if left >= right { -1 } else { 1 }) as f64
+}

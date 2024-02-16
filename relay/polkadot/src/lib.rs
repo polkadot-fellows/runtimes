@@ -776,8 +776,7 @@ impl pallet_staking::Config for Runtime {
 	type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
 	type MaxUnlockingChunks = frame_support::traits::ConstU32<32>;
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
-	// TODO:(PR#159) check/set correct constant and remove this comment!
-	type MaxControllersInDeprecationBatch = ConstU32<751>;
+	type MaxControllersInDeprecationBatch = ConstU32<5314>;
 	type BenchmarkingConfig = runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = NominationPools;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
@@ -816,7 +815,6 @@ impl pallet_identity::Config for Runtime {
 	type Slashed = Treasury;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type RegistrarOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	// TODO:(PR#159) check adds bellow and remove this comment!
 	type OffchainSignature = Signature;
 	type SigningPublicKey = <Signature as Verify>::Signer;
 	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
