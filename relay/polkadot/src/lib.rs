@@ -478,7 +478,7 @@ impl_opaque_keys! {
 }
 
 // remove this when removing `OldSessionKeys`
-fn transform_session_keys(_v: AccountId, old: OldSessionKeys) -> SessionKeys {
+fn transform_session_keys(v: AccountId, old: OldSessionKeys) -> SessionKeys {
 	SessionKeys {
 		grandpa: old.grandpa,
 		babe: old.babe,
