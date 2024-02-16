@@ -30,10 +30,11 @@ use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{
 	impls::ToStakingPot,
-	xcm_config::{ConcreteAssetFromSystem, RelayOrOtherSystemParachains},
+	xcm_config::{
+		AllSiblingSystemParachains, ConcreteAssetFromSystem, RelayOrOtherSystemParachains,
+	},
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -230,23 +231,11 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
-match_types! {
-	pub type SystemParachains: impl Contains<MultiLocation> = {
-		MultiLocation {
-			parents: 1,
-			interior: X1(Parachain(
-				system_parachain::ASSET_HUB_ID |
-				system_parachain::COLLECTIVES_ID
-			)),
-		}
-	};
-}
-
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
-	RelayOrOtherSystemParachains<SystemParachains, Runtime>,
+	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 );
