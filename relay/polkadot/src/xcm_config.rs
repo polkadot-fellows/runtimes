@@ -79,7 +79,7 @@ pub type SovereignAccountOf = (
 );
 
 /// Our asset transactor. This is what allows us to interact with the runtime assets from the point
-/// of view of XCM-only concepts like `Location` and `MultiAsset`.
+/// of view of XCM-only concepts like `Location` and `Asset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
 pub type LocalAssetTransactor = FungibleAdapter<
@@ -135,13 +135,13 @@ pub type XcmRouter = WithUniqueTopic<(
 )>;
 
 parameter_types! {
-	pub const Dot: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
+	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
 	pub const AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
-	pub const DotForAssetHub: (MultiAssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
+	pub const DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
 	pub const CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
-	pub const DotForCollectives: (MultiAssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub const DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
 	pub const BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
-	pub const DotForBridgeHub: (MultiAssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
+	pub const DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 

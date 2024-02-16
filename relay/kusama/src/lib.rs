@@ -2354,18 +2354,18 @@ sp_api::impl_runtime_apis! {
 					Some(crate::xcm_config::AssetHubLocation::get())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported to/from AH.
 					Some((
-						MultiAsset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						Asset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
 						crate::xcm_config::AssetHubLocation::get(),
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay can reserve transfer native token to some random parachain.
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(EXISTENTIAL_DEPOSIT),
 							id: Concrete(Here.into())
 						},
@@ -2374,7 +2374,7 @@ sp_api::impl_runtime_apis! {
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Relay supports only native token, either reserve transfer it to non-system parachains,
 					// or teleport it to system parachain. Use the teleport case for benchmarking as it's
 					// slightly heavier.
@@ -2389,7 +2389,7 @@ sp_api::impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+				pub ExistentialDepositAsset: Option<Asset> = Some((
 					TokenLocation::get(),
 					ExistentialDeposit::get()
 				).into());
@@ -2401,7 +2401,7 @@ sp_api::impl_runtime_apis! {
 				type AccountIdConverter = SovereignAccountOf;
 				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
 					XcmConfig,
-					ExistentialDepositMultiAsset,
+					ExistentialDepositAsset,
 					xcm_config::PriceForChildParachainDelivery,
 					ToParachain,
 					(),
@@ -2409,9 +2409,9 @@ sp_api::impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(AssetHubLocation::get())
 				}
-				fn worst_case_holding(_depositable_count: u32) -> MultiAssets {
+				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// Kusama only knows about KSM.
-					vec![MultiAsset{
+					vec![Asset{
 						id: Concrete(TokenLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					}].into()
@@ -2419,11 +2419,11 @@ sp_api::impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, MultiAsset)> = Some((
+				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
 					AssetHubLocation::get(),
-					MultiAsset { fun: Fungible(1 * UNITS), id: Concrete(TokenLocation::get()) },
+					Asset { fun: Fungible(1 * UNITS), id: Concrete(TokenLocation::get()) },
 				));
-				pub const TrustedReserve: Option<(Location, MultiAsset)> = None;
+				pub const TrustedReserve: Option<(Location, Asset)> = None;
 			}
 
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -2433,8 +2433,8 @@ sp_api::impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> MultiAsset {
-					MultiAsset {
+				fn get_multi_asset() -> Asset {
+					Asset {
 						id: Concrete(TokenLocation::get()),
 						fun: Fungible(1 * UNITS),
 					}
@@ -2449,7 +2449,7 @@ sp_api::impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(MultiAssets, MultiAssets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
 					// Kusama doesn't support asset exchanges
 					Err(BenchmarkError::Skip)
 				}
@@ -2467,21 +2467,21 @@ sp_api::impl_runtime_apis! {
 					Ok(AssetHubLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(Location, Location, MultiAssets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = AssetHubLocation::get();
-					let assets: MultiAssets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
+					let assets: Assets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
-				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-					Ok(MultiAsset {
+				fn fee_asset() -> Result<Asset, BenchmarkError> {
+					Ok(Asset {
 						id: Concrete(TokenLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
 
-				fn unlockable_asset() -> Result<(Location, Location, MultiAsset), BenchmarkError> {
+				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
 					// Kusama doesn't support asset locking
 					Err(BenchmarkError::Skip)
 				}

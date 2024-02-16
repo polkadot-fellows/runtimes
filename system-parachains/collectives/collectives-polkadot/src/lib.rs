@@ -979,10 +979,10 @@ impl_runtime_apis! {
 					Some(Parent.into())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported between Collectives and Relay.
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						}.into(),
@@ -990,13 +990,13 @@ impl_runtime_apis! {
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Reserve transfers are disabled on Collectives.
 					None
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Collectives only supports teleports to system parachain.
 					// Relay/native token can be teleported between Collectives and Relay.
 					let native_location = Parent.into();

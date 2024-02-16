@@ -83,7 +83,7 @@ pub fn para_test_args(
 	dest: Location,
 	beneficiary_id: AccountId32,
 	amount: Balance,
-	assets: MultiAssets,
+	assets: Assets,
 	asset_id: Option<u32>,
 	fee_asset_item: u32,
 ) -> TestArgs {

@@ -24,13 +24,13 @@ use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
 use sp_std::prelude::*;
 use xcm::{latest::prelude::*, DoubleEncoded};
 
-trait WeighMultiAssets {
+trait WeighAssets {
 	fn weigh_multi_assets(&self, weight: Weight) -> Weight;
 }
 
 const MAX_ASSETS: u64 = 100;
 
-impl WeighMultiAssets for MultiAssetFilter {
+impl WeighAssets for AssetFilter {
 	fn weigh_multi_assets(&self, weight: Weight) -> Weight {
 		match self {
 			Self::Definite(assets) => weight.saturating_mul(assets.inner().iter().count() as u64),
@@ -50,7 +50,7 @@ impl WeighMultiAssets for MultiAssetFilter {
 	}
 }
 
-impl WeighMultiAssets for MultiAssets {
+impl WeighAssets for Assets {
 	fn weigh_multi_assets(&self, weight: Weight) -> Weight {
 		weight.saturating_mul(self.inner().iter().count() as u64)
 	}
@@ -58,13 +58,13 @@ impl WeighMultiAssets for MultiAssets {
 
 pub struct AssetHubKusamaXcmWeight<Call>(core::marker::PhantomData<Call>);
 impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
-	fn withdraw_asset(assets: &MultiAssets) -> Weight {
+	fn withdraw_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::withdraw_asset())
 	}
-	fn reserve_asset_deposited(assets: &MultiAssets) -> Weight {
+	fn reserve_asset_deposited(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::reserve_asset_deposited())
 	}
-	fn receive_teleported_asset(assets: &MultiAssets) -> Weight {
+	fn receive_teleported_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::receive_teleported_asset())
 	}
 	fn query_response(
@@ -75,10 +75,10 @@ impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
 	) -> Weight {
 		XcmGeneric::<Runtime>::query_response()
 	}
-	fn transfer_asset(assets: &MultiAssets, _dest: &Location) -> Weight {
+	fn transfer_asset(assets: &Assets, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::transfer_asset())
 	}
-	fn transfer_reserve_asset(assets: &MultiAssets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
+	fn transfer_reserve_asset(assets: &Assets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::transfer_reserve_asset())
 	}
 	fn transact(
@@ -114,33 +114,29 @@ impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
 		XcmGeneric::<Runtime>::report_error()
 	}
 
-	fn deposit_asset(assets: &MultiAssetFilter, _dest: &Location) -> Weight {
+	fn deposit_asset(assets: &AssetFilter, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_asset())
 	}
-	fn deposit_reserve_asset(
-		assets: &MultiAssetFilter,
-		_dest: &Location,
-		_xcm: &Xcm<()>,
-	) -> Weight {
+	fn deposit_reserve_asset(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::deposit_reserve_asset())
 	}
-	fn exchange_asset(_give: &MultiAssetFilter, _receive: &MultiAssets, _maximal: &bool) -> Weight {
+	fn exchange_asset(_give: &AssetFilter, _receive: &Assets, _maximal: &bool) -> Weight {
 		Weight::MAX
 	}
 	fn initiate_reserve_withdraw(
-		assets: &MultiAssetFilter,
+		assets: &AssetFilter,
 		_reserve: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::initiate_reserve_withdraw())
 	}
-	fn initiate_teleport(assets: &MultiAssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
+	fn initiate_teleport(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmFungibleWeight::<Runtime>::initiate_teleport())
 	}
-	fn report_holding(_response_info: &QueryResponseInfo, _assets: &MultiAssetFilter) -> Weight {
+	fn report_holding(_response_info: &QueryResponseInfo, _assets: &AssetFilter) -> Weight {
 		XcmGeneric::<Runtime>::report_holding()
 	}
-	fn buy_execution(_fees: &MultiAsset, _weight_limit: &WeightLimit) -> Weight {
+	fn buy_execution(_fees: &Asset, _weight_limit: &WeightLimit) -> Weight {
 		XcmGeneric::<Runtime>::buy_execution()
 	}
 	fn refund_surplus() -> Weight {
@@ -155,7 +151,7 @@ impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
 	fn clear_error() -> Weight {
 		XcmGeneric::<Runtime>::clear_error()
 	}
-	fn claim_asset(_assets: &MultiAssets, _ticket: &Location) -> Weight {
+	fn claim_asset(_assets: &Assets, _ticket: &Location) -> Weight {
 		XcmGeneric::<Runtime>::claim_asset()
 	}
 	fn trap(_code: &u64) -> Weight {
@@ -167,10 +163,10 @@ impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
 	fn unsubscribe_version() -> Weight {
 		XcmGeneric::<Runtime>::unsubscribe_version()
 	}
-	fn burn_asset(assets: &MultiAssets) -> Weight {
+	fn burn_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmGeneric::<Runtime>::burn_asset())
 	}
-	fn expect_asset(assets: &MultiAssets) -> Weight {
+	fn expect_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmGeneric::<Runtime>::expect_asset())
 	}
 	fn expect_origin(_origin: &Option<Location>) -> Weight {
@@ -206,16 +202,16 @@ impl<Call> XcmWeightInfo<Call> for AssetHubKusamaXcmWeight<Call> {
 	fn export_message(_: &NetworkId, _: &Junctions, _: &Xcm<()>) -> Weight {
 		Weight::MAX
 	}
-	fn lock_asset(_: &MultiAsset, _: &Location) -> Weight {
+	fn lock_asset(_: &Asset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn unlock_asset(_: &MultiAsset, _: &Location) -> Weight {
+	fn unlock_asset(_: &Asset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn note_unlockable(_: &MultiAsset, _: &Location) -> Weight {
+	fn note_unlockable(_: &Asset, _: &Location) -> Weight {
 		Weight::MAX
 	}
-	fn request_unlock(_: &MultiAsset, _: &Location) -> Weight {
+	fn request_unlock(_: &Asset, _: &Location) -> Weight {
 		Weight::MAX
 	}
 	fn set_fees_mode(_: &bool) -> Weight {

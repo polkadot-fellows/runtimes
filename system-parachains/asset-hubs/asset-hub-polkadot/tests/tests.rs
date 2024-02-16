@@ -118,8 +118,8 @@ fn test_asset_xcm_trader() {
 				minimum_asset_balance
 			));
 
-			// get asset id as multilocation
-			let asset_multilocation =
+			// get asset id as location
+			let asset_location =
 				AssetIdForTrustBackedAssetsConvert::convert_back(&local_asset_id).unwrap();
 
 			// Set Alice as block author, who will receive fees
@@ -141,8 +141,7 @@ fn test_asset_xcm_trader() {
 
 			// Lets pay with: asset_amount_needed + asset_amount_extra
 			let asset_amount_extra = 100_u128;
-			let asset: MultiAsset =
-				(asset_multilocation, asset_amount_needed + asset_amount_extra).into();
+			let asset: Asset = (asset_location, asset_amount_needed + asset_amount_extra).into();
 
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
@@ -150,9 +149,7 @@ fn test_asset_xcm_trader() {
 			// Lets buy_weight and make sure buy_weight does not return an error
 			let unused_assets = trader.buy_weight(bought, asset.into(), &ctx).expect("Expected Ok");
 			// Check whether a correct amount of unused assets is returned
-			assert_ok!(
-				unused_assets.ensure_contains(&(asset_multilocation, asset_amount_extra).into())
-			);
+			assert_ok!(unused_assets.ensure_contains(&(asset_location, asset_amount_extra).into()));
 
 			// Drop trader
 			drop(trader);
@@ -212,12 +209,12 @@ fn test_asset_xcm_trader_with_refund() {
 			// bit more of weight
 			let bought = Weight::from_parts(400_000_000_000u64, 0);
 
-			let asset_multilocation = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
 
 			// lets calculate amount needed
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
-			let asset: MultiAsset = (asset_multilocation, amount_bought).into();
+			let asset: Asset = (asset_location, amount_bought).into();
 
 			// Make sure buy_weight does not return an error
 			assert_ok!(trader.buy_weight(bought, asset.clone().into(), &ctx));
@@ -235,7 +232,7 @@ fn test_asset_xcm_trader_with_refund() {
 
 			assert_eq!(
 				trader.refund_weight(bought - weight_used, &ctx),
-				Some((asset_multilocation, amount_refunded).into())
+				Some((asset_location, amount_refunded).into())
 			);
 
 			// Drop trader
@@ -287,7 +284,7 @@ fn test_asset_xcm_trader_refund_not_possible_since_amount_less_than_ed() {
 			// bit more of weight
 			let bought = Weight::from_parts(5_000_000_000u64, 0);
 
-			let asset_multilocation = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
 
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
@@ -296,7 +293,7 @@ fn test_asset_xcm_trader_refund_not_possible_since_amount_less_than_ed() {
 				"we are testing what happens when the amount does not exceed ED"
 			);
 
-			let asset: MultiAsset = (asset_multilocation, amount_bought).into();
+			let asset: Asset = (asset_location, amount_bought).into();
 
 			// Buy weight should return an error
 			assert_noop!(trader.buy_weight(bought, asset.into(), &ctx), XcmError::TooExpensive);
@@ -339,7 +336,7 @@ fn test_that_buying_ed_refund_does_not_refund() {
 			// We are gonna buy ED
 			let bought = Weight::from_parts(ExistentialDeposit::get().try_into().unwrap(), 0);
 
-			let asset_multilocation = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
 
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
@@ -350,11 +347,11 @@ fn test_that_buying_ed_refund_does_not_refund() {
 
 			// We know we will have to buy at least ED, so lets make sure first it will
 			// fail with a payment of less than ED
-			let asset: MultiAsset = (asset_multilocation, amount_bought).into();
+			let asset: Asset = (asset_location, amount_bought).into();
 			assert_noop!(trader.buy_weight(bought, asset.into(), &ctx), XcmError::TooExpensive);
 
 			// Now lets buy ED at least
-			let asset: MultiAsset = (asset_multilocation, ExistentialDeposit::get()).into();
+			let asset: Asset = (asset_location, ExistentialDeposit::get()).into();
 
 			// Buy weight should work
 			assert_ok!(trader.buy_weight(bought, asset.into(), &ctx));
@@ -418,9 +415,9 @@ fn test_asset_xcm_trader_not_possible_for_non_sufficient_assets() {
 			// lets calculate amount needed
 			let asset_amount_needed = WeightToFee::weight_to_fee(&bought);
 
-			let asset_multilocation = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
 
-			let asset: MultiAsset = (asset_multilocation, asset_amount_needed).into();
+			let asset: Asset = (asset_location, asset_amount_needed).into();
 
 			// Make sure again buy_weight does return an error
 			assert_noop!(trader.buy_weight(bought, asset.into(), &ctx), XcmError::TooExpensive);
@@ -450,19 +447,19 @@ fn test_assets_balances_api_works() {
 		.build()
 		.execute_with(|| {
 			let local_asset_id = 1;
-			let foreign_asset_id_multilocation =
+			let foreign_asset_id_location =
 				Location { parents: 1, interior: X2(Parachain(1234), GeneralIndex(12345)) };
 
 			// check before
 			assert_eq!(Assets::balance(local_asset_id, AccountId::from(ALICE)), 0);
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_multilocation, AccountId::from(ALICE)),
+				ForeignAssets::balance(foreign_asset_id_location, AccountId::from(ALICE)),
 				0
 			);
 			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 0);
 			assert!(Runtime::query_account_balances(AccountId::from(ALICE))
 				.unwrap()
-				.try_as::<MultiAssets>()
+				.try_as::<Assets>()
 				.unwrap()
 				.is_none());
 
@@ -493,7 +490,7 @@ fn test_assets_balances_api_works() {
 			let foreign_asset_minimum_asset_balance = 3333333_u128;
 			assert_ok!(ForeignAssets::force_create(
 				RuntimeHelper::root_origin(),
-				foreign_asset_id_multilocation,
+				foreign_asset_id_location,
 				AccountId::from(SOME_ASSET_ADMIN).into(),
 				false,
 				foreign_asset_minimum_asset_balance
@@ -502,7 +499,7 @@ fn test_assets_balances_api_works() {
 			// We first mint enough asset for the account to exist for assets
 			assert_ok!(ForeignAssets::mint(
 				RuntimeHelper::origin_of(AccountId::from(SOME_ASSET_ADMIN)),
-				foreign_asset_id_multilocation,
+				foreign_asset_id_location,
 				AccountId::from(ALICE).into(),
 				6 * foreign_asset_minimum_asset_balance
 			));
@@ -513,12 +510,12 @@ fn test_assets_balances_api_works() {
 				minimum_asset_balance
 			);
 			assert_eq!(
-				ForeignAssets::balance(foreign_asset_id_multilocation, AccountId::from(ALICE)),
+				ForeignAssets::balance(foreign_asset_id_location, AccountId::from(ALICE)),
 				6 * minimum_asset_balance
 			);
 			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), some_currency);
 
-			let result: MultiAssets = Runtime::query_account_balances(AccountId::from(ALICE))
+			let result: Assets = Runtime::query_account_balances(AccountId::from(ALICE))
 				.unwrap()
 				.try_into()
 				.unwrap();
@@ -539,7 +536,7 @@ fn test_assets_balances_api_works() {
 				.into())));
 			// check foreign asset
 			assert!(result.inner().iter().any(|asset| asset.eq(&(
-				Identity::convert_back(&foreign_asset_id_multilocation).unwrap(),
+				Identity::convert_back(&foreign_asset_id_location).unwrap(),
 				6 * foreign_asset_minimum_asset_balance
 			)
 				.into())));

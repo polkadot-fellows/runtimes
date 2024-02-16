@@ -568,7 +568,7 @@ impl xcm_executor::Config for XcmConfig {
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
-/// Converts a local signed origin into an XCM multilocation.
+/// Converts a local signed origin into an XCM location.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
@@ -698,13 +698,13 @@ pub mod bridging {
 			);
 			pub DotLocation: Location = Location::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
 
-			pub DotFromAssetHubPolkadot: (MultiAssetFilter, Location) = (
+			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
 				Wild(AllOf { fun: WildFungible, id: Concrete(DotLocation::get()) }),
 				AssetHubPolkadot::get()
 			);
 
 			/// Set up exporters configuration.
-			/// `Option<MultiAsset>` represents static "base fee" which is used for total delivery fee calculation.
+			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
 			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = sp_std::vec![
 				NetworkExportTableItem::new(
 					PolkadotNetwork::get(),

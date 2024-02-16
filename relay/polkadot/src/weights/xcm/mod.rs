@@ -33,24 +33,24 @@ pub enum AssetTypes {
 	Unknown,
 }
 
-impl From<&MultiAsset> for AssetTypes {
-	fn from(asset: &MultiAsset) -> Self {
+impl From<&Asset> for AssetTypes {
+	fn from(asset: &Asset) -> Self {
 		match asset {
-			MultiAsset { id: Concrete(Location { parents: 0, interior: Here }), .. } =>
+			Asset { id: Concrete(Location { parents: 0, interior: Here }), .. } =>
 				AssetTypes::Balances,
 			_ => AssetTypes::Unknown,
 		}
 	}
 }
 
-trait WeighMultiAssets {
+trait WeighAssets {
 	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight;
 }
 
 // Polkadot only knows about one asset, the balances pallet.
 const MAX_ASSETS: u64 = 1;
 
-impl WeighMultiAssets for MultiAssetFilter {
+impl WeighAssets for AssetFilter {
 	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight {
 		match self {
 			Self::Definite(assets) => assets
@@ -72,11 +72,11 @@ impl WeighMultiAssets for MultiAssetFilter {
 	}
 }
 
-impl WeighMultiAssets for MultiAssets {
+impl WeighAssets for Assets {
 	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight {
 		self.inner()
 			.into_iter()
-			.map(|m| <AssetTypes as From<&MultiAsset>>::from(m))
+			.map(|m| <AssetTypes as From<&Asset>>::from(m))
 			.map(|t| match t {
 				AssetTypes::Balances => balances_weight,
 				AssetTypes::Unknown => Weight::MAX,
@@ -87,13 +87,13 @@ impl WeighMultiAssets for MultiAssets {
 
 pub struct PolkadotXcmWeight<RuntimeCall>(core::marker::PhantomData<RuntimeCall>);
 impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> {
-	fn withdraw_asset(assets: &MultiAssets) -> Weight {
+	fn withdraw_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::withdraw_asset())
 	}
-	fn reserve_asset_deposited(assets: &MultiAssets) -> Weight {
+	fn reserve_asset_deposited(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::reserve_asset_deposited())
 	}
-	fn receive_teleported_asset(assets: &MultiAssets) -> Weight {
+	fn receive_teleported_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::receive_teleported_asset())
 	}
 	fn query_response(
@@ -104,10 +104,10 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 	) -> Weight {
 		XcmGeneric::<Runtime>::query_response()
 	}
-	fn transfer_asset(assets: &MultiAssets, _dest: &Location) -> Weight {
+	fn transfer_asset(assets: &Assets, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::transfer_asset())
 	}
-	fn transfer_reserve_asset(assets: &MultiAssets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
+	fn transfer_reserve_asset(assets: &Assets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::transfer_reserve_asset())
 	}
 	fn transact(
@@ -143,34 +143,30 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 		XcmGeneric::<Runtime>::report_error()
 	}
 
-	fn deposit_asset(assets: &MultiAssetFilter, _dest: &Location) -> Weight {
+	fn deposit_asset(assets: &AssetFilter, _dest: &Location) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::deposit_asset())
 	}
-	fn deposit_reserve_asset(
-		assets: &MultiAssetFilter,
-		_dest: &Location,
-		_xcm: &Xcm<()>,
-	) -> Weight {
+	fn deposit_reserve_asset(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::deposit_reserve_asset())
 	}
-	fn exchange_asset(_give: &MultiAssetFilter, _receive: &MultiAssets, _maximal: &bool) -> Weight {
+	fn exchange_asset(_give: &AssetFilter, _receive: &Assets, _maximal: &bool) -> Weight {
 		// Polkadot does not currently support exchange asset operations
 		Weight::MAX
 	}
 	fn initiate_reserve_withdraw(
-		assets: &MultiAssetFilter,
+		assets: &AssetFilter,
 		_reserve: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::initiate_reserve_withdraw())
 	}
-	fn initiate_teleport(assets: &MultiAssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
+	fn initiate_teleport(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::initiate_teleport())
 	}
-	fn report_holding(_response_info: &QueryResponseInfo, _assets: &MultiAssetFilter) -> Weight {
+	fn report_holding(_response_info: &QueryResponseInfo, _assets: &AssetFilter) -> Weight {
 		XcmGeneric::<Runtime>::report_holding()
 	}
-	fn buy_execution(_fees: &MultiAsset, _weight_limit: &WeightLimit) -> Weight {
+	fn buy_execution(_fees: &Asset, _weight_limit: &WeightLimit) -> Weight {
 		XcmGeneric::<Runtime>::buy_execution()
 	}
 	fn refund_surplus() -> Weight {
@@ -185,7 +181,7 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 	fn clear_error() -> Weight {
 		XcmGeneric::<Runtime>::clear_error()
 	}
-	fn claim_asset(_assets: &MultiAssets, _ticket: &Location) -> Weight {
+	fn claim_asset(_assets: &Assets, _ticket: &Location) -> Weight {
 		XcmGeneric::<Runtime>::claim_asset()
 	}
 	fn trap(_code: &u64) -> Weight {
@@ -197,10 +193,10 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 	fn unsubscribe_version() -> Weight {
 		XcmGeneric::<Runtime>::unsubscribe_version()
 	}
-	fn burn_asset(assets: &MultiAssets) -> Weight {
+	fn burn_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmGeneric::<Runtime>::burn_asset())
 	}
-	fn expect_asset(assets: &MultiAssets) -> Weight {
+	fn expect_asset(assets: &Assets) -> Weight {
 		assets.weigh_multi_assets(XcmGeneric::<Runtime>::expect_asset())
 	}
 	fn expect_origin(_origin: &Option<Location>) -> Weight {
@@ -238,19 +234,19 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 		// Polkadot relay should not support export message operations
 		Weight::MAX
 	}
-	fn lock_asset(_: &MultiAsset, _: &Location) -> Weight {
+	fn lock_asset(_: &Asset, _: &Location) -> Weight {
 		// Polkadot does not currently support asset locking operations
 		Weight::MAX
 	}
-	fn unlock_asset(_: &MultiAsset, _: &Location) -> Weight {
+	fn unlock_asset(_: &Asset, _: &Location) -> Weight {
 		// Polkadot does not currently support asset locking operations
 		Weight::MAX
 	}
-	fn note_unlockable(_: &MultiAsset, _: &Location) -> Weight {
+	fn note_unlockable(_: &Asset, _: &Location) -> Weight {
 		// Polkadot does not currently support asset locking operations
 		Weight::MAX
 	}
-	fn request_unlock(_: &MultiAsset, _: &Location) -> Weight {
+	fn request_unlock(_: &Asset, _: &Location) -> Weight {
 		// Polkadot does not currently support asset locking operations
 		Weight::MAX
 	}
@@ -274,7 +270,7 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 
 #[test]
 fn all_counted_has_a_sane_weight_upper_limit() {
-	let assets = MultiAssetFilter::Wild(AllCounted(4294967295));
+	let assets = AssetFilter::Wild(AllCounted(4294967295));
 	let weight = Weight::from_parts(1000, 1000);
 
 	assert_eq!(assets.weigh_multi_assets(weight), weight * MAX_ASSETS);

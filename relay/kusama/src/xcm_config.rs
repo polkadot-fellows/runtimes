@@ -77,7 +77,7 @@ pub type SovereignAccountOf = (
 );
 
 /// Our asset transactor. This is what allows us to interest with the runtime facilities from the
-/// point of view of XCM-only concepts like `Location` and `MultiAsset`.
+/// point of view of XCM-only concepts like `Location` and `Asset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
 pub type LocalAssetTransactor = FungibleAdapter<
@@ -126,13 +126,13 @@ pub type XcmRouter = WithUniqueTopic<(
 )>;
 
 parameter_types! {
-	pub const Ksm: MultiAssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
+	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
 	pub const AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
-	pub const KsmForAssetHub: (MultiAssetFilter, Location) = (Ksm::get(), AssetHubLocation::get());
+	pub const KsmForAssetHub: (AssetFilter, Location) = (Ksm::get(), AssetHubLocation::get());
 	pub const Encointer: Location = Parachain(ENCOINTER_ID).into_location();
-	pub const KsmForEncointer: (MultiAssetFilter, Location) = (Ksm::get(), Encointer::get());
+	pub const KsmForEncointer: (AssetFilter, Location) = (Ksm::get(), Encointer::get());
 	pub const BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
-	pub const KsmForBridgeHub: (MultiAssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
+	pub const KsmForBridgeHub: (AssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 

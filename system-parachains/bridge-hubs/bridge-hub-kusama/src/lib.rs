@@ -822,10 +822,10 @@ impl_runtime_apis! {
 					Some(Parent.into())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported between BH and Relay.
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						},
@@ -833,13 +833,13 @@ impl_runtime_apis! {
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, Location)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Reserve transfers are disabled on BH.
 					None
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// BH only supports teleports to system parachain.
 					// Relay/native token can be teleported between BH and Relay.
 					let native_location = Parent.into();
@@ -852,7 +852,7 @@ impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+				pub ExistentialDepositAsset: Option<Asset> = Some((
 					KsmRelayLocation::get(),
 					ExistentialDeposit::get()
 				).into());
@@ -863,16 +863,16 @@ impl_runtime_apis! {
 				type AccountIdConverter = xcm_config::LocationToAccountId;
 				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
 					xcm_config::XcmConfig,
-					ExistentialDepositMultiAsset,
+					ExistentialDepositAsset,
 					PriceForParentDelivery,
 				>;
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(KsmRelayLocation::get())
 				}
-				fn worst_case_holding(_depositable_count: u32) -> MultiAssets {
+				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// just concrete assets according to relay chain.
-					let assets: Vec<MultiAsset> = vec![
-						MultiAsset {
+					let assets: Vec<Asset> = vec![
+						Asset {
 							id: Concrete(KsmRelayLocation::get()),
 							fun: Fungible(1_000_000 * UNITS),
 						}
@@ -882,12 +882,12 @@ impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, MultiAsset)> = Some((
+				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
 					KsmRelayLocation::get(),
-					MultiAsset { fun: Fungible(UNITS), id: Concrete(KsmRelayLocation::get()) },
+					Asset { fun: Fungible(UNITS), id: Concrete(KsmRelayLocation::get()) },
 				));
 				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-				pub const TrustedReserve: Option<(Location, MultiAsset)> = None;
+				pub const TrustedReserve: Option<(Location, Asset)> = None;
 			}
 
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -897,8 +897,8 @@ impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> MultiAsset {
-					MultiAsset {
+				fn get_multi_asset() -> Asset {
+					Asset {
 						id: Concrete(KsmRelayLocation::get()),
 						fun: Fungible(UNITS),
 					}
@@ -913,7 +913,7 @@ impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(MultiAssets, MultiAssets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
@@ -929,21 +929,21 @@ impl_runtime_apis! {
 					Ok(KsmRelayLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(Location, Location, MultiAssets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = KsmRelayLocation::get();
-					let assets: MultiAssets = (Concrete(KsmRelayLocation::get()), 1_000 * UNITS).into();
+					let assets: Assets = (Concrete(KsmRelayLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
-				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-					Ok(MultiAsset {
+				fn fee_asset() -> Result<Asset, BenchmarkError> {
+					Ok(Asset {
 						id: Concrete(KsmRelayLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
 
-				fn unlockable_asset() -> Result<(Location, Location, MultiAsset), BenchmarkError> {
+				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
