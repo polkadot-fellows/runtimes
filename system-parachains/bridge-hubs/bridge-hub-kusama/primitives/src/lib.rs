@@ -87,15 +87,15 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Kusama
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 16_196_533_317;
+	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 16_156_041_984;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 56_516_280_489;
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 56_374_989_788;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 53_943_614_276;
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 53_808_755_240;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending
