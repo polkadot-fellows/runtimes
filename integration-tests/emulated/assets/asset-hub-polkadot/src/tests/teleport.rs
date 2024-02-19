@@ -540,7 +540,7 @@ fn teleport_native_assets_from_system_para_to_relay_fails() {
 #[test]
 fn teleport_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_POLKADOT_ED * 100;
-	let native_asset: MultiAssets = (Parent, amount).into();
+	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
 		AssetHubPolkadot,          // Origin
@@ -562,7 +562,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	};
 	let asset_owner_on_penpal = PenpalPolkadotASender::get();
 	let foreign_asset_at_asset_hub_polkadot =
-		MultiLocation { parents: 1, interior: X1(Parachain(PenpalPolkadotA::para_id().into())) }
+		Location { parents: 1, interior: X1(Parachain(PenpalPolkadotA::para_id().into())) }
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	super::penpal_create_foreign_asset_on_asset_hub(
@@ -578,7 +578,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	let fee_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000;
 	let asset_amount_to_send = ASSET_MIN_BALANCE * 1000;
 
-	let penpal_assets: MultiAssets = vec![
+	let penpal_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(asset_location_on_penpal, asset_amount_to_send).into(),
 	]
@@ -670,7 +670,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 
 	let ah_to_penpal_beneficiary_id = PenpalPolkadotAReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalPolkadotA::para_id());
-	let ah_assets: MultiAssets = vec![
+	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(foreign_asset_at_asset_hub_polkadot, asset_amount_to_send).into(),
 	]

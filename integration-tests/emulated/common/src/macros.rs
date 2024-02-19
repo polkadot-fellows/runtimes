@@ -48,7 +48,7 @@ macro_rules! test_parachain_is_trusted_teleporter {
 						<$receiver_para as $crate::macros::Chain>::account_data_of(receiver.clone()).free;
 					let para_destination =
 						<$sender_para>::sibling_location_of(<$receiver_para>::para_id());
-					let beneficiary: MultiLocation =
+					let beneficiary: Location =
 						$crate::macros::AccountId32 { network: None, id: receiver.clone().into() }.into();
 
 					// Send XCM message from Origin Parachain
@@ -127,8 +127,8 @@ macro_rules! include_penpal_create_foreign_asset_on_asset_hub {
 		$crate::impls::paste::paste! {
 			pub fn penpal_create_foreign_asset_on_asset_hub(
 				asset_id_on_penpal: u32,
-				foreign_asset_at_asset_hub: MultiLocation,
-				ah_as_seen_by_penpal: MultiLocation,
+				foreign_asset_at_asset_hub: Location,
+				ah_as_seen_by_penpal: Location,
 				is_sufficient: bool,
 				asset_owner: AccountId,
 				prefund_amount: u128,
@@ -183,8 +183,8 @@ macro_rules! include_penpal_create_foreign_asset_on_asset_hub {
 				let buy_execution_fee_amount = $weight_to_fee::weight_to_fee(
 					&Weight::from_parts(10_100_000_000_000, 300_000),
 				);
-				let buy_execution_fee = MultiAsset {
-					id: Concrete(MultiLocation { parents: 1, interior: Here }),
+				let buy_execution_fee = Asset {
+					id: Concrete(Location { parents: 1, interior: Here }),
 					fun: Fungible(buy_execution_fee_amount),
 				};
 				let xcm = VersionedXcm::from(Xcm(vec![

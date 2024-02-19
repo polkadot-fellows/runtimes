@@ -24,7 +24,7 @@ use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
 use sp_runtime::DispatchError;
 use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
-use xcm::latest::{Fungibility, Junction, Junctions::Here, MultiLocation, Parent, WeightLimit};
+use xcm::latest::{Fungibility, Junction, Junctions::Here, Location, Parent, WeightLimit};
 use xcm_executor::traits::ConvertLocation;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -59,7 +59,7 @@ where
 			Err(amount) => amount,
 		};
 		let imbalance = amount.peek();
-		let root_location: MultiLocation = Here.into();
+		let root_location: Location = Here.into();
 		let root_account: AccountIdOf<T> =
 			match AccountIdConverter::convert_location(&root_location) {
 				Some(a) => a,

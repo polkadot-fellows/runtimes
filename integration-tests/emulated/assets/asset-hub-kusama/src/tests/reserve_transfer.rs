@@ -192,10 +192,10 @@ fn para_to_system_para_reserve_transfer_assets(t: ParaToSystemParaTest) -> Dispa
 fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 	let signed_origin = <Kusama as Chain>::RuntimeOrigin::signed(KusamaSender::get().into());
 	let destination = Kusama::child_location_of(AssetHubKusama::para_id());
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
-	let assets: MultiAssets = (Here, amount_to_send).into();
+	let assets: Assets = (Here, amount_to_send).into();
 	let fee_asset_item = 0;
 
 	// this should fail
@@ -227,11 +227,11 @@ fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
 	let destination = AssetHubKusama::parent_location();
 	let beneficiary_id = KusamaReceiver::get();
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: beneficiary_id.into() }.into();
 	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 1000;
 
-	let assets: MultiAssets = (Parent, amount_to_send).into();
+	let assets: Assets = (Parent, amount_to_send).into();
 	let fee_asset_item = 0;
 
 	// this should fail
@@ -421,7 +421,7 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 	let beneficiary_id = PenpalKusamaAReceiver::get();
 	let fee_amount_to_send = ASSET_HUB_KUSAMA_ED * 1000;
 	let asset_amount_to_send = ASSET_MIN_BALANCE * 1000;
-	let assets: MultiAssets = vec![
+	let assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(X2(PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())), asset_amount_to_send)
 			.into(),

@@ -64,7 +64,7 @@ pub mod xcm_config;
 
 use assets_common::{
 	foreign_creators::ForeignCreators,
-	matching::{FromNetwork, FromSiblingParachain},
+	matching::{FromNetwork, FromSiblingParachain}, LocationForAssetId
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -243,7 +243,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -320,8 +319,8 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = xcm::v3::MultiLocation;
-	type AssetIdParameter = xcm::v3::MultiLocation;
+	type AssetId = LocationForAssetId;
+	type AssetIdParameter = LocationForAssetId;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
 		(
@@ -1080,7 +1079,7 @@ impl_runtime_apis! {
 		AccountId,
 	> for Runtime
 	{
-		fn query_account_balances(account: AccountId) -> Result<xcm::VersionedMultiAssets, assets_common::runtime_api::FungiblesAccessError> {
+		fn query_account_balances(account: AccountId) -> Result<xcm::VersionedAssets, assets_common::runtime_api::FungiblesAccessError> {
 			use assets_common::fungible_conversion::{convert, convert_balance};
 			Ok([
 				// collect pallet_balance
@@ -1206,14 +1205,14 @@ impl_runtime_apis! {
 
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
-				fn reachable_dest() -> Option<MultiLocation> {
+				fn reachable_dest() -> Option<Location> {
 					Some(Parent.into())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported between AH and Relay.
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						},
@@ -1221,14 +1220,14 @@ impl_runtime_apis! {
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// AH can reserve transfer native token to some random parachain.
 					let random_para_id = 43211234;
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
 						random_para_id.into()
 					);
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: Concrete(Parent.into())
 						},
@@ -1237,14 +1236,14 @@ impl_runtime_apis! {
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, MultiLocation, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Transfer to Relay some local AH asset (local-reserve-transfer) while paying
 					// fees using teleported native token.
 					// (We don't care that Relay doesn't accept incoming unknown AH local asset)
 					let dest = Parent.into();
 
 					let fee_amount = ExistentialDeposit::get();
-					let fee_asset: MultiAsset = (MultiLocation::parent(), fee_amount).into();
+					let fee_asset: Asset = (Location::parent(), fee_amount).into();
 
 					let who = frame_benchmarking::whitelisted_caller();
 					// Give some multiple of the existential deposit
@@ -1262,13 +1261,13 @@ impl_runtime_apis! {
 						Runtime,
 						pallet_assets::Instance1
 					>(true, initial_asset_amount);
-					let asset_location = MultiLocation::new(
+					let asset_location = Location::new(
 						0,
 						X2(PalletInstance(50), GeneralIndex(u32::from(asset_id).into()))
 					);
-					let transfer_asset: MultiAsset = (asset_location, asset_amount).into();
+					let transfer_asset: Asset = (asset_location, asset_amount).into();
 
-					let assets: MultiAssets = vec![fee_asset.clone(), transfer_asset].into();
+					let assets: Assets = vec![fee_asset.clone(), transfer_asset].into();
 					let fee_index = if assets.get(0).unwrap().eq(&fee_asset) { 0 } else { 1 };
 
 					// verify transferred successfully
@@ -1287,7 +1286,7 @@ impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
+				pub ExistentialDepositAsset: Option<Asset> = Some((
 					DotLocation::get(),
 					ExistentialDeposit::get()
 				).into());
@@ -1298,32 +1297,32 @@ impl_runtime_apis! {
 				type AccountIdConverter = xcm_config::LocationToAccountId;
 				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
 					xcm_config::XcmConfig,
-					ExistentialDepositMultiAsset,
+					ExistentialDepositAsset,
 					PriceForParentDelivery,
 				>;
-				fn valid_destination() -> Result<MultiLocation, BenchmarkError> {
+				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(DotLocation::get())
 				}
-				fn worst_case_holding(depositable_count: u32) -> MultiAssets {
+				fn worst_case_holding(depositable_count: u32) -> Assets {
 					// A mix of fungible, non-fungible, and concrete assets.
 					let holding_non_fungibles = MaxAssetsIntoHolding::get() / 2 - depositable_count;
 					let holding_fungibles = holding_non_fungibles - 1;
 					let fungibles_amount: u128 = 100;
 					let mut assets = (0..holding_fungibles)
 						.map(|i| {
-							MultiAsset {
+							Asset {
 								id: Concrete(GeneralIndex(i as u128).into()),
 								fun: Fungible(fungibles_amount * i as u128),
 							}
 						})
-						.chain(core::iter::once(MultiAsset { id: Concrete(Here.into()), fun: Fungible(u128::MAX) }))
-						.chain((0..holding_non_fungibles).map(|i| MultiAsset {
+						.chain(core::iter::once(Asset { id: Concrete(Here.into()), fun: Fungible(u128::MAX) }))
+						.chain((0..holding_non_fungibles).map(|i| Asset {
 							id: Concrete(GeneralIndex(i as u128).into()),
 							fun: NonFungible(asset_instance_from(i)),
 						}))
 						.collect::<Vec<_>>();
 
-					assets.push(MultiAsset {
+					assets.push(Asset {
 						id: Concrete(DotLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					});
@@ -1332,16 +1331,16 @@ impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(MultiLocation, MultiAsset)> = Some((
+				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
 					DotLocation::get(),
-					MultiAsset { fun: Fungible(UNITS), id: Concrete(DotLocation::get()) },
+					Asset { fun: Fungible(UNITS), id: Concrete(DotLocation::get()) },
 				));
 				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 				// AssetHubPolkadot trusts AssetHubKusama as reserve for KSMs
-				pub TrustedReserve: Option<(MultiLocation, MultiAsset)> = Some(
+				pub TrustedReserve: Option<(Location, Asset)> = Some(
 					(
 						xcm_config::bridging::to_kusama::AssetHubKusama::get(),
-						MultiAsset::from((xcm_config::bridging::to_kusama::KsmLocation::get(), 1000000000000 as u128))
+						Asset::from((xcm_config::bridging::to_kusama::KsmLocation::get(), 1000000000000 as u128))
 					)
 				);
 			}
@@ -1353,8 +1352,8 @@ impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> MultiAsset {
-					MultiAsset {
+				fn get_multi_asset() -> Asset {
+					Asset {
 						id: Concrete(DotLocation::get()),
 						fun: Fungible(UNITS),
 					}
@@ -1369,47 +1368,47 @@ impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(MultiAssets, MultiAssets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
-				fn universal_alias() -> Result<(MultiLocation, Junction), BenchmarkError> {
+				fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
 					xcm_config::bridging::BridgingBenchmarksHelper::prepare_universal_alias()
 					.ok_or(BenchmarkError::Skip)
 				}
 
-				fn transact_origin_and_runtime_call() -> Result<(MultiLocation, RuntimeCall), BenchmarkError> {
+				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 					Ok((DotLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
 				}
 
-				fn subscribe_origin() -> Result<MultiLocation, BenchmarkError> {
+				fn subscribe_origin() -> Result<Location, BenchmarkError> {
 					Ok(DotLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(MultiLocation, MultiLocation, MultiAssets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = DotLocation::get();
-					let assets: MultiAssets = (Concrete(DotLocation::get()), 1_000 * UNITS).into();
-					let ticket = MultiLocation { parents: 0, interior: Here };
+					let assets: Assets = (Concrete(DotLocation::get()), 1_000 * UNITS).into();
+					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
-				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-					Ok(MultiAsset {
+				fn fee_asset() -> Result<Asset, BenchmarkError> {
+					Ok(Asset {
 						id: Concrete(DotLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
 
-				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
+				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
 				fn export_message_origin_and_destination(
-				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
+				) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
-				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {
+				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 			}
@@ -1426,7 +1425,7 @@ impl_runtime_apis! {
 					);
 				}
 
-				fn ensure_bridged_target_destination() -> Result<MultiLocation, BenchmarkError> {
+				fn ensure_bridged_target_destination() -> Result<Location, BenchmarkError> {
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
 						xcm_config::bridging::SiblingBridgeHubParaId::get().into()
 					);

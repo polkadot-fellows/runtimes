@@ -97,7 +97,7 @@ use system_parachains_constants::{
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
+	latest::{BodyId, InteriorLocation, Junction::PalletInstance},
 	v3::AssetId as XcmAssetId,
 };
 
@@ -306,7 +306,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = ();
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -339,7 +338,7 @@ parameter_types! {
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 18).
-	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
+	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }

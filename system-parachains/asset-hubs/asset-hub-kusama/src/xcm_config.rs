@@ -53,26 +53,26 @@ use xcm_builder::{
 use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 parameter_types! {
-	pub const KsmLocation: MultiLocation = MultiLocation::parent();
+	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub UniversalLocation: InteriorMultiLocation =
+	pub UniversalLocation: InteriorLocation =
 		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub AssetsPalletIndex: u32 = <Assets as PalletInfoAccess>::index() as u32;
-	pub TrustBackedAssetsPalletLocation: MultiLocation = PalletInstance(AssetsPalletIndex::get() as u8).into();
-	pub ForeignAssetsPalletLocation: MultiLocation =
+	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(AssetsPalletIndex::get() as u8).into();
+	pub ForeignAssetsPalletLocation: Location =
 		PalletInstance(<ForeignAssets as PalletInfoAccess>::index() as u8).into();
-	pub PoolAssetsPalletLocation: MultiLocation =
+	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub const GovernanceLocation: MultiLocation = MultiLocation::parent();
-	pub const FellowshipLocation: MultiLocation = MultiLocation::parent();
-	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
+	pub const GovernanceLocation: Location = Location::parent();
+	pub const FellowshipLocation: Location = Location::parent();
+	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 }
 
-/// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
+/// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
 /// when determining ownership of accounts for asset transacting and when attempting to use XCM
 /// `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
@@ -98,7 +98,7 @@ pub type CurrencyTransactor = FungibleAdapter<
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	IsConcrete<KsmLocation>,
-	// Convert an XCM MultiLocation into a local account id:
+	// Convert an XCM Location into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -116,7 +116,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 	Assets,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	TrustBackedAssetsConvertedConcreteId,
-	// Convert an XCM MultiLocation into a local account id:
+	// Convert an XCM Location into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -148,7 +148,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 	ForeignAssets,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	ForeignAssetsConvertedConcreteId,
-	// Convert an XCM MultiLocation into a local account id:
+	// Convert an XCM Location into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -168,7 +168,7 @@ pub type PoolFungiblesTransactor = FungiblesAdapter<
 	PoolAssets,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	PoolAssetsConvertedConcreteId,
-	// Convert an XCM MultiLocation into a local account id:
+	// Convert an XCM Location into a local account id:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -214,9 +214,9 @@ parameter_types! {
 }
 
 match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: Here } |
-		MultiLocation { parents: 1, interior: X1(Plurality { .. }) }
+	pub type ParentOrParentsPlurality: impl Contains<Location> = {
+		Location { parents: 1, interior: Here } |
+		Location { parents: 1, interior: X1(Plurality { .. }) }
 	};
 }
 
@@ -590,7 +590,7 @@ impl xcm_executor::Config for XcmConfig {
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
-/// Converts a local signed origin into an XCM multilocation.
+/// Converts a local signed origin into an XCM location.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
@@ -665,9 +665,9 @@ pub type ForeignCreatorsSovereignAccountOf = (
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<MultiLocation> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> MultiLocation {
-		MultiLocation { parents: 1, interior: X1(Parachain(id)) }
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location { parents: 1, interior: X1(Parachain(id)) }
 	}
 }
 
@@ -689,7 +689,7 @@ pub mod bridging {
 		pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();
 
 		pub SiblingBridgeHubParaId: u32 = bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
-		pub SiblingBridgeHub: MultiLocation = MultiLocation::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
+		pub SiblingBridgeHub: Location = Location::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
 		/// Router expects payment with this `AssetId`.
 		/// (`AssetId` has to be aligned with `BridgeTable`)
 		pub XcmBridgeHubRouterFeeAssetId: AssetId = KsmLocation::get().into();
@@ -713,7 +713,7 @@ pub mod bridging {
 		use super::*;
 
 		parameter_types! {
-			pub SiblingBridgeHubWithBridgeHubPolkadotInstance: MultiLocation = MultiLocation::new(
+			pub SiblingBridgeHubWithBridgeHubPolkadotInstance: Location = Location::new(
 				1,
 				X2(
 					Parachain(SiblingBridgeHubParaId::get()),
@@ -722,22 +722,22 @@ pub mod bridging {
 			);
 
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
-			pub AssetHubPolkadot: MultiLocation = MultiLocation::new(
+			pub AssetHubPolkadot: Location = Location::new(
 				2,
 				X2(
 					GlobalConsensus(PolkadotNetwork::get()),
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				),
 			);
-			pub DotLocation: MultiLocation = MultiLocation::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
+			pub DotLocation: Location = Location::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
 
-			pub DotFromAssetHubPolkadot: (MultiAssetFilter, MultiLocation) = (
+			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
 				Wild(AllOf { fun: WildFungible, id: Concrete(DotLocation::get()) }),
 				AssetHubPolkadot::get()
 			);
 
 			/// Set up exporters configuration.
-			/// `Option<MultiAsset>` represents static "base fee" which is used for total delivery fee calculation.
+			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
 			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = sp_std::vec![
 				NetworkExportTableItem::new(
 					PolkadotNetwork::get(),
@@ -754,15 +754,15 @@ pub mod bridging {
 			];
 
 			/// Universal aliases
-			pub UniversalAliases: BTreeSet<(MultiLocation, Junction)> = BTreeSet::from_iter(
+			pub UniversalAliases: BTreeSet<(Location, Junction)> = BTreeSet::from_iter(
 				sp_std::vec![
 					(SiblingBridgeHubWithBridgeHubPolkadotInstance::get(), GlobalConsensus(PolkadotNetwork::get()))
 				]
 			);
 		}
 
-		impl Contains<(MultiLocation, Junction)> for UniversalAliases {
-			fn contains(alias: &(MultiLocation, Junction)) -> bool {
+		impl Contains<(Location, Junction)> for UniversalAliases {
+			fn contains(alias: &(Location, Junction)) -> bool {
 				UniversalAliases::get().contains(alias)
 			}
 		}
@@ -786,7 +786,7 @@ pub mod bridging {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl BridgingBenchmarksHelper {
-		pub fn prepare_universal_alias() -> Option<(MultiLocation, Junction)> {
+		pub fn prepare_universal_alias() -> Option<(Location, Junction)> {
 			let alias = to_polkadot::UniversalAliases::get().into_iter().find_map(
 				|(location, junction)| {
 					match to_polkadot::SiblingBridgeHubWithBridgeHubPolkadotInstance::get()
