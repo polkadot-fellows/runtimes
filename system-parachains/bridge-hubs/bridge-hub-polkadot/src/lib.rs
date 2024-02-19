@@ -74,10 +74,12 @@ use parachains_common::{
 	impls::DealWithFees, message_queue::*, AccountId, Balance, BlockNumber, Hash, Header, Nonce,
 	Signature,
 };
+pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
 	polkadot::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
+
 // XCM Imports
 use xcm::prelude::*;
 
