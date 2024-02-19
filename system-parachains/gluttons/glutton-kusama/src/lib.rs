@@ -47,6 +47,7 @@ pub mod weights;
 pub mod xcm_config;
 
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use cumulus_primitives_core::AggregateMessageOrigin;
 use sp_api::impl_runtime_apis;
 use sp_core::OpaqueMetadata;
 use sp_runtime::{
@@ -168,6 +169,7 @@ impl frame_system::Config for Runtime {
 parameter_types! {
 	// We do anything the parent chain tells us in this runtime.
 	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(2);
+	pub const RelayOrigin: AggregateMessageOrigin = AggregateMessageOrigin::Parent;
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -175,15 +177,41 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type OutboundXcmpMessageSource = ();
-	type DmpMessageHandler = cumulus_pallet_xcm::UnlimitedDmpExecution<Runtime>;
+	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 	type ReservedDmpWeight = ReservedDmpWeight;
 	type XcmpMessageHandler = ();
 	type ReservedXcmpWeight = ();
 	type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 	type ConsensusHook = cumulus_pallet_parachain_system::consensus_hook::ExpectParentIncluded;
+	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 }
 
 impl parachain_info::Config for Runtime {}
+
+parameter_types! {
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
+}
+
+impl pallet_message_queue::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MessageProcessor = pallet_message_queue::mock_helpers::NoopMessageProcessor<
+		cumulus_primitives_core::AggregateMessageOrigin,
+	>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MessageProcessor = xcm_builder::ProcessXcmMessage<
+		AggregateMessageOrigin,
+		xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
+		RuntimeCall,
+	>;
+	type Size = u32;
+	type QueueChangeHandler = ();
+	type QueuePausedQuery = (); // No XCMP queue pallet deployed.
+	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
+	type MaxStale = sp_core::ConstU32<8>;
+	type ServiceWeight = MessageQueueServiceWeight;
+}
 
 impl pallet_glutton::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -200,20 +228,19 @@ impl pallet_sudo::Config for Runtime {
 construct_runtime! {
 	pub enum Runtime
 	{
-		System: frame_system::{Pallet, Call, Storage, Config<T>, Event<T>} = 0,
-		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
-		} = 1,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 2,
+		System: frame_system = 0,
+		ParachainSystem: cumulus_pallet_parachain_system = 1,
+		ParachainInfo: parachain_info = 2,
 
 		// DMP handler.
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin} = 10,
+		CumulusXcm: cumulus_pallet_xcm = 10,
+		MessageQueue: pallet_message_queue = 11,
 
 		// The main stage.
-		Glutton: pallet_glutton::{Pallet, Call, Storage, Event, Config<T>} = 20,
+		Glutton: pallet_glutton = 20,
 
 		// Sudo.
-		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 255,
+		Sudo: pallet_sudo = 255,
 	}
 }
 
@@ -260,6 +287,8 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_glutton, Glutton]
+		[pallet_message_queue, MessageQueue]
+		[cumulus_pallet_parachain_system, ParachainSystem]
 	);
 }
 

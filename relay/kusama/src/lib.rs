@@ -71,16 +71,16 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, InstanceFilter,
-		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
-		StorageMapShim, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
 };
 use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
-use pallet_identity::simple::IdentityInfo;
+use pallet_identity::legacy::IdentityInfo;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{CurrencyAdapter, FeeDetails, RuntimeDispatchInfo};
@@ -171,21 +171,13 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
 
-/// We currently allow all calls.
-pub struct BaseFilter;
-impl Contains<RuntimeCall> for BaseFilter {
-	fn contains(_c: &RuntimeCall) -> bool {
-		true
-	}
-}
-
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub const SS58Prefix: u8 = 2;
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -299,7 +291,7 @@ impl pallet_babe::Config for Runtime {
 	type WeightInfo = ();
 
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 }
 
 parameter_types! {
@@ -344,7 +336,7 @@ parameter_types! {
 impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 	type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
 	type OnNewValidatorSet = BeefyMmrLeaf;
 	type WeightInfo = ();
@@ -657,7 +649,11 @@ parameter_types! {
 		27,
 		"DOT_SLASH_DEFER_DURATION"
 	);
-	pub const MaxNominatorRewardedPerValidator: u32 = 512;
+	pub const MaxExposurePageSize: u32 = 512;
+	// Note: this is not really correct as Max Nominators is (MaxExposurePageSize * page_count) but
+	// this is an unbounded number. We just set it to a reasonably high value, 1 full page
+	// of nominators.
+	pub const MaxNominators: u32 = 512;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 24
 	pub const MaxNominations: u32 = <NposCompactSolution24 as NposSolution>::LIMIT as u32;
@@ -681,7 +677,7 @@ impl pallet_staking::Config for Runtime {
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type NextNewSession = Session;
-	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+	type MaxExposurePageSize = MaxExposurePageSize;
 	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
 	type VoterList = VoterList;
 	type TargetList = UseValidatorsMap<Self>;
@@ -701,8 +697,6 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type MaxBackersPerValidator = MaxNominatorRewardedPerValidator;
 	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
 }
 
@@ -837,7 +831,7 @@ impl pallet_grandpa::Config for Runtime {
 
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
-	type MaxNominators = MaxNominatorRewardedPerValidator;
+	type MaxNominators = MaxNominators;
 	type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
 
 	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
@@ -922,7 +916,7 @@ impl claims::Config for Runtime {
 parameter_types! {
 	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
 	pub const BasicDeposit: Balance = 1000 * CENTS;       // 258 bytes on-chain
-	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
+	pub const ByteDeposit: Balance = deposit(0, 1);
 	pub const SubAccountDeposit: Balance = 200 * CENTS;   // 53 bytes on-chain
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
@@ -933,10 +927,9 @@ impl pallet_identity::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BasicDeposit = BasicDeposit;
-	type FieldDeposit = FieldDeposit;
+	type ByteDeposit = ByteDeposit;
 	type SubAccountDeposit = SubAccountDeposit;
 	type MaxSubAccounts = MaxSubAccounts;
-	type MaxAdditionalFields = MaxAdditionalFields;
 	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
 	type MaxRegistrars = MaxRegistrars;
 	type Slashed = Treasury;
@@ -1508,135 +1501,131 @@ impl pallet_asset_rate::Config for Runtime {
 construct_runtime! {
 	pub enum Runtime
 	{
-		// Basic stuff; balances is uncallable initially.
-		System: frame_system::{Pallet, Call, Storage, Config<T>, Event<T>} = 0,
+		// Basic stuff.
+		System: frame_system = 0,
 
 		// Babe must be before session.
-		Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 1,
+		Babe: pallet_babe = 1,
 
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-		Indices: pallet_indices::{Pallet, Call, Storage, Config<T>, Event<T>} = 3,
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 33,
+		Timestamp: pallet_timestamp = 2,
+		Indices: pallet_indices = 3,
+		Balances: pallet_balances = 4,
+		TransactionPayment: pallet_transaction_payment = 33,
 
 		// Consensus support.
 		// Authorship must be before session in order to note author in the correct session and era
 		// for im-online and staking.
-		Authorship: pallet_authorship::{Pallet, Storage} = 5,
-		Staking: pallet_staking::{Pallet, Call, Storage, Config<T>, Event<T>} = 6,
-		Offences: pallet_offences::{Pallet, Storage, Event} = 7,
-		Historical: session_historical::{Pallet} = 34,
+		Authorship: pallet_authorship = 5,
+		Staking: pallet_staking = 6,
+		Offences: pallet_offences = 7,
+		Historical: session_historical = 34,
 
-		// BEEFY Bridges support.
-		Beefy: pallet_beefy::{Pallet, Call, Storage, Config<T>, ValidateUnsigned} = 200,
-		// MMR leaf construction must be before session in order to have leaf contents
-		// refer to block<N-1> consistently. see substrate issue #11797 for details.
-		Mmr: pallet_mmr::{Pallet, Storage} = 201,
-		BeefyMmrLeaf: pallet_beefy_mmr::{Pallet, Storage} = 202,
-
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 8,
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event, ValidateUnsigned} = 10,
-		ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 11,
-		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config<T>} = 12,
+		Session: pallet_session = 8,
+		Grandpa: pallet_grandpa = 10,
+		ImOnline: pallet_im_online = 11,
+		AuthorityDiscovery: pallet_authority_discovery = 12,
 
 		// Governance stuff.
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 18,
-		ConvictionVoting: pallet_conviction_voting::{Pallet, Call, Storage, Event<T>} = 20,
-		Referenda: pallet_referenda::{Pallet, Call, Storage, Event<T>} = 21,
+		Treasury: pallet_treasury = 18,
+		ConvictionVoting: pallet_conviction_voting = 20,
+		Referenda: pallet_referenda = 21,
 //		pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
-		FellowshipCollective: pallet_ranked_collective::<Instance1>::{
-			Pallet, Call, Storage, Event<T>
-		} = 22,
+		FellowshipCollective: pallet_ranked_collective::<Instance1> = 22,
 //		pub type FellowshipReferendaInstance = pallet_referenda::Instance2;
-		FellowshipReferenda: pallet_referenda::<Instance2>::{
-			Pallet, Call, Storage, Event<T>
-		} = 23,
-		Origins: pallet_custom_origins::{Origin} = 43,
-		Whitelist: pallet_whitelist::{Pallet, Call, Storage, Event<T>} = 44,
+		FellowshipReferenda: pallet_referenda::<Instance2> = 23,
+		Origins: pallet_custom_origins = 43,
+		Whitelist: pallet_whitelist = 44,
 
 		// Claims. Usable initially.
-		Claims: claims::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned} = 19,
+		Claims: claims = 19,
 
 		// Utility module.
-		Utility: pallet_utility::{Pallet, Call, Event} = 24,
+		Utility: pallet_utility = 24,
 
 		// Less simple identity module.
-		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 25,
+		Identity: pallet_identity = 25,
 
 		// Society module.
-		Society: pallet_society::{Pallet, Call, Storage, Event<T>} = 26,
+		Society: pallet_society = 26,
 
 		// Social recovery module.
-		Recovery: pallet_recovery::{Pallet, Call, Storage, Event<T>} = 27,
+		Recovery: pallet_recovery = 27,
 
 		// Vesting. Usable initially, but removed once all vesting is finished.
-		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 28,
+		Vesting: pallet_vesting = 28,
 
 		// System scheduler.
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 29,
+		Scheduler: pallet_scheduler = 29,
 
 		// Proxy module. Late addition.
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 30,
+		Proxy: pallet_proxy = 30,
 
 		// Multisig module. Late addition.
-		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 31,
+		Multisig: pallet_multisig = 31,
 
 		// Preimage registrar.
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>, HoldReason} = 32,
+		Preimage: pallet_preimage = 32,
 
 		// Bounties modules.
-		Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 35,
+		Bounties: pallet_bounties = 35,
 		ChildBounties: pallet_child_bounties = 40,
 
 		// Election pallet. Only works with staking, but placed here to maintain indices.
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 37,
+		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 37,
 
 		// NIS pallet.
-		Nis: pallet_nis::{Pallet, Call, Storage, Event<T>, HoldReason} = 38,
+		Nis: pallet_nis = 38,
 		NisCounterpartBalances: pallet_balances::<Instance2> = 45,
 
 		// Provides a semi-sorted list of nominators for staking.
-		VoterList: pallet_bags_list::<Instance1>::{Pallet, Call, Storage, Event<T>} = 39,
+		VoterList: pallet_bags_list::<Instance1> = 39,
 
 		// nomination pools: extension to staking.
-		NominationPools: pallet_nomination_pools::{Pallet, Call, Storage, Event<T>, Config<T>, FreezeReason} = 41,
+		NominationPools: pallet_nomination_pools = 41,
 
 		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 42,
 
 		// Parachains pallets. Start indices at 50 to leave room.
-		ParachainsOrigin: parachains_origin::{Pallet, Origin} = 50,
-		Configuration: parachains_configuration::{Pallet, Call, Storage, Config<T>} = 51,
-		ParasShared: parachains_shared::{Pallet, Call, Storage} = 52,
-		ParaInclusion: parachains_inclusion::{Pallet, Call, Storage, Event<T>} = 53,
-		ParaInherent: parachains_paras_inherent::{Pallet, Call, Storage, Inherent} = 54,
-		ParaScheduler: parachains_scheduler::{Pallet, Storage} = 55,
-		Paras: parachains_paras::{Pallet, Call, Storage, Event, Config<T>, ValidateUnsigned} = 56,
-		Initializer: parachains_initializer::{Pallet, Call, Storage} = 57,
-		Dmp: parachains_dmp::{Pallet, Storage} = 58,
-		Hrmp: parachains_hrmp::{Pallet, Call, Storage, Event<T>, Config<T>} = 60,
-		ParaSessionInfo: parachains_session_info::{Pallet, Storage} = 61,
-		ParasDisputes: parachains_disputes::{Pallet, Call, Storage, Event<T>} = 62,
-		ParasSlashing: parachains_slashing::{Pallet, Call, Storage, ValidateUnsigned} = 63,
-		ParaAssignmentProvider: parachains_assigner_parachains::{Pallet, Storage} = 64,
+		ParachainsOrigin: parachains_origin = 50,
+		Configuration: parachains_configuration = 51,
+		ParasShared: parachains_shared = 52,
+		ParaInclusion: parachains_inclusion = 53,
+		ParaInherent: parachains_paras_inherent = 54,
+		ParaScheduler: parachains_scheduler = 55,
+		Paras: parachains_paras = 56,
+		Initializer: parachains_initializer = 57,
+		Dmp: parachains_dmp = 58,
+		Hrmp: parachains_hrmp = 60,
+		ParaSessionInfo: parachains_session_info = 61,
+		ParasDisputes: parachains_disputes = 62,
+		ParasSlashing: parachains_slashing = 63,
+		ParaAssignmentProvider: parachains_assigner_parachains = 64,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
-		Registrar: paras_registrar::{Pallet, Call, Storage, Event<T>} = 70,
-		Slots: slots::{Pallet, Call, Storage, Event<T>} = 71,
-		Auctions: auctions::{Pallet, Call, Storage, Event<T>} = 72,
-		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 73,
+		Registrar: paras_registrar = 70,
+		Slots: slots = 71,
+		Auctions: auctions = 72,
+		Crowdloan: crowdloan = 73,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 98,
 
 		// Pallet for sending XCM.
-		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 99,
+		XcmPallet: pallet_xcm = 99,
 
 		// Generalized message queue
-		MessageQueue: pallet_message_queue::{Pallet, Call, Storage, Event<T>} = 100,
+		MessageQueue: pallet_message_queue = 100,
 
 		// Asset rate.
-		AssetRate: pallet_asset_rate::{Pallet, Call, Storage, Event<T>} = 101,
+		AssetRate: pallet_asset_rate = 101,
+
+		// BEEFY Bridges support.
+		Beefy: pallet_beefy = 200,
+		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
+		// refer to block<N>. See issue #160 for details.
+		Mmr: pallet_mmr = 201,
+		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 	}
 }
 
@@ -1678,12 +1667,16 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::Runtime;
+	use super::{parachains_configuration, Runtime};
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		pallet_nomination_pools::migration::versioned_migrations::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned_migrations::V6ToV7<Runtime>,
+		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
+		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
+		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
+		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
+		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
+		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 	);
 }
 
@@ -1758,7 +1751,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
 		// XCM
-		[pallet_xcm, XcmPallet]
+		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
@@ -1831,7 +1824,7 @@ sp_api::impl_runtime_apis! {
 	}
 
 	#[api_version(8)]
-	impl primitives::runtime_api::ParachainHost<Block, Hash, BlockNumber> for Runtime {
+	impl primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
 		}
@@ -2234,9 +2227,13 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+	impl pallet_staking_runtime_api::StakingApi<Block, Balance, AccountId> for Runtime {
 		fn nominations_quota(balance: Balance) -> u32 {
 			Staking::api_nominations_quota(balance)
+		}
+
+		fn eras_stakers_page_count(era: sp_staking::EraIndex, account: AccountId) -> sp_staking::Page {
+			Staking::api_eras_stakers_page_count(era, account)
 		}
 	}
 
@@ -2282,6 +2279,7 @@ sp_api::impl_runtime_apis! {
 			use pallet_session_benchmarking::Pallet as SessionBench;
 			use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
@@ -2329,6 +2327,46 @@ sp_api::impl_runtime_apis! {
 			impl frame_benchmarking::baseline::Config for Runtime {}
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
+
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+			impl pallet_xcm::benchmarking::Config for Runtime {
+				fn reachable_dest() -> Option<MultiLocation> {
+					Some(crate::xcm_config::AssetHubLocation::get())
+				}
+
+				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay/native token can be teleported to/from AH.
+					Some((
+						MultiAsset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						crate::xcm_config::AssetHubLocation::get(),
+					))
+				}
+
+				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay can reserve transfer native token to some random parachain.
+					Some((
+						MultiAsset {
+							fun: Fungible(EXISTENTIAL_DEPOSIT),
+							id: Concrete(Here.into())
+						},
+						crate::Junction::Parachain(43211234).into(),
+					))
+				}
+
+				fn set_up_complex_asset_transfer(
+				) -> Option<(MultiAssets, u32, MultiLocation, Box<dyn FnOnce()>)> {
+					// Relay supports only native token, either reserve transfer it to non-system parachains,
+					// or teleport it to system parachain. Use the teleport case for benchmarking as it's
+					// slightly heavier.
+					// Relay/native token can be teleported to/from AH.
+					let native_location = Here.into();
+					let dest = crate::xcm_config::AssetHubLocation::get();
+					pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+						native_location,
+						dest
+					)
+				}
+			}
 
 			parameter_types! {
 				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
@@ -2414,6 +2452,13 @@ sp_api::impl_runtime_apis! {
 					let assets: MultiAssets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
 					let ticket = MultiLocation { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
+				}
+
+				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
+					Ok(MultiAsset {
+						id: Concrete(TokenLocation::get()),
+						fun: Fungible(1_000_000 * UNITS),
+					})
 				}
 
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {

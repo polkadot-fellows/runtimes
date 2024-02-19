@@ -17,6 +17,7 @@
 **/.criterion/
 **/*.rs.bk
 **/chains/
+!integration-tests/emulated/chains
 **/hfuzz_target/
 **/hfuzz_workspace/
 **/node_modules

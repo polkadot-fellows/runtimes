@@ -70,7 +70,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// Proof: `Identity::IdentityOf` (`max_values`: None, `max_size`: Some(7538), added: 10013, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn set_identity(r: u32, x: u32, ) -> Weight {
+	fn set_identity(r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `442 + r * (5 ±0)`
 		//  Estimated: `11003`
@@ -79,8 +79,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 11003))
 			// Standard Error: 3_842
 			.saturating_add(Weight::from_parts(168_829, 0).saturating_mul(r.into()))
-			// Standard Error: 749
-			.saturating_add(Weight::from_parts(461_025, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -135,7 +133,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `s` is `[0, 100]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn clear_identity(r: u32, s: u32, x: u32, ) -> Weight {
+	fn clear_identity(r: u32, s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `469 + r * (5 ±0) + s * (32 ±0) + x * (66 ±0)`
 		//  Estimated: `11003`
@@ -146,8 +144,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(134_695, 0).saturating_mul(r.into()))
 			// Standard Error: 2_134
 			.saturating_add(Weight::from_parts(1_291_235, 0).saturating_mul(s.into()))
-			// Standard Error: 2_134
-			.saturating_add(Weight::from_parts(259_478, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
@@ -158,7 +154,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// Proof: `Identity::IdentityOf` (`max_values`: None, `max_size`: Some(7538), added: 10013, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn request_judgement(r: u32, x: u32, ) -> Weight {
+	fn request_judgement(r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `367 + r * (57 ±0) + x * (66 ±0)`
 		//  Estimated: `11003`
@@ -167,8 +163,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 11003))
 			// Standard Error: 3_649
 			.saturating_add(Weight::from_parts(157_213, 0).saturating_mul(r.into()))
-			// Standard Error: 712
-			.saturating_add(Weight::from_parts(495_951, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -176,7 +170,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// Proof: `Identity::IdentityOf` (`max_values`: None, `max_size`: Some(7538), added: 10013, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn cancel_request(r: u32, x: u32, ) -> Weight {
+	fn cancel_request(r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `398 + x * (66 ±0)`
 		//  Estimated: `11003`
@@ -185,8 +179,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 11003))
 			// Standard Error: 2_838
 			.saturating_add(Weight::from_parts(91_214, 0).saturating_mul(r.into()))
-			// Standard Error: 553
-			.saturating_add(Weight::from_parts(472_533, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -241,7 +233,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// Proof: `Identity::IdentityOf` (`max_values`: None, `max_size`: Some(7538), added: 10013, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 19]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn provide_judgement(r: u32, x: u32, ) -> Weight {
+	fn provide_judgement(r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `445 + r * (57 ±0) + x * (66 ±0)`
 		//  Estimated: `11003`
@@ -250,8 +242,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 11003))
 			// Standard Error: 4_288
 			.saturating_add(Weight::from_parts(128_899, 0).saturating_mul(r.into()))
-			// Standard Error: 793
-			.saturating_add(Weight::from_parts(761_648, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -266,7 +256,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `s` is `[0, 100]`.
 	/// The range of component `x` is `[0, 100]`.
-	fn kill_identity(r: u32, s: u32, x: u32, ) -> Weight {
+	fn kill_identity(r: u32, s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `676 + r * (5 ±0) + s * (32 ±0) + x * (66 ±0)`
 		//  Estimated: `11003`
@@ -277,8 +267,6 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(238_248, 0).saturating_mul(r.into()))
 			// Standard Error: 2_670
 			.saturating_add(Weight::from_parts(1_322_628, 0).saturating_mul(s.into()))
-			// Standard Error: 2_670
-			.saturating_add(Weight::from_parts(294_550, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))

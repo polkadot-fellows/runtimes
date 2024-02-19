@@ -27,6 +27,7 @@ mod weights;
 pub mod xcm_config;
 
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -46,7 +47,9 @@ use frame_support::{
 	dispatch::DispatchClass,
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
-	traits::{ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Everything},
+	traits::{
+		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Everything, TransformOrigin,
+	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
 };
@@ -57,9 +60,7 @@ use frame_system::{
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
-use xcm_config::{
-	FellowshipLocation, GovernanceLocation, XcmConfig, XcmOriginToTransactDispatchOrigin,
-};
+use xcm_config::{FellowshipLocation, GovernanceLocation, XcmOriginToTransactDispatchOrigin};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -70,7 +71,8 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{
-	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+	impls::DealWithFees, message_queue::*, AccountId, Balance, BlockNumber, Hash, Header, Nonce,
+	Signature,
 };
 use system_parachains_constants::{
 	polkadot::{consensus::*, currency::*, fee::WeightToFee},
@@ -78,7 +80,6 @@ use system_parachains_constants::{
 };
 // XCM Imports
 use xcm::prelude::*;
-use xcm_executor::XcmExecutor;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -121,7 +122,10 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// Migrations to apply on runtime upgrade.
-pub type Migrations = ();
+pub type Migrations = (
+	// unreleased
+	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+);
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -285,6 +289,7 @@ impl pallet_transaction_payment::Config for Runtime {
 parameter_types! {
 	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+	pub const RelayOrigin: AggregateMessageOrigin = AggregateMessageOrigin::Parent;
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -292,7 +297,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type OutboundXcmpMessageSource = XcmpQueue;
-	type DmpMessageHandler = DmpQueue;
+	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 	type ReservedDmpWeight = ReservedDmpWeight;
 	type XcmpMessageHandler = XcmpQueue;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
@@ -303,9 +308,36 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 		BLOCK_PROCESSING_VELOCITY,
 		UNINCLUDED_SEGMENT_CAPACITY,
 	>;
+	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
 }
 
 impl parachain_info::Config for Runtime {}
+
+parameter_types! {
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
+}
+
+impl pallet_message_queue::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MessageProcessor = pallet_message_queue::mock_helpers::NoopMessageProcessor<
+		cumulus_primitives_core::AggregateMessageOrigin,
+	>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MessageProcessor = xcm_builder::ProcessXcmMessage<
+		AggregateMessageOrigin,
+		xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
+		RuntimeCall,
+	>;
+	type Size = u32;
+	// The XCMP queue pallet is only ever able to handle the `Sibling(ParaId)` origin:
+	type QueueChangeHandler = NarrowOriginToSibling<XcmpQueue>;
+	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
+	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
+	type MaxStale = sp_core::ConstU32<8>;
+	type ServiceWeight = MessageQueueServiceWeight;
+}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
@@ -340,20 +372,22 @@ pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::Exponenti
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ParachainSystem;
 	type VersionWrapper = PolkadotXcm;
-	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+	// Enqueue XCMP messages from siblings for later processing.
+	type XcmpQueue = TransformOrigin<MessageQueue, AggregateMessageOrigin, ParaId, ParaIdToSibling>;
+	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
 	type ControllerOrigin = RootOrFellows;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
 
+// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
 impl cumulus_pallet_dmp_queue::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_dmp_queue::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+	type DmpSink = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 }
 
 pub const PERIOD: u32 = 6 * HOURS;
@@ -440,41 +474,46 @@ construct_runtime!(
 	pub enum Runtime
 	{
 		// System support stuff.
-		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
-		ParachainSystem: cumulus_pallet_parachain_system::{
-			Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
-		} = 1,
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-		ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 3,
+		System: frame_system = 0,
+		ParachainSystem: cumulus_pallet_parachain_system = 1,
+		Timestamp: pallet_timestamp = 2,
+		ParachainInfo: parachain_info = 3,
 
 		// Monetary stuff.
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
+		Balances: pallet_balances = 10,
+		TransactionPayment: pallet_transaction_payment = 11,
 
 		// Collator support. The order of these 4 are important and shall not change.
-		Authorship: pallet_authorship::{Pallet, Storage} = 20,
-		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
-		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
-		AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 24,
+		Authorship: pallet_authorship = 20,
+		CollatorSelection: pallet_collator_selection = 21,
+		Session: pallet_session = 22,
+		Aura: pallet_aura = 23,
+		AuraExt: cumulus_pallet_aura_ext = 24,
 
 		// XCM helpers.
-		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-		PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 31,
-		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
-		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
+		PolkadotXcm: pallet_xcm = 31,
+		CumulusXcm: cumulus_pallet_xcm = 32,
+		// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
+		// Temporary to migrate the remaining DMP messages:
+		DmpQueue: cumulus_pallet_dmp_queue = 33,
 
 		// Handy utilities.
-		Utility: pallet_utility::{Pallet, Call, Event} = 40,
-		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 41,
+		Utility: pallet_utility = 40,
+		Multisig: pallet_multisig = 41,
 
 		// Pallets that may be used by all bridges.
-		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>} = 50,
+		BridgeRelayers: pallet_bridge_relayers = 50,
 
 		// Kusama bridge pallets.
-		BridgeKusamaGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
-		BridgeKusamaParachains: pallet_bridge_parachains::<Instance1>::{Pallet, Call, Storage, Event<T>} = 52,
-		BridgeKusamaMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 53,
+		BridgeKusamaGrandpa: pallet_bridge_grandpa::<Instance1> = 51,
+		BridgeKusamaParachains: pallet_bridge_parachains::<Instance1> = 52,
+		BridgeKusamaMessages: pallet_bridge_messages::<Instance1> = 53,
+		XcmOverBridgeHubKusama: pallet_xcm_bridge_hub::<Instance1> = 54,
+
+		// Message Queue. Importantly, it is registered after Snowbridge pallets
+		// so that messages are processed after the `on_initialize` hooks of bridging pallets.
+		MessageQueue: pallet_message_queue = 175,
 	}
 );
 
@@ -483,14 +522,17 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
+		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_utility, Utility]
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
+		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[cumulus_pallet_dmp_queue, DmpQueue]
 		// XCM
-		[pallet_xcm, PolkadotXcm]
+		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// NOTE: Make sure you point to the individual modules below.
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
@@ -728,6 +770,7 @@ impl_runtime_apis! {
 		) {
 			use frame_benchmarking::{Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
@@ -772,6 +815,41 @@ impl_runtime_apis! {
 
 			use xcm::latest::prelude::*;
 			use xcm_config::DotRelayLocation;
+
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+			impl pallet_xcm::benchmarking::Config for Runtime {
+				fn reachable_dest() -> Option<MultiLocation> {
+					Some(Parent.into())
+				}
+
+				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Relay/native token can be teleported between BH and Relay.
+					Some((
+						MultiAsset {
+							fun: Fungible(ExistentialDeposit::get()),
+							id: Concrete(Parent.into())
+						},
+						Parent.into(),
+					))
+				}
+
+				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+					// Reserve transfers are disabled on BH.
+					None
+				}
+
+				fn set_up_complex_asset_transfer(
+				) -> Option<(MultiAssets, u32, MultiLocation, Box<dyn FnOnce()>)> {
+					// BH only supports teleports to system parachain.
+					// Relay/native token can be teleported between BH and Relay.
+					let native_location = Parent.into();
+					let dest = Parent.into();
+					pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+						native_location,
+						dest
+					)
+				}
+			}
 
 			parameter_types! {
 				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
@@ -858,13 +936,26 @@ impl_runtime_apis! {
 					Ok((origin, ticket, assets))
 				}
 
+				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
+					Ok(MultiAsset {
+						id: Concrete(DotRelayLocation::get()),
+						fun: Fungible(1_000_000 * UNITS),
+					})
+				}
+
 				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
-					Ok((DotRelayLocation::get(), NetworkId::Kusama, X1(Parachain(1000))))
+					Ok(
+						(
+							bridge_to_kusama_config::FromAssetHubPolkadotToAssetHubKusamaRoute::get().location,
+							NetworkId::Kusama,
+							X1(Parachain(bridge_to_kusama_config::AssetHubKusamaParaId::get().into()))
+						)
+					)
 				}
 
 				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {
