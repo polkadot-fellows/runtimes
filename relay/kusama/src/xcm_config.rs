@@ -298,7 +298,8 @@ fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 
 	// should be [WithdrawAsset, BuyExecution, Transact, RefundSurplus, DepositAsset]
 	let blob = hex_literal::hex!("02140004000000000700e40b540213000000000700e40b54020006010700c817a804341801000006010b00c490bf4302140d010003ffffffff000100411f");
-	let Ok(VersionedXcm::V2(old_xcm_v2)) = VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..])
+	let Ok(VersionedXcm::V2(old_xcm_v2)) =
+		VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..])
 	else {
 		panic!("can't decode XCM blob")
 	};

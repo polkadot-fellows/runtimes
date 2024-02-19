@@ -2421,7 +2421,7 @@ sp_api::impl_runtime_apis! {
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
+				pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 					AssetHubLocation::get(),
 					Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
 				));
@@ -2435,7 +2435,7 @@ sp_api::impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> Asset {
+				fn get_asset() -> Asset {
 					Asset {
 						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1 * UNITS)

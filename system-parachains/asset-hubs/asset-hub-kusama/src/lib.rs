@@ -1467,7 +1467,7 @@ impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> Asset {
+				fn get_asset() -> Asset {
 					Asset {
 						id: AssetId(KsmLocation::get()),
 						fun: Fungible(UNITS),
