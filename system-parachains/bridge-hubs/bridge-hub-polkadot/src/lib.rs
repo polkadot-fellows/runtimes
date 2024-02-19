@@ -27,7 +27,6 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use crate::xcm_config::XcmRouter;
 use bridge_hub_common::AggregateMessageOrigin;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
@@ -70,8 +69,8 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmConfig,
-	XcmOriginToTransactDispatchOrigin,
+	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
+	XcmRouter,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -643,7 +642,7 @@ parameter_types! {
 		},
 		deneb: Fork {
 			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 269568, // TODO update when epoch becomes known
+			epoch: 269568,
 		},
 	};
 }
