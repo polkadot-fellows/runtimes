@@ -379,7 +379,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = Concrete(xcm_config::KsmRelayLocation::get());
+	pub FeeAssetId: AssetId = AssetId(xcm_config::KsmRelayLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -1061,7 +1061,7 @@ impl_runtime_apis! {
 					Some((
 						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
-							id: Concrete(Parent.into())
+							id: AssetId(Parent.into())
 						},
 						Parent.into(),
 					))
@@ -1107,7 +1107,7 @@ impl_runtime_apis! {
 					// just concrete assets according to relay chain.
 					let assets: Vec<Asset> = vec![
 						Asset {
-							id: Concrete(KsmRelayLocation::get()),
+							id: AssetId(KsmRelayLocation::get()),
 							fun: Fungible(1_000_000 * UNITS),
 						}
 					];
@@ -1118,7 +1118,7 @@ impl_runtime_apis! {
 			parameter_types! {
 				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
 					KsmRelayLocation::get(),
-					Asset { fun: Fungible(UNITS), id: Concrete(KsmRelayLocation::get()) },
+					Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
 				));
 				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 				pub const TrustedReserve: Option<(Location, Asset)> = None;
@@ -1131,9 +1131,9 @@ impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> Asset {
+				fn get_asset() -> Asset {
 					Asset {
-						id: Concrete(KsmRelayLocation::get()),
+						id: AssetId(KsmRelayLocation::get()),
 						fun: Fungible(UNITS),
 					}
 				}
@@ -1165,14 +1165,14 @@ impl_runtime_apis! {
 
 				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = KsmRelayLocation::get();
-					let assets: Assets = (Concrete(KsmRelayLocation::get()), 1_000 * UNITS).into();
+					let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
 				fn fee_asset() -> Result<Asset, BenchmarkError> {
 					Ok(Asset {
-						id: Concrete(KsmRelayLocation::get()),
+						id: AssetId(KsmRelayLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
@@ -1202,7 +1202,7 @@ impl_runtime_apis! {
 						(
 							bridge_to_polkadot_config::FromAssetHubKusamaToAssetHubPolkadotRoute::get().location,
 							NetworkId::Polkadot,
-							X1(Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()))
+							Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()).into()
 						)
 					)
 				}
@@ -1304,7 +1304,7 @@ impl_runtime_apis! {
 						Runtime,
 						bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
 						bridge_to_polkadot_config::WithBridgeHubPolkadotMessageBridge,
-					>(params, generate_xcm_builder_bridge_message_sample(X2(GlobalConsensus(Kusama), Parachain(42))))
+					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Kusama), Parachain(42)].into()))
 				}
 
 				fn prepare_message_delivery_proof(

@@ -22,7 +22,7 @@ use super::{
 use crate::{ForeignAssets, ForeignAssetsInstance};
 use assets_common::matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset};
 use frame_support::{
-	match_types, parameter_types,
+	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess},
 };
 use frame_system::EnsureRoot;
@@ -58,7 +58,7 @@ parameter_types! {
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
-		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
+		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub AssetsPalletIndex: u32 = <Assets as PalletInfoAccess>::index() as u32;
 	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(AssetsPalletIndex::get() as u8).into();
@@ -214,11 +214,11 @@ parameter_types! {
 	pub XcmAssetFeesReceiver: Option<AccountId> = Authorship::author();
 }
 
-match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<Location> = {
-		Location { parents: 1, interior: Here } |
-		Location { parents: 1, interior: X1(Plurality { .. }) }
-	};
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
@@ -655,7 +655,7 @@ pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
 impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
 	fn create_asset_id_parameter(id: u32) -> Location {
-		Location { parents: 1, interior: X1(Parachain(id)) }
+		Location { parents: 1, interior: Parachain(id).into() }
 	}
 }
 
@@ -677,7 +677,7 @@ pub mod bridging {
 		pub storage XcmBridgeHubRouterByteFee: Balance = TransactionByteFee::get();
 
 		pub SiblingBridgeHubParaId: u32 = bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
-		pub SiblingBridgeHub: Location = Location::new(1, X1(Parachain(SiblingBridgeHubParaId::get())));
+		pub SiblingBridgeHub: Location = Location::new(1, Parachain(SiblingBridgeHubParaId::get()));
 		/// Router expects payment with this `AssetId`.
 		/// (`AssetId` has to be aligned with `BridgeTable`)
 		pub XcmBridgeHubRouterFeeAssetId: AssetId = KsmLocation::get().into();
@@ -703,24 +703,24 @@ pub mod bridging {
 		parameter_types! {
 			pub SiblingBridgeHubWithBridgeHubPolkadotInstance: Location = Location::new(
 				1,
-				X2(
+				[
 					Parachain(SiblingBridgeHubParaId::get()),
 					PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX),
-				)
+				]
 			);
 
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
 			pub AssetHubPolkadot: Location = Location::new(
 				2,
-				X2(
+				[
 					GlobalConsensus(PolkadotNetwork::get()),
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
-				),
+				],
 			);
-			pub DotLocation: Location = Location::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
+			pub DotLocation: Location = Location::new(2, GlobalConsensus(PolkadotNetwork::get()));
 
 			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: Concrete(DotLocation::get()) }),
+				Wild(AllOf { fun: WildFungible, id: AssetId(DotLocation::get()) }),
 				AssetHubPolkadot::get()
 			);
 

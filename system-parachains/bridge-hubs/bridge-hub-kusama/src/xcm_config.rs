@@ -23,7 +23,7 @@ use super::{
 	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
-	match_types, parameter_types,
+	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
@@ -62,7 +62,7 @@ parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
+		[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub const GovernanceLocation: Location = Location::parent();
@@ -123,12 +123,13 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	XcmPassthrough<RuntimeOrigin>,
 );
 
-match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<Location> = {
-		Location { parents: 1, interior: Here } |
-		Location { parents: 1, interior: X1(Plurality { .. }) }
-	};
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
 }
+
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
 /// account for proof size weights.
 ///

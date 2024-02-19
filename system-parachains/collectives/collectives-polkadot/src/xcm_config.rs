@@ -19,7 +19,7 @@ use super::{
 	WeightToFee, XcmpQueue,
 };
 use frame_support::{
-	match_types, parameter_types,
+	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 	weights::Weight,
 };
@@ -56,7 +56,7 @@ parameter_types! {
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
-		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
+		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
@@ -130,14 +130,18 @@ parameter_types! {
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
-match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<Location> = {
-		Location { parents: 1, interior: Here } |
-		Location { parents: 1, interior: X1(Plurality { .. }) }
-	};
-	pub type LocalPlurality: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Plurality { .. }) }
-	};
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
+}
+
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
+	}
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly

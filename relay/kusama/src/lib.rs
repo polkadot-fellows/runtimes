@@ -1488,6 +1488,7 @@ parameter_types! {
 impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
 	type ControlOrigin = EnsureRoot<AccountId>;
@@ -2359,7 +2360,7 @@ sp_api::impl_runtime_apis! {
 				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported to/from AH.
 					Some((
-						Asset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						Asset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: AssetId(Here.into()) },
 						crate::xcm_config::AssetHubLocation::get(),
 					))
 				}
@@ -2369,7 +2370,7 @@ sp_api::impl_runtime_apis! {
 					Some((
 						Asset {
 							fun: Fungible(EXISTENTIAL_DEPOSIT),
-							id: Concrete(Here.into())
+							id: AssetId(Here.into())
 						},
 						crate::Junction::Parachain(43211234).into(),
 					))
@@ -2414,16 +2415,16 @@ sp_api::impl_runtime_apis! {
 				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// Kusama only knows about KSM.
 					vec![Asset{
-						id: Concrete(TokenLocation::get()),
+						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					}].into()
 				}
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
+				pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 					AssetHubLocation::get(),
-					Asset { fun: Fungible(1 * UNITS), id: Concrete(TokenLocation::get()) },
+					Asset { fun: Fungible(1 * UNITS), id: AssetId(TokenLocation::get()) },
 				));
 				pub const TrustedReserve: Option<(Location, Asset)> = None;
 			}
@@ -2435,9 +2436,9 @@ sp_api::impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> Asset {
+				fn get_asset() -> Asset {
 					Asset {
-						id: Concrete(TokenLocation::get()),
+						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1 * UNITS),
 					}
 				}
@@ -2471,14 +2472,14 @@ sp_api::impl_runtime_apis! {
 
 				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = AssetHubLocation::get();
-					let assets: Assets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
+					let assets: Assets = (AssetId(TokenLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
 				fn fee_asset() -> Result<Asset, BenchmarkError> {
 					Ok(Asset {
-						id: Concrete(TokenLocation::get()),
+						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
@@ -2740,8 +2741,6 @@ mod init_state_migration {
 	use super::Runtime;
 	use frame_support::traits::OnRuntimeUpgrade;
 	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
-	#[cfg(not(feature = "std"))]
-	use sp_std::prelude::*;
 
 	/// Initialize an automatic migration process.
 	pub struct InitMigrate;

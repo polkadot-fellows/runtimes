@@ -606,7 +606,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = Concrete(xcm_config::DotLocation::get());
+	pub FeeAssetId: AssetId = AssetId(xcm_config::DotLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -1215,7 +1215,7 @@ impl_runtime_apis! {
 					Some((
 						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
-							id: Concrete(Parent.into())
+							id: AssetId(Parent.into())
 						},
 						Parent.into(),
 					))
@@ -1230,7 +1230,7 @@ impl_runtime_apis! {
 					Some((
 						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
-							id: Concrete(Parent.into())
+							id: AssetId(Parent.into())
 						},
 						ParentThen(Parachain(random_para_id).into()).into(),
 					))
@@ -1264,7 +1264,7 @@ impl_runtime_apis! {
 					>(true, initial_asset_amount);
 					let asset_location = Location::new(
 						0,
-						X2(PalletInstance(50), GeneralIndex(u32::from(asset_id).into()))
+						[PalletInstance(50), GeneralIndex(u32::from(asset_id).into())]
 					);
 					let transfer_asset: Asset = (asset_location, asset_amount).into();
 
@@ -1312,19 +1312,19 @@ impl_runtime_apis! {
 					let mut assets = (0..holding_fungibles)
 						.map(|i| {
 							Asset {
-								id: Concrete(GeneralIndex(i as u128).into()),
+								id: AssetId(GeneralIndex(i as u128).into()),
 								fun: Fungible(fungibles_amount * i as u128),
 							}
 						})
-						.chain(core::iter::once(Asset { id: Concrete(Here.into()), fun: Fungible(u128::MAX) }))
+						.chain(core::iter::once(Asset { id: AssetId(Here.into()), fun: Fungible(u128::MAX) }))
 						.chain((0..holding_non_fungibles).map(|i| Asset {
-							id: Concrete(GeneralIndex(i as u128).into()),
+							id: AssetId(GeneralIndex(i as u128).into()),
 							fun: NonFungible(asset_instance_from(i)),
 						}))
 						.collect::<Vec<_>>();
 
 					assets.push(Asset {
-						id: Concrete(DotLocation::get()),
+						id: AssetId(DotLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					});
 					assets.into()
@@ -1334,7 +1334,7 @@ impl_runtime_apis! {
 			parameter_types! {
 				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
 					DotLocation::get(),
-					Asset { fun: Fungible(UNITS), id: Concrete(DotLocation::get()) },
+					Asset { fun: Fungible(UNITS), id: AssetId(DotLocation::get()) },
 				));
 				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 				// AssetHubPolkadot trusts AssetHubKusama as reserve for KSMs
@@ -1353,9 +1353,9 @@ impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> Asset {
+				fn get_asset() -> Asset {
 					Asset {
-						id: Concrete(DotLocation::get()),
+						id: AssetId(DotLocation::get()),
 						fun: Fungible(UNITS),
 					}
 				}
@@ -1388,14 +1388,14 @@ impl_runtime_apis! {
 
 				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = DotLocation::get();
-					let assets: Assets = (Concrete(DotLocation::get()), 1_000 * UNITS).into();
+					let assets: Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
 				fn fee_asset() -> Result<Asset, BenchmarkError> {
 					Ok(Asset {
-						id: Concrete(DotLocation::get()),
+						id: AssetId(DotLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}

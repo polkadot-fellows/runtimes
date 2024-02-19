@@ -22,8 +22,8 @@ use super::{
 	TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
-	match_types, parameter_types,
-	traits::{Equals, Everything, Nothing},
+	parameter_types,
+	traits::{Contains, Equals, Everything, Nothing},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
@@ -58,7 +58,7 @@ parameter_types! {
 	/// The Polkadot network ID. This is named.
 	pub const ThisNetwork: NetworkId = NetworkId::Polkadot;
 	/// Our location in the universe of consensus systems.
-	pub const UniversalLocation: InteriorLocation = X1(GlobalConsensus(ThisNetwork::get()));
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
@@ -119,7 +119,7 @@ parameter_types! {
 	/// calculations getting too crazy.
 	pub const MaxInstructions: u32 = 100;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = Concrete(TokenLocation::get());
+	pub FeeAssetId: AssetId = AssetId(TokenLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 }
@@ -135,13 +135,13 @@ pub type XcmRouter = WithUniqueTopic<(
 )>;
 
 parameter_types! {
-	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
-	pub const AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
-	pub const DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
-	pub const CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
-	pub const DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
-	pub const BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
-	pub const DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
+	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
+	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
+	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
+	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -152,17 +152,29 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForBridgeHub>,
 );
 
-match_types! {
-	pub type OnlyParachains: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Parachain(_)) }
-	};
-	pub type CollectivesOrFellows: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Parachain(COLLECTIVES_ID)) } |
-		Location { parents: 0, interior: X2(Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }) }
-	};
-	pub type LocalPlurality: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Plurality { .. }) }
-	};
+pub struct CollectivesOrFellows;
+impl Contains<Location> for CollectivesOrFellows {
+	fn contains(loc: &Location) -> bool {
+		matches!(
+			loc.unpack(),
+			(0, [Parachain(COLLECTIVES_ID)]) |
+				(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
+		)
+	}
+}
+
+pub struct OnlyParachains;
+impl Contains<Location> for OnlyParachains {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(_)]))
+	}
+}
+
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
+	}
 }
 
 /// The barriers one of which must be passed for an XCM message to be executed.
