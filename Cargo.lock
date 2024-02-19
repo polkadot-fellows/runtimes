@@ -641,9 +641,9 @@ dependencies = [
 
 [[package]]
 name = "asset-test-utils"
-version = "7.0.0"
+version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2fc9ae11639b454ef894ebcd8fa1ea8edb09b14aba20477c4026d9ac6e4421f"
+checksum = "dcb8a236738d24ef9006c6d775540a433a9d5573d41fa96b49aa305673c3e535"
 dependencies = [
  "assets-common",
  "cumulus-pallet-parachain-system 0.7.0",
@@ -1481,9 +1481,9 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-test-utils"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ac81ef95972c445ffda86b9b1be4346d62c98924e5242f56f026296114ebea8"
+checksum = "ee0335912c914ac71c5e772234a21294a61e928c1f57d265bde004b21b27240e"
 dependencies = [
  "asset-test-utils",
  "bp-header-chain",
@@ -8882,11 +8882,10 @@ dependencies = [
 
 [[package]]
 name = "parachains-runtimes-test-utils"
-version = "7.0.0"
+version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cbd399bef5df9f94bc75e29ae2fee5d0dca685888b45cc3dad1961cc1347eb6"
+checksum = "ef11e21280cf0825bdb5563f242a06dc78fb3765d2b9d5f6210fc15442abfe4a"
 dependencies = [
- "assets-common",
  "cumulus-pallet-parachain-system 0.7.0",
  "cumulus-pallet-xcmp-queue 0.7.0",
  "cumulus-primitives-core 0.7.0",
@@ -9124,7 +9123,6 @@ dependencies = [
  "frame-system-benchmarking 28.0.0",
  "frame-system-rpc-runtime-api 26.0.0",
  "frame-try-runtime 0.34.0",
- "hex-literal",
  "log",
  "pallet-asset-tx-payment 28.0.0",
  "pallet-assets 29.0.0",

@@ -27,7 +27,7 @@ pallet-xcm = { version = "7.0.0" }
 # Cumulus
 parachains-common = { version = "7.0.0" }
 xcm-emulator = { version = "0.5.0" }
-asset-test-utils = { version = "7.0.0" }
+asset-test-utils = { version = "7.0.1" }
 
 # Local
 emulated-chains = { path = "../../chains" }
@@ -35,6 +35,3 @@ integration-tests-common = { path = "../../common" }
 asset-hub-kusama-runtime = { path = "../../../../system-parachains/asset-hubs/asset-hub-kusama" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../relay/kusama" }
 system-parachains-constants = { path = "../../../../system-parachains/constants" }
-
-[features]
-runtime-benchmarks = []

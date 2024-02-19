@@ -91,8 +91,8 @@ pallet-xcm-bridge-hub-router = { default-features = false , version = "0.5.0" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
-asset-test-utils = { version = "7.0.0" }
-parachains-runtimes-test-utils = { version = "7.0.0" }
+asset-test-utils = { version = "7.0.1" }
+parachains-runtimes-test-utils = { version = "7.0.1" }
 sp-io = { version = "30.0.0" }
 
 [build-dependencies]
