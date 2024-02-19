@@ -204,3 +204,15 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+
+  confirmTestPassed:
+    runs-on: ubuntu-latest
+    name: Confirms that all test passed
+    needs:
+      - runtime-matrix
+      - integration-test-matrix
+      - runtime-test
+      - integration-test
+      - build-chain-spec-generator
+    steps:
+      - run: echo "Good job! All the tests passed!"
