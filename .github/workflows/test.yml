@@ -240,3 +240,16 @@ jobs:
         run: |
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
+
+  confirmTestPassed:
+    runs-on: ubuntu-latest
+    name: Confirms that all test passed
+    needs:
+      - runtime-matrix
+      - integration-test-matrix
+      - runtime-test
+      - integration-test
+      - build-chain-spec-generator
+    steps:
+      - run: echo "Good job! All the tests passed!"
+
