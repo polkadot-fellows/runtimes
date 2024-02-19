@@ -79,12 +79,10 @@ parameter_types! {
 	/// Polkadot Network as `Location`.
 	pub PolkadotGlobalConsensusNetworkLocation: Location = Location {
 		parents: 2,
-		interior: X1(GlobalConsensus(PolkadotGlobalConsensusNetwork::get()))
+		interior: [GlobalConsensus(PolkadotGlobalConsensusNetwork::get())].into()
 	};
 	/// Interior location (relative to this runtime) of the with-Polkadot messages pallet.
-	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = X1(
-		PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8),
-	);
+	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8).into();
 
 	/// Identifier of the sibling Kusama Asset Hub parachain.
 	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
@@ -93,16 +91,16 @@ parameter_types! {
 	/// Location of the bridged Polkadot Bridge Hub parachain.
 	pub BridgeHubPolkadotLocation: Location = Location {
 		parents: 2,
-		interior: X2(
+		interior: [
 			GlobalConsensus(PolkadotGlobalConsensusNetwork::get()),
 			Parachain(<bp_bridge_hub_polkadot::BridgeHubPolkadot as bp_runtime::Parachain>::PARACHAIN_ID)
-		)
+		].into()
 	};
 
 	/// A route (XCM location and bridge lane) that the Kusama Asset Hub -> Polkadot Asset Hub
 	/// message is following.
 	pub FromAssetHubKusamaToAssetHubPolkadotRoute: SenderAndLane = SenderAndLane::new(
-		ParentThen(X1(Parachain(AssetHubKusamaParaId::get().into()))).into(),
+		ParentThen(Parachain(AssetHubKusamaParaId::get().into()).into()).into(),
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	);
 
@@ -117,7 +115,7 @@ parameter_types! {
 	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorLocation))> = sp_std::vec![
 			(
 				FromAssetHubKusamaToAssetHubPolkadotRoute::get(),
-				(PolkadotGlobalConsensusNetwork::get(), X1(Parachain(AssetHubPolkadotParaId::get().into())))
+				(PolkadotGlobalConsensusNetwork::get(), Parachain(AssetHubPolkadotParaId::get().into()).into())
 			)
 	];
 }
@@ -428,8 +426,8 @@ mod tests {
 
 		assert_eq!(
 			BridgeKusamaToPolkadotMessagesPalletInstance::get(),
-			X1(PalletInstance(
-				bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX
+			Into::<InteriorLocation>::into(PalletInstance(
+				bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX,
 			))
 		);
 

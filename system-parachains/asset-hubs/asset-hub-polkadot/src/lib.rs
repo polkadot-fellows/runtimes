@@ -1259,7 +1259,7 @@ impl_runtime_apis! {
 					>(true, initial_asset_amount);
 					let asset_location = Location::new(
 						0,
-						X2(PalletInstance(50), GeneralIndex(u32::from(asset_id).into()))
+						[PalletInstance(50), GeneralIndex(u32::from(asset_id).into())]
 					);
 					let transfer_asset: Asset = (asset_location, asset_amount).into();
 

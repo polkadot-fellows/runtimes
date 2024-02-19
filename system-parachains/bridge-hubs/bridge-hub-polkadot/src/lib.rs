@@ -968,7 +968,7 @@ impl_runtime_apis! {
 						(
 							bridge_to_kusama_config::FromAssetHubPolkadotToAssetHubKusamaRoute::get().location,
 							NetworkId::Kusama,
-							X1(Parachain(bridge_to_kusama_config::AssetHubKusamaParaId::get().into()))
+							Parachain(bridge_to_kusama_config::AssetHubKusamaParaId::get().into()).into()
 						)
 					)
 				}
@@ -1070,7 +1070,7 @@ impl_runtime_apis! {
 						Runtime,
 						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
 						bridge_to_kusama_config::WithBridgeHubKusamaMessageBridge,
-					>(params, generate_xcm_builder_bridge_message_sample(X2(GlobalConsensus(Polkadot), Parachain(42))))
+					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Polkadot), Parachain(42)].into()))
 				}
 
 				fn prepare_message_delivery_proof(
