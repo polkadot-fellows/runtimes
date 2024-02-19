@@ -53,13 +53,17 @@ use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
 
 parameter_types! {
 	pub const KsmLocation: Location = Location::parent();
+	pub const KsmLocationV3: xcm::v3::Location = xcm::v3::Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
-	pub AssetsPalletIndex: u32 = <Assets as PalletInfoAccess>::index() as u32;
-	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(AssetsPalletIndex::get() as u8).into();
+
+	pub TrustBackedAssetsPalletIndex: u8 = <Assets as PalletInfoAccess>::index() as u8;
+	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
+	pub TrustBackedAssetsPalletLocationV3: xcm::v3::Location = xcm::v3::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
+
 	pub ForeignAssetsPalletLocation: Location =
 		PalletInstance(<ForeignAssets as PalletInfoAccess>::index() as u8).into();
 	pub PoolAssetsPalletLocation: Location =
@@ -89,7 +93,7 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting the native currency on this chain.
-pub type CurrencyTransactor = FungibleAdapter<
+pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
@@ -177,7 +181,7 @@ pub type PoolFungiblesTransactor = FungiblesAdapter<
 
 /// Means for transacting assets on this chain.
 pub type AssetTransactors =
-	(CurrencyTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
+	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
@@ -639,9 +643,9 @@ pub type ForeignCreatorsSovereignAccountOf = (
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> Location {
-		Location { parents: 1, interior: Parachain(id).into() }
+impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> xcm::v3::Location {
+		xcm::v3::Location::new(1, xcm::v3::Junction::Parachain(id))
 	}
 }
 

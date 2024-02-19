@@ -31,7 +31,7 @@ use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
 	matching::FromSiblingParachain,
-	AssetIdForTrustBackedAssetsConvert, LocationForAssetId,
+	AssetIdForTrustBackedAssetsConvert,
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -74,16 +74,16 @@ use parachains_common::{
 	BlockNumber, Hash, Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
+pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-	SLOT_DURATION,
 };
-use xcm::opaque::v3::Location;
+use xcm::latest::prelude::{AssetId, BodyId};
 use xcm_config::{
 	FellowshipLocation, ForeignAssetsConvertedConcreteId, ForeignCreatorsSovereignAccountOf,
-	GovernanceLocation, KsmLocation, PoolAssetsConvertedConcreteId,
-	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
+	GovernanceLocation, KsmLocation, KsmLocationV3, PoolAssetsConvertedConcreteId,
+	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV3,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -92,7 +92,6 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use xcm::prelude::*;
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -322,15 +321,25 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type BenchmarkHelper = ();
 }
 
-/// Union fungibles implementation for `Assets`` and `ForeignAssets`.
+/// Union fungibles implementation for `Assets` and `ForeignAssets`.
 pub type LocalAndForeignAssets = fungibles::UnionOf<
 	Assets,
 	ForeignAssets,
 	LocalFromLeft<
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>,
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV3>,
 		AssetIdForTrustBackedAssets,
+		xcm::v3::Location,
 	>,
-	Location,
+	xcm::v3::Location,
+	AccountId,
+>;
+
+/// Union fungibles implementation for [`LocalAndForeignAssets`] and `Balances`.
+pub type NativeAndAssets = fungible::UnionOf<
+	Balances,
+	LocalAndForeignAssets,
+	TargetFromLeft<KsmLocationV3, xcm::v3::Location>,
+	xcm::v3::Location,
 	AccountId,
 >;
 
@@ -338,21 +347,15 @@ impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
-	type AssetKind = Location;
-	type Assets = fungible::UnionOf<
-		Balances,
-		LocalAndForeignAssets,
-		TargetFromLeft<KsmLocation>,
-		Self::AssetKind,
-		Self::AccountId,
-	>;
+	type AssetKind = xcm::v3::Location;
+	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
 	type PoolLocator =
-		pallet_asset_conversion::WithFirstAsset<KsmLocation, AccountId, Self::AssetKind>;
+		pallet_asset_conversion::WithFirstAsset<KsmLocationV3, AccountId, Self::AssetKind>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = ConstU128<0>; // Asset class deposit fees are sufficient to prevent spam
-	type PoolSetupFeeAsset = KsmLocation;
+	type PoolSetupFeeAsset = KsmLocationV3;
 	type PoolSetupFeeTarget = ResolveAssetTo<AssetConversionOrigin, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
@@ -362,9 +365,10 @@ impl pallet_asset_conversion::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
-		KsmLocation,
+		KsmLocationV3,
 		parachain_info::Pallet<Runtime>,
-		xcm_config::AssetsPalletIndex,
+		xcm_config::TrustBackedAssetsPalletIndex,
+		xcm::v3::Location,
 	>;
 }
 
@@ -385,13 +389,14 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = LocationForAssetId;
-	type AssetIdParameter = LocationForAssetId;
+	type AssetId = xcm::v3::Location;
+	type AssetIdParameter = xcm::v3::Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
-		(FromSiblingParachain<parachain_info::Pallet<Runtime>>,),
+		(FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
+		xcm::v3::Location,
 	>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ForeignAssetsAssetDeposit;
@@ -772,7 +777,8 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = LocalAndForeignAssets;
-	type OnChargeAssetTransaction = AssetConversionAdapter<Balances, AssetConversion, KsmLocation>;
+	type OnChargeAssetTransaction =
+		AssetConversionAdapter<Balances, AssetConversion, KsmLocationV3>;
 }
 
 parameter_types! {
@@ -1122,18 +1128,18 @@ impl_runtime_apis! {
 	impl pallet_asset_conversion::AssetConversionApi<
 		Block,
 		Balance,
-		Location,
+		xcm::v3::Location,
 	> for Runtime
 	{
-		fn quote_price_exact_tokens_for_tokens(asset1: Location, asset2: Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_exact_tokens_for_tokens(asset1: xcm::v3::Location, asset2: xcm::v3::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_exact_tokens_for_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn quote_price_tokens_for_exact_tokens(asset1: Location, asset2: Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_tokens_for_exact_tokens(asset1: xcm::v3::Location, asset2: xcm::v3::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_tokens_for_exact_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn get_reserves(asset1: Location, asset2: Location) -> Option<(Balance, Balance)> {
+		fn get_reserves(asset1: xcm::v3::Location, asset2: xcm::v3::Location) -> Option<(Balance, Balance)> {
 			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
@@ -1298,6 +1304,10 @@ impl_runtime_apis! {
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use sp_storage::TrackedStorageKey;
+			use xcm::latest::prelude::{
+				Asset, Fungible, Here, InteriorLocation, Junction, Junction::*, Location, NetworkId,
+				NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+			};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {
@@ -1314,7 +1324,6 @@ impl_runtime_apis! {
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
-			use xcm::latest::prelude::*;
 			use xcm_config::{KsmLocation, MaxAssetsIntoHolding};
 			use pallet_xcm_benchmarks::asset_instance_from;
 
@@ -1351,7 +1360,7 @@ impl_runtime_apis! {
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(xcm::v4::Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Transfer to Relay some local AH asset (local-reserve-transfer) while paying
 					// fees using teleported native token.
 					// (We don't care that Relay doesn't accept incoming unknown AH local asset)
@@ -1382,7 +1391,7 @@ impl_runtime_apis! {
 					);
 					let transfer_asset: Asset = (asset_location, asset_amount).into();
 
-					let assets: Assets = vec![fee_asset.clone(), transfer_asset].into();
+					let assets: xcm::v4::Assets = vec![fee_asset.clone(), transfer_asset].into();
 					let fee_index = if assets.get(0).unwrap().eq(&fee_asset) { 0 } else { 1 };
 
 					// verify transferred successfully
@@ -1418,7 +1427,7 @@ impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(KsmLocation::get())
 				}
-				fn worst_case_holding(depositable_count: u32) -> Assets {
+				fn worst_case_holding(depositable_count: u32) -> xcm::v4::Assets {
 					// A mix of fungible, non-fungible, and concrete assets.
 					let holding_non_fungibles = MaxAssetsIntoHolding::get() / 2 - depositable_count;
 					let holding_fungibles = holding_non_fungibles.saturating_sub(1);
@@ -1483,7 +1492,7 @@ impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(xcm::v4::Assets, xcm::v4::Assets), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
@@ -1500,9 +1509,9 @@ impl_runtime_apis! {
 					Ok(KsmLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, xcm::v4::Assets), BenchmarkError> {
 					let origin = KsmLocation::get();
-					let assets: Assets = (AssetId(KsmLocation::get()), 1_000 * UNITS).into();
+					let assets: xcm::v4::Assets = (AssetId(KsmLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
@@ -1547,7 +1556,7 @@ impl_runtime_apis! {
 					let bridged_asset_hub = xcm_config::bridging::to_polkadot::AssetHubPolkadot::get();
 					let _ = PolkadotXcm::force_xcm_version(
 						RuntimeOrigin::root(),
-						Box::new(bridged_asset_hub),
+						Box::new(bridged_asset_hub.clone()),
 						XCM_VERSION,
 					).map_err(|e| {
 						log::error!(
@@ -1613,6 +1622,7 @@ parameter_types! {
 impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
 	// An origin that can control the whole pallet: should be Root, or a part of your council.

@@ -593,9 +593,9 @@ pub type ForeignCreatorsSovereignAccountOf = (
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> Location {
-		Location { parents: 1, interior: Parachain(id).into() }
+impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> xcm::v3::Location {
+		xcm::v3::Location::new(1, xcm::v3::Junction::Parachain(id))
 	}
 }
 

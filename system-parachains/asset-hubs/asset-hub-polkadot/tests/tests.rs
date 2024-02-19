@@ -726,7 +726,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 	)
 }
 #[test]
-fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
+fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_works() {
 	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
 	asset_test_utils::test_cases_over_bridge::receive_reserve_asset_deposited_from_different_consensus_works::<
 			Runtime,
@@ -739,7 +739,7 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_kusama_works() {
 			ExistentialDeposit::get(),
 			AccountId::from([73; 32]),
 			AccountId::from(BLOCK_AUTHOR_ACCOUNT),
-			// receiving ROCs
+			// receiving KSMs
 			(Location { parents: 2, interior: X1(GlobalConsensus(Kusama)) }, 1000000000000, 1_000_000_000),
 			bridging_to_asset_hub_kusama,
 			(
