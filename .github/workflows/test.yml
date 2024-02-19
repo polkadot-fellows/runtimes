@@ -208,6 +208,7 @@ jobs:
   confirmTestPassed:
     runs-on: ubuntu-latest
     name: Confirms that all test passed
+    # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-matrix
       - integration-test-matrix
