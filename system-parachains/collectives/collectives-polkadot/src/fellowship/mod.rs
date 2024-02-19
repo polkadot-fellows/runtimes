@@ -144,8 +144,10 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
 	// - the Fellows origin
-	type ExchangeOrigin =
-		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>>;
+	type ExchangeOrigin = EitherOf<
+		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
+		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
+	>;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
 	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
