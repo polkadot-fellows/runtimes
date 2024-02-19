@@ -30,7 +30,7 @@ pub mod xcm_config;
 use bridge_hub_common::AggregateMessageOrigin;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
-use parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+use parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::{
 	gwei, meth, outbound::Message, AgentId, AllowSiblingsOnly, PricingParameters, Rewards,
@@ -90,7 +90,7 @@ use polkadot_runtime_common::prod_or_fast;
 use system_parachains_constants::{
 	kusama::{
 		consensus::*,
-		currency::{EXISTENTIAL_DEPOSIT, *},
+		currency::*,
 		fee::WeightToFee,
 	},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,

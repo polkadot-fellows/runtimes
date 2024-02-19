@@ -46,7 +46,7 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	FungibleAdapter, HandleFee, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -295,7 +295,7 @@ impl xcm_executor::Config for XcmConfig {
 			XcmExportFeeToSibling<
 				bp_kusama::Balance,
 				AccountId,
-				TokenLocation,
+				KsmRelayLocation,
 				EthereumNetwork,
 				Self::AssetTransactor,
 				crate::EthereumOutboundQueue,
