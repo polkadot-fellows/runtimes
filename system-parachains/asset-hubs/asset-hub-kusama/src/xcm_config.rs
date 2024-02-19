@@ -54,7 +54,10 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
-use xcm_executor::{traits::WithOriginFilter, XcmExecutor};
+use xcm_executor::{
+	traits::{ConvertLocation, WithOriginFilter},
+	XcmExecutor,
+};
 
 #[cfg(feature = "runtime-benchmarks")]
 use {cumulus_primitives_core::ParaId, sp_core::Get};
@@ -77,6 +80,11 @@ parameter_types! {
 	pub const FellowshipLocation: MultiLocation = MultiLocation::parent();
 	pub RelayTreasuryLocation: MultiLocation = (Parent, PalletInstance(kusama_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
+	// conversion is not `None`.
+	pub RelayTreasuryPalletAccount: AccountId =
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
+			.unwrap_or(TreasuryAccount::get());
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -598,7 +606,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
+		XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = bridging::to_polkadot::UniversalAliases;

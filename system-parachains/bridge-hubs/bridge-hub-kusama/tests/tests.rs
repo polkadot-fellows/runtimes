@@ -23,7 +23,10 @@ use bridge_hub_kusama_runtime::{
 		WithBridgeHubPolkadotMessageBridge, WithBridgeHubPolkadotMessagesInstance,
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	},
-	xcm_config::{KsmRelayLocation, RelayNetwork, XcmConfig},
+	xcm_config::{
+		KsmRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
+		RelayTreasuryPalletAccount, XcmConfig,
+	},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
 	UncheckedExtrinsic,
@@ -38,6 +41,7 @@ use sp_runtime::{
 	AccountId32,
 };
 use xcm::latest::prelude::*;
+use xcm_executor::traits::ConvertLocation;
 
 const ALICE: [u8; 32] = [1u8; 32];
 
@@ -312,3 +316,11 @@ pub fn can_calculate_fee_for_complex_message_delivery_transaction() {}
 
 #[test]
 pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {}
+
+#[test]
+fn treasury_pallet_account_not_non() {
+	assert_eq!(
+		RelayTreasuryPalletAccount::get(),
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
+	)
+}
