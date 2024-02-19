@@ -174,4 +174,22 @@ impl<T: frame_system::Config> pallet_ranked_collective::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2540).saturating_mul(n.into()))
 	}
+	/// Storage: `FellowshipCollective::Members` (r:2 w:2)
+	/// Proof: `FellowshipCollective::Members` (`max_values`: None, `max_size`: Some(42), added: 2517, mode: `MaxEncodedLen`)
+	/// Storage: `FellowshipCollective::MemberCount` (r:2 w:2)
+	/// Proof: `FellowshipCollective::MemberCount` (`max_values`: None, `max_size`: Some(14), added: 2489, mode: `MaxEncodedLen`)
+	/// Storage: `FellowshipCollective::IdToIndex` (r:2 w:4)
+	/// Proof: `FellowshipCollective::IdToIndex` (`max_values`: None, `max_size`: Some(54), added: 2529, mode: `MaxEncodedLen`)
+	/// Storage: `FellowshipCollective::IndexToId` (r:0 w:2)
+	/// Proof: `FellowshipCollective::IndexToId` (`max_values`: None, `max_size`: Some(54), added: 2529, mode: `MaxEncodedLen`)
+	fn exchange_member() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `337`
+		//  Estimated: `6048`
+		// Minimum execution time: 44_601_000 picoseconds.
+		Weight::from_parts(45_714_000, 0)
+			.saturating_add(Weight::from_parts(0, 6048))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(10))
+	}
 }

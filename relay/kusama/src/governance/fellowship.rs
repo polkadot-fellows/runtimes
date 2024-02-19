@@ -352,6 +352,12 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 			TryMapSuccess<origins::EnsureFellowship, CheckedReduceBy<ConstU16<2>>>,
 		>,
 	>;
+	// TODO:(PR#187)(PR#2587): check ExchangeOrigin
+	// Exchange is by any of:
+	// - Root can exchange arbitrarily.
+	// - the Fellows origin
+	type ExchangeOrigin =
+		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type VoteWeight = pallet_ranked_collective::Geometric;
