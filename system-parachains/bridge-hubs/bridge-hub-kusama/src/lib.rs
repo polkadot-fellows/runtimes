@@ -27,6 +27,7 @@ pub mod bridge_to_polkadot_config;
 mod weights;
 pub mod xcm_config;
 
+use bridge_hub_common::AggregateMessageOrigin;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
@@ -67,8 +68,8 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
-	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmConfig,
-	XcmOriginToTransactDispatchOrigin,
+	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
+	XcmRouter,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -86,7 +87,11 @@ use parachains_common::{
 
 use polkadot_runtime_common::prod_or_fast;
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
+	kusama::{
+		consensus::*,
+		currency::{EXISTENTIAL_DEPOSIT, *},
+		fee::WeightToFee,
+	},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 

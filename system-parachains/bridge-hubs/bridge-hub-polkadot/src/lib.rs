@@ -31,6 +31,7 @@ use crate::xcm_config::XcmRouter;
 use bridge_hub_common::AggregateMessageOrigin;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
+use parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::{
 	gwei, meth, outbound::Message, AgentId, AllowSiblingsOnly, PricingParameters, Rewards,
@@ -42,9 +43,8 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128
+	ApplyExtrinsicResult, FixedU128,
 };
-use parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
 
 use sp_std::prelude::*;
 #[cfg(feature = "std")]

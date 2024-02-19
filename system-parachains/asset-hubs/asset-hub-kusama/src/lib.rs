@@ -30,7 +30,7 @@ pub mod xcm_config;
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
-	matching::FromSiblingParachain,
+	matching::{FromNetwork, FromSiblingParachain},
 	AssetIdForTrustBackedAssetsConvert, LocationForAssetId,
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;

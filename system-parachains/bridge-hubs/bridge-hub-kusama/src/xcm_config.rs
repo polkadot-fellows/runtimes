@@ -36,9 +36,8 @@ use parachains_common::{
 	},
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_core::DescribeHere;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
-use sp_core::{Get, H256};
+use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use sp_std::marker::PhantomData;
 use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
@@ -51,7 +50,7 @@ use xcm_builder::{
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	XcmFeeToAccount,
 };
 use xcm_executor::{
 	traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
