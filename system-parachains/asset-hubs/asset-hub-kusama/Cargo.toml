@@ -95,8 +95,8 @@ assets-common = { default-features = false , version = "0.6.0" }
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.4.0" }
 
 [dev-dependencies]
-asset-test-utils = { version = "6.0.0" }
-parachains-runtimes-test-utils = { version = "6.0.0" }
+asset-test-utils = { version = "6.0.1" }
+parachains-runtimes-test-utils = { version = "6.0.1" }
 sp-io = { version = "29.0.0" }
 
 [build-dependencies]
