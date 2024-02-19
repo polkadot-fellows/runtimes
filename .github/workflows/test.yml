@@ -38,7 +38,7 @@ jobs:
           echo $TASKS
           echo "itest=$TASKS" >> $GITHUB_OUTPUT
 
-  runtime:
+  runtime-test:
     needs: [ runtime-matrix ]
     continue-on-error: true
     runs-on: ubuntu-22.04
