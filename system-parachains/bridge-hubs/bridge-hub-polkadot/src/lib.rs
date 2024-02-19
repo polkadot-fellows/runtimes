@@ -701,7 +701,6 @@ construct_runtime!(
 		// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
 		// Temporary to migrate the remaining DMP messages:
 		DmpQueue: cumulus_pallet_dmp_queue = 33,
-		MessageQueue: pallet_message_queue = 34,
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,
