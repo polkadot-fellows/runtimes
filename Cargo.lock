@@ -13484,21 +13484,6 @@ dependencies = [
 
 [[package]]
 name = "sp-arithmetic"
-version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56dec3290d64ec9994457abe974f82fe7260c9cc32e920e4cf20611346ca7464"
-dependencies = [
- "integer-sqrt",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-std 13.0.0",
- "static_assertions",
-]
-
-[[package]]
-name = "sp-arithmetic"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afa823ca5adc490d47dccb41d69ad482bc57a317bd341de275868378f48f131c"
@@ -13963,17 +13948,6 @@ name = "sp-debug-derive"
 version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50535e1a5708d3ba5c1195b59ebefac61cc8679c2c24716b87a86e8b7ed2e4a1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.48",
-]
-
-[[package]]
-name = "sp-debug-derive"
-version = "13.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90fd2c660c3e940df93f4920b183cc103443d66503f68189fa7e4b3f09996a18"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -14632,12 +14606,6 @@ checksum = "54c78c5a66682568cc7b153603c5d01a2cc8f5c221c7b1e921517a0eef18ae05"
 
 [[package]]
 name = "sp-std"
-version = "13.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71323a3b5f189085d11123ce397b3cdfaec4437071243b51f68a38a4833fbaa7"
-
-[[package]]
-name = "sp-std"
 version = "14.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12f8ee986414b0a9ad741776762f4083cd3a5128449b982a3919c4df36874834"
@@ -14916,22 +14884,6 @@ dependencies = [
 
 [[package]]
 name = "sp-weights"
-version = "26.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8813a9942a3b900d5ce109875b91ff8ae7eb5849545ebb6464c22aa21e42622e"
-dependencies = [
- "bounded-collections 0.1.9",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "smallvec",
- "sp-arithmetic 22.0.0",
- "sp-debug-derive 13.0.0",
- "sp-std 13.0.0",
-]
-
-[[package]]
-name = "sp-weights"
 version = "28.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3be30aec904994451dcacf841a9168cfbbaf817de6b24b6a1c1418cbf1af2fe"
@@ -15184,24 +15136,6 @@ dependencies = [
  "serde",
  "sp-weights 24.0.0",
  "xcm-procedural 4.0.0",
-]
-
-[[package]]
-name = "staging-xcm"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "407cc6e4b9cd1b62df9270d921d94ed375e697d65a782975d5e5a5f85bbeafb5"
-dependencies = [
- "bounded-collections 0.1.9",
- "derivative",
- "environmental",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-weights 26.0.0",
- "xcm-procedural 6.0.0",
 ]
 
 [[package]]
@@ -15589,7 +15523,7 @@ dependencies = [
  "polkadot-runtime-constants",
  "smallvec",
  "sp-runtime 32.0.0",
- "staging-xcm 6.0.0",
+ "staging-xcm 8.0.0",
 ]
 
 [[package]]
@@ -17221,18 +17155,6 @@ name = "xcm-procedural"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "401e2b62628da9246dececb06fe58118196557dd8deb9ce12d95cc4aaf56003f"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn 2.0.48",
-]
-
-[[package]]
-name = "xcm-procedural"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37861444391815dfe05f3ee1039d19e7c82db319976832e8233729bd355de223"
 dependencies = [
  "Inflector",
  "proc-macro2",

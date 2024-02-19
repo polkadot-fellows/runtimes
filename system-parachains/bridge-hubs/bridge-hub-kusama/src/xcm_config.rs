@@ -366,10 +366,10 @@ impl cumulus_pallet_xcm::Config for Runtime {
 pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
 	PhantomData<(WaivedLocations, HandleFee)>,
 );
-impl<WaivedLocations: Contains<MultiLocation>, FeeHandler: HandleFee> FeeManager
+impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
 	for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
 {
-	fn is_waived(origin: Option<&MultiLocation>, fee_reason: FeeReason) -> bool {
+	fn is_waived(origin: Option<&Location>, fee_reason: FeeReason) -> bool {
 		let Some(loc) = origin else { return false };
 		if let Export { network, destination: Here } = fee_reason {
 			return !(network == EthereumNetwork::get())
@@ -377,7 +377,7 @@ impl<WaivedLocations: Contains<MultiLocation>, FeeHandler: HandleFee> FeeManager
 		WaivedLocations::contains(loc)
 	}
 
-	fn handle_fee(fee: MultiAssets, context: Option<&XcmContext>, reason: FeeReason) {
+	fn handle_fee(fee: Assets, context: Option<&XcmContext>, reason: FeeReason) {
 		FeeHandler::handle_fee(fee, context, reason);
 	}
 }
