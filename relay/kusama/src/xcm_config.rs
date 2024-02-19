@@ -22,8 +22,8 @@ use super::{
 	WeightToFee, XcmPallet,
 };
 use frame_support::{
-	match_types, parameter_types,
-	traits::{Equals, Everything, Nothing},
+	parameter_types,
+	traits::{Contains, Equals, Everything, Nothing},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
@@ -110,7 +110,7 @@ parameter_types! {
 	/// calculations getting too crazy.
 	pub const MaxInstructions: u32 = 100;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = Concrete(TokenLocation::get());
+	pub FeeAssetId: AssetId = AssetId(TokenLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 }
@@ -126,13 +126,13 @@ pub type XcmRouter = WithUniqueTopic<(
 )>;
 
 parameter_types! {
-	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: Concrete(TokenLocation::get()) });
-	pub const AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
-	pub const KsmForAssetHub: (AssetFilter, Location) = (Ksm::get(), AssetHubLocation::get());
-	pub const Encointer: Location = Parachain(ENCOINTER_ID).into_location();
-	pub const KsmForEncointer: (AssetFilter, Location) = (Ksm::get(), Encointer::get());
-	pub const BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
-	pub const KsmForBridgeHub: (AssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
+	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub KsmForAssetHub: (AssetFilter, Location) = (Ksm::get(), AssetHubLocation::get());
+	pub Encointer: Location = Parachain(ENCOINTER_ID).into_location();
+	pub KsmForEncointer: (AssetFilter, Location) = (Ksm::get(), Encointer::get());
+	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
+	pub KsmForBridgeHub: (AssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -143,13 +143,18 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForBridgeHub>,
 );
 
-match_types! {
-	pub type OnlyParachains: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Parachain(_)) }
-	};
-	pub type LocalPlurality: impl Contains<Location> = {
-		Location { parents: 0, interior: X1(Plurality { .. }) }
-	};
+pub struct OnlyParachains;
+impl Contains<Location> for OnlyParachains {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Parachain(_)]))
+	}
+}
+
+pub struct LocalPlurality;
+impl Contains<Location> for LocalPlurality {
+	fn contains(loc: &Location) -> bool {
+		matches!(loc.unpack(), (0, [Plurality { .. }]))
+	}
 }
 
 /// The barriers one of which must be passed for an XCM message to be executed.

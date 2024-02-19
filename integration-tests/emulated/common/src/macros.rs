@@ -184,7 +184,7 @@ macro_rules! include_penpal_create_foreign_asset_on_asset_hub {
 					&Weight::from_parts(10_100_000_000_000, 300_000),
 				);
 				let buy_execution_fee = Asset {
-					id: Concrete(Location { parents: 1, interior: Here }),
+					id: AssetId(Location { parents: 1, interior: Here }),
 					fun: Fungible(buy_execution_fee_amount),
 				};
 				let xcm = VersionedXcm::from(Xcm(vec![

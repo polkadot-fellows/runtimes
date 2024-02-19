@@ -61,7 +61,7 @@ pub fn xcm_transact_unpaid_execution(
 pub fn non_fee_asset(assets: &Assets, fee_idx: usize) -> Option<(Location, u128)> {
 	let asset = assets.inner().into_iter().enumerate().find(|a| a.0 != fee_idx)?.1.clone();
 	let asset_id = match asset.id {
-		Concrete(id) => id,
+		AssetId(id) => id,
 		_ => return None,
 	};
 	let asset_amount = match asset.fun {

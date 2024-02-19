@@ -56,7 +56,7 @@ parameter_types! {
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
-		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
+		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub TrustBackedAssetsPalletLocation: Location =
 		PalletInstance(<Assets as PalletInfoAccess>::index() as u8).into();
@@ -184,10 +184,6 @@ parameter_types! {
 }
 
 match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<Location> = {
-		Location { parents: 1, interior: Here } |
-		Location { parents: 1, interior: X1(Plurality { .. }) }
-	};
 	pub type FellowshipEntities: impl Contains<Location> = {
 		// Fellowship Plurality
 		Location { parents: 1, interior: X2(Parachain(1001), Plurality { id: BodyId::Technical, ..}) } |
@@ -196,6 +192,13 @@ match_types! {
 		// Fellowship Treasury Pallet
 		Location { parents: 1, interior: X2(Parachain(1001), PalletInstance(65)) }
 	};
+}
+
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
@@ -643,7 +646,7 @@ pub mod bridging {
 			pub KsmLocation: Location = Location::new(2, X1(GlobalConsensus(KusamaNetwork::get())));
 
 			pub KsmFromAssetHubKusama: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: Concrete(KsmLocation::get()) }),
+				Wild(AllOf { fun: WildFungible, id: AssetId(KsmLocation::get()) }),
 				AssetHubKusama::get()
 			);
 

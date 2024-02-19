@@ -31,7 +31,7 @@ use xcm_builder::{
 parameter_types! {
 	pub const KusamaLocation: Location = Location::parent();
 	pub const KusamaNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
-	pub UniversalLocation: InteriorLocation = X1(Parachain(ParachainInfo::parachain_id().into()));
+	pub UniversalLocation: InteriorLocation = [Parachain(ParachainInfo::parachain_id().into())].into();
 }
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,

@@ -56,7 +56,7 @@ parameter_types! {
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
-		X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into()));
+		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub AssetsPalletIndex: u32 = <Assets as PalletInfoAccess>::index() as u32;
 	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(AssetsPalletIndex::get() as u8).into();
@@ -209,11 +209,11 @@ parameter_types! {
 	pub XcmAssetFeesReceiver: Option<AccountId> = Authorship::author();
 }
 
-match_types! {
-	pub type ParentOrParentsPlurality: impl Contains<Location> = {
-		Location { parents: 1, interior: Here } |
-		Location { parents: 1, interior: X1(Plurality { .. }) }
-	};
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
 }
 
 /// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
@@ -699,7 +699,7 @@ pub mod bridging {
 			pub DotLocation: Location = Location::new(2, X1(GlobalConsensus(PolkadotNetwork::get())));
 
 			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: Concrete(DotLocation::get()) }),
+				Wild(AllOf { fun: WildFungible, id: AssetId(DotLocation::get()) }),
 				AssetHubPolkadot::get()
 			);
 

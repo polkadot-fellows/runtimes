@@ -439,7 +439,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: XcmAssetId = XcmAssetId::Concrete(xcm_config::KsmLocation::get());
+	pub FeeAssetId: XcmAssetId = XcmAssetId::AssetId(xcm_config::KsmLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
