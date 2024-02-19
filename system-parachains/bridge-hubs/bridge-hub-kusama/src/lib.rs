@@ -88,11 +88,7 @@ use parachains_common::{
 
 use polkadot_runtime_common::prod_or_fast;
 use system_parachains_constants::{
-	kusama::{
-		consensus::*,
-		currency::*,
-		fee::WeightToFee,
-	},
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 
