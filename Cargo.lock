@@ -449,7 +449,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "staging-kusama-runtime",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "system-parachains-constants",
  "xcm-emulator",
 ]
@@ -532,7 +532,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
 ]
@@ -555,7 +555,7 @@ dependencies = [
  "polkadot-runtime",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "system-parachains-constants",
  "xcm-emulator",
 ]
@@ -634,23 +634,22 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
 ]
 
 [[package]]
 name = "asset-test-utils"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6a5ef8ee6dcf362ec170bed2bd56c2b7a2a92d79489f08892f704846cae0dd5"
+checksum = "6d78501ca6b4c848efe233672124ebab9293d8efefc44a728d70f3245a8ef595"
 dependencies = [
  "cumulus-pallet-parachain-system 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "frame-support 29.0.0",
  "frame-system 29.0.0",
- "pallet-asset-conversion",
  "pallet-assets 30.0.0",
  "pallet-balances 29.0.0",
  "pallet-collator-selection 10.0.0",
@@ -666,7 +665,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
 
@@ -690,7 +689,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
 
@@ -1393,7 +1392,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -1479,7 +1478,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -1522,7 +1521,7 @@ dependencies = [
  "sp-tracing 16.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -1991,7 +1990,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
 ]
@@ -2604,7 +2603,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -2748,7 +2747,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -4543,7 +4542,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
 ]
@@ -8819,7 +8818,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -8859,7 +8858,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -8883,7 +8882,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -8969,7 +8968,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
 
@@ -9000,7 +8999,7 @@ dependencies = [
  "sp-tracing 16.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
 
@@ -9250,7 +9249,7 @@ dependencies = [
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "testnet-parachains-constants",
 ]
@@ -9688,7 +9687,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "tiny-keccak",
@@ -9795,7 +9794,7 @@ dependencies = [
  "sp-std 14.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
 ]
 
@@ -9936,7 +9935,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-tracing 16.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
 ]
 
@@ -14365,7 +14364,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "tiny-keccak",
@@ -14482,7 +14481,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-weights 28.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]
@@ -14508,9 +14507,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "666e4c4fb7b1e91342a54281cb15bda81e17b795c6072f8b4892946249c03922"
+checksum = "a638f4c8735cc04b5c93920a1f59e679f48b131315a07d146798e0decebf7720"
 dependencies = [
  "environmental",
  "frame-benchmarking 29.0.0",
@@ -16395,7 +16394,7 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-tracing 16.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-executor 8.0.0",
+ "staging-xcm-executor 8.0.1",
 ]
 
 [[package]]

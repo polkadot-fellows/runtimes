@@ -21,13 +21,13 @@ pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.0" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.0" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 pallet-xcm = { version = "8.0.0" }
 
 # Cumulus
 parachains-common = { version = "8.0.0" }
 xcm-emulator = { version = "0.6.0" }
-asset-test-utils = { version = "8.0.0" }
+asset-test-utils = { version = "8.0.1" }
 
 # Local
 emulated-chains = { path = "../../chains" }

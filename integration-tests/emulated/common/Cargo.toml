@@ -35,7 +35,7 @@ cumulus-primitives-core = { version = "0.8.0" }
 xcm-emulator = { version = "0.6.0" }
 cumulus-pallet-xcmp-queue = { version = "0.8.0" }
 cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , version = "0.8.0" }
-asset-test-utils = { version = "8.0.0" }
+asset-test-utils = { version = "8.0.1" }
 cumulus-pallet-dmp-queue = { version = "0.8.0" }
 
 # Bridges
