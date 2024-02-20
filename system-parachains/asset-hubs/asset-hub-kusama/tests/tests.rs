@@ -27,7 +27,7 @@ use asset_hub_kusama_runtime::{
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, ExistentialDeposit, ForeignAssets,
 	ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte, ParachainSystem,
 	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
+	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys, ExtBuilder,
@@ -40,16 +40,21 @@ use frame_support::{
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
+use parachains_runtimes_test_utils::SlotDurations;
+use sp_consensus_aura::SlotDuration;
 use sp_runtime::traits::MaybeEquivalence;
-use system_parachains_constants::kusama::fee::WeightToFee;
-use xcm::latest::prelude::*;
-use xcm_executor::traits::{Identity, JustTry, WeightTrader};
+use system_parachains_constants::kusama::{
+	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
+};
+use xcm::latest::prelude::{Assets as XcmAssets, *};
+use xcm_builder::V4V3LocationConverter;
+use xcm_executor::traits::{JustTry, WeightTrader};
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
-type AssetIdForTrustBackedAssetsConvert =
-	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
+type AssetIdForTrustBackedAssetsConvertLatest =
+	assets_common::AssetIdForTrustBackedAssetsConvertLatest<TrustBackedAssetsPalletLocation>;
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
@@ -67,6 +72,13 @@ fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
 		AccountId::from(ALICE),
 		SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
 	)
+}
+
+fn slot_durations() -> SlotDurations {
+	SlotDurations {
+		relay: SlotDuration::from_millis(RELAY_CHAIN_SLOT_DURATION_MILLIS.into()),
+		para: SlotDuration::from_millis(SLOT_DURATION),
+	}
 }
 
 #[test]
@@ -118,7 +130,7 @@ fn test_asset_xcm_trader() {
 
 			// get asset id as location
 			let asset_location =
-				AssetIdForTrustBackedAssetsConvert::convert_back(&local_asset_id).unwrap();
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&local_asset_id).unwrap();
 
 			// Set Alice as block author, who will receive fees
 			RuntimeHelper::run_to_block(2, AccountId::from(ALICE));
@@ -136,7 +148,8 @@ fn test_asset_xcm_trader() {
 
 			// Lets pay with: asset_amount_needed + asset_amount_extra
 			let asset_amount_extra = 100_u128;
-			let asset: Asset = (asset_location, asset_amount_needed + asset_amount_extra).into();
+			let asset: Asset =
+				(asset_location.clone(), asset_amount_needed + asset_amount_extra).into();
 
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
@@ -201,12 +214,13 @@ fn test_asset_xcm_trader_with_refund() {
 			// We are going to buy 4e9 weight
 			let bought = Weight::from_parts(4_000_000_000u64, 0);
 
-			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location =
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&1).unwrap();
 
 			// lets calculate amount needed
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
-			let asset: Asset = (asset_location, amount_bought).into();
+			let asset: Asset = (asset_location.clone(), amount_bought).into();
 
 			// Make sure buy_weight does not return an error
 			assert_ok!(trader.buy_weight(bought, asset.clone().into(), &ctx));
@@ -273,7 +287,8 @@ fn test_asset_xcm_trader_refund_not_possible_since_amount_less_than_ed() {
 			// We are going to buy small amount
 			let bought = Weight::from_parts(50_000_000u64, 0);
 
-			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location =
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&1).unwrap();
 
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
@@ -325,7 +340,8 @@ fn test_that_buying_ed_refund_does_not_refund() {
 			// We are gonna buy ED
 			let bought = Weight::from_parts(ExistentialDeposit::get().try_into().unwrap(), 0);
 
-			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location =
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&1).unwrap();
 
 			let amount_bought = WeightToFee::weight_to_fee(&bought);
 
@@ -336,7 +352,7 @@ fn test_that_buying_ed_refund_does_not_refund() {
 
 			// We know we will have to buy at least ED, so lets make sure first it will
 			// fail with a payment of less than ED
-			let asset: Asset = (asset_location, amount_bought).into();
+			let asset: Asset = (asset_location.clone(), amount_bought).into();
 			assert_noop!(trader.buy_weight(bought, asset.into(), &ctx), XcmError::TooExpensive);
 
 			// Now lets buy ED at least
@@ -401,7 +417,8 @@ fn test_asset_xcm_trader_not_possible_for_non_sufficient_assets() {
 			// lets calculate amount needed
 			let asset_amount_needed = WeightToFee::weight_to_fee(&bought);
 
-			let asset_location = AssetIdForTrustBackedAssetsConvert::convert_back(&1).unwrap();
+			let asset_location =
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&1).unwrap();
 
 			let asset: Asset = (asset_location, asset_amount_needed).into();
 
@@ -433,8 +450,10 @@ fn test_assets_balances_api_works() {
 		.build()
 		.execute_with(|| {
 			let local_asset_id = 1;
-			let foreign_asset_id_location =
-				Location { parents: 1, interior: X2(Parachain(1234), GeneralIndex(12345)) };
+			let foreign_asset_id_location = xcm::v3::Location::new(
+				1,
+				[xcm::v3::Junction::Parachain(1234), xcm::v3::Junction::GeneralIndex(12345)],
+			);
 
 			// check before
 			assert_eq!(Assets::balance(local_asset_id, AccountId::from(ALICE)), 0);
@@ -445,7 +464,7 @@ fn test_assets_balances_api_works() {
 			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 0);
 			assert!(Runtime::query_account_balances(AccountId::from(ALICE))
 				.unwrap()
-				.try_as::<Assets>()
+				.try_as::<XcmAssets>()
 				.unwrap()
 				.is_none());
 
@@ -501,7 +520,7 @@ fn test_assets_balances_api_works() {
 			);
 			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), some_currency);
 
-			let result: Assets = Runtime::query_account_balances(AccountId::from(ALICE))
+			let result: XcmAssets = Runtime::query_account_balances(AccountId::from(ALICE))
 				.unwrap()
 				.try_into()
 				.unwrap();
@@ -516,13 +535,13 @@ fn test_assets_balances_api_works() {
 			)));
 			// check trusted asset
 			assert!(result.inner().iter().any(|asset| asset.eq(&(
-				AssetIdForTrustBackedAssetsConvert::convert_back(&local_asset_id).unwrap(),
+				AssetIdForTrustBackedAssetsConvertLatest::convert_back(&local_asset_id).unwrap(),
 				minimum_asset_balance
 			)
 				.into())));
 			// check foreign asset
 			assert!(result.inner().iter().any(|asset| asset.eq(&(
-				Identity::convert_back(&foreign_asset_id_location).unwrap(),
+				V4V3LocationConverter::convert_back(&foreign_asset_id_location).unwrap(),
 				6 * foreign_asset_minimum_asset_balance
 			)
 				.into())));
@@ -537,6 +556,7 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
+	slot_durations(),
 	ExistentialDeposit::get(),
 	Box::new(|runtime_event_encoded: Vec<u8>| {
 		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
@@ -557,6 +577,7 @@ asset_test_utils::include_teleports_for_foreign_assets_works!(
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
 	collator_session_keys(),
+	slot_durations(),
 	ExistentialDeposit::get(),
 	Box::new(|runtime_event_encoded: Vec<u8>| {
 		match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
@@ -593,7 +614,7 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	XcmConfig,
 	TrustBackedAssetsInstance,
 	AssetIdForTrustBackedAssets,
-	AssetIdForTrustBackedAssetsConvert,
+	AssetIdForTrustBackedAssetsConvertLatest,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	12345,
@@ -610,11 +631,14 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	Runtime,
 	XcmConfig,
 	ForeignAssetsInstance,
-	Location,
+	xcm::v3::Location,
 	JustTry,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
-	Location { parents: 1, interior: X2(Parachain(1313), GeneralIndex(12345)) },
+	xcm::v3::Location::new(
+		1,
+		[xcm::v3::Junction::Parachain(1313), xcm::v3::Junction::GeneralIndex(12345)]
+	),
 	Box::new(|| {
 		assert!(Assets::asset_ids().collect::<Vec<_>>().is_empty());
 	}),
@@ -629,8 +653,8 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 	WeightToFee,
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
-	Location,
-	JustTry,
+	xcm::v3::Location,
+	V4V3LocationConverter,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	AssetDeposit::get(),
@@ -679,6 +703,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 		LocationToAccountId,
 	>(
 		collator_session_keys(),
+		slot_durations(),
 		ExistentialDeposit::get(),
 		AccountId::from(ALICE),
 		Box::new(|runtime_event_encoded: Vec<u8>| {
@@ -701,7 +726,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 }
 
 #[test]
-fn receive_reserve_asset_deposited_roc_from_asset_hub_polkadot_works() {
+fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_works() {
 	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
 	asset_test_utils::test_cases_over_bridge::receive_reserve_asset_deposited_from_different_consensus_works::<
 			Runtime,
@@ -714,13 +739,13 @@ fn receive_reserve_asset_deposited_roc_from_asset_hub_polkadot_works() {
 			ExistentialDeposit::get(),
 			AccountId::from([73; 32]),
 			AccountId::from(BLOCK_AUTHOR_ACCOUNT),
-			// receiving ROCs
-			(Location { parents: 2, interior: X1(GlobalConsensus(Polkadot)) }, 1000000000000, 1_000_000_000),
+			// receiving DOTs
+			(xcm::v3::Location::new(2, [xcm::v3::Junction::GlobalConsensus(xcm::v3::NetworkId::Polkadot)]), 1000000000000, 1_000_000_000),
 			bridging_to_asset_hub_polkadot,
 			(
-				X1(PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX)),
+				PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX).into(),
 				GlobalConsensus(Polkadot),
-				X1(Parachain(1000))
+				Parachain(1000).into()
 			)
 		)
 }

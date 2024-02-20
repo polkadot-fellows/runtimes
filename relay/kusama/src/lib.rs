@@ -2746,7 +2746,7 @@ mod init_state_migration {
 	pub struct InitMigrate;
 	impl OnRuntimeUpgrade for InitMigrate {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
+		fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, sp_runtime::DispatchError> {
 			use parity_scale_codec::Encode;
 			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
 				MigrationProcess::<Runtime>::get() == Default::default();
@@ -2778,7 +2778,7 @@ mod init_state_migration {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(
-			migration_should_start_bytes: Vec<u8>,
+			migration_should_start_bytes: sp_std::vec::Vec<u8>,
 		) -> Result<(), sp_runtime::DispatchError> {
 			use parity_scale_codec::Decode;
 			let migration_should_start: bool =
