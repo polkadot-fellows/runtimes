@@ -210,8 +210,6 @@ jobs:
     name: Confirms that all tests passed
     # If any new job gets added, be sure to add it to this list
     needs:
-      - runtime-matrix
-      - integration-test-matrix
       - runtime-test
       - integration-test
       - build-chain-spec-generator
