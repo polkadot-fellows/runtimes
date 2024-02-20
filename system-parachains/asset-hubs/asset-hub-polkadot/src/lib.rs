@@ -108,11 +108,12 @@ use parachains_common::{
 };
 
 use sp_runtime::RuntimeDebug;
+pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
 	polkadot::{consensus::*, currency::*, fee::WeightToFee, snowbridge::EthereumNetwork},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-	SLOT_DURATION,
 };
+use xcm::latest::prelude::{AssetId, BodyId};
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
 	ForeignCreatorsSovereignAccountOf, GovernanceLocation, TrustBackedAssetsConvertedConcreteId,
@@ -125,7 +126,6 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use xcm::prelude::*;
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -1184,6 +1184,10 @@ impl_runtime_apis! {
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use sp_storage::TrackedStorageKey;
+			use xcm::latest::prelude::{
+				Asset, Fungible, Here, InteriorLocation, Junction, Junction::*, Location, NetworkId,
+				NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+			};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {
@@ -1200,7 +1204,6 @@ impl_runtime_apis! {
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
-			use xcm::latest::prelude::*;
 			use xcm_config::{DotLocation, MaxAssetsIntoHolding};
 			use pallet_xcm_benchmarks::asset_instance_from;
 
@@ -1304,7 +1307,7 @@ impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(DotLocation::get())
 				}
-				fn worst_case_holding(depositable_count: u32) -> Assets {
+				fn worst_case_holding(depositable_count: u32) -> xcm::v4::Assets {
 					// A mix of fungible, non-fungible, and concrete assets.
 					let holding_non_fungibles = MaxAssetsIntoHolding::get() / 2 - depositable_count;
 					let holding_fungibles = holding_non_fungibles - 1;
@@ -1369,7 +1372,7 @@ impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(xcm::v4::Assets, xcm::v4::Assets), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
@@ -1386,9 +1389,9 @@ impl_runtime_apis! {
 					Ok(DotLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, xcm::v4::Assets), BenchmarkError> {
 					let origin = DotLocation::get();
-					let assets: Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
+					let assets: xcm::v4::Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
@@ -1433,7 +1436,7 @@ impl_runtime_apis! {
 					let bridged_asset_hub = xcm_config::bridging::to_kusama::AssetHubKusama::get();
 					let _ = PolkadotXcm::force_xcm_version(
 						RuntimeOrigin::root(),
-						Box::new(bridged_asset_hub),
+						Box::new(bridged_asset_hub.clone()),
 						XCM_VERSION,
 					).map_err(|e| {
 						log::error!(
