@@ -62,7 +62,10 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 pub mod xcm_config;
 
-use assets_common::{foreign_creators::ForeignCreators, matching::{FromNetwork, FromSiblingParachain}};
+use assets_common::{
+	foreign_creators::ForeignCreators,
+	matching::{FromNetwork, FromSiblingParachain},
+};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
