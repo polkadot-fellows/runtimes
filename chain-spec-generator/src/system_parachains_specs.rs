@@ -32,38 +32,31 @@ pub struct Extensions {
 	pub para_id: u32,
 }
 
-pub type AssetHubPolkadotChainSpec =
-	sc_chain_spec::GenericChainSpec<asset_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+pub type AssetHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type AssetHubKusamaChainSpec =
-	sc_chain_spec::GenericChainSpec<asset_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+pub type AssetHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type CollectivesPolkadotChainSpec =
-	sc_chain_spec::GenericChainSpec<collectives_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+pub type CollectivesPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type BridgeHubPolkadotChainSpec =
-	sc_chain_spec::GenericChainSpec<bridge_hub_polkadot_runtime::RuntimeGenesisConfig, Extensions>;
+pub type BridgeHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type BridgeHubKusamaChainSpec =
-	sc_chain_spec::GenericChainSpec<bridge_hub_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type GluttonKusamaChainSpec =
-	sc_chain_spec::GenericChainSpec<glutton_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-pub type EncointerKusamaChainSpec =
-	sc_chain_spec::GenericChainSpec<encointer_kusama_runtime::RuntimeGenesisConfig, Extensions>;
+pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
-const ASSET_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_POLKADOT_ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
-const ASSET_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const ASSET_HUB_KUSAMA_ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 
-const COLLECTIVES_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const COLLECTIVES_POLKADOT_ED: Balance = collectives_polkadot_runtime::ExistentialDeposit::get();
 
-const BRIDGE_HUB_POLKADOT_ED: Balance = parachains_common::polkadot::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::ExistentialDeposit::get();
 
-const BRIDGE_HUB_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
-const ENCOINTER_KUSAMA_ED: Balance = parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
+const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
@@ -131,33 +124,28 @@ pub fn bridge_hub_kusama_session_keys(keys: AuraId) -> bridge_hub_kusama_runtime
 
 // AssetHubPolkadot
 fn asset_hub_polkadot_genesis(
-	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AssetHubPolkadotAuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> asset_hub_polkadot_runtime::RuntimeGenesisConfig {
-	asset_hub_polkadot_runtime::RuntimeGenesisConfig {
-		system: asset_hub_polkadot_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: asset_hub_polkadot_runtime::BalancesConfig {
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": asset_hub_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096))
+				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: asset_hub_polkadot_runtime::ParachainInfoConfig {
+		"parachainInfo": asset_hub_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-		collator_selection: asset_hub_polkadot_runtime::CollatorSelectionConfig {
+		"collatorSelection": asset_hub_polkadot_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ASSET_HUB_POLKADOT_ED * 16,
 			..Default::default()
 		},
-		session: asset_hub_polkadot_runtime::SessionConfig {
+		"session": asset_hub_polkadot_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -169,30 +157,20 @@ fn asset_hub_polkadot_genesis(
 				})
 				.collect(),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: asset_hub_polkadot_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		assets: Default::default(),
-		foreign_assets: Default::default(),
-		transaction_payment: Default::default(),
-	}
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
 }
 
-fn asset_hub_polkadot_local_genesis(
-	wasm_binary: &[u8],
-) -> asset_hub_polkadot_runtime::RuntimeGenesisConfig {
+fn asset_hub_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
 	asset_hub_polkadot_genesis(
 		// initial collators.
-		wasm_binary,
 		invulnerables_asset_hub_polkadot(),
 		testnet_accounts(),
-		1000.into(),
+		para_id,
 	)
 }
 
@@ -202,54 +180,44 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-	let wasm_binary =
-		asset_hub_polkadot_runtime::WASM_BINARY.ok_or("AssetHubPolkadot wasm not available")?;
-
-	Ok(Box::new(AssetHubPolkadotChainSpec::from_genesis(
-		// Name
-		"Polkadot Asset Hub Local",
-		// ID
-		"asset-hub-polkadot-local",
-		ChainType::Local,
-		move || asset_hub_polkadot_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "polkadot-local".into(), para_id: 1000 },
-	)))
+	Ok(Box::new(
+		AssetHubPolkadotChainSpec::builder(
+			asset_hub_polkadot_runtime::WASM_BINARY.expect("AssetHubPolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1000 },
+		)
+		.with_name("Polkadot Asset Hub Local")
+		.with_id("asset-hub-polkadot-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(asset_hub_polkadot_local_genesis(1000.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // AssetHubKusama
 fn asset_hub_kusama_genesis(
-	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
-	asset_hub_kusama_runtime::RuntimeGenesisConfig {
-		system: asset_hub_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: asset_hub_kusama_runtime::BalancesConfig {
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096))
+				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: asset_hub_kusama_runtime::ParachainInfoConfig {
+		"parachainInfo": asset_hub_kusama_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-		collator_selection: asset_hub_kusama_runtime::CollatorSelectionConfig {
+		"collatorSelection": asset_hub_kusama_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ASSET_HUB_KUSAMA_ED * 16,
 			..Default::default()
 		},
-		session: asset_hub_kusama_runtime::SessionConfig {
+		"session": asset_hub_kusama_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -261,31 +229,20 @@ fn asset_hub_kusama_genesis(
 				})
 				.collect(),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: asset_hub_kusama_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		assets: Default::default(),
-		foreign_assets: Default::default(),
-		pool_assets: Default::default(),
-		transaction_payment: Default::default(),
-	}
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
 }
 
-fn asset_hub_kusama_local_genesis(
-	wasm_binary: &[u8],
-) -> asset_hub_kusama_runtime::RuntimeGenesisConfig {
+fn asset_hub_kusama_local_genesis(para_id: ParaId) -> serde_json::Value {
 	asset_hub_kusama_genesis(
 		// initial collators.
-		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1000.into(),
+		para_id,
 	)
 }
 
@@ -295,54 +252,44 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	properties.insert("tokenSymbol".into(), "KSM".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 
-	let wasm_binary =
-		asset_hub_kusama_runtime::WASM_BINARY.ok_or("AssetHubKusama wasm not available")?;
-
-	Ok(Box::new(AssetHubKusamaChainSpec::from_genesis(
-		// Name
-		"Kusama Asset Hub Local",
-		// ID
-		"asset-hub-kusama-local",
-		ChainType::Local,
-		move || asset_hub_kusama_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "kusama-local".into(), para_id: 1000 },
-	)))
+	Ok(Box::new(
+		AssetHubKusamaChainSpec::builder(
+			asset_hub_kusama_runtime::WASM_BINARY.expect("AssetHubKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1000 },
+		)
+		.with_name("Kusama Asset Hub Local")
+		.with_id("asset-hub-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(asset_hub_kusama_local_genesis(1000.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // CollectivesPolkadot
 fn collectives_polkadot_genesis(
-	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> collectives_polkadot_runtime::RuntimeGenesisConfig {
-	collectives_polkadot_runtime::RuntimeGenesisConfig {
-		system: collectives_polkadot_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: collectives_polkadot_runtime::BalancesConfig {
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": collectives_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, COLLECTIVES_POLKADOT_ED * 4096))
+				.map(|k| (k, COLLECTIVES_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: collectives_polkadot_runtime::ParachainInfoConfig {
+		"parachainInfo": collectives_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-		collator_selection: collectives_polkadot_runtime::CollatorSelectionConfig {
+		"collatorSelection": collectives_polkadot_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: COLLECTIVES_POLKADOT_ED * 16,
 			..Default::default()
 		},
-		session: collectives_polkadot_runtime::SessionConfig {
+		"session": collectives_polkadot_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -354,31 +301,20 @@ fn collectives_polkadot_genesis(
 				})
 				.collect(),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: collectives_polkadot_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		alliance: Default::default(),
-		alliance_motion: Default::default(),
-		fellowship_treasury: Default::default(),
-		transaction_payment: Default::default(),
-	}
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
 }
 
-fn collectives_polkadot_local_genesis(
-	wasm_binary: &[u8],
-) -> collectives_polkadot_runtime::RuntimeGenesisConfig {
+fn collectives_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
 	collectives_polkadot_genesis(
 		// initial collators.
-		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1001.into(),
+		para_id,
 	)
 }
 
@@ -388,54 +324,45 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-	let wasm_binary = collectives_polkadot_runtime::WASM_BINARY
-		.ok_or("CollectivesPolkadot wasm not available")?;
-
-	Ok(Box::new(CollectivesPolkadotChainSpec::from_genesis(
-		// Name
-		"Polkadot Collectives Local",
-		// ID
-		"collectives-polkadot-local",
-		ChainType::Local,
-		move || collectives_polkadot_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "polkadot-local".into(), para_id: 1001 },
-	)))
+	Ok(Box::new(
+		CollectivesPolkadotChainSpec::builder(
+			collectives_polkadot_runtime::WASM_BINARY
+				.expect("CollectivesPolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1001 },
+		)
+		.with_name("Polkadot Collectives Local")
+		.with_id("collectives-polkadot-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(collectives_polkadot_local_genesis(1001.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // BridgeHubPolkadot
 fn bridge_hub_polkadot_genesis(
-	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
-	bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
-		system: bridge_hub_polkadot_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: bridge_hub_polkadot_runtime::BalancesConfig {
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": bridge_hub_polkadot_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096))
+				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: bridge_hub_polkadot_runtime::ParachainInfoConfig {
+		"parachainInfo": bridge_hub_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-		collator_selection: bridge_hub_polkadot_runtime::CollatorSelectionConfig {
+		"collatorSelection": bridge_hub_polkadot_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: BRIDGE_HUB_POLKADOT_ED * 16,
 			..Default::default()
 		},
-		session: bridge_hub_polkadot_runtime::SessionConfig {
+		"session": bridge_hub_polkadot_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -447,31 +374,20 @@ fn bridge_hub_polkadot_genesis(
 				})
 				.collect(),
 		},
-		bridge_kusama_grandpa: Default::default(),
-		bridge_kusama_messages: Default::default(),
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: bridge_hub_polkadot_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		bridge_kusama_parachains: Default::default(),
-		transaction_payment: Default::default(),
-	}
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
 }
 
-fn bridge_hub_polkadot_local_genesis(
-	wasm_binary: &[u8],
-) -> bridge_hub_polkadot_runtime::RuntimeGenesisConfig {
+fn bridge_hub_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
 	bridge_hub_polkadot_genesis(
 		// initial collators.
-		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1002.into(),
+		para_id,
 	)
 }
 
@@ -481,54 +397,45 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-	let wasm_binary =
-		bridge_hub_polkadot_runtime::WASM_BINARY.ok_or("BridgeHubPolkadot wasm not available")?;
-
-	Ok(Box::new(BridgeHubPolkadotChainSpec::from_genesis(
-		// Name
-		"Polkadot Bridge Hub Local",
-		// ID
-		"bridge-hub-polkadot-local",
-		ChainType::Local,
-		move || bridge_hub_polkadot_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "polkadot-local".into(), para_id: 1002 },
-	)))
+	Ok(Box::new(
+		BridgeHubPolkadotChainSpec::builder(
+			bridge_hub_polkadot_runtime::WASM_BINARY
+				.expect("BridgeHubPolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1002 },
+		)
+		.with_name("Polkadot Bridge Hub Local")
+		.with_id("bridge-hub-polkadot-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(bridge_hub_polkadot_local_genesis(1002.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // BridgeHubKusama
 fn bridge_hub_kusama_genesis(
-	wasm_binary: &[u8],
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
-	bridge_hub_kusama_runtime::RuntimeGenesisConfig {
-		system: bridge_hub_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: bridge_hub_kusama_runtime::BalancesConfig {
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": bridge_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, BRIDGE_HUB_KUSAMA_ED * 4096))
+				.map(|k| (k, BRIDGE_HUB_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: bridge_hub_kusama_runtime::ParachainInfoConfig {
+		"parachainInfo": bridge_hub_kusama_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-		collator_selection: bridge_hub_kusama_runtime::CollatorSelectionConfig {
+		"collatorSelection": bridge_hub_kusama_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: BRIDGE_HUB_KUSAMA_ED * 16,
 			..Default::default()
 		},
-		session: bridge_hub_kusama_runtime::SessionConfig {
+		"session": bridge_hub_kusama_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -540,31 +447,20 @@ fn bridge_hub_kusama_genesis(
 				})
 				.collect(),
 		},
-		bridge_polkadot_grandpa: Default::default(),
-		bridge_polkadot_messages: Default::default(),
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: bridge_hub_kusama_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		bridge_polkadot_parachains: Default::default(),
-		transaction_payment: Default::default(),
-	}
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
 }
 
-fn bridge_hub_kusama_local_genesis(
-	wasm_binary: &[u8],
-) -> bridge_hub_kusama_runtime::RuntimeGenesisConfig {
+fn bridge_hub_kusama_local_genesis(para_id: ParaId) -> serde_json::Value {
 	bridge_hub_kusama_genesis(
 		// initial collators.
-		wasm_binary,
 		invulnerables(),
 		testnet_accounts(),
-		1002.into(),
+		para_id,
 	)
 }
 
@@ -574,127 +470,90 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 	properties.insert("tokenSymbol".into(), "KSM".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 
-	let wasm_binary =
-		bridge_hub_kusama_runtime::WASM_BINARY.ok_or("BridgeHubKusama wasm not available")?;
-
-	Ok(Box::new(BridgeHubKusamaChainSpec::from_genesis(
-		// Name
-		"Kusama Bridge Hub Local",
-		// ID
-		"bridge-hub-kusama-local",
-		ChainType::Local,
-		move || bridge_hub_kusama_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
-	)))
+	Ok(Box::new(
+		BridgeHubKusamaChainSpec::builder(
+			bridge_hub_kusama_runtime::WASM_BINARY.expect("BridgeHubKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
+		)
+		.with_name("Kusama Bridge Hub Local")
+		.with_id("bridge-hub-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(bridge_hub_kusama_local_genesis(1002.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // GluttonKusama
-fn glutton_kusama_genesis(
-	wasm_binary: &[u8],
-	id: ParaId,
-) -> glutton_kusama_runtime::RuntimeGenesisConfig {
-	glutton_kusama_runtime::RuntimeGenesisConfig {
-		system: glutton_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		glutton: Default::default(),
-		sudo: Default::default(),
-		parachain_system: Default::default(),
-		parachain_info: glutton_kusama_runtime::ParachainInfoConfig {
+fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
+	serde_json::json!({
+		"parachainInfo": glutton_kusama_runtime::ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-	}
+	})
 }
 
-fn glutton_kusama_local_genesis(
-	wasm_binary: &[u8],
-) -> glutton_kusama_runtime::RuntimeGenesisConfig {
-	glutton_kusama_genesis(wasm_binary, 1002.into())
+fn glutton_kusama_local_genesis(id: ParaId) -> serde_json::Value {
+	glutton_kusama_genesis(id)
 }
 
 pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
-	properties.insert("tokenSymbol".into(), "KSM".into());
-	properties.insert("tokenDecimals".into(), 12.into());
 
-	let wasm_binary =
-		glutton_kusama_runtime::WASM_BINARY.ok_or("GluttonKusama wasm not available")?;
-
-	Ok(Box::new(GluttonKusamaChainSpec::from_genesis(
-		// Name
-		"Glutton Kusama Local",
-		// ID
-		"glutton-kusama-local",
-		ChainType::Local,
-		move || glutton_kusama_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "kusama-local".into(), para_id: 1002 },
-	)))
+	Ok(Box::new(
+		GluttonKusamaChainSpec::builder(
+			glutton_kusama_runtime::WASM_BINARY.expect("GluttonKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1300 },
+		)
+		.with_name("Kusama Glutton Local")
+		.with_id("glutton-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(glutton_kusama_local_genesis(1300.into()))
+		.with_properties(properties)
+		.build(),
+	))
 }
 
 // EncointerKusama
-fn encointer_kusama_genesis(
-	wasm_binary: &[u8],
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> encointer_kusama_runtime::RuntimeGenesisConfig {
-	encointer_kusama_runtime::RuntimeGenesisConfig {
-		system: encointer_kusama_runtime::SystemConfig {
-			code: wasm_binary.to_vec(),
-			..Default::default()
-		},
-		balances: encointer_kusama_runtime::BalancesConfig {
+fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
+	// The Encointer may not be migrated to the latest release, so we use compatible dependencies.
+	fn get_from_seed<TPublic: sp_core_encointer_compatible::Public>(
+		seed: &str,
+	) -> <TPublic::Pair as sp_core_encointer_compatible::Pair>::Public {
+		use sp_core_encointer_compatible::Pair;
+		TPublic::Pair::from_string(&format!("//{}", seed), None)
+			.expect("static values are valid; qed")
+			.public()
+	}
+
+	serde_json::json!({
+		"balances": asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
 				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
 				.collect(),
 		},
-		parachain_info: encointer_kusama_runtime::ParachainInfoConfig {
-			parachain_id: id,
+		"parachainInfo": encointer_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id.into(),
 			..Default::default()
 		},
-		collective: Default::default(),
-		encointer_balances: Default::default(),
-		encointer_ceremonies: Default::default(),
-		encointer_communities: Default::default(),
-		encointer_faucet: Default::default(),
-		encointer_scheduler: Default::default(),
-		membership: Default::default(),
-		treasury: Default::default(),
-		aura: encointer_kusama_runtime::AuraConfig {
-			authorities: vec![get_from_seed::<sr25519::Public>("Alice").into()],
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		polkadot_xcm: encointer_kusama_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
+		"aura": encointer_kusama_runtime::AuraConfig {
+			authorities: vec![get_from_seed::<sp_core_encointer_compatible::sr25519::Public>("Alice").into()],
 		},
-		transaction_payment: Default::default(),
-	}
+	})
 }
 
-fn encointer_kusama_local_genesis(
-	wasm_binary: &[u8],
-) -> encointer_kusama_runtime::RuntimeGenesisConfig {
+fn encointer_kusama_local_genesis(para_id: u32) -> serde_json::Value {
 	encointer_kusama_genesis(
 		// initial collators.
-		wasm_binary,
 		testnet_accounts(),
-		1001.into(),
+		para_id,
 	)
 }
 
@@ -704,21 +563,16 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	properties.insert("tokenSymbol".into(), "KSM".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 
-	let wasm_binary =
-		encointer_kusama_runtime::WASM_BINARY.ok_or("EncointerKusama wasm not available")?;
-
-	Ok(Box::new(EncointerKusamaChainSpec::from_genesis(
-		// Name
-		"Kusama Encointer Local",
-		// ID
-		"encointer-kusama-local",
-		ChainType::Local,
-		move || encointer_kusama_local_genesis(wasm_binary),
-		Vec::new(),
-		None,
-		None,
-		None,
-		Some(properties),
-		Extensions { relay_chain: "kusama-local".into(), para_id: 1001 },
-	)))
+	Ok(Box::new(
+		EncointerKusamaChainSpec::builder(
+			encointer_kusama_runtime::WASM_BINARY.expect("EncointerKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1001 },
+		)
+		.with_name("Kusama Encointer Local")
+		.with_id("encointer-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(encointer_kusama_local_genesis(1001))
+		.with_properties(properties)
+		.build(),
+	))
 }
