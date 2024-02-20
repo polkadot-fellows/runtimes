@@ -214,4 +214,4 @@ jobs:
       - integration-test
       - build-chain-spec-generator
     steps:
-      - run: echo "Good job! All the tests passed!"
+      - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
