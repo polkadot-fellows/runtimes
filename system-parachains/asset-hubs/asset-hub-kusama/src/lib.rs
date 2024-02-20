@@ -1389,7 +1389,7 @@ impl_runtime_apis! {
 					let fee_index = if assets.get(0).unwrap().eq(&fee_asset) { 0 } else { 1 };
 
 					// verify transferred successfully
-					let verify = Box::new(move || {
+					let verify = Box::new(move || {let verify = Box::new(move || {
 						// verify native balance after transfer, decreased by transferred fee amount
 						// (plus transport fees)
 						assert!(Balances::free_balance(&who) <= balance - fee_amount);
