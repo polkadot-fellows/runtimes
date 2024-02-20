@@ -80,7 +80,7 @@ jobs:
 
   confirmMigrationsPassed:
     runs-on: ubuntu-latest
-    name: Confirms that all migrations passed
+    name: All migrations passed
     # If any new job gets added, be sure to add it to this list
     needs: [check-migrations]
     steps:
