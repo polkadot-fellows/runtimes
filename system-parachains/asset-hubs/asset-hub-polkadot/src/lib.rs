@@ -66,7 +66,7 @@ use assets_common::{foreign_creators::ForeignCreators, matching::FromSiblingPara
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify},
@@ -87,7 +87,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
-		InstanceFilter, TransformOrigin,
+		InstanceFilter, NeverEnsureOrigin, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -113,8 +113,8 @@ use system_parachains_constants::{
 use xcm::latest::prelude::{AssetId, BodyId};
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
-	ForeignCreatorsSovereignAccountOf, GovernanceLocation, TrustBackedAssetsConvertedConcreteId,
-	XcmOriginToTransactDispatchOrigin,
+	ForeignCreatorsSovereignAccountOf, GovernanceLocation, PoolAssetsConvertedConcreteId,
+	TrustBackedAssetsConvertedConcreteId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -814,6 +814,30 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type FeeAsset = xcm_config::bridging::XcmBridgeHubRouterFeeAssetId;
 }
 
+pub type PoolAssetsInstance = pallet_assets::Instance3;
+impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u32;
+	type AssetIdParameter = u32;
+	type Currency = Balances;
+	type CreateOrigin = NeverEnsureOrigin<AccountId>;
+	type ForceOrigin = AssetsForceOrigin;
+	type AssetDeposit = ConstU128<0>;
+	type AssetAccountDeposit = ConstU128<0>;
+	type MetadataDepositBase = ConstU128<0>;
+	type MetadataDepositPerByte = ConstU128<0>;
+	type ApprovalDeposit = ExistentialDeposit;
+	type StringLimit = ConstU32<50>;
+	type Freezer = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -857,6 +881,7 @@ construct_runtime!(
 		Uniques: pallet_uniques = 51,
 		Nfts: pallet_nfts = 52,
 		ForeignAssets: pallet_assets::<Instance2> = 53,
+		PoolAssets: pallet_assets::<Instance3> = 54,
 	}
 );
 
@@ -906,6 +931,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
+		[pallet_assets, Pool]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -1092,9 +1118,15 @@ impl_runtime_apis! {
 				)?,
 				// collect pallet_assets (ForeignAssets)
 				convert::<_, _, _, _, ForeignAssetsConvertedConcreteId>(
-					ForeignAssets::account_balances(account)
+					ForeignAssets::account_balances(account.clone())
 						.iter()
 						.filter(|(_, balance)| balance > &0)
+				)?,
+				// collect pallet_assets (PoolAssets)
+				convert::<_, _, _, _, PoolAssetsConvertedConcreteId>(
+					PoolAssets::account_balances(account)
+					.iter()
+					.filter(|(_, balance)| balance > &0)
 				)?,
 				// collect ... e.g. other tokens
 			].concat().into())
@@ -1161,6 +1193,7 @@ impl_runtime_apis! {
 			// `pallet_assets_local.rs / pallet_assets_foreign.rs`.
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
+			type Pool = pallet_assets::Pallet::<Runtime, PoolAssetsInstance>;
 
 			type ToKusama = XcmBridgeHubRouterBench<Runtime, ToKusamaXcmRouterInstance>;
 
@@ -1468,6 +1501,7 @@ impl_runtime_apis! {
 
 			type Local = pallet_assets::Pallet::<Runtime, TrustBackedAssetsInstance>;
 			type Foreign = pallet_assets::Pallet::<Runtime, ForeignAssetsInstance>;
+			type Pool = pallet_assets::Pallet::<Runtime, PoolAssetsInstance>;
 
 			type ToKusama = XcmBridgeHubRouterBench<Runtime, ToKusamaXcmRouterInstance>;
 

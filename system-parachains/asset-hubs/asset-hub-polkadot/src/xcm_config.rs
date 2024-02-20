@@ -15,9 +15,9 @@
 
 use super::{
 	AccountId, AllPalletsWithSystem, Assets, Authorship, Balance, Balances, ForeignAssets,
-	ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeOrigin, ToKusamaXcmRouter, TrustBackedAssetsInstance, WeightToFee,
-	XcmpQueue,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, ToKusamaXcmRouter, TrustBackedAssetsInstance,
+	WeightToFee, XcmpQueue,
 };
 use crate::ForeignAssetsInstance;
 use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset};
@@ -66,6 +66,8 @@ parameter_types! {
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	pub PoolAssetsPalletLocation: Location =
+		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
@@ -151,8 +153,30 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 	CheckingAccount,
 >;
 
+/// `AssetId`/`Balance` converter for `PoolAssets`.
+pub type PoolAssetsConvertedConcreteId =
+	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
+
+/// Means for transacting asset conversion pool assets on this chain.
+pub type PoolFungiblesTransactor = FungiblesAdapter<
+	// Use this fungibles implementation:
+	PoolAssets,
+	// Use this currency when it is a fungible asset matching the given location or name:
+	PoolAssetsConvertedConcreteId,
+	// Convert an XCM MultiLocation into a local account id:
+	LocationToAccountId,
+	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+	AccountId,
+	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
+	// that this asset is known.
+	LocalMint<parachains_common::impls::NonZeroIssuance<AccountId, PoolAssets>>,
+	// The account to use for tracking teleports.
+	CheckingAccount,
+>;
+
 /// Means for transacting assets on this chain.
-pub type AssetTransactors = (FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor);
+pub type AssetTransactors =
+	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
@@ -195,8 +219,8 @@ impl Contains<Location> for FellowshipEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, .. }
 				]
-			) | (1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(64)]) |
-				(1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(65)])
+			) | (1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(64)])
+				| (1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(65)])
 		)
 	}
 }
@@ -221,7 +245,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		#[cfg(feature = "runtime-benchmarks")]
 		{
 			if matches!(call, RuntimeCall::System(frame_system::Call::remark_with_event { .. })) {
-				return true
+				return true;
 			}
 		}
 
@@ -229,158 +253,160 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 		match call {
 			RuntimeCall::System(frame_system::Call::set_storage { items })
 				if items.iter().all(|(k, _)| {
-					k.eq(&bridging::XcmBridgeHubRouterBaseFee::key()) ||
-						k.eq(&bridging::XcmBridgeHubRouterByteFee::key())
+					k.eq(&bridging::XcmBridgeHubRouterBaseFee::key())
+						|| k.eq(&bridging::XcmBridgeHubRouterByteFee::key())
 				}) =>
-				return true,
+			{
+				return true
+			},
 			_ => (),
 		};
 
 		matches!(
 			call,
 			RuntimeCall::PolkadotXcm(
-				pallet_xcm::Call::force_xcm_version { .. } |
-					pallet_xcm::Call::force_default_xcm_version { .. }
+				pallet_xcm::Call::force_xcm_version { .. }
+					| pallet_xcm::Call::force_default_xcm_version { .. }
 			) | RuntimeCall::System(
-				frame_system::Call::set_heap_pages { .. } |
-					frame_system::Call::set_code { .. } |
-					frame_system::Call::set_code_without_checks { .. } |
-					frame_system::Call::kill_prefix { .. },
-			) | RuntimeCall::ParachainSystem(..) |
-				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Balances(..) |
-				RuntimeCall::CollatorSelection(
-					pallet_collator_selection::Call::set_desired_candidates { .. } |
-						pallet_collator_selection::Call::set_candidacy_bond { .. } |
-						pallet_collator_selection::Call::register_as_candidate { .. } |
-						pallet_collator_selection::Call::leave_intent { .. } |
-						pallet_collator_selection::Call::set_invulnerables { .. } |
-						pallet_collator_selection::Call::add_invulnerable { .. } |
-						pallet_collator_selection::Call::remove_invulnerable { .. },
-				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::Assets(
-					pallet_assets::Call::create { .. } |
-						pallet_assets::Call::force_create { .. } |
-						pallet_assets::Call::start_destroy { .. } |
-						pallet_assets::Call::destroy_accounts { .. } |
-						pallet_assets::Call::destroy_approvals { .. } |
-						pallet_assets::Call::finish_destroy { .. } |
-						pallet_assets::Call::mint { .. } |
-						pallet_assets::Call::burn { .. } |
-						pallet_assets::Call::transfer { .. } |
-						pallet_assets::Call::transfer_keep_alive { .. } |
-						pallet_assets::Call::force_transfer { .. } |
-						pallet_assets::Call::freeze { .. } |
-						pallet_assets::Call::thaw { .. } |
-						pallet_assets::Call::freeze_asset { .. } |
-						pallet_assets::Call::thaw_asset { .. } |
-						pallet_assets::Call::transfer_ownership { .. } |
-						pallet_assets::Call::set_team { .. } |
-						pallet_assets::Call::set_metadata { .. } |
-						pallet_assets::Call::clear_metadata { .. } |
-						pallet_assets::Call::force_set_metadata { .. } |
-						pallet_assets::Call::force_clear_metadata { .. } |
-						pallet_assets::Call::force_asset_status { .. } |
-						pallet_assets::Call::approve_transfer { .. } |
-						pallet_assets::Call::cancel_approval { .. } |
-						pallet_assets::Call::force_cancel_approval { .. } |
-						pallet_assets::Call::transfer_approved { .. } |
-						pallet_assets::Call::touch { .. } |
-						pallet_assets::Call::refund { .. },
+				frame_system::Call::set_heap_pages { .. }
+					| frame_system::Call::set_code { .. }
+					| frame_system::Call::set_code_without_checks { .. }
+					| frame_system::Call::kill_prefix { .. },
+			) | RuntimeCall::ParachainSystem(..)
+				| RuntimeCall::Timestamp(..)
+				| RuntimeCall::Balances(..)
+				| RuntimeCall::CollatorSelection(
+					pallet_collator_selection::Call::set_desired_candidates { .. }
+						| pallet_collator_selection::Call::set_candidacy_bond { .. }
+						| pallet_collator_selection::Call::register_as_candidate { .. }
+						| pallet_collator_selection::Call::leave_intent { .. }
+						| pallet_collator_selection::Call::set_invulnerables { .. }
+						| pallet_collator_selection::Call::add_invulnerable { .. }
+						| pallet_collator_selection::Call::remove_invulnerable { .. },
+				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. })
+				| RuntimeCall::XcmpQueue(..)
+				| RuntimeCall::DmpQueue(..)
+				| RuntimeCall::Assets(
+					pallet_assets::Call::create { .. }
+						| pallet_assets::Call::force_create { .. }
+						| pallet_assets::Call::start_destroy { .. }
+						| pallet_assets::Call::destroy_accounts { .. }
+						| pallet_assets::Call::destroy_approvals { .. }
+						| pallet_assets::Call::finish_destroy { .. }
+						| pallet_assets::Call::mint { .. }
+						| pallet_assets::Call::burn { .. }
+						| pallet_assets::Call::transfer { .. }
+						| pallet_assets::Call::transfer_keep_alive { .. }
+						| pallet_assets::Call::force_transfer { .. }
+						| pallet_assets::Call::freeze { .. }
+						| pallet_assets::Call::thaw { .. }
+						| pallet_assets::Call::freeze_asset { .. }
+						| pallet_assets::Call::thaw_asset { .. }
+						| pallet_assets::Call::transfer_ownership { .. }
+						| pallet_assets::Call::set_team { .. }
+						| pallet_assets::Call::set_metadata { .. }
+						| pallet_assets::Call::clear_metadata { .. }
+						| pallet_assets::Call::force_set_metadata { .. }
+						| pallet_assets::Call::force_clear_metadata { .. }
+						| pallet_assets::Call::force_asset_status { .. }
+						| pallet_assets::Call::approve_transfer { .. }
+						| pallet_assets::Call::cancel_approval { .. }
+						| pallet_assets::Call::force_cancel_approval { .. }
+						| pallet_assets::Call::transfer_approved { .. }
+						| pallet_assets::Call::touch { .. }
+						| pallet_assets::Call::refund { .. },
 				) | RuntimeCall::ForeignAssets(
-				pallet_assets::Call::create { .. } |
-					pallet_assets::Call::force_create { .. } |
-					pallet_assets::Call::start_destroy { .. } |
-					pallet_assets::Call::destroy_accounts { .. } |
-					pallet_assets::Call::destroy_approvals { .. } |
-					pallet_assets::Call::finish_destroy { .. } |
-					pallet_assets::Call::mint { .. } |
-					pallet_assets::Call::burn { .. } |
-					pallet_assets::Call::transfer { .. } |
-					pallet_assets::Call::transfer_keep_alive { .. } |
-					pallet_assets::Call::force_transfer { .. } |
-					pallet_assets::Call::freeze { .. } |
-					pallet_assets::Call::thaw { .. } |
-					pallet_assets::Call::freeze_asset { .. } |
-					pallet_assets::Call::thaw_asset { .. } |
-					pallet_assets::Call::transfer_ownership { .. } |
-					pallet_assets::Call::set_team { .. } |
-					pallet_assets::Call::set_metadata { .. } |
-					pallet_assets::Call::clear_metadata { .. } |
-					pallet_assets::Call::force_set_metadata { .. } |
-					pallet_assets::Call::force_clear_metadata { .. } |
-					pallet_assets::Call::force_asset_status { .. } |
-					pallet_assets::Call::approve_transfer { .. } |
-					pallet_assets::Call::cancel_approval { .. } |
-					pallet_assets::Call::force_cancel_approval { .. } |
-					pallet_assets::Call::transfer_approved { .. } |
-					pallet_assets::Call::touch { .. } |
-					pallet_assets::Call::refund { .. },
+				pallet_assets::Call::create { .. }
+					| pallet_assets::Call::force_create { .. }
+					| pallet_assets::Call::start_destroy { .. }
+					| pallet_assets::Call::destroy_accounts { .. }
+					| pallet_assets::Call::destroy_approvals { .. }
+					| pallet_assets::Call::finish_destroy { .. }
+					| pallet_assets::Call::mint { .. }
+					| pallet_assets::Call::burn { .. }
+					| pallet_assets::Call::transfer { .. }
+					| pallet_assets::Call::transfer_keep_alive { .. }
+					| pallet_assets::Call::force_transfer { .. }
+					| pallet_assets::Call::freeze { .. }
+					| pallet_assets::Call::thaw { .. }
+					| pallet_assets::Call::freeze_asset { .. }
+					| pallet_assets::Call::thaw_asset { .. }
+					| pallet_assets::Call::transfer_ownership { .. }
+					| pallet_assets::Call::set_team { .. }
+					| pallet_assets::Call::set_metadata { .. }
+					| pallet_assets::Call::clear_metadata { .. }
+					| pallet_assets::Call::force_set_metadata { .. }
+					| pallet_assets::Call::force_clear_metadata { .. }
+					| pallet_assets::Call::force_asset_status { .. }
+					| pallet_assets::Call::approve_transfer { .. }
+					| pallet_assets::Call::cancel_approval { .. }
+					| pallet_assets::Call::force_cancel_approval { .. }
+					| pallet_assets::Call::transfer_approved { .. }
+					| pallet_assets::Call::touch { .. }
+					| pallet_assets::Call::refund { .. },
 			) | RuntimeCall::Nfts(
-				pallet_nfts::Call::create { .. } |
-					pallet_nfts::Call::force_create { .. } |
-					pallet_nfts::Call::destroy { .. } |
-					pallet_nfts::Call::mint { .. } |
-					pallet_nfts::Call::force_mint { .. } |
-					pallet_nfts::Call::burn { .. } |
-					pallet_nfts::Call::transfer { .. } |
-					pallet_nfts::Call::lock_item_transfer { .. } |
-					pallet_nfts::Call::unlock_item_transfer { .. } |
-					pallet_nfts::Call::lock_collection { .. } |
-					pallet_nfts::Call::transfer_ownership { .. } |
-					pallet_nfts::Call::set_team { .. } |
-					pallet_nfts::Call::force_collection_owner { .. } |
-					pallet_nfts::Call::force_collection_config { .. } |
-					pallet_nfts::Call::approve_transfer { .. } |
-					pallet_nfts::Call::cancel_approval { .. } |
-					pallet_nfts::Call::clear_all_transfer_approvals { .. } |
-					pallet_nfts::Call::lock_item_properties { .. } |
-					pallet_nfts::Call::set_attribute { .. } |
-					pallet_nfts::Call::force_set_attribute { .. } |
-					pallet_nfts::Call::clear_attribute { .. } |
-					pallet_nfts::Call::approve_item_attributes { .. } |
-					pallet_nfts::Call::cancel_item_attributes_approval { .. } |
-					pallet_nfts::Call::set_metadata { .. } |
-					pallet_nfts::Call::clear_metadata { .. } |
-					pallet_nfts::Call::set_collection_metadata { .. } |
-					pallet_nfts::Call::clear_collection_metadata { .. } |
-					pallet_nfts::Call::set_accept_ownership { .. } |
-					pallet_nfts::Call::set_collection_max_supply { .. } |
-					pallet_nfts::Call::update_mint_settings { .. } |
-					pallet_nfts::Call::set_price { .. } |
-					pallet_nfts::Call::buy_item { .. } |
-					pallet_nfts::Call::pay_tips { .. } |
-					pallet_nfts::Call::create_swap { .. } |
-					pallet_nfts::Call::cancel_swap { .. } |
-					pallet_nfts::Call::claim_swap { .. },
+				pallet_nfts::Call::create { .. }
+					| pallet_nfts::Call::force_create { .. }
+					| pallet_nfts::Call::destroy { .. }
+					| pallet_nfts::Call::mint { .. }
+					| pallet_nfts::Call::force_mint { .. }
+					| pallet_nfts::Call::burn { .. }
+					| pallet_nfts::Call::transfer { .. }
+					| pallet_nfts::Call::lock_item_transfer { .. }
+					| pallet_nfts::Call::unlock_item_transfer { .. }
+					| pallet_nfts::Call::lock_collection { .. }
+					| pallet_nfts::Call::transfer_ownership { .. }
+					| pallet_nfts::Call::set_team { .. }
+					| pallet_nfts::Call::force_collection_owner { .. }
+					| pallet_nfts::Call::force_collection_config { .. }
+					| pallet_nfts::Call::approve_transfer { .. }
+					| pallet_nfts::Call::cancel_approval { .. }
+					| pallet_nfts::Call::clear_all_transfer_approvals { .. }
+					| pallet_nfts::Call::lock_item_properties { .. }
+					| pallet_nfts::Call::set_attribute { .. }
+					| pallet_nfts::Call::force_set_attribute { .. }
+					| pallet_nfts::Call::clear_attribute { .. }
+					| pallet_nfts::Call::approve_item_attributes { .. }
+					| pallet_nfts::Call::cancel_item_attributes_approval { .. }
+					| pallet_nfts::Call::set_metadata { .. }
+					| pallet_nfts::Call::clear_metadata { .. }
+					| pallet_nfts::Call::set_collection_metadata { .. }
+					| pallet_nfts::Call::clear_collection_metadata { .. }
+					| pallet_nfts::Call::set_accept_ownership { .. }
+					| pallet_nfts::Call::set_collection_max_supply { .. }
+					| pallet_nfts::Call::update_mint_settings { .. }
+					| pallet_nfts::Call::set_price { .. }
+					| pallet_nfts::Call::buy_item { .. }
+					| pallet_nfts::Call::pay_tips { .. }
+					| pallet_nfts::Call::create_swap { .. }
+					| pallet_nfts::Call::cancel_swap { .. }
+					| pallet_nfts::Call::claim_swap { .. },
 			) | RuntimeCall::Uniques(
-				pallet_uniques::Call::create { .. } |
-					pallet_uniques::Call::force_create { .. } |
-					pallet_uniques::Call::destroy { .. } |
-					pallet_uniques::Call::mint { .. } |
-					pallet_uniques::Call::burn { .. } |
-					pallet_uniques::Call::transfer { .. } |
-					pallet_uniques::Call::freeze { .. } |
-					pallet_uniques::Call::thaw { .. } |
-					pallet_uniques::Call::freeze_collection { .. } |
-					pallet_uniques::Call::thaw_collection { .. } |
-					pallet_uniques::Call::transfer_ownership { .. } |
-					pallet_uniques::Call::set_team { .. } |
-					pallet_uniques::Call::approve_transfer { .. } |
-					pallet_uniques::Call::cancel_approval { .. } |
-					pallet_uniques::Call::force_item_status { .. } |
-					pallet_uniques::Call::set_attribute { .. } |
-					pallet_uniques::Call::clear_attribute { .. } |
-					pallet_uniques::Call::set_metadata { .. } |
-					pallet_uniques::Call::clear_metadata { .. } |
-					pallet_uniques::Call::set_collection_metadata { .. } |
-					pallet_uniques::Call::clear_collection_metadata { .. } |
-					pallet_uniques::Call::set_accept_ownership { .. } |
-					pallet_uniques::Call::set_collection_max_supply { .. } |
-					pallet_uniques::Call::set_price { .. } |
-					pallet_uniques::Call::buy_item { .. }
+				pallet_uniques::Call::create { .. }
+					| pallet_uniques::Call::force_create { .. }
+					| pallet_uniques::Call::destroy { .. }
+					| pallet_uniques::Call::mint { .. }
+					| pallet_uniques::Call::burn { .. }
+					| pallet_uniques::Call::transfer { .. }
+					| pallet_uniques::Call::freeze { .. }
+					| pallet_uniques::Call::thaw { .. }
+					| pallet_uniques::Call::freeze_collection { .. }
+					| pallet_uniques::Call::thaw_collection { .. }
+					| pallet_uniques::Call::transfer_ownership { .. }
+					| pallet_uniques::Call::set_team { .. }
+					| pallet_uniques::Call::approve_transfer { .. }
+					| pallet_uniques::Call::cancel_approval { .. }
+					| pallet_uniques::Call::force_item_status { .. }
+					| pallet_uniques::Call::set_attribute { .. }
+					| pallet_uniques::Call::clear_attribute { .. }
+					| pallet_uniques::Call::set_metadata { .. }
+					| pallet_uniques::Call::clear_metadata { .. }
+					| pallet_uniques::Call::set_collection_metadata { .. }
+					| pallet_uniques::Call::clear_collection_metadata { .. }
+					| pallet_uniques::Call::set_accept_ownership { .. }
+					| pallet_uniques::Call::set_collection_max_supply { .. }
+					| pallet_uniques::Call::set_price { .. }
+					| pallet_uniques::Call::buy_item { .. }
 			) | RuntimeCall::ToKusamaXcmRouter(
 				pallet_xcm_bridge_hub_router::Call::report_bridge_status { .. }
 			)
