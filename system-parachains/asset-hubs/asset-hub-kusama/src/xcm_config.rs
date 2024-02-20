@@ -834,8 +834,8 @@ pub mod bridging {
 		pub type IsTrustedBridgedReserveLocationForForeignAsset =
 			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
-		impl Contains<(MultiLocation, Junction)> for UniversalAliases {
-			fn contains(alias: &(MultiLocation, Junction)) -> bool {
+		impl Contains<(Location, Junction)> for UniversalAliases {
+			fn contains(alias: &(Location, Junction)) -> bool {
 				UniversalAliases::get().contains(alias)
 			}
 		}
@@ -847,7 +847,7 @@ pub mod bridging {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl BridgingBenchmarksHelper {
-		pub fn prepare_universal_alias() -> Option<(MultiLocation, Junction)> {
+		pub fn prepare_universal_alias() -> Option<(Location, Junction)> {
 			let alias = to_polkadot::UniversalAliases::get().into_iter().find_map(
 				|(location, junction)| {
 					match to_polkadot::SiblingBridgeHubWithBridgeHubPolkadotInstance::get()

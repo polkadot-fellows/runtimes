@@ -325,7 +325,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type CreateOrigin = ForeignCreators<
 		(
 			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
-			FromNetwork<xcm_config::UniversalLocation, EthereumNetwork>,
+			FromNetwork<xcm_config::UniversalLocation, EthereumNetwork, xcm::v3::Location>,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,

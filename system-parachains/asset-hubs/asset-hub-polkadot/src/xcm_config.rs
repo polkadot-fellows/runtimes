@@ -763,8 +763,8 @@ pub mod bridging {
 		pub type IsTrustedBridgedReserveLocationForForeignAsset =
 			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
-		impl Contains<(MultiLocation, Junction)> for UniversalAliases {
-			fn contains(alias: &(MultiLocation, Junction)) -> bool {
+		impl Contains<(Location, Junction)> for UniversalAliases {
+			fn contains(alias: &(Location, Junction)) -> bool {
 				UniversalAliases::get().contains(alias)
 			}
 		}
