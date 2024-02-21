@@ -1712,19 +1712,23 @@ pub mod migrations {
 
 	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, sp_runtime::TryRuntimeError> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
 				log::warn!(target: "runtime::session_keys", "Skipping session keys migration pre-upgrade check due to spec version (already applied?)");
 				return Ok(Vec::new())
 			}
 
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids()
+			let key_ids: Vec<_> = SessionKeys::key_ids()
 				.into_iter()
 				.filter(|&k| *k != sp_core::crypto::key_types::BEEFY)
 				.collect();
 			frame_support::ensure!(
-				key_ids.into_iter().find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) == None,
+				key_ids
+					.clone()
+					.into_iter()
+					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) ==
+					None,
 				"New session keys contain the ImOnline key that should have been removed",
 			);
 			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
@@ -1736,7 +1740,7 @@ pub mod migrations {
 			.into_iter()
 			.for_each(|(id, keys)| {
 				state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
+				for key_id in key_ids.clone() {
 					state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
@@ -1763,14 +1767,14 @@ pub mod migrations {
 				return Ok(())
 			}
 
-			let key_ids = SessionKeys::key_ids()
+			let key_ids: Vec<_> = SessionKeys::key_ids()
 				.into_iter()
 				.filter(|&k| *k != sp_core::crypto::key_types::BEEFY)
 				.collect();
 			let mut new_state: Vec<u8> = Vec::new();
 			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
 				new_state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
+				for key_id in key_ids.clone() {
 					new_state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
