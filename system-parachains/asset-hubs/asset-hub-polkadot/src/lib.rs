@@ -59,10 +59,16 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod impls;
 mod weights;
 pub mod xcm_config;
 
-use assets_common::{foreign_creators::ForeignCreators, matching::FromSiblingParachain};
+use assets_common::{
+	foreign_creators::ForeignCreators,
+	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
+	matching::FromSiblingParachain,
+	AssetIdForTrustBackedAssetsConvert,
+};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
@@ -71,8 +77,9 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill,
+	ApplyExtrinsicResult, Perbill, Permill,
 };
+use xcm_config::TrustBackedAssetsPalletLocationV3;
 
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -86,8 +93,9 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
-		InstanceFilter, NeverEnsureOrigin, TransformOrigin,
+		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
+		ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter, NeverEnsureOrigin,
+		TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -112,7 +120,7 @@ use system_parachains_constants::{
 };
 use xcm::latest::prelude::{AssetId, BodyId};
 use xcm_config::{
-	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
+	DotLocation, DotLocationV3, FellowshipLocation, ForeignAssetsConvertedConcreteId,
 	ForeignCreatorsSovereignAccountOf, GovernanceLocation, PoolAssetsConvertedConcreteId,
 	TrustBackedAssetsConvertedConcreteId, XcmOriginToTransactDispatchOrigin,
 };
@@ -838,6 +846,66 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type BenchmarkHelper = ();
 }
 
+/// Union fungibles implementation for `Assets`` and `ForeignAssets`.
+pub type LocalAndForeignAssets = fungibles::UnionOf<
+	Assets,
+	ForeignAssets,
+	LocalFromLeft<
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV3>,
+		AssetIdForTrustBackedAssets,
+		xcm::v3::Location,
+	>,
+	xcm::v3::Location,
+	AccountId,
+>;
+
+parameter_types! {
+	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
+	// TODO any fee?
+	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+}
+
+impl pallet_asset_conversion::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type HigherPrecisionBalance = sp_core::U256;
+	type AssetKind = xcm::v3::Location;
+	type Assets = fungible::UnionOf<
+		Balances,
+		LocalAndForeignAssets,
+		TargetFromLeft<DotLocationV3, Self::AssetKind>,
+		Self::AssetKind,
+		Self::AccountId,
+	>;
+	type PoolId = (Self::AssetKind, Self::AssetKind);
+	type PoolLocator = impls::pool::WithFirstAsset<
+		DotLocationV3,
+		AccountId,
+		Self::AssetKind,
+		impls::pool::AccountIdConverter<AssetConversionPalletId, Self::PoolId>,
+	>;
+	type PoolAssetId = u32;
+	type PoolAssets = PoolAssets;
+	// TODO any fee?
+	type PoolSetupFee = ConstU128<0>;
+	type PoolSetupFeeAsset = DotLocationV3;
+	// TODO replace by treasury pallet account
+	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
+	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
+	type LPFee = ConstU32<3>;
+	type PalletId = AssetConversionPalletId;
+	type MaxSwapPathLength = ConstU32<3>;
+	type MintMinLiquidity = ConstU128<100>;
+	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
+		DotLocationV3,
+		parachain_info::Pallet<Runtime>,
+		xcm_config::TrustBackedAssetsPalletIndex,
+		Self::AssetKind,
+	>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -882,6 +950,7 @@ construct_runtime!(
 		Nfts: pallet_nfts = 52,
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
+		AssetConversion: pallet_asset_conversion = 55,
 	}
 );
 
@@ -932,6 +1001,7 @@ mod benches {
 		[pallet_assets, Local]
 		[pallet_assets, Foreign]
 		[pallet_assets, Pool]
+		[pallet_asset_conversion, AssetConversion]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -1146,6 +1216,43 @@ impl_runtime_apis! {
 
 		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
 			build_config::<RuntimeGenesisConfig>(config)
+		}
+	}
+
+	impl pallet_asset_conversion::AssetConversionApi<Block, Balance, xcm::v3::Location> for Runtime {
+		fn quote_price_exact_tokens_for_tokens(
+			asset1: xcm::v3::Location,
+			asset2: xcm::v3::Location,
+			amount: Balance,
+			include_fee: bool,
+		) -> Option<Balance> {
+			AssetConversion::quote_price_exact_tokens_for_tokens(
+				asset1,
+				asset2,
+				amount,
+				include_fee,
+			)
+		}
+
+		fn quote_price_tokens_for_exact_tokens(
+			asset1: xcm::v3::Location,
+			asset2: xcm::v3::Location,
+			amount: Balance,
+			include_fee: bool,
+		) -> Option<Balance> {
+			AssetConversion::quote_price_tokens_for_exact_tokens(
+				asset1,
+				asset2,
+				amount,
+				include_fee,
+			)
+		}
+
+		fn get_reserves(
+			asset1: xcm::v3::Location,
+			asset2: xcm::v3::Location,
+		) -> Option<(Balance, Balance)> {
+			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
 
