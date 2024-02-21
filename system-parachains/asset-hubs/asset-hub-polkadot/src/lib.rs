@@ -893,6 +893,8 @@ pub type Migrations = (
 	UniquesMigration,
 	// unreleased
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	// permanent
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
 /// Migration for Uniques to V1

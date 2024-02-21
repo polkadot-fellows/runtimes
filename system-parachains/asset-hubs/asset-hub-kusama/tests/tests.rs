@@ -48,7 +48,7 @@ use system_parachains_constants::kusama::{
 };
 use xcm::latest::prelude::{Assets as XcmAssets, *};
 use xcm_builder::V4V3LocationConverter;
-use xcm_executor::traits::{JustTry, WeightTrader};
+use xcm_executor::traits::{ConvertLocation, JustTry, WeightTrader};
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
@@ -726,27 +726,62 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 }
 
 #[test]
-fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_works() {
+fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_sufficient_asset_works()
+{
 	const BLOCK_AUTHOR_ACCOUNT: [u8; 32] = [13; 32];
+	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
+	let staking_pot = <pallet_collator_selection::Pallet<Runtime>>::account_id();
+
+	let foreign_asset_id_location = xcm::v3::Location::new(
+		2,
+		[xcm::v3::Junction::GlobalConsensus(xcm::v3::NetworkId::Polkadot)],
+	);
+	let foreign_asset_id_minimum_balance = 1_000_000_000;
+	// sovereign account as foreign asset owner (can be whoever for this scenario)
+	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
+	let foreign_asset_create_params =
+		(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance);
+
 	asset_test_utils::test_cases_over_bridge::receive_reserve_asset_deposited_from_different_consensus_works::<
 			Runtime,
 			AllPalletsWithoutSystem,
 			XcmConfig,
-			LocationToAccountId,
 			ForeignAssetsInstance,
 		>(
 			collator_session_keys().add(collator_session_key(BLOCK_AUTHOR_ACCOUNT)),
 			ExistentialDeposit::get(),
 			AccountId::from([73; 32]),
-			AccountId::from(BLOCK_AUTHOR_ACCOUNT),
+			block_author_account.clone(),
 			// receiving DOTs
-			(xcm::v3::Location::new(2, [xcm::v3::Junction::GlobalConsensus(xcm::v3::NetworkId::Polkadot)]), 1000000000000, 1_000_000_000),
+			foreign_asset_create_params,
+			1000000000000,
 			bridging_to_asset_hub_polkadot,
 			(
 				PalletInstance(bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX).into(),
 				GlobalConsensus(Polkadot),
 				Parachain(1000).into()
-			)
+			),
+			|| {
+				// check block author before
+				assert_eq!(
+					ForeignAssets::balance(
+						foreign_asset_id_location.into(),
+						&block_author_account
+					),
+					0
+				);
+			},
+			|| {
+				// `TakeFirstAssetTrader` puts fees to the block author
+				assert!(
+					ForeignAssets::balance(
+						foreign_asset_id_location.into(),
+						&block_author_account
+					) > 0
+				);
+				// nothing adds fees to stakting_pot (e.g. `SwapFirstAssetTrader`, ...)
+				assert_eq!(Balances::free_balance(&staking_pot), 0);
+			}
 		)
 }
 

@@ -1676,7 +1676,7 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
 /// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = migrations::Unreleased;
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
@@ -1701,6 +1701,9 @@ pub mod migrations {
 		// this comment!
 		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
 	);
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
