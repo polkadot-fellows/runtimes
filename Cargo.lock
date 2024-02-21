@@ -1774,7 +1774,6 @@ dependencies = [
  "cumulus-primitives-core 0.7.0",
  "encointer-kusama-runtime",
  "glutton-kusama-runtime",
- "hex-literal",
  "kusama-runtime-constants",
  "pallet-im-online",
  "pallet-staking 28.0.0",
@@ -3347,7 +3346,7 @@ dependencies = [
  "pallet-encointer-reputation-commitments",
  "pallet-encointer-scheduler",
  "pallet-insecure-randomness-collective-flip",
- "pallet-membership 25.0.0",
+ "pallet-membership",
  "pallet-proxy 25.0.0",
  "pallet-scheduler 26.0.0",
  "pallet-timestamp 24.0.0",
@@ -7318,25 +7317,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-democracy"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b687c8a22b37f9b8444a29959f9cd0cf0be2f8efb8cd9bf91860d5dbafdab8b3"
-dependencies = [
- "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
- "frame-system 28.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7411,26 +7391,6 @@ dependencies = [
  "parity-scale-codec",
  "sp-npos-elections 26.0.0",
  "sp-runtime 31.0.1",
- "sp-std 14.0.0",
-]
-
-[[package]]
-name = "pallet-elections-phragmen"
-version = "29.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dd2f70c57cbb3dcde39f141721dd34a8c852e0caaf61ae6b0bbd23138b6e1d3"
-dependencies = [
- "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
- "frame-system 28.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-npos-elections 26.0.0",
- "sp-runtime 31.0.1",
- "sp-staking 26.0.0",
  "sp-std 14.0.0",
 ]
 
@@ -7788,24 +7748,6 @@ dependencies = [
  "sp-io 27.0.0",
  "sp-runtime 28.0.0",
  "sp-std 12.0.0",
-]
-
-[[package]]
-name = "pallet-membership"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc2dfdff5a7e5b21355b34245312ba2ea687444d9003960e7b876e1df518dab"
-dependencies = [
- "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
- "frame-system 28.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-std 14.0.0",
 ]
 
 [[package]]
@@ -8457,26 +8399,6 @@ dependencies = [
  "sp-std 14.0.0",
  "sp-storage 19.0.0",
  "sp-timestamp 26.0.0",
-]
-
-[[package]]
-name = "pallet-tips"
-version = "27.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "facf64cab7f7a4762c57e5827597b2ca073755de4c9716444cf0847db34836df"
-dependencies = [
- "frame-benchmarking 28.0.0",
- "frame-support 28.0.0",
- "frame-system 28.0.0",
- "log",
- "pallet-treasury 27.0.0",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-std 14.0.0",
 ]
 
 [[package]]
@@ -9498,7 +9420,6 @@ name = "polkadot-runtime"
 version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
- "bitvec",
  "frame-benchmarking 28.0.0",
  "frame-election-provider-support 28.0.0",
  "frame-executive 28.0.0",
@@ -9508,7 +9429,6 @@ dependencies = [
  "frame-system-benchmarking 28.0.0",
  "frame-system-rpc-runtime-api 26.0.0",
  "frame-try-runtime 0.34.0",
- "hex-literal",
  "log",
  "pallet-asset-rate 7.0.0",
  "pallet-authority-discovery 28.0.0",
@@ -9520,18 +9440,14 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bounties",
  "pallet-child-bounties",
- "pallet-collective 28.0.0",
  "pallet-conviction-voting",
- "pallet-democracy",
  "pallet-election-provider-multi-phase 27.0.0",
  "pallet-election-provider-support-benchmarking 27.0.0",
- "pallet-elections-phragmen",
  "pallet-fast-unstake 27.0.0",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership 28.0.0",
  "pallet-message-queue 31.0.0",
  "pallet-mmr",
  "pallet-multisig",
@@ -9551,7 +9467,6 @@ dependencies = [
  "pallet-staking-reward-fn 19.0.0",
  "pallet-staking-runtime-api",
  "pallet-timestamp 27.0.0",
- "pallet-tips",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-treasury 27.0.0",
@@ -9565,11 +9480,8 @@ dependencies = [
  "polkadot-runtime-common 7.0.0",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains 7.0.0",
- "rustc-hex",
  "scale-info",
  "separator",
- "serde",
- "serde_derive",
  "serde_json",
  "sp-api 26.0.0",
  "sp-application-crypto 30.0.0",
@@ -9584,7 +9496,6 @@ dependencies = [
  "sp-inherents 26.0.0",
  "sp-io 30.0.0",
  "sp-keyring 31.0.0",
- "sp-mmr-primitives",
  "sp-npos-elections 26.0.0",
  "sp-offchain 26.0.0",
  "sp-runtime 31.0.1",
@@ -9599,7 +9510,6 @@ dependencies = [
  "staging-xcm 7.0.0",
  "staging-xcm-builder 7.0.3",
  "staging-xcm-executor 7.0.3",
- "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "tiny-keccak",
  "tokio",
@@ -14149,7 +14059,6 @@ name = "staging-kusama-runtime"
 version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
- "bitvec",
  "frame-benchmarking 28.0.0",
  "frame-election-provider-support 28.0.0",
  "frame-executive 28.0.0",
@@ -14172,18 +14081,14 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bounties",
  "pallet-child-bounties",
- "pallet-collective 28.0.0",
  "pallet-conviction-voting",
- "pallet-democracy",
  "pallet-election-provider-multi-phase 27.0.0",
  "pallet-election-provider-support-benchmarking 27.0.0",
- "pallet-elections-phragmen",
  "pallet-fast-unstake 27.0.0",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership 28.0.0",
  "pallet-message-queue 31.0.0",
  "pallet-mmr",
  "pallet-multisig",
@@ -14206,7 +14111,6 @@ dependencies = [
  "pallet-staking-runtime-api",
  "pallet-state-trie-migration",
  "pallet-timestamp 27.0.0",
- "pallet-tips",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-treasury 27.0.0",
@@ -14219,14 +14123,10 @@ dependencies = [
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-common 7.0.0",
  "polkadot-runtime-parachains 7.0.0",
- "rustc-hex",
  "scale-info",
  "separator",
- "serde",
- "serde_derive",
  "serde_json",
  "sp-api 26.0.0",
- "sp-application-crypto 30.0.0",
  "sp-arithmetic 23.0.0",
  "sp-authority-discovery 26.0.0",
  "sp-block-builder 26.0.0",
@@ -14238,7 +14138,6 @@ dependencies = [
  "sp-inherents 26.0.0",
  "sp-io 30.0.0",
  "sp-keyring 31.0.0",
- "sp-mmr-primitives",
  "sp-npos-elections 26.0.0",
  "sp-offchain 26.0.0",
  "sp-runtime 31.0.1",
@@ -14253,7 +14152,6 @@ dependencies = [
  "staging-xcm 7.0.0",
  "staging-xcm-builder 7.0.3",
  "staging-xcm-executor 7.0.3",
- "static_assertions",
  "substrate-wasm-builder 17.0.0",
  "tiny-keccak",
  "tokio",
