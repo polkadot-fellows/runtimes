@@ -37,7 +37,7 @@ pub fn xcm_transact_paid_execution(
 			assets: All.into(),
 			beneficiary: Location {
 				parents: 0,
-				interior: X1(AccountId32 { network: None, id: beneficiary.into() }),
+				interior: [ AccountId32 { network: None, id: beneficiary.into() }].into(),
 			},
 		},
 	]))

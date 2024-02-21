@@ -117,6 +117,7 @@ bridge-hub-test-utils = { version = "0.8.0" }
 bridge-runtime-common = { version = "0.8.0", features = ["integrity-test"] }
 sp-keyring = { version = "32.0.0" }
 static_assertions = { version = "1.1.0" }
+snowbridge-runtime-test-common = { version = "0.1.0" }
 
 [features]
 default = [ "std" ]
@@ -244,6 +245,7 @@ runtime-benchmarks = [
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"snowbridge-runtime-common/runtime-benchmarks",
+	"snowbridge-runtime-test-common/runtime-benchmarks",
 	"snowbridge-pallet-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",

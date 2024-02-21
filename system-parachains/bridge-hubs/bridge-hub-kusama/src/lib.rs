@@ -27,10 +27,9 @@ pub mod bridge_to_polkadot_config;
 mod weights;
 pub mod xcm_config;
 
-use bridge_hub_common::AggregateMessageOrigin;
+use bridge_hub_common::message_queue::{AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
-use parachains_common::kusama::currency::EXISTENTIAL_DEPOSIT;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::{
 	gwei, meth, outbound::Message, AgentId, AllowSiblingsOnly, PricingParameters, Rewards,
@@ -77,12 +76,12 @@ use xcm_config::{
 pub use sp_runtime::BuildStorage;
 
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID};
+use kusama_runtime_constants::{currency::EXISTENTIAL_DEPOSIT, system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID}};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, Balance, BlockNumber, Hash, Header, Nonce,
+	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce,
 	Signature,
 };
 
@@ -718,7 +717,7 @@ construct_runtime!(
 
 		// Ethereum bridge pallets.
 		EthereumInboundQueue: snowbridge_pallet_inbound_queue = 80,
-		EthereumOutboundQueue: snowbridge_pallet_inbound_queue = 81,
+		EthereumOutboundQueue: snowbridge_pallet_outbound_queue = 81,
 		EthereumBeaconClient: snowbridge_pallet_ethereum_client = 82,
 		EthereumSystem: snowbridge_pallet_system = 83,
 

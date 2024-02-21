@@ -801,12 +801,12 @@ pub mod bridging {
 			/// Configure the fee to max Balance so that it is disabled.
 			pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
 			pub storage BridgeHubEthereumBaseFee: Balance = DefaultBridgeHubEthereumBaseFee::get();
-			pub SiblingBridgeHubWithEthereumInboundQueueInstance: MultiLocation = MultiLocation::new(
-				1,
-				X2(
+			pub SiblingBridgeHubWithEthereumInboundQueueInstance: Location = Location::new(
+				2,
+				[
 					Parachain(SiblingBridgeHubParaId::get()),
 					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX),
-				)
+				]
 			);
 
 			/// Set up exporters configuration.
@@ -824,7 +824,7 @@ pub mod bridging {
 			];
 
 			/// Universal aliases
-			pub UniversalAliases: BTreeSet<(MultiLocation, Junction)> = BTreeSet::from_iter(
+			pub UniversalAliases: BTreeSet<(Location, Junction)> = BTreeSet::from_iter(
 				sp_std::vec![
 					(SiblingBridgeHubWithEthereumInboundQueueInstance::get(), GlobalConsensus(EthereumNetwork::get())),
 				]

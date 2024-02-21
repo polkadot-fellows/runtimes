@@ -120,10 +120,13 @@ decl_test_parachains! {
 			XcmpMessageHandler: bridge_hub_polkadot_runtime::XcmpQueue,
 			LocationToAccountId: bridge_hub_polkadot_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: bridge_hub_polkadot_runtime::ParachainInfo,
-			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			MessageOrigin: bridge_hub_common::AggregateMessageOrigin,
 		},
 		pallets = {
 			PolkadotXcm: bridge_hub_polkadot_runtime::PolkadotXcm,
+			EthereumSystem: bridge_hub_polkadot_runtime::EthereumSystem,
+			EthereumInboundQueue: bridge_hub_polkadot_runtime::EthereumInboundQueue,
+			EthereumOutboundQueue: bridge_hub_polkadot_runtime::EthereumOutboundQueue,
 		}
 	},
 	pub struct PenpalPolkadotA {
@@ -194,10 +197,13 @@ decl_test_parachains! {
 			XcmpMessageHandler: bridge_hub_kusama_runtime::XcmpQueue,
 			LocationToAccountId: bridge_hub_kusama_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: bridge_hub_kusama_runtime::ParachainInfo,
-			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			MessageOrigin: bridge_hub_common::AggregateMessageOrigin,
 		},
 		pallets = {
 			PolkadotXcm: bridge_hub_kusama_runtime::PolkadotXcm,
+			EthereumSystem: bridge_hub_kusama_runtime::EthereumSystem,
+			EthereumInboundQueue: bridge_hub_kusama_runtime::EthereumInboundQueue,
+			EthereumOutboundQueue: bridge_hub_kusama_runtime::EthereumOutboundQueue,
 		}
 	},
 	pub struct PenpalKusamaA {

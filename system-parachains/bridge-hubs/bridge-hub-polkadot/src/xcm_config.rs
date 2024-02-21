@@ -23,7 +23,7 @@ use super::{
 	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
-	parameter_types,
+	parameter_types, StoragePrefixedMap,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
@@ -38,7 +38,6 @@ use parachains_common::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
-use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use sp_std::marker::PhantomData;
 use system_parachains_constants::{polkadot::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
@@ -47,7 +46,7 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	FungibleAdapter, HandleFee, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -314,7 +313,7 @@ impl xcm_executor::Config for XcmConfig {
 			XcmExportFeeToSibling<
 				bp_polkadot::Balance,
 				AccountId,
-				TokenLocation,
+				DotRelayLocation,
 				EthereumNetwork,
 				Self::AssetTransactor,
 				crate::EthereumOutboundQueue,

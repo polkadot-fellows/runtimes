@@ -25,6 +25,7 @@ polkadot-runtime-parachains = { version = "8.0.0" }
 polkadot-parachain-primitives = { version = "7.0.0" }
 
 # Cumulus
+bridge-hub-common = { version = "0.1.0" }
 parachains-common = { version = "8.0.0" }
 cumulus-primitives-core = { version = "0.8.0" }
 xcm-emulator = { version = "0.6.0" }
