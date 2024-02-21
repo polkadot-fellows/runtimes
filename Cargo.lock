@@ -503,7 +503,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
@@ -606,7 +606,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
@@ -1359,7 +1359,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "pallet-xcm-bridge-hub",
  "parachains-common 7.0.0",
  "parity-scale-codec",
@@ -1445,7 +1445,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "pallet-xcm-bridge-hub",
  "parachains-common 7.0.0",
  "parity-scale-codec",
@@ -1511,7 +1511,7 @@ dependencies = [
  "pallet-session 28.0.0",
  "pallet-utility 28.0.0",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "parachains-common 7.0.0",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -2741,7 +2741,7 @@ dependencies = [
  "cumulus-primitives-core 0.7.0",
  "frame-support 28.0.0",
  "log",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "parity-scale-codec",
  "polkadot-runtime-common 7.0.0",
  "polkadot-runtime-parachains 7.0.0",
@@ -8745,9 +8745,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "7.0.3"
+version = "7.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "890bbad7a5752c8d4c3681457bac4e87fafc79cd9dd5b1a94e6f237f93a795a3"
+checksum = "da15171c2dc870ad636fcdb16d9aa37eb84cfe6001c3f1c77cf2c97446ebfbe5"
 dependencies = [
  "frame-benchmarking 28.0.0",
  "frame-support 28.0.0",
@@ -9559,7 +9559,7 @@ dependencies = [
  "pallet-vesting 28.0.0",
  "pallet-whitelist",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-common 7.0.0",
@@ -9685,7 +9685,7 @@ dependencies = [
  "pallet-transaction-payment 28.0.0",
  "pallet-treasury 27.0.0",
  "pallet-vesting 28.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-parachains 7.0.0",
@@ -14214,7 +14214,7 @@ dependencies = [
  "pallet-vesting 28.0.0",
  "pallet-whitelist",
  "pallet-xcm 7.0.0",
- "pallet-xcm-benchmarks 7.0.3",
+ "pallet-xcm-benchmarks 7.0.4",
  "parity-scale-codec",
  "polkadot-primitives 7.0.0",
  "polkadot-runtime-common 7.0.0",

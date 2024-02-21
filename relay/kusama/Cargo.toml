@@ -94,7 +94,7 @@ pallet-utility = { default-features = false , version = "28.0.0" }
 pallet-vesting = { default-features = false , version = "28.0.0" }
 pallet-whitelist = { default-features = false , version = "27.0.0" }
 pallet-xcm = { default-features = false , version = "7.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "7.0.3" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "7.0.4" }
 frame-election-provider-support = { default-features = false , version = "28.0.0" }
 
 frame-benchmarking = { default-features = false, optional = true , version = "28.0.0" }
