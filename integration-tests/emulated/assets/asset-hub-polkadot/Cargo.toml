@@ -25,7 +25,7 @@ pallet-xcm = { version = "6.0.0" }
 # Cumulus
 parachains-common = { version = "6.0.0" }
 xcm-emulator = { version = "0.4.0" }
-asset-test-utils = { version = "6.0.0" }
+asset-test-utils = { version = "6.0.1" }
 
 # Local
 emulated-chains = { path = "../../chains" }
@@ -33,6 +33,3 @@ integration-tests-common = { path = "../../common" }
 asset-hub-polkadot-runtime = { path = "../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
 polkadot-runtime = { path = "../../../../relay/polkadot" }
 system-parachains-constants = { path = "../../../../system-parachains/constants" }
-
-[features]
-runtime-benchmarks = []
