@@ -853,6 +853,15 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 	AccountId,
 >;
 
+/// Union fungibles implementation for [`LocalAndForeignAssets`] and `Balances`.
+pub type NativeAndAssets = fungible::UnionOf<
+	Balances,
+	LocalAndForeignAssets,
+	TargetFromLeft<DotLocationV3, xcm::v3::Location>,
+	xcm::v3::Location,
+	AccountId,
+>;
+
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	// TODO any fee?
@@ -864,13 +873,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
 	type AssetKind = xcm::v3::Location;
-	type Assets = fungible::UnionOf<
-		Balances,
-		LocalAndForeignAssets,
-		TargetFromLeft<DotLocationV3, Self::AssetKind>,
-		Self::AssetKind,
-		Self::AccountId,
-	>;
+	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
 	type PoolLocator = impls::pool::WithFirstAsset<
 		DotLocationV3,
