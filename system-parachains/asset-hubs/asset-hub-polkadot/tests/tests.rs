@@ -829,7 +829,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 }
 
 #[test]
-fn treasury_pallet_account_not_non() {
+fn treasury_pallet_account_not_none() {
 	assert_eq!(
 		RelayTreasuryPalletAccount::get(),
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()

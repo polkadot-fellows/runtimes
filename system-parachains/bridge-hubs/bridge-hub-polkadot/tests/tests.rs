@@ -318,7 +318,7 @@ pub fn can_calculate_fee_for_complex_message_delivery_transaction() {}
 pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {}
 
 #[test]
-fn treasury_pallet_account_not_non() {
+fn treasury_pallet_account_not_none() {
 	assert_eq!(
 		RelayTreasuryPalletAccount::get(),
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()

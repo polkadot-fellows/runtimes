@@ -373,7 +373,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 }
 
 #[test]
-fn treasury_pallet_account_not_non() {
+fn treasury_pallet_account_not_none() {
 	assert_eq!(
 		RelayTreasuryPalletAccount::get(),
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
