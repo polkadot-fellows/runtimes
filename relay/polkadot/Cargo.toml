@@ -8,14 +8,9 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-bitvec = { version = "1.0.1", default-features = false, features = ["alloc"] }
 parity-scale-codec = { version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 log = { version = "0.4.20", default-features = false }
-rustc-hex = { version = "2.1.0", default-features = false }
-serde = { version = "1.0.196", default-features = false }
-serde_derive = { version = "1.0.196", optional = true }
-static_assertions = "1.1.0"
 
 authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "27.0.0" }
 babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.33.0" }
@@ -31,7 +26,6 @@ sp-genesis-builder = { default-features = false , version = "0.8.0" }
 sp-std = { default-features = false , version = "14.0.0" }
 sp-application-crypto = { default-features = false , version = "31.0.0" }
 sp-io = { default-features = false , version = "31.0.0" }
-sp-mmr-primitives = { default-features = false , version = "27.0.0" }
 sp-runtime = { default-features = false , version = "32.0.0" }
 sp-staking = { default-features = false , version = "27.0.0" }
 sp-core = { default-features = false , version = "29.0.0" }
@@ -52,10 +46,7 @@ pallet-bounties = { default-features = false , version = "28.0.0" }
 pallet-child-bounties = { default-features = false , version = "28.0.0" }
 pallet-transaction-payment = { default-features = false , version = "29.0.0" }
 pallet-transaction-payment-rpc-runtime-api = { default-features = false , version = "29.0.0" }
-pallet-collective = { default-features = false , version = "29.0.0" }
 pallet-conviction-voting = { default-features = false , version = "29.0.0" }
-pallet-democracy = { default-features = false , version = "29.0.0" }
-pallet-elections-phragmen = { default-features = false , version = "30.0.0" }
 pallet-election-provider-multi-phase = { default-features = false , version = "28.0.0" }
 pallet-fast-unstake = { default-features = false , version = "28.0.0" }
 frame-executive = { default-features = false , version = "29.0.0" }
@@ -63,7 +54,6 @@ pallet-grandpa = { default-features = false , version = "29.0.0" }
 pallet-identity = { default-features = false , version = "29.0.0" }
 pallet-im-online = { default-features = false , version = "28.0.0" }
 pallet-indices = { default-features = false , version = "29.0.0" }
-pallet-membership = { default-features = false , version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
 pallet-mmr = { default-features = false , version = "28.0.0" }
 pallet-multisig = { default-features = false , version = "29.0.0" }
@@ -84,14 +74,13 @@ frame-system = { default-features = false , version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "27.0.0" }
 polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }
 pallet-timestamp = { default-features = false , version = "28.0.0" }
-pallet-tips = { default-features = false , version = "28.0.0" }
 pallet-treasury = { default-features = false , version = "28.0.0" }
 pallet-whitelist = { default-features = false , version = "28.0.0" }
 pallet-vesting = { default-features = false , version = "29.0.0" }
 pallet-utility = { default-features = false , version = "29.0.0" }
 frame-election-provider-support = { default-features = false , version = "29.0.0" }
 pallet-xcm = { default-features = false, version = "8.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.0" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.1" }
 
 frame-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 frame-try-runtime = { default-features = false, optional = true , version = "0.35.0" }
@@ -100,7 +89,6 @@ pallet-election-provider-support-benchmarking = { default-features = false, opti
 pallet-offences-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 pallet-session-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
-hex-literal = { version = "0.4.1", optional = true }
 
 runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.0" }
 runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "8.0.0" }
@@ -113,7 +101,6 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false , vers
 sp-debug-derive = { default-features = false, version = "14.0.0" }
 
 [dev-dependencies]
-hex-literal = "0.4.1"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 keyring = { package = "sp-keyring", version = "32.0.0" }
 sp-trie = { version = "30.0.0" }
@@ -135,7 +122,6 @@ std = [
 	"babe-primitives/std",
 	"beefy-primitives/std",
 	"binary-merkle-tree/std",
-	"bitvec/std",
 	"block-builder-api/std",
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
@@ -158,18 +144,14 @@ std = [
 	"pallet-beefy-mmr/std",
 	"pallet-bounties/std",
 	"pallet-child-bounties/std",
-	"pallet-collective/std",
 	"pallet-conviction-voting/std",
-	"pallet-democracy/std",
 	"pallet-election-provider-multi-phase/std",
 	"pallet-election-provider-support-benchmarking?/std",
-	"pallet-elections-phragmen/std",
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
 	"pallet-im-online/std",
 	"pallet-indices/std",
-	"pallet-membership/std",
 	"pallet-message-queue/std",
 	"pallet-mmr/std",
 	"pallet-multisig/std",
@@ -188,7 +170,6 @@ std = [
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-timestamp/std",
-	"pallet-tips/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"pallet-treasury/std",
@@ -202,10 +183,7 @@ std = [
 	"primitives/std",
 	"runtime-common/std",
 	"runtime-parachains/std",
-	"rustc-hex/std",
 	"scale-info/std",
-	"serde/std",
-	"serde_derive",
 	"sp-api/std",
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
@@ -213,7 +191,6 @@ std = [
 	"sp-debug-derive/std",
 	"sp-genesis-builder/std",
 	"sp-io/std",
-	"sp-mmr-primitives/std",
 	"sp-npos-elections/std",
 	"sp-runtime/std",
 	"sp-session/std",
@@ -233,25 +210,20 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"hex-literal",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
-	"pallet-collective/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
-	"pallet-democracy/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
-	"pallet-elections-phragmen/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-im-online/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
-	"pallet-membership/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
@@ -266,7 +238,6 @@ runtime-benchmarks = [
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
-	"pallet-tips/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -298,17 +269,13 @@ try-runtime = [
 	"pallet-beefy/try-runtime",
 	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
-	"pallet-collective/try-runtime",
 	"pallet-conviction-voting/try-runtime",
-	"pallet-democracy/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
-	"pallet-elections-phragmen/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
 	"pallet-im-online/try-runtime",
 	"pallet-indices/try-runtime",
-	"pallet-membership/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-mmr/try-runtime",
 	"pallet-multisig/try-runtime",
@@ -321,7 +288,6 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-timestamp/try-runtime",
-	"pallet-tips/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-utility/try-runtime",

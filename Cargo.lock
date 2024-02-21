@@ -503,7 +503,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 29.0.0",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
@@ -606,7 +606,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility 29.0.0",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
@@ -1364,7 +1364,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-utility 29.0.0",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "pallet-xcm-bridge-hub",
  "parachains-common 8.0.0",
  "parity-scale-codec",
@@ -1450,7 +1450,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-utility 29.0.0",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "pallet-xcm-bridge-hub",
  "parachains-common 8.0.0",
  "parity-scale-codec",
@@ -1771,7 +1771,6 @@ dependencies = [
  "cumulus-primitives-core 0.8.0",
  "encointer-kusama-runtime",
  "glutton-kusama-runtime",
- "hex-literal",
  "kusama-runtime-constants",
  "pallet-im-online",
  "pallet-staking 29.0.0",
@@ -2738,7 +2737,7 @@ dependencies = [
  "frame-support 29.0.0",
  "log",
  "pallet-asset-conversion",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
  "polkadot-runtime-common 8.0.0",
  "polkadot-runtime-parachains 8.0.0",
@@ -3344,7 +3343,7 @@ dependencies = [
  "pallet-encointer-reputation-commitments",
  "pallet-encointer-scheduler",
  "pallet-insecure-randomness-collective-flip",
- "pallet-membership 25.0.0",
+ "pallet-membership",
  "pallet-proxy 25.0.0",
  "pallet-scheduler 26.0.0",
  "pallet-timestamp 24.0.0",
@@ -7414,25 +7413,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-democracy"
-version = "29.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa781d632063087bcd3ff46eb1a668f15647ab116f1c8a7c573b7168f62d72c3"
-dependencies = [
- "frame-benchmarking 29.0.0",
- "frame-support 29.0.0",
- "frame-system 29.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 29.0.0",
- "sp-io 31.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7507,26 +7487,6 @@ dependencies = [
  "parity-scale-codec",
  "sp-npos-elections 27.0.0",
  "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
-name = "pallet-elections-phragmen"
-version = "30.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10cb0158cc7461fda5db04c5791d0df34635bec37181763aca449bade677d12d"
-dependencies = [
- "frame-benchmarking 29.0.0",
- "frame-support 29.0.0",
- "frame-system 29.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 29.0.0",
- "sp-io 31.0.0",
- "sp-npos-elections 27.0.0",
- "sp-runtime 32.0.0",
- "sp-staking 27.0.0",
  "sp-std 14.0.0",
 ]
 
@@ -7884,24 +7844,6 @@ dependencies = [
  "sp-io 27.0.0",
  "sp-runtime 28.0.0",
  "sp-std 12.0.0",
-]
-
-[[package]]
-name = "pallet-membership"
-version = "29.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad901cdf3de23daf23ff8b092ab318b13faebfc1aa4d84263f2fdc84feaf3e9b"
-dependencies = [
- "frame-benchmarking 29.0.0",
- "frame-support 29.0.0",
- "frame-system 29.0.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core 29.0.0",
- "sp-io 31.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
 ]
 
 [[package]]
@@ -8558,26 +8500,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-tips"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ca4b9921c9e9b59e8eeb64677ba6ec49743ef5fe98e0b63f77411b2b9f6cc99"
-dependencies = [
- "frame-benchmarking 29.0.0",
- "frame-support 29.0.0",
- "frame-system 29.0.0",
- "log",
- "pallet-treasury 28.0.0",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 29.0.0",
- "sp-io 31.0.0",
- "sp-runtime 32.0.0",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "pallet-transaction-payment"
 version = "25.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8843,9 +8765,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c8e616fcc03682d06f6127f8ae6e31082fc97f795fc4adf8ce67735d7342aea"
+checksum = "23fd87994bbe3333ba81436e68b7574e598fe568a06bc59b53a6178c5ce8d71d"
 dependencies = [
  "frame-benchmarking 29.0.0",
  "frame-support 29.0.0",
@@ -9587,7 +9509,6 @@ name = "polkadot-runtime"
 version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
- "bitvec",
  "frame-benchmarking 29.0.0",
  "frame-election-provider-support 29.0.0",
  "frame-executive 29.0.0",
@@ -9597,7 +9518,6 @@ dependencies = [
  "frame-system-benchmarking 29.0.0",
  "frame-system-rpc-runtime-api 27.0.0",
  "frame-try-runtime 0.35.0",
- "hex-literal",
  "log",
  "pallet-asset-rate 8.0.0",
  "pallet-authority-discovery 29.0.0",
@@ -9609,18 +9529,14 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bounties",
  "pallet-child-bounties",
- "pallet-collective 29.0.0",
  "pallet-conviction-voting",
- "pallet-democracy",
  "pallet-election-provider-multi-phase 28.0.0",
  "pallet-election-provider-support-benchmarking 28.0.0",
- "pallet-elections-phragmen",
  "pallet-fast-unstake 28.0.0",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership 29.0.0",
  "pallet-message-queue 32.0.0",
  "pallet-mmr",
  "pallet-multisig",
@@ -9640,7 +9556,6 @@ dependencies = [
  "pallet-staking-reward-fn 20.0.0",
  "pallet-staking-runtime-api",
  "pallet-timestamp 28.0.0",
- "pallet-tips",
  "pallet-transaction-payment 29.0.0",
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-treasury 28.0.0",
@@ -9648,17 +9563,14 @@ dependencies = [
  "pallet-vesting 29.0.0",
  "pallet-whitelist",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
  "polkadot-runtime-common 8.0.0",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains 8.0.0",
- "rustc-hex",
  "scale-info",
  "separator",
- "serde",
- "serde_derive",
  "serde_json",
  "sp-api 27.0.0",
  "sp-application-crypto 31.0.0",
@@ -9673,7 +9585,6 @@ dependencies = [
  "sp-inherents 27.0.0",
  "sp-io 31.0.0",
  "sp-keyring 32.0.0",
- "sp-mmr-primitives",
  "sp-npos-elections 27.0.0",
  "sp-offchain 27.0.0",
  "sp-runtime 32.0.0",
@@ -9688,7 +9599,6 @@ dependencies = [
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
  "staging-xcm-executor 8.0.1",
- "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "tiny-keccak",
  "tokio",
@@ -9774,7 +9684,7 @@ dependencies = [
  "pallet-transaction-payment 29.0.0",
  "pallet-treasury 28.0.0",
  "pallet-vesting 29.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
  "polkadot-runtime-parachains 8.0.0",
@@ -14261,7 +14171,6 @@ name = "staging-kusama-runtime"
 version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
- "bitvec",
  "frame-benchmarking 29.0.0",
  "frame-election-provider-support 29.0.0",
  "frame-executive 29.0.0",
@@ -14284,18 +14193,14 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bounties",
  "pallet-child-bounties",
- "pallet-collective 29.0.0",
  "pallet-conviction-voting",
- "pallet-democracy",
  "pallet-election-provider-multi-phase 28.0.0",
  "pallet-election-provider-support-benchmarking 28.0.0",
- "pallet-elections-phragmen",
  "pallet-fast-unstake 28.0.0",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
- "pallet-membership 29.0.0",
  "pallet-message-queue 32.0.0",
  "pallet-mmr",
  "pallet-multisig",
@@ -14318,7 +14223,6 @@ dependencies = [
  "pallet-staking-runtime-api",
  "pallet-state-trie-migration",
  "pallet-timestamp 28.0.0",
- "pallet-tips",
  "pallet-transaction-payment 29.0.0",
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-treasury 28.0.0",
@@ -14326,19 +14230,15 @@ dependencies = [
  "pallet-vesting 29.0.0",
  "pallet-whitelist",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
  "polkadot-runtime-common 8.0.0",
  "polkadot-runtime-parachains 8.0.0",
- "rustc-hex",
  "scale-info",
  "separator",
- "serde",
- "serde_derive",
  "serde_json",
  "sp-api 27.0.0",
- "sp-application-crypto 31.0.0",
  "sp-arithmetic 24.0.0",
  "sp-authority-discovery 27.0.0",
  "sp-block-builder 27.0.0",
@@ -14350,7 +14250,6 @@ dependencies = [
  "sp-inherents 27.0.0",
  "sp-io 31.0.0",
  "sp-keyring 32.0.0",
- "sp-mmr-primitives",
  "sp-npos-elections 27.0.0",
  "sp-offchain 27.0.0",
  "sp-runtime 32.0.0",
@@ -14365,7 +14264,6 @@ dependencies = [
  "staging-xcm 8.0.0",
  "staging-xcm-builder 8.0.0",
  "staging-xcm-executor 8.0.1",
- "static_assertions",
  "substrate-wasm-builder 18.0.0",
  "tiny-keccak",
  "tokio",
