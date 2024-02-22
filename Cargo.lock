@@ -13260,7 +13260,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-utility 29.0.0",
  "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.0",
+ "pallet-xcm-benchmarks 8.0.1",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
