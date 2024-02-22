@@ -772,27 +772,6 @@ pub mod bridging {
 			>;
 	}
 
-	/// Benchmarks helper for bridging configuration.
-	#[cfg(feature = "runtime-benchmarks")]
-	pub struct BridgingBenchmarksHelper;
-
-	#[cfg(feature = "runtime-benchmarks")]
-	impl BridgingBenchmarksHelper {
-		pub fn prepare_universal_alias() -> Option<(Location, Junction)> {
-			let alias = to_polkadot::UniversalAliases::get().into_iter().find_map(
-				|(location, junction)| {
-					match to_polkadot::SiblingBridgeHubWithBridgeHubPolkadotInstance::get()
-						.eq(&location)
-					{
-						true => Some((location, junction)),
-						false => None,
-					}
-				},
-			);
-			Some(alias.expect("we expect here BridgeHubKusama to Polkadot mapping at least"))
-		}
-	}
-
 	pub mod to_ethereum {
 		use super::*;
 
