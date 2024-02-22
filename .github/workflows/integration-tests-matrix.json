@@ -1,0 +1,10 @@
+[
+  {
+    "name": "asset-hub-kusama",
+    "package": "asset-hub-kusama-integration-tests"
+  },
+  {
+    "name": "asset-hub-polkadot",
+    "package": "asset-hub-polkadot-integration-tests"
+  }
+]

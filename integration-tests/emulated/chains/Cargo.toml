@@ -41,8 +41,3 @@ bridge-hub-polkadot-runtime = { path = "../../../system-parachains/bridge-hubs/b
 bridge-hub-kusama-runtime = { path = "../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
 # TODO: replace with `emulated-integration-tests-common@X.Y.Z` from `polkadot-sdk`
 integration-tests-common = { path = "../common" }
-
-[features]
-runtime-benchmarks = [
-    "penpal-runtime/runtime-benchmarks",
-]
