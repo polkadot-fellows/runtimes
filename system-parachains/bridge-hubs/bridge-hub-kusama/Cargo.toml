@@ -185,6 +185,7 @@ std = [
 	"snowbridge-beacon-primitives/std",
 	"snowbridge-core/std",
 	"snowbridge-pallet-ethereum-client/std",
+	"snowbridge-pallet-ethereum-client-fixtures/std",
 	"snowbridge-pallet-inbound-queue/std",
 	"snowbridge-outbound-queue-runtime-api/std",
 	"snowbridge-pallet-outbound-queue/std",
@@ -211,7 +212,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"snowbridge-pallet-ethereum-client-fixtures/std"
 ]
 
 runtime-benchmarks = [
@@ -244,6 +244,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
+	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks"
 	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
@@ -254,7 +255,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks"
 ]
 
 try-runtime = [
