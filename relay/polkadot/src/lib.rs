@@ -1690,22 +1690,8 @@ pub type Migrations = migrations::Unreleased;
 pub mod migrations {
 	use super::*;
 
-	/// Upgrade Session keys to include BEEFY key.
-	/// When this is removed, should also remove `OldSessionKeys`.
-	pub struct UpgradeSessionKeys;
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
-		fn on_runtime_upgrade() -> Weight {
-			Session::upgrade_keys::<OldSessionKeys, _>(transform_session_keys);
-			Perbill::from_percent(50) * BlockWeights::get().max_block
-		}
-	}
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		// Upgrade SessionKeys to include BEEFY key
-		UpgradeSessionKeys,
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
