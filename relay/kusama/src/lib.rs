@@ -1715,7 +1715,7 @@ pub mod migrations {
 
 	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, sp_runtime::TryRuntimeError> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
 				log::warn!(target: "runtime::session_keys", "Skipping session keys migration pre-upgrade check due to spec version (already applied?)");
 				return Ok(Vec::new())
@@ -1724,7 +1724,10 @@ pub mod migrations {
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
 			let key_ids = SessionKeys::key_ids();
 			frame_support::ensure!(
-				key_ids.into_iter().find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE) == None,
+				key_ids
+					.into_iter()
+					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE)
+					.is_none(),
 				"New session keys contain the ImOnline key that should have been removed",
 			);
 			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
@@ -1783,8 +1786,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
