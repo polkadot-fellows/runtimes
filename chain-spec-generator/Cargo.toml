@@ -44,6 +44,10 @@ glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama"
 sp-core-encointer-compatible = { package = "sp-core",  version = "25.0.0" }
 
 [features]
+fast-runtime = [
+	"kusama-runtime/fast-runtime",
+	"polkadot-runtime/fast-runtime",
+]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"asset-hub-kusama-runtime/runtime-benchmarks",
