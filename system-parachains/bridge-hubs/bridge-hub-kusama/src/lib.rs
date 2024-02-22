@@ -71,8 +71,9 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{
 	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
-	XcmRouter,
 };
+#[cfg(not(feature = "runtime-benchmarks"))]
+use xcm_config::XcmRouter;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
