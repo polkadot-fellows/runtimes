@@ -23,8 +23,9 @@ use super::{
 	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
-	parameter_types, StoragePrefixedMap,
+	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
+	StoragePrefixedMap,
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;

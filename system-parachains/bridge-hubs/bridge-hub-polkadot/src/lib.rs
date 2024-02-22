@@ -27,7 +27,9 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use bridge_hub_common::message_queue::{AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling};
+use bridge_hub_common::message_queue::{
+	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
+};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
@@ -77,13 +79,15 @@ pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::{currency::EXISTENTIAL_DEPOSIT, system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID}};
+use polkadot_runtime_constants::{
+	currency::EXISTENTIAL_DEPOSIT,
+	system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID},
+};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{
-	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce,
-	Signature,
+	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
 use polkadot_runtime_common::prod_or_fast;
