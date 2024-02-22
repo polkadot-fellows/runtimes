@@ -244,7 +244,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks"
+	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
 	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
