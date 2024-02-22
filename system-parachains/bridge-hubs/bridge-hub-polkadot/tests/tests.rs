@@ -24,10 +24,10 @@ use bridge_hub_polkadot_runtime::{
 		WithBridgeHubKusamaMessageBridge, WithBridgeHubKusamaMessagesInstance,
 		XCM_LANE_FOR_ASSET_HUB_POLKADOT_TO_ASSET_HUB_KUSAMA,
 	},
-	xcm_config::{DotRelayLocation, RelayNetwork, XcmConfig},
+	xcm_config::{DotRelayLocation, RelayNetwork, XcmConfig}, EthereumGatewayAddress,
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	SignedExtra, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
+	SignedExtra, TransactionPayment, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
 use codec::{Decode, Encode};
@@ -35,13 +35,14 @@ use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8}
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_keyring::AccountKeyring::Alice;
+use sp_core::H160;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
 	AccountId32,
 };
-use system_parachains_constants::polkadot::{
+use system_parachains_constants::{polkadot::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
-};
+}, SLOT_DURATION};
 use xcm::latest::prelude::*;
 
 // Para id of sibling chain used in tests.
@@ -293,6 +294,21 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 			"Estimate fee for `ExportMessage` for runtime: {:?}",
 			<Runtime as frame_system::Config>::Version::get()
 		),
+	)
+}
+
+#[test]
+fn change_ethereum_gateway_by_governance_works() {
+	bridge_hub_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		EthereumGatewayAddress,
+		H160,
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
+		|_| [1; 20].into(),
 	)
 }
 

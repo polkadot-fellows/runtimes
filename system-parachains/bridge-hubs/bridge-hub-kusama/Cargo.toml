@@ -112,7 +112,7 @@ snowbridge-pallet-inbound-queue = { default-features = false , version = "0.1.0"
 snowbridge-pallet-outbound-queue = { default-features = false , version = "0.1.0" }
 snowbridge-outbound-queue-runtime-api = { default-features = false , version = "0.1.0" }
 snowbridge-router-primitives = { default-features = false , version = "0.1.0" }
-snowbridge-runtime-common = { default-features = false , version = "0.1.0" }
+snowbridge-runtime-common = { default-features = false, version = "0.1.0" }
 
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.8.0" }

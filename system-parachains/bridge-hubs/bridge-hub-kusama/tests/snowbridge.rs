@@ -388,7 +388,6 @@ pub fn send_transfer_token_message_success<Runtime, XcmConfig>(
 
 			let digest = included_head.digest();
 
-			//let digest = frame_system::Pallet::<Runtime>::digest();
 			let digest_items = digest.logs();
 			assert!(digest_items.len() == 1 && digest_items[0].as_other().is_some());
 		});
