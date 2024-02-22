@@ -69,9 +69,10 @@ use frame_system::{
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
+#[cfg(not(feature = "runtime-benchmarks"))]
+use xcm_config::XcmRouter;
 use xcm_config::{
 	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
-	XcmRouter,
 };
 
 #[cfg(any(feature = "std", test))]
