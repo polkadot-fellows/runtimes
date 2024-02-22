@@ -282,10 +282,10 @@ impl pallet_babe::Config for Runtime {
 	type MaxNominators = MaxNominators;
 
 	type KeyOwnerProof =
-	<Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
+		<Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
 	type EquivocationReportSystem =
-	pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+		pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 parameter_types! {
@@ -335,7 +335,7 @@ impl pallet_beefy::Config for Runtime {
 	type WeightInfo = ();
 	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
 	type EquivocationReportSystem =
-	pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+		pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 impl pallet_mmr::Config for Runtime {
@@ -386,7 +386,7 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
 		)
-			.into()
+		.into()
 	}
 }
 
@@ -585,11 +585,11 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedMaxRefunds = SignedMaxRefunds;
 	type SignedRewardBase = SignedRewardBase;
 	type SignedDepositBase =
-	GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
+		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
 	type SignedDepositByte = SignedDepositByte;
 	type SignedDepositWeight = ();
 	type SignedMaxWeight =
-	<Self::MinerConfig as pallet_election_provider_multi_phase::MinerConfig>::MaxWeight;
+		<Self::MinerConfig as pallet_election_provider_multi_phase::MinerConfig>::MaxWeight;
 	type MinerConfig = Self;
 	type SlashHandler = (); // burn slashes
 	type RewardHandler = (); // nothing to do upon rewards
@@ -964,14 +964,14 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
 	type EquivocationReportSystem =
-	pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+		pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 /// Submits a transaction with the node's public and signature type. Adheres to the signed extension
 /// format of the chain.
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-	where
-		RuntimeCall: From<LocalCall>,
+where
+	RuntimeCall: From<LocalCall>,
 {
 	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
 		call: RuntimeCall,
@@ -1022,8 +1022,8 @@ impl frame_system::offchain::SigningTypes for Runtime {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-	where
-		RuntimeCall: From<C>,
+where
+	RuntimeCall: From<C>,
 {
 	type Extrinsic = UncheckedExtrinsic;
 	type OverarchingCall = RuntimeCall;
@@ -1103,17 +1103,17 @@ parameter_types! {
 
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
-Copy,
-Clone,
-Eq,
-PartialEq,
-Ord,
-PartialOrd,
-Encode,
-Decode,
-RuntimeDebug,
-MaxEncodedLen,
-scale_info::TypeInfo,
+	Copy,
+	Clone,
+	Eq,
+	PartialEq,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	RuntimeDebug,
+	MaxEncodedLen,
+	scale_info::TypeInfo,
 )]
 pub enum ProxyType {
 	Any = 0,
@@ -1150,7 +1150,7 @@ mod proxy_type_tests {
 			(OldProxyType::Staking, ProxyType::Staking),
 			(OldProxyType::IdentityJudgement, ProxyType::IdentityJudgement),
 		]
-			.into_iter()
+		.into_iter()
 		{
 			assert_eq!(i.encode(), j.encode());
 		}
@@ -1353,7 +1353,7 @@ impl pallet_message_queue::Config for Runtime {
 	type MessageProcessor = MessageProcessor;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MessageProcessor =
-	pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
+		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	type QueueChangeHandler = ParaInclusion;
 	type QueuePausedQuery = ();
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
@@ -1399,7 +1399,7 @@ impl parachains_disputes::Config for Runtime {
 impl parachains_slashing::Config for Runtime {
 	type KeyOwnerProofSystem = Historical;
 	type KeyOwnerProof =
-	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, ValidatorId)>>::Proof;
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, ValidatorId)>>::Proof;
 	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
 		KeyTypeId,
 		ValidatorId,
@@ -1741,7 +1741,7 @@ pub mod migrations {
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -2534,7 +2534,7 @@ mod test_fees {
 			<Runtime as pallet_staking::Config>::WeightInfo::payout_stakers_alive_staked(
 				MaxNominators::get(),
 			)
-				.ref_time() as f64;
+			.ref_time() as f64;
 		let block_weight = BlockWeights::get().max_block.ref_time() as f64;
 
 		println!(
@@ -2737,8 +2737,8 @@ mod multiplier_tests {
 	use sp_runtime::traits::Convert;
 
 	fn run_with_system_weight<F>(w: Weight, mut assertions: F)
-		where
-			F: FnMut() -> (),
+	where
+		F: FnMut() -> (),
 	{
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()
@@ -2771,7 +2771,7 @@ mod multiplier_tests {
 			300,
 			<Runtime as pallet_fast_unstake::Config>::BatchSize::get(),
 		)
-			.ref_time() as f32;
+		.ref_time() as f32;
 		println!("ratio of block weight for full batch fast-unstake {}", on_idle / block_time);
 		assert!(on_idle / block_time <= 0.5f32)
 	}
