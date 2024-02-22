@@ -1671,8 +1671,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,

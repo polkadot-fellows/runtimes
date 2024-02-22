@@ -430,17 +430,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 impl_opaque_keys! {
-	pub struct OldSessionKeys {
-		pub grandpa: Grandpa,
-		pub babe: Babe,
-		pub im_online: ImOnline,
-		pub para_validator: Initializer,
-		pub para_assignment: ParaSessionInfo,
-		pub authority_discovery: AuthorityDiscovery,
-	}
-}
-
-impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub grandpa: Grandpa,
 		pub babe: Babe,
@@ -449,32 +438,6 @@ impl_opaque_keys! {
 		pub para_assignment: ParaSessionInfo,
 		pub authority_discovery: AuthorityDiscovery,
 		pub beefy: Beefy,
-	}
-}
-
-// remove this when removing `OldSessionKeys`
-fn transform_session_keys(v: AccountId, old: OldSessionKeys) -> SessionKeys {
-	SessionKeys {
-		grandpa: old.grandpa,
-		babe: old.babe,
-		im_online: old.im_online,
-		para_validator: old.para_validator,
-		para_assignment: old.para_assignment,
-		authority_discovery: old.authority_discovery,
-		beefy: {
-			// From Session::upgrade_keys():
-			//
-			// Care should be taken that the raw versions of the
-			// added keys are unique for every `ValidatorId, KeyTypeId` combination.
-			// This is an invariant that the session pallet typically maintains internally.
-			//
-			// So, produce a dummy value that's unique for the `ValidatorId, KeyTypeId` combination.
-			let mut id: BeefyId = sp_application_crypto::ecdsa::Public::from_raw([0u8; 33]).into();
-			let id_raw: &mut [u8] = id.as_mut();
-			id_raw[1..33].copy_from_slice(v.as_ref());
-			id_raw[0..4].copy_from_slice(b"beef");
-			id
-		},
 	}
 }
 
@@ -1690,22 +1653,8 @@ pub type Migrations = migrations::Unreleased;
 pub mod migrations {
 	use super::*;
 
-	/// Upgrade Session keys to include BEEFY key.
-	/// When this is removed, should also remove `OldSessionKeys`.
-	pub struct UpgradeSessionKeys;
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
-		fn on_runtime_upgrade() -> Weight {
-			Session::upgrade_keys::<OldSessionKeys, _>(transform_session_keys);
-			Perbill::from_percent(50) * BlockWeights::get().max_block
-		}
-	}
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		// Upgrade SessionKeys to include BEEFY key
-		UpgradeSessionKeys,
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
