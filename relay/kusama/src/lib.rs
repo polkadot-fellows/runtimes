@@ -36,15 +36,18 @@ use runtime_common::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset,
 		VersionedMultiLocationConverter,
 	},
-	paras_registrar, prod_or_fast, slots, BalanceToU256, BlockHashCount, BlockLength,
-	CurrencyToVote, SlowAdjustingFeeUpdate, U256ToBalance,
+	paras_registrar, prod_or_fast, slots,
+	traits::Leaser,
+	BalanceToU256, BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
+	U256ToBalance,
 };
 use scale_info::TypeInfo;
 use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
 
 use runtime_parachains::{
-	assigner_parachains as parachains_assigner_parachains,
-	configuration as parachains_configuration, disputes as parachains_disputes,
+	assigner_coretime as parachains_assigner_coretime,
+	assigner_on_demand as parachains_assigner_on_demand, configuration as parachains_configuration,
+	coretime, disputes as parachains_disputes,
 	disputes::slashing as parachains_slashing,
 	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
@@ -115,7 +118,9 @@ use sp_runtime::traits::Get;
 pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
-use kusama_runtime_constants::{currency::*, fee::*, time::*, TREASURY_PALLET_ID};
+use kusama_runtime_constants::{
+	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
+};
 
 // Weights used in the runtime.
 mod weights;
@@ -1224,7 +1229,6 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	// TODO:(PR#159)(PR#1694): check `AssignCoretime` bellow and remove this comment!
 	type AssignCoretime = ();
 }
 
@@ -1294,17 +1298,40 @@ impl parachains_paras_inherent::Config for Runtime {
 impl parachains_scheduler::Config for Runtime {
 	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
 	// otherwise provide a migration.
-	type AssignmentProvider = ParachainsAssignmentProvider;
+	type AssignmentProvider = CoretimeAssignmentProvider;
 }
 
-impl parachains_assigner_parachains::Config for Runtime {}
+parameter_types! {
+	pub const BrokerId: u32 = system_parachain::BROKER_ID;
+}
+
+impl coretime::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BrokerId = BrokerId;
+	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
+	type SendXcm = crate::xcm_config::XcmRouter;
+}
+
+parameter_types! {
+	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+}
+
+impl parachains_assigner_on_demand::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
+	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+}
+
+impl parachains_assigner_coretime::Config for Runtime {}
 
 impl parachains_initializer::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::runtime_parachains_initializer::WeightInfo<Runtime>;
-	// TODO:(PR#159)(PR#1694): check `CoretimeOnNewSession` bellow and remove this comment!
-	type CoretimeOnNewSession = ();
+	type CoretimeOnNewSession = Coretime;
 }
 
 impl parachains_disputes::Config for Runtime {
@@ -1613,14 +1640,15 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		// TODO:(PR#159)(PR#1694): check rename `ParachainsAssignmentProvider` and remove `Storage` bellow and remove this comment!
-		ParachainsAssignmentProvider: parachains_assigner_parachains = 64,
+		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
+		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
 		Slots: slots = 71,
 		Auctions: auctions = 72,
 		Crowdloan: crowdloan = 73,
+		Coretime: coretime = 74,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 98,
@@ -1681,10 +1709,31 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::{parachains_configuration, parachains_scheduler, Runtime};
+	use super::{
+		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber, LeasePeriod,
+		Leaser, ParaId, Runtime,
+	};
 
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
+
+	pub struct GetLegacyLeaseImpl;
+	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
+		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
+			let now = frame_system::Pallet::<Runtime>::block_number();
+			let lease = slots::Pallet::<Runtime>::lease(para);
+			if lease.is_empty() {
+				return None
+			}
+			// Lease not yet started, ignore:
+			if lease.iter().any(Option::is_none) {
+				return None
+			}
+			let (index, _) =
+				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
+			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
+		}
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
@@ -1695,9 +1744,13 @@ pub mod migrations {
 		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
 		// Migrate Identity pallet for Usernames
 		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
-		// TODO:(PR#159)(PR#1694): check `parachains_scheduler::MigrateV1ToV2` bellow and remove
-		// this comment!
 		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
+		// Migrate from legacy lease to coretime. Needs to run after configuration v11
+		coretime::migration::MigrateToCoretime<
+			Runtime,
+			crate::xcm_config::XcmRouter,
+			GetLegacyLeaseImpl,
+		>,
 	);
 }
 
@@ -1735,6 +1788,8 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
+		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
 		[pallet_balances, Nis]
