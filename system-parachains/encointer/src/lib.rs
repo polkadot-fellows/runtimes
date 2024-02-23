@@ -730,6 +730,7 @@ pub type Migrations = (
 	pallet_balances::migration::ResetInactive<Runtime>,
 	//then apply the proper migration as we should have done earlier
 	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
+	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
 );
 
 /// Executive: handles dispatch to the various modules.
