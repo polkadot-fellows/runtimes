@@ -7347,9 +7347,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "7.0.3"
+version = "7.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "890bbad7a5752c8d4c3681457bac4e87fafc79cd9dd5b1a94e6f237f93a795a3"
+checksum = "da15171c2dc870ad636fcdb16d9aa37eb84cfe6001c3f1c77cf2c97446ebfbe5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
