@@ -108,6 +108,8 @@ pub mod system_parachain {
 	pub const ENCOINTER_ID: u32 = 1001;
 	/// Bridge Hub parachain ID.
 	pub const BRIDGE_HUB_ID: u32 = 1002;
+	/// Brokerage parachain ID.
+	pub const BROKER_ID: u32 = 1005;
 
 	// System parachains from Kusama point of view.
 	pub type SystemParachains = IsChildSystemParachain<Id>;
