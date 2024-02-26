@@ -148,8 +148,13 @@ impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
 
 parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub const RelayLocation: MultiLocation = MultiLocation::parent();
+	pub const KsmRelayLocation: MultiLocation = MultiLocation::parent();
 }
+
+/// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
+/// - KSM with the parent Relay Chain and sibling parachains.
+pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -157,8 +162,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = FungibleTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
-	/// Only allow teleportation of KSM with other system locations.
-	type IsTeleporter = ConcreteAssetFromSystem<RelayLocation>;
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
