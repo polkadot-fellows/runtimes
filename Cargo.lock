@@ -2369,20 +2369,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cumulus-primitives-timestamp"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d1d900bd9e76607a4a0734cbb2b004d86177d2d6938b5d25eb812c6c1b7500"
-dependencies = [
- "cumulus-primitives-core",
- "futures",
- "parity-scale-codec",
- "sp-inherents",
- "sp-std",
- "sp-timestamp",
-]
-
-[[package]]
 name = "cumulus-primitives-utility"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2912,7 +2898,6 @@ dependencies = [
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
- "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
  "encointer-balances-tx-payment",
  "encointer-balances-tx-payment-rpc-runtime-api",
