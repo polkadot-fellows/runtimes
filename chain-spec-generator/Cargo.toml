@@ -40,8 +40,8 @@ encointer-kusama-runtime = { path = "../system-parachains/encointer" }
 glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
 
 # Encointer is(could be) not migrated to the latest release, so we use compatible deps, when needed
-# (if so, then just set this version according to the actual encointer)
-# sp-core-encointer-compatible = { package = "sp-core",  version = "28.0.0" }
+# (if so, uncomment and set this version according to the actual encointer + check `fn encointer_kusama_genesis`)
+# sp-core-encointer-compatible = { package = "sp-core",  version = "29.0.0" }
 
 [features]
 fast-runtime = [
