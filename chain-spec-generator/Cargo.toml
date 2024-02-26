@@ -39,8 +39,9 @@ bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hu
 encointer-kusama-runtime = { path = "../system-parachains/encointer" }
 glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
 
-# encointer is not migrated to the latest release, so we use compatible deps, when needed
-sp-core-encointer-compatible = { package = "sp-core",  version = "25.0.0" }
+# Encointer is(could be) not migrated to the latest release, so we use compatible deps, when needed
+# (if so, uncomment and set this version according to the actual encointer + check `fn encointer_kusama_genesis`)
+# sp-core-encointer-compatible = { package = "sp-core",  version = "29.0.0" }
 
 [features]
 fast-runtime = [
