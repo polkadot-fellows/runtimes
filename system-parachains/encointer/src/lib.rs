@@ -37,6 +37,7 @@ mod weights;
 pub mod xcm_config;
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use deal_with_fees::FeesToTreasury;
 use encointer_balances_tx_payment::{AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance};
 pub use encointer_primitives::{
@@ -47,13 +48,8 @@ pub use encointer_primitives::{
 	communities::{CommunityIdentifier, Location},
 	scheduler::CeremonyPhaseType,
 };
-use parachains_common::message_queue::NarrowOriginToSibling;
-use cumulus_primitives_core::AggregateMessageOrigin;
-use parachains_common::message_queue::ParaIdToSibling;
-use cumulus_primitives_core::ParaId;
 use frame_support::traits::TransformOrigin;
-
-
+use parachains_common::message_queue::{NarrowOriginToSibling, ParaIdToSibling};
 
 use frame_support::{
 	construct_runtime,
