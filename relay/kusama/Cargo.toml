@@ -70,7 +70,7 @@ pallet-referenda = { default-features = false , version = "29.0.0" }
 pallet-scheduler = { default-features = false , version = "30.0.0" }
 pallet-session = { default-features = false , version = "29.0.0" }
 pallet-society = { default-features = false, version = "29.0.0" }
-frame-support = { default-features = false , version = "29.0.0" }
+frame-support = { default-features = false , features = [ "tuples-96" ] , version = "29.0.0" }
 pallet-staking = { default-features = false , version = "29.0.0" }
 pallet-state-trie-migration = { default-features = false , version = "30.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "15.0.0" }
