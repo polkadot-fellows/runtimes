@@ -67,7 +67,7 @@ sp-session = { default-features = false, version = "27.0.0" }
 sp-std = { default-features = false, version = "14.0.0" }
 sp-transaction-pool = { default-features = false, version = "26.0.0" }
 sp-version = { default-features = false, version = "29.0.0" }
-sp-genesis-builder = { default-features = false , version = "0.7.0" }
+sp-genesis-builder = { default-features = false, version = "0.7.0" }
 
 # Polkadot dependencies
 pallet-xcm = { default-features = false, version = "7.0.0" }
@@ -90,8 +90,8 @@ cumulus-primitives-utility = { default-features = false, version = "0.7.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.7.0" }
 parachains-common = { default-features = false, version = "7.0.0" }
 system-parachains-constants = { path = "../constants", default-features = false }
-polkadot-core-primitives = { default-features = false, version = "7.0.0"}
-polkadot-primitives = { default-features = false , version = "7.0.0" }
+polkadot-core-primitives = { default-features = false, version = "7.0.0" }
+polkadot-primitives = { default-features = false, version = "7.0.0" }
 # Used for runtime benchmarking
 
 
@@ -99,7 +99,7 @@ polkadot-primitives = { default-features = false , version = "7.0.0" }
 substrate-wasm-builder = { optional = true, version = "17.0.0" }
 
 [dev-dependencies]
-kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
+kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false }
 
 [features]
 default = ["std"]
@@ -231,9 +231,9 @@ try-runtime = [
   "parachain-info/try-runtime",
 ]
 
-experimental = [ "pallet-aura/experimental" ]
+experimental = ["pallet-aura/experimental"]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging"]
