@@ -41,4 +41,3 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
-
