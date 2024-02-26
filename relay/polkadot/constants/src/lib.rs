@@ -109,6 +109,8 @@ pub mod xcm {
 		// The bodies corresponding to the Polkadot OpenGov Origins.
 		pub const FELLOWSHIP_ADMIN_INDEX: u32 = 1;
 		// The body corresponding to the Treasurer OpenGov track.
+		#[deprecated = "Will be removed after August 2024; Use `xcm::latest::BodyId::Treasury` \
+			instead"]
 		pub const TREASURER_INDEX: u32 = 2;
 	}
 }

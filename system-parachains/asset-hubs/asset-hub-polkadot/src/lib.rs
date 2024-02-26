@@ -886,13 +886,9 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	UniquesMigration,
 	// unreleased
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
 );
-
-/// Migration for Uniques to V1
-pub type UniquesMigration = pallet_uniques::migration::MigrateV0ToV1<Runtime, ()>;
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
