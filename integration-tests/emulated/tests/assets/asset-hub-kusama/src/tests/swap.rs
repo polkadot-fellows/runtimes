@@ -102,7 +102,8 @@ fn swap_locally_on_chain_using_local_assets() {
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
 			Box::new(asset_native),
 			Box::new(asset_one),
-			1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, // all but the 2 EDs can't be retrieved.
+			1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, /* all but the 2 EDs can't be
+			                                                      * retrieved. */
 			0,
 			0,
 			AssetHubKusamaSender::get().into(),
