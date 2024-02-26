@@ -20,7 +20,7 @@ pallet-message-queue = { version = "31.0.0" }
 # Polkadot
 xcm = { package = "staging-xcm", version = "7.0.0" }
 pallet-xcm = { version = "7.0.0" }
-xcm-executor = { package = "staging-xcm-executor", version = "7.0.0" }
+xcm-executor = { package = "staging-xcm-executor", version = "7.0.3" }
 
 # Cumulus
 emulated-integration-tests-common = { version = "3.0.0" }

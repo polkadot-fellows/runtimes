@@ -23,10 +23,10 @@ pallet-message-queue = { version = "31.0.0" }
 polkadot-runtime-common = { version = "7.0.0" }
 xcm = { package = "staging-xcm", version = "7.0.0" }
 pallet-xcm = { version = "7.0.0" }
-xcm-executor = { package = "staging-xcm-executor", version = "7.0.0" }
+xcm-executor = { package = "staging-xcm-executor", version = "7.0.3" }
 
 # Cumulus
-asset-test-utils = { version = "7.0.0" }
+asset-test-utils = { version = "7.0.1" }
 emulated-integration-tests-common = { version = "3.0.0" }
 parachains-common = { version = "7.0.0" }
 cumulus-pallet-xcmp-queue = { version = "0.7.0" }
