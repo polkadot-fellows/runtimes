@@ -1030,6 +1030,25 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
+/// The function is dedicated to the `chain-spec-generator`. Yes, it contains some duplicated code,
+/// but it avoids potential collisions caused by different versions of crates.
+#[cfg(feature = "std")]
+pub fn aura_config_for_chain_spec(seeds: &[&str]) -> AuraConfig {
+	use sp_core::{
+		crypto::{Pair, Public},
+		sr25519,
+	};
+	fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+		TPublic::Pair::from_string(&format!("//{}", seed), None)
+			.expect("static values are valid; qed")
+			.public()
+	}
+
+	AuraConfig {
+		authorities: seeds.iter().map(|s| get_from_seed::<sr25519::Public>(s).into()).collect(),
+	}
+}
+
 #[cfg(test)]
 mod multiplier_tests {
 	use super::*;
@@ -1107,8 +1126,9 @@ fn test_constants_compatiblity() {
 	);
 }
 
-// TODO: Encointer pallets does not have compatible `polkadot-sdk` versions,
-// so we cannot easily reuse `system-parachains-constants` module.
+// The Encointer pallets do not have compatible versions with `polkadot-sdk`, making it difficult
+// for us to reuse the `system-parachains-constants` module. Therefore, we have copies of it here
+// with `test_constants_compatiblity`.
 mod system_parachains_constants {
 	use super::*;
 	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
@@ -1260,8 +1280,6 @@ mod system_parachains_constants {
 		}
 	}
 
-	// TODO: Encointer pallets does not have compatible `polkadot-sdk` versions,
-	// so we cannot easily reuse `kusama-runtime-constants` module.
 	pub(crate) mod kusama_runtime_constants {
 		/// Money matters.
 		pub mod currency {
