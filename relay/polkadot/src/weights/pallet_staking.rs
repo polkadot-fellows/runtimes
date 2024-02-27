@@ -405,6 +405,26 @@ impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(10_309, 0).saturating_mul(v.into()))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `Staking::Ledger` (r:751 w:1502)
+	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Payee` (r:751 w:0)
+	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::Bonded` (r:0 w:751)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// The range of component `i` is `[0, 751]`.
+	fn deprecate_controller_batch(i: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `668 + i * (148 ±0)`
+		//  Estimated: `990 + i * (3566 ±0)`
+		// Minimum execution time: 1_934_000 picoseconds.
+		Weight::from_parts(2_070_000, 0)
+			.saturating_add(Weight::from_parts(0, 990))
+			// Standard Error: 19_129
+			.saturating_add(Weight::from_parts(13_231_580, 0).saturating_mul(i.into()))
+			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(i.into())))
+			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(i.into())))
+			.saturating_add(Weight::from_parts(0, 3566).saturating_mul(i.into()))
+	}
 	/// Storage: `Staking::SlashingSpans` (r:1 w:1)
 	/// Proof: `Staking::SlashingSpans` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `Staking::Bonded` (r:1 w:1)

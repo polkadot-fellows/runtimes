@@ -89,7 +89,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
-		InstanceFilter, OnRuntimeUpgrade, TransformOrigin,
+		InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -117,8 +117,9 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId, GovernanceLocation,
-	TrustBackedAssetsConvertedConcreteId, XcmOriginToTransactDispatchOrigin,
+	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
+	ForeignCreatorsSovereignAccountOf, GovernanceLocation, TrustBackedAssetsConvertedConcreteId,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -129,7 +130,6 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use xcm::prelude::*;
 
-use crate::xcm_config::ForeignCreatorsSovereignAccountOf;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
@@ -197,6 +197,7 @@ impl frame_system::Config for Runtime {
 	type Hashing = BlakeTwo256;
 	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeTask = RuntimeTask;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = RocksDbWeight;
@@ -796,6 +797,7 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type UniversalLocation = xcm_config::UniversalLocation;
 	type BridgedNetworkId = xcm_config::bridging::to_kusama::KusamaNetwork;
 	type Bridges = xcm_config::bridging::NetworkExportTable;
+	type DestinationVersion = PolkadotXcm;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type BridgeHubOrigin = EnsureXcm<Equals<xcm_config::bridging::SiblingBridgeHub>>;
@@ -888,19 +890,9 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	frame_support::migrations::VersionedMigration<0, 1, UniquesMigration, Uniques, RocksDbWeight>,
 	// unreleased
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
 );
-
-/// Migration for Uniques to V1
-pub struct UniquesMigration;
-
-impl OnRuntimeUpgrade for UniquesMigration {
-	fn on_runtime_upgrade() -> Weight {
-		pallet_uniques::migration::migrate_to_v1::<Runtime, (), pallet_uniques::Pallet<Runtime>>()
-	}
-}
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -1430,11 +1422,26 @@ impl_runtime_apis! {
 					);
 				}
 
-				fn ensure_bridged_target_destination() -> MultiLocation {
+				fn ensure_bridged_target_destination() -> Result<MultiLocation, BenchmarkError> {
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
 						xcm_config::bridging::SiblingBridgeHubParaId::get().into()
 					);
-					xcm_config::bridging::to_kusama::AssetHubKusama::get()
+					let bridged_asset_hub = xcm_config::bridging::to_kusama::AssetHubKusama::get();
+					let _ = PolkadotXcm::force_xcm_version(
+						RuntimeOrigin::root(),
+						Box::new(bridged_asset_hub),
+						XCM_VERSION,
+					).map_err(|e| {
+						log::error!(
+							"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+							RuntimeOrigin::root(),
+							bridged_asset_hub,
+							XCM_VERSION,
+							e
+						);
+						BenchmarkError::Stop("XcmVersion was not stored!")
+					})?;
+					Ok(bridged_asset_hub)
 				}
 			}
 

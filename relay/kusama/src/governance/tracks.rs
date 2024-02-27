@@ -65,7 +65,7 @@ const APP_WHITELISTED_CALLER: Curve =
 const SUP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
 
-const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 15] = [
+const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 16] = [
 	(
 		0,
 		pallet_referenda::TrackInfo {
@@ -92,6 +92,20 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 15
 			min_enactment_period: 10 * MINUTES,
 			min_approval: APP_WHITELISTED_CALLER,
 			min_support: SUP_WHITELISTED_CALLER,
+		},
+	),
+	(
+		2,
+		pallet_referenda::TrackInfo {
+			name: "wish_for_change",
+			max_deciding: 10,
+			decision_deposit: 20 * GRAND,
+			prepare_period: 2 * HOURS,
+			decision_period: 14 * DAYS,
+			confirm_period: 24 * HOURS,
+			min_enactment_period: 10 * MINUTES,
+			min_approval: APP_ROOT,
+			min_support: SUP_ROOT,
 		},
 	),
 	(
@@ -294,6 +308,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		} else if let Ok(custom_origin) = origins::Origin::try_from(id.clone()) {
 			match custom_origin {
 				origins::Origin::WhitelistedCaller => Ok(1),
+				origins::Origin::WishForChange => Ok(2),
 				// General admin
 				origins::Origin::StakingAdmin => Ok(10),
 				origins::Origin::Treasurer => Ok(11),
