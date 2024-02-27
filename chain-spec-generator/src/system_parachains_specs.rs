@@ -518,18 +518,6 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 
 // EncointerKusama
 fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
-	// The Encointer is(could be) not be migrated to the latest release, so we use compatible
-	// dependencies. (if so, uncomment this and set version for `sp_core_encointer_compatible`
-	// according to the actual encointer in Cargo.toml`) use sp_core_encointer_compatible as
-	// sp_core; fn get_from_seed<TPublic: sp_core_encointer_compatible::Public>(
-	// 	seed: &str,
-	// ) -> <TPublic::Pair as sp_core_encointer_compatible::Pair>::Public {
-	// 	use sp_core_encointer_compatible::Pair;
-	// 	TPublic::Pair::from_string(&format!("//{}", seed), None)
-	// 		.expect("static values are valid; qed")
-	// 		.public()
-	// }
-
 	serde_json::json!({
 		"balances": asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
@@ -545,9 +533,7 @@ fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		"aura": encointer_kusama_runtime::AuraConfig {
-			authorities: vec![get_from_seed::<sp_core::sr25519::Public>("Alice").into()],
-		},
+		"aura": encointer_kusama_runtime::aura_config_for_chain_spec(&["Alice"]),
 	})
 }
 
