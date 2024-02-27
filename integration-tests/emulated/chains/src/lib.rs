@@ -56,7 +56,7 @@ decl_test_relay_chains! {
 			Hrmp: polkadot_runtime::Hrmp,
 		}
 	},
-	#[api_version(8)]
+	#[api_version(9)]
 	pub struct Kusama {
 		genesis = kusama::genesis(),
 		on_init = (),
