@@ -117,7 +117,8 @@ pub mod xcm {
 
 /// System Parachains.
 pub mod system_parachain {
-	use xcm::latest::prelude::*;
+	use primitives::Id;
+	use xcm_builder::IsChildSystemParachain;
 
 	/// Asset Hub parachain ID.
 	pub const ASSET_HUB_ID: u32 = 1000;
@@ -126,19 +127,8 @@ pub mod system_parachain {
 	/// Bridge Hub parachain ID.
 	pub const BRIDGE_HUB_ID: u32 = 1002;
 
-	frame_support::match_types! {
-		// System parachains from Polkadot point of view.
-		pub type SystemParachains: impl Contains<MultiLocation> = {
-			MultiLocation {
-				parents: 0,
-				interior: X1(Parachain(
-					ASSET_HUB_ID |
-					COLLECTIVES_ID |
-					BRIDGE_HUB_ID
-				)),
-			}
-		};
-	}
+	// System parachains from Polkadot point of view.
+	pub type SystemParachains = IsChildSystemParachain<Id>;
 }
 
 /// Polkadot Treasury pallet instance.

@@ -205,6 +205,7 @@ impl frame_system::Config for Runtime {
 	type Block = Block;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeTask = RuntimeTask;
 	/// The ubiquitous origin type.
 	type RuntimeOrigin = RuntimeOrigin;
 	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
@@ -949,6 +950,21 @@ impl_runtime_apis! {
 
 				fn export_message_origin_and_destination(
 				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
+					// save XCM version for remote bridge hub
+					let _ = PolkadotXcm::force_xcm_version(
+						RuntimeOrigin::root(),
+						Box::new(bridge_to_kusama_config::BridgeHubKusamaLocation::get()),
+						XCM_VERSION,
+					).map_err(|e| {
+						log::error!(
+							"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+							RuntimeOrigin::root(),
+							bridge_to_kusama_config::BridgeHubKusamaLocation::get(),
+							XCM_VERSION,
+							e
+						);
+						BenchmarkError::Stop("XcmVersion was not stored!")
+					})?;
 					Ok(
 						(
 							bridge_to_kusama_config::FromAssetHubPolkadotToAssetHubKusamaRoute::get().location,

@@ -1,0 +1,26 @@
+[package]
+name = "penpal-emulated-chain"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Penpal emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+serde_json = "1.0.111"
+
+# Substrate
+sp-core = { version = "28.0.0" }
+sp-runtime = { version = "31.0.1" }
+frame-support = { version = "28.0.0" }
+
+# Cumulus
+emulated-integration-tests-common = { version = "3.0.0" }
+cumulus-primitives-core = { version = "0.7.0" }
+parachains-common = { version = "7.0.0" }
+penpal-runtime = { version = "0.14.0" }
+
+# Runtimes
+kusama-emulated-chain = { path = "../../../relays/kusama" }
+polkadot-emulated-chain = { path = "../../../relays/polkadot" }
