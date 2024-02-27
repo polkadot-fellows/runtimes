@@ -1,0 +1,26 @@
+[package]
+name = "asset-hub-polkadot-emulated-chain"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Asset Hub Polkadot emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+serde_json = "1.0.113"
+
+# Substrate
+sp-core = { version = "29.0.0" }
+sp-runtime = { version = "32.0.0" }
+frame-support = { version = "29.0.0" }
+
+# Cumulus
+parachains-common = { version = "8.0.0" }
+cumulus-primitives-core = { version = "0.8.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+
+# Runtimes
+asset-hub-polkadot-runtime = { path = "../../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
+polkadot-emulated-chain = { path = "../../../relays/polkadot" }
+system-parachains-constants = { path = "../../../../../../system-parachains/constants" }

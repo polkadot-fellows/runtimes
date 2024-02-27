@@ -1,0 +1,37 @@
+[package]
+name = "bridge-hub-polkadot-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Bridge Hub Polkadot runtime integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.9" }
+
+# Substrate
+sp-runtime = { version = "32.0.0" }
+frame-support = { version = "29.0.0" }
+pallet-balances = { version = "29.0.0" }
+pallet-assets = { version = "30.0.0" }
+pallet-message-queue = { version = "32.0.0" }
+
+# Polkadot
+xcm = { package = "staging-xcm", version = "8.0.0" }
+pallet-xcm = { version = "8.0.0" }
+xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
+
+# Cumulus
+emulated-integration-tests-common = { version = "4.0.0" }
+parachains-common = { version = "8.0.0" }
+cumulus-pallet-xcmp-queue = { version = "0.8.0" }
+
+# Bridges
+bp-messages = { version = "0.8.0" }
+pallet-bridge-messages = { version = "0.8.0" }
+
+# Runtimes
+bridge-hub-polkadot-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
+integration-tests-helpers = { path = "../../../helpers" }
+kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }

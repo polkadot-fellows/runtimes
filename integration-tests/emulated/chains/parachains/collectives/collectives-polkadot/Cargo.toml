@@ -1,0 +1,25 @@
+[package]
+name = "collectives-polkadot-emulated-chain"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Collectives Polkadot emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+serde_json = "1.0.113"
+
+# Substrate
+sp-core = { version = "29.0.0" }
+sp-runtime = { version = "32.0.0" }
+frame-support = { version = "29.0.0" }
+
+# Cumulus
+parachains-common = { version = "8.0.0" }
+cumulus-primitives-core = { version = "0.8.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+
+# Runtimes
+collectives-polkadot-runtime = { path = "../../../../../../system-parachains/collectives/collectives-polkadot" }
+system-parachains-constants = { path = "../../../../../../system-parachains/constants" }
