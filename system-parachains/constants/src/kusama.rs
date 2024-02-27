@@ -123,4 +123,8 @@ pub mod fee {
 			}]
 		}
 	}
+
+	pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
+		<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
+	}
 }

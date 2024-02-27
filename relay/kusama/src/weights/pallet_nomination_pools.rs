@@ -583,6 +583,18 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `NominationPools::BondedPools` (r:1 w:1)
+	/// Proof: `NominationPools::BondedPools` (`max_values`: None, `max_size`: Some(254), added: 2729, mode: `MaxEncodedLen`)
+	fn set_commission_claim_permission() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `498`
+		//  Estimated: `3719`
+		// Minimum execution time: 14_965_000 picoseconds.
+		Weight::from_parts(15_548_000, 0)
+			.saturating_add(Weight::from_parts(0, 3719))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:0)
 	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::ClaimPermissions` (r:1 w:1)
