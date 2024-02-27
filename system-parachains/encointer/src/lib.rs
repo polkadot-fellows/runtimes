@@ -1032,8 +1032,12 @@ cumulus_pallet_parachain_system::register_validate_block! {
 
 /// The function is dedicated to the `chain-spec-generator`. Yes, it contains some duplicated code,
 /// but it avoids potential collisions caused by different versions of crates.
+#[cfg(feature = "std")]
 pub fn aura_config_for_chain_spec(seeds: &[&str]) -> AuraConfig {
-	use sp_core::{sr25519, Pair, Public};
+	use sp_core::{
+		crypto::{Pair, Public},
+		sr25519,
+	};
 	fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
 		TPublic::Pair::from_string(&format!("//{}", seed), None)
 			.expect("static values are valid; qed")
