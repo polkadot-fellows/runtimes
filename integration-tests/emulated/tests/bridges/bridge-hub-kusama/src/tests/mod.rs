@@ -19,37 +19,31 @@ mod asset_transfers;
 mod send_xcm;
 mod teleport;
 
-pub(crate) fn asset_hub_polkadot_location() -> MultiLocation {
-	MultiLocation {
-		parents: 2,
-		interior: X2(
-			GlobalConsensus(NetworkId::Polkadot),
-			Parachain(AssetHubPolkadot::para_id().into()),
-		),
-	}
+pub(crate) fn asset_hub_polkadot_location() -> Location {
+	Location::new(
+		2,
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
+	)
 }
 
-pub(crate) fn bridge_hub_polkadot_location() -> MultiLocation {
-	MultiLocation {
-		parents: 2,
-		interior: X2(
-			GlobalConsensus(NetworkId::Polkadot),
-			Parachain(BridgeHubPolkadot::para_id().into()),
-		),
-	}
+pub(crate) fn bridge_hub_polkadot_location() -> Location {
+	Location::new(
+		2,
+		[GlobalConsensus(NetworkId::Polkadot), Parachain(BridgeHubPolkadot::para_id().into())],
+	)
 }
 
 pub(crate) fn send_asset_from_asset_hub_kusama(
-	destination: MultiLocation,
-	(id, amount): (MultiLocation, u128),
+	destination: Location,
+	(id, amount): (Location, u128),
 ) -> DispatchResult {
 	let signed_origin =
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
 
-	let beneficiary: MultiLocation =
+	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
 
-	let assets: MultiAssets = (id, amount).into();
+	let assets: Assets = (id, amount).into();
 	let fee_asset_item = 0;
 
 	AssetHubKusama::execute_with(|| {
