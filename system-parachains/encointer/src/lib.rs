@@ -100,7 +100,7 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::{latest::BodyId, v3::AssetId as XcmAssetId};
+use xcm::latest::prelude::{AssetId as XcmAssetId, BodyId};
 
 use xcm_config::{KsmLocation, XcmOriginToTransactDispatchOrigin};
 
@@ -307,7 +307,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = ();
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -440,7 +439,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: XcmAssetId = XcmAssetId::Concrete(xcm_config::KsmLocation::get());
+	pub FeeAssetId: XcmAssetId = XcmAssetId(xcm_config::KsmLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -706,10 +705,7 @@ pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, Si
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// fixing the scheduler with a local migration is necessary because we have missed intermediate
-	// migrations. the safest migration is, therefore, to clear all storage and bump StorageVersion
-	migrations_fix::scheduler::v4::MigrateToV4<Runtime>,
-	// also here we're actually too late with applying the migration. however, the migration does
+	// we're actually too late with applying the migration. however, the migration does
 	// work as-is.
 	pallet_xcm::migration::v1::VersionUncheckedMigrateToV1<Runtime>,
 	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
@@ -721,6 +717,8 @@ pub type Migrations = (
 	//then apply the proper migration as we should have done earlier
 	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	// permanent
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
 /// Executive: handles dispatch to the various modules.
