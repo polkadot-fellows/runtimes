@@ -1710,11 +1710,12 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::{
-		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber,
+		coretime, parachains_configuration, parachains_scheduler, slots, weights, BlockNumber,
 		Configuration, LeasePeriod, Leaser, ParaId, Runtime, Weight,
 	};
 	use frame_support::traits::OnRuntimeUpgrade;
 	use frame_system::RawOrigin;
+	use runtime_parachains::configuration::WeightInfo;
 
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
@@ -1745,7 +1746,7 @@ pub mod migrations {
 	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
 		fn on_runtime_upgrade() -> Weight {
 			let _ = Configuration::set_node_feature(RawOrigin::Root.into(), 1, true);
-			Weight::from_parts(1, 0)
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
 		}
 	}
 
