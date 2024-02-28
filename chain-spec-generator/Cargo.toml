@@ -17,8 +17,8 @@ kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" 
 kusama-runtime-constants = { path = "../relay/kusama/constants" }
 
 sc-chain-spec = "28.0.0"
-polkadot-runtime-parachains = "8.0.0"
-polkadot-primitives = "8.0.0"
+polkadot-runtime-parachains = "8.0.1"
+polkadot-primitives = "8.0.1"
 sp-consensus-babe = "0.33.0"
 sp-authority-discovery = "27.0.0"
 sp-core = "29.0.0"

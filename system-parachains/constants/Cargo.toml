@@ -14,7 +14,7 @@ frame-support = { default-features = false , version = "29.0.0" }
 kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
 parachains-common = { default-features = false , version = "8.0.0" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0"}
-polkadot-primitives = { default-features = false , version = "8.0.0" }
+polkadot-primitives = { default-features = false , version = "8.0.1" }
 polkadot-runtime-constants = { path = "../../relay/polkadot/constants", default-features = false}
 sp-runtime = { default-features = false , version = "32.0.0" }
 

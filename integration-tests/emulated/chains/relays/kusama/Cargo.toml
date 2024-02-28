@@ -18,7 +18,7 @@ grandpa = { package = "sc-consensus-grandpa", version = "0.20.0" }
 pallet-im-online = { version = "28.0.0" }
 
 # Polkadot
-polkadot-primitives = { version = "8.0.0" }
+polkadot-primitives = { version = "8.0.1" }
 
 # Cumulus
 parachains-common = { version = "8.0.0" }
