@@ -108,11 +108,7 @@ use parachains_common::{
 
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
-	polkadot::{
-		consensus::*,
-		currency::*,
-		fee::{WeightToFee, TRANSACTION_BYTE_FEE},
-	},
+	polkadot::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
@@ -252,7 +248,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = TRANSACTION_BYTE_FEE;
+	pub const TransactionByteFee: Balance = system_parachains_constants::polkadot::fee::TRANSACTION_BYTE_FEE;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -1540,5 +1536,12 @@ mod tests {
 		assert!(proof_o_time <= 30, "{} should be at most 30", proof_o_time);
 		let time_o_proof = time_fee.checked_div(proof_fee).unwrap_or_default();
 		assert!(time_o_proof <= 30, "{} should be at most 30", time_o_proof);
+	}
+
+	#[test]
+	fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
+		let parachain_tbf = TransactionByteFee::get();
+		assert_eq!(relay_tbf / 10, parachain_tbf);
 	}
 }

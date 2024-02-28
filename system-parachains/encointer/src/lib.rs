@@ -95,11 +95,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
-	kusama::{
-		consensus::*,
-		currency::*,
-		fee::{WeightToFee, TRANSACTION_BYTE_FEE},
-	},
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
@@ -320,7 +316,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10, same as statemine
-	pub const TransactionByteFee: Balance = TRANSACTION_BYTE_FEE;
+	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
 	pub const OperationalFeeMultiplier: u8 = 5;
 }
 
@@ -1132,6 +1128,13 @@ fn test_constants_compatiblity() {
 			&system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
 		)
 	);
+}
+
+#[test]
+fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+	let relay_tbf = ::kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
+	let parachain_tbf = TransactionByteFee::get();
+	assert_eq!(relay_tbf / 10, parachain_tbf);
 }
 
 // The Encointer pallets do not have compatible versions with `polkadot-sdk`, making it difficult

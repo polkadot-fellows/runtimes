@@ -1113,10 +1113,10 @@ dependencies = [
  "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
- "system-parachains-constants",
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1129,10 +1129,10 @@ dependencies = [
  "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
- "system-parachains-constants",
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "system-parachains-constants",
 ]
 
 [[package]]

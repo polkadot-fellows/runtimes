@@ -74,11 +74,7 @@ use parachains_common::{
 	Signature,
 };
 use system_parachains_constants::{
-	kusama::{
-		consensus::*,
-		currency::*,
-		fee::{WeightToFee, TRANSACTION_BYTE_FEE},
-	},
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 
@@ -278,7 +274,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = TRANSACTION_BYTE_FEE;
+	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -1119,4 +1115,16 @@ impl_runtime_apis! {
 cumulus_pallet_parachain_system::register_validate_block! {
 	Runtime = Runtime,
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+		let relay_tbf = kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
+		let parachain_tbf = TransactionByteFee::get();
+		assert_eq!(relay_tbf / 10, parachain_tbf);
+	}
 }
