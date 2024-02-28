@@ -22,13 +22,13 @@ pallet-message-queue = { version = "32.0.0" }
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.0" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
-pallet-xcm = { version = "8.0.0" }
+pallet-xcm = { version = "8.0.1" }
 
 # Cumulus
 parachains-common = { version = "8.0.0" }
 emulated-integration-tests-common = { version = "4.0.0" }
 asset-test-utils = { version = "8.0.1" }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.0" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.1" }
 
 # Local
 asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }

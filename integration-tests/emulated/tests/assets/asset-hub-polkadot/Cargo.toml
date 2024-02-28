@@ -20,9 +20,9 @@ pallet-treasury = { version = "28.0.0" }
 pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
-polkadot-runtime-common = { version = "8.0.0" }
+polkadot-runtime-common = { version = "8.0.1" }
 xcm = { package = "staging-xcm", version = "8.0.0" }
-pallet-xcm = { version = "8.0.0" }
+pallet-xcm = { version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
 
 # Cumulus
@@ -30,7 +30,7 @@ asset-test-utils = { version = "8.0.1" }
 emulated-integration-tests-common = { version = "4.0.0" }
 parachains-common = { version = "8.0.0" }
 cumulus-pallet-xcmp-queue = { version = "0.8.0" }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.0" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.1" }
 
 # Local
 asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }

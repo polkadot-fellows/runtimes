@@ -455,7 +455,7 @@ dependencies = [
  "assert_matches",
  "asset-hub-kusama-runtime",
  "asset-test-utils",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
  "integration-tests-helpers",
@@ -464,7 +464,7 @@ dependencies = [
  "pallet-assets 30.0.0",
  "pallet-balances 29.0.0",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "sp-runtime 32.0.0",
@@ -486,12 +486,12 @@ dependencies = [
  "bp-bridge-hub-polkadot",
  "cumulus-pallet-aura-ext 0.8.0",
  "cumulus-pallet-dmp-queue 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -522,15 +522,15 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-uniques",
  "pallet-utility 29.0.0",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives 8.0.0",
  "polkadot-parachain-primitives 7.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "primitive-types",
  "scale-info",
@@ -551,7 +551,7 @@ dependencies = [
  "sp-weights 28.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -577,7 +577,7 @@ dependencies = [
  "assert_matches",
  "asset-hub-polkadot-runtime",
  "asset-test-utils",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
@@ -586,11 +586,11 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-message-queue 32.0.0",
  "pallet-treasury 28.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "polkadot-runtime",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-system-emulated-network",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
@@ -610,12 +610,12 @@ dependencies = [
  "bp-bridge-hub-polkadot",
  "cumulus-pallet-aura-ext 0.8.0",
  "cumulus-pallet-dmp-queue 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -643,15 +643,15 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-uniques",
  "pallet-utility 29.0.0",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives 8.0.0",
  "polkadot-parachain-primitives 7.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "scale-info",
  "sp-api 27.0.0",
@@ -671,7 +671,7 @@ dependencies = [
  "sp-weights 28.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -683,7 +683,7 @@ version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d78501ca6b4c848efe233672124ebab9293d8efefc44a728d70f3245a8ef595"
 dependencies = [
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "frame-support 29.0.0",
@@ -692,7 +692,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-collator-selection 10.0.0",
  "pallet-session 29.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "pallet-xcm-bridge-hub-router",
  "parachains-common 8.0.0",
  "parachains-runtimes-test-utils",
@@ -702,7 +702,7 @@ dependencies = [
  "sp-std",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
@@ -718,7 +718,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "log",
  "pallet-asset-conversion",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "scale-info",
@@ -726,7 +726,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
 ]
@@ -1367,7 +1367,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-bridge-messages",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
@@ -1394,12 +1394,12 @@ dependencies = [
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext 0.8.0",
  "cumulus-pallet-dmp-queue 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -1425,14 +1425,14 @@ dependencies = [
  "pallet-transaction-payment 29.0.0",
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-utility 29.0.0",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "pallet-xcm-bridge-hub",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "polkadot-core-primitives 8.0.0",
  "polkadot-parachain-primitives 7.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "scale-info",
  "serde",
@@ -1453,7 +1453,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
@@ -1487,7 +1487,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-bridge-messages",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
@@ -1514,12 +1514,12 @@ dependencies = [
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext 0.8.0",
  "cumulus-pallet-dmp-queue 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -1545,14 +1545,14 @@ dependencies = [
  "pallet-transaction-payment 29.0.0",
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-utility 29.0.0",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "pallet-xcm-bridge-hub",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "polkadot-core-primitives 8.0.0",
  "polkadot-parachain-primitives 7.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "scale-info",
  "serde",
@@ -1573,7 +1573,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "static_assertions",
  "substrate-wasm-builder 18.0.0",
@@ -1594,7 +1594,7 @@ dependencies = [
  "bp-runtime",
  "bp-test-utils",
  "bridge-runtime-common",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "frame-support 29.0.0",
  "frame-system 29.0.0",
@@ -1616,7 +1616,7 @@ dependencies = [
  "sp-std",
  "sp-tracing",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
 ]
 
@@ -1653,7 +1653,7 @@ dependencies = [
  "sp-std",
  "sp-trie 30.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "static_assertions",
 ]
 
@@ -2025,12 +2025,12 @@ version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext 0.8.0",
  "cumulus-pallet-dmp-queue 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -2062,12 +2062,12 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
  "pallet-treasury 28.0.0",
  "pallet-utility 29.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "polkadot-core-primitives 8.0.0",
  "polkadot-parachain-primitives 7.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "scale-info",
  "sp-api 27.0.0",
@@ -2086,7 +2086,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -2483,7 +2483,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e8e78b18548ae3454bc8a46e2bc2e3f521ea547844cbaecc9344d4741f4b1ef"
 dependencies = [
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "frame-support 29.0.0",
  "frame-system 29.0.0",
  "pallet-aura 28.0.0",
@@ -2571,9 +2571,9 @@ dependencies = [
 
 [[package]]
 name = "cumulus-pallet-parachain-system"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56c253dcebafba5fa2e98f9d7afc313686ab0f54ab90785347a9de2b62b323f7"
+checksum = "1a215fe4d66d23e8f3956bd21b9d80d2b33239f3b150b36d56fa238cfc9421a5"
 dependencies = [
  "bytes",
  "cumulus-pallet-parachain-system-proc-macro",
@@ -2589,6 +2589,7 @@ dependencies = [
  "pallet-message-queue 32.0.0",
  "parity-scale-codec",
  "polkadot-parachain-primitives 7.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-parachains 8.0.0",
  "scale-info",
  "sp-core 29.0.0",
@@ -2706,7 +2707,7 @@ dependencies = [
  "log",
  "pallet-message-queue 32.0.0",
  "parity-scale-codec",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-parachains 8.0.0",
  "scale-info",
  "sp-core 29.0.0",
@@ -2830,23 +2831,22 @@ dependencies = [
 
 [[package]]
 name = "cumulus-primitives-utility"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "610400dd0bbafde20db3dfccc50540f7ace05e169d93acce2b86008984ea70f7"
+checksum = "e65466e56d642f979b556d098a03755ae51972fff5fa0f9b1cdcfdb3df062ea3"
 dependencies = [
  "cumulus-primitives-core 0.8.0",
  "frame-support 29.0.0",
  "log",
  "pallet-asset-conversion",
- "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-parachains 8.0.0",
  "sp-io 31.0.0",
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
 ]
 
@@ -3299,7 +3299,7 @@ dependencies = [
  "asset-test-utils",
  "bp-messages",
  "bridge-runtime-common",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "frame-support 29.0.0",
@@ -3307,7 +3307,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-bridge-messages",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "paste",
@@ -4582,7 +4582,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 name = "glutton-kusama-runtime"
 version = "1.0.0"
 dependencies = [
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "frame-benchmarking 29.0.0",
@@ -4612,7 +4612,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "system-parachains-constants",
@@ -5109,7 +5109,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue 0.8.0",
  "pallet-balances 29.0.0",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "paste",
  "staging-xcm 8.0.0",
  "xcm-emulator",
@@ -5421,12 +5421,12 @@ version = "1.0.0"
 dependencies = [
  "frame-support 29.0.0",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "smallvec",
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
 ]
 
 [[package]]
@@ -8928,9 +8928,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16bda69e8f69123ff81a6d60479fd91b9794f07a24959ced406f5fccbf77482c"
+checksum = "2b0bade2eb6ce40af35a5af150692b4e150638f7f68c15735ab9cdf79650d68e"
 dependencies = [
  "bounded-collections 0.2.0",
  "frame-benchmarking 29.0.0",
@@ -8946,7 +8946,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
 ]
 
@@ -8972,9 +8972,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-benchmarks"
-version = "8.0.1"
+version = "8.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23fd87994bbe3333ba81436e68b7574e598fe568a06bc59b53a6178c5ce8d71d"
+checksum = "3c10e1c92086ce2069a3d2387d9431f48660b6ec92054c4d0a4e30a9f54e7ad3"
 dependencies = [
  "frame-benchmarking 29.0.0",
  "frame-support 29.0.0",
@@ -8986,7 +8986,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
 ]
 
@@ -9010,7 +9010,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
 ]
 
@@ -9031,7 +9031,7 @@ dependencies = [
  "sp-runtime 32.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
 ]
 
 [[package]]
@@ -9079,7 +9079,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34aa00981a24a2b772afaa49e258f9bcd6bb372db060a05614becc1c74d4456"
 dependencies = [
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-support 29.0.0",
  "frame-system 29.0.0",
  "log",
@@ -9089,7 +9089,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-collator-selection 10.0.0",
  "pallet-message-queue 32.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
  "scale-info",
@@ -9110,7 +9110,7 @@ version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d295b9c391ce15f68ddcd7b0d428eb2d3338643a4d1f471b3dd8a15538865e17"
 dependencies = [
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "cumulus-primitives-parachain-inherent 0.8.0",
@@ -9120,7 +9120,7 @@ dependencies = [
  "pallet-balances 29.0.0",
  "pallet-collator-selection 10.0.0",
  "pallet-session 29.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parity-scale-codec",
  "polkadot-parachain-primitives 7.0.0",
  "sp-consensus-aura 0.33.0",
@@ -9336,12 +9336,12 @@ checksum = "c804f33306e47153a4bad6a9cd33bbd537fa4b5f9434d505c8a6fc321a0bb71a"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext 0.8.0",
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm 0.8.0",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
- "cumulus-primitives-utility 0.8.0",
+ "cumulus-primitives-utility 0.8.1",
  "frame-benchmarking 29.0.0",
  "frame-executive 29.0.0",
  "frame-support 29.0.0",
@@ -9362,12 +9362,12 @@ dependencies = [
  "pallet-timestamp 28.0.0",
  "pallet-transaction-payment 29.0.0",
  "pallet-transaction-payment-rpc-runtime-api 29.0.0",
- "pallet-xcm 8.0.0",
+ "pallet-xcm 8.0.1",
  "parachains-common 8.0.0",
  "parity-scale-codec",
  "polkadot-parachain-primitives 7.0.0",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "scale-info",
  "smallvec",
  "sp-api 27.0.0",
@@ -9385,7 +9385,7 @@ dependencies = [
  "sp-version 30.0.0",
  "staging-parachain-info 0.8.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "testnet-parachains-constants",
@@ -10459,11 +10459,11 @@ dependencies = [
  "pallet-utility 29.0.0",
  "pallet-vesting 29.0.0",
  "pallet-whitelist",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains 8.0.0",
  "scale-info",
@@ -10494,7 +10494,7 @@ dependencies = [
  "sp-trie 30.0.0",
  "sp-version 30.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "tokio",
@@ -10555,9 +10555,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-common"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4332f736bf9859c2f66d4db0f68f686a764c1e185392ecfc5e98efb53af05af"
+checksum = "06afbb3bd10245ad1907242a98ddffc3c0c1e209738b8382bc5bcfc1f28c0429"
 dependencies = [
  "bitvec",
  "frame-benchmarking 29.0.0",
@@ -10582,7 +10582,6 @@ dependencies = [
  "pallet-transaction-payment 29.0.0",
  "pallet-treasury 28.0.0",
  "pallet-vesting 29.0.0",
- "pallet-xcm-benchmarks 8.0.1",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
  "polkadot-runtime-parachains 8.0.0",
@@ -10601,7 +10600,7 @@ dependencies = [
  "sp-staking 27.0.0",
  "sp-std",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "static_assertions",
 ]
@@ -10612,12 +10611,12 @@ version = "1.0.0"
 dependencies = [
  "frame-support 29.0.0",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "smallvec",
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
 ]
 
 [[package]]
@@ -11641,13 +11640,13 @@ checksum = "0b45c21ccb0f8777512a65510c106aeee4b59682944b9a5cb31cd7b8ed4ccb47"
 dependencies = [
  "frame-support 29.0.0",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "smallvec",
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
 ]
 
 [[package]]
@@ -14938,11 +14937,11 @@ dependencies = [
  "pallet-utility 29.0.0",
  "pallet-vesting 29.0.0",
  "pallet-whitelist",
- "pallet-xcm 8.0.0",
- "pallet-xcm-benchmarks 8.0.1",
+ "pallet-xcm 8.0.1",
+ "pallet-xcm-benchmarks 8.0.2",
  "parity-scale-codec",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "polkadot-runtime-parachains 8.0.0",
  "scale-info",
  "separator",
@@ -14971,7 +14970,7 @@ dependencies = [
  "sp-trie 30.0.0",
  "sp-version 30.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
  "tokio",
@@ -15070,9 +15069,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2e8c74e3d5b47173a22ad468ab28aeb88cfb92b742fa91a95fe1a8230c2365f"
+checksum = "a8f6cfc27c1d45f9a67e20ed3f7e60296299688825350291606add10bf3bbff2"
 dependencies = [
  "frame-support 29.0.0",
  "frame-system 29.0.0",
@@ -16644,13 +16643,13 @@ checksum = "3b080c193714605ce1033311d85035247adca170181cd68a3ad7e3ca87755a14"
 dependencies = [
  "frame-support 29.0.0",
  "polkadot-primitives 8.0.0",
- "polkadot-runtime-common 8.0.0",
+ "polkadot-runtime-common 8.0.1",
  "smallvec",
  "sp-core 29.0.0",
  "sp-runtime 32.0.0",
  "sp-weights 28.0.0",
  "staging-xcm 8.0.0",
- "staging-xcm-builder 8.0.0",
+ "staging-xcm-builder 8.0.1",
 ]
 
 [[package]]
@@ -17013,7 +17012,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b49681988880dd6d08a4d5f6b7cb612a0f12172270349655c1e2f870b3526fd"
 dependencies = [
- "cumulus-pallet-parachain-system 0.8.0",
+ "cumulus-pallet-parachain-system 0.8.1",
  "cumulus-pallet-xcmp-queue 0.8.0",
  "cumulus-primitives-core 0.8.0",
  "cumulus-primitives-parachain-inherent 0.8.0",

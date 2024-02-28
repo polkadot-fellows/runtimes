@@ -79,8 +79,8 @@ pallet-whitelist = { default-features = false , version = "28.0.0" }
 pallet-vesting = { default-features = false , version = "29.0.0" }
 pallet-utility = { default-features = false , version = "29.0.0" }
 frame-election-provider-support = { default-features = false , version = "29.0.0" }
-pallet-xcm = { default-features = false, version = "8.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.1" }
+pallet-xcm = { default-features = false, version = "8.0.1" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 
 frame-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 frame-try-runtime = { default-features = false, optional = true , version = "0.35.0" }
@@ -90,13 +90,13 @@ pallet-offences-benchmarking = { default-features = false, optional = true , ver
 pallet-session-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 pallet-nomination-pools-benchmarking = { default-features = false, optional = true , version = "27.0.0" }
 
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
 runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "8.0.0" }
 primitives = { package = "polkadot-primitives", default-features = false , version = "8.0.0" }
 
 xcm = { package = "staging-xcm", default-features = false , version = "8.0.0" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.1" }
 
 sp-debug-derive = { default-features = false, version = "14.0.0" }
 
