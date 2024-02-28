@@ -38,7 +38,7 @@ The review-bot uses the on-chain identity to map from a GitHub account to a Fell
 - [Official List of Fellows](https://polkadot-fellows.github.io/dashboard/#/members)
 - [List of Fellows with their GitHub handles](https://fellowship.tasty.limo/)
 
-# Working on Pull Requests
+## Working on Pull Requests
 
 To merge a pull request, we use [Auto Merge Bot](https://github.com/paritytech/auto-merge-bot).
 
@@ -50,7 +50,7 @@ This will enable [`auto-merge`](https://docs.github.com/en/pull-requests/collabo
 
 The automation can be triggered by the author of the PR or any fellow whose GitHub handle is part of their identity.
 
-# Release process
+## Release process
 
 Releases are automatically pushed on commits merged to master that fulfill the following requirements:
 
@@ -61,3 +61,9 @@ The release process is building all runtimes and then puts them into a release i
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Communication channels
+
+The Fellowship is using Matrix for communication. Right now there exists two channels:
+
+- [Polkadot Technical Fellowship Channel](https://matrix.to/#/#fellowship-members:parity.io): The channel for all Fellowship members to discuss. To get voice rights, you need to be part of the Fellowship. However, the channel is readable by anyone.
+- [Polkadot Technical Fellowship - Open Channel](https://matrix.to/#/#fellowship-open-channel:parity.io): Open channel for anyone. Should be used to reach out to the Fellowship e.g. to request review or help on a topic.
