@@ -37,12 +37,12 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
-	ChildParachainConvertsVia, CurrencyAdapter as XcmCurrencyAdapter, DescribeAllTerminal,
-	DescribeFamily, FrameTransactionalProcessor, HashedDescription, IsChildSystemParachain,
-	IsConcrete, MintLocation, OriginToPluralityVoice, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
+	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
+	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	XcmFeeToAccount,
 };
 
 parameter_types! {
@@ -80,7 +80,7 @@ pub type SovereignAccountOf = (
 /// point of view of XCM-only concepts like `MultiLocation` and `MultiAsset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
-pub type LocalAssetTransactor = XcmCurrencyAdapter<
+pub type LocalAssetTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
@@ -133,6 +133,8 @@ parameter_types! {
 	pub const KsmForEncointer: (MultiAssetFilter, MultiLocation) = (Ksm::get(), Encointer::get());
 	pub const BridgeHubLocation: MultiLocation = Parachain(BRIDGE_HUB_ID).into_location();
 	pub const KsmForBridgeHub: (MultiAssetFilter, MultiLocation) = (Ksm::get(), BridgeHubLocation::get());
+	pub Broker: MultiLocation = Parachain(BROKER_ID).into_location();
+	pub KsmForBroker: (MultiAssetFilter, MultiLocation) = (Ksm::get(), Broker::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -141,6 +143,7 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForAssetHub>,
 	xcm_builder::Case<KsmForEncointer>,
 	xcm_builder::Case<KsmForBridgeHub>,
+	xcm_builder::Case<KsmForBroker>,
 );
 
 match_types! {

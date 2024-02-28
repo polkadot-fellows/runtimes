@@ -25,9 +25,9 @@ use asset_hub_polkadot_runtime::{
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, ExistentialDeposit, ForeignAssets,
-	ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte, ParachainSystem, Runtime,
-	RuntimeCall, RuntimeEvent, SessionKeys, ToKusamaXcmRouterInstance, TrustBackedAssetsInstance,
-	XcmpQueue,
+	ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte, ParachainSystem,
+	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys, ExtBuilder,
@@ -683,6 +683,12 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 );
 
 fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
+	let _ = PolkadotXcm::force_xcm_version(
+		RuntimeOrigin::root(),
+		Box::new(bridging::to_kusama::AssetHubKusama::get()),
+		XCM_VERSION,
+	)
+	.expect("version saved!");
 	TestBridgingConfig {
 		bridged_network: bridging::to_kusama::KusamaNetwork::get(),
 		local_bridge_hub_para_id: bridging::SiblingBridgeHubParaId::get(),

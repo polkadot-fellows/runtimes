@@ -121,15 +121,18 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 	/// Proof: `ForeignAssets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:2 w:2)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	fn swap_exact_tokens_for_tokens() -> Weight {
+	fn swap_exact_tokens_for_tokens(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1185`
-		//  Estimated: `13818`
-		// Minimum execution time: 155_900_000 picoseconds.
-		Weight::from_parts(158_685_000, 0)
-			.saturating_add(Weight::from_parts(0, 13818))
-			.saturating_add(T::DbWeight::get().reads(8))
-			.saturating_add(T::DbWeight::get().writes(8))
+		//  Measured:  `0 + n * (557 ±0)`
+		//  Estimated: `7404 + n * (393 ±92)`
+		// Minimum execution time: 930_000_000 picoseconds.
+		Weight::from_parts(960_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 7404))
+			// Standard Error: 17_993_720
+			.saturating_add(Weight::from_parts(41_959_183, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(4))
+			.saturating_add(Weight::from_parts(0, 393).saturating_mul(n.into()))
 	}
 	/// Storage: `System::Account` (r:2 w:2)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
@@ -137,14 +140,17 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 	/// Proof: `ForeignAssets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
 	/// Storage: `ForeignAssets::Account` (r:4 w:4)
 	/// Proof: `ForeignAssets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
-	fn swap_tokens_for_exact_tokens() -> Weight {
+	fn swap_tokens_for_exact_tokens(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1185`
-		//  Estimated: `13818`
-		// Minimum execution time: 156_024_000 picoseconds.
-		Weight::from_parts(157_817_000, 0)
-			.saturating_add(Weight::from_parts(0, 13818))
-			.saturating_add(T::DbWeight::get().reads(8))
-			.saturating_add(T::DbWeight::get().writes(8))
+		//  Measured:  `0 + n * (557 ±0)`
+		//  Estimated: `7404 + n * (393 ±92)`
+		// Minimum execution time: 940_000_000 picoseconds.
+		Weight::from_parts(956_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 7404))
+			// Standard Error: 15_746_647
+			.saturating_add(Weight::from_parts(39_193_877, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(4))
+			.saturating_add(Weight::from_parts(0, 393).saturating_mul(n.into()))
 	}
 }
