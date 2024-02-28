@@ -9832,9 +9832,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-node-core-backing"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4824ee369a33f69bd2f667a3a9fc8f5bdb5f3f6170c3028c3d0bc58dc824364d"
+checksum = "f07f8840f3f2f0bee6264c18ce471c99c925f9afb65952e1d584b6d773cf4115"
 dependencies = [
  "bitvec",
  "fatality",
@@ -9845,6 +9845,7 @@ dependencies = [
  "polkadot-node-subsystem-util",
  "polkadot-primitives 8.0.1",
  "polkadot-statement-table",
+ "schnellru",
  "sp-keystore 0.35.0",
  "thiserror",
  "tracing-gum",
@@ -9979,9 +9980,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-node-core-provisioner"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff1e12fff44002ff9b18064888838df26c209c53dc38fafc0d18b714e6912411"
+checksum = "b0d0a64371700537c3dc15b3956536e4541f093b7c38ac21737ea9fea3562a83"
 dependencies = [
  "bitvec",
  "fatality",
@@ -10891,13 +10892,14 @@ dependencies = [
 
 [[package]]
 name = "polkadot-statement-table"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2bfd8ccdbc770e14990e7d4263e2af80930ba0c3197123ac87e1d0775747cb6"
+checksum = "de5e010da3c6a65d8f263d0f825a04d995ffc8a37f886f674fcbbc73bf158d01"
 dependencies = [
  "parity-scale-codec",
  "polkadot-primitives 8.0.1",
  "sp-core 29.0.0",
+ "tracing-gum",
 ]
 
 [[package]]
