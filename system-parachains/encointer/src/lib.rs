@@ -341,9 +341,6 @@ parameter_types! {
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
-	// The asset's interior location for the paying account. This is the Treasury
-	// pallet instance (which sits at index 18).
-	pub TreasuryInteriorMultiLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
