@@ -10522,7 +10522,6 @@ dependencies = [
  "staging-xcm-builder 8.0.0",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
- "tiny-keccak",
  "tokio",
 ]
 
@@ -15000,7 +14999,6 @@ dependencies = [
  "staging-xcm-builder 8.0.0",
  "staging-xcm-executor 8.0.1",
  "substrate-wasm-builder 18.0.0",
- "tiny-keccak",
  "tokio",
 ]
 
