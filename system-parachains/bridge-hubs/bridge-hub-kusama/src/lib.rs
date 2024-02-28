@@ -352,6 +352,10 @@ parameter_types! {
 impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
+	// Use the NoopMessageProcessor exclusively for benchmarks, not for tests with the
+	// runtime-benchmarks feature as tests require the BridgeHubMessageRouter to process messages.
+	// The "test" feature flag doesn't work, hence the reliance on the "std" feature, which is
+	// enabled during tests.
 	#[cfg(all(not(feature = "std"), feature = "runtime-benchmarks"))]
 	type MessageProcessor =
 		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
