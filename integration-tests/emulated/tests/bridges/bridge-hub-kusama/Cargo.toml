@@ -8,10 +8,6 @@ description = "Bridge Hub Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
-scale-info = { version = "2.10.0", features = ["derive"] }
-hex = "0.4.3"
-hex-literal = "0.4.1"
 
 # Substrate
 sp-runtime = { version = "32.0.0" }

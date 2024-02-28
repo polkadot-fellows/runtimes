@@ -8,11 +8,9 @@ description = "Asset Hub Kusama emulated chain used for integration tests"
 publish = false
 
 [dependencies]
-serde_json = "1.0.113"
 
 # Substrate
 sp-core = { version = "29.0.0" }
-sp-runtime = { version = "32.0.0" }
 frame-support = { version = "29.0.0" }
 
 # Cumulus
@@ -23,4 +21,3 @@ emulated-integration-tests-common = { version = "4.0.0" }
 # Runtimes
 asset-hub-kusama-runtime = { path = "../../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
 kusama-emulated-chain = { path = "../../../relays/kusama" }
-system-parachains-constants = { path = "../../../../../../system-parachains/constants" }

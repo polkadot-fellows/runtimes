@@ -445,10 +445,7 @@ dependencies = [
  "frame-support 29.0.0",
  "kusama-emulated-chain",
  "parachains-common 8.0.0",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -570,10 +567,7 @@ dependencies = [
  "frame-support 29.0.0",
  "parachains-common 8.0.0",
  "polkadot-emulated-chain",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -1354,10 +1348,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
  "parachains-common 8.0.0",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -1369,8 +1360,6 @@ dependencies = [
  "cumulus-pallet-xcmp-queue 0.8.0",
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
- "hex",
- "hex-literal",
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
  "kusama-system-emulated-network",
@@ -1380,8 +1369,6 @@ dependencies = [
  "pallet-message-queue 32.0.0",
  "pallet-xcm 8.0.0",
  "parachains-common 8.0.0",
- "parity-scale-codec",
- "scale-info",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-executor 8.0.1",
@@ -1482,10 +1469,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
  "parachains-common 8.0.0",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -1505,7 +1489,6 @@ dependencies = [
  "pallet-message-queue 32.0.0",
  "pallet-xcm 8.0.0",
  "parachains-common 8.0.0",
- "parity-scale-codec",
  "sp-runtime 32.0.0",
  "staging-xcm 8.0.0",
  "staging-xcm-executor 8.0.1",
@@ -2033,10 +2016,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support 29.0.0",
  "parachains-common 8.0.0",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -5414,12 +5394,10 @@ dependencies = [
  "parachains-common 8.0.0",
  "polkadot-primitives 8.0.0",
  "sc-consensus-grandpa",
- "serde_json",
  "sp-authority-discovery 27.0.0",
  "sp-consensus-babe 0.33.0",
  "sp-consensus-beefy",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
  "staging-kusama-runtime",
 ]
 
@@ -9347,9 +9325,7 @@ dependencies = [
  "parachains-common 8.0.0",
  "penpal-runtime",
  "polkadot-emulated-chain",
- "serde_json",
  "sp-core 29.0.0",
- "sp-runtime 32.0.0",
 ]
 
 [[package]]
@@ -9709,7 +9685,6 @@ dependencies = [
  "polkadot-runtime",
  "polkadot-runtime-constants",
  "sc-consensus-grandpa",
- "serde_json",
  "sp-authority-discovery 27.0.0",
  "sp-consensus-babe 0.33.0",
  "sp-consensus-beefy",
