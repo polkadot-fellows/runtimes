@@ -1710,9 +1710,11 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::{
-		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber, LeasePeriod,
-		Leaser, ParaId, Runtime,
+		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber,
+		Configuration, LeasePeriod, Leaser, ParaId, Runtime, Weight,
 	};
+	use frame_support::traits::OnRuntimeUpgrade;
+	use frame_system::RawOrigin;
 
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
@@ -1735,6 +1737,18 @@ pub mod migrations {
 		}
 	}
 
+	/// Enable the elastic scaling node side feature.
+	///
+	/// This is required for Coretime to ensure the relay chain processes parachains that are
+	/// assigned to multiple cores.
+	pub struct EnableElasticScalingNodeFeature;
+	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
+		fn on_runtime_upgrade() -> Weight {
+			let _ = Configuration::set_node_feature(RawOrigin::Root.into(), 1, true);
+			Weight::from_parts(1, 0)
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
@@ -1751,6 +1765,7 @@ pub mod migrations {
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
 		>,
+		EnableElasticScalingNodeFeature,
 	);
 }
 
