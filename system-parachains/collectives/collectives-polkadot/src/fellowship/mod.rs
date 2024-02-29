@@ -146,7 +146,7 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// - the Fellows origin
 	type ExchangeOrigin = EitherOf<
 		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
-		frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
+		Fellows,
 	>;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
