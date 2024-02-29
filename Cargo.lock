@@ -1861,7 +1861,6 @@ dependencies = [
  "encointer-kusama-runtime",
  "glutton-kusama-runtime",
  "kusama-runtime-constants",
- "pallet-im-online",
  "pallet-staking",
  "parachains-common",
  "polkadot-primitives",
@@ -5044,7 +5043,6 @@ version = "1.0.0"
 dependencies = [
  "emulated-integration-tests-common",
  "kusama-runtime-constants",
- "pallet-im-online",
  "parachains-common",
  "polkadot-primitives",
  "sc-consensus-grandpa",
@@ -8735,7 +8733,6 @@ name = "polkadot-emulated-chain"
 version = "1.0.0"
 dependencies = [
  "emulated-integration-tests-common",
- "pallet-im-online",
  "pallet-staking",
  "parachains-common",
  "polkadot-primitives",
