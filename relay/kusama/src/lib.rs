@@ -1737,6 +1737,7 @@ pub mod migrations {
 						err
 					);
 				};
+				return None
 			}
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
