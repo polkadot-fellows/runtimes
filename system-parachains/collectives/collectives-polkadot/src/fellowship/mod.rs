@@ -345,5 +345,8 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type BalanceConverter = AssetRate;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
+		sp_core::ConstU8<1>,
+		ConstU32<1000>,
+	>;
 }

@@ -9,14 +9,14 @@ license.workspace = true
 [dependencies]
 smallvec = "1.13.1"
 
-frame-support = { default-features = false , version = "27.0.0" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "6.0.0" }
-runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "6.0.0" }
-sp-runtime = { default-features = false , version = "30.0.1" }
-sp-weights = { default-features = false , version = "26.0.0" }
-sp-core = { default-features = false , version = "27.0.0" }
+frame-support = { default-features = false , version = "28.0.0" }
+primitives = { package = "polkadot-primitives", default-features = false , version = "7.0.0" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "7.0.0" }
+sp-runtime = { default-features = false , version = "31.0.1" }
+sp-weights = { default-features = false , version = "27.0.0" }
+sp-core = { default-features = false , version = "28.0.0" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "6.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "7.0.3" }
 
 [features]
 default = [ "std" ]
@@ -27,5 +27,5 @@ std = [
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-weights/std",
-	"xcm/std"
+	"xcm-builder/std"
 ]

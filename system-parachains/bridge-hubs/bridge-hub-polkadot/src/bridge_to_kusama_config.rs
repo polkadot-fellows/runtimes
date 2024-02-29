@@ -19,8 +19,8 @@
 use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
-	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, Runtime, RuntimeEvent,
-	RuntimeOrigin, XcmOverBridgeHubKusama,
+	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, PolkadotXcm, Runtime,
+	RuntimeEvent, RuntimeOrigin, XcmOverBridgeHubKusama,
 };
 use bp_messages::LaneId;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
@@ -33,7 +33,7 @@ use bridge_runtime_common::{
 	},
 	messages_xcm_extension::{
 		SenderAndLane, XcmAsPlainPayload, XcmBlobHauler, XcmBlobHaulerAdapter,
-		XcmBlobMessageDispatch,
+		XcmBlobMessageDispatch, XcmVersionOfDestAndRemoteBridge,
 	},
 	refund_relayer_extension::{
 		ActualFeeRefund, RefundBridgedParachainMessages, RefundSignedExtensionAdapter,
@@ -75,6 +75,11 @@ parameter_types! {
 parameter_types! {
 	/// Kusama Network identifier.
 	pub KusamaGlobalConsensusNetwork: NetworkId = NetworkId::Kusama;
+	/// Kusama Network as `Location`.
+	pub KusamaGlobalConsensusNetworkLocation: MultiLocation = MultiLocation {
+		parents: 2,
+		interior: X1(GlobalConsensus(KusamaGlobalConsensusNetwork::get()))
+	};
 	/// Interior location (relative to this runtime) of the with-Kusama messages pallet.
 	pub BridgePolkadotToKusamaMessagesPalletInstance: InteriorMultiLocation = X1(
 		PalletInstance(<BridgeKusamaMessages as PalletInfoAccess>::index() as u8),
@@ -84,6 +89,14 @@ parameter_types! {
 	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Identifier of the bridged Kusama Asset Hub parachain.
 	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+	/// Location of the bridged Kusama Bridge Hub parachain.
+	pub BridgeHubKusamaLocation: MultiLocation = MultiLocation {
+		parents: 2,
+		interior: X2(
+			GlobalConsensus(KusamaGlobalConsensusNetwork::get()),
+			Parachain(<bp_bridge_hub_kusama::BridgeHubKusama as bp_runtime::Parachain>::PARACHAIN_ID)
+		)
+	};
 
 	/// A route (XCM location and bridge lane) that the Polkadot Asset Hub -> Kusama Asset Hub
 	/// message is following.
@@ -257,12 +270,13 @@ impl XcmBlobHauler for ToBridgeHubKusamaXcmBlobHauler {
 pub type XcmOverBridgeHubKusamaInstance = pallet_xcm_bridge_hub::Instance1;
 impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubKusamaInstance> for Runtime {
 	type UniversalLocation = UniversalLocation;
-	type BridgedNetworkId = KusamaGlobalConsensusNetwork;
+	type BridgedNetwork = KusamaGlobalConsensusNetworkLocation;
 	type BridgeMessagesPalletInstance = WithBridgeHubKusamaMessagesInstance;
 	// `MessageExportPrice` is simply propagated to the inner `xcm_builder::HaulBlobExporter`, and
 	// we do not need or want to add any additional price for exporting here, as it is already
 	// covered by the measured weight of the `ExportMessage` instruction.
 	type MessageExportPrice = ();
+	type DestinationVersion = XcmVersionOfDestAndRemoteBridge<PolkadotXcm, BridgeHubKusamaLocation>;
 	type Lanes = ActiveLanes;
 	type LanesSupport = ToBridgeHubKusamaXcmBlobHauler;
 }
@@ -417,5 +431,8 @@ mod tests {
 				bp_bridge_hub_polkadot::WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX
 			))
 		);
+
+		assert!(BridgeHubKusamaLocation::get()
+			.starts_with(&KusamaGlobalConsensusNetworkLocation::get()));
 	}
 }

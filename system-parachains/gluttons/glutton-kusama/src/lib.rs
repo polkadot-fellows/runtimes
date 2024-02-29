@@ -149,6 +149,7 @@ impl frame_system::Config for Runtime {
 	type Hashing = BlakeTwo256;
 	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeTask = RuntimeTask;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
 	type Version = Version;
@@ -158,7 +159,7 @@ impl frame_system::Config for Runtime {
 	type OnKilledAccount = ();
 	type DbWeight = ();
 	type BaseCallFilter = frame_support::traits::Everything;
-	type SystemWeightInfo = ();
+	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type SS58Prefix = SS58Prefix;
