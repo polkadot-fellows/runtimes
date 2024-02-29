@@ -1711,6 +1711,8 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
+	use crate::set_safe_on_demand_fee;
+
 	use super::{
 		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber, LeasePeriod,
 		Leaser, ParaId, Runtime,
@@ -1753,6 +1755,8 @@ pub mod migrations {
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
 		>,
+		// Set on demand base fee.
+		set_safe_on_demand_fee::AdjustOnDemandBaseFee,
 	);
 }
 
@@ -2858,6 +2862,31 @@ mod init_state_migration {
 			}
 
 			Ok(())
+		}
+	}
+}
+
+/// Ahead of launching on demand alongside Coretime, set the base fee to a sane value.
+/// This value can then later be adjusted via governance.
+mod set_safe_on_demand_fee {
+	use super::{
+		parachains_configuration::{Config, Pallet, WeightInfo},
+		Runtime, RuntimeOrigin, Weight, UNITS,
+	};
+	use frame_support::traits::OnRuntimeUpgrade;
+
+	pub struct AdjustOnDemandBaseFee;
+	impl OnRuntimeUpgrade for AdjustOnDemandBaseFee {
+		fn on_runtime_upgrade() -> Weight {
+			let new_base_fee = UNITS / 100; // 0.01 KSM
+			match Pallet::<Runtime>::set_on_demand_base_fee(RuntimeOrigin::root(), new_base_fee) {
+				Ok(_) => log::info!("Successfully set on demand base fee to {new_base_fee}"),
+				Err(e) => log::info!("Could not set on demand base fee {e:?}"),
+			}
+			// A little overweight in the error case but this should not matter.
+			let weight = <Runtime as Config>::WeightInfo::set_config_with_balance();
+			log::info!("Weight: {weight}");
+			weight
 		}
 	}
 }
