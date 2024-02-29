@@ -1725,6 +1725,10 @@ pub mod migrations {
 			if lease.is_empty() {
 				return None
 			}
+			// Lease not yet started, ignore:
+			if lease.iter().any(Option::is_none) {
+				return None
+			}
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
 			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
