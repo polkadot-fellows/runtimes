@@ -1725,9 +1725,18 @@ pub mod migrations {
 			if lease.is_empty() {
 				return None
 			}
-			// Lease not yet started, ignore:
+			// Lease not yet started/or having holes, refund (coretime can't handle this):
 			if lease.iter().any(Option::is_none) {
-				return None
+				if let Err(err) = slots::Pallet::<Runtime>::clear_all_leases(
+					frame_system::RawOrigin::Root.into(),
+					para,
+				) {
+					log::error!(
+						"Clearing lease for para: {:?} failed, with error: {:?}",
+						para,
+						err
+					);
+				};
 			}
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
