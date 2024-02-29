@@ -1646,9 +1646,13 @@ pub type Migrations = migrations::Unreleased;
 pub mod migrations {
 	use super::{parachains_configuration, Runtime};
 
+	parameter_types! {
+		const StateTrieMigrationName: &str =  "StateTrieMigration";
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		crate::clean_state_migration::CleanMigrate,
+		frame_support::migrations::RemovePallet<StateTrieMigrationName, RocksDbWeight>,
 		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
 		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
@@ -2689,49 +2693,5 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
-	}
-}
-
-mod clean_state_migration {
-	use super::Runtime;
-	use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
-	use pallet_state_trie_migration::MigrationLimits;
-	use sp_std::vec::Vec;
-
-	#[storage_alias]
-	type AutoLimits = StorageValue<StateTrieMigration, Option<MigrationLimits>, ValueQuery>;
-
-	// Actual type of value is `MigrationTask<T>`, putting a dummy
-	// one to avoid the trait constraint on T.
-	// Since we only use `kill` it is fine.
-	#[storage_alias]
-	type MigrationProcess = StorageValue<StateTrieMigration, u32, ValueQuery>;
-
-	#[storage_alias]
-	type SignedMigrationMaxLimits = StorageValue<StateTrieMigration, MigrationLimits, OptionQuery>;
-
-	pub struct CleanMigrate;
-
-	impl OnRuntimeUpgrade for CleanMigrate {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
-			Ok(Default::default())
-		}
-
-		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			MigrationProcess::kill();
-			AutoLimits::kill();
-			SignedMigrationMaxLimits::kill();
-			<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
-			frame_support::ensure!(
-				!AutoLimits::exists() && !SignedMigrationMaxLimits::exists(),
-				"State migration clean.",
-			);
-			Ok(())
-		}
 	}
 }
