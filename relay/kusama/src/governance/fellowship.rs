@@ -352,7 +352,6 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 			TryMapSuccess<origins::EnsureFellowship, CheckedReduceBy<ConstU16<2>>>,
 		>,
 	>;
-	// TODO:(PR#187)(PR#2587): check ExchangeOrigin
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
 	// - the Fellows origin
