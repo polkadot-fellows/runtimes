@@ -112,7 +112,7 @@ jobs:
               on-runtime-upgrade --checks=pre-and-post \
               $EXTRA_FLAGS \
               live --uri ${{ matrix.runtime.uri }} || \
-              echo "TODO:(https://github.com/polkadot-fellows/runtimes/issues/186): skipping failed `check-migrations` (remove this IF, when the Encointer 1.2.0 is enacted live)"  
+              echo "TODO:(https://github.com/polkadot-fellows/runtimes/issues/186): skipping failed check-migrations (remove this IF, when the Encointer 1.2.0 is enacted live)"  
           else
           ./try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
