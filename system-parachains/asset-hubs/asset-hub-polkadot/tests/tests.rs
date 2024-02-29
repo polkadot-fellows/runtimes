@@ -792,7 +792,6 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 		)
 }
 
-
 #[test]
 fn reserve_transfer_native_asset_to_non_teleport_para_works() {
 	asset_test_utils::test_cases::reserve_transfer_native_asset_to_non_teleport_para_works::<

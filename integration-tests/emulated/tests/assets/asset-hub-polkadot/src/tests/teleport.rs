@@ -17,7 +17,7 @@ use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
 use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
-use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHubV3 as PenpalLocalTeleportableToAssetHubV3;
+use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
@@ -559,7 +559,8 @@ fn teleport_to_other_system_parachains_works() {
 #[test]
 fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	let ah_as_seen_by_penpal = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHubV3::get();
+	let asset_location_on_penpal =
+		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
 		Some(v3::Junction::GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
