@@ -1711,11 +1711,10 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use crate::set_safe_on_demand_fee;
 
 	use super::{
-		coretime, parachains_configuration, parachains_scheduler, slots, BlockNumber, LeasePeriod,
-		Leaser, ParaId, Runtime,
+		coretime, parachains_configuration, parachains_scheduler, set_safe_on_demand_fee, slots,
+		BlockNumber, LeasePeriod, Leaser, ParaId, Runtime,
 	};
 
 	// We don't have a limit in the Relay Chain.
