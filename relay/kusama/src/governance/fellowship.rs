@@ -359,7 +359,6 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
-	// TODO:(PR#187)(PR#3156): check MemberSwappedHandler/BenchmarkSetup
 	type MemberSwappedHandler = ();
 	type VoteWeight = pallet_ranked_collective::Geometric;
 	#[cfg(feature = "runtime-benchmarks")]
