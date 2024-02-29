@@ -60,9 +60,6 @@ type AssetIdForTrustBackedAssetsConvertLatest =
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
-// TODO:(PR#187) needs patched generic test not requiring pallet_asset_conversion (remove also
-// #[allow(dead_code)]
-#[allow(dead_code)]
 fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
 	CollatorSessionKey::new(
 		AccountId::from(account),
@@ -72,11 +69,7 @@ fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
 }
 
 fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
-	CollatorSessionKeys::new(
-		AccountId::from(ALICE),
-		AccountId::from(ALICE),
-		SessionKeys { aura: AuraId::from(sp_core::ed25519::Public::from_raw(ALICE)) },
-	)
+	CollatorSessionKeys::default().add(collator_session_key(ALICE))
 }
 
 fn slot_durations() -> SlotDurations {
@@ -797,6 +790,37 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 				assert_eq!(Balances::free_balance(&staking_pot), 0);
 			}
 		)
+}
+
+
+#[test]
+fn reserve_transfer_native_asset_to_non_teleport_para_works() {
+	asset_test_utils::test_cases::reserve_transfer_native_asset_to_non_teleport_para_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		ParachainSystem,
+		XcmpQueue,
+		LocationToAccountId,
+	>(
+		collator_session_keys(),
+		slot_durations(),
+		ExistentialDeposit::get(),
+		AccountId::from(ALICE),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::PolkadotXcm(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		Box::new(|runtime_event_encoded: Vec<u8>| {
+			match RuntimeEvent::decode(&mut &runtime_event_encoded[..]) {
+				Ok(RuntimeEvent::XcmpQueue(event)) => Some(event),
+				_ => None,
+			}
+		}),
+		WeightLimit::Unlimited,
+	);
 }
 
 #[test]
