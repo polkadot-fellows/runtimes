@@ -140,7 +140,6 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 			Replace<ConstU16<{ ranks::DAN_9 }>>,
 		>,
 	>;
-	// TODO:(PR#187)(PR#2587): check ExchangeOrigin
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
 	// - the Fellows origin
