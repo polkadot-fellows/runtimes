@@ -17,7 +17,6 @@ authority-discovery-primitives = { package = "sp-authority-discovery", version =
 babe-primitives = { package = "sp-consensus-babe", version = "0.32.0" }
 beefy-primitives = { package = "sp-consensus-beefy", version = "13.0.0" }
 grandpa = { package = "sc-consensus-grandpa", version = "0.19.0" }
-pallet-im-online = { version = "27.0.0" }
 
 # Polkadot
 polkadot-primitives = { version = "7.0.0" }
