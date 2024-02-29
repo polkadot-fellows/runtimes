@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
-use bridge_hub_kusama_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
+use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use snowbridge_beacon_primitives::CompactExecutionHeader;
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
-use kusama_system_emulated_network::BridgeHubKusamaParaSender as BridgeHubKusamaSender;
+use polkadot_system_emulated_network::BridgeHubPolkadotParaSender as BridgeHubPolkadotSender;
 use snowbridge_core::outbound::OperatingMode;
 use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
@@ -30,10 +30,10 @@ use snowbridge_pallet_system;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_core::H256;
 use sp_runtime::{ArithmeticError::Underflow, DispatchError::Arithmetic};
-use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
+use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 use snowbridge_core::inbound::{Log, Message, Proof};
 
-const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;
+const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;
 const TREASURY_ACCOUNT: [u8; 32] =
 	hex!("6d6f646c70792f74727372790000000000000000000000000000000000000000");
@@ -64,7 +64,7 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 	);
 
 	EthereumInboundQueue::submit(
-		RuntimeOrigin::signed(BridgeHubKusamaSender::get()),
+		RuntimeOrigin::signed(BridgeHubPolkadotSender::get()),
 		fixture.message,
 	)
 }
@@ -76,10 +76,10 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 fn create_agent() {
 	let origin_para: u32 = 1001;
 	// Fund the origin parachain sovereign account so that it can pay execution fees.
-	BridgeHubKusama::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
 
-	let sudo_origin = <Kusama as Chain>::RuntimeOrigin::root();
-	let destination = Kusama::child_location_of(BridgeHubKusama::para_id()).into();
+	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
+	let destination = Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
 
 	let create_agent_call = SnowbridgeControl::Control(ControlCall::CreateAgent {});
 	// Construct XCM to create an agent for para 1001
@@ -93,30 +93,30 @@ fn create_agent() {
 		},
 	]));
 
-	// Kusama Global Consensus
+	// Polkadot Global Consensus
 	// Send XCM message from Relay Chain to Bridge Hub source Parachain
-	Kusama::execute_with(|| {
-		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::send(
+	Polkadot::execute_with(|| {
+		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
 			sudo_origin,
 			bx!(destination),
 			bx!(remote_xcm),
 		));
 
-		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 		// Check that the Transact message was sent
 		assert_expected_events!(
-			Kusama,
+			Polkadot,
 			vec![
 				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
 			]
 		);
 	});
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		// Check that a message was sent to Ethereum to create the agent
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateAgent {
 					..
@@ -133,11 +133,11 @@ fn create_agent() {
 fn create_channel() {
 	let origin_para: u32 = 1001;
 	// Fund AssetHub sovereign account so that it can pay execution fees.
-	BridgeHubKusama::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
 
-	let sudo_origin = <Kusama as Chain>::RuntimeOrigin::root();
+	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
 	let destination: VersionedLocation =
-		Kusama::child_location_of(BridgeHubKusama::para_id()).into();
+		Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
 
 	let create_agent_call = SnowbridgeControl::Control(ControlCall::CreateAgent {});
 	// Construct XCM to create an agent for para 1001
@@ -164,37 +164,37 @@ fn create_channel() {
 		},
 	]));
 
-	// Kusama Global Consensus
+	// Polkadot Global Consensus
 	// Send XCM message from Relay Chain to Bridge Hub source Parachain
-	Kusama::execute_with(|| {
-		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::send(
+	Polkadot::execute_with(|| {
+		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
 			sudo_origin.clone(),
 			bx!(destination.clone()),
 			bx!(create_agent_xcm),
 		));
 
-		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::send(
+		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
 			sudo_origin,
 			bx!(destination),
 			bx!(create_channel_xcm),
 		));
 
-		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 
 		assert_expected_events!(
-			Kusama,
+			Polkadot,
 			vec![
 				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
 			]
 		);
 	});
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Check that the Channel was created
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateChannel {
 					..
@@ -208,28 +208,28 @@ fn create_channel() {
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
 	// Fund AssetHub sovereign account so that it can pay execution fees.
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Construct RegisterToken message and sent to inbound queue
 		let register_token_message = make_register_token_message();
 		send_inbound_message(register_token_message.clone()).unwrap();
 
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
 	});
 
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		assert_expected_events!(
-			AssetHubKusama,
+			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { .. }) => {},
 			]
@@ -241,12 +241,12 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 /// still located on AssetHub.
 #[test]
 fn send_token_from_ethereum_to_penpal() {
-	let asset_hub_sovereign = BridgeHubKusama::sovereign_account_id_of(Location::new(
+	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
-		[Parachain(AssetHubKusama::para_id().into())],
+		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
 	// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
-	BridgeHubKusama::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
+	BridgeHubPolkadot::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
 
 	// Fund PenPal sender and receiver
 	PenpalA::fund_accounts(vec![
@@ -266,7 +266,7 @@ fn send_token_from_ethereum_to_penpal() {
 	let ethereum_sovereign: AccountId =
 		GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location)
 			.unwrap();
-	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 
 	// Create asset on the Penpal parachain.
 	PenpalA::execute_with(|| {
@@ -280,8 +280,8 @@ fn send_token_from_ethereum_to_penpal() {
 		assert!(<PenpalA as PenpalAPallet>::ForeignAssets::asset_exists(weth_asset_id));
 	});
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Construct RegisterToken message and sent to inbound queue
 		send_inbound_message(make_register_token_message()).unwrap();
@@ -290,18 +290,18 @@ fn send_token_from_ethereum_to_penpal() {
 		send_inbound_message(make_send_token_to_penpal_message()).unwrap();
 
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
 	});
 
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		// Check that the assets were issued on AssetHub
 		assert_expected_events!(
-			AssetHubKusama,
+			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
@@ -325,13 +325,13 @@ fn send_token_from_ethereum_to_penpal() {
 /// a token from Ethereum to AssetHub.
 #[test]
 fn send_token_from_ethereum_to_asset_hub() {
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
 
 	// Fund ethereum sovereign on AssetHub
-	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaReceiver::get(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Construct RegisterToken message and sent to inbound queue
 		send_inbound_message(make_register_token_message()).unwrap();
@@ -341,19 +341,19 @@ fn send_token_from_ethereum_to_asset_hub() {
 
 		// Check that the message was sent
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
 	});
 
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		// Check that the token was received and issued as a foreign asset on AssetHub
 		assert_expected_events!(
-			AssetHubKusama,
+			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
 			]
@@ -367,33 +367,33 @@ fn send_token_from_ethereum_to_asset_hub() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::DefaultBridgeHubEthereumBaseFee;
-	let assethub_sovereign = BridgeHubKusama::sovereign_account_id_of(Location::new(
+	use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::DefaultBridgeHubEthereumBaseFee;
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
-		[Parachain(AssetHubKusama::para_id().into())],
+		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
 
-	AssetHubKusama::force_default_xcm_version(Some(XCM_VERSION));
-	BridgeHubKusama::force_default_xcm_version(Some(XCM_VERSION));
-	AssetHubKusama::force_xcm_version(
+	AssetHubPolkadot::force_default_xcm_version(Some(XCM_VERSION));
+	BridgeHubPolkadot::force_default_xcm_version(Some(XCM_VERSION));
+	AssetHubPolkadot::force_xcm_version(
 		Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]),
 		XCM_VERSION,
 	);
 
-	BridgeHubKusama::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
-	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaReceiver::get(), INITIAL_FUND)]);
+	BridgeHubPolkadot::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Construct RegisterToken message and sent to inbound queue
 		send_inbound_message(make_register_token_message()).unwrap();
 
 		// Check that the register token message was sent using xcm
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
@@ -404,20 +404,20 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 		// Check that the send token message was sent using xcm
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
 	});
 
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
-		type RuntimeOrigin = <AssetHubKusama as Chain>::RuntimeOrigin;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
 		// Check that AssetHub has issued the foreign asset
 		assert_expected_events!(
-			AssetHubKusama,
+			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
 			]
@@ -444,37 +444,37 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }],
 		));
 
-		let free_balance_before = <AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(
-			AssetHubKusamaReceiver::get(),
+		let free_balance_before = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+			AssetHubPolkadotReceiver::get(),
 		);
 		// Send the Weth back to Ethereum
-		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::reserve_transfer_assets(
-			RuntimeOrigin::signed(AssetHubKusamaReceiver::get()),
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::reserve_transfer_assets(
+			RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
 			Box::new(destination),
 			Box::new(beneficiary),
 			Box::new(multi_assets),
 			0,
 		)
 		.unwrap();
-		let free_balance_after = <AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(
-			AssetHubKusamaReceiver::get(),
+		let free_balance_after = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+			AssetHubPolkadotReceiver::get(),
 		);
 		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
 		let free_balance_diff = free_balance_before - free_balance_after;
 		assert!(free_balance_diff > DefaultBridgeHubEthereumBaseFee::get());
 	});
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		// Check that the transfer token back to Ethereum message was queue in the Ethereum
 		// Outbound Queue
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued {..}) => {},
 			]
 		);
-		let events = BridgeHubKusama::events();
+		let events = BridgeHubPolkadot::events();
 		// Check that the local fee was credited to the Snowbridge sovereign account
 		assert!(
 			events.iter().any(|event| matches!(
@@ -498,28 +498,28 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 #[test]
 fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
 
-	BridgeHubKusama::execute_with(|| {
-		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
 		// Construct RegisterToken message and sent to inbound queue
 		let message = make_register_token_with_infufficient_fee_message();
 		send_inbound_message(message).unwrap();
 
 		assert_expected_events!(
-			BridgeHubKusama,
+			BridgeHubPolkadot,
 			vec![
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
 	});
 
-	AssetHubKusama::execute_with(|| {
-		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		assert_expected_events!(
-			AssetHubKusama,
+			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:false, .. }) => {},
 			]
@@ -532,7 +532,7 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	// Insufficient fund
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), 1_000);
 
-	BridgeHubKusama::execute_with(|| {
+	BridgeHubPolkadot::execute_with(|| {
 		assert_err!(send_inbound_message(make_register_token_message()), Arithmetic(Underflow));
 	});
 }

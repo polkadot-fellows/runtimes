@@ -780,10 +780,11 @@ pub mod bridging {
 		parameter_types! {
 			/// User fee for ERC20 token transfer back to Ethereum.
 			/// Configure the fee to max Balance so that it is disabled.
-			pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
+			/// pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
+			pub const DefaultBridgeHubEthereumBaseFee: Balance = 2_750_872_500_000;
 			pub storage BridgeHubEthereumBaseFee: Balance = DefaultBridgeHubEthereumBaseFee::get();
 			pub SiblingBridgeHubWithEthereumInboundQueueInstance: Location = Location::new(
-				2,
+				1,
 				[
 					Parachain(SiblingBridgeHubParaId::get()),
 					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX),

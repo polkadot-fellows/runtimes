@@ -41,6 +41,9 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: bridge_hub_kusama_runtime::PolkadotXcm,
 			Balances: bridge_hub_kusama_runtime::Balances,
+			EthereumSystem: bridge_hub_kusama_runtime::EthereumSystem,
+			EthereumInboundQueue: bridge_hub_kusama_runtime::EthereumInboundQueue,
+			EthereumOutboundQueue: bridge_hub_kusama_runtime::EthereumOutboundQueue,
 		}
 	},
 }

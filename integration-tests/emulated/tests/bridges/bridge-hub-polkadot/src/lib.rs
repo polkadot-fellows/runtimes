@@ -53,13 +53,18 @@ pub use kusama_polkadot_system_emulated_network::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
-	polkadot_emulated_chain::PolkadotRelayPallet as PolkadotPallet,
+	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PolkadotRelay as Polkadot,
+};
+pub use polkadot_system_emulated_network::{
+	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
+	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
 };
 pub use parachains_common::{AccountId, Balance};
 
