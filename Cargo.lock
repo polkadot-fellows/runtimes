@@ -1482,8 +1482,8 @@ dependencies = [
 name = "bridge-hub-kusama-emulated-chain"
 version = "1.0.0"
 dependencies = [
+ "bridge-hub-common",
  "bridge-hub-kusama-runtime",
- "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
  "parachains-common",
@@ -1617,8 +1617,8 @@ dependencies = [
 name = "bridge-hub-polkadot-emulated-chain"
 version = "1.0.0"
 dependencies = [
+ "bridge-hub-common",
  "bridge-hub-polkadot-runtime",
- "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
  "parachains-common",

@@ -36,7 +36,7 @@ decl_test_parachains! {
 			XcmpMessageHandler: bridge_hub_polkadot_runtime::XcmpQueue,
 			LocationToAccountId: bridge_hub_polkadot_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: bridge_hub_polkadot_runtime::ParachainInfo,
-			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			MessageOrigin: bridge_hub_common::AggregateMessageOrigin,
 		},
 		pallets = {
 			PolkadotXcm: bridge_hub_polkadot_runtime::PolkadotXcm,
