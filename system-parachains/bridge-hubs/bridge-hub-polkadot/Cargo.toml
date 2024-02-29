@@ -60,24 +60,24 @@ sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.0" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.1" }
+pallet-xcm = { default-features = false, version = "8.0.1" }
+pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
-polkadot-runtime-common = { default-features = false, version = "8.0.0" }
+polkadot-runtime-common = { default-features = false, version = "8.0.1" }
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
 cumulus-pallet-aura-ext = { default-features = false , version = "0.8.0" }
 cumulus-pallet-dmp-queue = { default-features = false , version = "0.8.0" }
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.0" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
 cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
-cumulus-primitives-utility = { default-features = false , version = "0.8.0" }
+cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
 pallet-collator-selection = { default-features = false , version = "10.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
 parachains-common = { default-features = false , version = "8.0.0" }

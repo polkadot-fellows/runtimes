@@ -38,11 +38,11 @@ sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.0" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.0" }
+cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
 cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }

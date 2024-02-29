@@ -1054,8 +1054,21 @@ impl_runtime_apis! {
 			use xcm::latest::prelude::*;
 			use xcm_config::KsmRelayLocation;
 
+			parameter_types! {
+				pub ExistentialDepositAsset: Option<Asset> = Some((
+					KsmRelayLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+			}
+
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
+				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+					xcm_config::XcmConfig,
+					ExistentialDepositAsset,
+					PriceForParentDelivery,
+				>;
+
 				fn reachable_dest() -> Option<Location> {
 					Some(Parent.into())
 				}
@@ -1087,13 +1100,6 @@ impl_runtime_apis! {
 						dest
 					)
 				}
-			}
-
-			parameter_types! {
-				pub ExistentialDepositAsset: Option<Asset> = Some((
-					KsmRelayLocation::get(),
-					ExistentialDeposit::get()
-				).into());
 			}
 
 			impl pallet_xcm_benchmarks::Config for Runtime {
