@@ -1690,14 +1690,7 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-<<<<<<< HEAD
-		// Upgrade SessionKeys to include BEEFY key
-		UpgradeSessionKeys,
 		init_state_migration::InitMigrate,
-		pallet_nomination_pools::migration::versioned::V5toV6<Runtime>,
-		pallet_nomination_pools::migration::versioned::V6ToV7<Runtime>,
-=======
->>>>>>> main
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
 		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
