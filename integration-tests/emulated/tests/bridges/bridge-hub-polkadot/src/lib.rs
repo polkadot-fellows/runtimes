@@ -61,12 +61,12 @@ pub use kusama_polkadot_system_emulated_network::{
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PolkadotRelay as Polkadot,
 };
+pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
 	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver, PenpalAPara as PenpalA,
 	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
 };
-pub use parachains_common::{AccountId, Balance};
 
 pub const ASSET_ID: u32 = 1;
 pub const ASSET_MIN_BALANCE: u128 = 1000;

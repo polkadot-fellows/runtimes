@@ -17,6 +17,7 @@ frame-support = { version = "29.0.0" }
 parachains-common = { version = "8.0.0" }
 cumulus-primitives-core = { version = "0.8.0" }
 emulated-integration-tests-common = { version = "4.0.0" }
+# temp crate until EthereumNetwork is extracted from penpal definition
 penpal-runtime = { package="penpal-runtime-dotsama", path = "../../../../penpal" }
 
 # Runtimes

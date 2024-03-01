@@ -14,26 +14,34 @@
 // limitations under the License.
 use crate::*;
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
-use snowbridge_beacon_primitives::CompactExecutionHeader;
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use polkadot_system_emulated_network::BridgeHubPolkadotParaSender as BridgeHubPolkadotSender;
-use snowbridge_core::outbound::OperatingMode;
+use snowbridge_beacon_primitives::CompactExecutionHeader;
+use snowbridge_core::{
+	inbound::{Log, Message, Proof},
+	outbound::OperatingMode,
+};
 use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
-	send_token_to_penpal::make_send_token_to_penpal_message,
 	InboundQueueFixture,
 };
 use snowbridge_pallet_system;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
+use snowbridge_router_primitives::inbound::{
+	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
+};
 use sp_core::H256;
-use sp_runtime::{ArithmeticError::Underflow, DispatchError::Arithmetic};
+use sp_runtime::{
+	ArithmeticError::Underflow,
+	DispatchError::{Arithmetic, Token},
+	TokenError::FundsUnavailable,
+};
 use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
-use snowbridge_core::inbound::{Log, Message, Proof};
+use frame_support::traits::Currency;
 
-const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
+const INITIAL_FUND: u128 = 10_000_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;
 const TREASURY_ACCOUNT: [u8; 32] =
 	hex!("6d6f646c70792f74727372790000000000000000000000000000000000000000");
@@ -208,14 +216,46 @@ fn create_channel() {
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
 	// Fund AssetHub sovereign account so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
+	//BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
+
+	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubPolkadot::para_id().into())],
+	));
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
-		// Construct RegisterToken message and sent to inbound queue
-		let register_token_message = make_register_token_message();
-		send_inbound_message(register_token_message.clone()).unwrap();
+		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
+
+		// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
+		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::force_set_balance(
+			RuntimeOrigin::root(),
+			asset_hub_sovereign.clone().into(),
+			60_000_000_000_000_000_000,
+		)
+			.unwrap();
+
+		let minimum_balance = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::minimum_balance();
+		let total_balance = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::total_balance(
+			&asset_hub_sovereign.into()
+		);
+
+		println!("MINIMUM: {:?}", minimum_balance);
+		println!("TOTAL: {:?}", total_balance);
+
+		let message_id: H256 = [1; 32].into();
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::RegisterToken {
+				token: WETH.into(),
+				fee: 40_000_000_000,
+			},
+		});
+		// Convert the message to XCM
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		// Send the XCM
+		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
 		assert_expected_events!(
 			BridgeHubPolkadot,
@@ -245,8 +285,6 @@ fn send_token_from_ethereum_to_penpal() {
 		1,
 		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
-	// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
-	BridgeHubPolkadot::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
 
 	// Fund PenPal sender and receiver
 	PenpalA::fund_accounts(vec![
@@ -273,21 +311,58 @@ fn send_token_from_ethereum_to_penpal() {
 		assert_ok!(<PenpalA as PenpalAPallet>::ForeignAssets::create(
 			<PenpalA as Chain>::RuntimeOrigin::signed(PenpalASender::get()),
 			weth_asset_id,
-			asset_hub_sovereign.into(),
+			asset_hub_sovereign.clone().into(),
 			1000,
 		));
 
 		assert!(<PenpalA as PenpalAPallet>::ForeignAssets::asset_exists(weth_asset_id));
 	});
 
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			weth_asset_id,
+			asset_hub_sovereign.clone().into(),
+			true,
+			1000,
+		));
+
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
+			weth_asset_id
+		));
+	});
+
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
-		// Construct RegisterToken message and sent to inbound queue
-		send_inbound_message(make_register_token_message()).unwrap();
+		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Construct SendToken message and sent to inbound queue
-		send_inbound_message(make_send_token_to_penpal_message()).unwrap();
+		// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
+		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::force_set_balance(
+			RuntimeOrigin::root(),
+			asset_hub_sovereign.clone().into(),
+			INITIAL_FUND,
+		)
+		.unwrap();
+
+		let message_id: H256 = [1; 32].into();
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::SendToken {
+				token: WETH.into(),
+				destination: Destination::ForeignAccountId32 {
+					para_id: PenpalA::para_id().into(),
+					id: PenpalAReceiver::get().into(),
+					fee: 40_000_000_000,
+				},
+				amount: 1_000_000,
+				fee: 40_000_000_000,
+			},
+		});
+		// Convert the message to XCM
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		// Send the XCM
+		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
 		assert_expected_events!(
 			BridgeHubPolkadot,
@@ -329,6 +404,31 @@ fn send_token_from_ethereum_to_asset_hub() {
 
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
+
+	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubPolkadot::para_id().into())],
+	));
+
+	// The Weth asset location, identified by the contract address on Ethereum
+	let weth_asset_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
+	// Converts the Weth asset location into an asset ID
+	let weth_asset_id: v3::Location = weth_asset_location.try_into().unwrap();
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			weth_asset_id,
+			asset_hub_sovereign.clone().into(),
+			true,
+			1000,
+		));
+
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
+			weth_asset_id
+		));
+	});
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -384,6 +484,31 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
+
+	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubPolkadot::para_id().into())],
+	));
+
+	// The Weth asset location, identified by the contract address on Ethereum
+	let weth_asset_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
+	// Converts the Weth asset location into an asset ID
+	let weth_asset_id: v3::Location = weth_asset_location.try_into().unwrap();
+
+	AssetHubPolkadot::execute_with(|| {
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			weth_asset_id,
+			asset_hub_sovereign.clone().into(),
+			true,
+			1000,
+		));
+
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
+			weth_asset_id
+		));
+	});
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -444,9 +569,10 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }],
 		));
 
-		let free_balance_before = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
-			AssetHubPolkadotReceiver::get(),
-		);
+		let free_balance_before =
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+				AssetHubPolkadotReceiver::get(),
+			);
 		// Send the Weth back to Ethereum
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::reserve_transfer_assets(
 			RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
@@ -456,9 +582,10 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			0,
 		)
 		.unwrap();
-		let free_balance_after = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
-			AssetHubPolkadotReceiver::get(),
-		);
+		let free_balance_after =
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+				AssetHubPolkadotReceiver::get(),
+			);
 		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
 		let free_balance_diff = free_balance_before - free_balance_after;
 		assert!(free_balance_diff > DefaultBridgeHubEthereumBaseFee::get());
@@ -530,10 +657,10 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 #[test]
 fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	// Insufficient fund
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), 1_000);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), 1_000);
 
 	BridgeHubPolkadot::execute_with(|| {
-		assert_err!(send_inbound_message(make_register_token_message()), Arithmetic(Underflow));
+		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
 	});
 }
 
