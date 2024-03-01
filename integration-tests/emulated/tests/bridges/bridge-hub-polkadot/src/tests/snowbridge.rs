@@ -16,7 +16,7 @@ use crate::*;
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::{pallet_prelude::TypeInfo, traits::Currency};
 use hex_literal::hex;
 use polkadot_system_emulated_network::BridgeHubPolkadotParaSender as BridgeHubPolkadotSender;
 use snowbridge_beacon_primitives::CompactExecutionHeader;
@@ -39,7 +39,6 @@ use sp_runtime::{
 	TokenError::FundsUnavailable,
 };
 use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
-use frame_support::traits::Currency;
 
 const INITIAL_FUND: u128 = 10_000_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;
@@ -234,11 +233,12 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 			asset_hub_sovereign.clone().into(),
 			60_000_000_000_000_000_000,
 		)
-			.unwrap();
+		.unwrap();
 
-		let minimum_balance = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::minimum_balance();
+		let minimum_balance =
+			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::minimum_balance();
 		let total_balance = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::total_balance(
-			&asset_hub_sovereign.into()
+			&asset_hub_sovereign.into(),
 		);
 
 		println!("MINIMUM: {:?}", minimum_balance);
@@ -247,10 +247,7 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 		let message_id: H256 = [1; 32].into();
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
-			command: Command::RegisterToken {
-				token: WETH.into(),
-				fee: 40_000_000_000,
-			},
+			command: Command::RegisterToken { token: WETH.into(), fee: 40_000_000_000 },
 		});
 		// Convert the message to XCM
 		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
