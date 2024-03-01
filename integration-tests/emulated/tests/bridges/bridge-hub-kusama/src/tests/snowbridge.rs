@@ -33,7 +33,7 @@ use snowbridge_router_primitives::inbound::{
 	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
 };
 use sp_core::H256;
-use sp_runtime::{ArithmeticError::Underflow, DispatchError::Arithmetic};
+use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
 use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;
@@ -571,7 +571,7 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), 1_000);
 
 	BridgeHubKusama::execute_with(|| {
-		assert_err!(send_inbound_message(make_register_token_message()), Arithmetic(Underflow));
+		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
 	});
 }
 
