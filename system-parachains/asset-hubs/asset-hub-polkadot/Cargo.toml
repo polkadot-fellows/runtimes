@@ -171,7 +171,6 @@ std = [
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"codec/std",
-	"collectives-polkadot-runtime-constants/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-dmp-queue/std",
 	"cumulus-pallet-parachain-system/std",
