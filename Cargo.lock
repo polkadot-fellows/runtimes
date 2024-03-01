@@ -8626,16 +8626,14 @@ dependencies = [
  "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
- "penpal-runtime",
+ "penpal-runtime-dotsama",
  "polkadot-emulated-chain",
  "sp-core",
 ]
 
 [[package]]
-name = "penpal-runtime"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c804f33306e47153a4bad6a9cd33bbd537fa4b5f9434d505c8a6fc321a0bb71a"
+name = "penpal-runtime-dotsama"
+version = "0.14.0"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext",
@@ -8652,6 +8650,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "hex-literal",
  "log",
  "pallet-asset-tx-payment",
  "pallet-assets",
@@ -8691,7 +8690,6 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
- "testnet-parachains-constants",
 ]
 
 [[package]]
@@ -10773,23 +10771,6 @@ checksum = "bb6f170a4041d50a0ce04b0d2e14916d6ca863ea2e422689a5b694395d299ffe"
 dependencies = [
  "libc",
  "librocksdb-sys",
-]
-
-[[package]]
-name = "rococo-runtime-constants"
-version = "8.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b45c21ccb0f8777512a65510c106aeee4b59682944b9a5cb31cd7b8ed4ccb47"
-dependencies = [
- "frame-support",
- "polkadot-primitives",
- "polkadot-runtime-common",
- "smallvec",
- "sp-core",
- "sp-runtime",
- "sp-weights",
- "staging-xcm",
- "staging-xcm-builder",
 ]
 
 [[package]]
@@ -14560,21 +14541,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
-name = "testnet-parachains-constants"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ff23c25f39d64b930ab9d721643d0c780a66201c7f1da34fac6982752626bf5"
-dependencies = [
- "frame-support",
- "polkadot-core-primitives",
- "rococo-runtime-constants",
- "smallvec",
- "sp-runtime",
- "staging-xcm",
- "westend-runtime-constants",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15682,23 +15648,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
 dependencies = [
  "webpki",
-]
-
-[[package]]
-name = "westend-runtime-constants"
-version = "8.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b080c193714605ce1033311d85035247adca170181cd68a3ad7e3ca87755a14"
-dependencies = [
- "frame-support",
- "polkadot-primitives",
- "polkadot-runtime-common",
- "smallvec",
- "sp-core",
- "sp-runtime",
- "sp-weights",
- "staging-xcm",
- "staging-xcm-builder",
 ]
 
 [[package]]
