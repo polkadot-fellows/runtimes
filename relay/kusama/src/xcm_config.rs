@@ -307,9 +307,9 @@ fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 		panic!("can't decode XCM blob")
 	};
 	let old_xcm_v3: xcm::v3::Xcm<super::RuntimeCall> =
-		old_xcm_v2.try_into().expect("conversion from v2 to v3 failed");
+		old_xcm_v2.try_into().expect("conversion from v2 to v3 works");
 	let mut xcm: Xcm<super::RuntimeCall> =
-		old_xcm_v3.try_into().expect("conversion from v3 to latest failed");
+		old_xcm_v3.try_into().expect("conversion from v3 to latest works");
 	let weight = <XcmConfig as xcm_executor::Config>::Weigher::weight(&mut xcm)
 		.expect("weighing XCM failed");
 

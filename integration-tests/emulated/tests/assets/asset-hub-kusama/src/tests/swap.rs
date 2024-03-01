@@ -14,13 +14,16 @@
 // limitations under the License.
 
 use crate::*;
-use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHubV3 as PenpalLocalTeleportableToAssetHubV3;
+use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use sp_runtime::ModuleError;
 use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
-	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocationV3::get());
+	let asset_native = Box::new(
+		v3::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
+			.expect("conversion works"),
+	);
 	let asset_one = Box::new(v3::Location::new(
 		0,
 		[
@@ -116,9 +119,14 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocationV3::get());
+	let asset_native = Box::new(
+		v3::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
+			.expect("conversion works"),
+	);
+
 	let ah_as_seen_by_penpal = PenpalA::sibling_location_of(AssetHubKusama::para_id());
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHubV3::get();
+	let asset_location_on_penpal =
+		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
 		Some(v3::Junction::GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
@@ -242,11 +250,14 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 #[test]
 fn cannot_create_pool_from_pool_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocationV3::get();
-	let mut asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocationV3::get();
-	asset_one
-		.append_with(v3::Junction::GeneralIndex(ASSET_ID.into()))
-		.expect("pool assets");
+	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get()
+		.try_into()
+		.expect("conversion works");
+	let asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocation::get()
+		.appended_with(GeneralIndex(ASSET_ID.into()))
+		.expect("valid location")
+		.try_into()
+		.expect("conversion works");
 
 	AssetHubKusama::execute_with(|| {
 		let pool_owner_account_id = asset_hub_kusama_runtime::AssetConversionOrigin::get();

@@ -158,6 +158,33 @@ fn initialize_bridge_by_governance_works() {
 }
 
 #[test]
+fn change_bridge_grandpa_pallet_mode_by_governance_works() {
+	// for Kusama finality
+	bridge_hub_test_utils::test_cases::change_bridge_grandpa_pallet_mode_by_governance_works::<
+		Runtime,
+		BridgeGrandpaKusamaInstance,
+	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+}
+
+#[test]
+fn change_bridge_parachains_pallet_mode_by_governance_works() {
+	// for Kusama parachains finality
+	bridge_hub_test_utils::test_cases::change_bridge_parachains_pallet_mode_by_governance_works::<
+		Runtime,
+		BridgeParachainKusamaInstance,
+	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+}
+
+#[test]
+fn change_bridge_messages_pallet_mode_by_governance_works() {
+	// for Kusama messages
+	bridge_hub_test_utils::test_cases::change_bridge_messages_pallet_mode_by_governance_works::<
+		Runtime,
+		WithBridgeHubKusamaMessagesInstance,
+	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+}
+
+#[test]
 fn change_delivery_reward_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_storage_constant_by_governance_works::<
 		Runtime,
