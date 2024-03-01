@@ -14,24 +14,27 @@
 // limitations under the License.
 use crate::*;
 use bridge_hub_kusama_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
-use snowbridge_beacon_primitives::CompactExecutionHeader;
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use kusama_system_emulated_network::BridgeHubKusamaParaSender as BridgeHubKusamaSender;
-use snowbridge_core::outbound::OperatingMode;
+use snowbridge_beacon_primitives::CompactExecutionHeader;
+use snowbridge_core::{
+	inbound::{Log, Message, Proof},
+	outbound::OperatingMode,
+};
 use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
-	send_token_to_penpal::make_send_token_to_penpal_message,
 	InboundQueueFixture,
 };
 use snowbridge_pallet_system;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
+use snowbridge_router_primitives::inbound::{
+	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
+};
 use sp_core::H256;
 use sp_runtime::{ArithmeticError::Underflow, DispatchError::Arithmetic};
 use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
-use snowbridge_core::inbound::{Log, Message, Proof};
 
 const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;
 const CHAIN_ID: u64 = 1;
@@ -245,8 +248,6 @@ fn send_token_from_ethereum_to_penpal() {
 		1,
 		[Parachain(AssetHubKusama::para_id().into())],
 	));
-	// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
-	BridgeHubKusama::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
 
 	// Fund PenPal sender and receiver
 	PenpalA::fund_accounts(vec![
@@ -273,21 +274,58 @@ fn send_token_from_ethereum_to_penpal() {
 		assert_ok!(<PenpalA as PenpalAPallet>::ForeignAssets::create(
 			<PenpalA as Chain>::RuntimeOrigin::signed(PenpalASender::get()),
 			weth_asset_id,
-			asset_hub_sovereign.into(),
+			asset_hub_sovereign.clone().into(),
 			1000,
 		));
 
 		assert!(<PenpalA as PenpalAPallet>::ForeignAssets::asset_exists(weth_asset_id));
 	});
 
+	AssetHubKusama::execute_with(|| {
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::force_create(
+			<AssetHubKusama as Chain>::RuntimeOrigin::root(),
+			weth_asset_id,
+			asset_hub_sovereign.clone().into(),
+			true,
+			1000,
+		));
+
+		assert!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::asset_exists(
+			weth_asset_id
+		));
+	});
+
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
 
-		// Construct RegisterToken message and sent to inbound queue
-		send_inbound_message(make_register_token_message()).unwrap();
+		type RuntimeOrigin = <BridgeHubKusama as Chain>::RuntimeOrigin;
 
-		// Construct SendToken message and sent to inbound queue
-		send_inbound_message(make_send_token_to_penpal_message()).unwrap();
+		// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
+		<BridgeHubKusama as BridgeHubKusamaPallet>::Balances::force_set_balance(
+			RuntimeOrigin::root(),
+			asset_hub_sovereign.clone().into(),
+			INITIAL_FUND,
+		)
+		.unwrap();
+
+		let message_id: H256 = [1; 32].into();
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::SendToken {
+				token: WETH.into(),
+				destination: Destination::ForeignAccountId32 {
+					para_id: PenpalA::para_id().into(),
+					id: PenpalAReceiver::get().into(),
+					fee: 40_000_000_000,
+				},
+				amount: 1_000_000,
+				fee: 40_000_000_000,
+			},
+		});
+		// Convert the message to XCM
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		// Send the XCM
+		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubKusama::para_id()).unwrap();
 
 		assert_expected_events!(
 			BridgeHubKusama,
