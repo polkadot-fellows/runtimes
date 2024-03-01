@@ -26,7 +26,12 @@ fn create_and_claim_treasury_spend() {
 	// treasury location from a sibling parachain.
 	let treasury_location: MultiLocation = MultiLocation::new(
 		1,
-		X2(Parachain(CollectivesPolkadot::para_id().into()), PalletInstance(65)),
+		X2(
+			Parachain(CollectivesPolkadot::para_id().into()),
+			PalletInstance(
+				collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+			),
+		),
 	);
 	// treasury account on a sibling parachain.
 	let treasury_account =

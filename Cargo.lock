@@ -568,6 +568,7 @@ dependencies = [
  "assert_matches",
  "asset-hub-polkadot-runtime",
  "asset-test-utils",
+ "collectives-polkadot-runtime-constants",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
