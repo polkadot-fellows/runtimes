@@ -25,8 +25,14 @@ use frame_support::{
 		OnUnbalanced,
 	},
 };
-use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
+use pallet_broker::{
+	AdaptPrice, CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf,
+};
 use parachains_common::{AccountId, Balance, BlockNumber};
+use sp_runtime::{
+	traits::{One, Saturating},
+	FixedU64,
+};
 use xcm::latest::prelude::*;
 
 pub struct CreditToCollatorPot;
@@ -217,6 +223,32 @@ impl CoretimeInterface for CoretimeAllocator {
 	}
 }
 
+/// Implements the [`AdaptPrice`] trait to control the price changes of bulk coretime. This tweaks
+/// the [`pallet_broker::Linear`] implementation which hard-corrects to 0 if cores are offered but
+/// not sold for just one sale. The monotonic lead-in behaviour is unchanged, while the change in
+/// base price between sales has a lower limit of 1/4 to match the upper limit of 4.
+pub struct LinearPlusC;
+impl AdaptPrice for LinearPlusC {
+	fn leadin_factor_at(when: FixedU64) -> FixedU64 {
+		// Start at 2x the base price and decrease to the base price at the end of leadin.
+		FixedU64::from(2).saturating_sub(when)
+	}
+
+	fn adapt_price(sold: CoreIndex, target: CoreIndex, limit: CoreIndex) -> FixedU64 {
+		if sold <= target {
+			// Range of [0.25, 1.0].
+			FixedU64::from_rational(1, 4)
+				.saturating_add(FixedU64::from_rational((3 * sold).into(), (4 * target).into()))
+		} else {
+			// Range of (1.0, 2.0].
+			FixedU64::one().saturating_add(FixedU64::from_rational(
+				(sold - target).into(),
+				(limit - target).into(),
+			))
+		}
+	}
+}
+
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -232,5 +264,5 @@ impl pallet_broker::Config for Runtime {
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	type PriceAdapter = pallet_broker::Linear;
+	type PriceAdapter = LinearPlusC;
 }
