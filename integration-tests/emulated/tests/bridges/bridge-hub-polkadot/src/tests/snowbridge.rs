@@ -28,16 +28,11 @@ use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
 	InboundQueueFixture,
 };
-use snowbridge_pallet_system;
 use snowbridge_router_primitives::inbound::{
 	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
 };
 use sp_core::H256;
-use sp_runtime::{
-	ArithmeticError::Underflow,
-	DispatchError::{Arithmetic, Token},
-	TokenError::FundsUnavailable,
-};
+use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 
 const INITIAL_FUND: u128 = 10_000_000_000_000 * POLKADOT_ED;
@@ -214,13 +209,18 @@ fn create_channel() {
 /// Tests the registering of a token as an asset on AssetHub.
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
-	// Fund AssetHub sovereign account so that it can pay execution fees.
-	//BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
-
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
 		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
+
+	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
+
+	// Fund ethereum sovereign on AssetHub
+	let ethereum_sovereign: AccountId =
+		GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location)
+			.unwrap();
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -477,7 +477,10 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		XCM_VERSION,
 	);
 
-	BridgeHubPolkadot::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
+	BridgeHubPolkadot::fund_accounts(vec![
+		(assethub_sovereign.clone(), INITIAL_FUND),
+		(TREASURY_ACCOUNT.into(), INITIAL_FUND),
+	]);
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
@@ -604,7 +607,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == TREASURY_ACCOUNT.into() && *amount == 169033333
+					if *who == TREASURY_ACCOUNT.into() && *amount == 50710000
 			)),
 			"Snowbridge sovereign takes local fee."
 		);
@@ -613,7 +616,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == assethub_sovereign && *amount == 2680000000000,
+					if *who == assethub_sovereign && *amount == 26800000000,
 			)),
 			"AssetHub sovereign takes remote fee."
 		);
