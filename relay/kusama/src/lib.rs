@@ -1745,6 +1745,7 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
 	use runtime_common::auctions::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
