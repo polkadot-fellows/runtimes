@@ -29,6 +29,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Removed the `SafeCallFilter` from the Relay Chain XCM config ([polkadot-fellows/runtimes#172](https://github.com/polkadot-fellows/runtimes/pull/172)).
 - Removed the `ImOnline` pallet ([polkadot-fellows/runtimes#178](https://github.com/polkadot-fellows/runtimes/pull/178))
 
+### Fixed
+
+- Fixed the cost of a single byte, sent over bridge to use the `TransactionByteFee` constant of the bridged chain [polkadot-fellows/runtimes#174](https://github.com/polkadot-fellows/runtimes/pull/174).
+
 ### Based on Polkadot-SDK
 
 - Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
