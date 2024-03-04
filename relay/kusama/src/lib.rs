@@ -1745,6 +1745,7 @@ pub type Migrations = migrations::Unreleased;
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use runtime_common::auctions::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
 
@@ -1849,6 +1850,23 @@ pub mod migrations {
 		}
 	}
 
+	/// Cancel all ongoing auctions.
+	///
+	/// Any leases that come into existance, after coretime was launched will not be served. Yet,
+	/// any still ongoing auctions must be cancelled.
+	///
+	/// Safety: After coretime is launched, there are no auctions anymore. So if this forgotten to
+	/// be removed after the runtime upgrade, running this again on the next one is harmless.
+	pub struct CancelAuctions;
+	impl OnRuntimeUpgrade for CancelAuctions {
+		fn on_runtime_upgrade() -> Weight {
+			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
+				log::error!("Cancelling auctions failed: {:?}", err);
+			}
+			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
@@ -1872,6 +1890,7 @@ pub mod migrations {
 			ImOnlinePalletName,
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
+		CancelAuctions,
 	);
 }
 
