@@ -127,7 +127,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 
 /// `AssetId/Balance` converter for `TrustBackedAssets`
 pub type ForeignAssetsConvertedConcreteId =
-assets_common::ForeignAssetsConvertedConcreteId<StartsWith<RelayLocation>, Balance>;
+	assets_common::ForeignAssetsConvertedConcreteId<StartsWith<RelayLocation>, Balance>;
 
 /// Means for transacting foreign assets from different global consensus.
 pub type ForeignFungiblesTransactor = FungiblesAdapter<
@@ -223,9 +223,9 @@ pub type AccountIdOf<R> = <R as frame_system::Config>::AccountId;
 /// Asset filter that allows all assets from a certain location matching asset id.
 pub struct AssetPrefixFrom<Prefix, Origin>(PhantomData<(Prefix, Origin)>);
 impl<Prefix, Origin> ContainsPair<Asset, Location> for AssetPrefixFrom<Prefix, Origin>
-	where
-		Prefix: Get<Location>,
-		Origin: Get<Location>,
+where
+	Prefix: Get<Location>,
+	Origin: Get<Location>,
 {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		let loc = Origin::get();
@@ -251,9 +251,9 @@ impl<T: Get<Location>> ContainsPair<Asset, Location> for NativeAssetFrom<T> {
 /// Allow checking in assets that have issuance > 0.
 pub struct NonZeroIssuance<AccountId, Assets>(PhantomData<(AccountId, Assets)>);
 impl<AccountId, Assets> Contains<<Assets as fungibles::Inspect<AccountId>>::AssetId>
-for NonZeroIssuance<AccountId, Assets>
-	where
-		Assets: fungibles::Inspect<AccountId>,
+	for NonZeroIssuance<AccountId, Assets>
+where
+	Assets: fungibles::Inspect<AccountId>,
 {
 	fn contains(id: &<Assets as fungibles::Inspect<AccountId>>::AssetId) -> bool {
 		!Assets::total_issuance(id.clone()).is_zero()
@@ -264,9 +264,9 @@ for NonZeroIssuance<AccountId, Assets>
 /// Will drop and burn the assets in case the transfer fails.
 pub struct AssetsToBlockAuthor<R>(PhantomData<R>);
 impl<R> HandleCredit<AccountIdOf<R>, pallet_assets::Pallet<R, Instance1>> for AssetsToBlockAuthor<R>
-	where
-		R: pallet_authorship::Config + pallet_assets::Config<Instance1>,
-		AccountIdOf<R>: From<polkadot_primitives::AccountId> + Into<polkadot_primitives::AccountId>,
+where
+	R: pallet_authorship::Config + pallet_assets::Config<Instance1>,
+	AccountIdOf<R>: From<polkadot_primitives::AccountId> + Into<polkadot_primitives::AccountId>,
 {
 	fn handle_credit(credit: Credit<AccountIdOf<R>, pallet_assets::Pallet<R, Instance1>>) {
 		if let Some(author) = pallet_authorship::Pallet::<R>::author() {
@@ -302,7 +302,7 @@ parameter_types! {
 /// Accepts asset with ID `AssetLocation` and is coming from `Origin` chain.
 pub struct AssetFromChain<AssetLocation, Origin>(PhantomData<(AssetLocation, Origin)>);
 impl<AssetLocation: Get<Location>, Origin: Get<Location>> ContainsPair<Asset, Location>
-for AssetFromChain<AssetLocation, Origin>
+	for AssetFromChain<AssetLocation, Origin>
 {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		log::trace!(target: "xcm::contains", "AssetFromChain asset: {:?}, origin: {:?}", asset, origin);
@@ -318,7 +318,7 @@ pub type Reserves = (
 	AssetPrefixFrom<EthereumLocation, SystemAssetHubLocation>,
 );
 pub type TrustedTeleporters =
-(AssetFromChain<LocalTeleportableToAssetHub, SystemAssetHubLocation>,);
+	(AssetFromChain<LocalTeleportableToAssetHub, SystemAssetHubLocation>,);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -334,7 +334,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader =
-	UsingComponents<WeightToFee, RelayLocation, AccountId, Balances, ToAuthor<Runtime>>;
+		UsingComponents<WeightToFee, RelayLocation, AccountId, Balances, ToAuthor<Runtime>>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
