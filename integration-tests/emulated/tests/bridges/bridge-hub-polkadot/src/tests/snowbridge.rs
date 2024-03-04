@@ -15,7 +15,6 @@
 use crate::*;
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
-use emulated_integration_tests_common::impl_hrmp_channels_helpers_for_relay_chain;
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::{pallet_prelude::TypeInfo, traits::Currency};
 use hex_literal::hex;
@@ -284,23 +283,6 @@ fn send_token_from_ethereum_to_penpal() {
 		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
 
-	// Fund PenPal sender and receiver
-	/*PenpalB::fund_accounts(vec![
-		(PenpalBReceiver::get(), INITIAL_FUND),
-		(PenpalBSender::get(), INITIAL_FUND),
-	]);*/
-
-	println!("CHOOOOP");
-
-	/*emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
-		PenpalB,
-		AssetHubPolkadot,
-		POLKADOT_ED,
-		polkadot_runtime_constants::fee::WeightToFee
-	);*/
-
-	//impl_hrmp_channels_helpers_for_relay_chain!(Polkadot);
-
 	// The Weth asset location, identified by the contract address on Ethereum
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
@@ -315,17 +297,6 @@ fn send_token_from_ethereum_to_penpal() {
 			.unwrap();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 
-	/*penpal_create_foreign_asset_on_asset_hub(
-		1,
-		weth_asset_id,
-		ah_as_seen_by_penpal,
-		true,
-		asset_hub_sovereign.clone().into(),
-		1000
-	);*/
-
-	println!("CREATED ASSET");
-
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
@@ -338,8 +309,6 @@ fn send_token_from_ethereum_to_penpal() {
 
 		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_id));
 	});
-
-	println!("CREATED ASSET 2");
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
@@ -354,13 +323,6 @@ fn send_token_from_ethereum_to_penpal() {
 			weth_asset_id
 		));
 	});
-
-	println!("CREATED ASSET 3");
-
-	Polkadot::execute_with(|| {
-		//<Polkadot as Chain>::init_open_channel_call(PenpalB::para_id().into(), 900000, 90000);
-	});
-
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -394,7 +356,6 @@ fn send_token_from_ethereum_to_penpal() {
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
-		println!("SEND 1");
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![

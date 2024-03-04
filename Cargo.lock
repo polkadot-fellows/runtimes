@@ -1660,7 +1660,6 @@ dependencies = [
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
- "polkadot-runtime-constants",
  "polkadot-system-emulated-network",
  "scale-info",
  "snowbridge-beacon-primitives",
