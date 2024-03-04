@@ -1116,6 +1116,7 @@ dependencies = [
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1131,6 +1132,7 @@ dependencies = [
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "system-parachains-constants",
 ]
 
 [[package]]
