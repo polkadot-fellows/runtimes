@@ -146,8 +146,6 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -257,7 +255,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"primitive-types/std"
 ]
 
 experimental = [ "pallet-aura/experimental" ]

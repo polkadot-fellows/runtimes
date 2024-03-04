@@ -129,12 +129,10 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks",
-	"snowbridge-router-primitives/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -218,6 +216,7 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
+	"snowbridge-router-primitives/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
@@ -237,7 +236,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"snowbridge-router-primitives/std"
 ]
 
 experimental = [ "pallet-aura/experimental" ]
