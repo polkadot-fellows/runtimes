@@ -15,6 +15,7 @@
 use crate::*;
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
+use emulated_integration_tests_common::impl_hrmp_channels_helpers_for_relay_chain;
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::{pallet_prelude::TypeInfo, traits::Currency};
 use hex_literal::hex;
@@ -284,17 +285,28 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// Fund PenPal sender and receiver
-	PenpalA::fund_accounts(vec![
-		(PenpalAReceiver::get(), INITIAL_FUND),
-		(PenpalASender::get(), INITIAL_FUND),
-	]);
+	/*PenpalB::fund_accounts(vec![
+		(PenpalBReceiver::get(), INITIAL_FUND),
+		(PenpalBSender::get(), INITIAL_FUND),
+	]);*/
+
+	println!("CHOOOOP");
+
+	/*emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
+		PenpalB,
+		AssetHubPolkadot,
+		POLKADOT_ED,
+		polkadot_runtime_constants::fee::WeightToFee
+	);*/
+
+	//impl_hrmp_channels_helpers_for_relay_chain!(Polkadot);
 
 	// The Weth asset location, identified by the contract address on Ethereum
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
 	let weth_asset_id: v3::Location = weth_asset_location.try_into().unwrap();
-
+	let ah_as_seen_by_penpal = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
 	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Fund ethereum sovereign on AssetHub
@@ -303,17 +315,31 @@ fn send_token_from_ethereum_to_penpal() {
 			.unwrap();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
 
+	/*penpal_create_foreign_asset_on_asset_hub(
+		1,
+		weth_asset_id,
+		ah_as_seen_by_penpal,
+		true,
+		asset_hub_sovereign.clone().into(),
+		1000
+	);*/
+
+	println!("CREATED ASSET");
+
 	// Create asset on the Penpal parachain.
-	PenpalA::execute_with(|| {
-		assert_ok!(<PenpalA as PenpalAPallet>::ForeignAssets::create(
-			<PenpalA as Chain>::RuntimeOrigin::signed(PenpalASender::get()),
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
+			<PenpalB as Chain>::RuntimeOrigin::root(),
 			weth_asset_id,
 			asset_hub_sovereign.clone().into(),
+			true,
 			1000,
 		));
 
-		assert!(<PenpalA as PenpalAPallet>::ForeignAssets::asset_exists(weth_asset_id));
+		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_id));
 	});
+
+	println!("CREATED ASSET 2");
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
@@ -328,6 +354,13 @@ fn send_token_from_ethereum_to_penpal() {
 			weth_asset_id
 		));
 	});
+
+	println!("CREATED ASSET 3");
+
+	Polkadot::execute_with(|| {
+		//<Polkadot as Chain>::init_open_channel_call(PenpalB::para_id().into(), 900000, 90000);
+	});
+
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -348,8 +381,8 @@ fn send_token_from_ethereum_to_penpal() {
 			command: Command::SendToken {
 				token: WETH.into(),
 				destination: Destination::ForeignAccountId32 {
-					para_id: PenpalA::para_id().into(),
-					id: PenpalAReceiver::get().into(),
+					para_id: PenpalB::para_id().into(),
+					id: PenpalBReceiver::get().into(),
 					fee: 40_000_000_000,
 				},
 				amount: 1_000_000,
@@ -361,6 +394,7 @@ fn send_token_from_ethereum_to_penpal() {
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
+		println!("SEND 1");
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
@@ -381,11 +415,11 @@ fn send_token_from_ethereum_to_penpal() {
 		);
 	});
 
-	PenpalA::execute_with(|| {
-		type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
+	PenpalB::execute_with(|| {
+		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
 		// Check that the assets were issued on PenPal
 		assert_expected_events!(
-			PenpalA,
+			PenpalB,
 			vec![
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
 			]
