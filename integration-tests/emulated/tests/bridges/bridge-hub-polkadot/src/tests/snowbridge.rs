@@ -288,7 +288,6 @@ fn send_token_from_ethereum_to_penpal() {
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
 	let weth_asset_id: v3::Location = weth_asset_location.try_into().unwrap();
-	let ah_as_seen_by_penpal = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
 	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Fund ethereum sovereign on AssetHub
