@@ -2486,6 +2486,13 @@ sp_api::impl_runtime_apis! {
 						dest
 					)
 				}
+
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::here()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
+				}
 			}
 
 			impl pallet_xcm_benchmarks::Config for Runtime {

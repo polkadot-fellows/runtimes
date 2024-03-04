@@ -26,7 +26,7 @@ pallet-staking = "29.0.0"
 sc-consensus-grandpa = "0.20.0"
 sp-runtime = "32.0.0"
 sp-consensus-beefy = "14.0.0"
-xcm = { package = "staging-xcm", version = "8.0.0" }
+xcm = { package = "staging-xcm", version = "8.0.1" }
 parachains-common = { version = "8.0.0" }
 cumulus-primitives-core = { version = "0.8.0" }
 

@@ -19,7 +19,7 @@ frame-support = { default-features = false, version = "29.0.0" }
 sp-std = { default-features = false, version = "14.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
+xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
 
 [features]
 default = [ "std" ]

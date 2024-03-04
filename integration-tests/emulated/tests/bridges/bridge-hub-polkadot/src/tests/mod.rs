@@ -16,6 +16,7 @@
 use crate::*;
 
 mod asset_transfers;
+mod claim_assets;
 mod send_xcm;
 mod teleport;
 

@@ -8007,9 +8007,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "8.0.1"
+version = "8.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b0bade2eb6ce40af35a5af150692b4e150638f7f68c15735ab9cdf79650d68e"
+checksum = "d32aa4911002f03a8aebd897e094980e7a9fb25d092e0f8db38e76e1e4f643ee"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -13315,9 +13315,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ccecaeae5eca8453760e96fcf65481b19898459971842004732e88cd3570741"
+checksum = "48fa328b87de3466bc38cc9a07244c42c647b7755b81115e1dfeb47cc13fc6e6"
 dependencies = [
  "array-bytes 6.2.2",
  "bounded-collections",

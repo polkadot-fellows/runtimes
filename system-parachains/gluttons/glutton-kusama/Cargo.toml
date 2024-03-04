@@ -37,7 +37,7 @@ sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
+xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
