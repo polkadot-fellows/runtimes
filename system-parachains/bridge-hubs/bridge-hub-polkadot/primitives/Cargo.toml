@@ -10,8 +10,9 @@ license.workspace = true
 [dependencies]
 
 # Local
-kusama-runtime-constants = { path = "../../../../relay/kusama/constants", default-features = false}
-polkadot-runtime-constants = { path = "../../../../relay/polkadot/constants", default-features = false}
+kusama-runtime-constants = { path = "../../../../relay/kusama/constants", default-features = false }
+polkadot-runtime-constants = { path = "../../../../relay/polkadot/constants", default-features = false }
+system-parachains-constants = { path = "../../../constants", default-features = false }
 
 # Bridge Dependencies
 bp-bridge-hub-cumulus = { default-features = false , version = "0.7.0" }
@@ -36,4 +37,5 @@ std = [
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"system-parachains-constants/std",
 ]
