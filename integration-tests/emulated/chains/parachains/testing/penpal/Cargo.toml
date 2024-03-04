@@ -19,6 +19,7 @@ cumulus-primitives-core = { version = "0.8.0" }
 emulated-integration-tests-common = { version = "4.0.0" }
 # temp crate until EthereumNetwork is extracted from penpal definition
 penpal-runtime = { package="penpal-runtime-dotsama", path = "../../../../penpal" }
+#penpal-runtime = { version = "0.15.0" }
 
 # Runtimes
 kusama-emulated-chain = { path = "../../../relays/kusama" }
