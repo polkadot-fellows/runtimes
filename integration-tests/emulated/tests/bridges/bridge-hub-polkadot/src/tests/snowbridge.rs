@@ -17,7 +17,7 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthe
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use frame_support::{pallet_prelude::TypeInfo, traits::Currency};
+use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use polkadot_system_emulated_network::BridgeHubPolkadotParaSender as BridgeHubPolkadotSender;
 use snowbridge_beacon_primitives::CompactExecutionHeader;
@@ -36,7 +36,7 @@ use sp_core::H256;
 use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 
-const INITIAL_FUND: u128 = 10_000_000_000_000 * POLKADOT_ED;
+const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;
 const TREASURY_ACCOUNT: [u8; 32] =
 	hex!("6d6f646c70792f74727372790000000000000000000000000000000000000000");
@@ -210,41 +210,17 @@ fn create_channel() {
 /// Tests the registering of a token as an asset on AssetHub.
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
-	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
-		1,
-		[Parachain(AssetHubPolkadot::para_id().into())],
-	));
-
-	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
-
-	// Fund ethereum sovereign on AssetHub
-	let ethereum_sovereign: AccountId =
-		GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location)
-			.unwrap();
-	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	// Fund AH sovereign account on BH so that it can pay execution fees.
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	// Fund ethereum sovereign account on AssetHub.
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
-		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
-
-		// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
-		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::force_set_balance(
-			RuntimeOrigin::root(),
-			asset_hub_sovereign.clone().into(),
-			60_000_000_000_000_000_000,
-		)
-		.unwrap();
-
-		let message_id: H256 = [1; 32].into();
-		let message = VersionedMessage::V1(MessageV1 {
-			chain_id: CHAIN_ID,
-			command: Command::RegisterToken { token: WETH.into(), fee: 40_000_000_000 },
-		});
-		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
-		// Send the XCM
-		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
+		// Construct RegisterToken message and sent to inbound queue
+		let register_token_message = make_register_token_message();
+		send_inbound_message(register_token_message.clone()).unwrap();
 
 		assert_expected_events!(
 			BridgeHubPolkadot,
@@ -658,7 +634,12 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	});
 }
 
-pub fn make_register_token_message() -> InboundQueueFixture {
+fn ethereum_sovereign_account() -> AccountId {
+	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
+	GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location).unwrap()
+}
+
+fn make_register_token_message() -> InboundQueueFixture {
 	InboundQueueFixture {
 		execution_header: CompactExecutionHeader{
 			parent_hash: hex!("d5de3dd02c96dbdc8aaa4db70a1e9fdab5ded5f4d52f18798acd56a3d37d1ad6").into(),
@@ -689,7 +670,7 @@ pub fn make_register_token_message() -> InboundQueueFixture {
 	}
 }
 
-pub fn make_send_token_message() -> InboundQueueFixture {
+fn make_send_token_message() -> InboundQueueFixture {
 	InboundQueueFixture {
 		execution_header: CompactExecutionHeader{
 			parent_hash: hex!("920cecde45d428e3a77590b70f8533cf4c2c36917b8a7b74c915e7fa3dae7075").into(),

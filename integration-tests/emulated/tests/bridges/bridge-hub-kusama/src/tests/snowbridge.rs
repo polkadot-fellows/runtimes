@@ -210,8 +210,10 @@ fn create_channel() {
 /// Tests the registering of a token as an asset on AssetHub.
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
-	// Fund AssetHub sovereign account so that it can pay execution fees.
+	// Fund AH sovereign account on BH so that it can pay execution fees.
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	// Fund ethereum sovereign account on AssetHub.
+	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
@@ -535,7 +537,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == assethub_sovereign && *amount == 2680000000000,
+					if *who == assethub_sovereign && *amount == 502500000000,
 			)),
 			"AssetHub sovereign takes remote fee."
 		);
@@ -581,6 +583,11 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	BridgeHubKusama::execute_with(|| {
 		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
 	});
+}
+
+fn ethereum_sovereign_account() -> AccountId {
+	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
+	GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location).unwrap()
 }
 
 pub fn make_register_token_message() -> InboundQueueFixture {
