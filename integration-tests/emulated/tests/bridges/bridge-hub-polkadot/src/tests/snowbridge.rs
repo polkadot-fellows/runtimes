@@ -634,6 +634,8 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	});
 }
 
+/// Tests that the EthereumInboundQueue CreateAssetCall parameter on BridgeHub matches
+/// the ForeignAssets::create call on AsseHub.
 #[test]
 fn asset_hub_foreign_account_pallet_is_configured_correctly_in_bridge_hub() {
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
