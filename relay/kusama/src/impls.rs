@@ -95,7 +95,7 @@ where
 		let total_to_send = Self::calculate_remote_deposit(fields, subs);
 
 		// define asset / destination from relay perspective
-		let roc = Asset { id: AssetId(Here.into_location()), fun: Fungible(total_to_send) };
+		let ksm = Asset { id: AssetId(Here.into_location()), fun: Fungible(total_to_send) };
 		// People Chain: ParaId 1004
 		let destination: Location = Location::new(0, Parachain(1004));
 
@@ -105,12 +105,12 @@ where
 		// withdraw the asset from `who`
 		let who_origin =
 			Junction::AccountId32 { network: None, id: who.clone().into() }.into_location();
-		let _withdrawn = xcm_config::LocalAssetTransactor::withdraw_asset(&roc, &who_origin, None)
+		let _withdrawn = xcm_config::LocalAssetTransactor::withdraw_asset(&ksm, &who_origin, None)
 			.map_err(|err| {
 				log::error!(
 					target: "runtime::on_reap_identity",
 					"withdraw_asset(what: {:?}, who_origin: {:?}) error: {:?}",
-					roc, who_origin, err
+					ksm, who_origin, err
 				);
 				pallet_xcm::Error::<Runtime>::LowBalance
 			})?;
@@ -118,7 +118,7 @@ where
 		// check out
 		xcm_config::LocalAssetTransactor::can_check_out(
 			&destination,
-			&roc,
+			&ksm,
 			// not used in AssetTransactor
 			&XcmContext { origin: None, message_id: [0; 32], topic: None },
 		)
@@ -126,19 +126,19 @@ where
 			log::error!(
 				target: "runtime::on_reap_identity",
 				"can_check_out(destination: {:?}, asset: {:?}, _) error: {:?}",
-				destination, roc, err
+				destination, ksm, err
 			);
 			pallet_xcm::Error::<Runtime>::CannotCheckOutTeleport
 		})?;
 		xcm_config::LocalAssetTransactor::check_out(
 			&destination,
-			&roc,
+			&ksm,
 			// not used in AssetTransactor
 			&XcmContext { origin: None, message_id: [0; 32], topic: None },
 		);
 
 		// reanchor
-		let roc_reanchored: Assets =
+		let ksm_reanchored: Assets =
 			vec![Asset { id: AssetId(Location::new(1, Here)), fun: Fungible(total_to_send) }]
 				.into();
 
@@ -151,7 +151,7 @@ where
 			// their balance reduced by teleport fees for the favor of migrating.
 			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 			// Receive the asset into holding.
-			ReceiveTeleportedAsset(roc_reanchored),
+			ReceiveTeleportedAsset(ksm_reanchored),
 			// Deposit into the user's account.
 			DepositAsset {
 				assets: Wild(AllCounted(1)),
