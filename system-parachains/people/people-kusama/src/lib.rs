@@ -30,7 +30,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Everything, TransformOrigin,
+		ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EverythingBut,
+		TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -164,9 +165,18 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
+/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
+/// locking the state of the pallet and preventing updates to identities until the chain is stable.
+pub struct IsIdentityCall;
+impl Contains<RuntimeCall> for IsIdentityCall {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Identity(_))
+	}
+}
+
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = EverythingBut<IsIdentityCall>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;

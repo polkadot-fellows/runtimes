@@ -75,7 +75,7 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
@@ -186,8 +186,19 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 2;
 }
 
+/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
+/// locking the state of the pallet and preventing further updates to identities and sub-identities.
+/// The locked state will be the genesis state of a new system chain and then removed from the Relay
+/// Chain.
+pub struct IsIdentityCall;
+impl Contains<RuntimeCall> for IsIdentityCall {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Identity(_))
+	}
+}
+
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = EverythingBut<IsIdentityCall>;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
