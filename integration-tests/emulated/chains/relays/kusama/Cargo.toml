@@ -1,0 +1,28 @@
+[package]
+name = "kusama-emulated-chain"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Kusama emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+
+# Substrate
+sp-core = { version = "29.0.0" }
+authority-discovery-primitives = { package = "sp-authority-discovery", version = "27.0.0" }
+babe-primitives = { package = "sp-consensus-babe", version = "0.33.0" }
+beefy-primitives = { package = "sp-consensus-beefy", version = "14.0.0" }
+grandpa = { package = "sc-consensus-grandpa", version = "0.20.0" }
+
+# Polkadot
+polkadot-primitives = { version = "8.0.1" }
+
+# Cumulus
+parachains-common = { version = "8.0.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+
+# Runtimes
+kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
+kusama-runtime = {  package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }

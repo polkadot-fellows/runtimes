@@ -22,7 +22,7 @@
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
+	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::{
 	dispatch::DispatchClass,
@@ -35,6 +35,8 @@ use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
 pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {
+	const ID: ChainId = *b"bhks";
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;
@@ -59,6 +61,15 @@ impl Chain for BridgeHubKusama {
 
 impl Parachain for BridgeHubKusama {
 	const PARACHAIN_ID: u32 = BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
+}
+
+impl ChainWithMessages for BridgeHubKusama {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 /// Public key of the chain account that may be used to verify signatures.
@@ -87,15 +98,15 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Kusama
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 16_196_533_317;
+	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 386_365_000;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 56_516_280_489;
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 56_374_989_788;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 53_943_614_276;
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 53_808_755_240;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending
@@ -116,6 +127,18 @@ pub fn estimate_kusama_to_polkadot_message_fee(
 	BridgeHubKusamaBaseXcmFeeInKsms::get()
 		.saturating_add(convert_from_udot_to_uksm(bridge_hub_polkadot_base_delivery_fee_in_udots))
 		.saturating_add(BridgeHubKusamaBaseConfirmationFeeInKsms::get())
+}
+
+/// Compute the per-byte fee that needs to be paid in KSMs by the sender when sending
+/// message from Kusama Bridge Hub to Polkadot Bridge Hub.
+pub fn estimate_kusama_to_polkadot_byte_fee() -> Balance {
+	// the sender pays for the same byte twice:
+	// 1) the first part comes from the HRMP, when message travels from Kusama Asset Hub to Kusama
+	//    Bridge Hub;
+	// 2) the second part is the payment for bytes of the message delivery transaction, which is
+	//    "mined" at Polkadot Bridge Hub. Hence, we need to use byte fees from that chain and
+	//    convert it to KSMs here.
+	convert_from_udot_to_uksm(system_parachains_constants::polkadot::fee::TRANSACTION_BYTE_FEE)
 }
 
 /// Convert from uDOTs to uKSMs.
