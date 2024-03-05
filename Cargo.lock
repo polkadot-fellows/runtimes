@@ -5033,6 +5033,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "kusama-emulated-chain",
  "penpal-emulated-chain",
+ "people-kusama-emulated-chain",
 ]
 
 [[package]]
@@ -8410,6 +8411,42 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "testnet-parachains-constants",
+]
+
+[[package]]
+name = "people-kusama-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "kusama-emulated-chain",
+ "parachains-common",
+ "people-kusama-runtime",
+ "sp-core",
+]
+
+[[package]]
+name = "people-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-test-utils",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "kusama-runtime-constants",
+ "kusama-system-emulated-network",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-message-queue",
+ "parachains-common",
+ "parity-scale-codec",
+ "people-kusama-runtime",
+ "polkadot-runtime-common",
+ "sp-runtime",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
