@@ -28,7 +28,7 @@ pub use frame_support::{
 // Polkadot
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v3::{Error, NetworkId::Polkadot as PolkadotId},
+	v3::{self, Error, NetworkId::Polkadot as PolkadotId},
 };
 
 // Cumulus
@@ -58,10 +58,11 @@ pub use polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	CollectivesPolkadotPara as CollectivesPolkadot, PenpalBPara as PenpalB,
-	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
-	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
-	PolkadotRelaySender as PolkadotSender,
+	CollectivesPolkadotPara as CollectivesPolkadot, PenpalAPara as PenpalA,
+	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
+	PenpalBPara as PenpalB, PenpalBParaReceiver as PenpalBReceiver,
+	PenpalBParaSender as PenpalBSender, PolkadotRelay as Polkadot,
+	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
 pub const ASSET_ID: u32 = 1;
@@ -74,6 +75,7 @@ pub type RelayToParaTest = Test<Polkadot, PenpalB>;
 pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
 pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
 pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;
+pub type ParaToParaTest = Test<PenpalB, PenpalA, Polkadot>;
 
 #[cfg(test)]
 mod tests;

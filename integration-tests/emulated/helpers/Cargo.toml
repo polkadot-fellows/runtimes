@@ -1,6 +1,6 @@
 [package]
 name = "integration-tests-helpers"
-version = "0.0.1"
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -11,14 +11,14 @@ publish = false
 paste = "1.0.14"
 
 # Substrate
-pallet-balances = { version = "28.0.0" }
-pallet-message-queue = { version = "31.0.0" }
+pallet-balances = { version = "29.0.0" }
+pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "7.0.0" }
-pallet-xcm = { version = "7.0.0" }
+xcm = { package = "staging-xcm", version = "8.0.1" }
+pallet-xcm = { version = "8.0.2" }
 
 # Cumulus
-xcm-emulator = { version = "0.5.0" }
-cumulus-pallet-xcmp-queue = { version = "0.7.0" }
-asset-test-utils = { version = "7.0.1" }
+xcm-emulator = { version = "0.6.0" }
+cumulus-pallet-xcmp-queue = { version = "0.8.0" }
+asset-test-utils = { version = "8.0.1" }
