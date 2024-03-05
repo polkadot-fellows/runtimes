@@ -20,9 +20,9 @@ pallet-asset-conversion = { version = "11.0.0" }
 pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "8.0.0" }
+xcm = { package = "staging-xcm", version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
-pallet-xcm = { version = "8.0.1" }
+pallet-xcm = { version = "8.0.2" }
 
 # Cumulus
 parachains-common = { version = "8.0.0" }

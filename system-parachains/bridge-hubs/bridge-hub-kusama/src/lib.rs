@@ -89,11 +89,12 @@ use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use parachains_common::{
 	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
+pub use system_parachains_constants::SLOT_DURATION;
 
 use polkadot_runtime_common::prod_or_fast;
 use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
 
 // XCM Imports
@@ -1099,6 +1100,13 @@ impl_runtime_apis! {
 						native_location,
 						dest
 					)
+				}
+
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::parent()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
 				}
 			}
 

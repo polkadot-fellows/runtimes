@@ -62,10 +62,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 pub mod xcm_config;
 
-use assets_common::{
-	foreign_creators::ForeignCreators,
-	matching::{FromNetwork, FromSiblingParachain},
-};
+use assets_common::{foreign_creators::ForeignCreators, matching::{FromNetwork, FromSiblingParachain}};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use sp_api::impl_runtime_apis;
@@ -1303,6 +1300,13 @@ impl_runtime_apis! {
 						);
 					});
 					Some((assets, fee_index as u32, dest, verify))
+				}
+
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::parent()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
 				}
 			}
 
