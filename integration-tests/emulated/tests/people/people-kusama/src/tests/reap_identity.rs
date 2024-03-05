@@ -40,12 +40,6 @@
 
 use crate::*;
 use frame_support::BoundedVec;
-use pallet_balances::Event as BalancesEvent;
-use pallet_identity::{legacy::IdentityInfo, Data, Event as IdentityEvent};
-use people_kusama_runtime::people::{
-	BasicDeposit as BasicDepositParachain, ByteDeposit as ByteDepositParachain,
-	IdentityInfo as IdentityInfoParachain, SubAccountDeposit as SubAccountDepositParachain,
-};
 use kusama_runtime::{
 	BasicDeposit, ByteDeposit, MaxAdditionalFields, MaxSubAccounts, RuntimeOrigin as KusamaOrigin,
 	SubAccountDeposit,
@@ -53,6 +47,12 @@ use kusama_runtime::{
 use kusama_runtime_constants::currency::*;
 use kusama_system_emulated_network::{
 	kusama_emulated_chain::KusamaRelayPallet, KusamaRelay, KusamaRelaySender,
+};
+use pallet_balances::Event as BalancesEvent;
+use pallet_identity::{legacy::IdentityInfo, Data, Event as IdentityEvent};
+use people_kusama_runtime::people::{
+	BasicDeposit as BasicDepositParachain, ByteDeposit as ByteDepositParachain,
+	IdentityInfo as IdentityInfoParachain, SubAccountDeposit as SubAccountDepositParachain,
 };
 
 type Balance = u128;

@@ -14,8 +14,8 @@
 // limitations under the License.
 
 use crate::*;
-use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
 use kusama_runtime::xcm_config::XcmConfig as KusamaXcmConfig;
+use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
 
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;

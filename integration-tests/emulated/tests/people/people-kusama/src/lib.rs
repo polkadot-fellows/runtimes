@@ -40,17 +40,16 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
-pub use parachains_common::{AccountId, Balance};
 pub use kusama_system_emulated_network::{
+	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	people_kusama_emulated_chain::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeopleKusamaParaPallet as PeopleKusamaPallet,
 	},
-	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
-	PenpalAPara as PenpalA, PeopleKusamaPara as PeopleKusama,
-	PeopleKusamaParaReceiver as PeopleKusamaReceiver, PeopleKusamaParaSender as PeopleKusamaSender,
 	KusamaRelay as Kusama, KusamaRelayReceiver as KusamaReceiver,
-	KusamaRelaySender as KusamaSender,
+	KusamaRelaySender as KusamaSender, PenpalAPara as PenpalA, PeopleKusamaPara as PeopleKusama,
+	PeopleKusamaParaReceiver as PeopleKusamaReceiver, PeopleKusamaParaSender as PeopleKusamaSender,
 };
+pub use parachains_common::{AccountId, Balance};
 
 // pub const ASSET_ID: u32 = 1;
 // pub const ASSET_MIN_BALANCE: u128 = 1000;
