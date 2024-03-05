@@ -475,7 +475,8 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		<AssetHubPolkadot as Chain>::System::set_storage(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
 			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
-		).unwrap();
+		)
+		.unwrap();
 	});
 
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(

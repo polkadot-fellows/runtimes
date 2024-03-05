@@ -427,7 +427,8 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		<AssetHubKusama as Chain>::System::set_storage(
 			<AssetHubKusama as Chain>::RuntimeOrigin::root(),
 			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
-		).unwrap();
+		)
+		.unwrap();
 	});
 
 	BridgeHubKusama::execute_with(|| {
