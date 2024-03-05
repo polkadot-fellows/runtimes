@@ -48,7 +48,7 @@ use system_parachains_constants::kusama::{
 };
 use xcm::latest::prelude::{Assets as XcmAssets, *};
 use xcm_builder::V4V3LocationConverter;
-use xcm_executor::traits::{ConvertLocation, Identity, JustTry, WeightTrader};
+use xcm_executor::traits::{ConvertLocation, JustTry, WeightTrader};
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
