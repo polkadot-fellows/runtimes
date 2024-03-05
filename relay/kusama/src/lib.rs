@@ -1746,7 +1746,8 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 	use frame_support::traits::OnRuntimeUpgrade;
-	use runtime_common::auctions::WeightInfo;
+	use pallet_scheduler::WeightInfo as SchedulerWeightInfo;
+	use runtime_common::auctions::WeightInfo as AuctionsWeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
 
@@ -1856,15 +1857,33 @@ pub mod migrations {
 	/// Any leases that come into existance, after coretime was launched will not be served. Yet,
 	/// any still ongoing auctions must be cancelled.
 	///
-	/// Safety: After coretime is launched, there are no auctions anymore. So if this forgotten to
+	/// Safety:
+	///
+	/// - After coretime is launched, there are no auctions anymore. So if this forgotten to
 	/// be removed after the runtime upgrade, running this again on the next one is harmless.
+	/// - I am assuming scheduler `TaskName`s are unique, so removal of the scheduled entry
+	/// multiple times should also be fine.
 	pub struct CancelAuctions;
 	impl OnRuntimeUpgrade for CancelAuctions {
 		fn on_runtime_upgrade() -> Weight {
 			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
 				log::error!("Cancelling auctions failed: {:?}", err);
 			}
+			// Cancel scheduled auction as well:
+			if let Err(err) = Scheduler::cancel_named(
+				pallet_custom_origins::Origin::AuctionAdmin.into(),
+				[
+					0x5c, 0x68, 0xbf, 0x0c, 0x2d, 0x11, 0x04, 0x91, 0x6b, 0xa5, 0xa4, 0xde, 0xe6,
+					0xb8, 0x14, 0xe8, 0x2b, 0x27, 0x93, 0x78, 0x4c, 0xb6, 0xe7, 0x69, 0x04, 0x00,
+					0x1a, 0x59, 0x49, 0xc1, 0x63, 0xb1,
+				],
+			) {
+				log::error!("Cancelling scheduled auctions failed: {:?}", err);
+			}
 			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
+					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
+				))
 		}
 	}
 
