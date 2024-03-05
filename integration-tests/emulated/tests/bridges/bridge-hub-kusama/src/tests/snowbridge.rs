@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
+use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
 use bridge_hub_kusama_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
@@ -28,7 +29,6 @@ use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
 	InboundQueueFixture,
 };
-use snowbridge_pallet_system;
 use snowbridge_router_primitives::inbound::{
 	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
 };
@@ -405,7 +405,6 @@ fn send_token_from_ethereum_to_asset_hub() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::DefaultBridgeHubEthereumBaseFee;
 	let assethub_sovereign = BridgeHubKusama::sovereign_account_id_of(Location::new(
 		1,
 		[Parachain(AssetHubKusama::para_id().into())],
@@ -422,6 +421,14 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaReceiver::get(), INITIAL_FUND)]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
+	let base_fee = 2_750_872_500_000u128;
+
+	AssetHubKusama::execute_with(|| {
+		<AssetHubKusama as Chain>::System::set_storage(
+			<AssetHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
+		).unwrap();
+	});
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
@@ -499,7 +506,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		);
 		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
 		let free_balance_diff = free_balance_before - free_balance_after;
-		assert!(free_balance_diff > DefaultBridgeHubEthereumBaseFee::get());
+		assert!(free_balance_diff > base_fee);
 	});
 
 	BridgeHubKusama::execute_with(|| {

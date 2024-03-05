@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
 use bridge_hub_polkadot_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
@@ -235,15 +236,6 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 		)
 		.unwrap();
 
-		let minimum_balance =
-			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::minimum_balance();
-		let total_balance = <BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::total_balance(
-			&asset_hub_sovereign.into(),
-		);
-
-		println!("MINIMUM: {:?}", minimum_balance);
-		println!("TOTAL: {:?}", total_balance);
-
 		let message_id: H256 = [1; 32].into();
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
@@ -458,7 +450,6 @@ fn send_token_from_ethereum_to_asset_hub() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::DefaultBridgeHubEthereumBaseFee;
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
 		[Parachain(AssetHubPolkadot::para_id().into())],
@@ -478,6 +469,14 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotReceiver::get(), INITIAL_FUND)]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
+	let base_fee = 2_750_872_500_000u128;
+
+	AssetHubPolkadot::execute_with(|| {
+		<AssetHubPolkadot as Chain>::System::set_storage(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
+		).unwrap();
+	});
 
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
@@ -582,7 +581,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			);
 		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
 		let free_balance_diff = free_balance_before - free_balance_after;
-		assert!(free_balance_diff > DefaultBridgeHubEthereumBaseFee::get());
+		assert!(free_balance_diff > base_fee);
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
