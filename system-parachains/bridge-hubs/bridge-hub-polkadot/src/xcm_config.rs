@@ -170,10 +170,7 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				if items.iter().all(|(k, _)| {
 					k.eq(&DeliveryRewardInBalance::key()) ||
 						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
-						k.eq(&EthereumGatewayAddress::key()) ||
-						// Allow resetting of Ethereum nonces in Rococo only.
-						k.starts_with(&snowbridge_pallet_inbound_queue::Nonce::<Runtime>::final_prefix()) ||
-						k.starts_with(&snowbridge_pallet_outbound_queue::Nonce::<Runtime>::final_prefix())
+						k.eq(&EthereumGatewayAddress::key())
 				}) =>
 				return true,
 			_ => (),
