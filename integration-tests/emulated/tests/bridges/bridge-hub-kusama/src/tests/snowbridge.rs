@@ -585,6 +585,32 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	});
 }
 
+#[test]
+fn asset_hub_foreign_account_pallet_is_configured_correctly_in_bridge_hub() {
+	let assethub_sovereign = BridgeHubKusama::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubKusama::para_id().into())],
+	));
+
+	let call_create_foreign_assets =
+		<AssetHubKusama as Chain>::RuntimeCall::ForeignAssets(pallet_assets::Call::<
+			<AssetHubKusama as Chain>::Runtime,
+			pallet_assets::Instance2,
+		>::create {
+			id: v3::Location::default(),
+			min_balance: ASSET_MIN_BALANCE,
+			admin: assethub_sovereign.into(),
+		})
+		.encode();
+
+	let bridge_hub_inbound_queue_assets_pallet_call_index =
+		bridge_hub_kusama_runtime::CreateAssetCall::get();
+
+	assert!(
+		call_create_foreign_assets.starts_with(&bridge_hub_inbound_queue_assets_pallet_call_index)
+	);
+}
+
 fn ethereum_sovereign_account() -> AccountId {
 	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
 	GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location).unwrap()

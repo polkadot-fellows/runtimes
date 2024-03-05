@@ -211,7 +211,7 @@ fn create_channel() {
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
 	// Fund AH sovereign account on BH so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
@@ -632,6 +632,32 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	BridgeHubPolkadot::execute_with(|| {
 		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
 	});
+}
+
+#[test]
+fn asset_hub_foreign_account_pallet_is_configured_correctly_in_bridge_hub() {
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubPolkadot::para_id().into())],
+	));
+
+	let call_create_foreign_assets =
+		<AssetHubPolkadot as Chain>::RuntimeCall::ForeignAssets(pallet_assets::Call::<
+			<AssetHubPolkadot as Chain>::Runtime,
+			pallet_assets::Instance2,
+		>::create {
+			id: v3::Location::default(),
+			min_balance: ASSET_MIN_BALANCE,
+			admin: assethub_sovereign.into(),
+		})
+			.encode();
+
+	let bridge_hub_inbound_queue_assets_pallet_call_index =
+		bridge_hub_polkadot_runtime::CreateAssetCall::get();
+
+	assert!(
+		call_create_foreign_assets.starts_with(&bridge_hub_inbound_queue_assets_pallet_call_index)
+	);
 }
 
 fn ethereum_sovereign_account() -> AccountId {
