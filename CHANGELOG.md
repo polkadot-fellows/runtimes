@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
 - Upgrade dependencies to the [polkadot-sdk@1.6.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.6.0) release ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
+- Upgrade dependencies to the [polkadot-sdk@1.7.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.7.0) release ([polkadot-fellows/runtimes#187](https://github.com/polkadot-fellows/runtimes/pull/187))
 
 ## [1.1.1] 25.01.2024
 

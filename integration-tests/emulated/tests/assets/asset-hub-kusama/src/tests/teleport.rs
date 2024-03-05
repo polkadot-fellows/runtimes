@@ -143,6 +143,7 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	);
 	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let expected_foreign_asset_id_v3: v3::Location = expected_foreign_asset_id.try_into().unwrap();
 	assert_expected_events!(
 		AssetHubKusama,
 		vec![
@@ -157,7 +158,7 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 				who: *who == t.receiver.account_id,
 			},
 			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+				asset_id: *asset_id == expected_foreign_asset_id_v3,
 				owner: *owner == t.receiver.account_id,
 				amount: *amount == expected_foreign_asset_amount,
 			},
@@ -174,6 +175,7 @@ fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(None);
 	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let expected_foreign_asset_id_v3: v3::Location = expected_foreign_asset_id.try_into().unwrap();
 	assert_expected_events!(
 		AssetHubKusama,
 		vec![
@@ -183,13 +185,13 @@ fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 			) => {
 				from: *from == t.sender.account_id,
 				to: *to == AssetHubKusama::sovereign_account_id_of(
-					t.args.dest
+					t.args.dest.clone()
 				),
 				amount: *amount == t.args.amount,
 			},
 			// foreign asset is burned locally as part of teleportation
 			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+				asset_id: *asset_id == expected_foreign_asset_id_v3,
 				owner: *owner == t.sender.account_id,
 				balance: *balance == expected_foreign_asset_amount,
 			},
@@ -542,7 +544,7 @@ fn teleport_native_assets_from_system_para_to_relay_fails() {
 #[test]
 fn teleport_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 100;
-	let native_asset: MultiAssets = (Parent, amount).into();
+	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
 		AssetHubKusama,          // Origin
@@ -557,20 +559,21 @@ fn teleport_to_other_system_parachains_works() {
 #[test]
 fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	let ah_as_seen_by_penpal = PenpalA::sibling_location_of(AssetHubKusama::para_id());
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
+	let asset_location_on_penpal =
+		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(GeneralIndex(id)) => *id as u32,
+		Some(v3::Junction::GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
 	};
 	let asset_owner_on_penpal = PenpalASender::get();
 	let foreign_asset_at_asset_hub_kusama =
-		MultiLocation { parents: 1, interior: X1(Parachain(PenpalA::para_id().into())) }
+		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_kusama,
-		ah_as_seen_by_penpal,
+		ah_as_seen_by_penpal.clone(),
 		false,
 		asset_owner_on_penpal,
 		ASSET_MIN_BALANCE * 1_000_000,
@@ -580,9 +583,10 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 	let fee_amount_to_send = ASSET_HUB_KUSAMA_ED * 10_000;
 	let asset_amount_to_send = ASSET_MIN_BALANCE * 1000;
 
-	let penpal_assets: MultiAssets = vec![
+	let asset_location_on_penpal_latest: Location = asset_location_on_penpal.try_into().unwrap();
+	let penpal_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
-		(asset_location_on_penpal, asset_amount_to_send).into(),
+		(asset_location_on_penpal_latest, asset_amount_to_send).into(),
 	]
 	.into();
 	let fee_asset_index = penpal_assets
@@ -670,11 +674,13 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 		));
 	});
 
+	let foreign_asset_at_asset_hub_kusama_latest: Location =
+		foreign_asset_at_asset_hub_kusama.try_into().unwrap();
 	let ah_to_penpal_beneficiary_id = PenpalAReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
-	let ah_assets: MultiAssets = vec![
+	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
-		(foreign_asset_at_asset_hub_kusama, asset_amount_to_send).into(),
+		(foreign_asset_at_asset_hub_kusama_latest, asset_amount_to_send).into(),
 	]
 	.into();
 	let fee_asset_index = ah_assets

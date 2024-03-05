@@ -24,6 +24,7 @@ use crate::{
 };
 use bp_messages::LaneId;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+use bp_runtime::Chain;
 use bridge_runtime_common::{
 	messages,
 	messages::{
@@ -46,7 +47,7 @@ use kusama_runtime_constants as constants;
 use sp_runtime::{traits::ConstU32, RuntimeDebug};
 use xcm::{
 	latest::prelude::*,
-	prelude::{InteriorMultiLocation, NetworkId},
+	prelude::{InteriorLocation, NetworkId},
 };
 use xcm_builder::BridgeBlobDispatcher;
 
@@ -76,32 +77,30 @@ parameter_types! {
 	/// Polkadot Network identifier.
 	pub PolkadotGlobalConsensusNetwork: NetworkId = NetworkId::Polkadot;
 	/// Polkadot Network as `Location`.
-	pub PolkadotGlobalConsensusNetworkLocation: MultiLocation = MultiLocation {
+	pub PolkadotGlobalConsensusNetworkLocation: Location = Location {
 		parents: 2,
-		interior: X1(GlobalConsensus(PolkadotGlobalConsensusNetwork::get()))
+		interior: [GlobalConsensus(PolkadotGlobalConsensusNetwork::get())].into()
 	};
 	/// Interior location (relative to this runtime) of the with-Polkadot messages pallet.
-	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorMultiLocation = X1(
-		PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8),
-	);
+	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8).into();
 
 	/// Identifier of the sibling Kusama Asset Hub parachain.
 	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Identifier of the bridged Polkadot Asset Hub parachain.
 	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Location of the bridged Polkadot Bridge Hub parachain.
-	pub BridgeHubPolkadotLocation: MultiLocation = MultiLocation {
+	pub BridgeHubPolkadotLocation: Location = Location {
 		parents: 2,
-		interior: X2(
+		interior: [
 			GlobalConsensus(PolkadotGlobalConsensusNetwork::get()),
 			Parachain(<bp_bridge_hub_polkadot::BridgeHubPolkadot as bp_runtime::Parachain>::PARACHAIN_ID)
-		)
+		].into()
 	};
 
 	/// A route (XCM location and bridge lane) that the Kusama Asset Hub -> Polkadot Asset Hub
 	/// message is following.
 	pub FromAssetHubKusamaToAssetHubPolkadotRoute: SenderAndLane = SenderAndLane::new(
-		ParentThen(X1(Parachain(AssetHubKusamaParaId::get().into()))).into(),
+		ParentThen(Parachain(AssetHubKusamaParaId::get().into()).into()).into(),
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	);
 
@@ -113,10 +112,10 @@ parameter_types! {
 		= &[XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT];
 
 	/// Lanes
-	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorMultiLocation))> = sp_std::vec![
+	pub ActiveLanes: sp_std::vec::Vec<(SenderAndLane, (NetworkId, InteriorLocation))> = sp_std::vec![
 			(
 				FromAssetHubKusamaToAssetHubPolkadotRoute::get(),
-				(PolkadotGlobalConsensusNetwork::get(), X1(Parachain(AssetHubPolkadotParaId::get().into())))
+				(PolkadotGlobalConsensusNetwork::get(), Parachain(AssetHubPolkadotParaId::get().into()).into())
 			)
 	];
 }
@@ -137,7 +136,7 @@ parameter_types! {
 	pub const MaxParaHeadDataSize: u32 = bp_polkadot::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 
 	/// Bridge specific chain (network) identifier of the Polkadot Bridge Hub.
-	pub const BridgeHubPolkadotChainId: bp_runtime::ChainId = bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID;
+	pub const BridgeHubPolkadotChainId: bp_runtime::ChainId = bp_bridge_hub_polkadot::BridgeHubPolkadot::ID;
 	/// Name of the `paras` pallet at Polkadot that tracks all parachain heads.
 	pub const ParachainPalletNameAtPolkadot: &'static str = bp_polkadot::PARAS_PALLET_NAME;
 
@@ -221,7 +220,6 @@ impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for R
 	type DeliveryPayments = ();
 
 	type TargetHeaderChain = TargetHeaderChainAdapter<WithBridgeHubPolkadotMessageBridge>;
-	type LaneMessageVerifier = ToBridgeHubPolkadotMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubPolkadotMessagesInstance,
@@ -299,10 +297,6 @@ impl MessageBridge for WithBridgeHubPolkadotMessageBridge {
 		bp_bridge_hub_polkadot::BridgeHubPolkadot,
 	>;
 }
-
-/// Message verifier for BridgeHubPolkadot messages sent from BridgeHubKusama
-pub type ToBridgeHubPolkadotMessageVerifier =
-	messages::source::FromThisChainMessageVerifier<WithBridgeHubPolkadotMessageBridge>;
 
 /// Maximal outbound payload size of BridgeHubKusama -> BridgeHubPolkadot messages.
 pub type ToBridgeHubPolkadotMaximalOutboundPayloadSize =
@@ -412,7 +406,7 @@ mod tests {
 					bp_bridge_hub_polkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 				max_unconfirmed_messages_in_bridged_confirmation_tx:
 					bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID,
+				bridged_chain_id: bp_bridge_hub_polkadot::BridgeHubPolkadot::ID,
 			},
 			pallet_names: AssertBridgePalletNames {
 				with_this_chain_messages_pallet_name:
@@ -432,8 +426,8 @@ mod tests {
 
 		assert_eq!(
 			BridgeKusamaToPolkadotMessagesPalletInstance::get(),
-			X1(PalletInstance(
-				bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX
+			Into::<InteriorLocation>::into(PalletInstance(
+				bp_bridge_hub_kusama::WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX,
 			))
 		);
 

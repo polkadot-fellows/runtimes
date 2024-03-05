@@ -29,8 +29,8 @@ fn send_xcm_from_kusama_relay_to_polkadot_asset_hub_should_fail_on_not_applicabl
 	let xcm = VersionedXcm::from(Xcm(vec![
 		UnpaidExecution { weight_limit, check_origin },
 		ExportMessage {
-			network: PolkadotId,
-			destination: X1(Parachain(AssetHubPolkadot::para_id().into())),
+			network: PolkadotId.into(),
+			destination: [Parachain(AssetHubPolkadot::para_id().into())].into(),
 			xcm: remote_xcm,
 		},
 	]));
@@ -68,7 +68,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 
 	// prepare data
 	let destination = asset_hub_polkadot_location();
-	let native_token = MultiLocation::parent();
+	let native_token = Location::parent();
 	let amount = ASSET_HUB_KUSAMA_ED * 1_000;
 
 	// fund the AHK's SA on BHK for paying bridge transport fees
@@ -78,7 +78,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 
 	// send XCM from AssetHubKusama - fails - destination version not known
 	assert_err!(
-		send_asset_from_asset_hub_kusama(destination, (native_token, amount)),
+		send_asset_from_asset_hub_kusama(destination.clone(), (native_token.clone(), amount)),
 		DispatchError::Module(sp_runtime::ModuleError {
 			index: 31,
 			error: [1, 0, 0, 0],
@@ -87,7 +87,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	);
 
 	// set destination version
-	AssetHubKusama::force_xcm_version(destination, xcm::v3::prelude::XCM_VERSION);
+	AssetHubKusama::force_xcm_version(destination.clone(), xcm::v3::prelude::XCM_VERSION);
 
 	// TODO: remove this block, when removing `xcm:v2`
 	{
@@ -95,7 +95,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 		// version, which does not have the `ExportMessage` instruction. If the default `2` is
 		// changed to `3`, then this assert can go away"
 		assert_err!(
-			send_asset_from_asset_hub_kusama(destination, (native_token, amount)),
+			send_asset_from_asset_hub_kusama(destination.clone(), (native_token.clone(), amount)),
 			DispatchError::Module(sp_runtime::ModuleError {
 				index: 31,
 				error: [1, 0, 0, 0],
@@ -110,7 +110,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 		);
 		// send XCM from AssetHubKusama - fails - `ExportMessage` is not in `2`
 		assert_err!(
-			send_asset_from_asset_hub_kusama(destination, (native_token, amount)),
+			send_asset_from_asset_hub_kusama(destination.clone(), (native_token.clone(), amount)),
 			DispatchError::Module(sp_runtime::ModuleError {
 				index: 31,
 				error: [1, 0, 0, 0],
@@ -125,7 +125,10 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 		xcm::v3::prelude::XCM_VERSION,
 	);
 	// send XCM from AssetHubKusama - ok
-	assert_ok!(send_asset_from_asset_hub_kusama(destination, (native_token, amount)));
+	assert_ok!(send_asset_from_asset_hub_kusama(
+		destination.clone(),
+		(native_token.clone(), amount)
+	));
 
 	// `ExportMessage` on local BridgeHub - fails - remote BridgeHub version not known
 	assert_bridge_hub_kusama_message_accepted(false);
@@ -142,7 +145,10 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	);
 
 	// send XCM from AssetHubKusama - ok
-	assert_ok!(send_asset_from_asset_hub_kusama(destination, (native_token, amount)));
+	assert_ok!(send_asset_from_asset_hub_kusama(
+		destination.clone(),
+		(native_token.clone(), amount)
+	));
 	assert_bridge_hub_kusama_message_accepted(true);
 	assert_bridge_hub_polkadot_message_received();
 	// message delivered and processed at destination

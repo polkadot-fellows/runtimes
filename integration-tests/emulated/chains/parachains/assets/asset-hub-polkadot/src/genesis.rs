@@ -18,13 +18,26 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, SAFE_XCM_VERSION,
 };
-use parachains_common::Balance;
+use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
+use sp_core::sr25519;
 
 pub const PARA_ID: u32 = 1000;
-pub const ED: Balance =
-	system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
+
+fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
+	vec![
+		(
+			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
+		),
+		(
+			get_account_id_from_seed::<sr25519::Public>("Bob"),
+			get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
+		),
+	]
+}
 
 pub fn genesis() -> Storage {
 	let genesis_config = asset_hub_polkadot_runtime::RuntimeGenesisConfig {
@@ -37,12 +50,16 @@ pub fn genesis() -> Storage {
 			..Default::default()
 		},
 		collator_selection: asset_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: collators::invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
+			invulnerables: invulnerables_asset_hub_polkadot()
+				.iter()
+				.cloned()
+				.map(|(acc, _)| acc)
+				.collect(),
 			candidacy_bond: ED * 16,
 			..Default::default()
 		},
 		session: asset_hub_polkadot_runtime::SessionConfig {
-			keys: collators::invulnerables_asset_hub_polkadot()
+			keys: invulnerables_asset_hub_polkadot()
 				.into_iter()
 				.map(|(acc, aura)| {
 					(

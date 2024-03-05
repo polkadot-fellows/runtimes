@@ -24,8 +24,7 @@ use pallet_transaction_payment::CurrencyAdapter;
 use runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset,
-		VersionedMultiLocationConverter,
+		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots, BlockHashCount, BlockLength, CurrencyToVote,
 	SlowAdjustingFeeUpdate,
@@ -97,8 +96,8 @@ use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::{
-	latest::{InteriorMultiLocation, Junction, Junction::PalletInstance},
-	VersionedMultiLocation,
+	latest::{InteriorLocation, Junction, Junction::PalletInstance},
+	VersionedLocation,
 };
 use xcm_builder::PayOverXcm;
 
@@ -320,7 +319,6 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<8>;
 }
 
@@ -849,7 +847,7 @@ parameter_types! {
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 19).
-	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(TREASURY_PALLET_ID).into();
+	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
 
 	pub const TipCountdown: BlockNumber = 1 * DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
@@ -881,7 +879,7 @@ impl pallet_treasury::Config for Runtime {
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendOrigin = TreasurySpender;
 	type AssetKind = VersionedLocatableAsset;
-	type Beneficiary = VersionedMultiLocation;
+	type Beneficiary = VersionedLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
 	type Paymaster = PayOverXcm<
 		TreasuryInteriorLocation,
@@ -891,7 +889,7 @@ impl pallet_treasury::Config for Runtime {
 		Self::Beneficiary,
 		Self::AssetKind,
 		LocatableAssetConverter,
-		VersionedMultiLocationConverter,
+		VersionedLocationConverter,
 	>;
 	type BalanceConverter = AssetRate;
 	type PayoutPeriod = PayoutSpendPeriod;
@@ -1281,7 +1279,9 @@ impl parachains_configuration::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_configuration::WeightInfo<Runtime>;
 }
 
-impl parachains_shared::Config for Runtime {}
+impl parachains_shared::Config for Runtime {
+	type DisabledValidators = Session;
+}
 
 impl parachains_session_info::Config for Runtime {
 	type ValidatorSet = Historical;
@@ -1691,7 +1691,7 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
 /// upgrades in case governance decides to do so. THE ORDER IS IMPORTANT.
-pub type Migrations = migrations::Unreleased;
+pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
@@ -1801,6 +1801,9 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 	);
+
+	/// Migrations/checks that do not need to be versioned and can run on every update.
+	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2419,33 +2422,59 @@ sp_api::impl_runtime_apis! {
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
+			parameter_types! {
+				pub ExistentialDepositAsset: Option<Asset> = Some((
+					TokenLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+				pub AssetHubParaId: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+				pub const RandomParaId: ParaId = ParaId::new(43211234);
+			}
+
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
-				fn reachable_dest() -> Option<MultiLocation> {
+				type DeliveryHelper = (
+					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+						XcmConfig,
+						ExistentialDepositAsset,
+						xcm_config::PriceForChildParachainDelivery,
+						AssetHubParaId,
+						(),
+					>,
+					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+						XcmConfig,
+						ExistentialDepositAsset,
+						xcm_config::PriceForChildParachainDelivery,
+						RandomParaId,
+						(),
+					>
+				);
+
+				fn reachable_dest() -> Option<Location> {
 					Some(crate::xcm_config::AssetHubLocation::get())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported to/from AH.
 					Some((
-						MultiAsset { fun: Fungible(EXISTENTIAL_DEPOSIT), id: Concrete(Here.into()) },
+						Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
 						crate::xcm_config::AssetHubLocation::get(),
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay can reserve transfer native token to some random parachain.
 					Some((
-						MultiAsset {
-							fun: Fungible(EXISTENTIAL_DEPOSIT),
-							id: Concrete(Here.into())
+						Asset {
+							fun: Fungible(ExistentialDeposit::get()),
+							id: AssetId(Here.into())
 						},
-						crate::Junction::Parachain(43211234).into(),
+						Parachain(RandomParaId::get().into()).into(),
 					))
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, MultiLocation, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Relay supports only native token, either reserve transfer it to non-system parachains,
 					// or teleport it to system parachain. Use the teleport case for benchmarking as it's
 					// slightly heavier.
@@ -2457,14 +2486,13 @@ sp_api::impl_runtime_apis! {
 						dest
 					)
 				}
-			}
 
-			parameter_types! {
-				pub ExistentialDepositMultiAsset: Option<MultiAsset> = Some((
-					TokenLocation::get(),
-					ExistentialDeposit::get()
-				).into());
-				pub ToParachain: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::here()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
+				}
 			}
 
 			impl pallet_xcm_benchmarks::Config for Runtime {
@@ -2472,26 +2500,26 @@ sp_api::impl_runtime_apis! {
 				type AccountIdConverter = SovereignAccountOf;
 				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
 					XcmConfig,
-					ExistentialDepositMultiAsset,
+					ExistentialDepositAsset,
 					xcm_config::PriceForChildParachainDelivery,
-					ToParachain,
+					AssetHubParaId,
 					(),
 				>;
-				fn valid_destination() -> Result<MultiLocation, BenchmarkError> {
+				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(AssetHubLocation::get())
 				}
-				fn worst_case_holding(_depositable_count: u32) -> MultiAssets {
+				fn worst_case_holding(_depositable_count: u32) -> Assets {
 					// Polkadot only knows about DOT
-					vec![MultiAsset { id: Concrete(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) }].into()
+					vec![Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) }].into()
 				}
 			}
 
 			parameter_types! {
-				pub const TrustedTeleporter: Option<(MultiLocation, MultiAsset)> = Some((
+				pub TrustedTeleporter: Option<(Location, Asset)> = Some((
 					AssetHubLocation::get(),
-					MultiAsset { id: Concrete(TokenLocation::get()), fun: Fungible(1 * UNITS) }
+					Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
 				));
-				pub const TrustedReserve: Option<(MultiLocation, MultiAsset)> = None;
+				pub const TrustedReserve: Option<(Location, Asset)> = None;
 			}
 
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
@@ -2501,9 +2529,9 @@ sp_api::impl_runtime_apis! {
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
-				fn get_multi_asset() -> MultiAsset {
-					MultiAsset {
-						id: Concrete(TokenLocation::get()),
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1 * UNITS)
 					}
 				}
@@ -2517,50 +2545,50 @@ sp_api::impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(MultiAssets, MultiAssets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
 					// Polkadot doesn't support asset exchanges
 					Err(BenchmarkError::Skip)
 				}
 
-				fn universal_alias() -> Result<(MultiLocation, Junction), BenchmarkError> {
+				fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
 					// The XCM executor of Polkadot doesn't have a configured `UniversalAliases`
 					Err(BenchmarkError::Skip)
 				}
 
-				fn transact_origin_and_runtime_call() -> Result<(MultiLocation, RuntimeCall), BenchmarkError> {
+				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 					Ok((AssetHubLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
 				}
 
-				fn subscribe_origin() -> Result<MultiLocation, BenchmarkError> {
+				fn subscribe_origin() -> Result<Location, BenchmarkError> {
 					Ok(AssetHubLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(MultiLocation, MultiLocation, MultiAssets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
 					let origin = AssetHubLocation::get();
-					let assets: MultiAssets = (Concrete(TokenLocation::get()), 1_000 * UNITS).into();
-					let ticket = MultiLocation { parents: 0, interior: Here };
+					let assets: Assets = (AssetId(TokenLocation::get()), 1_000 * UNITS).into();
+					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
 
-				fn fee_asset() -> Result<MultiAsset, BenchmarkError> {
-					Ok(MultiAsset {
-						id: Concrete(TokenLocation::get()),
+				fn fee_asset() -> Result<Asset, BenchmarkError> {
+					Ok(Asset {
+						id: AssetId(TokenLocation::get()),
 						fun: Fungible(1_000_000 * UNITS),
 					})
 				}
 
-				fn unlockable_asset() -> Result<(MultiLocation, MultiLocation, MultiAsset), BenchmarkError> {
+				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
 					// Polkadot doesn't support asset locking
 					Err(BenchmarkError::Skip)
 				}
 
 				fn export_message_origin_and_destination(
-				) -> Result<(MultiLocation, NetworkId, InteriorMultiLocation), BenchmarkError> {
+				) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
 					// Polkadot doesn't support exporting messages
 					Err(BenchmarkError::Skip)
 				}
 
-				fn alias_origin() -> Result<(MultiLocation, MultiLocation), BenchmarkError> {
+				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
 					// The XCM executor of Polkadot doesn't have a configured `Aliasers`
 					Err(BenchmarkError::Skip)
 				}

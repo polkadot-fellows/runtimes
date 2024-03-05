@@ -30,7 +30,7 @@ use emulated_integration_tests_common::{
 use kusama_runtime_constants::currency::UNITS as KSM;
 use parachains_common::Balance;
 
-pub const ED: Balance = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = kusama_runtime::ExistentialDeposit::get();
 const ENDOWMENT: u128 = 1_000_000 * KSM;
 
 mod validators {
