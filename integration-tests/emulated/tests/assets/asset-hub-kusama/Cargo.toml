@@ -1,6 +1,6 @@
 [package]
 name = "asset-hub-kusama-integration-tests"
-version = "0.1.0"
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -8,26 +8,27 @@ description = "Asset Hub Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.4.0" }
+codec = { package = "parity-scale-codec", version = "3.6.9" }
 assert_matches = "1.5.0"
 
 # Substrate
-sp-runtime = { version = "31.0.1" }
-frame-support = { version = "28.0.0" }
-pallet-balances = { version = "28.0.0" }
-pallet-assets = { version = "29.0.0" }
-pallet-asset-conversion = { version = "10.0.0" }
-pallet-message-queue = { version = "31.0.0" }
+sp-runtime = { version = "32.0.0" }
+frame-support = { version = "29.0.0" }
+pallet-assets = { version = "30.0.0" }
+pallet-balances = { version = "29.0.0" }
+pallet-asset-conversion = { version = "11.0.0" }
+pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "7.0.0" }
-pallet-xcm = { version = "7.0.0" }
-xcm-executor = { package = "staging-xcm-executor",  version = "7.0.3" }
+xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+pallet-xcm = { version = "8.0.2" }
 
 # Cumulus
-asset-test-utils = { version = "7.0.1" }
-emulated-integration-tests-common = { version = "3.0.0" }
-parachains-common = { version = "7.0.0" }
+parachains-common = { version = "8.0.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+asset-test-utils = { version = "8.0.1" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.1" }
 
 # Local
 asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }

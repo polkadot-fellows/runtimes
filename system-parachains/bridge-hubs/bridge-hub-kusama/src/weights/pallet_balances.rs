@@ -147,4 +147,15 @@ impl<T: frame_system::Config> pallet_balances::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(u.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(u.into()))
 	}
+	/// Storage: `Balances::InactiveIssuance` (r:1 w:0)
+	/// Proof: `Balances::InactiveIssuance` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	fn force_adjust_total_issuance() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `1501`
+		// Minimum execution time: 5_208_000 picoseconds.
+		Weight::from_parts(5_619_000, 0)
+			.saturating_add(Weight::from_parts(0, 1501))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
 }
