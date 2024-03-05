@@ -731,6 +731,13 @@ impl_runtime_apis! {
 					// Reserve transfers are disabled
 					None
 				}
+
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::parent()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
+				}
 			}
 
 			impl pallet_xcm_benchmarks::Config for Runtime {
