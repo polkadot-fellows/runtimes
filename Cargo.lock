@@ -568,6 +568,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "integration-tests-helpers",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-message-queue",
