@@ -199,6 +199,11 @@ fn ethereum_to_polkadot_message_extrinsics_work() {
 	);
 }
 
+#[test]
+fn ethereum_outbound_queue_processes_messages_before_message_queue_works() {
+	// TODO: add test after dependencies are upgraded to >= 1.8
+}
+
 fn construct_extrinsic(
 	sender: sp_keyring::AccountKeyring,
 	call: RuntimeCall,

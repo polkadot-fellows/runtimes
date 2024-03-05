@@ -650,7 +650,7 @@ fn asset_hub_foreign_account_pallet_is_configured_correctly_in_bridge_hub() {
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
-			.encode();
+		.encode();
 
 	let bridge_hub_inbound_queue_assets_pallet_call_index =
 		bridge_hub_polkadot_runtime::CreateAssetCall::get();
