@@ -24,19 +24,22 @@ fn create_and_claim_treasury_spend() {
 	const ASSET_ID: u32 = 1984;
 	const SPEND_AMOUNT: u128 = 1_000_000;
 	// treasury location from a sibling parachain.
-	let treasury_location: MultiLocation = MultiLocation::new(1, PalletInstance(19));
+	let treasury_location: Location = Location::new(1, PalletInstance(19));
 	// treasury account on a sibling parachain.
 	let treasury_account =
 		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
 			&treasury_location,
 		)
 		.unwrap();
-	let asset_hub_location = MultiLocation::new(0, Parachain(AssetHubPolkadot::para_id().into()));
+	let asset_hub_location =
+		v3::Location::new(0, v3::Junction::Parachain(AssetHubPolkadot::para_id().into()));
 	let root = <Polkadot as Chain>::RuntimeOrigin::root();
 	// asset kind to be spend from the treasury.
 	let asset_kind = VersionedLocatableAsset::V3 {
 		location: asset_hub_location,
-		asset_id: AssetId::Concrete((PalletInstance(50), GeneralIndex(ASSET_ID.into())).into()),
+		asset_id: v3::AssetId::Concrete(
+			(v3::Junction::PalletInstance(50), v3::Junction::GeneralIndex(ASSET_ID.into())).into(),
+		),
 	};
 	// treasury spend beneficiary.
 	let alice: AccountId = Polkadot::account_id_of(ALICE);
@@ -71,7 +74,7 @@ fn create_and_claim_treasury_spend() {
 			root,
 			Box::new(asset_kind),
 			SPEND_AMOUNT,
-			Box::new(MultiLocation::new(0, Into::<[u8; 32]>::into(alice.clone())).into()),
+			Box::new(Location::new(0, Into::<[u8; 32]>::into(alice.clone())).into()),
 			None,
 		));
 		// claim the spend.

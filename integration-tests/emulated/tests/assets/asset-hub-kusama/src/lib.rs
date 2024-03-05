@@ -26,7 +26,7 @@ pub use frame_support::{
 // Polkadot
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v3::{Error, NetworkId::Kusama as KusamaId},
+	v3::{self, Error, NetworkId::Kusama as KusamaId},
 };
 
 // Cumulus
@@ -51,7 +51,8 @@ pub use kusama_system_emulated_network::{
 	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
 	PenpalAPara as PenpalA, PenpalAParaReceiver as PenpalAReceiver,
-	PenpalAParaSender as PenpalASender,
+	PenpalAParaSender as PenpalASender, PenpalBPara as PenpalB,
+	PenpalBParaReceiver as PenpalBReceiver,
 };
 pub use parachains_common::{AccountId, Balance};
 
@@ -65,6 +66,7 @@ pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
+pub type ParaToParaTest = Test<PenpalA, PenpalB, Kusama>;
 
 #[cfg(test)]
 mod tests;

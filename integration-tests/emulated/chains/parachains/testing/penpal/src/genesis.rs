@@ -25,7 +25,7 @@ use parachains_common::Balance;
 // Penpal
 pub const PARA_ID_A: u32 = 2000;
 pub const PARA_ID_B: u32 = 2001;
-pub const ED: Balance = penpal_runtime::EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = penpal_runtime::ExistentialDeposit::get();
 
 pub fn genesis(para_id: u32) -> Storage {
 	let genesis_config = penpal_runtime::RuntimeGenesisConfig {
