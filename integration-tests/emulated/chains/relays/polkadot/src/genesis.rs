@@ -31,7 +31,7 @@ use emulated_integration_tests_common::{
 use parachains_common::Balance;
 use polkadot_runtime_constants::currency::UNITS as DOT;
 
-pub const ED: Balance = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = polkadot_runtime::ExistentialDeposit::get();
 const ENDOWMENT: u128 = 1_000_000 * DOT;
 const STASH: u128 = 100 * DOT;
 

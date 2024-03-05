@@ -42,7 +42,7 @@ pub use origins::{
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
-	LocatableAssetConverter, VersionedLocatableAsset, VersionedMultiLocationConverter,
+	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
 use polkadot_runtime_constants::{
 	currency::GRAND, system_parachain, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX,
@@ -142,9 +142,17 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 			Replace<ConstU16<{ ranks::DAN_9 }>>,
 		>,
 	>;
+	// Exchange is by any of:
+	// - Root can exchange arbitrarily.
+	// - the Fellows origin
+	type ExchangeOrigin =
+		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
+	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
 	type VoteWeight = pallet_ranked_collective::Geometric;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkSetup = (crate::FellowshipCore, crate::FellowshipSalary);
 }
 
 pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
@@ -208,7 +216,7 @@ pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 use xcm::prelude::*;
 
 parameter_types! {
-	pub AssetHub: MultiLocation = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
+	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
 	pub AssetHubUsdtId: AssetId = (PalletInstance(50), GeneralIndex(1984)).into();
 	pub UsdtAsset: LocatableAssetId = LocatableAssetId {
 		location: AssetHub::get(),
@@ -216,8 +224,7 @@ parameter_types! {
 	};
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
-	pub Interior: InteriorMultiLocation =
-		PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	pub Interior: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
 }
 
 const USDT_UNITS: u128 = 1_000_000;
@@ -265,7 +272,7 @@ parameter_types! {
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
 	// pallet instance.
-	pub FellowshipTreasuryInteriorLocation: InteriorMultiLocation =
+	pub FellowshipTreasuryInteriorLocation: InteriorLocation =
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
 }
 
@@ -280,10 +287,10 @@ pub type FellowshipTreasuryPaymaster = PayOverXcm<
 	crate::xcm_config::XcmRouter,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
-	VersionedMultiLocation,
+	VersionedLocation,
 	VersionedLocatableAsset,
 	LocatableAssetConverter,
-	VersionedMultiLocationConverter,
+	VersionedLocationConverter,
 >;
 
 pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
@@ -339,7 +346,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 		>,
 	>;
 	type AssetKind = VersionedLocatableAsset;
-	type Beneficiary = VersionedMultiLocation;
+	type Beneficiary = VersionedLocation;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = FellowshipTreasuryPaymaster;
