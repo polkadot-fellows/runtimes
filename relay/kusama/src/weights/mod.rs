@@ -50,6 +50,7 @@ pub mod pallet_xcm;
 pub mod runtime_common_auctions;
 pub mod runtime_common_claims;
 pub mod runtime_common_crowdloan;
+pub mod runtime_common_identity_migrator;
 pub mod runtime_common_paras_registrar;
 pub mod runtime_common_slots;
 pub mod runtime_parachains_assigner_on_demand;

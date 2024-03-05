@@ -33,7 +33,7 @@ use primitives::{
 	PARACHAIN_KEY_TYPE_ID,
 };
 use runtime_common::{
-	auctions, claims, crowdloan, impl_runtime_weights,
+	auctions, claims, crowdloan, identity_migrator, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
@@ -144,6 +144,10 @@ use governance::{
 
 #[cfg(test)]
 mod tests;
+
+// Implemented types.
+mod impls;
+use impls::ToParachainIdentityReaper;
 
 impl_runtime_weights!(kusama_runtime_constants);
 
@@ -984,6 +988,14 @@ impl pallet_identity::Config for Runtime {
 	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
+impl identity_migrator::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	// To be updated to `EnsureSigned` once the parachain is producing blocks.
+	type Reaper = EnsureRoot<AccountId>;
+	type ReapIdentityHandler = ToParachainIdentityReaper<Runtime, Self::AccountId>;
+	type WeightInfo = weights::runtime_common_identity_migrator::WeightInfo<Runtime>;
+}
+
 impl pallet_utility::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
@@ -1703,6 +1715,9 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+
+		// Pallet for migrating Identity to a parachain. To be removed post-migration.
+		IdentityMigrator: identity_migrator = 248,
 	}
 }
 
@@ -1902,6 +1917,7 @@ mod benches {
 		[runtime_common::auctions, Auctions]
 		[runtime_common::crowdloan, Crowdloan]
 		[runtime_common::claims, Claims]
+		[runtime_common::identity_migrator, IdentityMigrator]
 		[runtime_common::slots, Slots]
 		[runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
