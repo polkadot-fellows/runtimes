@@ -297,3 +297,140 @@ fn cannot_create_pool_from_pool_assets() {
 		);
 	});
 }
+
+#[test]
+fn pay_xcm_fee_with_some_asset_swapped_for_native() {
+	use frame_support::traits::fungible::Mutate;
+
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV3::get();
+	let asset_one = xcm::v3::Location {
+		parents: 0,
+		interior: [
+			xcm::v3::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v3::Junction::GeneralIndex(ASSET_ID.into()),
+		]
+		.into(),
+	};
+	let penpal = AssetHubPolkadot::sovereign_account_id_of(AssetHubPolkadot::sibling_location_of(
+		PenpalB::para_id(),
+	));
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// set up pool with ASSET_ID <> NATIVE pair
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::create(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			AssetHubPolkadotSender::get().into(),
+			ASSET_MIN_BALANCE,
+		));
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::asset_exists(ASSET_ID));
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			AssetHubPolkadotSender::get().into(),
+			3_000_000_000_000,
+		));
+
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::set_balance(
+			&AssetHubPolkadotSender::get(),
+			3_000_000_000_000,
+		);
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			Box::new(asset_native),
+			Box::new(asset_one),
+		));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+			]
+		);
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			Box::new(asset_native),
+			Box::new(asset_one),
+			1_000_000_000_000,
+			2_000_000_000_000,
+			0,
+			0,
+			AssetHubPolkadotSender::get().into()
+		));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {lp_token_minted, .. }) => { lp_token_minted: *lp_token_minted == 1414213562273, },
+			]
+		);
+
+		// ensure `penpal` sovereign account has no native tokens and mint some `ASSET_ID`
+		assert_eq!(
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(penpal.clone()),
+			0
+		);
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::touch_other(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+		));
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+			10_000_000_000_000,
+		));
+	});
+
+	PenpalB::execute_with(|| {
+		// send xcm transact from `penpal` account which as only `ASSET_ID` tokens on
+		// `AssetHubPolkadot`
+		let call = AssetHubPolkadot::force_create_asset_call(
+			ASSET_ID + 1000,
+			penpal.clone(),
+			true,
+			ASSET_MIN_BALANCE,
+		);
+
+		let penpal_root = <PenpalB as Chain>::RuntimeOrigin::root();
+		let fee_amount = 4_000_000_000_000u128;
+		let asset_one =
+			([PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())], fee_amount).into();
+		let asset_hub_location = PenpalB::sibling_location_of(AssetHubPolkadot::para_id()).into();
+		let xcm = xcm_transact_paid_execution(
+			call,
+			OriginKind::SovereignAccount,
+			asset_one,
+			penpal.clone(),
+		);
+
+		assert_ok!(<PenpalB as PenpalBPallet>::PolkadotXcm::send(
+			penpal_root,
+			bx!(asset_hub_location),
+			bx!(xcm),
+		));
+
+		PenpalB::assert_xcm_pallet_sent();
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		AssetHubPolkadot::assert_xcmp_queue_success(None);
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapCreditExecuted { .. },) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true,.. }) => {},
+			]
+		);
+	});
+}
