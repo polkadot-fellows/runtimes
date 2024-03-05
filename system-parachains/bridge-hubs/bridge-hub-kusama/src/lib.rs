@@ -91,7 +91,6 @@ use parachains_common::{
 };
 pub use system_parachains_constants::SLOT_DURATION;
 
-use polkadot_runtime_common::prod_or_fast;
 use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
@@ -657,7 +656,7 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub const MaxExecutionHeadersToKeep: u32 = prod_or_fast!(8192 * 2, 1000);
+	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
 }
 
 impl snowbridge_pallet_ethereum_client::Config for Runtime {
