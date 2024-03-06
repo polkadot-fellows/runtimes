@@ -51,8 +51,6 @@ pub use kusama_system_emulated_network::{
 };
 pub use parachains_common::{AccountId, Balance};
 
-// pub const ASSET_ID: u32 = 1;
-// pub const ASSET_MIN_BALANCE: u128 = 1000;
 pub type RelayToSystemParaTest = Test<Kusama, PeopleKusama>;
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type SystemParaToRelayTest = Test<PeopleKusama, Kusama>;
