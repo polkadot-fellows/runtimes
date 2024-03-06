@@ -510,7 +510,8 @@ impl pallet_utility::Config for Runtime {
 
 // Ethereum Bridge
 parameter_types! {
-	pub storage EthereumGatewayAddress: H160 = H160(hex_literal::hex!("EDa338E4dC46038493b885327842fD3E301CaB39"));
+	// The gateway address is set by governance.
+	pub storage EthereumGatewayAddress: H160 = H160::zero();;
 }
 
 parameter_types! {
