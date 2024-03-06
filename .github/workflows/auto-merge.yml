@@ -22,7 +22,7 @@ jobs:
           app_id: ${{ secrets.MERGE_APP_ID }}
           private_key: ${{ secrets.MERGE_APP_KEY }}
       - name: Set auto merge
-        uses: paritytech/auto-merge-bot@v1.0.0
+        uses: paritytech/auto-merge-bot@v1.0.1
         with:
           GITHUB_TOKEN: ${{ steps.merge_token.outputs.token }}
           MERGE_METHOD: "SQUASH"
