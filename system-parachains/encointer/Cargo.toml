@@ -19,7 +19,16 @@ scale-info = { version = "2.10.0", default-features = false, features = [
 ] }
 smallvec = "1.13.1"
 
-# encointer deps
+
+# Encointer pallet versioning follows these rules:
+# ---------------------------------------------------------------------------------------------
+# * major: per polkadot-sdk minor version, always breaking: i.e .
+#    * polkadot-sdk-v1.7.0 => encointer-* 6.x.x
+#    * polkadot-sdk-v1.8.0 => encointer-* 7.x.x
+# * minor: possibly breaking changes in encointer protocol. may require storage migration. i.e
+#    * encointer-* 6.1.x (must not be automatically updated from 6.0.x)
+# * patch: ad-lib
+#
 encointer-balances-tx-payment = { default-features = false, version = "~6.0.0" }
 encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "~6.0.0" }
 encointer-primitives = { default-features = false, version = "~6.0.2" }
