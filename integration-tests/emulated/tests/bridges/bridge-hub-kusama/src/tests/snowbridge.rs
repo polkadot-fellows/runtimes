@@ -374,10 +374,10 @@ fn send_token_from_ethereum_to_asset_hub() {
 		));
 
 		// Construct RegisterToken message and sent to inbound queue
-		send_inbound_message(make_register_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_register_token_message()));
 
 		// Construct SendToken message and sent to inbound queue
-		send_inbound_message(make_send_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_send_token_message()));
 
 		// Check that the message was sent
 		assert_expected_events!(
