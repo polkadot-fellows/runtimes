@@ -43,7 +43,7 @@ kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
 system-parachains-constants = { path = "../../../../../system-parachains/constants" }
 
 # Snowbridge
-snowbridge-beacon-primitives = { default-features = false , version = "0.1.0" }
+snowbridge-beacon-primitives = { version = "0.1.0" }
 snowbridge-core = { version = "0.1.0" }
 snowbridge-router-primitives = { version = "0.1.0" }
 snowbridge-pallet-system = { version = "0.1.0" }
