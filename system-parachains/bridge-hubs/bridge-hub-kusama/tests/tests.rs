@@ -27,9 +27,10 @@ use bridge_hub_kusama_runtime::{
 		KsmRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
 		RelayTreasuryPalletAccount, XcmConfig,
 	},
-	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumGatewayAddress, Executive, ExistentialDeposit,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	SignedExtra, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, EthereumGatewayAddress,
+	Executive, ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeOrigin, SessionKeys, SignedExtra, TransactionPayment, UncheckedExtrinsic,
+	SLOT_DURATION,
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
 use codec::{Decode, Encode};

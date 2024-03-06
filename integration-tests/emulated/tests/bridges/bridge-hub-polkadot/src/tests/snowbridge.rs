@@ -645,9 +645,7 @@ fn bridge_hub_inbound_queue_deposit_config_is_larger_than_asset_hub_foreign_asse
 	let bridge_hub_inbound_queue_asset_deposit =
 		bridge_hub_polkadot_runtime::CreateAssetDeposit::get();
 
-	assert!(
-		bridge_hub_inbound_queue_asset_deposit > asset_deposit
-	);
+	assert!(bridge_hub_inbound_queue_asset_deposit > asset_deposit);
 }
 
 fn ethereum_sovereign_account() -> AccountId {

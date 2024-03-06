@@ -632,7 +632,6 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 	);
 }
 
-
 /// Tests that the EthereumInboundQueue CreateAssetDeposit on BridgeHub is larger than the
 /// ForeignAssets AssetDeposit config on AssetHub.
 #[test]
@@ -642,9 +641,7 @@ fn bridge_hub_inbound_queue_deposit_config_is_larger_than_asset_hub_foreign_asse
 	let bridge_hub_inbound_queue_asset_deposit =
 		bridge_hub_kusama_runtime::CreateAssetDeposit::get();
 
-	assert!(
-		bridge_hub_inbound_queue_asset_deposit > asset_deposit
-	);
+	assert!(bridge_hub_inbound_queue_asset_deposit > asset_deposit);
 }
 
 fn ethereum_sovereign_account() -> AccountId {
