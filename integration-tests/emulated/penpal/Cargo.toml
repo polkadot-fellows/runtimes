@@ -2,7 +2,8 @@
 name = "penpal-runtime-dotsama"
 version = "0.14.0"
 authors = ["Anonymous"]
-description = "A parachain for communication back and forth with XCM of assets and uniques."
+description = "TODO: remove `penpal-runtime-dotsama` with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186) - A parachain for communication back and forth with XCM of assets and uniques."
+publish = false
 license = "Unlicense"
 homepage = "https://substrate.io"
 repository.workspace = true
