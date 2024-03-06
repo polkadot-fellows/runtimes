@@ -43,7 +43,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128,
+	ApplyExtrinsicResult, FixedPointNumber, FixedU128,
 };
 
 use sp_std::prelude::*;
@@ -520,7 +520,7 @@ parameter_types! {
 	pub Parameters: PricingParameters<Balance> = PricingParameters {
 		exchange_rate: FixedU128::from_rational(1, 75),
 		fee_per_gas: gwei(20),
-		rewards: Rewards { local: 1 * UNITS, remote: meth(1) }
+		rewards: Rewards { local: 1 * UNITS / 100, remote: meth(1) } // 0.01 KSM
 	};
 }
 
