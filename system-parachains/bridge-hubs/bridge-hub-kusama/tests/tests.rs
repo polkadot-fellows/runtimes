@@ -23,7 +23,10 @@ use bridge_hub_kusama_runtime::{
 		RequiredStakeForStakeAndSlash, WithBridgeHubPolkadotMessageBridge,
 		WithBridgeHubPolkadotMessagesInstance, XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 	},
-	xcm_config::{KsmRelayLocation, RelayNetwork, XcmConfig},
+	xcm_config::{
+		KsmRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
+		RelayTreasuryPalletAccount, XcmConfig,
+	},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
 	SignedExtra, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
@@ -42,6 +45,7 @@ use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
 };
 use xcm::latest::prelude::*;
+use xcm_executor::traits::ConvertLocation;
 
 // Para id of sibling chain used in tests.
 pub const SIBLING_PARACHAIN_ID: u32 = 1000;
@@ -357,6 +361,14 @@ pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
 			"Estimate fee for `single message confirmation` for runtime: {:?}",
 			<Runtime as frame_system::Config>::Version::get()
 		),
+	)
+}
+
+#[test]
+fn treasury_pallet_account_not_none() {
+	assert_eq!(
+		RelayTreasuryPalletAccount::get(),
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
 }
 
