@@ -649,10 +649,7 @@ pub mod bridging {
 			.chain(to_kusama::BridgeTable::get())
 			.collect();
 
-		pub EthereumBridgeTable: sp_std::vec::Vec<NetworkExportTableItem> =
-			sp_std::vec::Vec::new().into_iter()
-			.chain(to_ethereum::BridgeTable::get())
-			.collect();
+		pub EthereumBridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = to_ethereum::BridgeTable::get();
 	}
 
 	pub type NetworkExportTable = xcm_builder::NetworkExportTable<BridgeTable>;
