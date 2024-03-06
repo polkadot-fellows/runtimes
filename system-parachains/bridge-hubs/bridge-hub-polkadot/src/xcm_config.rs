@@ -53,7 +53,7 @@ use xcm_builder::{
 	XcmFeeToAccount,
 };
 use xcm_executor::{
-	traits::{FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
+	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
 	XcmExecutor,
 };
 
@@ -69,6 +69,11 @@ parameter_types! {
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
+	// conversion is not `None`.
+	pub RelayTreasuryPalletAccount: AccountId =
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
+			.unwrap_or(TreasuryAccount::get());
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
@@ -315,7 +320,7 @@ impl xcm_executor::Config for XcmConfig {
 				Self::AssetTransactor,
 				crate::EthereumOutboundQueue,
 			>,
-			XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
+			XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
 		),
 	>;
 	type MessageExporter =
