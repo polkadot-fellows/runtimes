@@ -213,9 +213,6 @@ fn create_channel() {
 /// Tests the registering of a token as an asset on AssetHub.
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
-	let parameters = bridge_hub_kusama_runtime::Parameters::get();
-
-	println!("LOCAL: {:?}", parameters.rewards.local);
 	// Fund AH sovereign account on BH so that it can pay execution fees.
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
