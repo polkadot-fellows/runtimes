@@ -71,7 +71,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			2_000_000_000_000,
 			0,
 			0,
-			AssetHubKusamaSender::get().into()
+			AssetHubKusamaSender::get()
 		));
 
 		assert_expected_events!(
@@ -89,7 +89,7 @@ fn swap_locally_on_chain_using_local_assets() {
 				path,
 				100,
 				1,
-				AssetHubKusamaSender::get().into(),
+				AssetHubKusamaSender::get(),
 				true
 			)
 		);
@@ -112,7 +112,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			                                                      * retrieved. */
 			0,
 			0,
-			AssetHubKusamaSender::get().into(),
+			AssetHubKusamaSender::get(),
 		));
 	});
 }
@@ -150,7 +150,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![
-		(AssetHubKusamaSender::get().into(), 5_000_000 * KUSAMA_ED), /* An account to swap dot
+		(AssetHubKusamaSender::get(), 5_000_000 * KUSAMA_ED), /* An account to swap dot
 		                                                              * for something else. */
 	]);
 
@@ -163,7 +163,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 		// 3. Mint foreign asset (in reality this should be a teleport or some such)
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone().into()),
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			foreign_asset_at_asset_hub_kusama,
 			sov_penpal_on_ahk.clone().into(),
 			3_000_000_000_000,
@@ -199,7 +199,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			2_000_000_000_000,
 			0,
 			0,
-			sov_penpal_on_ahk.clone().into()
+			sov_penpal_on_ahk.clone()
 		));
 
 		assert_expected_events!(
@@ -220,7 +220,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 				path,
 				100000,
 				1000,
-				AssetHubKusamaSender::get().into(),
+				AssetHubKusamaSender::get(),
 				true
 			)
 		);
@@ -243,7 +243,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			1414213562273 - 2_000_000_000, // all but the 2 EDs can't be retrieved.
 			0,
 			0,
-			sov_penpal_on_ahk.clone().into(),
+			sov_penpal_on_ahk.clone(),
 		));
 	});
 }
@@ -264,7 +264,7 @@ fn cannot_create_pool_from_pool_assets() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::PoolAssets::create(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(pool_owner_account_id.clone()),
-			ASSET_ID.into(),
+			ASSET_ID,
 			pool_owner_account_id.clone().into(),
 			1000,
 		));
@@ -272,7 +272,7 @@ fn cannot_create_pool_from_pool_assets() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::PoolAssets::mint(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(pool_owner_account_id),
-			ASSET_ID.into(),
+			ASSET_ID,
 			AssetHubKusamaSender::get().into(),
 			3_000_000_000_000,
 		));
@@ -343,7 +343,7 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			2_000_000_000_000,
 			0,
 			0,
-			AssetHubKusamaSender::get().into()
+			AssetHubKusamaSender::get()
 		));
 
 		assert_expected_events!(

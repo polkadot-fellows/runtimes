@@ -200,7 +200,7 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot_fee_from_pool() {
 		// setup a pool to pay xcm fees with `ksm_at_asset_hub_polkadot` tokens
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			ksm_at_asset_hub_polkadot.into(),
+			ksm_at_asset_hub_polkadot,
 			AssetHubPolkadotSender::get().into(),
 			3_000_000_000_000,
 		));
@@ -231,7 +231,7 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot_fee_from_pool() {
 			2_000_000_000_000,
 			1,
 			1,
-			AssetHubPolkadotSender::get().into()
+			AssetHubPolkadotSender::get()
 		));
 
 		assert_expected_events!(
@@ -309,7 +309,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 		// setup a pool to pay xcm fees with `dot_at_asset_hub_kusama` tokens
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone()),
-			dot_at_asset_hub_kusama.into(),
+			dot_at_asset_hub_kusama,
 			owner.clone().into(),
 			3_000_000_000_000,
 		));
@@ -337,7 +337,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 			2_000_000_000_000,
 			1,
 			1,
-			owner.into()
+			owner
 		));
 
 		assert_expected_events!(

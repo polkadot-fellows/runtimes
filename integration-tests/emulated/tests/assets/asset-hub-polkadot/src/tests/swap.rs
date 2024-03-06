@@ -75,7 +75,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			2_000_000_000_000,
 			0,
 			0,
-			AssetHubPolkadotSender::get().into()
+			AssetHubPolkadotSender::get()
 		));
 
 		assert_expected_events!(
@@ -93,7 +93,7 @@ fn swap_locally_on_chain_using_local_assets() {
                 path,
                 100,
                 1,
-                AssetHubPolkadotSender::get().into(),
+                AssetHubPolkadotSender::get(),
                 true
             )
         );
@@ -118,7 +118,7 @@ fn swap_locally_on_chain_using_local_assets() {
 				                                                      * retrieved. */
 				0,
 				0,
-				AssetHubPolkadotSender::get().into(),
+				AssetHubPolkadotSender::get(),
 			)
 		);
 	});
@@ -157,7 +157,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubPolkadot::fund_accounts(vec![
-		(AssetHubPolkadotSender::get().into(), 5_000_000 * POLKADOT_ED), /* An account to swap
+		(AssetHubPolkadotSender::get(), 5_000_000 * POLKADOT_ED), /* An account to swap
 		                                                                  * dot
 		                                                                  * for something else. */
 	]);
@@ -171,7 +171,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		// 3. Mint foreign asset (in reality this should be a teleport or some such)
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone().into()),
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			foreign_asset_at_asset_hub_polkadot,
 			sov_penpal_on_ahk.clone().into(),
 			3_000_000_000_000,
@@ -207,7 +207,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			2_000_000_000_000,
 			0,
 			0,
-			sov_penpal_on_ahk.clone().into()
+			sov_penpal_on_ahk.clone()
 		));
 
 		assert_expected_events!(
@@ -228,7 +228,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
                 path,
                 100000,
                 1000,
-                AssetHubPolkadotSender::get().into(),
+                AssetHubPolkadotSender::get(),
                 true
             )
         );
@@ -252,7 +252,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 				1414213562273 - 2_000_000_000, // all but the 2 EDs can't be retrieved.
 				0,
 				0,
-				sov_penpal_on_ahk.clone().into(),
+				sov_penpal_on_ahk.clone(),
 			)
 		);
 	});
@@ -274,7 +274,7 @@ fn cannot_create_pool_from_pool_assets() {
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(
 			<<AssetHubPolkadot as AssetHubPolkadotPallet>::PoolAssets as Create<_>>::create(
-				ASSET_ID.into(),
+				ASSET_ID,
 				AssetHubPolkadotSender::get(),
 				false,
 				1000,
@@ -283,7 +283,7 @@ fn cannot_create_pool_from_pool_assets() {
 		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PoolAssets::asset_exists(ASSET_ID));
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PoolAssets::mint_into(
-			ASSET_ID.into(),
+			ASSET_ID,
 			&AssetHubPolkadotSender::get(),
 			3_000_000_000_000,
 		));
@@ -361,7 +361,7 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 			2_000_000_000_000,
 			0,
 			0,
-			AssetHubPolkadotSender::get().into()
+			AssetHubPolkadotSender::get()
 		));
 
 		assert_expected_events!(

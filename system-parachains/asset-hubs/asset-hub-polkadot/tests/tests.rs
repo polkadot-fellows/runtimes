@@ -92,26 +92,26 @@ fn setup_pool_for_paying_fees_with_foreign_assets(
 	let _ = Balances::force_set_balance(
 		RuntimeOrigin::root(),
 		pool_owner.clone().into(),
-		(existential_deposit + pool_liquidity).mul(2).into(),
+		(existential_deposit + pool_liquidity).mul(2),
 	);
 
 	assert_ok!(ForeignAssets::mint(
 		RuntimeOrigin::signed(foreign_asset_owner),
-		foreign_asset_id_location.into(),
+		foreign_asset_id_location,
 		pool_owner.clone().into(),
-		(foreign_asset_id_minimum_balance + pool_liquidity).mul(2).into(),
+		(foreign_asset_id_minimum_balance + pool_liquidity).mul(2),
 	));
 
 	assert_ok!(AssetConversion::create_pool(
 		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset.into()),
-		Box::new(foreign_asset_id_location.into())
+		Box::new(native_asset),
+		Box::new(foreign_asset_id_location)
 	));
 
 	assert_ok!(AssetConversion::add_liquidity(
 		RuntimeOrigin::signed(pool_owner.clone()),
-		Box::new(native_asset.into()),
-		Box::new(foreign_asset_id_location.into()),
+		Box::new(native_asset),
+		Box::new(foreign_asset_id_location),
 		pool_liquidity,
 		pool_liquidity,
 		1,
@@ -379,7 +379,7 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 );
 
 fn bridging_to_asset_hub_kusama() -> TestBridgingConfig {
-	let _ = PolkadotXcm::force_xcm_version(
+	PolkadotXcm::force_xcm_version(
 		RuntimeOrigin::root(),
 		Box::new(bridging::to_kusama::AssetHubKusama::get()),
 		XCM_VERSION,
@@ -472,7 +472,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // check now foreign asset for staking pot
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location.into(),
+                        foreign_asset_id_location,
                         &staking_pot
                     ),
                     0
@@ -486,7 +486,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // staking pot receives no foreign assets
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location.into(),
+                        foreign_asset_id_location,
                         &staking_pot
                     ),
                     0
@@ -532,7 +532,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 				// check block author before
 				assert_eq!(
 					ForeignAssets::balance(
-						foreign_asset_id_location.into(),
+						foreign_asset_id_location,
 						&block_author_account
 					),
 					0
@@ -542,7 +542,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 				// `TakeFirstAssetTrader` puts fees to the block author
 				assert!(
 					ForeignAssets::balance(
-						foreign_asset_id_location.into(),
+						foreign_asset_id_location,
 						&block_author_account
 					) > 0
 				);
