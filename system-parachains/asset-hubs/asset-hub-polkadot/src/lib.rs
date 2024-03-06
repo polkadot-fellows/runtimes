@@ -887,8 +887,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	// TODO any fee?
 	type PoolSetupFee = ConstU128<0>;
 	type PoolSetupFeeAsset = DotLocationV3;
-	// TODO replace by treasury pallet account
-	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
+	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
 	type PalletId = AssetConversionPalletId;

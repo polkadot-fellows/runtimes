@@ -356,7 +356,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = ConstU128<0>; // Asset class deposit fees are sufficient to prevent spam
 	type PoolSetupFeeAsset = KsmLocationV3;
-	type PoolSetupFeeTarget = ResolveAssetTo<AssetConversionOrigin, Self::Assets>;
+	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
 	type PalletId = AssetConversionPalletId;

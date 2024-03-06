@@ -20,10 +20,9 @@
 use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		AssetFeeAsExistentialDepositMultiplierFeeCharger, CheckingAccount,
-		ForeignCreatorsSovereignAccountOf, KsmLocation, LocationToAccountId, RelayTreasuryLocation,
-		RelayTreasuryPalletAccount, StakingPot, TreasuryAccount, TrustBackedAssetsPalletLocation,
-		XcmConfig,
+		CheckingAccount, ForeignCreatorsSovereignAccountOf, KsmLocation, LocationToAccountId,
+		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
