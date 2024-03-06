@@ -158,8 +158,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubPolkadot::fund_accounts(vec![
 		(AssetHubPolkadotSender::get(), 5_000_000 * POLKADOT_ED), /* An account to swap
-		                                                                  * dot
-		                                                                  * for something else. */
+		                                                           * dot
+		                                                           * for something else. */
 	]);
 
 	AssetHubPolkadot::execute_with(|| {
