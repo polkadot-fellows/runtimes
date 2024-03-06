@@ -14,7 +14,9 @@
 // limitations under the License.
 use crate::*;
 use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
-use bridge_hub_kusama_runtime::{EthereumBeaconClient, EthereumInboundQueue, RuntimeOrigin};
+use bridge_hub_kusama_runtime::{
+	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, RuntimeOrigin,
+};
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::pallet_prelude::TypeInfo;
@@ -32,7 +34,7 @@ use snowbridge_pallet_inbound_queue_fixtures::{
 use snowbridge_router_primitives::inbound::{
 	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
 };
-use sp_core::H256;
+use sp_core::{H160, H256};
 use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
 use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 
@@ -42,6 +44,7 @@ const TREASURY_ACCOUNT: [u8; 32] =
 	hex!("6d6f646c70792f74727372790000000000000000000000000000000000000000");
 const WETH: [u8; 20] = hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
 const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
+const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301CaB39");
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum ControlCall {
@@ -218,6 +221,10 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
 
+		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
+			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
 		// Construct RegisterToken message and sent to inbound queue
 		let register_token_message = make_register_token_message();
 		send_inbound_message(register_token_message.clone()).unwrap();
@@ -251,25 +258,14 @@ fn send_token_from_ethereum_to_penpal() {
 		[Parachain(AssetHubKusama::para_id().into())],
 	));
 
-	// Fund PenPal sender and receiver
-	PenpalA::fund_accounts(vec![
-		(PenpalAReceiver::get(), INITIAL_FUND),
-		(PenpalASender::get(), INITIAL_FUND),
-	]);
-
 	// The Weth asset location, identified by the contract address on Ethereum
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
 	let weth_asset_id: v3::Location = weth_asset_location.try_into().unwrap();
 
-	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
-
 	// Fund ethereum sovereign on AssetHub
-	let ethereum_sovereign: AccountId =
-		GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location)
-			.unwrap();
-	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
 	// Create asset on the Penpal parachain.
 	PenpalA::execute_with(|| {
@@ -366,12 +362,16 @@ fn send_token_from_ethereum_to_penpal() {
 #[test]
 fn send_token_from_ethereum_to_asset_hub() {
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
-
-	// Fund ethereum sovereign on AssetHub
-	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaReceiver::get(), INITIAL_FUND)]);
+	// Fund ethereum sovereign account on AssetHub.
+	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+
+		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
+			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
 
 		// Construct RegisterToken message and sent to inbound queue
 		send_inbound_message(make_register_token_message()).unwrap();
@@ -419,8 +419,14 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		XCM_VERSION,
 	);
 
-	BridgeHubKusama::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
-	AssetHubKusama::fund_accounts(vec![(AssetHubKusamaReceiver::get(), INITIAL_FUND)]);
+	BridgeHubKusama::fund_accounts(vec![
+		(assethub_sovereign.clone(), INITIAL_FUND),
+		(TREASURY_ACCOUNT.into(), INITIAL_FUND),
+	]);
+	AssetHubKusama::fund_accounts(vec![
+		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
+		(ethereum_sovereign_account(), INITIAL_FUND),
+	]);
 
 	const WETH_AMOUNT: u128 = 1_000_000_000;
 	let base_fee = 2_750_872_500_000u128;
@@ -435,6 +441,11 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+
+		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
+			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
 
 		// Construct RegisterToken message and sent to inbound queue
 		send_inbound_message(make_register_token_message()).unwrap();
@@ -496,14 +507,14 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			AssetHubKusamaReceiver::get(),
 		);
 		// Send the Weth back to Ethereum
-		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::reserve_transfer_assets(
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::reserve_transfer_assets(
 			RuntimeOrigin::signed(AssetHubKusamaReceiver::get()),
 			Box::new(destination),
 			Box::new(beneficiary),
 			Box::new(multi_assets),
 			0,
-		)
-		.unwrap();
+		));
+
 		let free_balance_after = <AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(
 			AssetHubKusamaReceiver::get(),
 		);
@@ -551,6 +562,11 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
 
+		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
+			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
+
 		// Construct RegisterToken message and sent to inbound queue
 		let message = make_register_token_with_infufficient_fee_message();
 		send_inbound_message(message).unwrap();
@@ -581,6 +597,11 @@ fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), 1_000);
 
 	BridgeHubKusama::execute_with(|| {
+		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
+			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
+
 		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
 	});
 }
@@ -618,7 +639,7 @@ fn ethereum_sovereign_account() -> AccountId {
 	GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location).unwrap()
 }
 
-pub fn make_register_token_message() -> InboundQueueFixture {
+fn make_register_token_message() -> InboundQueueFixture {
 	InboundQueueFixture {
 		execution_header: CompactExecutionHeader{
 			parent_hash: hex!("d5de3dd02c96dbdc8aaa4db70a1e9fdab5ded5f4d52f18798acd56a3d37d1ad6").into(),
@@ -649,7 +670,7 @@ pub fn make_register_token_message() -> InboundQueueFixture {
 	}
 }
 
-pub fn make_send_token_message() -> InboundQueueFixture {
+fn make_send_token_message() -> InboundQueueFixture {
 	InboundQueueFixture {
 		execution_header: CompactExecutionHeader{
 			parent_hash: hex!("920cecde45d428e3a77590b70f8533cf4c2c36917b8a7b74c915e7fa3dae7075").into(),
