@@ -19,7 +19,7 @@ use bridge_hub_kusama_runtime::{
 };
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::{pallet_prelude::TypeInfo, traits::PalletInfoAccess};
 use hex_literal::hex;
 use kusama_system_emulated_network::BridgeHubKusamaParaSender as BridgeHubKusamaSender;
 use snowbridge_beacon_primitives::CompactExecutionHeader;
@@ -642,6 +642,18 @@ fn bridge_hub_inbound_queue_deposit_config_is_larger_than_asset_hub_foreign_asse
 		bridge_hub_kusama_runtime::CreateAssetDeposit::get();
 
 	assert!(bridge_hub_inbound_queue_asset_deposit > asset_deposit);
+}
+
+/// Tests the EthereumInboundQueue pallet index matches the pallet constant.
+#[test]
+fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+	let inbound_queue_inbound_queue_pallet_index =
+		<BridgeHubKusama as BridgeHubKusamaPallet>::EthereumInboundQueue::index();
+
+	assert_eq!(
+		inbound_queue_inbound_queue_pallet_index as u8,
+		system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX
+	);
 }
 
 fn ethereum_sovereign_account() -> AccountId {
