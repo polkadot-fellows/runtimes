@@ -32,8 +32,7 @@ pub use bp_messages::LaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{
-	accounts::ALICE,
-	accounts::BOB,
+	accounts::{ALICE, BOB},
 	impls::Inspect,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,

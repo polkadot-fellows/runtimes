@@ -15,22 +15,19 @@
 
 //! Tests for `WeighTrader` type of XCM Executor.
 
-use asset_hub_polkadot_runtime::xcm_config::AssetFeeAsExistentialDepositMultiplierFeeCharger;
-use asset_hub_polkadot_runtime::xcm_config::TrustBackedAssetsPalletLocation;
-use asset_hub_polkadot_runtime::ExistentialDeposit;
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
-		DotLocation, DotLocationV3, StakingPot, TrustBackedAssetsPalletLocationV3, XcmConfig,
+		AssetFeeAsExistentialDepositMultiplierFeeCharger, DotLocation, DotLocationV3, StakingPot,
+		TrustBackedAssetsPalletLocation, TrustBackedAssetsPalletLocationV3, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
-	SessionKeys,
+	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ExistentialDeposit, ForeignAssets,
+	Runtime, SessionKeys,
 };
 use asset_test_utils::ExtBuilder;
 use assets_common::AssetIdForTrustBackedAssetsConvert;
 use cumulus_primitives_utility::ChargeWeightInFungibles;
-use frame_support::assert_noop;
 use frame_support::{
-	assert_ok,
+	assert_noop, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
 		fungibles::{Create, Inspect as FungiblesInspect, Mutate as FungiblesMutate},

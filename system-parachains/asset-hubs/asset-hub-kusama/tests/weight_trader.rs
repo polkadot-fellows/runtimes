@@ -33,9 +33,12 @@ use frame_support::{
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
 
-use asset_hub_kusama_runtime::xcm_config::AssetFeeAsExistentialDepositMultiplierFeeCharger;
-use asset_hub_kusama_runtime::xcm_config::TrustBackedAssetsPalletLocation;
-use asset_hub_kusama_runtime::ExistentialDeposit;
+use asset_hub_kusama_runtime::{
+	xcm_config::{
+		AssetFeeAsExistentialDepositMultiplierFeeCharger, TrustBackedAssetsPalletLocation,
+	},
+	ExistentialDeposit,
+};
 use cumulus_primitives_utility::ChargeWeightInFungibles;
 use frame_support::assert_noop;
 

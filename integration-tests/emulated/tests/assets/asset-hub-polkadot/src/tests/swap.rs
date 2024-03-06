@@ -113,7 +113,8 @@ fn swap_locally_on_chain_using_local_assets() {
 				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 				asset_native,
 				asset_one,
-				1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, /* all but the 2 EDs can't be
+				1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, /* all but the 2 EDs can't
+				                                                      * be
 				                                                      * retrieved. */
 				0,
 				0,
@@ -156,7 +157,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubPolkadot::fund_accounts(vec![
-		(AssetHubPolkadotSender::get().into(), 5_000_000 * POLKADOT_ED), /* An account to swap dot
+		(AssetHubPolkadotSender::get().into(), 5_000_000 * POLKADOT_ED), /* An account to swap
+		                                                                  * dot
 		                                                                  * for something else. */
 	]);
 
@@ -258,8 +260,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 #[test]
 fn cannot_create_pool_from_pool_assets() {
-	use frame_support::traits::fungibles::Create;
-	use frame_support::traits::fungibles::Mutate;
+	use frame_support::traits::fungibles::{Create, Mutate};
 
 	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
 		.try_into()

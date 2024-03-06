@@ -314,10 +314,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 			3_000_000_000_000,
 		));
 
-		<AssetHubKusama as AssetHubKusamaPallet>::Balances::set_balance(
-			&owner,
-			3_000_000_000_000,
-		);
+		<AssetHubKusama as AssetHubKusamaPallet>::Balances::set_balance(&owner, 3_000_000_000_000);
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone()),
