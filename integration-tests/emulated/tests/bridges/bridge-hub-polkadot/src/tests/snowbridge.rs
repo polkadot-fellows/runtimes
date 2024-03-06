@@ -227,7 +227,7 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 		));
 		// Construct RegisterToken message and sent to inbound queue
 		let register_token_message = make_register_token_message();
-		send_inbound_message(register_token_message.clone()).unwrap();
+		assert_ok!(send_inbound_message(register_token_message.clone()));
 
 		assert_expected_events!(
 			BridgeHubPolkadot,
@@ -299,12 +299,11 @@ fn send_token_from_ethereum_to_penpal() {
 		type RuntimeOrigin = <BridgeHubPolkadot as Chain>::RuntimeOrigin;
 
 		// Fund AssetHub sovereign account so it can pay execution fees for the asset transfer
-		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::force_set_balance(
+		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances::force_set_balance(
 			RuntimeOrigin::root(),
 			asset_hub_sovereign.clone().into(),
 			INITIAL_FUND,
-		)
-		.unwrap();
+		));
 
 		let message_id: H256 = [1; 32].into();
 		let message = VersionedMessage::V1(MessageV1 {
@@ -374,10 +373,10 @@ fn send_token_from_ethereum_to_asset_hub() {
 		));
 
 		// Construct RegisterToken message and sent to inbound queue
-		send_inbound_message(make_register_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_register_token_message()));
 
 		// Construct SendToken message and sent to inbound queue
-		send_inbound_message(make_send_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_send_token_message()));
 
 		// Check that the message was sent
 		assert_expected_events!(
@@ -432,11 +431,10 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	let base_fee = 2_750_872_500_000u128;
 
 	AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as Chain>::System::set_storage(
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
 			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
-		)
-		.unwrap();
+		));
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -448,7 +446,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		));
 
 		// Construct RegisterToken message and sent to inbound queue
-		send_inbound_message(make_register_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_register_token_message()));
 
 		// Check that the register token message was sent using xcm
 		assert_expected_events!(
@@ -459,7 +457,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		);
 
 		// Construct SendToken message and sent to inbound queue
-		send_inbound_message(make_send_token_message()).unwrap();
+		assert_ok!(send_inbound_message(make_send_token_message()));
 
 		// Check that the send token message was sent using xcm
 		assert_expected_events!(
@@ -573,7 +571,7 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 
 		// Construct RegisterToken message and sent to inbound queue
 		let message = make_register_token_with_infufficient_fee_message();
-		send_inbound_message(message).unwrap();
+		assert_ok!(send_inbound_message(message));
 
 		assert_expected_events!(
 			BridgeHubPolkadot,
