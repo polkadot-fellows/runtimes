@@ -827,6 +827,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type CreateOrigin = NeverEnsureOrigin<AccountId>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ConstU128<0>;
+	// TODO any?
 	type AssetAccountDeposit = ConstU128<0>;
 	type MetadataDepositBase = ConstU128<0>;
 	type MetadataDepositPerByte = ConstU128<0>;
