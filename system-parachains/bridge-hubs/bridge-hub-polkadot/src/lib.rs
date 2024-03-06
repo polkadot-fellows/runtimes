@@ -511,7 +511,7 @@ impl pallet_utility::Config for Runtime {
 // Ethereum Bridge
 parameter_types! {
 	// The gateway address is set by governance.
-	pub storage EthereumGatewayAddress: H160 = H160::zero();;
+	pub storage EthereumGatewayAddress: H160 = H160::zero();
 }
 
 parameter_types! {
