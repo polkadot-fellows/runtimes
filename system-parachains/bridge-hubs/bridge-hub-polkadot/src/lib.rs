@@ -518,7 +518,7 @@ parameter_types! {
 	pub const CreateAssetCall: [u8;2] = [53, 0];
 	pub const CreateAssetDeposit: u128 = (UNITS / 10) + EXISTENTIAL_DEPOSIT;
 	pub const InboundQueuePalletInstance: u8 = system_parachains_constants::polkadot::snowbridge::INBOUND_QUEUE_PALLET_INDEX;
-	pub Parameters: PricingParameters<u128> = PricingParameters {
+	pub Parameters: PricingParameters<Balance> = PricingParameters {
 		exchange_rate: FixedU128::from_rational(1, 400),
 		fee_per_gas: gwei(20),
 		rewards: Rewards { local: 1 * UNITS, remote: meth(1) }
