@@ -1854,8 +1854,8 @@ pub mod migrations {
 
 	/// Cancel all ongoing auctions.
 	///
-	/// Any leases that come into existance, after coretime was launched will not be served. Yet,
-	/// any still ongoing auctions must be cancelled.
+	/// Any leases that come into existence after coretime was launched will not be served. Yet,
+	/// any ongoing auctions must be cancelled.
 	///
 	/// Safety:
 	///

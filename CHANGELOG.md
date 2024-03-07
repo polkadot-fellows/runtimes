@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Feature for enabling debug prints in the Polkadot and Kusama runtime ([polkadot-fellows/runtimes#85](https://github.com/polkadot-fellows/runtimes/pull/85))
 - Added new "Wish for Change" track ([polkadot-fellows/runtimes#184](https://github.com/polkadot-fellows/runtimes/pull/184))
 - Enable Coretime and on-demand on Kusama ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159)
-- Cancel Parachain Auctions [polkadot-fellows/runtimes#215](https://github.com/paritytech/polkadot-sdk/pull/2226)
+- Cancel Parachain Auctions [polkadot-fellows/runtimes#215](https://github.com/polkadot-fellows/runtimes/pull/215)
 
 ### Changed
 
@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Deprecate the `xcm::body::TREASURER_INDEX` constant and use the standard `Treasury` variant from the `xcm::BodyId` type instead ([polkadot-fellows/runtimes#149](https://github.com/polkadot-fellows/runtimes/pull/149))
 - Bump parachains runtime API to v9 in Kusama to enable the `node_features` function [polkadot-fellows/runtimes#194](https://github.com/polkadot-fellows/runtimes/pull/194)
 - Bump parachains runtime API to v10 in Kusama to enable the `approval-voting-params` function [polkadot-fellows/runtimes#204](https://github.com/polkadot-fellows/runtimes/pull/204)
+- Use Relay Chain's Treasury Pallet account as a destination for XCM fees on System Parachain ([polkadot-fellows/runtimes#191](https://github.com/polkadot-fellows/runtimes/pull/191))
 
 ### Removed
 
