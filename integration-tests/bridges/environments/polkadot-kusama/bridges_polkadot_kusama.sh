@@ -273,7 +273,7 @@ case "$1" in
       force_xcm_version \
           "ws://127.0.0.1:9942" \
           "//Alice" \
-          1013 \
+          1002 \
           "ws://127.0.0.1:8943" \
           "$(jq --null-input '{ "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1002 } ] } }')" \
           $XCM_VERSION
