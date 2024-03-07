@@ -135,7 +135,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("coretime-kusama"),
 	impl_name: create_runtime_str!("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 1_006_001,
+	spec_version: 1_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -170,7 +170,7 @@ parameter_types! {
 		})
 		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
 		.build_or_panic();
-	pub const SS58Prefix: u8 = 42;
+	pub const SS58Prefix: u8 = 2;
 }
 
 // Configure FRAME pallets to include in runtime.
