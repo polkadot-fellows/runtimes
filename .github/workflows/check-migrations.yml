@@ -106,7 +106,7 @@ jobs:
 
           echo "Flags: $EXTRA_FLAGS"
 
-          ./try-runtime \
+          RUST_LOG=runtime=DEBUG ./try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             on-runtime-upgrade --checks=pre-and-post \
             $EXTRA_FLAGS \
