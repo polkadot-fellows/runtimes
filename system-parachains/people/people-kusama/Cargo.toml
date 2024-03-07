@@ -30,7 +30,7 @@ pallet-balances = { default-features = false, version = "29.0.0" }
 pallet-identity = { default-features = false, version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
 pallet-multisig = { default-features = false, version = "29.0.0" }
-# pallet-proxy = { default-features = false, version = "29.0.0" }
+pallet-proxy = { default-features = false, version = "29.0.0" }
 pallet-session = { default-features = false, version = "29.0.0" }
 pallet-timestamp = { default-features = false, version = "28.0.0" }
 pallet-transaction-payment = { default-features = false, version = "29.0.0" }
@@ -103,6 +103,7 @@ std = [
 	"pallet-identity/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
+	"pallet-proxy/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -152,6 +153,7 @@ runtime-benchmarks = [
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
@@ -180,6 +182,7 @@ try-runtime = [
 	"pallet-identity/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
+	"pallet-proxy/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
