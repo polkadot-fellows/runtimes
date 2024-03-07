@@ -613,7 +613,7 @@ pub type XcmRouter = WithUniqueTopic<(
 	ToPolkadotXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
 	// GlobalConsensus
-	SovereignPaidRemoteExporter<bridging::EthereumNetworkExportTable, XcmpQueue, UniversalLocation>,
+	SovereignPaidRemoteExporter<xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>, XcmpQueue, UniversalLocation>,
 )>;
 
 impl pallet_xcm::Config for Runtime {
@@ -701,8 +701,6 @@ pub mod bridging {
 	}
 
 	pub type NetworkExportTable = xcm_builder::NetworkExportTable<BridgeTable>;
-
-	pub type EthereumNetworkExportTable = xcm_builder::NetworkExportTable<to_ethereum::BridgeTable>;
 
 	pub mod to_polkadot {
 		use super::*;
