@@ -237,25 +237,33 @@ impl CoretimeInterface for CoretimeAllocator {
 
 /// Implements the [`AdaptPrice`] trait to control the price changes of bulk coretime. This tweaks
 /// the [`pallet_broker::Linear`] implementation which hard-corrects to 0 if cores are offered but
-/// not sold for just one sale. The monotonic lead-in behaviour is unchanged, while the change in
-/// base price between sales has a lower limit of 1/4 to match the upper limit of 4.
+/// not sold for just one sale. The monotonic lead-in is increased in magnitude to enable faster
+/// price finding. The change in base price between sales has a lower limit of 0.5 to allow downward
+/// pressure to be applied, while keeping a conservative upper limit of 1.2 (movements capped at 20%
+/// if cores sell out) to avoid runaway prices in the early sales. The intention is that this will
+/// be coupled with a low number of cores per sale and a 100% ideal bulk ratio.
 pub struct LinearPlusC;
 impl AdaptPrice for LinearPlusC {
 	fn leadin_factor_at(when: FixedU64) -> FixedU64 {
-		// Start at 2x the base price and decrease to the base price at the end of leadin.
-		FixedU64::from(2).saturating_sub(when)
+		// Start at 5x the base price and decrease to the base price at the end of leadin.
+		FixedU64::from(5).saturating_sub(when)
 	}
 
 	fn adapt_price(sold: CoreIndex, target: CoreIndex, limit: CoreIndex) -> FixedU64 {
 		if sold <= target {
-			// Range of [0.25, 1.0].
-			FixedU64::from_rational(1, 4)
-				.saturating_add(FixedU64::from_rational((3 * sold).into(), (4 * target).into()))
+			// Range of [0.5, 1.0].
+			FixedU64::from_rational(1, 2).saturating_add(FixedU64::from_rational(
+				(sold).into(),
+				(target.saturating_mul(2)).into(),
+			))
 		} else {
-			// Range of (1.0, 2.0].
+			// Range of (1.0, 1.2].
+
+			// Unchecked math: In this branch we know that sold < target. The limit must be >= sold
+			// by construction, and thus target must be > limit.
 			FixedU64::one().saturating_add(FixedU64::from_rational(
 				(sold - target).into(),
-				(limit - target).into(),
+				(limit - target).saturating_mul(5).into(),
 			))
 		}
 	}
