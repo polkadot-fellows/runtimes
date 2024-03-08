@@ -1867,7 +1867,7 @@ pub mod migrations {
 	impl OnRuntimeUpgrade for CancelAuctions {
 		fn on_runtime_upgrade() -> Weight {
 			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
-				log::error!("Cancelling auctions failed: {:?}", err);
+				log::error!(target: "runtime", "Cancelling auctions failed: {:?}", err);
 			}
 			// Cancel scheduled auction as well:
 			if let Err(err) = Scheduler::cancel_named(
@@ -1878,7 +1878,7 @@ pub mod migrations {
 					0x1a, 0x59, 0x49, 0xc1, 0x63, 0xb1,
 				],
 			) {
-				log::error!("Cancelling scheduled auctions failed: {:?}", err);
+				log::error!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
 			}
 			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
 				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
