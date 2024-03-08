@@ -100,10 +100,7 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::{
-	latest::{BodyId, InteriorMultiLocation, Junction::PalletInstance},
-	v3::AssetId as XcmAssetId,
-};
+use xcm::latest::prelude::{AssetId as XcmAssetId, BodyId};
 
 use xcm_config::{KsmLocation, XcmOriginToTransactDispatchOrigin};
 
@@ -125,7 +122,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("encointer-parachain"),
 	impl_name: create_runtime_str!("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_001_000,
+	spec_version: 1_002_000,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 3,
@@ -310,13 +307,12 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = ();
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10, same as statemine
-	pub const TransactionByteFee: Balance = MILLICENTS;
+	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
 	pub const OperationalFeeMultiplier: u8 = 5;
 }
 
@@ -341,9 +337,6 @@ parameter_types! {
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
-	// The asset's interior location for the paying account. This is the Treasury
-	// pallet instance (which sits at index 18).
-	pub TreasuryInteriorLocation: InteriorMultiLocation = PalletInstance(ENCOINTER_TREASURY_PALLET_ID).into();
 	pub const MaxApprovals: u32 = 10;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
@@ -446,7 +439,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 parameter_types! {
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: XcmAssetId = XcmAssetId::Concrete(xcm_config::KsmLocation::get());
+	pub FeeAssetId: XcmAssetId = XcmAssetId(xcm_config::KsmLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -712,10 +705,7 @@ pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, Si
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// fixing the scheduler with a local migration is necessary because we have missed intermediate
-	// migrations. the safest migration is, therefore, to clear all storage and bump StorageVersion
-	migrations_fix::scheduler::v4::MigrateToV4<Runtime>,
-	// also here we're actually too late with applying the migration. however, the migration does
+	// we're actually too late with applying the migration. however, the migration does
 	// work as-is.
 	pallet_xcm::migration::v1::VersionUncheckedMigrateToV1<Runtime>,
 	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
@@ -727,6 +717,8 @@ pub type Migrations = (
 	//then apply the proper migration as we should have done earlier
 	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	// permanent
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
 /// Executive: handles dispatch to the various modules.
@@ -1117,6 +1109,10 @@ fn test_constants_compatiblity() {
 		system_parachains_constants::kusama::currency::system_para_deposit(5, 3)
 	);
 	assert_eq!(
+		::system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE,
+		system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE
+	);
+	assert_eq!(
 		::system_parachains_constants::kusama::fee::calculate_weight_to_fee(
 			&::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
 		),
@@ -1124,6 +1120,13 @@ fn test_constants_compatiblity() {
 			&system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
 		)
 	);
+}
+
+#[test]
+fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+	let relay_tbf = ::kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
+	let parachain_tbf = TransactionByteFee::get();
+	assert_eq!(relay_tbf / 10, parachain_tbf);
 }
 
 // The Encointer pallets do not have compatible versions with `polkadot-sdk`, making it difficult
@@ -1208,6 +1211,11 @@ mod system_parachains_constants {
 			use polkadot_core_primitives::Balance;
 			use smallvec::smallvec;
 			pub use sp_runtime::Perbill;
+
+			/// Cost of every transaction byte at Kusama system parachains.
+			///
+			/// It is the Relay Chain (Kusama) `TransactionByteFee` / 10.
+			pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
 
 			/// Handles converting a weight scalar to a fee value, based on the scale and
 			/// granularity of the node's balance type.

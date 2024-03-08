@@ -23,8 +23,7 @@ use emulated_integration_tests_common::{
 use parachains_common::Balance;
 
 pub const PARA_ID: u32 = 1001;
-pub const ED: Balance =
-	system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = collectives_polkadot_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
 	let genesis_config = collectives_polkadot_runtime::RuntimeGenesisConfig {
