@@ -20,11 +20,17 @@ use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOS
 
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
-	let asset_one = MultiLocation {
-		parents: 0,
-		interior: X2(PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())),
-	};
+	let asset_native = Box::new(
+		v3::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
+			.expect("conversion works"),
+	);
+	let asset_one = Box::new(v3::Location::new(
+		0,
+		[
+			v3::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v3::Junction::GeneralIndex(ASSET_ID.into()),
+		],
+	));
 
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
@@ -46,8 +52,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
-			Box::new(asset_native),
-			Box::new(asset_one),
+			asset_native.clone(),
+			asset_one.clone(),
 		));
 
 		assert_expected_events!(
@@ -59,8 +65,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
-			Box::new(asset_native),
-			Box::new(asset_one),
+			asset_native.clone(),
+			asset_one.clone(),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
@@ -75,7 +81,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			]
 		);
 
-		let path = vec![Box::new(asset_native), Box::new(asset_one)];
+		let path = vec![asset_native.clone(), asset_one.clone()];
 
 		assert_ok!(
 			<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::swap_exact_tokens_for_tokens(
@@ -100,8 +106,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::remove_liquidity(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
-			Box::new(asset_native),
-			Box::new(asset_one),
+			asset_native,
+			asset_one,
 			1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, /* all but the 2 EDs can't be
 			                                                      * retrieved. */
 			0,
@@ -113,16 +119,21 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
+	let asset_native = Box::new(
+		v3::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
+			.expect("conversion works"),
+	);
+
 	let ah_as_seen_by_penpal = PenpalA::sibling_location_of(AssetHubKusama::para_id());
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
+	let asset_location_on_penpal =
+		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(GeneralIndex(id)) => *id as u32,
+		Some(v3::Junction::GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
 	};
 	let asset_owner_on_penpal = PenpalASender::get();
 	let foreign_asset_at_asset_hub_kusama =
-		MultiLocation { parents: 1, interior: X1(Parachain(PenpalA::para_id().into())) }
+		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -168,7 +179,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// 4. Create pool:
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
-			Box::new(asset_native),
+			asset_native.clone(),
 			Box::new(foreign_asset_at_asset_hub_kusama),
 		));
 
@@ -182,7 +193,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// 5. Add liquidity:
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
-			Box::new(asset_native),
+			asset_native.clone(),
 			Box::new(foreign_asset_at_asset_hub_kusama),
 			1_000_000_000_000,
 			2_000_000_000_000,
@@ -201,7 +212,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		);
 
 		// 6. Swap!
-		let path = vec![Box::new(asset_native), Box::new(foreign_asset_at_asset_hub_kusama)];
+		let path = vec![asset_native.clone(), Box::new(foreign_asset_at_asset_hub_kusama)];
 
 		assert_ok!(
 			<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::swap_exact_tokens_for_tokens(
@@ -227,7 +238,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// 7. Remove liquidity
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::remove_liquidity(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
-			Box::new(asset_native),
+			asset_native.clone(),
 			Box::new(foreign_asset_at_asset_hub_kusama),
 			1414213562273 - 2_000_000_000, // all but the 2 EDs can't be retrieved.
 			0,
@@ -239,9 +250,14 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 #[test]
 fn cannot_create_pool_from_pool_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
-	let mut asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocation::get();
-	asset_one.append_with(GeneralIndex(ASSET_ID.into())).expect("pool assets");
+	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get()
+		.try_into()
+		.expect("conversion works");
+	let asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocation::get()
+		.appended_with(GeneralIndex(ASSET_ID.into()))
+		.expect("valid location")
+		.try_into()
+		.expect("conversion works");
 
 	AssetHubKusama::execute_with(|| {
 		let pool_owner_account_id = asset_hub_kusama_runtime::AssetConversionOrigin::get();

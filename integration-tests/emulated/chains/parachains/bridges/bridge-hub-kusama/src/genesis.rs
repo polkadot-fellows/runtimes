@@ -24,8 +24,7 @@ use parachains_common::Balance;
 
 pub const ASSETHUB_PARA_ID: u32 = 1000;
 pub const PARA_ID: u32 = 1002;
-pub const ED: Balance =
-	system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
 	let genesis_config = bridge_hub_kusama_runtime::RuntimeGenesisConfig {
