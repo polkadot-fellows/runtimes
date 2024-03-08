@@ -241,7 +241,7 @@ impl CoretimeInterface for CoretimeAllocator {
 /// price finding. The change in base price between sales has a lower limit of 0.5 to allow downward
 /// pressure to be applied, while keeping a conservative upper limit of 1.2 (movements capped at 20%
 /// if cores sell out) to avoid runaway prices in the early sales. The intention is that this will
-/// be coupled with a low number of cores per sale and a 100% ideal bulk ratio.
+/// be coupled with a low number of cores per sale and a 100% ideal bulk ratio for the first sales.
 pub struct LinearPlusC;
 impl AdaptPrice for LinearPlusC {
 	fn leadin_factor_at(when: FixedU64) -> FixedU64 {
