@@ -19,20 +19,29 @@ scale-info = { version = "2.10.0", default-features = false, features = [
 ] }
 smallvec = "1.13.1"
 
-# encointer deps
-encointer-balances-tx-payment = { default-features = false, version = "6.0.0" }
-encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "6.0.0" }
-encointer-primitives = { default-features = false, version = "6.0.2" }
-pallet-encointer-balances = { default-features = false, version = "6.0.0" }
-pallet-encointer-bazaar = { default-features = false, version = "6.0.0" }
-pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "6.0.0" }
-pallet-encointer-ceremonies = { default-features = false, version = "6.0.0" }
-pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "6.0.0" }
-pallet-encointer-communities = { default-features = false, version = "6.0.0" }
-pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "6.0.0" }
-pallet-encointer-faucet = { default-features = false, version = "6.0.0" }
-pallet-encointer-reputation-commitments = { default-features = false, version = "6.0.0" }
-pallet-encointer-scheduler = { default-features = false, version = "6.0.0" }
+
+# Encointer pallet versioning follows these rules:
+# ---------------------------------------------------------------------------------------------
+# * major: per polkadot-sdk minor version, always breaking: i.e .
+#    * polkadot-sdk-v1.7.0 => encointer-* 6.x.x
+#    * polkadot-sdk-v1.8.0 => encointer-* 7.x.x
+# * minor: possibly breaking changes in encointer protocol. may require storage migration. i.e
+#    * encointer-* 6.1.x (must not be automatically updated from 6.0.x)
+# * patch: ad-lib
+#
+encointer-balances-tx-payment = { default-features = false, version = "~6.0.0" }
+encointer-balances-tx-payment-rpc-runtime-api = { default-features = false, version = "~6.0.0" }
+encointer-primitives = { default-features = false, version = "~6.0.2" }
+pallet-encointer-balances = { default-features = false, version = "~6.0.0" }
+pallet-encointer-bazaar = { default-features = false, version = "~6.0.0" }
+pallet-encointer-bazaar-rpc-runtime-api = { default-features = false, version = "~6.0.0" }
+pallet-encointer-ceremonies = { default-features = false, version = "~6.0.0" }
+pallet-encointer-ceremonies-rpc-runtime-api = { default-features = false, version = "~6.0.0" }
+pallet-encointer-communities = { default-features = false, version = "~6.0.0" }
+pallet-encointer-communities-rpc-runtime-api = { default-features = false, version = "~6.0.0" }
+pallet-encointer-faucet = { default-features = false, version = "~6.0.0" }
+pallet-encointer-reputation-commitments = { default-features = false, version = "~6.0.0" }
+pallet-encointer-scheduler = { default-features = false, version = "~6.0.0" }
 
 
 # Substrate
