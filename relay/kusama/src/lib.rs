@@ -1766,6 +1766,7 @@ pub mod migrations {
 					para,
 				) {
 					log::error!(
+						target: "runtime",
 						"Clearing lease for para: {:?} failed, with error: {:?}",
 						para,
 						err
