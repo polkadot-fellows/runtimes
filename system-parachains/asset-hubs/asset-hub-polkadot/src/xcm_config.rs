@@ -563,7 +563,11 @@ pub type XcmRouter = WithUniqueTopic<(
 	ToKusamaXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
 	// GlobalConsensus
-	SovereignPaidRemoteExporter<xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>, XcmpQueue, UniversalLocation>,
+	SovereignPaidRemoteExporter<
+		xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>,
+		XcmpQueue,
+		UniversalLocation,
+	>,
 )>;
 
 impl pallet_xcm::Config for Runtime {

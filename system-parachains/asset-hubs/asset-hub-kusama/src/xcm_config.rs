@@ -613,7 +613,11 @@ pub type XcmRouter = WithUniqueTopic<(
 	ToPolkadotXcmRouter,
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
 	// GlobalConsensus
-	SovereignPaidRemoteExporter<xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>, XcmpQueue, UniversalLocation>,
+	SovereignPaidRemoteExporter<
+		xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>,
+		XcmpQueue,
+		UniversalLocation,
+	>,
 )>;
 
 impl pallet_xcm::Config for Runtime {
@@ -780,7 +784,8 @@ pub mod bridging {
 			/// User fee for ERC20 token transfer back to Ethereum.
 			/// Configure the fee to max Balance so that it is disabled.
 			/// Sensible value was 2_750_872_500_000.
-			pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
+			//pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
+			pub const DefaultBridgeHubEthereumBaseFee: Balance = 2_750_872_500_000;
 			pub storage BridgeHubEthereumBaseFee: Balance = DefaultBridgeHubEthereumBaseFee::get();
 			pub SiblingBridgeHubWithEthereumInboundQueueInstance: Location = Location::new(
 				1,
