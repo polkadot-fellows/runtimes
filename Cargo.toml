@@ -42,6 +42,7 @@ members = [
 	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
+	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 ]
 
 [profile.release]

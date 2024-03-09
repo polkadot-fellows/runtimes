@@ -1983,6 +1983,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "collectives-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "assert_matches",
+ "asset-hub-polkadot-runtime",
+ "asset-test-utils",
+ "collectives-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "pallet-asset-rate",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-message-queue",
+ "pallet-treasury",
+ "pallet-utility",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-runtime-common",
+ "polkadot-runtime-constants",
+ "polkadot-system-emulated-network",
+ "sp-runtime",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "system-parachains-constants",
+]
+
+[[package]]
 name = "collectives-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
