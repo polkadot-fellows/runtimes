@@ -18,7 +18,6 @@ use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use babe_primitives::AuthorityId as BabeId;
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa::AuthorityId as GrandpaId;
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sp_core::{sr25519, storage::Storage};
 
 // Polkadot
@@ -31,7 +30,7 @@ use emulated_integration_tests_common::{
 use kusama_runtime_constants::currency::UNITS as KSM;
 use parachains_common::Balance;
 
-pub const ED: Balance = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+pub const ED: Balance = kusama_runtime::ExistentialDeposit::get();
 const ENDOWMENT: u128 = 1_000_000 * KSM;
 
 mod validators {
@@ -43,7 +42,6 @@ mod validators {
 		AccountId,
 		BabeId,
 		GrandpaId,
-		ImOnlineId,
 		ValidatorId,
 		AssignmentId,
 		AuthorityDiscoveryId,
@@ -55,7 +53,6 @@ mod validators {
 			get_account_id_from_seed::<sr25519::Public>(seed),
 			get_from_seed::<BabeId>(seed),
 			get_from_seed::<GrandpaId>(seed),
-			get_from_seed::<ImOnlineId>(seed),
 			get_from_seed::<ValidatorId>(seed),
 			get_from_seed::<AssignmentId>(seed),
 			get_from_seed::<AuthorityDiscoveryId>(seed),
@@ -67,7 +64,6 @@ mod validators {
 fn session_keys(
 	babe: BabeId,
 	grandpa: GrandpaId,
-	im_online: ImOnlineId,
 	para_validator: ValidatorId,
 	para_assignment: AssignmentId,
 	authority_discovery: AuthorityDiscoveryId,
@@ -76,7 +72,6 @@ fn session_keys(
 	kusama_runtime::SessionKeys {
 		grandpa,
 		babe,
-		im_online,
 		para_validator,
 		para_assignment,
 		authority_discovery,
@@ -104,7 +99,6 @@ pub fn genesis() -> Storage {
 							x.5.clone(),
 							x.6.clone(),
 							x.7.clone(),
-							x.8.clone(),
 						),
 					)
 				})

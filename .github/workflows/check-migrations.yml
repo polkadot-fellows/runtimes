@@ -96,17 +96,9 @@ jobs:
             echo "Enabling the spec version check since we are releasing"
           fi
 
-          # Disable idemepotency checks on Polkadot until we enact them.
-          if [[ "${{ matrix.runtime.name }}" == "polkadot" ]]; then
-            echo "Disabling the idempotency check since we are on Polkadot"
-            EXTRA_FLAGS+=" --disable-idempotency-checks"
-          else
-            echo "Enabling the idempotency check since we are not on Polkadot"
-          fi
-
           echo "Flags: $EXTRA_FLAGS"
 
-          ./try-runtime \
+          RUST_LOG=runtime=DEBUG ./try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
             on-runtime-upgrade --checks=pre-and-post \
             $EXTRA_FLAGS \

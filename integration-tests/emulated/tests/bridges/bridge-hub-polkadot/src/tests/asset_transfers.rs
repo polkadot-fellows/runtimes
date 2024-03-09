@@ -14,14 +14,14 @@
 // limitations under the License.
 use crate::tests::*;
 
-fn send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(id: MultiLocation, amount: u128) {
+fn send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(id: Location, amount: u128) {
 	let destination = asset_hub_kusama_location();
 
 	// fund the AHP's SA on BHP for paying bridge transport fees
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
 
 	// set XCM versions
-	AssetHubPolkadot::force_xcm_version(destination, XCM_VERSION);
+	AssetHubPolkadot::force_xcm_version(destination.clone(), XCM_VERSION);
 	BridgeHubPolkadot::force_xcm_version(bridge_hub_kusama_location(), XCM_VERSION);
 
 	// send message over bridge
@@ -32,9 +32,9 @@ fn send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(id: MultiLocation, amo
 
 #[test]
 fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama() {
-	let dot_at_asset_hub_polkadot: MultiLocation = Parent.into();
+	let dot_at_asset_hub_polkadot: v3::Location = v3::Parent.into();
 	let dot_at_asset_hub_kusama =
-		MultiLocation { parents: 2, interior: X1(GlobalConsensus(NetworkId::Polkadot)) };
+		v3::Location::new(2, [v3::Junction::GlobalConsensus(v3::NetworkId::Polkadot)]);
 	let owner: AccountId = AssetHubKusama::account_id_of(ALICE);
 	AssetHubKusama::force_create_foreign_asset(
 		dot_at_asset_hub_kusama,
@@ -57,8 +57,12 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		<Assets as Inspect<_>>::balance(dot_at_asset_hub_kusama, &AssetHubKusamaReceiver::get())
 	});
 
+	let dot_at_asset_hub_polkadot_latest: Location = dot_at_asset_hub_polkadot.try_into().unwrap();
 	let amount = ASSET_HUB_POLKADOT_ED * 1_000;
-	send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(dot_at_asset_hub_polkadot, amount);
+	send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(
+		dot_at_asset_hub_polkadot_latest,
+		amount,
+	);
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 		assert_expected_events!(
@@ -98,7 +102,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama() {
 fn send_ksms_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let prefund_amount = 10_000_000_000_000u128;
 	let ksm_at_asset_hub_polkadot =
-		MultiLocation { parents: 2, interior: X1(GlobalConsensus(NetworkId::Kusama)) };
+		v3::Location::new(2, [v3::Junction::GlobalConsensus(v3::NetworkId::Kusama)]);
 	let owner: AccountId = AssetHubPolkadot::account_id_of(ALICE);
 	AssetHubPolkadot::force_create_foreign_asset(
 		ksm_at_asset_hub_polkadot,
@@ -126,9 +130,10 @@ fn send_ksms_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let receiver_ksms_before =
 		<AssetHubKusama as Chain>::account_data_of(AssetHubKusamaReceiver::get()).free;
 
+	let ksm_at_asset_hub_polkadot_latest: Location = ksm_at_asset_hub_polkadot.try_into().unwrap();
 	let amount_to_send = ASSET_HUB_KUSAMA_ED * 1_000;
 	send_asset_from_asset_hub_polkadot_to_asset_hub_kusama(
-		ksm_at_asset_hub_polkadot,
+		ksm_at_asset_hub_polkadot_latest,
 		amount_to_send,
 	);
 	AssetHubKusama::execute_with(|| {

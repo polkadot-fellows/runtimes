@@ -20,40 +20,40 @@ use super::{
 	RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
-	match_types, parameter_types,
-	traits::{Everything, Nothing},
+	parameter_types,
+	traits::{Contains, Everything, Nothing},
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use parachains_common::xcm_config::ConcreteAssetFromSystem;
+use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
 use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_core::ConstU32;
 
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, DenyReserveTransferToRelayChain,
+	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
+	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeTerminus, EnsureXcmOrigin, FixedWeightBounds, FrameTransactionalProcessor,
 	FungibleAdapter, HashedDescription, IsConcrete, NativeAsset, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents,
+	TrailingSetTopicAsId, UsingComponents, WithComputedOrigin,
 };
 use xcm_executor::XcmExecutor;
 
 parameter_types! {
-	pub const KsmLocation: MultiLocation = MultiLocation::parent();
+	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub Ancestry: Location = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub UniversalLocation:  InteriorMultiLocation =
-	X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
+	pub UniversalLocation: InteriorLocation =
+	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
 }
 
-/// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
+/// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
 /// when determining ownership of accounts for asset transacting and when attempting to use XCM
 /// `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
@@ -73,7 +73,7 @@ pub type FungibleTransactor = FungibleAdapter<
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
 	IsConcrete<KsmLocation>,
-	// Convert an XCM MultiLocation into a local account id:
+	// Convert an XCM `Location` into a local account ID:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
@@ -111,15 +111,11 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 }
 
-match_types! {
-	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: Here } |
-		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
-	};
-	pub type ParentOrSiblings: impl Contains<MultiLocation> = {
-		MultiLocation { parents: 1, interior: Here } |
-		MultiLocation { parents: 1, interior: X1(_) }
-	};
+pub struct ParentOrParentsPlurality;
+impl Contains<Location> for ParentOrParentsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
+	}
 }
 
 pub type Barrier = TrailingSetTopicAsId<
@@ -127,16 +123,27 @@ pub type Barrier = TrailingSetTopicAsId<
 		DenyReserveTransferToRelayChain,
 		(
 			TakeWeightCredit,
-			AllowTopLevelPaidExecutionFrom<Everything>,
-			// Parent and its exec plurality get free execution
-			AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
 			// Expected responses are OK.
 			AllowKnownQueryResponses<PolkadotXcm>,
-			// Subscriptions for version tracking are OK.
-			AllowSubscriptionsFrom<ParentOrSiblings>,
+			// Allow XCMs with some computed origins to pass through.
+			WithComputedOrigin<
+				(
+					// If the message is one that immediately attempts to pay for execution, then
+					// allow it.
+					AllowTopLevelPaidExecutionFrom<Everything>,
+					// Parent, its pluralities (i.e. governance bodies), parent's treasury and
+					// sibling bridge hub get free execution.
+					AllowExplicitUnpaidExecutionFrom<(ParentOrParentsPlurality,)>,
+					// Subscriptions for version tracking are OK.
+					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
+				),
+				UniversalLocation,
+				ConstU32<8>,
+			>,
 		),
 	>,
 >;
+
 pub struct SafeCallFilter;
 impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
 	fn contains(_call: &RuntimeCall) -> bool {
@@ -148,7 +155,7 @@ impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
 
 parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub const KsmRelayLocation: MultiLocation = MultiLocation::parent();
+	pub const KsmRelayLocation: Location = Location::parent();
 }
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
@@ -186,7 +193,7 @@ impl xcm_executor::Config for XcmConfig {
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
 
-/// Converts a local signed origin into an XCM multilocation.
+/// Converts a local signed origin into an XCM location.
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
@@ -201,7 +208,7 @@ pub type XcmRouter = (
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+	pub ReachableDest: Option<Location> = Some(Parent.into());
 }
 
 impl pallet_xcm::Config for Runtime {
