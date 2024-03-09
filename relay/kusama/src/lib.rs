@@ -1746,8 +1746,10 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 	use frame_support::traits::OnRuntimeUpgrade;
+	use frame_system::RawOrigin;
 	use pallet_scheduler::WeightInfo as SchedulerWeightInfo;
 	use runtime_common::auctions::WeightInfo as AuctionsWeightInfo;
+	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
 
@@ -1772,6 +1774,18 @@ pub mod migrations {
 		}
 	}
 
+	/// Enable the elastic scaling node side feature.
+	///
+	/// This is required for Coretime to ensure the relay chain processes parachains that are
+	/// assigned to multiple cores.
+	pub struct EnableElasticScalingNodeFeature;
+	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
+		fn on_runtime_upgrade() -> Weight {
+			let _ = Configuration::set_node_feature(RawOrigin::Root.into(), 1, true);
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
+		}
+	}
+
 	parameter_types! {
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
 	}
@@ -1781,7 +1795,7 @@ pub mod migrations {
 	pub struct UpgradeSessionKeys;
 	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001002;
 
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
+	impl OnRuntimeUpgrade for UpgradeSessionKeys {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
@@ -1903,6 +1917,7 @@ pub mod migrations {
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
 		>,
+		EnableElasticScalingNodeFeature,
 		// Upgrade `SessionKeys` to exclude `ImOnline`
 		UpgradeSessionKeys,
 		// Remove `im-online` pallet on-chain storage
