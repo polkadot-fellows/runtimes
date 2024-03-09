@@ -476,6 +476,7 @@ dependencies = [
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -600,6 +601,7 @@ dependencies = [
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -1362,6 +1364,7 @@ dependencies = [
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -1482,6 +1485,7 @@ dependencies = [
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -1992,6 +1996,7 @@ dependencies = [
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "frame-benchmarking",
@@ -2563,6 +2568,21 @@ dependencies = [
  "sp-std",
  "staging-xcm",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "cumulus-primitives-aura"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f07d6177692154043d7ddcc0b87ca5365ae8e4d94b90d9931f6b2f76e162f09"
+dependencies = [
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-primitives",
+ "sp-api",
+ "sp-consensus-aura",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -3161,6 +3181,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
  "encointer-balances-tx-payment",

@@ -95,6 +95,7 @@ cumulus-pallet-parachain-system = { default-features = false, features = [
 ], version = "0.8.1" }
 cumulus-pallet-xcm = { default-features = false, version = "0.8.0" }
 cumulus-pallet-xcmp-queue = { default-features = false, version = "0.8.0" }
+cumulus-primitives-aura = { default-features = false, version = "0.8.0" }
 cumulus-primitives-core = { default-features = false, version = "0.8.0" }
 cumulus-primitives-utility = { default-features = false, version = "0.8.1" }
 parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.8.0" }
@@ -152,6 +153,7 @@ std = [
   "cumulus-pallet-parachain-system/std",
   "cumulus-pallet-xcm/std",
   "cumulus-pallet-xcmp-queue/std",
+  "cumulus-primitives-aura/std",
   "cumulus-primitives-core/std",
   "cumulus-primitives-utility/std",
   "encointer-balances-tx-payment-rpc-runtime-api/std",
