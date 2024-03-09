@@ -1744,13 +1744,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use frame_support::traits::OnRuntimeUpgrade;
-	use frame_system::RawOrigin;
-	use runtime_parachains::configuration::WeightInfo;
 	use super::*;
 	use frame_support::traits::OnRuntimeUpgrade;
+	use frame_system::RawOrigin;
 	use pallet_scheduler::WeightInfo as SchedulerWeightInfo;
 	use runtime_common::auctions::WeightInfo as AuctionsWeightInfo;
+	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
 
@@ -1796,7 +1795,7 @@ pub mod migrations {
 	pub struct UpgradeSessionKeys;
 	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001002;
 
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
+	impl OnRuntimeUpgrade for UpgradeSessionKeys {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
