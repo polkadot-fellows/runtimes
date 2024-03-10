@@ -21,8 +21,8 @@ use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
 		AssetFeeAsExistentialDepositMultiplierFeeCharger, CheckingAccount, DotLocation,
-		ForeignCreatorsSovereignAccountOf, LocationToAccountId, TreasuryAccount,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		ForeignCreatorsSovereignAccountOf, LocationToAccountId, RelayTreasuryLocation,
+		RelayTreasuryPalletAccount, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, ExistentialDeposit, ForeignAssets,
 	ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte, ParachainSystem,
@@ -731,7 +731,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_kusama_works() 
 		bridging_to_asset_hub_kusama,
 		WeightLimit::Unlimited,
 		Some(XcmBridgeHubRouterFeeAssetId::get()),
-		Some(TreasuryAccount::get()),
+		Some(RelayTreasuryPalletAccount::get()),
 	)
 }
 
@@ -933,5 +933,13 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 				old_value.checked_sub(1).unwrap()
 			}
 		},
+	)
+}
+
+#[test]
+fn treasury_pallet_account_not_none() {
+	assert_eq!(
+		RelayTreasuryPalletAccount::get(),
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
 }
