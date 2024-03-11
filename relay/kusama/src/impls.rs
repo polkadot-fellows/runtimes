@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::xcm_config;
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::{defensive, pallet_prelude::DispatchResult};
 use frame_system::RawOrigin;
 use kusama_runtime_constants::currency::*;
 use parity_scale_codec::{Decode, Encode};
@@ -107,10 +107,9 @@ where
 			Junction::AccountId32 { network: None, id: who.clone().into() }.into_location();
 		let _withdrawn = xcm_config::LocalAssetTransactor::withdraw_asset(&ksm, &who_origin, None)
 			.map_err(|err| {
-				log::error!(
-					target: "runtime::on_reap_identity",
-					"withdraw_asset(what: {:?}, who_origin: {:?}) error: {:?}",
-					ksm, who_origin, err
+				defensive!(
+					"runtime::on_reap_identity: withdraw_asset(what: {:?}, who_origin: {:?}) error: {:?}",
+					(&ksm, &who_origin, err)
 				);
 				pallet_xcm::Error::<Runtime>::LowBalance
 			})?;
