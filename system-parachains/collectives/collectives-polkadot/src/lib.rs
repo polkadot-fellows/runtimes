@@ -1068,22 +1068,24 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
-// TODO: Move these pallet index declarations to some `system-parachains/common` so that other
-// runtimes can import them without depending on the entire remote runtime.
-// Part of https://github.com/polkadot-fellows/runtimes/issues/59
-
 #[test]
 fn fellowship_salary_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
-	assert_eq!(<FellowshipSalary as PalletInfoAccess>::index() as u8, 64u8);
+	assert_eq!(
+		<FellowshipSalary as PalletInfoAccess>::index() as u8,
+		collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
+	);
 }
 
 #[test]
 fn fellowship_treasury_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
-	assert_eq!(<FellowshipTreasury as PalletInfoAccess>::index() as u8, 65u8);
+	assert_eq!(
+		<FellowshipTreasury as PalletInfoAccess>::index() as u8,
+		collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+	);
 }
 
 #[test]
