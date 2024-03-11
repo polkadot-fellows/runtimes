@@ -142,6 +142,8 @@ use governance::{
 	Treasurer, TreasurySpender,
 };
 
+pub mod impls;
+
 #[cfg(test)]
 mod tests;
 
@@ -808,7 +810,7 @@ impl pallet_treasury::Config for Runtime {
 		LocatableAssetConverter,
 		VersionedLocationConverter,
 	>;
-	type BalanceConverter = AssetRate;
+	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
