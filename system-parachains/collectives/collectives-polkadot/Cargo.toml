@@ -24,7 +24,7 @@ frame-system-rpc-runtime-api = { default-features = false, version = "27.0.0" }
 frame-try-runtime = { default-features = false, optional = true, version = "0.35.0" }
 pallet-asset-rate = { default-features = false , version = "8.0.0" }
 pallet-alliance = { default-features = false, version = "28.0.0" }
-pallet-aura = { default-features = false, version = "28.0.0" }
+pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
 pallet-authorship = { default-features = false, version = "29.0.0" }
 pallet-balances = { default-features = false, version = "29.0.0" }
 pallet-collective = { default-features = false, version = "29.0.0" }
@@ -227,8 +227,6 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 ]
-
-experimental = [ "pallet-aura/experimental" ]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
