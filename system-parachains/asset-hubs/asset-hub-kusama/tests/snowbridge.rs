@@ -19,8 +19,6 @@ use asset_hub_kusama_runtime::xcm_config::bridging::{
 	to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable},
 	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
-use frame_support::ensure;
-use parachains_common::AccountId;
 use sp_core::H160;
 use sp_std::prelude::*;
 use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
