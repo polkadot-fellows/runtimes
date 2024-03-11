@@ -24,8 +24,15 @@ fn create_and_claim_treasury_spend() {
 	const ASSET_ID: u32 = 1984;
 	const SPEND_AMOUNT: u128 = 1_000_000;
 	// treasury location from a sibling parachain.
-	let treasury_location: Location =
-		Location::new(1, [Parachain(CollectivesPolkadot::para_id().into()), PalletInstance(65)]);
+	let treasury_location: Location = Location::new(
+		1,
+		[
+			Parachain(CollectivesPolkadot::para_id().into()),
+			PalletInstance(
+				collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX,
+			),
+		],
+	);
 	// treasury account on a sibling parachain.
 	let treasury_account =
 		asset_hub_polkadot_runtime::xcm_config::LocationToAccountId::convert_location(
