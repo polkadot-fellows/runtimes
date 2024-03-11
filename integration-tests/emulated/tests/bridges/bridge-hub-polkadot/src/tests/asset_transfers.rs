@@ -212,7 +212,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone()),
-			Box::new(xcm::v3::Parent.into()),
+			Box::new(dot_at_asset_hub_polkadot),
 			Box::new(dot_at_asset_hub_kusama),
 		));
 
@@ -225,7 +225,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone()),
-			Box::new(xcm::v3::Parent.into()),
+			Box::new(dot_at_asset_hub_polkadot),
 			Box::new(dot_at_asset_hub_kusama),
 			1_000_000_000_000,
 			2_000_000_000_000,
@@ -285,7 +285,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 		<AssetHubPolkadot as Chain>::account_data_of(sov_ahk_on_ahp).free;
 
 	// Sender's balance is reduced
-	assert!(sender_dots_before > sender_dots_after);
+	assert!(sender_dots_before >= sender_dots_after + amount);
 	// Receiver's balance is increased
 	assert!(receiver_dots_after > receiver_dots_before);
 	// Reserve balance is increased by sent amount
@@ -412,7 +412,7 @@ fn send_ksms_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 		<AssetHubKusama as Chain>::account_data_of(sov_ahp_on_ahk.clone()).free;
 
 	// Sender's balance is reduced
-	assert!(sender_ksms_before > sender_ksms_after);
+	assert!(sender_ksms_before >= sender_ksms_after + amount_to_send);
 	// Receiver's balance is increased
 	assert!(receiver_ksms_after > receiver_ksms_before);
 	// Reserve balance is reduced by sent amount
