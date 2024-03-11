@@ -91,40 +91,6 @@ fn fellowship_treasury_spend() {
 		type RuntimeCall = <Polkadot as Chain>::RuntimeCall;
 		type RuntimeOrigin = <Polkadot as Chain>::RuntimeOrigin;
 		type Runtime = <Polkadot as Chain>::Runtime;
-
-		// Set up an asset rate for the assets that will be spent.
-		// TODO: Ensure asset rate identifies relative native asset locations and maintains a 1:1
-		// rate without the need to set up a rate.
-
-		let treasury_origin: RuntimeOrigin =
-			polkadot_runtime::governance::pallet_custom_origins::Origin::Treasurer.into();
-
-		let asset_hub_location: Location = [Parachain(1000)].into();
-		let native_asset_on_asset_hub = Location::parent();
-
-		let asset_rate_call = RuntimeCall::AssetRate(pallet_asset_rate::Call::<Runtime>::create {
-			asset_kind: bx!(VersionedLocatableAsset::V4 {
-				location: asset_hub_location.clone(),
-				asset_id: native_asset_on_asset_hub.into(),
-			}),
-			rate: 1.into(),
-		});
-
-		assert_ok!(asset_rate_call.dispatch(treasury_origin));
-
-		assert_expected_events!(
-			Polkadot,
-			vec![
-				RuntimeEvent::AssetRate(pallet_asset_rate::Event::AssetRateCreated { .. }) => {},
-			]
-		);
-	});
-
-	Polkadot::execute_with(|| {
-		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-		type RuntimeCall = <Polkadot as Chain>::RuntimeCall;
-		type RuntimeOrigin = <Polkadot as Chain>::RuntimeOrigin;
-		type Runtime = <Polkadot as Chain>::Runtime;
 		type Treasury = <Polkadot as PolkadotPallet>::Treasury;
 
 		// Fund Fellowship Treasury from Polkadot Treasury.
@@ -200,30 +166,13 @@ fn fellowship_treasury_spend() {
 		type FellowshipTreasury =
 			<CollectivesPolkadot as CollectivesPolkadotPallet>::FellowshipTreasury;
 
-		// Spend assets from Fellowship Treasury.
+		// Fund Alice account from Fellowship Treasury.
 
 		let fellows_origin: RuntimeOrigin =
 			collectives_polkadot_runtime::fellowship::pallet_fellowship_origins::Origin::Fellows
 				.into();
-
-		// Set up an asset rate for the assets that will be spent.
-		// TODO: Ensure asset rate identifies relative native asset locations and maintains a 1:1
-		// rate without the need to set up a rate.
-
 		let asset_hub_location: Location = (Parent, Parachain(1000)).into();
 		let native_asset_on_asset_hub = Location::parent();
-
-		let asset_rate_call = RuntimeCall::AssetRate(pallet_asset_rate::Call::<Runtime>::create {
-			asset_kind: bx!(VersionedLocatableAsset::V4 {
-				location: asset_hub_location.clone(),
-				asset_id: native_asset_on_asset_hub.clone().into(),
-			}),
-			rate: 1.into(),
-		});
-
-		assert_ok!(asset_rate_call.dispatch(fellows_origin.clone()));
-
-		// Fund Alice account from Fellowship Treasury.
 
 		let alice_location: Location =
 			[Junction::AccountId32 { network: None, id: Polkadot::account_id_of(ALICE).into() }]
@@ -250,7 +199,6 @@ fn fellowship_treasury_spend() {
 		assert_expected_events!(
 			CollectivesPolkadot,
 			vec![
-				RuntimeEvent::AssetRate(pallet_asset_rate::Event::AssetRateCreated { .. }) => {},
 				RuntimeEvent::FellowshipTreasury(pallet_treasury::Event::AssetSpendApproved { .. }) => {},
 				RuntimeEvent::FellowshipTreasury(pallet_treasury::Event::Paid { .. }) => {},
 			]
