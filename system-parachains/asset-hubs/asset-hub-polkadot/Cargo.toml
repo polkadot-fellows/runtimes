@@ -19,7 +19,7 @@ bp-asset-hub-kusama = { path = "../asset-hub-kusama/primitives", default-feature
 bp-asset-hub-polkadot = { path = "./primitives", default-features = false}
 bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
 bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
-collectives-polkadot-runtime-constants = { path = "../../collectives/collectives-polkadot/constants", default-features = false}
+collectives-polkadot-runtime-constants = { path = "../../collectives/collectives-polkadot/constants" }
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
@@ -171,7 +171,6 @@ std = [
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"codec/std",
-	"collectives-polkadot-runtime-constants/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-dmp-queue/std",
 	"cumulus-pallet-parachain-system/std",

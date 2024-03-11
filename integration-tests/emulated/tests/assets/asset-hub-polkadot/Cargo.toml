@@ -34,7 +34,7 @@ cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"],
 
 # Local
 asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
-collectives-polkadot-runtime-constants = { path = "../../../../../system-parachains/collectives/collectives-polkadot/constants"}
+collectives-polkadot-runtime-constants = { path = "../../../../../system-parachains/collectives/collectives-polkadot/constants" }
 integration-tests-helpers = { path = "../../../helpers" }
 polkadot-runtime = { path = "../../../../../relay/polkadot" }
 polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
