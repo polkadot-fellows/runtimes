@@ -58,7 +58,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		tokens::{pay::PayFromAccount, ConversionFromAssetBalance, ConversionToAssetBalance},
-		ConstBool, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
+		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
