@@ -203,8 +203,23 @@ impl Contains<Location> for FellowshipEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					Plurality { id: BodyId::Technical, .. }
 				]
-			) | (1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(64)]) |
-				(1, [Parachain(system_parachain::COLLECTIVES_ID), PalletInstance(65)])
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
+					)
+				]
+			) | (
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+					)
+				]
+			)
 		)
 	}
 }
@@ -736,7 +751,8 @@ fn foreign_pallet_has_correct_local_account() {
 	use xcm_executor::traits::ConvertLocation;
 
 	const COLLECTIVES_PARAID: u32 = 1001;
-	const FELLOWSHIP_SALARY_PALLET_ID: u8 = 64;
+	const FELLOWSHIP_SALARY_PALLET_ID: u8 =
+		collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX;
 	let fellowship_salary =
 		(Parent, Parachain(COLLECTIVES_PARAID), PalletInstance(FELLOWSHIP_SALARY_PALLET_ID));
 	let account = LocationToAccountId::convert_location(&fellowship_salary.into()).unwrap();
