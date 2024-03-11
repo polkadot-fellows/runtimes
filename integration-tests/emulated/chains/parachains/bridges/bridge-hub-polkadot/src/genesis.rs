@@ -22,7 +22,7 @@ use emulated_integration_tests_common::{
 };
 use parachains_common::Balance;
 
-pub const ASSETHUB_PARA_ID: u32 = 1000;
+pub const ASSET_HUB_PARA_ID: u32 = 1000;
 pub const PARA_ID: u32 = 1002;
 pub const ED: Balance = bridge_hub_polkadot_runtime::ExistentialDeposit::get();
 
@@ -67,7 +67,7 @@ pub fn genesis() -> Storage {
 		},
 		ethereum_system: bridge_hub_polkadot_runtime::EthereumSystemConfig {
 			para_id: PARA_ID.into(),
-			asset_hub_para_id: ASSETHUB_PARA_ID.into(),
+			asset_hub_para_id: ASSET_HUB_PARA_ID.into(),
 			..Default::default()
 		},
 		..Default::default()

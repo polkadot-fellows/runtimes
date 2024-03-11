@@ -27,15 +27,16 @@ pub mod bridge_to_polkadot_config;
 mod weights;
 pub mod xcm_config;
 
+use bp_bridge_hub_kusama::snowbridge::{
+	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance, Parameters,
+};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::ParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_core::{
-	gwei, meth, outbound::Message, AgentId, AllowSiblingsOnly, PricingParameters, Rewards,
-};
+use snowbridge_core::{outbound::Message, AgentId, AllowSiblingsOnly};
 use snowbridge_router_primitives::inbound::MessageToXcm;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160};
@@ -43,7 +44,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128,
+	ApplyExtrinsicResult,
 };
 
 use sp_std::prelude::*;
@@ -78,10 +79,7 @@ use xcm_config::{
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
-use kusama_runtime_constants::{
-	currency::EXISTENTIAL_DEPOSIT,
-	system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID},
-};
+use kusama_runtime_constants::system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
@@ -511,17 +509,6 @@ impl pallet_utility::Config for Runtime {
 parameter_types! {
 	// The gateway address is set by governance.
 	pub storage EthereumGatewayAddress: H160 = H160::zero();
-}
-
-parameter_types! {
-	pub const CreateAssetCall: [u8;2] = [53, 0];
-	pub const CreateAssetDeposit: u128 = (UNITS / 10) + EXISTENTIAL_DEPOSIT;
-	pub const InboundQueuePalletInstance: u8 = system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX;
-	pub Parameters: PricingParameters<Balance> = PricingParameters {
-		exchange_rate: FixedU128::from_rational(1, 75),
-		fee_per_gas: gwei(20),
-		rewards: Rewards { local: 1 * UNITS / 100, remote: meth(1) } // 0.01 KSM
-	};
 }
 
 #[cfg(feature = "runtime-benchmarks")]

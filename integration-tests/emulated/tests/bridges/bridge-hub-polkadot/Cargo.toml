@@ -35,6 +35,7 @@ bp-messages = { version = "0.8.0" }
 pallet-bridge-messages = { version = "0.8.0" }
 
 # Runtimes
+bp-bridge-hub-polkadot = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot/primitives"}
 bridge-hub-polkadot-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
 integration-tests-helpers = { path = "../../../helpers" }

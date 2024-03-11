@@ -21,6 +21,7 @@ use super::{
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
 use assets_common::matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset};
+use bp_bridge_hub_kusama::snowbridge::InboundQueuePalletInstance;
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess},
@@ -790,7 +791,7 @@ pub mod bridging {
 				1,
 				[
 					Parachain(SiblingBridgeHubParaId::get()),
-					PalletInstance(system_parachains_constants::kusama::snowbridge::INBOUND_QUEUE_PALLET_INDEX),
+					PalletInstance(InboundQueuePalletInstance::get()),
 				]
 			);
 

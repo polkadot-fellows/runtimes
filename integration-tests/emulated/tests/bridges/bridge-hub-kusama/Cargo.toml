@@ -35,6 +35,7 @@ bp-messages = { version = "0.8.0" }
 pallet-bridge-messages = { version = "0.8.0" }
 
 # Local
+bp-bridge-hub-kusama = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama/primitives"}
 bridge-hub-kusama-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
 asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
 integration-tests-helpers = { path = "../../../helpers" }

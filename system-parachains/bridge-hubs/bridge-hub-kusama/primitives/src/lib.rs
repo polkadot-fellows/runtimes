@@ -158,6 +158,29 @@ fn convert_from_udot_to_uksm(price_in_udot: Balance) -> Balance {
 		FixedU128::DIV
 }
 
+pub mod snowbridge {
+	use crate::Balance;
+	use frame_support::parameter_types;
+	use kusama_runtime_constants::currency::UNITS;
+	use snowbridge_core::{gwei, meth, PricingParameters, Rewards};
+	use sp_runtime::FixedU128;
+
+	parameter_types! {
+		/// Should match the ForeignAssets::create index on AssetHub
+		pub const CreateAssetCall: [u8;2] = [53, 0];
+		/// Should match the AssetDeposit of the ForeignAssets pallet on AssetHub
+		pub const CreateAssetDeposit: u128 = UNITS / 10;
+		/// The pallet index of the Ethereum inbound queue pallet in the BridgeHub runtime.
+		pub const InboundQueuePalletInstance: u8 = 80;
+		/// Pricing parameters used for fees.
+		pub Parameters: PricingParameters<Balance> = PricingParameters {
+			exchange_rate: FixedU128::from_rational(1, 75),
+			fee_per_gas: gwei(20),
+			rewards: Rewards { local: 1 * UNITS / 100, remote: meth(1) } // 0.01 KSM
+		};
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

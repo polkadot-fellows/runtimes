@@ -372,6 +372,9 @@ fn treasury_pallet_account_not_none() {
 	)
 }
 
+/// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
+/// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
+/// `HandleFee` implementation.
 pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
 	PhantomData<(WaivedLocations, HandleFee)>,
 );

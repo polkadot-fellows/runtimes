@@ -1260,6 +1260,7 @@ dependencies = [
  "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
+ "snowbridge-core",
  "sp-api",
  "sp-runtime",
  "sp-std",
@@ -1276,6 +1277,7 @@ dependencies = [
  "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
+ "snowbridge-core",
  "sp-api",
  "sp-runtime",
  "sp-std",
@@ -1497,6 +1499,7 @@ name = "bridge-hub-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
  "asset-hub-kusama-runtime",
+ "bp-bridge-hub-kusama",
  "bp-messages",
  "bridge-hub-kusama-runtime",
  "cumulus-pallet-xcmp-queue",
@@ -1645,6 +1648,7 @@ name = "bridge-hub-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
+ "bp-bridge-hub-polkadot",
  "bp-messages",
  "bridge-hub-polkadot-runtime",
  "cumulus-pallet-xcmp-queue",

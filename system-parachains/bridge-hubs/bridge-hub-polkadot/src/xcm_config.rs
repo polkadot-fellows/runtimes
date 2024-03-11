@@ -383,6 +383,9 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
+/// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
+/// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
+/// `HandleFee` implementation.
 pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
 	PhantomData<(WaivedLocations, HandleFee)>,
 );

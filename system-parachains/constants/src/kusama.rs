@@ -138,9 +138,6 @@ pub mod snowbridge {
 	use frame_support::parameter_types;
 	use xcm::opaque::lts::NetworkId;
 
-	/// The pallet index of the Ethereum inbound queue pallet in the bridge hub runtime.
-	pub const INBOUND_QUEUE_PALLET_INDEX: u8 = 80;
-
 	parameter_types! {
 		/// Network and location for the Ethereum chain. On Kusama, the Ethereum chain bridged
 		/// to is the Ethereum Main network, with chain ID 1.

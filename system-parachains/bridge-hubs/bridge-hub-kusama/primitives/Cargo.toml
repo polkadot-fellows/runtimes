@@ -25,6 +25,8 @@ sp-api = { default-features = false, version = "27.0.0" }
 sp-runtime = { default-features = false, version = "32.0.0" }
 sp-std = { default-features = false , version = "14.0.0" }
 
+snowbridge-core = { default-features = false , version = "0.1.0" }
+
 [features]
 default = [ "std" ]
 std = [
@@ -34,6 +36,7 @@ std = [
 	"frame-support/std",
 	"kusama-runtime-constants/std",
 	"polkadot-runtime-constants/std",
+	"snowbridge-core/std",
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-std/std",
