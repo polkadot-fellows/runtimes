@@ -1049,7 +1049,7 @@ impl_runtime_apis! {
 		fn can_build_upon(
 			included_hash: <Block as BlockT>::Hash,
 			slot: cumulus_primitives_aura::Slot,
-			) -> bool {
+		) -> bool {
 			ConsensusHook::can_build_upon(included_hash, slot)
 		}
 	}
