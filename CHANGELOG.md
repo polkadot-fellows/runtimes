@@ -13,7 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
 - Feature for enabling debug prints in the Polkadot and Kusama runtime ([polkadot-fellows/runtimes#85](https://github.com/polkadot-fellows/runtimes/pull/85))
 - Added new "Wish for Change" track ([polkadot-fellows/runtimes#184](https://github.com/polkadot-fellows/runtimes/pull/184))
-- Enable Coretime and on-demand on Kusama ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159)
+- Enable Coretime and on-demand on Kusama ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
+- Refund any leases that are not migrated to Coretime (have holes in them/have not yet started) ([polkadot-fellows/runtimes#206](https://github.com/polkadot-fellows/runtimes/pull/206))
+- Enable Elastic Scaling node side feature for Kusama ([polkadot-fellows/runtimes#205](https://github.com/polkadot-fellows/runtimes/pull/205))
+- Cancel Parachain Auctions ([polkadot-fellows/runtimes#215](https://github.com/polkadot-fellows/runtimes/pull/215))
 
 ### Changed
 
