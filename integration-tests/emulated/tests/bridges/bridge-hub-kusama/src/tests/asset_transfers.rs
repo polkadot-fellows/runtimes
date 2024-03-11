@@ -285,7 +285,7 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot_fee_from_pool() {
 	assert!(sender_ksms_before > sender_ksms_after);
 	// Receiver's balance is increased
 	assert!(receiver_ksms_after > receiver_ksms_before);
-	// Reserve balance is reduced by sent amount
+	// Reserve balance has increased by sent amount
 	assert_eq!(ksms_in_reserve_on_ahk_after, ksms_in_reserve_on_ahk_before + amount);
 }
 

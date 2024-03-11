@@ -374,7 +374,7 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	});
 
 	PenpalA::execute_with(|| {
-		// send xcm transact from `penpal` account which as only `ASSET_ID` tokens on
+		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
 		// `AssetHubKusama`
 		let call = AssetHubKusama::force_create_asset_call(
 			ASSET_ID + 1000,

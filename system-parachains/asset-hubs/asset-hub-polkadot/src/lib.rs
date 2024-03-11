@@ -865,7 +865,6 @@ pub type NativeAndAssets = fungible::UnionOf<
 
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
-	// TODO any fee?
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 }
 
