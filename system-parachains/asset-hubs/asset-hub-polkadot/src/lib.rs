@@ -827,8 +827,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type CreateOrigin = NeverEnsureOrigin<AccountId>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ConstU128<0>;
-	// TODO any?
-	type AssetAccountDeposit = ConstU128<0>;
+	type AssetAccountDeposit = AssetAccountDeposit;
 	type MetadataDepositBase = ConstU128<0>;
 	type MetadataDepositPerByte = ConstU128<0>;
 	type ApprovalDeposit = ExistentialDeposit;
@@ -866,6 +865,7 @@ pub type NativeAndAssets = fungible::UnionOf<
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4);
 }
 
 impl pallet_asset_conversion::Config for Runtime {
@@ -883,8 +883,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
-	// TODO any fee?
-	type PoolSetupFee = ConstU128<0>;
+	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = DotLocationV3;
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;

@@ -308,7 +308,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type ForceOrigin = AssetsForceOrigin;
 	// Deposits are zero because creation/admin is limited to Asset Conversion pallet.
 	type AssetDeposit = ConstU128<0>;
-	type AssetAccountDeposit = ConstU128<0>;
+	type AssetAccountDeposit = AssetAccountDeposit;
 	type MetadataDepositBase = ConstU128<0>;
 	type MetadataDepositPerByte = ConstU128<0>;
 	type ApprovalDeposit = ExistentialDeposit;
