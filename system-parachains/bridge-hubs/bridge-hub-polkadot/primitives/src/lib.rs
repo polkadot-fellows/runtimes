@@ -157,11 +157,11 @@ pub mod snowbridge {
 	use sp_runtime::FixedU128;
 
 	parameter_types! {
-		/// Should match the ForeignAssets::create index on AssetHub
+		/// Should match the `ForeignAssets::create` index on Asset Hub.
 		pub const CreateAssetCall: [u8;2] = [53, 0];
-		/// Should match the AssetDeposit of the ForeignAssets pallet on AssetHub
+		/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 		pub const CreateAssetDeposit: u128 = 10 * UNITS;
-		/// The pallet index of the Ethereum inbound queue pallet in the BridgeHub runtime.
+		/// The pallet index of the Ethereum inbound queue pallet in the Bridge Hub runtime.
 		pub const InboundQueuePalletInstance: u8 = 80;
 		/// Pricing parameters used for fees.
 		pub Parameters: PricingParameters<Balance> = PricingParameters {
