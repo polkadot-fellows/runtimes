@@ -8637,14 +8637,16 @@ dependencies = [
  "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
- "penpal-runtime-dotsama",
+ "penpal-runtime",
  "polkadot-emulated-chain",
  "sp-core",
 ]
 
 [[package]]
-name = "penpal-runtime-dotsama"
-version = "0.14.0"
+name = "penpal-runtime"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec559654c03e2c39b3b6921e4baddb34df06feaf37fac1432e277158233345b5"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext",
@@ -8661,7 +8663,6 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
  "log",
  "pallet-asset-tx-payment",
  "pallet-assets",
