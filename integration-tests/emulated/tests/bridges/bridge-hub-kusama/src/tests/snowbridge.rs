@@ -24,7 +24,10 @@ use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
 use frame_support::{pallet_prelude::TypeInfo, traits::PalletInfoAccess};
 use hex_literal::hex;
-use kusama_system_emulated_network::BridgeHubKusamaParaSender as BridgeHubKusamaSender;
+use kusama_system_emulated_network::{
+	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,
+	BridgeHubKusamaParaSender as BridgeHubKusamaSender,
+};
 use snowbridge_beacon_primitives::CompactExecutionHeader;
 use snowbridge_core::{
 	inbound::{Log, Message, Proof},
@@ -270,8 +273,17 @@ fn send_token_from_ethereum_to_penpal() {
 	// Fund ethereum sovereign on AssetHub
 	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	// Create asset on the Penpal parachain.
 	PenpalA::execute_with(|| {
+		// Set the trusted asset location from AH, in this case, Ethereum.
+		assert_ok!(<PenpalA as Chain>::System::set_storage(
+			<PenpalA as Chain>::RuntimeOrigin::root(),
+			vec![(
+				CustomizableAssetFromSystemAssetHub::key().to_vec(),
+				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
+			)],
+		));
+
+		// Create asset on the Penpal parachain.
 		assert_ok!(<PenpalA as PenpalAPallet>::ForeignAssets::create(
 			<PenpalA as Chain>::RuntimeOrigin::signed(PenpalASender::get()),
 			weth_asset_id,
