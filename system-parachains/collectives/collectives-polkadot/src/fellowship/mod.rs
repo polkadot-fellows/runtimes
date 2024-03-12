@@ -44,7 +44,9 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_constants::{
+	currency::GRAND, system_parachain, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
@@ -214,15 +216,15 @@ pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 use xcm::prelude::*;
 
 parameter_types! {
-	pub AssetHub: Location = (Parent, Parachain(1000)).into();
+	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
 	pub AssetHubUsdtId: AssetId = (PalletInstance(50), GeneralIndex(1984)).into();
 	pub UsdtAsset: LocatableAssetId = LocatableAssetId {
 		location: AssetHub::get(),
 		asset_id: AssetHubUsdtId::get(),
 	};
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
-	// pallet instance (which sits at index 64). This sovereign account will need funding.
-	pub Interior: InteriorLocation = PalletInstance(64).into();
+	// pallet instance. This sovereign account will need funding.
+	pub Interior: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
 }
 
 const USDT_UNITS: u128 = 1_000_000;
@@ -269,7 +271,7 @@ parameter_types! {
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const MaxBalance: Balance = Balance::max_value();
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
-	// pallet instance (which sits at index 65).
+	// pallet instance.
 	pub FellowshipTreasuryInteriorLocation: InteriorLocation =
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
 }
