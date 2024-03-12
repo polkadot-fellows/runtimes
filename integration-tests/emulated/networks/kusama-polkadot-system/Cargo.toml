@@ -1,0 +1,22 @@
+[package]
+name = "kusama-polkadot-system-emulated-network"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Kusama<>Polkadot emulated bridged network"
+publish = false
+
+[dependencies]
+
+# Cumulus
+emulated-integration-tests-common = { version = "4.0.0" }
+
+# Runtimes
+asset-hub-kusama-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-kusama" }
+asset-hub-polkadot-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-polkadot" }
+bridge-hub-kusama-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-kusama" }
+bridge-hub-polkadot-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-polkadot" }
+kusama-emulated-chain = { path = "../../chains/relays/kusama" }
+penpal-emulated-chain = { path = "../../chains/parachains/testing/penpal" }
+polkadot-emulated-chain = { path = "../../chains/relays/polkadot" }

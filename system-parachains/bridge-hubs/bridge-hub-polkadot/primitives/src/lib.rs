@@ -22,7 +22,7 @@
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
+	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::dispatch::DispatchClass;
 use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
@@ -32,6 +32,8 @@ use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
 pub struct BridgeHubPolkadot;
 
 impl Chain for BridgeHubPolkadot {
+	const ID: ChainId = *b"bhpd";
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;
@@ -58,6 +60,15 @@ impl Parachain for BridgeHubPolkadot {
 	const PARACHAIN_ID: u32 = BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
 }
 
+impl ChainWithMessages for BridgeHubPolkadot {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+}
+
 /// Identifier of BridgeHubPolkadot in the Polkadot relay chain.
 pub const BRIDGE_HUB_POLKADOT_PARACHAIN_ID: u32 = 1002;
 
@@ -78,15 +89,15 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 4_858_960_000;
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 115_909_500;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 16_954_899_613;
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 16_912_512_364;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 16_183_099_613;
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 16_142_641_864;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending
@@ -107,6 +118,18 @@ pub fn estimate_polkadot_to_kusama_message_fee(
 	BridgeHubPolkadotBaseXcmFeeInDots::get()
 		.saturating_add(convert_from_uksm_to_udot(bridge_hub_kusama_base_delivery_fee_in_uksms))
 		.saturating_add(BridgeHubPolkadotBaseConfirmationFeeInDots::get())
+}
+
+/// Compute the per-byte fee that needs to be paid in DOTs by the sender when sending
+/// message from Polkadot Bridge Hub to Kusama Bridge Hub.
+pub fn estimate_polkadot_to_kusama_byte_fee() -> Balance {
+	// the sender pays for the same byte twice:
+	// 1) the first part comes from the HRMP, when message travels from Polkadot Asset Hub to
+	//    Polkadot Bridge Hub;
+	// 2) the second part is the payment for bytes of the message delivery transaction, which is
+	//    "mined" at Kusama Bridge Hub. Hence, we need to use byte fees from that chain and convert
+	//    it to DOTs here.
+	convert_from_uksm_to_udot(system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE)
 }
 
 /// Convert from uKSMs to uDOTs.

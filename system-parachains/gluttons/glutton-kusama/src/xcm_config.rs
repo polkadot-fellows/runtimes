@@ -29,9 +29,9 @@ use xcm_builder::{
 };
 
 parameter_types! {
-	pub const KusamaLocation: MultiLocation = MultiLocation::parent();
+	pub const KusamaLocation: Location = Location::parent();
 	pub const KusamaNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
-	pub UniversalLocation: InteriorMultiLocation = X1(Parachain(ParachainInfo::parachain_id().into()));
+	pub UniversalLocation: InteriorLocation = [Parachain(ParachainInfo::parachain_id().into())].into();
 }
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -48,7 +48,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 match_types! {
-	pub type JustTheParent: impl Contains<MultiLocation> = { MultiLocation { parents:1, interior: Here } };
+	pub type JustTheParent: impl Contains<Location> = { Location { parents:1, interior: Here } };
 }
 
 parameter_types! {

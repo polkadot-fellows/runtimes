@@ -113,7 +113,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_001_000,
+	spec_version: 1_002_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 6,
@@ -169,6 +169,7 @@ impl frame_system::Config for Runtime {
 	type Hashing = BlakeTwo256;
 	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeTask = RuntimeTask;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = RocksDbWeight;
@@ -215,13 +216,12 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<1>;
 	type MaxFreezes = ConstU32<0>;
 }
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = MILLICENTS;
+	pub const TransactionByteFee: Balance = system_parachains_constants::polkadot::fee::TRANSACTION_BYTE_FEE;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -417,7 +417,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = Concrete(xcm_config::DotLocation::get());
+	pub FeeAssetId: AssetId = AssetId(xcm_config::DotLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -486,7 +486,7 @@ impl pallet_aura::Config for Runtime {
 parameter_types! {
 	pub const PotId: PalletId = PalletId(*b"PotStake");
 	pub const SessionLength: BlockNumber = 6 * HOURS;
-	// `StakingAdmin` pluralistic body.
+	// StakingAdmin pluralistic body.
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
 }
 
@@ -717,6 +717,8 @@ pub type UncheckedExtrinsic =
 type Migrations = (
 	// unreleased
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	// permanent
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
 /// Executive: handles dispatch to the various modules.
@@ -973,30 +975,43 @@ impl_runtime_apis! {
 
 			use xcm::latest::prelude::*;
 
+			parameter_types! {
+				pub ExistentialDepositAsset: Option<Asset> = Some((
+					xcm_config::DotLocation::get(),
+					ExistentialDeposit::get()
+				).into());
+			}
+
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
-				fn reachable_dest() -> Option<MultiLocation> {
+				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+					xcm_config::XcmConfig,
+					ExistentialDepositAsset,
+					PriceForParentDelivery,
+				>;
+
+				fn reachable_dest() -> Option<Location> {
 					Some(Parent.into())
 				}
 
-				fn teleportable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Relay/native token can be teleported between Collectives and Relay.
 					Some((
-						MultiAsset {
+						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
-							id: Concrete(Parent.into())
+							id: AssetId(Parent.into())
 						}.into(),
 						Parent.into(),
 					))
 				}
 
-				fn reserve_transferable_asset_and_dest() -> Option<(MultiAsset, MultiLocation)> {
+				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 					// Reserve transfers are disabled on Collectives.
 					None
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(MultiAssets, u32, MultiLocation, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
 					// Collectives only supports teleports to system parachain.
 					// Relay/native token can be teleported between Collectives and Relay.
 					let native_location = Parent.into();
@@ -1005,6 +1020,13 @@ impl_runtime_apis! {
 						native_location,
 						dest
 					)
+				}
+
+				fn get_asset() -> Asset {
+					Asset {
+						id: AssetId(Location::parent()),
+						fun: Fungible(ExistentialDeposit::get()),
+					}
 				}
 			}
 
@@ -1036,22 +1058,24 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
-// TODO: Move these pallet index declarations to some `system-parachains/common` so that other
-// runtimes can import them without depending on the entire remote runtime.
-// Part of https://github.com/polkadot-fellows/runtimes/issues/59
-
 #[test]
 fn fellowship_salary_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
-	assert_eq!(<FellowshipSalary as PalletInfoAccess>::index() as u8, 64u8);
+	assert_eq!(
+		<FellowshipSalary as PalletInfoAccess>::index() as u8,
+		collectives_polkadot_runtime_constants::FELLOWSHIP_SALARY_PALLET_INDEX
+	);
 }
 
 #[test]
 fn fellowship_treasury_pallet_index() {
 	use frame_support::pallet_prelude::PalletInfoAccess;
 	// Remote accounts with funds depend on this pallet staying in the same index.
-	assert_eq!(<FellowshipTreasury as PalletInfoAccess>::index() as u8, 65u8);
+	assert_eq!(
+		<FellowshipTreasury as PalletInfoAccess>::index() as u8,
+		collectives_polkadot_runtime_constants::FELLOWSHIP_TREASURY_PALLET_INDEX
+	);
 }
 
 #[test]
@@ -1059,4 +1083,11 @@ fn test_ed_is_one_tenth_of_relay() {
 	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
 	let collectives_ed = ExistentialDeposit::get();
 	assert_eq!(relay_ed / 10, collectives_ed);
+}
+
+#[test]
+fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+	let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
+	let parachain_tbf = TransactionByteFee::get();
+	assert_eq!(relay_tbf / 10, parachain_tbf);
 }
