@@ -67,7 +67,7 @@ for pallet in "${pallets[@]}"; do
 done
 ```
 
-You probably want to do this inside a `tmux` session or similar, as it will take a while.
+You probably want to do this inside a `tmux` session or something similar (e.g., `nohup <bench-cmd> &`), as it will take a while (several hours).
 
 7. `rsync` the weights back to your local machine, replacing the existing weights.
 
@@ -78,7 +78,20 @@ You probably want to do this inside a `tmux` session or similar, as it will take
 
 9. Commit the weight changes.
 
-10. If not installed, `cargo install subweight`, and check the weight changes with `subweight compare commits --path-pattern "./**/weights/*.rs" --method asymptotic --ignore-errors HEAD origin/main`. Ensure the changes are reasonable.
+10. Ensure the changes are reasonable. If not installed, `cargo install subweight`, check the weight changes:
+   ```
+   subweight compare commits \
+      --path-pattern "./**/weights/**/*.rs" \
+      --method asymptotic \
+      --ignore-errors \
+      <LATEST-RELEASE-BRANCH> \
+      <ACTUAL_BRANCH_WITH_COMMITED_WEIGHTS>`
+   ```
+   _Hint1: Add `--format markdown --no-color` for markdown-compatible results._
+
+   _Hint2: Change `--path-pattern "./**/weights/**/*.rs"` to e.g. `--path-pattern "./relay/polkadot/weights/**/*.rs"` for a specific runtime._
+
+   _Hint3: Add `--change added changed` to include only relevant changes._
 
 ## FAQ
 
