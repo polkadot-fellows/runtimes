@@ -23,7 +23,7 @@ use sp_core::H160;
 use sp_std::prelude::*;
 use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 use xcm::prelude::*;
-use xcm_builder::{ExporterFor, NetworkExportTable, NetworkExportTableItem};
+use xcm_builder::{ExporterFor, NetworkExportTable};
 
 #[test]
 fn network_export_table_works() {
