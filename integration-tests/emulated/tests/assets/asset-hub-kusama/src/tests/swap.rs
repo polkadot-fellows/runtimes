@@ -150,8 +150,9 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![
-		(AssetHubKusamaSender::get(), 5_000_000 * KUSAMA_ED), /* An account to swap dot
-		                                                       * for something else. */
+		(AssetHubKusamaSender::get(), 5_000_000 * ASSET_HUB_KUSAMA_ED), /* An account to swap
+		                                                                 * dot
+		                                                                 * for something else. */
 	]);
 
 	AssetHubKusama::execute_with(|| {
@@ -290,7 +291,9 @@ fn cannot_create_pool_from_pool_assets() {
 
 #[test]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocationV3::get();
+	let asset_native: xcm::v3::Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get()
+		.try_into()
+		.expect("conversion works");
 	let asset_one = xcm::v3::Location {
 		parents: 0,
 		interior: [

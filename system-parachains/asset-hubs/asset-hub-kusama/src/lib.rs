@@ -288,6 +288,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4);
 }
 
 ord_parameter_types! {
@@ -354,7 +355,7 @@ impl pallet_asset_conversion::Config for Runtime {
 		pallet_asset_conversion::WithFirstAsset<KsmLocationV3, AccountId, Self::AssetKind>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
-	type PoolSetupFee = ConstU128<0>; // Asset class deposit fees are sufficient to prevent spam
+	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = KsmLocationV3;
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;

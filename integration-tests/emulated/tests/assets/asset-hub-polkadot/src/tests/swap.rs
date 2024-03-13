@@ -22,14 +22,17 @@ use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEP
 fn swap_locally_on_chain_using_local_assets() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocationV3::get());
-	let asset_one = Box::new(v3::Location::new(
+	let asset_native: xcm::v3::Location =
+		asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
+			.try_into()
+			.expect("conversion works");
+	let asset_one = v3::Location::new(
 		0,
 		[
 			v3::Junction::PalletInstance(ASSETS_PALLET_ID),
 			v3::Junction::GeneralIndex(ASSET_ID.into()),
 		],
-	));
+	);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -56,8 +59,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			asset_native.clone(),
-			asset_one.clone(),
+			bx!(asset_native.clone()),
+			bx!(asset_one.clone()),
 		));
 
 		assert_expected_events!(
@@ -69,8 +72,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			asset_native.clone(),
-			asset_one.clone(),
+			bx!(asset_native.clone()),
+			bx!(asset_one.clone()),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
@@ -85,7 +88,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			]
 		);
 
-		let path = vec![asset_native.clone(), asset_one.clone()];
+		let path = vec![bx!(asset_native.clone()), bx!(asset_one.clone())];
 
 		assert_ok!(
             <AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::swap_exact_tokens_for_tokens(
@@ -111,8 +114,8 @@ fn swap_locally_on_chain_using_local_assets() {
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::remove_liquidity(
 				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-				asset_native,
-				asset_one,
+				bx!(asset_native),
+				bx!(asset_one),
 				1414213562273 - SYSTEM_PARA_EXISTENTIAL_DEPOSIT * 2, /* all but the 2 EDs can't
 				                                                      * be
 				                                                      * retrieved. */
@@ -303,7 +306,10 @@ fn cannot_create_pool_from_pool_assets() {
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV3::get();
+	let asset_native: xcm::v3::Location =
+		asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
+			.try_into()
+			.expect("conversion works");
 	let asset_one = xcm::v3::Location {
 		parents: 0,
 		interior: [
