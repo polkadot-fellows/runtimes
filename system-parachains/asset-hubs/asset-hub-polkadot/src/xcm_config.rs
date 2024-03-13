@@ -441,7 +441,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					pallet_uniques::Call::buy_item { .. }
 			) | RuntimeCall::ToKusamaXcmRouter(
 				pallet_xcm_bridge_hub_router::Call::report_bridge_status { .. }
-			)
+			) | RuntimeCall::PoolAssets(..) |
+				RuntimeCall::AssetConversion(..)
 		)
 	}
 }
