@@ -288,7 +288,9 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
-	pub const PoolSetupFee: Balance = system_para_deposit(1, 4);
+	// Storage deposit for pool setup within asset conversion pallet
+	// and pool's lp token creation within assets pallet.
+	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
 }
 
 ord_parameter_types! {
