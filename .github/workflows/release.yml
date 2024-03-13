@@ -114,12 +114,12 @@ jobs:
           *These runtimes were built with **$(SRTOOL rustc)** using **[$(SRTOOL gen)](https://github.com/paritytech/srtool)***
 
           To replicate the build, use the following command:
-          ```sh
-          srtool build \
-                 --root --profile production \
-                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE \
+          \`\`\`sh
+          srtool build
+                 --root --profile production
+                 --package CRATE_NAME --runtime-dir PATH_TO_CRATE
                  --build-opts="--features=on-chain-release-build"
-          ```
+          \`\`\`
           EOF
 
           for JSON in $(<<<$CONTEXT sort -sr)
