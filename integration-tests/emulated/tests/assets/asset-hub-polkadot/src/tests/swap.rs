@@ -59,8 +59,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			bx!(asset_native.clone()),
-			bx!(asset_one.clone()),
+			bx!(asset_native),
+			bx!(asset_one),
 		));
 
 		assert_expected_events!(
@@ -72,8 +72,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			bx!(asset_native.clone()),
-			bx!(asset_one.clone()),
+			bx!(asset_native),
+			bx!(asset_one),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
@@ -88,7 +88,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			]
 		);
 
-		let path = vec![bx!(asset_native.clone()), bx!(asset_one.clone())];
+		let path = vec![bx!(asset_native), bx!(asset_one)];
 
 		assert_ok!(
             <AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::swap_exact_tokens_for_tokens(
