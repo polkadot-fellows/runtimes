@@ -52,7 +52,7 @@ fn fellowship_treasury_spend() {
 		let root = <Polkadot as Chain>::RuntimeOrigin::root();
 		let treasury_account = Treasury::account_id();
 
-		// Mist assets to Treasury account on Relay Chain.
+		// Mint assets to Treasury account on Relay Chain.
 		assert_ok!(Balances::force_set_balance(
 			root.clone(),
 			treasury_account.clone().into(),
