@@ -717,6 +717,7 @@ pub type Migrations = (
 	//then apply the proper migration as we should have done earlier
 	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	pallet_encointer_ceremonies::migrations::v2::MigrateToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
