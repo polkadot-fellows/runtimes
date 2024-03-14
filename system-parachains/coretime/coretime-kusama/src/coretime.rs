@@ -75,7 +75,6 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub storage CoreCount: Option<CoreIndex> = None;
 	pub storage CoretimeRevenue: Option<(BlockNumber, Balance)> = None;
 }
 
