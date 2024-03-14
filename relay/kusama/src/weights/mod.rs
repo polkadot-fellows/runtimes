@@ -20,7 +20,7 @@ pub mod frame_system;
 pub mod pallet_asset_rate;
 pub mod pallet_bags_list;
 pub mod pallet_balances_native;
-pub mod pallet_balances_nis;
+pub mod pallet_balances_nis_counterpart;
 pub mod pallet_bounties;
 pub mod pallet_child_bounties;
 pub mod pallet_conviction_voting;

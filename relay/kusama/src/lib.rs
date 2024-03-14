@@ -1500,7 +1500,7 @@ impl pallet_balances::Config<NisCounterpartInstance> for Runtime {
 	type MaxLocks = ConstU32<4>;
 	type MaxReserves = ConstU32<4>;
 	type ReserveIdentifier = [u8; 8];
-	type WeightInfo = weights::pallet_balances_nis::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_balances_nis_counterpart::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
@@ -2008,7 +2008,7 @@ mod benches {
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
-		[pallet_balances, Nis]
+		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
@@ -2586,9 +2586,9 @@ sp_api::impl_runtime_apis! {
 			// Benchmark files generated for `Balances/NisCounterpartBalances` instances are by default
 			// `pallet_balances_balances.rs / pallet_balances_nis_counterpart_balances`, which is not really nice,
 			// so with this redefinition we can change names to nicer:
-			// `pallet_balances_native.rs / pallet_balances_nis.rs`.
+			// `pallet_balances_native.rs / pallet_balances_nis_counterpart.rs`.
 			type Native = pallet_balances::Pallet::<Runtime, ()>;
-			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
+			type NisCounterpart = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -2803,7 +2803,7 @@ sp_api::impl_runtime_apis! {
 			}
 
 			type Native = pallet_balances::Pallet::<Runtime, ()>;
-			type Nis = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
+			type NisCounterpart = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
 
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
