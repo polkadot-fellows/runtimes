@@ -480,12 +480,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 }
 
 parameter_types! {
-	// One storage item; key size 32, value size 8; .
+	// One storage item; key size 32, value size 8.
 	pub const ProxyDepositBase: Balance = system_para_deposit(1, 40);
 	// Additional storage item size of 33 bytes.
 	pub const ProxyDepositFactor: Balance = system_para_deposit(0, 33);
 	pub const MaxProxies: u16 = 32;
-	// One storage item; key size 32, value size 16
+	// One storage item; key size 32, value size 16.
 	pub const AnnouncementDepositBase: Balance = system_para_deposit(1, 48);
 	pub const AnnouncementDepositFactor: Balance = system_para_deposit(0, 66);
 	pub const MaxPending: u16 = 32;
