@@ -28,12 +28,6 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #		)
 #		.to_ss58check_with_version(42_u16.into())
 #	);
-#	println!("GLOBAL_CONSENSUS_POLKADOT_ASSET_HUB_POLKADOT_1000_SOVEREIGN_ACCOUNT=\"{}\"",
-#			 frame_support::sp_runtime::AccountId32::new(
-#				 GlobalConsensusParachainConvertsFor::<UniversalLocationAHK, [u8; 32]>::convert_location(
-#					 &Location { parents: 2, interior: UniversalLocationAHP::get() }).unwrap()
-#			 ).to_ss58check_with_version(42_u16.into())
-#	);
 #	println!(
 #		"ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -57,12 +51,6 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #		)
 #		.to_ss58check_with_version(42_u16.into())
 #	);
-#	println!("GLOBAL_CONSENSUS_KUSAMA_ASSET_HUB_KUSAMA_1000_SOVEREIGN_ACCOUNT=\"{}\"",
-#			 frame_support::sp_runtime::AccountId32::new(
-#				 GlobalConsensusParachainConvertsFor::<UniversalLocationAHP, [u8; 32]>::convert_location(
-#					 &Location { parents: 2, interior: UniversalLocationAHK::get() }).unwrap()
-#			 ).to_ss58check_with_version(42_u16.into())
-#	);
 #	println!(
 #		"ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -76,10 +64,8 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #	);
 #}
 GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT="5FTE4TA2xpQU5eKJhEn13NkFvEopH2RZirwn1Kcvs5FMWkNp"
-GLOBAL_CONSENSUS_POLKADOT_ASSET_HUB_POLKADOT_1000_SOVEREIGN_ACCOUNT="5FRf4vUEeAHbhVZHWS31ytGyUYFKh8sRW52JKbJoUGimC9bq"
 ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA="5Eg2fntNprdN3FgH4sfEaaZhYtddZQSQUqvYJ1f2mLtinVhV"
 GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT="5G4KKqSKDkiMGiPzCQY12dSB15aBikyNQJL9VDmbMH4SxiWD"
-GLOBAL_CONSENSUS_KUSAMA_ASSET_HUB_KUSAMA_1000_SOVEREIGN_ACCOUNT="5DLdHR78ujzS93zCVeyZB1qRFjBCdMnJwnpSBSRZ6jMX8R5y"
 ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sfEaaZhYtddZQSQUqvYJ1f2mLtinVhV"
 
 # Expected sovereign accounts for rewards on BridgeHubs.
@@ -225,12 +211,6 @@ case "$1" in
           "$GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT" \
           $AHP_KSM_ED \
           true
-      # drip SA which holds reserves
-      transfer_balance \
-          "ws://127.0.0.1:9910" \
-          "//Alice" \
-          "$GLOBAL_CONSENSUS_KUSAMA_ASSET_HUB_KUSAMA_1000_SOVEREIGN_ACCOUNT" \
-          $((25 * $DOT))
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9942" \
@@ -290,12 +270,6 @@ case "$1" in
           "$GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT" \
           $AHK_DOT_ED \
           true
-      # drip SA which holds reserves
-      transfer_balance \
-          "ws://127.0.0.1:9010" \
-          "//Alice" \
-          "$GLOBAL_CONSENSUS_POLKADOT_ASSET_HUB_POLKADOT_1000_SOVEREIGN_ACCOUNT" \
-          $((25 * $KSM))
       # HRMP
       open_hrmp_channels \
           "ws://127.0.0.1:9945" \
