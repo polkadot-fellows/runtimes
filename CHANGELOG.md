@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bump parachains runtime API to v9 in Kusama to enable the `node_features` function [polkadot-fellows/runtimes#194](https://github.com/polkadot-fellows/runtimes/pull/194)
 - Bump parachains runtime API to v10 in Kusama to enable the `approval-voting-params` function [polkadot-fellows/runtimes#204](https://github.com/polkadot-fellows/runtimes/pull/204)
 - Use Relay Chain's Treasury Pallet account as a destination for XCM fees on System Parachain ([polkadot-fellows/runtimes#191](https://github.com/polkadot-fellows/runtimes/pull/191))
+- Bump parachains runtime API to v10 in Polkadot to enable async-backing subsystems(still in backwards compatible mode) [polkadot-fellows/runtimes#222](https://github.com/polkadot-fellows/runtimes/pull/222)
 - Treasury Spend detects relative locations of the native asset ([polkadot-fellows/runtimes#233](https://github.com/polkadot-fellows/runtimes/pull/233))
 
 ### Removed
