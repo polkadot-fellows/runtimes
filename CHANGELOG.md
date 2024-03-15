@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Bumps staking pallet version which applies a patch to prevent staking controllers from becoming stashes which may lead to ledger inconsistencies. Patch and context: [paritytech/polkadot-sdk#3639](https://github.com/paritytech/polkadot-sdk/pull/3639).
+- Bumps Staking pallet version. This patch prevents staking controllers from becoming stashes, which may lead to ledger inconsistencies. Patch and context: [paritytech/polkadot-sdk#3639](https://github.com/paritytech/polkadot-sdk/pull/3639).
 
 ## [1.1.2] 31.01.2024
 
