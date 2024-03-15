@@ -2197,6 +2197,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-multisig",
+ "pallet-proxy",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
