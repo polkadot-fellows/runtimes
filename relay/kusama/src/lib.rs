@@ -1574,6 +1574,59 @@ impl pallet_asset_rate::Config for Runtime {
 	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
+// A mock pallet to keep `ImOnline` events decodable after pallet removal
+pub mod pallet_im_online {
+	use frame_support::pallet_prelude::*;
+	pub use pallet::*;
+
+	pub mod sr25519 {
+		mod app_sr25519 {
+			use sp_application_crypto::{app_crypto, key_types::IM_ONLINE, sr25519};
+			app_crypto!(sr25519, IM_ONLINE);
+		}
+		pub type AuthorityId = app_sr25519::Public;
+	}
+
+	#[frame_support::pallet]
+	pub mod pallet {
+		use super::*;
+		use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};
+
+		#[pallet::pallet]
+		pub struct Pallet<T>(_);
+
+		#[pallet::config]
+		pub trait Config: frame_system::Config {
+			type RuntimeEvent: From<Event<Self>>
+				+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+			type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
+		}
+
+		pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
+			<T as frame_system::Config>::AccountId,
+		>>::ValidatorId;
+
+		pub type IdentificationTuple<T> = (
+			ValidatorId<T>,
+			<<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
+				<T as frame_system::Config>::AccountId,
+			>>::Identification,
+		);
+
+		#[pallet::event]
+		pub enum Event<T: Config> {
+			HeartbeatReceived { authority_id: super::sr25519::AuthorityId },
+			AllGood,
+			SomeOffline { offline: sp_std::vec::Vec<IdentificationTuple<T>> },
+		}
+	}
+}
+
+impl pallet_im_online::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ValidatorSet = Historical;
+}
+
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1590,7 +1643,7 @@ construct_runtime! {
 
 		// Consensus support.
 		// Authorship must be before session in order to note author in the correct session and era
-		// for im-online and staking.
+		// for staking.
 		Authorship: pallet_authorship = 5,
 		Staking: pallet_staking = 6,
 		Offences: pallet_offences = 7,
@@ -1598,6 +1651,7 @@ construct_runtime! {
 
 		Session: pallet_session = 8,
 		Grandpa: pallet_grandpa = 10,
+		ImOnline: pallet_im_online::{Event<T>} = 11,
 		AuthorityDiscovery: pallet_authority_discovery = 12,
 
 		// Governance stuff.
