@@ -203,11 +203,11 @@ impl CoretimeInterface for CoretimeAllocator {
 /// pressure to be applied, while keeping a conservative upper limit of 1.2 (movements capped at 20%
 /// if cores sell out) to avoid runaway prices in the early sales. The intention is that this will
 /// be coupled with a low number of cores per sale and a 100% ideal bulk ratio for the first sales.
-pub struct LinearPlusC;
-impl AdaptPrice for LinearPlusC {
+pub struct PriceAdapter;
+impl AdaptPrice for PriceAdapter {
 	fn leadin_factor_at(when: FixedU64) -> FixedU64 {
 		// Start at 5x the base price and decrease to the base price at the end of leadin.
-		FixedU64::from(5).saturating_sub(when)
+		FixedU64::from(5).saturating_sub(FixedU64::from(4) * when)
 	}
 
 	fn adapt_price(sold: CoreIndex, target: CoreIndex, limit: CoreIndex) -> FixedU64 {
@@ -245,5 +245,5 @@ impl pallet_broker::Config for Runtime {
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	type PriceAdapter = LinearPlusC;
+	type PriceAdapter = PriceAdapter;
 }

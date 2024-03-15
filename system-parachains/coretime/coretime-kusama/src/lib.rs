@@ -30,6 +30,8 @@ pub mod fast_runtime_binary {
 }
 
 mod coretime;
+#[cfg(test)]
+mod tests;
 mod weights;
 pub mod xcm_config;
 
