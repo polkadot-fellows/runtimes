@@ -563,6 +563,7 @@ dependencies = [
  "assert_matches",
  "asset-hub-polkadot-runtime",
  "asset-test-utils",
+ "collectives-polkadot-runtime-constants",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
@@ -594,6 +595,7 @@ dependencies = [
  "bp-asset-hub-polkadot",
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
+ "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -1986,6 +1988,7 @@ dependencies = [
 name = "collectives-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -2054,6 +2057,10 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
 ]
+
+[[package]]
+name = "collectives-polkadot-runtime-constants"
+version = "1.0.0"
 
 [[package]]
 name = "colorchoice"
@@ -9461,7 +9468,6 @@ dependencies = [
  "pallet-fast-unstake",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-mmr",
@@ -13294,7 +13300,6 @@ dependencies = [
  "pallet-fast-unstake",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-mmr",
@@ -13334,6 +13339,7 @@ dependencies = [
  "separator",
  "serde_json",
  "sp-api",
+ "sp-application-crypto",
  "sp-arithmetic",
  "sp-authority-discovery",
  "sp-block-builder",
