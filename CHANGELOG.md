@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Enable Elastic Scaling node side feature for Kusama ([polkadot-fellows/runtimes#205](https://github.com/polkadot-fellows/runtimes/pull/205))
 - Cancel Parachain Auctions ([polkadot-fellows/runtimes#215](https://github.com/polkadot-fellows/runtimes/pull/215))
 - Upgrade encointer protocol to 6.1.0 ([polkadot-fellows/runtimes#236](https://github.com/polkadot-fellows/runtimes/pull/236))
+- Update NFT deposits according to RFC-45 ([polkadot-fellows/runtimes#237](https://github.com/polkadot-fellows/runtimes/pull/237))
 
 ### Changed
 
