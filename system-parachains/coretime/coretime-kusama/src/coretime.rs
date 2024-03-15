@@ -192,10 +192,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		// Weight for `assign_core` from Kusama runtime benchmarks:
-		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (57600 * 13932) = 937660315
+		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
 		// `proof_size` = 3612
 		// Add 5% to each component and round to 2 significant figures.
-		let call_weight = Weight::from_parts(980_000_000, 3800);
+		let call_weight = Weight::from_parts(248_000_000, 3800);
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -258,8 +258,8 @@ impl AdaptPrice for LinearPlusC {
 		} else {
 			// Range of (1.0, 1.2].
 
-			// Unchecked math: In this branch we know that sold < target. The limit must be >= sold
-			// by construction, and thus target must be > limit.
+			// Unchecked math: In this branch we know that sold > target. The limit must be >= sold
+			// by construction, and thus target must be < limit.
 			FixedU64::one().saturating_add(FixedU64::from_rational(
 				(sold - target).into(),
 				(limit - target).saturating_mul(5).into(),
