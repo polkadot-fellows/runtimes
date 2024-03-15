@@ -1650,8 +1650,6 @@ pub type Migrations = migrations::Unreleased;
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use super::*;
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = ();
 }
