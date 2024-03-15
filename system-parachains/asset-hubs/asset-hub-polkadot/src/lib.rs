@@ -747,11 +747,11 @@ parameter_types! {
 	pub NftsPalletFeatures: PalletFeatures = PalletFeatures::all_enabled();
 	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
 	// re-use the Uniques deposits
-	pub const NftsCollectionDeposit: Balance = UniquesCollectionDeposit::get();
-	pub const NftsItemDeposit: Balance = UniquesItemDeposit::get();
-	pub const NftsMetadataDepositBase: Balance = UniquesMetadataDepositBase::get();
-	pub const NftsAttributeDepositBase: Balance = UniquesAttributeDepositBase::get();
-	pub const NftsDepositPerByte: Balance = UniquesDepositPerByte::get();
+	pub const NftsCollectionDeposit: Balance = system_para_deposit(1, 130);
+	pub const NftsItemDeposit: Balance = system_para_deposit(1, 164) / 40;
+	pub const NftsMetadataDepositBase: Balance = system_para_deposit(1, 129) / 10;
+	pub const NftsAttributeDepositBase: Balance = system_para_deposit(1, 0) / 10;
+	pub const NftsDepositPerByte: Balance = system_para_deposit(0, 1);
 }
 
 impl pallet_nfts::Config for Runtime {
