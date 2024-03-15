@@ -124,61 +124,23 @@ impl CoretimeInterface for CoretimeAllocator {
 
 	fn request_revenue_info_at(when: RCBlockNumberOf<Self>) {
 		use crate::coretime::CoretimeProviderCalls::RequestRevenueInfoAt;
-		let request_revenue_info_at_call =
+		let _request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Native,
-				require_weight_at_most: Weight::from_parts(1000000000, 200000),
-				call: request_revenue_info_at_call.encode().into(),
-			},
-		]);
-
-		match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
-			Ok(_) => log::debug!(
-				target: "runtime::coretime",
-				"Request for revenue information sent successfully."
-			),
-			Err(e) => log::error!(
-				target: "runtime::coretime",
-				"Request for revenue information failed to send: {:?}",
-				e
-			),
-		}
+		log::debug!(
+			target: "runtime::coretime",
+			"`request_revenue` is unmiplemented on the relay."
+		);
 	}
 
 	fn credit_account(who: Self::AccountId, amount: Self::Balance) {
 		use crate::coretime::CoretimeProviderCalls::CreditAccount;
-		let credit_account_call = RelayRuntimePallets::Coretime(CreditAccount(who, amount));
+		let _credit_account_call = RelayRuntimePallets::Coretime(CreditAccount(who, amount));
 
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Native,
-				require_weight_at_most: Weight::from_parts(1000000000, 200000),
-				call: credit_account_call.encode().into(),
-			},
-		]);
-
-		match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
-			Ok(_) => log::debug!(
-				target: "runtime::coretime",
-				"Instruction to credit account sent successfully."
-			),
-			Err(e) => log::error!(
-				target: "runtime::coretime",
-				"Instruction to credit account failed to send: {:?}",
-				e
-			),
-		}
+		log::debug!(
+			target: "runtime::coretime",
+			"`credit_account` is unmiplemented on the relay."
+		);
 	}
 
 	fn assign_core(
