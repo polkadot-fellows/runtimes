@@ -191,6 +191,7 @@ std = [
 	"runtime-parachains/std",
 	"scale-info/std",
 	"sp-api/std",
+	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
 	"sp-debug-derive/std",
