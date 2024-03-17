@@ -52,7 +52,6 @@ pallet-fast-unstake = { default-features = false , version = "28.0.0" }
 frame-executive = { default-features = false , version = "29.0.0" }
 pallet-grandpa = { default-features = false , version = "29.0.0" }
 pallet-identity = { default-features = false , version = "29.0.0" }
-pallet-im-online = { default-features = false , version = "28.0.0" }
 pallet-indices = { default-features = false , version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
 pallet-mmr = { default-features = false , version = "28.0.0" }
@@ -150,7 +149,6 @@ std = [
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
-	"pallet-im-online/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-mmr/std",
@@ -223,7 +221,6 @@ runtime-benchmarks = [
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
-	"pallet-im-online/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
@@ -276,7 +273,6 @@ try-runtime = [
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
-	"pallet-im-online/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-mmr/try-runtime",

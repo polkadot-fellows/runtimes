@@ -38,7 +38,9 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v7 as parachains_runtime_api_impl,
+	runtime_api_impl::{
+		v7 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
+	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -70,7 +72,9 @@ use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{
-	slashing, AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CandidateHash,
+	slashing,
+	vstaging::{ApprovalVotingParams, NodeFeatures},
+	AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CandidateHash,
 	CommittedCandidateReceipt, CoreState, DisputeState, ExecutorParams, GroupRotationInfo, Hash,
 	Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment, Nonce,
 	OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature,
@@ -1570,6 +1574,59 @@ impl pallet_asset_rate::Config for Runtime {
 	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
+// A mock pallet to keep `ImOnline` events decodable after pallet removal
+pub mod pallet_im_online {
+	use frame_support::pallet_prelude::*;
+	pub use pallet::*;
+
+	pub mod sr25519 {
+		mod app_sr25519 {
+			use sp_application_crypto::{app_crypto, key_types::IM_ONLINE, sr25519};
+			app_crypto!(sr25519, IM_ONLINE);
+		}
+		pub type AuthorityId = app_sr25519::Public;
+	}
+
+	#[frame_support::pallet]
+	pub mod pallet {
+		use super::*;
+		use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};
+
+		#[pallet::pallet]
+		pub struct Pallet<T>(_);
+
+		#[pallet::config]
+		pub trait Config: frame_system::Config {
+			type RuntimeEvent: From<Event<Self>>
+				+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+			type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
+		}
+
+		pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
+			<T as frame_system::Config>::AccountId,
+		>>::ValidatorId;
+
+		pub type IdentificationTuple<T> = (
+			ValidatorId<T>,
+			<<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
+				<T as frame_system::Config>::AccountId,
+			>>::Identification,
+		);
+
+		#[pallet::event]
+		pub enum Event<T: Config> {
+			HeartbeatReceived { authority_id: super::sr25519::AuthorityId },
+			AllGood,
+			SomeOffline { offline: sp_std::vec::Vec<IdentificationTuple<T>> },
+		}
+	}
+}
+
+impl pallet_im_online::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ValidatorSet = Historical;
+}
+
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1596,6 +1653,7 @@ construct_runtime! {
 
 		Session: pallet_session = 9,
 		Grandpa: pallet_grandpa = 11,
+		ImOnline: pallet_im_online::{Event<T>} = 12,
 		AuthorityDiscovery: pallet_authority_discovery = 13,
 
 		// OpenGov stuff.
@@ -1996,6 +2054,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
+	#[api_version(10)]
 	impl primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2125,6 +2184,30 @@ sp_api::impl_runtime_apis! {
 				dispute_proof,
 				key_ownership_proof,
 			)
+		}
+
+		fn minimum_backing_votes() -> u32 {
+			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
+		}
+
+		fn para_backing_state(para_id: ParaId) -> Option<primitives::async_backing::BackingState> {
+			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
+		}
+
+		fn async_backing_params() -> primitives::AsyncBackingParams {
+			parachains_runtime_api_impl::async_backing_params::<Runtime>()
+		}
+
+		fn disabled_validators() -> Vec<ValidatorIndex> {
+			parachains_vstaging_api_impl::disabled_validators::<Runtime>()
+		}
+
+		fn node_features() -> NodeFeatures {
+			parachains_vstaging_api_impl::node_features::<Runtime>()
+		}
+
+		fn approval_voting_params() -> ApprovalVotingParams {
+			parachains_vstaging_api_impl::approval_voting_params::<Runtime>()
 		}
 	}
 
