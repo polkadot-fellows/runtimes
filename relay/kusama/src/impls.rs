@@ -17,7 +17,7 @@
 use crate::xcm_config;
 use frame_support::{defensive, pallet_prelude::DispatchResult};
 use frame_system::RawOrigin;
-use kusama_runtime_constants::currency::*;
+use kusama_runtime_constants::{currency::*, system_parachain::PEOPLE_ID};
 use parity_scale_codec::{Decode, Encode};
 use primitives::Balance;
 use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
@@ -96,8 +96,8 @@ where
 
 		// define asset / destination from relay perspective
 		let ksm = Asset { id: AssetId(Here.into_location()), fun: Fungible(total_to_send) };
-		// People Chain: ParaId 1004
-		let destination: Location = Location::new(0, Parachain(1004));
+		// People Chain
+		let destination: Location = Location::new(0, Parachain(PEOPLE_ID));
 
 		// Do `check_out` accounting since the XCM Executor's `InitiateTeleport` doesn't support
 		// unpaid teleports.
