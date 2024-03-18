@@ -16,12 +16,12 @@ jobs:
       - name: Get the GitHub handle of the fellows
         uses: paritytech/get-fellows-action@v1.1.0
         id: fellows
-      - name: Generate token
+      - name: Generate a token
         id: merge_token
-        uses: tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@v1.8.1
         with:
-          app_id: ${{ secrets.MERGE_APP_ID }}
-          private_key: ${{ secrets.MERGE_APP_KEY }}
+          app-id: ${{ secrets.MERGE_APP_ID }}
+          private-key: ${{ secrets.MERGE_APP_KEY }}
       - name: Set auto merge
         uses: paritytech/auto-merge-bot@v1.0.1
         with:
