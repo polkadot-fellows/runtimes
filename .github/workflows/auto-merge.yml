@@ -9,11 +9,12 @@ jobs:
   set-auto-merge:
     runs-on: ubuntu-latest
     environment: master
+    timeout-minutes: 10
     # Important! This forces the job to run only on comments on Pull Requests that starts with '/merge'
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/merge') }}
     steps:
       - name: Get the GitHub handle of the fellows
-        uses: paritytech/get-fellows-action@v1.0.0
+        uses: paritytech/get-fellows-action@v1.1.0
         id: fellows
       - name: Generate token
         id: merge_token
