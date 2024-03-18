@@ -151,7 +151,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![
 		(AssetHubKusamaSender::get(), 5_000_000 * ASSET_HUB_KUSAMA_ED), /* An account to swap
-		                                                                 * dot
+		                                                                 * ksm
 		                                                                 * for something else. */
 	]);
 

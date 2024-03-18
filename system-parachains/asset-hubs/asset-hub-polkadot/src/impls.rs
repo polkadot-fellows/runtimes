@@ -41,12 +41,16 @@ pub(crate) mod pool {
 		AccountIdConverter: for<'a> TryConvert<&'a (AssetKind, AssetKind), AccountId>,
 	{
 		fn pool_id(asset1: &AssetKind, asset2: &AssetKind) -> Result<(AssetKind, AssetKind), ()> {
+			if asset1 == asset2 {
+				return Err(());
+			}
 			let first = FirstAsset::get();
-			match true {
-				_ if asset1 == asset2 => Err(()),
-				_ if first == *asset1 => Ok((first, asset2.clone())),
-				_ if first == *asset2 => Ok((first, asset1.clone())),
-				_ => Err(()),
+			if first == *asset1 {
+				Ok((first, asset2.clone()))
+			} else if first == *asset2 {
+				Ok((first, asset1.clone()))
+			} else {
+				Err(())
 			}
 		}
 		fn address(id: &(AssetKind, AssetKind)) -> Result<AccountId, ()> {
@@ -63,8 +67,8 @@ pub(crate) mod pool {
 		Seed: Get<PalletId>,
 	{
 		fn try_convert(id: &PoolId) -> Result<AccountId, &PoolId> {
-			let encoded = sp_io::hashing::blake2_256(&Encode::encode(&(Seed::get(), id))[..]);
-			Decode::decode(&mut TrailingZeroInput::new(encoded.as_ref())).map_err(|_| id)
+			sp_io::hashing::blake2_256(&Encode::encode(&(Seed::get(), id))[..])
+				.using_encoded(|e| Decode::decode(&mut TrailingZeroInput::new(e)).map_err(|_| id))
 		}
 	}
 }
