@@ -151,7 +151,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 25,
-	state_version: 0,
+	state_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
@@ -1541,6 +1541,27 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
 	}
 }
 
+parameter_types! {
+	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
+	pub const MigrationSignedDepositPerItem: Balance = 1 * CENTS;
+	pub const MigrationSignedDepositBase: Balance = 20 * CENTS * 100;
+	pub const MigrationMaxKeyLen: u32 = 512;
+}
+
+impl pallet_state_trie_migration::Config for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type SignedDepositPerItem = MigrationSignedDepositPerItem;
+	type SignedDepositBase = MigrationSignedDepositBase;
+	type ControlOrigin = EnsureRoot<AccountId>;
+	type SignedFilter = frame_support::traits::NeverEnsureOrigin<AccountId>;
+
+	// Use same weights as substrate ones.
+	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
+	type MaxKeyLen = MigrationMaxKeyLen;
+}
+
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
@@ -1551,6 +1572,59 @@ impl pallet_asset_rate::Config for Runtime {
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
+}
+
+// A mock pallet to keep `ImOnline` events decodable after pallet removal
+pub mod pallet_im_online {
+	use frame_support::pallet_prelude::*;
+	pub use pallet::*;
+
+	pub mod sr25519 {
+		mod app_sr25519 {
+			use sp_application_crypto::{app_crypto, key_types::IM_ONLINE, sr25519};
+			app_crypto!(sr25519, IM_ONLINE);
+		}
+		pub type AuthorityId = app_sr25519::Public;
+	}
+
+	#[frame_support::pallet]
+	pub mod pallet {
+		use super::*;
+		use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};
+
+		#[pallet::pallet]
+		pub struct Pallet<T>(_);
+
+		#[pallet::config]
+		pub trait Config: frame_system::Config {
+			type RuntimeEvent: From<Event<Self>>
+				+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+			type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
+		}
+
+		pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
+			<T as frame_system::Config>::AccountId,
+		>>::ValidatorId;
+
+		pub type IdentificationTuple<T> = (
+			ValidatorId<T>,
+			<<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
+				<T as frame_system::Config>::AccountId,
+			>>::Identification,
+		);
+
+		#[pallet::event]
+		pub enum Event<T: Config> {
+			HeartbeatReceived { authority_id: super::sr25519::AuthorityId },
+			AllGood,
+			SomeOffline { offline: sp_std::vec::Vec<IdentificationTuple<T>> },
+		}
+	}
+}
+
+impl pallet_im_online::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ValidatorSet = Historical;
 }
 
 construct_runtime! {
@@ -1579,6 +1653,7 @@ construct_runtime! {
 
 		Session: pallet_session = 9,
 		Grandpa: pallet_grandpa = 11,
+		ImOnline: pallet_im_online::{Event<T>} = 12,
 		AuthorityDiscovery: pallet_authority_discovery = 13,
 
 		// OpenGov stuff.
@@ -1642,6 +1717,9 @@ construct_runtime! {
 		Slots: slots = 71,
 		Auctions: auctions = 72,
 		Crowdloan: crowdloan = 73,
+
+		// State trie migration pallet, only temporary.
+		StateTrieMigration: pallet_state_trie_migration = 98,
 
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm = 99,
@@ -1789,6 +1867,7 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		init_state_migration::InitMigrate,
 		// Upgrade SessionKeys to exclude ImOnline key
 		UpgradeSessionKeys,
 		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
@@ -3097,5 +3176,67 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
+	}
+}
+
+mod init_state_migration {
+	use super::Runtime;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
+	#[cfg(not(feature = "std"))]
+	use sp_std::prelude::*;
+
+	/// Initialize an automatic migration process.
+	pub struct InitMigrate;
+	impl OnRuntimeUpgrade for InitMigrate {
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
+			use parity_scale_codec::Encode;
+			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
+				MigrationProcess::<Runtime>::get() == Default::default();
+			Ok(migration_should_start.encode())
+		}
+
+		fn on_runtime_upgrade() -> frame_support::weights::Weight {
+			if AutoLimits::<Runtime>::get().is_some() {
+				log::warn!("Automatic trie migration already started, not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+			};
+
+			if MigrationProcess::<Runtime>::get() != Default::default() {
+				log::warn!("MigrationProcess is not Default. Not proceeding.");
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
+			};
+
+			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
+			// migrations.
+			//
+			// We use limits to target 600ko proofs per block and
+			// avg 800_000_000_000 of weight per block.
+			// See spreadsheet 4800_400 in
+			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
+			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
+			log::info!("Automatic trie migration started.");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(
+			migration_should_start_bytes: Vec<u8>,
+		) -> Result<(), sp_runtime::DispatchError> {
+			use parity_scale_codec::Decode;
+			let migration_should_start: bool =
+				Decode::decode(&mut migration_should_start_bytes.as_slice())
+					.expect("failed to decode migration should start");
+
+			if migration_should_start {
+				frame_support::ensure!(
+					AutoLimits::<Runtime>::get().is_some(),
+					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
+				);
+			}
+
+			Ok(())
+		}
 	}
 }

@@ -33,7 +33,7 @@ frame-try-runtime = { default-features = false, optional = true, version = "0.35
 pallet-asset-conversion-tx-payment = { default-features = false, version = "11.0.0" }
 pallet-assets = { default-features = false, version = "30.0.0" }
 pallet-asset-conversion = { default-features = false, version = "11.0.0" }
-pallet-aura = { default-features = false, version = "28.0.0" }
+pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
 pallet-authorship = { default-features = false, version = "29.0.0" }
 pallet-balances = { default-features = false, version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
@@ -83,6 +83,7 @@ cumulus-pallet-parachain-system = { default-features = false, features = ["param
 cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
 cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.8.0" }
+cumulus-primitives-aura = { default-features = false , version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
 pallet-collator-selection = { default-features = false , version = "10.0.0" }
@@ -192,6 +193,7 @@ std = [
 	"cumulus-pallet-session-benchmarking/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
+	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
@@ -253,8 +255,6 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 ]
-
-experimental = [ "pallet-aura/experimental" ]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
