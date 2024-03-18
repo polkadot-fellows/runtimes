@@ -70,6 +70,7 @@ cumulus-pallet-parachain-system = { default-features = false, features = ["param
 cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
 cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.8.0" }
+cumulus-primitives-aura = { default-features = false, version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
 pallet-collator-selection = { default-features = false , version = "10.0.0" }
@@ -88,6 +89,7 @@ std = [
 	"cumulus-pallet-session-benchmarking/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
+	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
