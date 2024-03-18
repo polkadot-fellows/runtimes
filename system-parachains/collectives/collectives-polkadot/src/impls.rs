@@ -171,10 +171,8 @@ impl<ParaId: IsSystem + From<u32> + Eq, SelfParaId: Get<ParaId>> Contains<Locati
 {
 	fn contains(l: &Location) -> bool {
 		matches!(
-			l.interior().as_slice(),
-			[Junction::Parachain(id)]
-				if SelfParaId::get() != ParaId::from(*id)
-					&& ParaId::from(*id).is_system() && l.parent_count() == 1,
+			l.unpack(),
+			(1,	[Parachain(id)]) if ParaId::from(*id).is_system() && SelfParaId::get() != ParaId::from(*id),
 		)
 	}
 }
