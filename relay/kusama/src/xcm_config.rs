@@ -135,6 +135,8 @@ parameter_types! {
 	pub KsmForBridgeHub: (AssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
 	pub Broker: Location = Parachain(BROKER_ID).into_location();
 	pub KsmForBroker: (AssetFilter, Location) = (Ksm::get(), Broker::get());
+	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub KsmForPeople: (AssetFilter, Location) = (Ksm::get(), People::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -144,6 +146,7 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForEncointer>,
 	xcm_builder::Case<KsmForBridgeHub>,
 	xcm_builder::Case<KsmForBroker>,
+	xcm_builder::Case<KsmForPeople>,
 );
 
 pub struct OnlyParachains;
