@@ -1,0 +1,23 @@
+[package]
+name = "people-kusama-emulated-chain"
+authors.workspace = true
+edition.workspace = true
+version.workspace = true
+license = "Apache-2.0"
+description = "People Kusama emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+
+# Substrate
+sp-core = { version = "29.0.0" }
+frame-support = { version = "29.0.0" }
+
+# Cumulus
+parachains-common = { version = "8.0.0" }
+cumulus-primitives-core = { version = "0.8.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+
+# Local
+people-kusama-runtime = { path = "../../../../../../system-parachains/people/people-kusama" }
+kusama-emulated-chain = { path = "../../../relays/kusama" }

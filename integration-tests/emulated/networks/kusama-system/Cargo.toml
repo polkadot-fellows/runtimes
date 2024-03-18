@@ -17,3 +17,4 @@ asset-hub-kusama-emulated-chain = { path = "../../chains/parachains/assets/asset
 bridge-hub-kusama-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-kusama" }
 kusama-emulated-chain = { path = "../../chains/relays/kusama" }
 penpal-emulated-chain = { path = "../../chains/parachains/testing/penpal" }
+people-kusama-emulated-chain = { path = "../../chains/parachains/people/people-kusama" }
