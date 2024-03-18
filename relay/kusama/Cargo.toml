@@ -22,6 +22,7 @@ sp-api = { default-features = false , version = "27.0.0" }
 inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
 offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
 sp-std = { package = "sp-std", default-features = false , version = "14.0.0" }
+sp-application-crypto = { default-features = false , version = "31.0.0" }
 sp-arithmetic = { default-features = false , version = "24.0.0" }
 sp-genesis-builder = { default-features = false , version = "0.8.0" }
 sp-io = { default-features = false , version = "31.0.0" }
@@ -55,7 +56,6 @@ frame-executive = { default-features = false , version = "29.0.0" }
 pallet-grandpa = { default-features = false , version = "29.0.0" }
 pallet-nis = { default-features = false , version = "29.0.0" }
 pallet-identity = { default-features = false , version = "29.0.0" }
-pallet-im-online = { default-features = false , version = "28.0.0" }
 pallet-indices = { default-features = false , version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
 pallet-mmr = { default-features = false , version = "28.0.0" }
@@ -72,7 +72,6 @@ pallet-session = { default-features = false , version = "29.0.0" }
 pallet-society = { default-features = false, version = "29.0.0" }
 frame-support = { default-features = false , features = [ "tuples-96" ] , version = "29.0.0" }
 pallet-staking = { default-features = false , version = "29.0.0" }
-pallet-state-trie-migration = { default-features = false , version = "30.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "15.0.0" }
 frame-system = { default-features = false , version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "27.0.0" }
@@ -154,7 +153,6 @@ std = [
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
-	"pallet-im-online/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-mmr/std",
@@ -176,7 +174,6 @@ std = [
 	"pallet-society/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
-	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -192,6 +189,7 @@ std = [
 	"runtime-parachains/std",
 	"scale-info/std",
 	"sp-api/std",
+	"sp-application-crypto/std",
 	"sp-arithmetic/std",
 	"sp-core/std",
 	"sp-debug-derive/std",
@@ -228,7 +226,6 @@ runtime-benchmarks = [
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
-	"pallet-im-online/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
@@ -247,7 +244,6 @@ runtime-benchmarks = [
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
-	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -285,7 +281,6 @@ try-runtime = [
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
-	"pallet-im-online/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-mmr/try-runtime",
@@ -302,7 +297,6 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-society/try-runtime",
 	"pallet-staking/try-runtime",
-	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
