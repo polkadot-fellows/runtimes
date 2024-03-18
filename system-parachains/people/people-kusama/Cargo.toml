@@ -24,7 +24,7 @@ frame-system = { default-features = false, version = "29.0.0" }
 frame-system-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false, version = "27.0.0" }
 frame-try-runtime = { default-features = false, optional = true, version = "0.35.0" }
-pallet-aura = { default-features = false, version = "28.0.0" }
+pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
 pallet-authorship = { default-features = false, version = "29.0.0" }
 pallet-balances = { default-features = false, version = "29.0.0" }
 pallet-identity = { default-features = false, version = "29.0.0" }
@@ -61,6 +61,7 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false, versi
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
+cumulus-primitives-aura = { default-features = false , version = "0.8.0" }
 cumulus-pallet-aura-ext = { default-features = false , version = "0.8.0" }
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
@@ -85,6 +86,7 @@ std = [
 	"cumulus-pallet-session-benchmarking/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
+	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
 	"enumflags2/std",
@@ -192,8 +194,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 ]
-
-experimental = ["pallet-aura/experimental"]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
