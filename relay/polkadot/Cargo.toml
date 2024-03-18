@@ -69,6 +69,7 @@ pallet-staking = { default-features = false , version = "29.0.0" }
 pallet-staking-reward-fn = { default-features = false, version = "20.0.0" }
 pallet-staking-reward-curve = { version = "11.0.0" }
 pallet-staking-runtime-api = { default-features = false , version = "15.0.0" }
+pallet-state-trie-migration = { default-features = false , version = "30.0.0" }
 frame-system = { default-features = false , version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "27.0.0" }
 polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }
@@ -166,6 +167,7 @@ std = [
 	"pallet-staking-reward-fn/std",
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
+	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -233,6 +235,7 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -282,6 +285,7 @@ try-runtime = [
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-staking/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
