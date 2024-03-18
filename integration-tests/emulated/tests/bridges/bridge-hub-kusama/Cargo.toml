@@ -13,6 +13,7 @@ publish = false
 sp-runtime = { version = "32.0.0" }
 frame-support = { version = "29.0.0" }
 pallet-balances = { version = "29.0.0" }
+pallet-asset-conversion = { version = "11.0.0" }
 pallet-assets = { version = "30.0.0" }
 pallet-message-queue = { version = "32.0.0" }
 
