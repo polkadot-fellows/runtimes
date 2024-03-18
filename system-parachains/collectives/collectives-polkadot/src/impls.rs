@@ -165,24 +165,28 @@ impl PrivilegeCmp<OriginCaller> for EqualOrGreatestRootCmp {
 }
 
 /// Contains a system-level sibling parachain.
-pub struct IsSiblingSystemParachain<ParaId>(PhantomData<ParaId>);
-impl<ParaId: IsSystem + From<u32>> Contains<Location> for IsSiblingSystemParachain<ParaId> {
+pub struct IsSiblingSystemParachain<ParaId, SelfParaId>(PhantomData<(ParaId, SelfParaId)>);
+impl<ParaId: IsSystem + From<u32> + Eq, SelfParaId: Get<ParaId>> Contains<Location>
+	for IsSiblingSystemParachain<ParaId, SelfParaId>
+{
 	fn contains(l: &Location) -> bool {
 		matches!(
 			l.interior().as_slice(),
 			[Junction::Parachain(id)]
-				if ParaId::from(*id).is_system() && l.parent_count() == 1,
+				if SelfParaId::get() != ParaId::from(*id)
+					&& ParaId::from(*id).is_system() && l.parent_count() == 1,
 		)
 	}
 }
 
 /// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
 /// conversion; otherwise, delegates to the implementation specified by `I`.
-pub struct NativeOnSiblingParachain<I>(PhantomData<I>);
-impl<I> ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>
-	for NativeOnSiblingParachain<I>
+pub struct NativeOnSiblingParachain<I, SelfParaId>(PhantomData<(I, SelfParaId)>);
+impl<I, SelfParaId> ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>
+	for NativeOnSiblingParachain<I, SelfParaId>
 where
 	I: ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>,
+	SelfParaId: Get<ParaId>,
 {
 	type Error = ();
 	fn from_asset_balance(
@@ -196,7 +200,7 @@ where
 		};
 
 		if asset_id.0.contains_parents_only(1) &&
-			IsSiblingSystemParachain::<ParaId>::contains(&location)
+			IsSiblingSystemParachain::<ParaId, SelfParaId>::contains(&location)
 		{
 			Ok(balance)
 		} else {
