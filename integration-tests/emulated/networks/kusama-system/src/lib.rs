@@ -17,11 +17,13 @@ pub use asset_hub_kusama_emulated_chain;
 pub use bridge_hub_kusama_emulated_chain;
 pub use kusama_emulated_chain;
 pub use penpal_emulated_chain;
+pub use people_kusama_emulated_chain;
 
 use asset_hub_kusama_emulated_chain::AssetHubKusama;
 use bridge_hub_kusama_emulated_chain::BridgeHubKusama;
 use kusama_emulated_chain::Kusama;
 use penpal_emulated_chain::{PenpalA, PenpalB};
+use people_kusama_emulated_chain::PeopleKusama;
 
 // Cumulus
 use emulated_integration_tests_common::{
@@ -37,6 +39,7 @@ decl_test_networks! {
 			BridgeHubKusama,
 			PenpalA,
 			PenpalB,
+			PeopleKusama,
 		],
 		bridge = ()
 	},
@@ -47,5 +50,6 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	AssetHubKusamaPara { sender: ALICE, receiver: BOB },
 	BridgeHubKusamaPara { sender: ALICE, receiver: BOB },
 	PenpalAPara { sender: ALICE, receiver: BOB },
-	PenpalBPara { sender: ALICE, receiver: BOB }
+	PenpalBPara { sender: ALICE, receiver: BOB },
+	PeopleKusamaPara { sender: ALICE, receiver: BOB }
 }

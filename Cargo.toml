@@ -27,6 +27,7 @@ members = [
 	"system-parachains/constants",
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
+	"system-parachains/people/people-kusama",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
@@ -34,6 +35,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
+	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
 	"integration-tests/emulated/helpers",
 	"integration-tests/emulated/networks/kusama-system",
@@ -43,6 +45,7 @@ members = [
 	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
+	"integration-tests/emulated/tests/people/people-kusama",
 ]
 
 [profile.release]

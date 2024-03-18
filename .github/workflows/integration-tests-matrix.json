@@ -14,5 +14,9 @@
   {
     "name": "bridge-hub-polkadot",
     "package": "bridge-hub-polkadot-integration-tests"
+  },
+  {
+    "name": "people-kusama",
+    "package": "people-kusama-integration-tests"
   }
 ]
