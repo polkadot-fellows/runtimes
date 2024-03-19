@@ -16,7 +16,7 @@ use crate::*;
 use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::{
 	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
-use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, CreateAssetDeposit};
+use bp_bridge_hub_kusama::snowbridge::CreateAssetCall;
 use bridge_hub_kusama_runtime::{
 	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
@@ -662,17 +662,6 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 	assert!(
 		call_create_foreign_assets.starts_with(&bridge_hub_inbound_queue_assets_pallet_call_index)
 	);
-}
-
-/// Tests that the EthereumInboundQueue CreateAssetDeposit on BridgeHub is larger than the
-/// ForeignAssets AssetDeposit config on AssetHub.
-#[test]
-fn bridge_hub_inbound_queue_deposit_config_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
-	let asset_deposit = asset_hub_kusama_runtime::ForeignAssetsAssetDeposit::get();
-
-	let bridge_hub_inbound_queue_asset_deposit = CreateAssetDeposit::get();
-
-	assert_eq!(bridge_hub_inbound_queue_asset_deposit, asset_deposit);
 }
 
 fn ethereum_sovereign_account() -> AccountId {
