@@ -27,15 +27,13 @@ pub mod bridge_to_polkadot_config;
 mod weights;
 pub mod xcm_config;
 
-use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
-use cumulus_primitives_core::ParaId;
 use bp_bridge_hub_kusama::snowbridge::{
 	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance, Parameters,
 };
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
-use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::{outbound::Message, AgentId, AllowSiblingsOnly};
