@@ -61,13 +61,13 @@ fn fellowship_treasury_spend() {
 
 		let native_asset = Location::here();
 		let asset_hub_location: Location = [Parachain(1000)].into();
-		let treasury_location_on_asset_hub: Location = (Parent, PalletInstance(19)).into();
+		let treasury_location: Location = (Parent, PalletInstance(19)).into();
 
 		let teleport_call = RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
 			as_origin: bx!(OriginCaller::system(RawOrigin::Signed(treasury_account))),
 			call: bx!(RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::teleport_assets {
 				dest: bx!(VersionedLocation::V4(asset_hub_location.clone())),
-				beneficiary: bx!(VersionedLocation::V4(treasury_location_on_asset_hub)),
+				beneficiary: bx!(VersionedLocation::V4(treasury_location)),
 				assets: bx!(VersionedAssets::V4(
 					Asset { id: native_asset.clone().into(), fun: treasury_balance.into() }.into()
 				)),

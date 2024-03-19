@@ -184,6 +184,13 @@ where
 
 /// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
 /// conversion; otherwise, delegates to the implementation specified by `I`.
+/// Example where the `asset_kind` represents the native asset:
+/// ```
+/// `asset_kind`: VersionedLocatableAsset: {
+///  `location`: (0, Parachain(1000)), // location of a Parachain
+///  `asset_id`: (1, Here), // the asset id in the context of `asset_kind.location`
+/// }
+/// ```
 pub struct NativeOnSystemParachain<I>(PhantomData<I>);
 impl<I> ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>
 	for NativeOnSystemParachain<I>
