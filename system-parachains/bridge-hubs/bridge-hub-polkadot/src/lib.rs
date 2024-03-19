@@ -1371,6 +1371,14 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+		assert_eq!(
+			InboundQueuePalletInstance::get(),
+			<EthereumInboundQueue as frame_support::traits::PalletInfoAccess>::index() as u8
+		);
+	}
+
+	#[test]
 	fn test_transasction_byte_fee_is_one_tenth_of_relay() {
 		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();

@@ -16,9 +16,7 @@ use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
 	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
-use bp_bridge_hub_polkadot::snowbridge::{
-	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance,
-};
+use bp_bridge_hub_polkadot::snowbridge::{CreateAssetCall, CreateAssetDeposit};
 use bridge_hub_polkadot_runtime::{
 	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
@@ -679,15 +677,6 @@ fn bridge_hub_inbound_queue_deposit_config_is_equal_to_asset_hub_foreign_asset_p
 	let bridge_hub_inbound_queue_asset_deposit = CreateAssetDeposit::get();
 
 	assert_eq!(bridge_hub_inbound_queue_asset_deposit, asset_deposit);
-}
-
-/// Tests the EthereumInboundQueue pallet index matches the pallet constant.
-#[test]
-fn bridge_hub_inbound_queue_pallet_index_is_correct() {
-	let inbound_queue_inbound_queue_pallet_index =
-		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumInboundQueue::index();
-
-	assert_eq!(inbound_queue_inbound_queue_pallet_index as u8, InboundQueuePalletInstance::get());
 }
 
 fn ethereum_sovereign_account() -> AccountId {

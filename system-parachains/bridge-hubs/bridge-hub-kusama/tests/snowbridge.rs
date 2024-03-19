@@ -38,11 +38,9 @@ use parachains_runtimes_test_utils::{
 };
 use snowbridge_core::{gwei, meth, ChannelId, ParaId, Rewards};
 use snowbridge_pallet_ethereum_client::WeightInfo;
-use snowbridge_pallet_system::{
-	BalanceOf, PricingParameters, PricingParametersOf, WeightInfo as EthereumSystemWeightInfo,
-};
+use snowbridge_pallet_system::{PricingParametersOf, WeightInfo as EthereumSystemWeightInfo};
 use snowbridge_runtime_test_common::initial_fund;
-use sp_core::{H160, U256};
+use sp_core::H160;
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
