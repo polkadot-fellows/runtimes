@@ -1721,4 +1721,12 @@ mod tests {
 		let parachain_tbf = TransactionByteFee::get();
 		assert_eq!(relay_tbf / 10, parachain_tbf);
 	}
+
+	#[test]
+	fn create_foreign_asset_deposit_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
+		assert_eq!(
+			bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
+			ForeignAssetsAssetDeposit::get()
+		);
+	}
 }

@@ -15,27 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use asset_hub_polkadot_runtime::{
-	xcm_config::bridging::{
-		to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable, EthereumNetwork},
-		SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
-	},
-	ForeignAssetsAssetDeposit,
+use asset_hub_polkadot_runtime::xcm_config::bridging::{
+	to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable, EthereumNetwork},
+	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
 use sp_core::H160;
 use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, NetworkExportTable};
-
-/// Tests that the EthereumInboundQueue CreateAssetDeposit on BridgeHub is larger than the
-/// ForeignAssets AssetDeposit config on AssetHub.
-#[test]
-fn bridge_hub_inbound_queue_deposit_config_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
-	assert!(
-		bp_bridge_hub_polkadot::snowbridge::CreateAssetDeposit::get() >=
-			ForeignAssetsAssetDeposit::get()
-	);
-}
 
 #[test]
 fn network_export_table_works() {

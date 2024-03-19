@@ -1227,6 +1227,7 @@ dependencies = [
  "scale-info",
  "sp-std",
  "staging-xcm",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1239,6 +1240,7 @@ dependencies = [
  "scale-info",
  "sp-std",
  "staging-xcm",
+ "system-parachains-constants",
 ]
 
 [[package]]

@@ -27,9 +27,7 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use bp_bridge_hub_kusama::snowbridge::{
-	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance, Parameters,
-};
+use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
@@ -565,7 +563,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type Helper = Runtime;
 	type MessageConverter = MessageToXcm<
 		CreateAssetCall,
-		CreateAssetDeposit,
+		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
 		InboundQueuePalletInstance,
 		AccountId,
 		Balance,
