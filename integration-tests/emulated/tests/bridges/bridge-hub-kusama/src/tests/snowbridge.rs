@@ -20,7 +20,7 @@ use bp_bridge_hub_kusama::snowbridge::{
 	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance,
 };
 use bridge_hub_kusama_runtime::{
-	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, RuntimeOrigin,
+	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
@@ -32,18 +32,23 @@ use kusama_system_emulated_network::{
 };
 use snowbridge_beacon_primitives::CompactExecutionHeader;
 use snowbridge_core::{
+	gwei,
 	inbound::{Log, Message, Proof},
+	meth,
 	outbound::OperatingMode,
+	Rewards,
 };
 use snowbridge_pallet_inbound_queue_fixtures::{
 	register_token_with_insufficient_fee::make_register_token_with_infufficient_fee_message,
 	InboundQueueFixture,
 };
+use snowbridge_pallet_system::PricingParametersOf;
 use snowbridge_router_primitives::inbound::{
 	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
 };
 use sp_core::{H160, H256};
-use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
+use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
+use system_parachains_constants::kusama::currency::UNITS;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;
 const CHAIN_ID: u64 = 1;
@@ -455,6 +460,20 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
+
+		assert_ok!(
+			<BridgeHubKusama as BridgeHubKusamaPallet>::EthereumSystem::set_pricing_parameters(
+				<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
+				PricingParametersOf::<Runtime> {
+					exchange_rate: FixedU128::from_rational(1, 75),
+					fee_per_gas: gwei(20),
+					rewards: Rewards {
+						local: (1 * UNITS / 100).into(), // 0.01 KSM
+						remote: meth(1),
+					},
+				}
+			)
+		);
 
 		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
 			<BridgeHubKusama as Chain>::RuntimeOrigin::root(),
