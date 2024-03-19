@@ -1,0 +1,35 @@
+[package]
+name = "people-kusama-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "People Kusama runtime integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.9" }
+
+# Substrate
+sp-runtime = { version = "32.0.0" }
+frame-support = { version = "29.0.0" }
+pallet-balances = { version = "29.0.0" }
+pallet-message-queue = { version = "32.0.0" }
+pallet-identity = { version = "29.0.0" }
+
+# Polkadot
+polkadot-runtime-common = { version = "8.0.1" }
+xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+
+# Cumulus
+parachains-common = { version = "8.0.0" }
+emulated-integration-tests-common = { version = "4.0.0" }
+asset-test-utils = { version = "8.0.1" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.1" }
+
+# Local
+kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
+kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
+people-kusama-runtime = { path = "../../../../../system-parachains/people/people-kusama" }
+kusama-system-emulated-network = { path = "../../../networks/kusama-system" }

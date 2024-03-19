@@ -32,7 +32,7 @@ pub use bp_messages::LaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{
-	accounts::ALICE,
+	accounts::{ALICE, BOB},
 	impls::Inspect,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
@@ -56,9 +56,10 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
-	BridgeHubKusamaPara as BridgeHubKusama, BridgeHubKusamaParaSender as BridgeHubKusamaSender,
-	BridgeHubPolkadotPara as BridgeHubPolkadot, KusamaRelay as Kusama,
-	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
+	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
+	BridgeHubKusamaParaSender as BridgeHubKusamaSender, BridgeHubPolkadotPara as BridgeHubPolkadot,
+	KusamaRelay as Kusama, KusamaRelayReceiver as KusamaReceiver,
+	KusamaRelaySender as KusamaSender,
 };
 pub use kusama_system_emulated_network::{
 	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
