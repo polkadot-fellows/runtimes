@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  RUST_NIGHTLY_VERSION: 2024-03-14 # 1.78.0-nightly
+
 jobs:
   clippy:
     runs-on: ubuntu-22.04
@@ -20,11 +23,7 @@ jobs:
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
       - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: clippy
+        run: rustup install nightly-${{ env.RUST_NIGHTLY_VERSION }} --profile minimal --component clippy
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -35,6 +34,6 @@ jobs:
           shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
-        run: cargo +nightly clippy --all-targets --locked -q
+        run: cargo +nightly-${{ env.RUST_NIGHTLY_VERSION }} clippy --all-targets --locked -q
         env:
           SKIP_WASM_BUILD: 1

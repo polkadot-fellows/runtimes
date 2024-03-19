@@ -6,21 +6,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  RUST_NIGHTLY_VERSION: 2024-03-14 # 1.78.0-nightly
+
 jobs:
   rustfmt:
     runs-on: ubuntu-22.04
 
     steps:
-
       - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
+        run: rustup install nightly-${{ env.RUST_NIGHTLY_VERSION }} --profile minimal --component rustfmt
 
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Rustfmt (check)
-        run: cargo +nightly fmt --all -- --check
+        run: cargo +nightly-${{ env.RUST_NIGHTLY_VERSION }} fmt --all -- --check
