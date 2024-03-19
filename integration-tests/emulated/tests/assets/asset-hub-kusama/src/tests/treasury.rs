@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Tests concerning the Polkadot Treasury.
+//! Tests concerning the Kusama Treasury.
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
@@ -79,7 +79,7 @@ fn spend_ksm_on_asset_hub() {
 			})),
 		});
 
-		// Dispatched from Root to `despatch_as` `Signed(treasury_account)`.
+		// Dispatched from Root to `dispatch_as` `Signed(treasury_account)`.
 		assert_ok!(teleport_call.dispatch(root));
 
 		assert_expected_events!(
