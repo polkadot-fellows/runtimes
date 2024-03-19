@@ -15,9 +15,7 @@ jobs:
 
     steps:
       - name: Install nightly toolchain
-        run: |
-          rustup install nightly-${{ env.RUST_NIGHTLY_VERSION }} --profile minimal
-          rustup component add rustfmt
+        run: rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rustfmt
 
       - name: Checkout
         uses: actions/checkout@v3

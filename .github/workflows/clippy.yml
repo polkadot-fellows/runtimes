@@ -23,9 +23,7 @@ jobs:
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
       - name: Install nightly toolchain
-        run: |
-          rustup install nightly-${{ env.RUST_NIGHTLY_VERSION }} --profile minimal
-          rustup component add clippy
+        run: rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component clippy
 
       - name: Checkout
         uses: actions/checkout@v3
