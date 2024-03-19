@@ -76,7 +76,7 @@ use parachains_common::{
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee, snowbridge::EthereumNetwork},
+	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
 use xcm::latest::prelude::{AssetId, BodyId};
@@ -398,7 +398,11 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type CreateOrigin = ForeignCreators<
 		(
 			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
-			FromNetwork<xcm_config::UniversalLocation, EthereumNetwork, xcm::v3::Location>,
+			FromNetwork<
+				xcm_config::UniversalLocation,
+				xcm_config::bridging::to_ethereum::EthereumNetwork,
+				xcm::v3::Location,
+			>,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,

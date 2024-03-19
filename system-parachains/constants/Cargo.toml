@@ -17,7 +17,6 @@ polkadot-core-primitives = { default-features = false, version = "8.0.0"}
 polkadot-primitives = { default-features = false , version = "8.0.1" }
 polkadot-runtime-constants = { path = "../../relay/polkadot/constants", default-features = false}
 sp-runtime = { default-features = false , version = "32.0.0" }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
 
 [features]
 default = [ "std" ]
@@ -29,5 +28,4 @@ std = [
 	"polkadot-primitives/std",
 	"polkadot-runtime-constants/std",
 	"sp-runtime/std",
-	"xcm/std",
 ]

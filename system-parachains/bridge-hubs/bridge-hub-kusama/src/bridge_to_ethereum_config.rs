@@ -15,8 +15,8 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{xcm_config::UniversalLocation, Runtime};
+pub use bp_bridge_hub_kusama::snowbridge::EthereumNetwork;
 use snowbridge_router_primitives::outbound::EthereumBlobExporter;
-use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 
 /// Exports message to the Ethereum Gateway contract.
 pub type SnowbridgeExporter = EthereumBlobExporter<

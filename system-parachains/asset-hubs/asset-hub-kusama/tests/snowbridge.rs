@@ -16,12 +16,11 @@
 // limitations under the License.
 
 use asset_hub_kusama_runtime::xcm_config::bridging::{
-	to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable},
+	to_ethereum::{BridgeHubEthereumBaseFee, BridgeTable, EthereumNetwork},
 	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
 use sp_core::H160;
 use sp_std::prelude::*;
-use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, NetworkExportTable};
 

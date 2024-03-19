@@ -164,6 +164,7 @@ pub mod snowbridge {
 	use kusama_runtime_constants::currency::UNITS;
 	use snowbridge_core::{PricingParameters, Rewards, U256};
 	use sp_runtime::FixedU128;
+	use xcm::latest::NetworkId;
 
 	parameter_types! {
 		/// Should match the `ForeignAssets::create` index on Asset Hub.
@@ -189,6 +190,11 @@ pub mod snowbridge {
 				remote: U256::one(),
 			}
 		};
+		/// Network and location for the Ethereum chain. On Kusama, the Ethereum chain bridged
+		/// to is the Ethereum Main network, with chain ID 1.
+		/// <https://chainlist.org/chain/1>
+		/// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
+		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
 	}
 }
 

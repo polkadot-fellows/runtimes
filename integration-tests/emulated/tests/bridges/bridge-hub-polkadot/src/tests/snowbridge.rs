@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
+	BridgeHubEthereumBaseFee, EthereumNetwork,
+};
 use bp_bridge_hub_polkadot::snowbridge::{
 	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance,
 };
@@ -42,7 +44,6 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256};
 use sp_runtime::{DispatchError::Token, TokenError::FundsUnavailable};
-use system_parachains_constants::polkadot::snowbridge::EthereumNetwork;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;

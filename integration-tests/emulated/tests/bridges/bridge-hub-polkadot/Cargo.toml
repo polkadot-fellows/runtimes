@@ -42,7 +42,6 @@ asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hu
 integration-tests-helpers = { path = "../../../helpers" }
 kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
 polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
 
 # Snowbridge
 snowbridge-beacon-primitives = { version = "0.1.0" }

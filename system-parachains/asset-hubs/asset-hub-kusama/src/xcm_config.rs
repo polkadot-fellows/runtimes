@@ -24,7 +24,6 @@ use assets_common::{
 	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
 	TrustBackedAssetsAsLocation,
 };
-use bp_bridge_hub_kusama::snowbridge::InboundQueuePalletInstance;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -44,7 +43,7 @@ use parachains_common::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
-use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
@@ -801,6 +800,8 @@ pub mod bridging {
 
 	pub mod to_ethereum {
 		use super::*;
+		pub use bp_bridge_hub_kusama::snowbridge::EthereumNetwork;
+		use bp_bridge_hub_kusama::snowbridge::InboundQueuePalletInstance;
 
 		parameter_types! {
 			/// User fee for ERC20 token transfer back to Ethereum.

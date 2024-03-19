@@ -30,12 +30,12 @@ use frame_support::{
 	traits::{OnFinalize, OnInitialize},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use polkadot_runtime_constants::currency::UNITS;
 use parachains_common::{AccountId, AuraId, Balance};
 pub use parachains_runtimes_test_utils::test_cases::change_storage_constant_by_governance_works;
 use parachains_runtimes_test_utils::{
 	AccountIdOf, CollatorSessionKeys, ExtBuilder, XcmReceivedFrom,
 };
+use polkadot_runtime_constants::currency::UNITS;
 use snowbridge_core::{gwei, meth, ChannelId, ParaId, Rewards};
 use snowbridge_pallet_ethereum_client::WeightInfo;
 use snowbridge_pallet_system::{
