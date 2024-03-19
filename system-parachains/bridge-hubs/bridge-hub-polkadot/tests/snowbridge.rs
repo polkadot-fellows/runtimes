@@ -30,20 +30,24 @@ use frame_support::{
 	traits::{OnFinalize, OnInitialize},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
+use polkadot_runtime_constants::currency::UNITS;
 use parachains_common::{AccountId, AuraId, Balance};
 pub use parachains_runtimes_test_utils::test_cases::change_storage_constant_by_governance_works;
 use parachains_runtimes_test_utils::{
 	AccountIdOf, CollatorSessionKeys, ExtBuilder, XcmReceivedFrom,
 };
-use snowbridge_core::{ChannelId, ParaId};
+use snowbridge_core::{gwei, meth, ChannelId, ParaId, Rewards};
 use snowbridge_pallet_ethereum_client::WeightInfo;
+use snowbridge_pallet_system::{
+	BalanceOf, PricingParameters, PricingParametersOf, WeightInfo as EthereumSystemWeightInfo,
+};
 use snowbridge_runtime_test_common::initial_fund;
-use sp_core::H160;
+use sp_core::{H160, U256};
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
 	traits::Header,
-	AccountId32, Saturating,
+	AccountId32, FixedU128, Saturating,
 };
 use xcm::{latest::prelude::*, v3::Error};
 use xcm_executor::XcmExecutor;
@@ -103,6 +107,7 @@ pub fn transfer_token_to_ethereum_fee_not_enough() {
 		H160::random(),
 		// fee not enough
 		1_000_000_000,
+		Box::new(|call| RuntimeCall::EthereumSystem(call).encode()),
 		NotHoldingFees,
 	)
 }
@@ -117,6 +122,7 @@ pub fn transfer_token_to_ethereum_insufficient_fund() {
 		H160::random(),
 		H160::random(),
 		DefaultBridgeHubEthereumBaseFee::get(),
+		Box::new(|call| RuntimeCall::EthereumSystem(call).encode()),
 		FailedToTransactAsset("Funds are unavailable"),
 	)
 }
@@ -130,6 +136,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 	weth_contract_address: H160,
 	destination_address: H160,
 	fee_amount: u128,
+	system_call_encode: Box<dyn Fn(snowbridge_pallet_system::Call<Runtime>) -> Vec<u8>>,
 	expected_error: Error,
 ) where
 	Runtime: frame_system::Config
@@ -143,6 +150,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 		+ snowbridge_pallet_system::Config,
 	XcmConfig: xcm_executor::Config,
 	ValidatorIdOf<Runtime>: From<AccountIdOf<Runtime>>,
+	<<Runtime as snowbridge_pallet_system::Config>::Token as frame_support::traits::fungible::Inspect<<Runtime as frame_system::Config>::AccountId>>::Balance: From<u128>
 {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(collator_session_key.collators())
@@ -151,11 +159,34 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 		.with_tracing()
 		.build()
 		.execute_with(|| {
-			<snowbridge_pallet_system::Pallet<Runtime>>::initialize(
+			assert_ok!(<snowbridge_pallet_system::Pallet<Runtime>>::initialize(
 				runtime_para_id.into(),
 				assethub_parachain_id.into(),
+			));
+
+			let require_weight_at_most =
+				<Runtime as snowbridge_pallet_system::Config>::WeightInfo::set_pricing_parameters();
+
+			let set_pricing_parameters_call = system_call_encode(snowbridge_pallet_system::Call::<
+				Runtime,
+			>::set_pricing_parameters {
+				params: {
+					PricingParametersOf::<Runtime> {
+						exchange_rate: FixedU128::from_rational(1, 75),
+						fee_per_gas: gwei(20),
+						rewards: Rewards {
+							local: (1 * UNITS / 100).into(), // 0.01 KSM
+							remote: meth(1),
+						},
+					}
+				},
+			});
+
+			assert_ok!(RuntimeHelper::<Runtime>::execute_as_governance(
+				set_pricing_parameters_call,
+				require_weight_at_most
 			)
-			.unwrap();
+			.ensure_complete());
 
 			// fund asset hub sovereign account enough so it can pay fees
 			initial_fund::<Runtime>(assethub_parachain_id, initial_amount);
