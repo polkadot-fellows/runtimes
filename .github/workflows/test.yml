@@ -74,10 +74,11 @@ jobs:
           rustup install ${{ env.RUST_STABLE_VERSION }}
           rustup default ${{ env.RUST_STABLE_VERSION }}
           rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
 
       - name: Install nightly toolchain
         run: |
-          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal
+          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rust-src
           rustup target add wasm32-unknown-unknown --toolchain "nightly-${{ env.RUST_NIGHTLY_VERSION }}"
 
       - name: Checkout
@@ -131,10 +132,11 @@ jobs:
           rustup install ${{ env.RUST_STABLE_VERSION }}
           rustup default ${{ env.RUST_STABLE_VERSION }}
           rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
 
       - name: Install nightly toolchain
         run: |
-          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal
+          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rust-src
           rustup target add wasm32-unknown-unknown --toolchain "nightly-${{ env.RUST_NIGHTLY_VERSION }}"
 
       - name: Checkout
@@ -177,10 +179,11 @@ jobs:
           rustup install ${{ env.RUST_STABLE_VERSION }}
           rustup default ${{ env.RUST_STABLE_VERSION }}
           rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
 
       - name: Install nightly toolchain
         run: |
-          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal
+          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rust-src
           rustup target add wasm32-unknown-unknown --toolchain "nightly-${{ env.RUST_NIGHTLY_VERSION }}"
 
       - name: Checkout
