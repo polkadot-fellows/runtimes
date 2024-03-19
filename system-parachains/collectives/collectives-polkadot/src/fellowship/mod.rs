@@ -26,7 +26,7 @@ use crate::{
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
-use cumulus_primitives_core::{Junction::GeneralIndex, ParaId};
+use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -274,7 +274,6 @@ parameter_types! {
 	// pallet instance.
 	pub FellowshipTreasuryInteriorLocation: InteriorLocation =
 		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
-	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -353,7 +352,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type Paymaster = FellowshipTreasuryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
-	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, SelfParaId>;
+	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
