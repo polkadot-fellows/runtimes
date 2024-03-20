@@ -364,14 +364,6 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
-}
-
 /// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
 /// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
 /// `HandleFee` implementation.
@@ -384,7 +376,9 @@ impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
 	fn is_waived(origin: Option<&Location>, fee_reason: FeeReason) -> bool {
 		let Some(loc) = origin else { return false };
 		if let Export { network, destination: Here } = fee_reason {
-			return !(network == EthereumNetwork::get())
+			if network == EthereumNetwork::get() {
+				return false
+			}
 		}
 		WaivedLocations::contains(loc)
 	}
@@ -392,4 +386,12 @@ impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
 	fn handle_fee(fee: Assets, context: Option<&XcmContext>, reason: FeeReason) {
 		FeeHandler::handle_fee(fee, context, reason);
 	}
+}
+
+#[test]
+fn treasury_pallet_account_not_none() {
+	assert_eq!(
+		RelayTreasuryPalletAccount::get(),
+		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
+	)
 }

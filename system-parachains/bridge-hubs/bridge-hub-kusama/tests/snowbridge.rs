@@ -18,7 +18,8 @@
 
 use bp_polkadot_core::Signature;
 use bridge_hub_kusama_runtime::{
-	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages, xcm_config::XcmConfig,
+	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
+	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	BridgeRejectObsoleteHeadersAndMessages, Executive, MessageQueueServiceWeight, Runtime,
 	RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra, UncheckedExtrinsic,
 };
@@ -27,7 +28,7 @@ use codec::{Decode, Encode};
 use cumulus_primitives_core::XcmError::{FailedToTransactAsset, NotHoldingFees};
 use frame_support::{
 	assert_err, assert_ok, parameter_types,
-	traits::{OnFinalize, OnInitialize},
+	traits::{Contains, OnFinalize, OnInitialize},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use kusama_runtime_constants::currency::UNITS;
@@ -49,8 +50,13 @@ use sp_runtime::{
 	traits::Header,
 	AccountId32, FixedU128, Saturating,
 };
+use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 use xcm::{latest::prelude::*, v3::Error};
-use xcm_executor::XcmExecutor;
+use xcm_builder::HandleFee;
+use xcm_executor::{
+	traits::{FeeManager, FeeReason},
+	XcmExecutor,
+};
 
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
@@ -126,6 +132,65 @@ pub fn transfer_token_to_ethereum_insufficient_fund() {
 		FailedToTransactAsset("Funds are unavailable"),
 	)
 }
+
+/// Fee is not waived when origin is none.
+#[test]
+fn test_xcm_fee_manager_from_components_bh_origin_none() {
+	assert!(!TestXcmFeeManager::is_waived(None, FeeReason::ChargeFees));
+}
+
+/// Fee is not waived when origin is not in waived location.
+#[test]
+fn test_xcm_fee_manager_from_components_bh_origin_not_in_waived_locations() {
+	assert!(!TestXcmFeeManager::is_waived(
+		Some(&Location::new(1, [Parachain(1)])),
+		FeeReason::DepositReserveAsset
+	));
+}
+
+/// Fee is waived when origin is in waived location.
+#[test]
+fn test_xcm_fee_manager_from_components_bh_origin_in_waived_locations() {
+	assert!(TestXcmFeeManager::is_waived(
+		Some(&Location::new(1, [Parachain(2)])),
+		FeeReason::DepositReserveAsset
+	));
+}
+
+/// Fee is waived when origin is in waived location with Export message, but not to Ethereum.
+#[test]
+fn test_xcm_fee_manager_from_components_bh_origin_in_waived_locations_with_export_to_polkadot_reason(
+) {
+	assert!(TestXcmFeeManager::is_waived(
+		Some(&Location::new(1, [Parachain(2)])),
+		FeeReason::Export { network: Polkadot, destination: Here }
+	));
+}
+
+/// Fee is not waived when origin is in waived location but exported to Ethereum.
+#[test]
+fn test_xcm_fee_manager_from_components_bh_in_waived_locations_with_export_to_ethereum_reason() {
+	assert!(!TestXcmFeeManager::is_waived(
+		Some(&Location::new(1, [Parachain(1)])),
+		FeeReason::Export { network: EthereumNetwork::get(), destination: Here }
+	));
+}
+
+struct MockWaivedLocations;
+impl Contains<Location> for MockWaivedLocations {
+	fn contains(loc: &Location) -> bool {
+		loc == &Location::new(1, [Parachain(2)])
+	}
+}
+
+struct MockFeeHandler;
+impl HandleFee for MockFeeHandler {
+	fn handle_fee(fee: Assets, _context: Option<&XcmContext>, _reason: FeeReason) -> Assets {
+		fee
+	}
+}
+
+type TestXcmFeeManager = XcmFeeManagerFromComponentsBridgeHub<MockWaivedLocations, MockFeeHandler>;
 
 #[allow(clippy::too_many_arguments)]
 pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
