@@ -27,9 +27,7 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use bp_bridge_hub_kusama::snowbridge::{
-	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance, Parameters,
-};
+use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
@@ -565,7 +563,7 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type Helper = Runtime;
 	type MessageConverter = MessageToXcm<
 		CreateAssetCall,
-		CreateAssetDeposit,
+		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
 		InboundQueuePalletInstance,
 		AccountId,
 		Balance,
@@ -1369,6 +1367,14 @@ cumulus_pallet_parachain_system::register_validate_block! {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+		assert_eq!(
+			InboundQueuePalletInstance::get(),
+			<EthereumInboundQueue as frame_support::traits::PalletInfoAccess>::index() as u8
+		);
+	}
 
 	#[test]
 	fn test_transasction_byte_fee_is_one_tenth_of_relay() {

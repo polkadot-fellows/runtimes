@@ -15,6 +15,7 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+	bridge_to_ethereum_config::EthereumNetwork,
 	bridge_to_polkadot_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubPolkadotHaulBlobExporter,
 	},
@@ -39,7 +40,7 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_runtime::traits::AccountIdConversion;
 use sp_std::marker::PhantomData;
-use system_parachains_constants::{kusama::snowbridge::EthereumNetwork, TREASURY_PALLET_ID};
+use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,

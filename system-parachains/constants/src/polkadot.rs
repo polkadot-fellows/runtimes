@@ -151,16 +151,3 @@ pub mod fee {
 		}
 	}
 }
-
-pub mod snowbridge {
-	use frame_support::parameter_types;
-	use xcm::opaque::lts::NetworkId;
-
-	parameter_types! {
-		/// Network and location for the Ethereum chain. On Polkadot, the Ethereum chain bridged
-		/// to is the Ethereum Main network, with chain ID 1.
-		/// <https://chainlist.org/chain/1>
-		/// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
-	}
-}

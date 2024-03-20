@@ -1227,6 +1227,7 @@ dependencies = [
  "scale-info",
  "sp-std",
  "staging-xcm",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1239,6 +1240,7 @@ dependencies = [
  "scale-info",
  "sp-std",
  "staging-xcm",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1271,6 +1273,7 @@ dependencies = [
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "staging-xcm",
  "system-parachains-constants",
 ]
 
@@ -1288,6 +1291,7 @@ dependencies = [
  "sp-api",
  "sp-runtime",
  "sp-std",
+ "staging-xcm",
  "system-parachains-constants",
 ]
 
@@ -1536,7 +1540,6 @@ dependencies = [
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-executor",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -1687,7 +1690,6 @@ dependencies = [
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-executor",
- "system-parachains-constants",
 ]
 
 [[package]]
@@ -14625,7 +14627,6 @@ dependencies = [
  "polkadot-runtime-constants",
  "smallvec",
  "sp-runtime",
- "staging-xcm",
 ]
 
 [[package]]

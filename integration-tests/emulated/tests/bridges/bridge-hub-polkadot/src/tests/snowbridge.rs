@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthereumBaseFee;
-use bp_bridge_hub_polkadot::snowbridge::{
-	CreateAssetCall, CreateAssetDeposit, InboundQueuePalletInstance,
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::{
+	BridgeHubEthereumBaseFee, EthereumNetwork,
 };
+use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
 	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, Runtime, RuntimeOrigin,
 };
@@ -46,7 +46,7 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
-use system_parachains_constants::polkadot::{currency::UNITS, snowbridge::EthereumNetwork};
+use system_parachains_constants::polkadot::currency::UNITS;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const CHAIN_ID: u64 = 1;
@@ -666,26 +666,6 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 	assert!(
 		call_create_foreign_assets.starts_with(&bridge_hub_inbound_queue_assets_pallet_call_index)
 	);
-}
-
-/// Tests that the EthereumInboundQueue CreateAssetDeposit on BridgeHub is larger than the
-/// ForeignAssets AssetDeposit config on AssetHub.
-#[test]
-fn bridge_hub_inbound_queue_deposit_config_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
-	let asset_deposit = asset_hub_polkadot_runtime::ForeignAssetsAssetDeposit::get();
-
-	let bridge_hub_inbound_queue_asset_deposit = CreateAssetDeposit::get();
-
-	assert_eq!(bridge_hub_inbound_queue_asset_deposit, asset_deposit);
-}
-
-/// Tests the EthereumInboundQueue pallet index matches the pallet constant.
-#[test]
-fn bridge_hub_inbound_queue_pallet_index_is_correct() {
-	let inbound_queue_inbound_queue_pallet_index =
-		<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumInboundQueue::index();
-
-	assert_eq!(inbound_queue_inbound_queue_pallet_index as u8, InboundQueuePalletInstance::get());
 }
 
 fn ethereum_sovereign_account() -> AccountId {

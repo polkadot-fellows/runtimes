@@ -113,7 +113,7 @@ use parachains_common::{
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee, snowbridge::EthereumNetwork},
+	polkadot::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
 use xcm::latest::prelude::{AssetId, BodyId};
@@ -328,7 +328,11 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type CreateOrigin = ForeignCreators<
 		(
 			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
-			FromNetwork<xcm_config::UniversalLocation, EthereumNetwork, xcm::v3::Location>,
+			FromNetwork<
+				xcm_config::UniversalLocation,
+				xcm_config::bridging::to_ethereum::EthereumNetwork,
+				xcm::v3::Location,
+			>,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
@@ -1716,5 +1720,13 @@ mod tests {
 		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
 		assert_eq!(relay_tbf / 10, parachain_tbf);
+	}
+
+	#[test]
+	fn create_foreign_asset_deposit_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
+		assert_eq!(
+			bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
+			ForeignAssetsAssetDeposit::get()
+		);
 	}
 }
