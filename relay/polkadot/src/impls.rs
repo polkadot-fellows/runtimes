@@ -20,6 +20,7 @@ use frame_support::traits::{tokens::ConversionFromAssetBalance, Contains};
 use primitives::Id as ParaId;
 use xcm_builder::IsChildSystemParachain;
 
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
 /// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
 /// conversion; otherwise, delegates to the implementation specified by `I`.
 /// Example where the `asset_kind` represents the native asset:

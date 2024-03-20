@@ -164,6 +164,7 @@ impl PrivilegeCmp<OriginCaller> for EqualOrGreatestRootCmp {
 	}
 }
 
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
 /// Contains a system-level sibling parachain.
 pub struct IsSiblingSystemParachain<ParaId, SelfParaId>(PhantomData<(ParaId, SelfParaId)>);
 impl<ParaId: IsSystem + From<u32> + Eq, SelfParaId: Get<ParaId>> Contains<Location>
@@ -177,6 +178,7 @@ impl<ParaId: IsSystem + From<u32> + Eq, SelfParaId: Get<ParaId>> Contains<Locati
 	}
 }
 
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
 /// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
 /// conversion; otherwise, delegates to the implementation specified by `I`.
 pub struct NativeOnSiblingParachain<I, SelfParaId>(PhantomData<(I, SelfParaId)>);
