@@ -17,7 +17,7 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #		pub UniversalLocationAHK: InteriorLocation = [GlobalConsensus(Kusama), Parachain(1000)].into();
 #	}
 #
-#	// SS58=42
+#
 #	println!(
 #		"GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -26,8 +26,9 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #			)
 #			.unwrap()
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(2_u16.into())
 #	);
+#
 #	println!(
 #		"ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -37,10 +38,10 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #			})
 #			.unwrap()
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(2_u16.into())
 #	);
 #
-#	// SS58=42
+#
 #	println!(
 #		"GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -49,7 +50,7 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #			)
 #			.unwrap()
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(0_u16.into())
 #	);
 #	println!(
 #		"ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT=\"{}\"",
@@ -60,13 +61,13 @@ source "$FRAMEWORK_PATH/utils/bridges.sh"
 #			})
 #			.unwrap()
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(0_u16.into())
 #	);
 #}
-GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT="5FTE4TA2xpQU5eKJhEn13NkFvEopH2RZirwn1Kcvs5FMWkNp"
-ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA="5Eg2fntNprdN3FgH4sfEaaZhYtddZQSQUqvYJ1f2mLtinVhV"
-GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT="5G4KKqSKDkiMGiPzCQY12dSB15aBikyNQJL9VDmbMH4SxiWD"
-ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sfEaaZhYtddZQSQUqvYJ1f2mLtinVhV"
+GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT="FxqimVubBRPqJ8kTwb3wL7G4q645hEkBEnXPyttLsTrFc5Q"
+ASSET_HUB_KUSAMA_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_KUSAMA="FBeL7EFTDeHnuViqaUHUXvhhUusN5FawDmHgfvzF97DXFr3"
+GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT="14zcUAhP5XypiFQWA3b1AnGKrhZqR4XWUo4deWkwuN5y983G"
+ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="13cKp89SgdtqUngo2WiEijPrQWdHFhzYZLf2TJePKRvExk7o"
 
 # Expected sovereign accounts for rewards on BridgeHubs.
 #
@@ -77,7 +78,6 @@ ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sf
 #	use bp_relayers::{PayRewardFromAccount, RewardsAccountOwner, RewardsAccountParams};
 #	use sp_core::crypto::Ss58Codec;
 #
-#	// SS58=42
 #	println!(
 #		"ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_ThisChain=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -87,9 +87,9 @@ ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sf
 #				RewardsAccountOwner::ThisChain
 #			))
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(0_u16.into())
 #	);
-#	// SS58=42
+#
 #	println!(
 #		"ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_BridgedChain=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -99,10 +99,10 @@ ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sf
 #				RewardsAccountOwner::BridgedChain
 #			))
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(0_u16.into())
 #	);
 #
-#	// SS58=42
+#
 #	println!(
 #		"ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_ThisChain=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -112,9 +112,9 @@ ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sf
 #				RewardsAccountOwner::ThisChain
 #			))
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(2_u16.into())
 #	);
-#	// SS58=42
+#
 #	println!(
 #		"ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain=\"{}\"",
 #		frame_support::sp_runtime::AccountId32::new(
@@ -124,13 +124,13 @@ ASSET_HUB_POLKADOT_SOVEREIGN_ACCOUNT_AT_BRIDGE_HUB_POLKADOT="5Eg2fntNprdN3FgH4sf
 #				RewardsAccountOwner::BridgedChain
 #			))
 #		)
-#		.to_ss58check_with_version(42_u16.into())
+#		.to_ss58check_with_version(2_u16.into())
 #	);
 #}
-ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_ThisChain="5EHnXaT5BhiS8YRNGGyLGaERdZBe6nzHA9KHvuCazYorfJbh"
-ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_BridgedChain="5EHnXaT5BhiS8YRNGGyc1bn1k3rqZM69tpFoUqtRTNgavnMu"
-ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_ThisChain="5EHnXaT5BhiS8YRNiQP5EtxrqWfn2gNWacGKKvzVN6Lw3cPV"
-ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain="5EHnXaT5BhiS8YRNiQPLyvWSx1LyVEUPKHCpssgKpvDfKRrY"
+ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_ThisChain="13E5fui93Uyua5RtDv2LQj4aVBBHo6YREe3n6CBwYdqNqoxj"
+ON_BRIDGE_HUB_POLKADOT_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhks_BridgedChain="13E5fui93Uyua5RtDv2c9kcAbfrVFeeHyJzHe8sn1Ti77Afd"
+ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_ThisChain="EoQBtnwp4jMtCEpV7C88rKrz6x1qMBh2z74ibGSqtZRnuMM"
+ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain="EoQBtnwp4jMtCEpV7CPsssT6bdDHuHZmf3aGXxHJiSA4Dz3"
 
 LANE_ID="00000001"
 XCM_VERSION=3
