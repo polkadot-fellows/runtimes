@@ -574,6 +574,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "integration-tests-helpers",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-message-queue",
@@ -620,7 +621,8 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
- "pallet-asset-tx-payment",
+ "pallet-asset-conversion",
+ "pallet-asset-conversion-tx-payment",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
@@ -647,6 +649,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
+ "primitive-types",
  "scale-info",
  "sp-api",
  "sp-block-builder",
@@ -1335,6 +1338,7 @@ dependencies = [
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
  "kusama-system-emulated-network",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-bridge-messages",
@@ -1456,6 +1460,7 @@ dependencies = [
  "frame-support",
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-bridge-messages",
@@ -8072,9 +8077,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "8.0.2"
+version = "8.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32aa4911002f03a8aebd897e094980e7a9fb25d092e0f8db38e76e1e4f643ee"
+checksum = "0493c09d29fefc62579284b596618fcceb68fdb3dd38de79fe3c922a19916249"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",

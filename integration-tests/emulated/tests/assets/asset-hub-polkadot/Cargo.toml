@@ -16,13 +16,14 @@ sp-runtime = { version = "32.0.0" }
 frame-support = { version = "29.0.0" }
 pallet-balances = { version = "29.0.0" }
 pallet-assets = { version = "30.0.0" }
+pallet-asset-conversion = { version = "11.0.0" }
 pallet-treasury = { version = "28.0.0" }
 pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
 polkadot-runtime-common = { version = "8.0.1" }
 xcm = { package = "staging-xcm", version = "8.0.1" }
-pallet-xcm = { version = "8.0.2" }
+pallet-xcm = { version = "8.0.3" }
 xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
 
 # Cumulus

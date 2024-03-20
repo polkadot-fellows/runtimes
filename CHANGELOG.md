@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Upgrade encointer protocol to 6.1.0 ([polkadot-fellows/runtimes#236](https://github.com/polkadot-fellows/runtimes/pull/236))
 - Update NFT deposits according to RFC-45 ([polkadot-fellows/runtimes#237](https://github.com/polkadot-fellows/runtimes/pull/237))
 - Add Kusama People Chain ([polkadot-fellows/runtimes#217](https://github.com/polkadot-fellows/runtimes/pull/217))
+- Asset Conversion setup for Polkadot Asset Hub, and XCM Swap Weight Trader for both Asset Hubs ([polkadot-fellows/runtimes#218](https://github.com/polkadot-fellows/runtimes/pull/218))
 
 ### Changed
 
@@ -33,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use Relay Chain's Treasury Pallet account as a destination for XCM fees on System Parachain ([polkadot-fellows/runtimes#191](https://github.com/polkadot-fellows/runtimes/pull/191))
 - Bump parachains runtime API to v10 in Polkadot to enable async-backing subsystems(still in backwards compatible mode) [polkadot-fellows/runtimes#222](https://github.com/polkadot-fellows/runtimes/pull/222)
 - Prepared system parachain runtimes for async backing enabling ([polkadot-fellows/runtimes#228](https://github.com/polkadot-fellows/runtimes/pull/228))
+- Update runtime weights [polkadot-fellows/runtimes#223](https://github.com/polkadot-fellows/runtimes/pull/223)
 - Treasury Spend detects relative locations of the native asset ([polkadot-fellows/runtimes#233](https://github.com/polkadot-fellows/runtimes/pull/233))
 
 ### Removed

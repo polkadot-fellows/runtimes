@@ -45,6 +45,8 @@ decl_test_parachains! {
 			Balances: asset_hub_polkadot_runtime::Balances,
 			Assets: asset_hub_polkadot_runtime::Assets,
 			ForeignAssets: asset_hub_polkadot_runtime::ForeignAssets,
+			PoolAssets: asset_hub_polkadot_runtime::PoolAssets,
+			AssetConversion: asset_hub_polkadot_runtime::AssetConversion,
 		}
 	},
 }
