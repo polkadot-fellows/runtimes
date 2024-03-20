@@ -1539,6 +1539,7 @@ dependencies = [
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-executor",
+ "system-parachains-constants",
 ]
 
 [[package]]
@@ -1687,6 +1688,7 @@ dependencies = [
  "sp-runtime",
  "staging-xcm",
  "staging-xcm-executor",
+ "system-parachains-constants",
 ]
 
 [[package]]
