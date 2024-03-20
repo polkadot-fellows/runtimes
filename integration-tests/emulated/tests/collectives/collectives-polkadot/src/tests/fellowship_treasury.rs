@@ -17,7 +17,8 @@ use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId as AssetHubLocationToAccountId;
 use emulated_integration_tests_common::accounts::ALICE;
 use frame_support::{
-	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Inspect,
+	assert_ok, dispatch::RawOrigin, instances::Instance1, sp_runtime::traits::Dispatchable,
+	traits::fungible::Inspect,
 };
 use polkadot_runtime::OriginCaller;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
