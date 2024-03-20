@@ -18,6 +18,7 @@
 
 use bp_polkadot_core::Signature;
 use bridge_hub_kusama_runtime::{
+	bridge_to_ethereum_config::EthereumNetwork,
 	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	BridgeRejectObsoleteHeadersAndMessages, Executive, MessageQueueServiceWeight, Runtime,
@@ -48,7 +49,6 @@ use sp_runtime::{
 	traits::Header,
 	AccountId32, FixedU128, Saturating,
 };
-use system_parachains_constants::kusama::snowbridge::EthereumNetwork;
 use xcm::{latest::prelude::*, v3::Error};
 use xcm_builder::HandleFee;
 use xcm_executor::{
