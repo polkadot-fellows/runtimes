@@ -21,14 +21,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-/// Provides the `WASM_BINARY` build with `fast-runtime` feature enabled.
-///
-/// This is for example useful for local test chains.
-#[cfg(feature = "std")]
-pub mod fast_runtime_binary {
-	include!(concat!(env!("OUT_DIR"), "/fast_runtime_binary.rs"));
-}
-
 mod coretime;
 #[cfg(test)]
 mod tests;
