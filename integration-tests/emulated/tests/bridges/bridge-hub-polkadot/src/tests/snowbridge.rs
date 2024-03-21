@@ -22,7 +22,7 @@ use bridge_hub_polkadot_runtime::{
 };
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use frame_support::{pallet_prelude::TypeInfo, traits::PalletInfoAccess};
+use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use polkadot_system_emulated_network::{
 	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,

@@ -68,8 +68,6 @@ use frame_system::{
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
-#[cfg(not(feature = "runtime-benchmarks"))]
-use xcm_config::XcmRouter;
 use xcm_config::{
 	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
 };
@@ -95,9 +93,6 @@ use system_parachains_constants::{
 
 // XCM Imports
 use xcm::prelude::*;
-
-#[cfg(feature = "runtime-benchmarks")]
-use benchmark_helpers::DoNothingRouter;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -554,9 +549,9 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
 	type Token = Balances;
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type XcmSender = XcmRouter;
+	type XcmSender = xcm_config::XcmRouter;
 	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = DoNothingRouter;
+	type XcmSender = benchmark_helpers::DoNothingRouter;
 	type ChannelLookup = EthereumSystem;
 	type GatewayAddress = EthereumGatewayAddress;
 	#[cfg(feature = "runtime-benchmarks")]

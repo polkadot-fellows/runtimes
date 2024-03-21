@@ -35,13 +35,14 @@ cumulus-pallet-xcmp-queue = { version = "0.8.0" }
 bp-messages = { version = "0.8.0" }
 pallet-bridge-messages = { version = "0.8.0" }
 
-# Runtimes
+# Local
 bp-bridge-hub-polkadot = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot/primitives"}
 bridge-hub-polkadot-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
 integration-tests-helpers = { path = "../../../helpers" }
 kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
 polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
+system-parachains-constants = { path = "../../../../../system-parachains/constants" }
 
 # Snowbridge
 snowbridge-beacon-primitives = { version = "0.1.0" }
@@ -49,5 +50,4 @@ snowbridge-core = { version = "0.1.0" }
 snowbridge-router-primitives = { version = "0.1.0" }
 snowbridge-pallet-system = { version = "0.1.0" }
 snowbridge-pallet-outbound-queue = { version = "0.1.0" }
-snowbridge-pallet-inbound-queue = { version = "0.1.0" }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.9.0" }
