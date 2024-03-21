@@ -798,9 +798,9 @@ pub mod bridging {
 		use bp_bridge_hub_polkadot::snowbridge::InboundQueuePalletInstance;
 
 		parameter_types! {
-			/// User fee for ERC20 token transfer back to Ethereum.
-			/// Configure the fee to max Balance so that it is disabled.
-			/// Sensible value was 27_508_725_000.
+			/// User fee for transfers from Polkadot to Ethereum.
+			/// The fee is set to max Balance to disable the bridge until a fee is set by
+			/// governance.
 			pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
 			pub storage BridgeHubEthereumBaseFee: Balance = DefaultBridgeHubEthereumBaseFee::get();
 			pub SiblingBridgeHubWithEthereumInboundQueueInstance: Location = Location::new(
