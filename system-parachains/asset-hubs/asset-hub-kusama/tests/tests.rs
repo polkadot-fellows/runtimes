@@ -706,3 +706,29 @@ fn treasury_pallet_account_not_none() {
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
 }
+
+#[test]
+fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
+	asset_test_utils::test_cases::change_storage_constant_by_governance_works::<
+		Runtime,
+		bridging::to_ethereum::BridgeHubEthereumBaseFee,
+		Balance,
+	>(
+		collator_session_keys(),
+		1000,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| {
+			(
+				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),
+				bridging::to_ethereum::BridgeHubEthereumBaseFee::get(),
+			)
+		},
+		|old_value| {
+			if let Some(new_value) = old_value.checked_add(1) {
+				new_value
+			} else {
+				old_value.checked_sub(1).unwrap()
+			}
+		},
+	)
+}

@@ -15,12 +15,13 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
+	bridge_to_ethereum_config::EthereumNetwork,
 	bridge_to_kusama_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubKusamaHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
-	XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -37,21 +38,23 @@ use parachains_common::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
+use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_runtime::traits::AccountIdConversion;
+use sp_std::marker::PhantomData;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
+	FungibleAdapter, HandleFee, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	XcmFeeToAccount,
 };
 use xcm_executor::{
-	traits::{ConvertLocation, WithOriginFilter},
+	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
 	XcmExecutor,
 };
 
@@ -171,7 +174,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 			RuntimeCall::System(frame_system::Call::set_storage { items })
 				if items.iter().all(|(k, _)| {
 					k.eq(&DeliveryRewardInBalance::key()) ||
-						k.eq(&RequiredStakeForStakeAndSlash::key())
+						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
+						k.eq(&EthereumGatewayAddress::key())
 				}) =>
 				return true,
 			_ => (),
@@ -216,7 +220,22 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				RuntimeCall::BridgeKusamaMessages(pallet_bridge_messages::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
-				>::set_operating_mode { .. })
+				>::set_operating_mode { .. }) |
+				RuntimeCall::EthereumBeaconClient(
+					snowbridge_pallet_ethereum_client::Call::force_checkpoint { .. } |
+						snowbridge_pallet_ethereum_client::Call::set_operating_mode { .. },
+				) | RuntimeCall::EthereumInboundQueue(
+				snowbridge_pallet_inbound_queue::Call::set_operating_mode { .. },
+			) | RuntimeCall::EthereumOutboundQueue(
+				snowbridge_pallet_outbound_queue::Call::set_operating_mode { .. },
+			) | RuntimeCall::EthereumSystem(
+				snowbridge_pallet_system::Call::upgrade { .. } |
+					snowbridge_pallet_system::Call::set_operating_mode { .. } |
+					snowbridge_pallet_system::Call::set_pricing_parameters { .. } |
+					snowbridge_pallet_system::Call::force_update_channel { .. } |
+					snowbridge_pallet_system::Call::force_transfer_native_from_agent { .. } |
+					snowbridge_pallet_system::Call::set_token_transfer_fees { .. },
+			)
 		)
 	}
 }
@@ -291,11 +310,22 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type FeeManager = XcmFeeManagerFromComponents<
+	type FeeManager = XcmFeeManagerFromComponentsBridgeHub<
 		WaivedLocations,
-		XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
+		(
+			XcmExportFeeToSibling<
+				bp_polkadot::Balance,
+				AccountId,
+				DotRelayLocation,
+				EthereumNetwork,
+				Self::AssetTransactor,
+				crate::EthereumOutboundQueue,
+			>,
+			XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
+		),
 	>;
-	type MessageExporter = ToBridgeHubKusamaHaulBlobExporter;
+	type MessageExporter =
+		(ToBridgeHubKusamaHaulBlobExporter, crate::bridge_to_ethereum_config::SnowbridgeExporter);
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
 	type SafeCallFilter = SafeCallFilter;
@@ -352,4 +382,28 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
+}
+
+/// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
+/// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
+/// `HandleFee` implementation.
+pub struct XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, HandleFee>(
+	PhantomData<(WaivedLocations, HandleFee)>,
+);
+impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
+	for XcmFeeManagerFromComponentsBridgeHub<WaivedLocations, FeeHandler>
+{
+	fn is_waived(origin: Option<&Location>, fee_reason: FeeReason) -> bool {
+		let Some(loc) = origin else { return false };
+		if let Export { network, destination: Here } = fee_reason {
+			if network == EthereumNetwork::get() {
+				return false
+			}
+		}
+		WaivedLocations::contains(loc)
+	}
+
+	fn handle_fee(fee: Assets, context: Option<&XcmContext>, reason: FeeReason) {
+		FeeHandler::handle_fee(fee, context, reason);
+	}
 }
