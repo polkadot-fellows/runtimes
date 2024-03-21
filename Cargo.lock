@@ -6649,9 +6649,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-authority-discovery"
-version = "29.0.0"
+version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904f83f518b396c4fd1634fb675a36db0841f22420d3aa664bc154bee6035f57"
+checksum = "7cd9a381c613e6538638391fb51f353fd13b16f849d0d1ac66a388326bd456f1"
 dependencies = [
  "frame-support",
  "frame-system",
