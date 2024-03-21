@@ -24,6 +24,8 @@ use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
 
+use system_parachains_constants::polkadot::currency::UNITS;
+
 /// `AssetHubPolkadot` Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to `AssetHubPolkadot` chain.
@@ -48,6 +50,9 @@ frame_support::parameter_types! {
 	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
 	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
 	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
+
+	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
+	pub const CreateForeignAssetDeposit: u128 = 10 * UNITS;
 }
 
 fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {

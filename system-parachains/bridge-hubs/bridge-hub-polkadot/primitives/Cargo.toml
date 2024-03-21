@@ -18,12 +18,16 @@ system-parachains-constants = { path = "../../../constants", default-features = 
 bp-bridge-hub-cumulus = { default-features = false , version = "0.8.0" }
 bp-runtime = { default-features = false , version = "0.8.0" }
 bp-messages = { default-features = false , version = "0.8.0" }
+snowbridge-core = { default-features = false , version = "0.1.0" }
 
 # Substrate Based Dependencies
 frame-support = { default-features = false, version = "29.0.0" }
 sp-api = { default-features = false, version = "27.0.0" }
 sp-runtime = { default-features = false, version = "32.0.0" }
 sp-std = { default-features = false , version = "14.0.0" }
+
+# Polkadot
+xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
 
 [features]
 default = [ "std" ]
@@ -38,4 +42,5 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"system-parachains-constants/std",
+	"xcm/std",
 ]
