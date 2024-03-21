@@ -21,8 +21,9 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumNetwork,
 	bridge_to_kusama_config::RefundBridgeHubKusamaMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
-	BridgeRejectObsoleteHeadersAndMessages, Executive, MessageQueueServiceWeight, Runtime,
-	RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra, UncheckedExtrinsic,
+	BridgeRejectObsoleteHeadersAndMessages, EthereumGatewayAddress, Executive,
+	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
+	UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::ValidatorIdOf;
 use codec::{Decode, Encode};
@@ -128,6 +129,17 @@ pub fn transfer_token_to_ethereum_insufficient_fund() {
 		DefaultBridgeHubEthereumBaseFee::get(),
 		Box::new(|call| RuntimeCall::EthereumSystem(call).encode()),
 		FailedToTransactAsset("Funds are unavailable"),
+	)
+}
+
+#[test]
+fn change_ethereum_gateway_by_governance_works() {
+	change_storage_constant_by_governance_works::<Runtime, EthereumGatewayAddress, H160>(
+		collator_session_keys(),
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		Box::new(|call| RuntimeCall::System(call).encode()),
+		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
+		|_| [1; 20].into(),
 	)
 }
 
