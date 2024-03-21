@@ -245,5 +245,8 @@ impl pallet_broker::Config for Runtime {
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type PriceAdapter = pallet_broker::Linear;
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type PriceAdapter = PriceAdapter;
 }
