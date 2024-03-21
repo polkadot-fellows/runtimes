@@ -17,7 +17,7 @@ frame-support = { version = "29.0.0" }
 parachains-common = { version = "8.0.0" }
 cumulus-primitives-core = { version = "0.8.0" }
 emulated-integration-tests-common = { version = "4.0.0" }
-penpal-runtime = { version = "0.15.0", features = ["experimental"] }
+penpal-runtime = { version = "0.15.1", features = ["experimental"] }
 
 # Runtimes
 kusama-emulated-chain = { path = "../../../relays/kusama" }
