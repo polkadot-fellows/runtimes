@@ -181,10 +181,10 @@ jobs:
           rustup target add wasm32-unknown-unknown
           rustup component add rust-src
 
-      - name: Install nightly toolchain
-        run: |
-          rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rust-src
-          rustup target add wasm32-unknown-unknown --toolchain "nightly-${{ env.RUST_NIGHTLY_VERSION }}"
+      # - name: Install nightly toolchain
+      #   run: |
+      #     rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component rust-src
+      #     rustup target add wasm32-unknown-unknown --toolchain "nightly-${{ env.RUST_NIGHTLY_VERSION }}"
 
       - name: Checkout
         uses: actions/checkout@v3
