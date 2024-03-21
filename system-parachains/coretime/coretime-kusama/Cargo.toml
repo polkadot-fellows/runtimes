@@ -9,12 +9,11 @@ license.workspace = true
 build = "build.rs"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
 hex-literal = "0.4.1"
 log = { version = "0.4.20", default-features = false }
-scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
-serde = { version = "1.0.195", optional = true, features = ["derive"] }
-smallvec = "1.11.1"
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.196", optional = true, features = ["derive"] }
 
 # Local
 kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
@@ -28,7 +27,7 @@ frame-system = { default-features = false , version = "29.0.0" }
 frame-system-benchmarking = { default-features = false, optional = true , version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false , version = "27.0.0" }
 frame-try-runtime = { default-features = false, optional = true , version = "0.35.0" }
-pallet-aura = { default-features = false, version = "28.0.0" }
+pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
 pallet-authorship = { default-features = false , version = "29.0.0" }
 pallet-balances = { default-features = false , version = "29.0.0" }
 pallet-message-queue = { default-features = false , version = "32.0.0" }
@@ -55,12 +54,12 @@ sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.1" }
+pallet-xcm = { default-features = false, version = "8.0.3" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
 polkadot-runtime-common = { default-features = false, version = "8.0.1" }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.0" }
+xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
@@ -69,7 +68,7 @@ cumulus-pallet-aura-ext = { default-features = false , version = "0.8.0" }
 cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
 cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
 cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
-cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.8.0" }
+cumulus-pallet-xcmp-queue = { default-features = false , version = "0.8.0" }
 cumulus-primitives-aura = { default-features = false, version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
