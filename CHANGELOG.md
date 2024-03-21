@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update NFT deposits according to RFC-45 ([polkadot-fellows/runtimes#237](https://github.com/polkadot-fellows/runtimes/pull/237))
 - Add Kusama People Chain ([polkadot-fellows/runtimes#217](https://github.com/polkadot-fellows/runtimes/pull/217))
 - Asset Conversion setup for Polkadot Asset Hub, and XCM Swap Weight Trader for both Asset Hubs ([polkadot-fellows/runtimes#218](https://github.com/polkadot-fellows/runtimes/pull/218))
+- Adds Snowbridge to Kusama and Polkadot ([polkadot-fellows/runtimes#130](https://github.com/polkadot-fellows/runtimes/pull/130))
 - Add the Kusama Coretime Chain ([polkadot-fellows/runtimes#212](https://github.com/polkadot-fellows/runtimes/pull/212))
 
 ### Changed
