@@ -66,7 +66,7 @@ pub mod xcm_config;
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
-	matching::FromSiblingParachain,
+	matching::{FromNetwork, FromSiblingParachain},
 	AssetIdForTrustBackedAssetsConvert,
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
@@ -326,7 +326,14 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type AssetIdParameter = xcm::v3::Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
-		(FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,),
+		(
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
+			FromNetwork<
+				xcm_config::UniversalLocation,
+				xcm_config::bridging::to_ethereum::EthereumNetwork,
+				xcm::v3::Location,
+			>,
+		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
 		xcm::v3::Location,
@@ -1713,5 +1720,13 @@ mod tests {
 		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
 		assert_eq!(relay_tbf / 10, parachain_tbf);
+	}
+
+	#[test]
+	fn create_foreign_asset_deposit_is_equal_to_asset_hub_foreign_asset_pallet_deposit() {
+		assert_eq!(
+			bp_asset_hub_polkadot::CreateForeignAssetDeposit::get(),
+			ForeignAssetsAssetDeposit::get()
+		);
 	}
 }

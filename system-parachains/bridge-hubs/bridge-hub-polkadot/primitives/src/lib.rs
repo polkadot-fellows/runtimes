@@ -89,7 +89,7 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 115_909_500;
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 177_594_900;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
@@ -147,6 +147,43 @@ fn convert_from_uksm_to_udot(price_in_uksm: Balance) -> Balance {
 		.saturating_mul(FixedU128::saturating_from_integer(price_in_uksm))
 		.into_inner() /
 		FixedU128::DIV
+}
+
+pub mod snowbridge {
+	use crate::Balance;
+	use frame_support::parameter_types;
+	use snowbridge_core::{PricingParameters, Rewards, U256};
+	use sp_runtime::FixedU128;
+	use xcm::latest::NetworkId;
+
+	parameter_types! {
+		/// Should match the `ForeignAssets::create` index on Asset Hub.
+		pub const CreateAssetCall: [u8;2] = [53, 0];
+		/// The pallet index of the Ethereum inbound queue pallet in the Bridge Hub runtime.
+		pub const InboundQueuePalletInstance: u8 = 80;
+		/// Default pricing parameters used to calculate bridging fees. Initialized to unit values,
+		/// as it is intended that these parameters should be updated with more
+		/// accurate values prior to bridge activation. This can be performed
+		/// using the `EthereumSystem::set_pricing_parameters` governance extrinsic.
+		pub Parameters: PricingParameters<Balance> = PricingParameters {
+			// ETH/DOT exchange rate
+			exchange_rate: FixedU128::from_rational(1, 1),
+			// Ether fee per gas unit
+			fee_per_gas: U256::one(),
+			// Relayer rewards
+			rewards: Rewards {
+				// Reward for submitting a message to BridgeHub
+				local: 1,
+				// Reward for submitting a message to the Gateway contract on Ethereum
+				remote: U256::one(),
+			}
+		};
+		/// Network and location for the Ethereum chain. On Polkadot, the Ethereum chain bridged
+		/// to is the Ethereum Main network, with chain ID 1.
+		/// <https://chainlist.org/chain/1>
+		/// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
+		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+	}
 }
 
 #[cfg(test)]

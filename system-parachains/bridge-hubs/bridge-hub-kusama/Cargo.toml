@@ -60,7 +60,7 @@ sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.2" }
+pallet-xcm = { default-features = false, version = "8.0.3" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
@@ -93,6 +93,7 @@ bp-relayers = { default-features = false , version = "0.8.0" }
 bp-runtime = { default-features = false , version = "0.8.0" }
 bp-kusama = { default-features = false , version = "0.6.0" }
 bp-polkadot = { default-features = false , version = "0.6.0" }
+bridge-hub-common = { default-features = false , version = "0.1.0" }
 bridge-runtime-common = { default-features = false , version = "0.8.0" }
 pallet-bridge-grandpa = { default-features = false , version = "0.8.0" }
 pallet-bridge-messages = { default-features = false , version = "0.8.0" }
@@ -100,11 +101,25 @@ pallet-bridge-parachains = { default-features = false , version = "0.8.0" }
 pallet-bridge-relayers = { default-features = false , version = "0.8.0" }
 pallet-xcm-bridge-hub =  { default-features = false , version = "0.3.0" }
 
+# Ethereum Bridge (Snowbridge)
+snowbridge-beacon-primitives = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-system = { default-features = false , version = "0.1.0" }
+snowbridge-system-runtime-api = { default-features = false , version = "0.1.0" }
+snowbridge-core = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-ethereum-client = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-inbound-queue = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-outbound-queue = { default-features = false , version = "0.1.0" }
+snowbridge-outbound-queue-runtime-api = { default-features = false , version = "0.1.0" }
+snowbridge-router-primitives = { default-features = false , version = "0.1.0" }
+snowbridge-runtime-common = { default-features = false, version = "0.1.0" }
+
 [dev-dependencies]
 bridge-hub-test-utils = { version = "0.8.0" }
 bridge-runtime-common = { version = "0.8.0", features = ["integrity-test"] }
 sp-keyring = { version = "32.0.0" }
 static_assertions = { version = "1.1.0" }
+snowbridge-runtime-test-common = { version = "0.1.0" }
+parachains-runtimes-test-utils = { version = "8.0.0" }
 
 [features]
 default = [ "std" ]
@@ -121,6 +136,7 @@ std = [
 	"bp-runtime/std",
 	"bp-kusama/std",
 	"bp-polkadot/std",
+	"bridge-hub-common/std",
 	"bridge-runtime-common/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
@@ -167,6 +183,16 @@ std = [
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
 	"serde",
+	"snowbridge-beacon-primitives/std",
+	"snowbridge-core/std",
+	"snowbridge-pallet-ethereum-client/std",
+	"snowbridge-pallet-inbound-queue/std",
+	"snowbridge-outbound-queue-runtime-api/std",
+	"snowbridge-pallet-outbound-queue/std",
+	"snowbridge-router-primitives/std",
+	"snowbridge-runtime-common/std",
+	"snowbridge-system-runtime-api/std",
+	"snowbridge-pallet-system/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
@@ -189,6 +215,7 @@ std = [
 ]
 
 runtime-benchmarks = [
+	"bridge-hub-common/runtime-benchmarks",
 	"bridge-runtime-common/runtime-benchmarks",
 	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
@@ -215,9 +242,18 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
+	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
+	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
+	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks",
+	"snowbridge-runtime-common/runtime-benchmarks",
+	"snowbridge-runtime-test-common/runtime-benchmarks",
+	"snowbridge-pallet-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -248,6 +284,10 @@ try-runtime = [
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"snowbridge-pallet-ethereum-client/try-runtime",
+	"snowbridge-pallet-inbound-queue/try-runtime",
+	"snowbridge-pallet-outbound-queue/try-runtime",
+	"snowbridge-pallet-system/try-runtime",
 	"sp-runtime/try-runtime",
 ]
 
