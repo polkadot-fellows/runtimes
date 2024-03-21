@@ -55,6 +55,12 @@
     "is_relay": false
   },
   {
+    "name": "coretime-kusama",
+    "package": "coretime-kusama-runtime",
+    "path": "system-parachains/coretime/coretime-kusama",
+    "is_relay": false
+  },
+  {
     "name": "encointer-kusama",
     "package": "encointer-kusama-runtime",
     "path": "system-parachains/encointer",
