@@ -46,6 +46,8 @@ pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions
 
 pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
 
+pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+
 const ASSET_HUB_POLKADOT_ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
 const ASSET_HUB_KUSAMA_ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
@@ -57,6 +59,8 @@ const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::Existential
 const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
 const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
+
+const CORETIME_KUSAMA_ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
@@ -81,6 +85,13 @@ pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAur
 			get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
 		),
 	]
+}
+
+/// Generate the session keys from individual elements.
+///
+/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
+pub fn coretime_kusama_session_keys(keys: AuraId) -> coretime_kusama_runtime::SessionKeys {
+	coretime_kusama_runtime::SessionKeys { aura: keys }
 }
 
 /// Generate the session keys from individual elements.
@@ -560,6 +571,78 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_id("encointer-kusama-local")
 		.with_chain_type(ChainType::Local)
 		.with_genesis_config_patch(encointer_kusama_local_genesis(1001))
+		.with_properties(properties)
+		.build(),
+	))
+}
+
+// CoretimeKusama
+fn coretime_kusama_genesis(
+	invulnerables: Vec<(AccountId, AuraId)>,
+	endowed_accounts: Vec<AccountId>,
+	id: ParaId,
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": coretime_kusama_runtime::BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, CORETIME_KUSAMA_ED * 4096 * 4096))
+				.collect(),
+		},
+		"parachainInfo": coretime_kusama_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
+		"collatorSelection": coretime_kusama_runtime::CollatorSelectionConfig {
+			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+			candidacy_bond: CORETIME_KUSAMA_ED * 16,
+			..Default::default()
+		},
+		"session": coretime_kusama_runtime::SessionConfig {
+			keys: invulnerables
+				.into_iter()
+				.map(|(acc, aura)| {
+					(
+						acc.clone(),                         // account id
+						acc,                                 // validator id
+						coretime_kusama_session_keys(aura), // session keys
+					)
+				})
+				.collect(),
+		},
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		},
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
+	})
+}
+
+fn coretime_kusama_local_genesis(para_id: ParaId) -> serde_json::Value {
+	coretime_kusama_genesis(
+		// initial collators.
+		invulnerables(),
+		testnet_accounts(),
+		para_id,
+	)
+}
+
+pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	Ok(Box::new(
+		CoretimeKusamaChainSpec::builder(
+			coretime_kusama_runtime::WASM_BINARY.expect("CoretimeKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1005 },
+		)
+		.with_name("Kusama Coretime Local")
+		.with_id("coretime-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_patch(coretime_kusama_local_genesis(1005.into()))
 		.with_properties(properties)
 		.build(),
 	))

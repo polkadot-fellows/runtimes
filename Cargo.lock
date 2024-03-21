@@ -2065,6 +2065,7 @@ dependencies = [
  "bridge-hub-polkadot-runtime",
  "clap",
  "collectives-polkadot-runtime",
+ "coretime-kusama-runtime",
  "cumulus-primitives-core",
  "encointer-kusama-runtime",
  "glutton-kusama-runtime",

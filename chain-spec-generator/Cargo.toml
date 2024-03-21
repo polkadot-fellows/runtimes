@@ -37,6 +37,7 @@ bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-
 bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
 encointer-kusama-runtime = { path = "../system-parachains/encointer" }
 glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
+coretime-kusama-runtime = { path = "../system-parachains/coretime/coretime-kusama" }
 
 [features]
 fast-runtime = [
@@ -53,4 +54,5 @@ runtime-benchmarks = [
 	"polkadot-runtime/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
+	"coretime-kusama-runtime/runtime-benchmarks",
 ]

@@ -86,6 +86,11 @@ fn main() -> Result<(), String> {
 				Box::new(|| system_parachains_specs::encointer_kusama_local_testnet_config())
 					as Box<_>,
 			),
+			(
+				"coretime-kusama-local",
+				Box::new(|| system_parachains_specs::coretime_kusama_local_testnet_config())
+					as Box<_>,
+			),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {
