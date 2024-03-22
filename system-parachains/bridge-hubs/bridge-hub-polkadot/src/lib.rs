@@ -27,19 +27,18 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_core::{outbound::Message, AgentId, AllowSiblingsOnly};
-use snowbridge_router_primitives::inbound::MessageToXcm;
+use snowbridge_core::{outbound::Message, AgentId};
+
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
@@ -497,70 +496,6 @@ impl pallet_utility::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
-}
-
-// Ethereum Bridge pallets
-impl snowbridge_pallet_inbound_queue::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
-	type Token = Balances;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type XcmSender = xcm_config::XcmRouter;
-	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = bridge_to_ethereum_config::benchmark_helpers::DoNothingRouter;
-	type ChannelLookup = EthereumSystem;
-	type GatewayAddress = bridge_to_ethereum_config::EthereumGatewayAddress;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = Runtime;
-	type MessageConverter = MessageToXcm<
-		CreateAssetCall,
-		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
-		InboundQueuePalletInstance,
-		AccountId,
-		Balance,
-	>;
-	type WeightToFee = WeightToFee;
-	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
-	type MaxMessageSize = ConstU32<2048>;
-	type WeightInfo = weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
-	type PricingParameters = EthereumSystem;
-	type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
-}
-
-impl snowbridge_pallet_outbound_queue::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Hashing = Keccak256;
-	type MessageQueue = MessageQueue;
-	type Decimals = ConstU8<10>;
-	type MaxMessagePayloadSize = ConstU32<2048>;
-	type MaxMessagesPerBlock = ConstU32<32>;
-	type GasMeter = snowbridge_core::outbound::ConstantGasMeter;
-	type Balance = Balance;
-	type WeightToFee = WeightToFee;
-	type WeightInfo = weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
-	type PricingParameters = EthereumSystem;
-	type Channels = EthereumSystem;
-}
-
-impl snowbridge_pallet_ethereum_client::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type ForkVersions = bridge_to_ethereum_config::ChainForkVersions;
-	type MaxExecutionHeadersToKeep = bridge_to_ethereum_config::MaxExecutionHeadersToKeep;
-	type WeightInfo = weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
-}
-
-impl snowbridge_pallet_system::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type OutboundQueue = EthereumOutboundQueue;
-	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
-	type AgentIdOf = snowbridge_core::AgentIdOf;
-	type TreasuryAccount = TreasuryAccount;
-	type Token = Balances;
-	type WeightInfo = weights::snowbridge_pallet_system::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
-	type DefaultPricingParameters = Parameters;
-	type InboundDeliveryCost = EthereumInboundQueue;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1262,14 +1197,6 @@ cumulus_pallet_parachain_system::register_validate_block! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
-	#[test]
-	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
-		assert_eq!(
-			InboundQueuePalletInstance::get(),
-			<EthereumInboundQueue as frame_support::traits::PalletInfoAccess>::index() as u8
-		);
-	}
 
 	#[test]
 	fn test_transasction_byte_fee_is_one_tenth_of_relay() {

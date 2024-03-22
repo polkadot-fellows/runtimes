@@ -19,9 +19,9 @@ use super::{
 	bridge_to_kusama_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubKusamaHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
+	XcmpQueue,
 };
 use frame_support::{
 	parameter_types,

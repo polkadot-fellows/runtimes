@@ -21,9 +21,8 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::RefundBridgeHubKusamaMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
-	BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
-	UncheckedExtrinsic,
+	BridgeRejectObsoleteHeadersAndMessages, Executive, MessageQueueServiceWeight, Runtime,
+	RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::ValidatorIdOf;
 use codec::{Decode, Encode};
