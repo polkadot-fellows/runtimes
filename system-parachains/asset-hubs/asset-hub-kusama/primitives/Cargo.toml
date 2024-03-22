@@ -11,6 +11,9 @@ license.workspace = true
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 
+# Local
+system-parachains-constants = { path = "../../../constants", default-features = false }
+
 # Bridge Dependencies
 bp-xcm-bridge-hub-router = { default-features = false , version = "0.7.0" }
 
@@ -29,5 +32,6 @@ std = [
 	"frame-support/std",
 	"scale-info/std",
 	"sp-std/std",
+	"system-parachains-constants/std",
 	"xcm/std"
 ]
