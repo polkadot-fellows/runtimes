@@ -15,11 +15,11 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork,
+	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubKusamaHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
+	AccountId, AllPalletsWithSystem, Balances, ParachainInfo,
 	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, WeightToFee, XcmpQueue,
 };

@@ -16,7 +16,10 @@
 
 use crate::{xcm_config::UniversalLocation, Runtime};
 pub use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
+use frame_support::parameter_types;
+use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_router_primitives::outbound::EthereumBlobExporter;
+use sp_core::H160;
 
 /// Exports message to the Ethereum Gateway contract.
 pub type SnowbridgeExporter = EthereumBlobExporter<
@@ -26,9 +29,67 @@ pub type SnowbridgeExporter = EthereumBlobExporter<
 	snowbridge_core::AgentIdOf,
 >;
 
+parameter_types! {
+	// The gateway address is set by governance.
+	pub storage EthereumGatewayAddress: H160 = H160::zero();
+	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
+}
+
+#[cfg(not(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test)))]
+parameter_types! {
+	pub const ChainForkVersions: ForkVersions = ForkVersions {
+		genesis: Fork {
+			version: [0, 0, 0, 0], // 0x00000000
+			epoch: 0,
+		},
+		altair: Fork {
+			version: [1, 0, 0, 0], // 0x01000000
+			epoch: 74240,
+		},
+		bellatrix: Fork {
+			version: [2, 0, 0, 0], // 0x02000000
+			epoch: 144896,
+		},
+		capella: Fork {
+			version: [3, 0, 0, 0], // 0x03000000
+			epoch: 194048,
+		},
+		deneb: Fork {
+			version: [4, 0, 0, 0], // 0x04000000
+			epoch: 269568,
+		},
+	};
+}
+
+#[cfg(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test))]
+parameter_types! {
+	pub const ChainForkVersions: ForkVersions = ForkVersions {
+		genesis: Fork {
+			version: [0, 0, 0, 0], // 0x00000000
+			epoch: 0,
+		},
+		altair: Fork {
+			version: [1, 0, 0, 0], // 0x01000000
+			epoch: 0,
+		},
+		bellatrix: Fork {
+			version: [2, 0, 0, 0], // 0x02000000
+			epoch: 0,
+		},
+		capella: Fork {
+			version: [3, 0, 0, 0], // 0x03000000
+			epoch: 0,
+		},
+		deneb: Fork {
+			version: [4, 0, 0, 0], // 0x04000000
+			epoch: 0,
+		}
+	};
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use crate::{EthereumBeaconClient, Runtime, RuntimeOrigin};
+	use crate::{bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, Runtime, RuntimeOrigin};
 	use codec::Encode;
 	use hex_literal::hex;
 	use snowbridge_beacon_primitives::CompactExecutionHeader;
