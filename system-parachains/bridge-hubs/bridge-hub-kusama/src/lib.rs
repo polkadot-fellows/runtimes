@@ -33,11 +33,10 @@ use bridge_hub_common::message_queue::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::{outbound::Message, AgentId, AllowSiblingsOnly};
 use snowbridge_router_primitives::inbound::MessageToXcm;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
@@ -499,12 +498,7 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
-// Ethereum Bridge
-parameter_types! {
-	// The gateway address is set by governance.
-	pub storage EthereumGatewayAddress: H160 = H160::zero();
-}
-
+// Ethereum Bridge pallets
 impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
@@ -512,9 +506,9 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type XcmSender = xcm_config::XcmRouter;
 	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = benchmark_helpers::DoNothingRouter;
+	type XcmSender = bridge_to_ethereum_config::benchmark_helpers::DoNothingRouter;
 	type ChannelLookup = EthereumSystem;
-	type GatewayAddress = EthereumGatewayAddress;
+	type GatewayAddress = bridge_to_ethereum_config::EthereumGatewayAddress;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = Runtime;
 	type MessageConverter = MessageToXcm<
@@ -547,66 +541,10 @@ impl snowbridge_pallet_outbound_queue::Config for Runtime {
 	type Channels = EthereumSystem;
 }
 
-#[cfg(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test))]
-parameter_types! {
-	pub const ChainForkVersions: ForkVersions = ForkVersions {
-		genesis: Fork {
-			version: [0, 0, 0, 0], // 0x00000000
-			epoch: 0,
-		},
-		altair: Fork {
-			version: [1, 0, 0, 0], // 0x01000000
-			epoch: 0,
-		},
-		bellatrix: Fork {
-			version: [2, 0, 0, 0], // 0x02000000
-			epoch: 0,
-		},
-		capella: Fork {
-			version: [3, 0, 0, 0], // 0x03000000
-			epoch: 0,
-		},
-		deneb: Fork {
-			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 0,
-		}
-	};
-}
-
-#[cfg(not(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test)))]
-parameter_types! {
-	pub const ChainForkVersions: ForkVersions = ForkVersions {
-		genesis: Fork {
-			version: [0, 0, 0, 0], // 0x00000000
-			epoch: 0,
-		},
-		altair: Fork {
-			version: [1, 0, 0, 0], // 0x01000000
-			epoch: 74240,
-		},
-		bellatrix: Fork {
-			version: [2, 0, 0, 0], // 0x02000000
-			epoch: 144896,
-		},
-		capella: Fork {
-			version: [3, 0, 0, 0], // 0x03000000
-			epoch: 194048,
-		},
-		deneb: Fork {
-			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 269568,
-		},
-	};
-}
-
-parameter_types! {
-	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
-}
-
 impl snowbridge_pallet_ethereum_client::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type ForkVersions = ChainForkVersions;
-	type MaxExecutionHeadersToKeep = MaxExecutionHeadersToKeep;
+	type ForkVersions = bridge_to_ethereum_config::ChainForkVersions;
+	type MaxExecutionHeadersToKeep = bridge_to_ethereum_config::MaxExecutionHeadersToKeep;
 	type WeightInfo = weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
 }
 

@@ -18,7 +18,8 @@ use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::{
 };
 use bp_bridge_hub_kusama::snowbridge::CreateAssetCall;
 use bridge_hub_kusama_runtime::{
-	EthereumBeaconClient, EthereumGatewayAddress, EthereumInboundQueue, Runtime, RuntimeOrigin,
+	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
+	Runtime, RuntimeOrigin,
 };
 use codec::{Decode, Encode};
 use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
