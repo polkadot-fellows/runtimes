@@ -14,12 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{xcm_config::UniversalLocation, Runtime};
+use crate::{
+	xcm_config, xcm_config::UniversalLocation, Balances, EthereumInboundQueue,
+	EthereumOutboundQueue, EthereumSystem, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
+	TreasuryAccount,
+};
 pub use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-use frame_support::parameter_types;
+use bp_bridge_hub_polkadot::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
+use frame_support::{parameter_types, weights::ConstantMultiplier};
+use pallet_xcm::EnsureXcm;
+use parachains_common::{AccountId, Balance};
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_router_primitives::outbound::EthereumBlobExporter;
+use snowbridge_core::AllowSiblingsOnly;
+use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlobExporter};
 use sp_core::H160;
+use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
+use system_parachains_constants::polkadot::fee::WeightToFee;
 
 /// Exports message to the Ethereum Gateway contract.
 pub type SnowbridgeExporter = EthereumBlobExporter<
@@ -32,7 +42,48 @@ pub type SnowbridgeExporter = EthereumBlobExporter<
 parameter_types! {
 	// The gateway address is set by governance.
 	pub storage EthereumGatewayAddress: H160 = H160::zero();
-	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
+}
+
+impl snowbridge_pallet_inbound_queue::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
+	type Token = Balances;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type XcmSender = xcm_config::XcmRouter;
+	#[cfg(feature = "runtime-benchmarks")]
+	type XcmSender = benchmark_helpers::DoNothingRouter;
+	type ChannelLookup = EthereumSystem;
+	type GatewayAddress = EthereumGatewayAddress;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = Runtime;
+	type MessageConverter = MessageToXcm<
+		CreateAssetCall,
+		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
+		InboundQueuePalletInstance,
+		AccountId,
+		Balance,
+	>;
+	type WeightToFee = WeightToFee;
+	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+	type MaxMessageSize = ConstU32<2048>;
+	type WeightInfo = crate::weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
+	type PricingParameters = EthereumSystem;
+	type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
+}
+
+impl snowbridge_pallet_outbound_queue::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Hashing = Keccak256;
+	type MessageQueue = MessageQueue;
+	type Decimals = ConstU8<10>;
+	type MaxMessagePayloadSize = ConstU32<2048>;
+	type MaxMessagesPerBlock = ConstU32<32>;
+	type GasMeter = snowbridge_core::outbound::ConstantGasMeter;
+	type Balance = Balance;
+	type WeightToFee = WeightToFee;
+	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
+	type PricingParameters = EthereumSystem;
+	type Channels = EthereumSystem;
 }
 
 #[cfg(not(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test)))]
@@ -87,9 +138,37 @@ parameter_types! {
 	};
 }
 
+parameter_types! {
+	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
+}
+
+impl snowbridge_pallet_ethereum_client::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ForkVersions = ChainForkVersions;
+	type MaxExecutionHeadersToKeep = MaxExecutionHeadersToKeep;
+	type WeightInfo = crate::weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
+}
+
+impl snowbridge_pallet_system::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OutboundQueue = EthereumOutboundQueue;
+	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
+	type AgentIdOf = snowbridge_core::AgentIdOf;
+	type TreasuryAccount = TreasuryAccount;
+	type Token = Balances;
+	type WeightInfo = crate::weights::snowbridge_pallet_system::WeightInfo<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = ();
+	type DefaultPricingParameters = Parameters;
+	type InboundDeliveryCost = EthereumInboundQueue;
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use crate::{bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, Runtime, RuntimeOrigin};
+	use crate::{
+		bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, Runtime,
+		RuntimeOrigin,
+	};
 	use codec::Encode;
 	use hex_literal::hex;
 	use snowbridge_beacon_primitives::CompactExecutionHeader;
@@ -124,5 +203,18 @@ pub mod benchmark_helpers {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
 			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
+		assert_eq!(
+			InboundQueuePalletInstance::get(),
+			<EthereumInboundQueue as frame_support::traits::PalletInfoAccess>::index() as u8
+		);
 	}
 }
