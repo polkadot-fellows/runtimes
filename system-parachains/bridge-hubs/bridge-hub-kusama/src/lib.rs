@@ -505,44 +505,6 @@ parameter_types! {
 	pub storage EthereumGatewayAddress: H160 = H160::zero();
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmark_helpers {
-	use crate::{EthereumBeaconClient, Runtime, RuntimeOrigin};
-	use codec::Encode;
-	use snowbridge_beacon_primitives::CompactExecutionHeader;
-	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
-	use sp_core::H256;
-	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
-
-	impl<T: snowbridge_pallet_ethereum_client::Config> BenchmarkHelper<T> for Runtime {
-		fn initialize_storage(block_hash: H256, header: CompactExecutionHeader) {
-			EthereumBeaconClient::store_execution_header(block_hash, header, 0, H256::default())
-		}
-	}
-
-	pub struct DoNothingRouter;
-	impl SendXcm for DoNothingRouter {
-		type Ticket = Xcm<()>;
-
-		fn validate(
-			_dest: &mut Option<Location>,
-			xcm: &mut Option<Xcm<()>>,
-		) -> SendResult<Self::Ticket> {
-			Ok((xcm.clone().unwrap(), Assets::new()))
-		}
-		fn deliver(xcm: Xcm<()>) -> Result<XcmHash, SendError> {
-			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
-			Ok(hash)
-		}
-	}
-
-	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
-		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
-			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
-		}
-	}
-}
-
 impl snowbridge_pallet_inbound_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
