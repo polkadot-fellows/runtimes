@@ -377,6 +377,11 @@ fn bridge_hub_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"ethereumSystem": bridge_hub_kusama_runtime::EthereumSystemConfig {
+			para_id: id,
+			asset_hub_para_id: polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
+			..Default::default()
+		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
@@ -449,6 +454,11 @@ fn bridge_hub_kusama_genesis(
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		},
+		"ethereumSystem": bridge_hub_kusama_runtime::EthereumSystemConfig {
+			para_id: id,
+			asset_hub_para_id: kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
+			..Default::default()
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
