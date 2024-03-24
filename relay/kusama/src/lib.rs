@@ -142,12 +142,11 @@ use governance::{
 	Treasurer, TreasurySpender,
 };
 
+// Implemented types.
+pub mod impls;
+
 #[cfg(test)]
 mod tests;
-
-// Implemented types.
-mod impls;
-use impls::ToParachainIdentityReaper;
 
 impl_runtime_weights!(kusama_runtime_constants);
 
@@ -823,7 +822,7 @@ impl pallet_treasury::Config for Runtime {
 		LocatableAssetConverter,
 		VersionedLocationConverter,
 	>;
-	type BalanceConverter = AssetRate;
+	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
@@ -1003,7 +1002,7 @@ impl identity_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// To be updated to `EnsureSigned` once the parachain is producing blocks.
 	type Reaper = EnsureRoot<AccountId>;
-	type ReapIdentityHandler = ToParachainIdentityReaper<Runtime, Self::AccountId>;
+	type ReapIdentityHandler = impls::ToParachainIdentityReaper<Runtime, Self::AccountId>;
 	type WeightInfo = weights::runtime_common_identity_migrator::WeightInfo<Runtime>;
 }
 

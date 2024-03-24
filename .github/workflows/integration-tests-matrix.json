@@ -18,5 +18,9 @@
   {
     "name": "people-kusama",
     "package": "people-kusama-integration-tests"
+  },
+  {
+    "name": "collectives-polkadot",
+    "package": "collectives-polkadot-integration-tests"
   }
 ]

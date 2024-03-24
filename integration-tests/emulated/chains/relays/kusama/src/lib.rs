@@ -38,6 +38,8 @@ decl_test_relay_chains! {
 			Hrmp: kusama_runtime::Hrmp,
 			Identity: kusama_runtime::Identity,
 			IdentityMigrator: kusama_runtime::IdentityMigrator,
+			Treasury: kusama_runtime::Treasury,
+			AssetRate: kusama_runtime::AssetRate,
 		}
 	},
 }
