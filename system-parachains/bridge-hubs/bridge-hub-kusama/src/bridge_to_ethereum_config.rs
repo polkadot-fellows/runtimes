@@ -165,11 +165,10 @@ impl snowbridge_pallet_system::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use crate::{
-		bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, Runtime,
-		RuntimeOrigin,
-	};
+	use super::{EthereumGatewayAddress, Runtime, TreasuryAccount};
+	use crate::{Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
+	use frame_support::traits::fungible;
 	use hex_literal::hex;
 	use snowbridge_beacon_primitives::CompactExecutionHeader;
 	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
@@ -201,6 +200,12 @@ pub mod benchmark_helpers {
 
 	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
+			// Drip ED to the `TreasuryAccount`
+			<Balances as fungible::Mutate<_>>::set_balance(
+				&TreasuryAccount::get(),
+				ExistentialDeposit::get(),
+			);
+
 			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
 		}
 	}
