@@ -15,8 +15,10 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	xcm_config, xcm_config::{UniversalLocation, RelayTreasuryPalletAccount}, Balances, EthereumInboundQueue,
-	EthereumOutboundQueue, EthereumSystem, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
+	xcm_config,
+	xcm_config::{RelayTreasuryPalletAccount, UniversalLocation},
+	Balances, EthereumInboundQueue, EthereumOutboundQueue, EthereumSystem, MessageQueue, Runtime,
+	RuntimeEvent, TransactionByteFee,
 };
 pub use bp_bridge_hub_kusama::snowbridge::EthereumNetwork;
 use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
@@ -167,7 +169,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use super::{EthereumGatewayAddress, Runtime, RelayTreasuryPalletAccount};
+	use super::{EthereumGatewayAddress, RelayTreasuryPalletAccount, Runtime};
 	use crate::{Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
 	use frame_support::traits::fungible;

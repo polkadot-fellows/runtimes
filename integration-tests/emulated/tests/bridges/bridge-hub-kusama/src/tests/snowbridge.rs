@@ -14,10 +14,8 @@
 // limitations under the License.
 use crate::*;
 use asset_hub_kusama_runtime::xcm_config::{
+	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
-	bridging::to_ethereum::{
-		BridgeHubEthereumBaseFee, EthereumNetwork
-	}
 };
 use bp_bridge_hub_kusama::snowbridge::CreateAssetCall;
 use bridge_hub_kusama_runtime::{
