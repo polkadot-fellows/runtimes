@@ -11,9 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  RUST_NIGHTLY_VERSION: 2024-03-14 # 1.78.0-nightly
-
 jobs:
   clippy:
     runs-on: ubuntu-22.04
@@ -22,11 +19,14 @@ jobs:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
-      - name: Install nightly toolchain
-        run: rustup toolchain install "nightly-${{ env.RUST_NIGHTLY_VERSION }}" --profile minimal --component clippy
-
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Set common env variables
+        run: sed "" .github/env >> $GITHUB_ENV
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component clippy
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -34,6 +34,6 @@ jobs:
           shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
-        run: cargo +nightly-${{ env.RUST_NIGHTLY_VERSION }} clippy --all-targets --locked -q
+        run: cargo +nightly-$RUST_NIGHTLY_VERSION clippy --all-targets --locked -q
         env:
           SKIP_WASM_BUILD: 1
