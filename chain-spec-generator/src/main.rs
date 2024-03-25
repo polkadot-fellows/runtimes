@@ -90,6 +90,11 @@ fn main() -> Result<(), String> {
 				"coretime-kusama-local",
 				Box::new(|| system_parachains_specs::coretime_kusama_local_testnet_config())
 					as Box<_>,
+            ),
+            (
+				"people-kusama-local",
+				Box::new(|| system_parachains_specs::people_kusama_local_testnet_config())
+					as Box<_>,
 			),
 		]);
 

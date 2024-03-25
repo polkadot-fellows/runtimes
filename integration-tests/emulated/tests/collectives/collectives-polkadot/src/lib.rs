@@ -13,18 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod claim_assets;
-mod reserve_transfer;
-mod send;
-mod set_xcm_versions;
-mod swap;
-mod teleport;
-mod treasury;
+// Polkadot
+pub use xcm::{prelude::*, v3};
 
-use crate::*;
-emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
-	PenpalA,
-	AssetHubKusama,
-	KUSAMA_ED,
-	system_parachains_constants::kusama::fee::WeightToFee
-);
+// Cumulus
+pub use emulated_integration_tests_common::xcm_emulator::{
+	assert_expected_events, bx, Chain, RelayChain as Relay, TestExt,
+};
+pub use polkadot_system_emulated_network::{
+	asset_hub_polkadot_emulated_chain::AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
+	polkadot_emulated_chain::PolkadotRelayPallet as PolkadotPallet,
+	AssetHubPolkadotPara as AssetHubPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
+	PolkadotRelay as Polkadot,
+};
+
+#[cfg(test)]
+mod tests;
