@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set common env variables
+      - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install nightly toolchain
