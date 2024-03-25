@@ -27,20 +27,21 @@ pub mod bridge_to_kusama_config;
 mod weights;
 pub mod xcm_config;
 
-use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_core::{outbound::Message, AgentId, AllowSiblingsOnly};
-use snowbridge_router_primitives::inbound::MessageToXcm;
+use snowbridge_core::{
+	outbound::{Command, Fee},
+	AgentId, PricingParameters,
+};
+
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Keccak256},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
@@ -68,9 +69,7 @@ use frame_system::{
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
-use xcm_config::{
-	FellowshipLocation, GovernanceLocation, TreasuryAccount, XcmOriginToTransactDispatchOrigin,
-};
+use xcm_config::{FellowshipLocation, GovernanceLocation, XcmOriginToTransactDispatchOrigin};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -500,169 +499,6 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
-// Ethereum Bridge
-parameter_types! {
-	// The gateway address is set by governance.
-	pub storage EthereumGatewayAddress: H160 = H160::zero();
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmark_helpers {
-	use crate::{EthereumBeaconClient, Runtime, RuntimeOrigin};
-	use codec::Encode;
-	use snowbridge_beacon_primitives::CompactExecutionHeader;
-	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
-	use sp_core::H256;
-	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
-
-	impl<T: snowbridge_pallet_ethereum_client::Config> BenchmarkHelper<T> for Runtime {
-		fn initialize_storage(block_hash: H256, header: CompactExecutionHeader) {
-			EthereumBeaconClient::store_execution_header(block_hash, header, 0, H256::default())
-		}
-	}
-
-	pub struct DoNothingRouter;
-	impl SendXcm for DoNothingRouter {
-		type Ticket = Xcm<()>;
-
-		fn validate(
-			_dest: &mut Option<Location>,
-			xcm: &mut Option<Xcm<()>>,
-		) -> SendResult<Self::Ticket> {
-			Ok((xcm.clone().unwrap(), Assets::new()))
-		}
-		fn deliver(xcm: Xcm<()>) -> Result<XcmHash, SendError> {
-			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
-			Ok(hash)
-		}
-	}
-
-	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
-		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
-			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
-		}
-	}
-}
-
-impl snowbridge_pallet_inbound_queue::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Verifier = snowbridge_pallet_ethereum_client::Pallet<Runtime>;
-	type Token = Balances;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type XcmSender = xcm_config::XcmRouter;
-	#[cfg(feature = "runtime-benchmarks")]
-	type XcmSender = benchmark_helpers::DoNothingRouter;
-	type ChannelLookup = EthereumSystem;
-	type GatewayAddress = EthereumGatewayAddress;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = Runtime;
-	type MessageConverter = MessageToXcm<
-		CreateAssetCall,
-		bp_asset_hub_polkadot::CreateForeignAssetDeposit,
-		InboundQueuePalletInstance,
-		AccountId,
-		Balance,
-	>;
-	type WeightToFee = WeightToFee;
-	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
-	type MaxMessageSize = ConstU32<2048>;
-	type WeightInfo = weights::snowbridge_pallet_inbound_queue::WeightInfo<Runtime>;
-	type PricingParameters = EthereumSystem;
-	type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
-}
-
-impl snowbridge_pallet_outbound_queue::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Hashing = Keccak256;
-	type MessageQueue = MessageQueue;
-	type Decimals = ConstU8<10>;
-	type MaxMessagePayloadSize = ConstU32<2048>;
-	type MaxMessagesPerBlock = ConstU32<32>;
-	type GasMeter = snowbridge_core::outbound::ConstantGasMeter;
-	type Balance = Balance;
-	type WeightToFee = WeightToFee;
-	type WeightInfo = weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;
-	type PricingParameters = EthereumSystem;
-	type Channels = EthereumSystem;
-}
-
-#[cfg(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test))]
-parameter_types! {
-	pub const ChainForkVersions: ForkVersions = ForkVersions {
-		genesis: Fork {
-			version: [0, 0, 0, 0], // 0x00000000
-			epoch: 0,
-		},
-		altair: Fork {
-			version: [1, 0, 0, 0], // 0x01000000
-			epoch: 0,
-		},
-		bellatrix: Fork {
-			version: [2, 0, 0, 0], // 0x02000000
-			epoch: 0,
-		},
-		capella: Fork {
-			version: [3, 0, 0, 0], // 0x03000000
-			epoch: 0,
-		},
-		deneb: Fork {
-			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 0,
-		}
-	};
-}
-
-#[cfg(not(any(feature = "std", feature = "fast-runtime", feature = "runtime-benchmarks", test)))]
-parameter_types! {
-	pub const ChainForkVersions: ForkVersions = ForkVersions {
-		genesis: Fork {
-			version: [0, 0, 0, 0], // 0x00000000
-			epoch: 0,
-		},
-		altair: Fork {
-			version: [1, 0, 0, 0], // 0x01000000
-			epoch: 74240,
-		},
-		bellatrix: Fork {
-			version: [2, 0, 0, 0], // 0x02000000
-			epoch: 144896,
-		},
-		capella: Fork {
-			version: [3, 0, 0, 0], // 0x03000000
-			epoch: 194048,
-		},
-		deneb: Fork {
-			version: [4, 0, 0, 0], // 0x04000000
-			epoch: 269568,
-		},
-	};
-}
-
-parameter_types! {
-	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
-}
-
-impl snowbridge_pallet_ethereum_client::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type ForkVersions = ChainForkVersions;
-	type MaxExecutionHeadersToKeep = MaxExecutionHeadersToKeep;
-	type WeightInfo = weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
-}
-
-impl snowbridge_pallet_system::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type OutboundQueue = EthereumOutboundQueue;
-	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
-	type AgentIdOf = snowbridge_core::AgentIdOf;
-	type TreasuryAccount = TreasuryAccount;
-	type Token = Balances;
-	type WeightInfo = weights::snowbridge_pallet_system::WeightInfo<Runtime>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
-	type DefaultPricingParameters = Parameters;
-	type InboundDeliveryCost = EthereumInboundQueue;
-}
-
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -962,8 +798,8 @@ impl_runtime_apis! {
 			snowbridge_pallet_outbound_queue::api::prove_message::<Runtime>(leaf_index)
 		}
 
-		fn calculate_fee(message: Message) -> Option<Balance> {
-			snowbridge_pallet_outbound_queue::api::calculate_fee::<Runtime>(message)
+		fn calculate_fee(command: Command, parameters: Option<PricingParameters<Balance>>) -> Fee<Balance> {
+			snowbridge_pallet_outbound_queue::api::calculate_fee::<Runtime>(command, parameters)
 		}
 	}
 
@@ -1362,14 +1198,6 @@ cumulus_pallet_parachain_system::register_validate_block! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-
-	#[test]
-	fn bridge_hub_inbound_queue_pallet_index_is_correct() {
-		assert_eq!(
-			InboundQueuePalletInstance::get(),
-			<EthereumInboundQueue as frame_support::traits::PalletInfoAccess>::index() as u8
-		);
-	}
 
 	#[test]
 	fn test_transasction_byte_fee_is_one_tenth_of_relay() {

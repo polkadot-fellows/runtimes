@@ -15,13 +15,13 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork,
+	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_polkadot_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubPolkadotHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
+	XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
