@@ -572,7 +572,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == TREASURY_ACCOUNT.into() && *amount == 50710000
+					if *who == TREASURY_ACCOUNT.into() && *amount == 169033333
 			)),
 			"Snowbridge sovereign takes local fee."
 		);

@@ -29,7 +29,7 @@ use snowbridge_core::AllowSiblingsOnly;
 use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlobExporter};
 use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
-use system_parachains_constants::polkadot::fee::WeightToFee;
+use system_parachains_constants::kusama::fee::WeightToFee;
 
 /// Exports message to the Ethereum Gateway contract.
 pub type SnowbridgeExporter = EthereumBlobExporter<
