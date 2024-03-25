@@ -13,8 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::bridging::to_ethereum::{
-	BridgeHubEthereumBaseFee, EthereumNetwork,
+use asset_hub_kusama_runtime::xcm_config::{
+	RelayTreasuryPalletAccount,
+	bridging::to_ethereum::{
+		BridgeHubEthereumBaseFee, EthereumNetwork
+	}
 };
 use bp_bridge_hub_kusama::snowbridge::CreateAssetCall;
 use bridge_hub_kusama_runtime::{
@@ -51,8 +54,6 @@ use system_parachains_constants::kusama::currency::UNITS;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;
 const CHAIN_ID: u64 = 1;
-const TREASURY_ACCOUNT: [u8; 32] =
-	hex!("da5026b2e34b876343bd6becae58eb5af71ec727633bfb972641fa7a89ff4988");
 const WETH: [u8; 20] = hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
 const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
 const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301CaB39");
@@ -440,7 +441,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 	BridgeHubKusama::fund_accounts(vec![
 		(assethub_sovereign.clone(), INITIAL_FUND),
-		(TREASURY_ACCOUNT.into(), INITIAL_FUND),
+		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
 	]);
 	AssetHubKusama::fund_accounts(vec![
 		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
@@ -505,7 +506,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 	// check treasury account balance on BH before
 	let treasury_account_before = BridgeHubKusama::execute_with(|| {
-		<<BridgeHubKusama as BridgeHubKusamaPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&TREASURY_ACCOUNT.into())
+		<<BridgeHubKusama as BridgeHubKusamaPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
 	});
 
 	AssetHubKusama::execute_with(|| {
@@ -573,7 +574,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		);
 
 		// check treasury account balance on BH after (should receive some fees)
-		let treasury_account_after = <<BridgeHubKusama as BridgeHubKusamaPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&TREASURY_ACCOUNT.into());
+		let treasury_account_after = <<BridgeHubKusama as BridgeHubKusamaPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get());
 		let local_fee = treasury_account_after - treasury_account_before;
 
 		let events = BridgeHubKusama::events();
@@ -582,7 +583,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == TREASURY_ACCOUNT.into() && *amount == local_fee
+					if *who == RelayTreasuryPalletAccount::get() && *amount == local_fee
 			)),
 			"Snowbridge sovereign takes local fee."
 		);

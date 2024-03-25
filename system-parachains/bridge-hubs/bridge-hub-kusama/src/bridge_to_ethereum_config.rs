@@ -15,9 +15,8 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	xcm_config, xcm_config::UniversalLocation, Balances, EthereumInboundQueue,
+	xcm_config, xcm_config::{UniversalLocation, RelayTreasuryPalletAccount}, Balances, EthereumInboundQueue,
 	EthereumOutboundQueue, EthereumSystem, MessageQueue, Runtime, RuntimeEvent, TransactionByteFee,
-	TreasuryAccount,
 };
 pub use bp_bridge_hub_kusama::snowbridge::EthereumNetwork;
 use bp_bridge_hub_kusama::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
@@ -157,7 +156,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 	type OutboundQueue = EthereumOutboundQueue;
 	type SiblingOrigin = EnsureXcm<AllowSiblingsOnly>;
 	type AgentIdOf = snowbridge_core::AgentIdOf;
-	type TreasuryAccount = TreasuryAccount;
+	type TreasuryAccount = RelayTreasuryPalletAccount;
 	type Token = Balances;
 	type WeightInfo = crate::weights::snowbridge_pallet_system::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -168,7 +167,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
-	use super::{EthereumGatewayAddress, Runtime, TreasuryAccount};
+	use super::{EthereumGatewayAddress, Runtime, RelayTreasuryPalletAccount};
 	use crate::{Balances, EthereumBeaconClient, ExistentialDeposit, RuntimeOrigin};
 	use codec::Encode;
 	use frame_support::traits::fungible;
@@ -205,7 +204,7 @@ pub mod benchmark_helpers {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
 			// Drip ED to the `TreasuryAccount`
 			<Balances as fungible::Mutate<_>>::set_balance(
-				&TreasuryAccount::get(),
+				&RelayTreasuryPalletAccount::get(),
 				ExistentialDeposit::get(),
 			);
 
