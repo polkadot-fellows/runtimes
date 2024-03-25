@@ -2485,7 +2485,6 @@ dependencies = [
  "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
- "emulated-integration-tests-common",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
