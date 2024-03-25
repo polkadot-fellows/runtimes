@@ -252,6 +252,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 							local: (1 * UNITS / 100).into(), // 0.01 KSM
 							remote: meth(1),
 						},
+						multiplier: FixedU128::from_rational(1, 1),
 					}
 				},
 			});

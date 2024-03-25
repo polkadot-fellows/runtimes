@@ -470,6 +470,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 						local: (1 * UNITS / 100).into(), // 0.01 DOT
 						remote: meth(1),
 					},
+					multiplier: FixedU128::from_rational(1, 1),
 				}
 			)
 		);
