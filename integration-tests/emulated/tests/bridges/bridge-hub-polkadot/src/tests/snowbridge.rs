@@ -503,6 +503,11 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
+	// check treasury account balance on BH before
+	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
+		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&TREASURY_ACCOUNT.into())
+	});
+
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -570,13 +575,18 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued {..}) => {},
 			]
 		);
+
+		// check treasury account balance on BH after (should receive some fees)
+		let treasury_account_after = <<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&TREASURY_ACCOUNT.into());
+		let local_fee = treasury_account_after - treasury_account_before;
+
 		let events = BridgeHubPolkadot::events();
 		// Check that the local fee was credited to the Snowbridge sovereign account
 		assert!(
 			events.iter().any(|event| matches!(
 				event,
 				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == TREASURY_ACCOUNT.into() && *amount == 50710000
+					if *who == TREASURY_ACCOUNT.into() && *amount == local_fee
 			)),
 			"Snowbridge sovereign takes local fee."
 		);
