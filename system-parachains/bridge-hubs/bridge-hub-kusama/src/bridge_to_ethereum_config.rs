@@ -139,6 +139,9 @@ parameter_types! {
 }
 
 parameter_types! {
+	// On Ethereum, a sync committee period spans 8192 slots, approximately 27 hours (or 256 epochs).
+	// We retain headers for 20 sync committee periods, equating to about 3 weeks. Headers older
+	// than this period are pruned.
 	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
 }
 
