@@ -158,7 +158,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 	type Token = Balances;
 	type WeightInfo = crate::weights::snowbridge_pallet_system::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type Helper = ();
+	type Helper = Runtime;
 	type DefaultPricingParameters = Parameters;
 	type InboundDeliveryCost = EthereumInboundQueue;
 }
@@ -199,7 +199,7 @@ pub mod benchmark_helpers {
 		}
 	}
 
-	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
+	impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for Runtime {
 		fn make_xcm_origin(location: Location) -> RuntimeOrigin {
 			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
 		}
