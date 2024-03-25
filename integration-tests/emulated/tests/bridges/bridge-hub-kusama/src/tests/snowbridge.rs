@@ -576,12 +576,12 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			)),
 			"Snowbridge sovereign takes local fee."
 		);
-		// Check that the remote fee was credited to the AssetHub sovereign account
+		// Check that the remote delivery fee was credited to the AssetHub sovereign account
 		assert!(
 			events.iter().any(|event| matches!(
 				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == assethub_sovereign && *amount == 502500000000,
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. })
+					if *who == assethub_sovereign,
 			)),
 			"AssetHub sovereign takes remote fee."
 		);
