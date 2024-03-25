@@ -24,7 +24,7 @@ pallet-utility = { version = "29.0.0" }
 # Polkadot
 polkadot-runtime-common = { version = "8.0.1" }
 xcm = { package = "staging-xcm", version = "8.0.1" }
-pallet-xcm = { version = "8.0.2" }
+pallet-xcm = { version = "8.0.4" }
 xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
 
 # Cumulus
