@@ -55,6 +55,12 @@
     "is_relay": false
   },
   {
+    "name": "people-kusama",
+    "package": "people-kusama-runtime",
+    "path": "system-parachains/people/people-kusama",
+    "is_relay": false
+  },
+  {
     "name": "encointer-kusama",
     "package": "encointer-kusama-runtime",
     "path": "system-parachains/encointer",
