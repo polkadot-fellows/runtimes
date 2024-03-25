@@ -55,9 +55,6 @@ runtime-benchmarks = [
 	"polkadot-runtime/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
-<<<<<<< variant A
 	"coretime-kusama-runtime/runtime-benchmarks",
->>>>>>> variant B
 	"people-kusama-runtime/runtime-benchmarks",
-======= end
 ]
