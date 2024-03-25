@@ -72,9 +72,13 @@ cumulus-pallet-xcmp-queue = { default-features = false , version = "0.8.0" }
 cumulus-primitives-aura = { default-features = false, version = "0.8.0" }
 cumulus-primitives-core = { default-features = false , version = "0.8.0" }
 cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
+emulated-integration-tests-common = { version = "4.0.0" }
 pallet-collator-selection = { default-features = false , version = "10.0.0" }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
 parachains-common = { default-features = false , version = "8.0.0" }
+
+[dev-dependencies]
+parachains-runtimes-test-utils = { version = "8.0.0" }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "18.0.0" }
