@@ -55,6 +55,12 @@
     "is_relay": false
   },
   {
+    "name": "coretime-kusama",
+    "package": "coretime-kusama-runtime",
+    "path": "system-parachains/coretime/coretime-kusama",
+    "is_relay": false
+  },
+  {
     "name": "people-kusama",
     "package": "people-kusama-runtime",
     "path": "system-parachains/people/people-kusama",

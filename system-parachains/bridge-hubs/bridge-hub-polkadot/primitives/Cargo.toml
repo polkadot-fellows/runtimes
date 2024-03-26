@@ -18,7 +18,7 @@ system-parachains-constants = { path = "../../../constants", default-features = 
 bp-bridge-hub-cumulus = { default-features = false , version = "0.8.0" }
 bp-runtime = { default-features = false , version = "0.8.0" }
 bp-messages = { default-features = false , version = "0.8.0" }
-snowbridge-core = { default-features = false , version = "0.1.0" }
+snowbridge-core = { default-features = false , version = "0.1.1" }
 
 # Substrate Based Dependencies
 frame-support = { default-features = false, version = "29.0.0" }

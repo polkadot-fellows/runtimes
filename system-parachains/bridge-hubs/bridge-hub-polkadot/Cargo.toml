@@ -60,7 +60,7 @@ sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.3" }
+pallet-xcm = { default-features = false, version = "8.0.4" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
@@ -103,13 +103,13 @@ pallet-xcm-bridge-hub =  { default-features = false , version = "0.3.0" }
 
 # Ethereum Bridge (Snowbridge)
 snowbridge-beacon-primitives = { default-features = false , version = "0.1.0" }
-snowbridge-pallet-system = { default-features = false , version = "0.1.0" }
+snowbridge-pallet-system = { default-features = false , version = "0.1.1" }
 snowbridge-system-runtime-api = { default-features = false , version = "0.1.0" }
-snowbridge-core = { default-features = false , version = "0.1.0" }
-snowbridge-pallet-ethereum-client = { default-features = false , version = "0.1.0" }
-snowbridge-pallet-inbound-queue = { default-features = false , version = "0.1.0" }
-snowbridge-pallet-outbound-queue = { default-features = false , version = "0.1.0" }
-snowbridge-outbound-queue-runtime-api = { default-features = false , version = "0.1.0" }
+snowbridge-core = { default-features = false , version = "0.1.1" }
+snowbridge-pallet-ethereum-client = { default-features = false , version = "0.1.1" }
+snowbridge-pallet-inbound-queue = { default-features = false , version = "0.1.1" }
+snowbridge-pallet-outbound-queue = { default-features = false , version = "0.1.1" }
+snowbridge-outbound-queue-runtime-api = { default-features = false , version = "0.1.1" }
 snowbridge-router-primitives = { default-features = false , version = "0.1.0" }
 snowbridge-runtime-common = { default-features = false, version = "0.1.0" }
 
