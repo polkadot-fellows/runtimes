@@ -103,3 +103,11 @@ jobs:
             on-runtime-upgrade --checks=pre-and-post \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}
+
+  confirmMigrationsPassed:
+    runs-on: ubuntu-latest
+    name: All migrations passed
+    # If any new job gets added, be sure to add it to this list
+    needs: [check-migrations]
+    steps:
+      - run: echo '### Good job! All the migrations passed 🚀' >> $GITHUB_STEP_SUMMARY
