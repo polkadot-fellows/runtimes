@@ -21,7 +21,7 @@ fn teleport_to_other_system_parachains_works() {
 	let amount = BRIDGE_HUB_POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_parachain_is_trusted_teleporter!(
+	test_sibling_is_trusted_teleporter!(
 		BridgeHubPolkadot,      // Origin
 		XcmConfig,              // XCM configuration
 		vec![AssetHubPolkadot], // Destinations
