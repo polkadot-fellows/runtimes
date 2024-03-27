@@ -9,17 +9,17 @@ license.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+scale-info = { features = ["derive"] , workspace = true }
 
 # Local
 system-parachains-constants = { path = "../../../constants", default-features = false }
 
 # Bridge Dependencies
-bp-xcm-bridge-hub-router = { default-features = false , version = "0.7.0" }
+bp-xcm-bridge-hub-router = { workspace = true }
 
 # Substrate Based Dependencies
-frame-support = { default-features = false, version = "29.0.0" }
-sp-std = { default-features = false, version = "14.0.0" }
+frame-support = { workspace = true }
+sp-std = { workspace = true }
 
 # Polkadot
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }

@@ -10,13 +10,13 @@ publish = false
 [dependencies]
 
 # Substrate
-sp-core = { version = "29.0.0" }
-frame-support = { version = "29.0.0" }
+sp-core = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
 
 # Cumulus
-parachains-common = { version = "8.0.0" }
-cumulus-primitives-core = { version = "0.8.0" }
-emulated-integration-tests-common = { version = "4.0.0" }
+parachains-common = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
 
 # Local
 people-kusama-runtime = { path = "../../../../../../system-parachains/people/people-kusama" }
