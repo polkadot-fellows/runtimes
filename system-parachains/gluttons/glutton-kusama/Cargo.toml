@@ -10,31 +10,31 @@ version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+scale-info = { features = ["derive"] , workspace = true }
 
 # Substrate
-frame-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
-frame-executive = { default-features = false, version = "29.0.0" }
-frame-support = { default-features = false, version = "29.0.0" }
-frame-system = { default-features = false, version = "29.0.0" }
-frame-system-rpc-runtime-api = { default-features = false, version = "27.0.0" }
-frame-system-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
-frame-try-runtime = { default-features = false, optional = true, version = "0.35.0" }
-pallet-glutton = { default-features = false, optional = true, version = "15.0.0" }
-pallet-message-queue = { default-features = false , version = "32.0.0" }
-pallet-sudo = { default-features = false, optional = true, version = "29.0.0" }
-sp-api = { default-features = false, version = "27.0.0" }
-sp-block-builder = { default-features = false, version = "27.0.0" }
-sp-core = { default-features = false, version = "29.0.0" }
-sp-genesis-builder = { default-features = false , version = "0.8.0" }
-sp-inherents = { default-features = false, version = "27.0.0" }
-sp-offchain = { default-features = false, version = "27.0.0" }
-sp-runtime = { default-features = false, version = "32.0.0" }
-sp-session = { default-features = false, version = "28.0.0" }
-sp-std = { default-features = false, version = "14.0.0" }
-sp-storage = { default-features = false, version = "20.0.0" }
-sp-transaction-pool = { default-features = false, version = "27.0.0" }
-sp-version = { default-features = false, version = "30.0.0" }
+frame-benchmarking = { optional = true, workspace = true }
+frame-executive = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+frame-system-rpc-runtime-api = { workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+frame-try-runtime = { optional = true, workspace = true }
+pallet-glutton = { optional = true, workspace = true }
+pallet-message-queue = { workspace = true }
+pallet-sudo = { optional = true, workspace = true }
+sp-api = { workspace = true }
+sp-block-builder = { workspace = true }
+sp-core = { workspace = true }
+sp-genesis-builder = { workspace = true }
+sp-inherents = { workspace = true }
+sp-offchain = { workspace = true }
+sp-runtime = { workspace = true }
+sp-session = { workspace = true }
+sp-std = { workspace = true }
+sp-storage = { workspace = true }
+sp-transaction-pool = { workspace = true }
+sp-version = { workspace = true }
 
 # Polkadot
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
@@ -42,15 +42,15 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false, versi
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
-cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
-cumulus-primitives-core = { default-features = false , version = "0.8.0" }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-xcm = { workspace = true }
+cumulus-primitives-core = { workspace = true }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
-parachains-common = { default-features = false , version = "8.0.0" }
+parachains-common = { workspace = true }
 system-parachains-constants = { path = "../../constants", default-features = false }
 
 [build-dependencies]
-substrate-wasm-builder = { version = "18.0.0" }
+substrate-wasm-builder = { workspace = true }
 
 [features]
 default = [ "std" ]
