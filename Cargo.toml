@@ -129,7 +129,7 @@ pallet-uniques = { version = "29.0.0", default-features = false }
 pallet-utility = { version = "29.0.0", default-features = false }
 pallet-vesting = { version = "29.0.0", default-features = false }
 pallet-whitelist = { version = "28.0.0", default-features = false }
-pallet-xcm = { version = "8.0.3", default-features = false }
+pallet-xcm = { version = "8.0.4", default-features = false }
 pallet-xcm-benchmarks = { version = "8.0.2", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.3.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.6.0", default-features = false }
