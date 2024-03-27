@@ -14,15 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use super::*;
 use crate::xcm_config;
-use frame_support::{defensive, pallet_prelude::DispatchResult};
+use core::marker::PhantomData;
+use frame_support::{
+	defensive,
+	pallet_prelude::DispatchResult,
+	traits::{tokens::ConversionFromAssetBalance, Contains},
+};
 use frame_system::RawOrigin;
-use kusama_runtime_constants::{currency::*, system_parachain::PEOPLE_ID};
+use kusama_runtime_constants::system_parachain::PEOPLE_ID;
 use parity_scale_codec::{Decode, Encode};
-use primitives::Balance;
+use primitives::{Balance, Id as ParaId};
 use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
-use sp_std::{marker::PhantomData, prelude::*};
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
+use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::TransactAsset;
 
 /// A type containing the encoding of the People Chain pallets in its runtime. Used to construct any
@@ -173,5 +179,42 @@ where
 			Box::new(VersionedXcm::V4(program)),
 		)?;
 		Ok(())
+	}
+}
+
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
+/// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
+/// conversion; otherwise, delegates to the implementation specified by `I`.
+///
+/// Example where the `asset_kind` represents the native asset:
+/// - location: (1, Parachain(1000)), // location of a Sibling Parachain;
+/// - asset_id: (1, Here), // the asset id in the context of `asset_kind.location`;
+pub struct NativeOnSystemParachain<I>(PhantomData<I>);
+impl<I> ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>
+	for NativeOnSystemParachain<I>
+where
+	I: ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>,
+{
+	type Error = ();
+	fn from_asset_balance(
+		balance: Balance,
+		asset_kind: VersionedLocatableAsset,
+	) -> Result<Balance, Self::Error> {
+		use VersionedLocatableAsset::*;
+		let (location, asset_id) = match asset_kind.clone() {
+			V3 { location, asset_id } => (location.try_into()?, asset_id.try_into()?),
+			V4 { location, asset_id } => (location, asset_id),
+		};
+		if asset_id.0.contains_parents_only(1) &&
+			IsChildSystemParachain::<ParaId>::contains(&location)
+		{
+			Ok(balance)
+		} else {
+			I::from_asset_balance(balance, asset_kind).map_err(|_| ())
+		}
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful(asset_kind: VersionedLocatableAsset) {
+		I::ensure_successful(asset_kind)
 	}
 }

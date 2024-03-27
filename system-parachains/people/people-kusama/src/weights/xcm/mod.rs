@@ -132,7 +132,7 @@ impl<Call> XcmWeightInfo<Call> for PeopleKusamaXcmWeight<Call> {
 		_reserve: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
-		assets.weigh_assets(XcmGeneric::<Runtime>::initiate_reserve_withdraw())
+		assets.weigh_assets(XcmFungibleWeight::<Runtime>::initiate_reserve_withdraw())
 	}
 	fn initiate_teleport(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
 		assets.weigh_assets(XcmFungibleWeight::<Runtime>::initiate_teleport())

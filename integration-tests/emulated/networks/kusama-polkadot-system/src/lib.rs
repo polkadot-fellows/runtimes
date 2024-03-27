@@ -26,7 +26,7 @@ use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_kusama_emulated_chain::BridgeHubKusama;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
 use kusama_emulated_chain::Kusama;
-use penpal_emulated_chain::PenpalA;
+use penpal_emulated_chain::{PenpalA, PenpalB};
 use polkadot_emulated_chain::Polkadot;
 
 // Cumulus
@@ -55,6 +55,7 @@ decl_test_networks! {
 		parachains = vec![
 			AssetHubPolkadot,
 			BridgeHubPolkadot,
+			PenpalB,
 		],
 		bridge = PolkadotKusamaMockBridge
 	},

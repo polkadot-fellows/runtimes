@@ -17,12 +17,15 @@ frame-support = { version = "29.0.0" }
 pallet-assets = { version = "30.0.0" }
 pallet-balances = { version = "29.0.0" }
 pallet-asset-conversion = { version = "11.0.0" }
+pallet-treasury = { version = "28.0.0" }
 pallet-message-queue = { version = "32.0.0" }
+pallet-utility = { version = "29.0.0" }
 
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
-pallet-xcm = { version = "8.0.3" }
+pallet-xcm = { version = "8.0.4" }
+runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
 
 # Cumulus
 parachains-common = { version = "8.0.0" }
@@ -36,3 +39,4 @@ integration-tests-helpers = { path = "../../../helpers" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
 kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
 system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
