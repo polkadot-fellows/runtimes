@@ -43,4 +43,5 @@ std = [
 	"sp-std/std",
 	"system-parachains-constants/std",
 	"xcm/std",
+	"snowbridge-core/std"
 ]
