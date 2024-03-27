@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 
 # Cumulus
-emulated-integration-tests-common = { version = "4.0.0" }
+emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 asset-hub-kusama-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-kusama" }

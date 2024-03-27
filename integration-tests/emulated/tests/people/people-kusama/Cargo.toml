@@ -11,22 +11,22 @@ publish = false
 codec = { package = "parity-scale-codec", version = "3.6.9" }
 
 # Substrate
-sp-runtime = { version = "32.0.0" }
-frame-support = { version = "29.0.0" }
-pallet-balances = { version = "29.0.0" }
-pallet-message-queue = { version = "32.0.0" }
-pallet-identity = { version = "29.0.0" }
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+pallet-identity = { workspace = true, default-features = true }
 
 # Polkadot
-polkadot-runtime-common = { version = "8.0.1" }
+polkadot-runtime-common = { workspace = true, default-features = true }
 xcm = { package = "staging-xcm", version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
-parachains-common = { version = "8.0.0" }
-emulated-integration-tests-common = { version = "4.0.0" }
-asset-test-utils = { version = "8.0.1" }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], version = "0.8.1" }
+parachains-common = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
+asset-test-utils = { workspace = true }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], workspace = true, default-features = true }
 
 # Local
 kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }

@@ -10,9 +10,9 @@ version.workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
-hex-literal = { version = "0.4.1", optional = true }
-log = { version = "0.4.20", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+hex-literal = { optional = true , workspace = true }
+log = { workspace = true }
+scale-info = { features = ["derive"] , workspace = true }
 
 # Local
 bp-asset-hub-kusama = { path = "../asset-hub-kusama/primitives", default-features = false}
@@ -24,85 +24,85 @@ kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-f
 polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
 
 # Substrate
-frame-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
-frame-executive = { default-features = false, version = "29.0.0" }
-frame-support = { default-features = false, version = "29.0.0" }
-frame-system = { default-features = false, version = "29.0.0" }
-frame-system-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
-frame-system-rpc-runtime-api = { default-features = false, version = "27.0.0" }
-frame-try-runtime = { default-features = false, optional = true, version = "0.35.0" }
-pallet-asset-conversion-tx-payment = { default-features = false, version = "11.0.0" }
-pallet-asset-conversion = { default-features = false, version = "11.0.0" }
-pallet-assets = { default-features = false, version = "30.0.0" }
-pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
-pallet-authorship = { default-features = false, version = "29.0.0" }
-pallet-balances = { default-features = false, version = "29.0.0" }
-pallet-message-queue = { default-features = false , version = "32.0.0" }
-pallet-multisig = { default-features = false, version = "29.0.0" }
-pallet-nfts = { default-features = false, version = "23.0.0" }
-pallet-nfts-runtime-api = { default-features = false, version = "15.0.0" }
-pallet-proxy = { default-features = false, version = "29.0.0" }
-pallet-session = { default-features = false, version = "29.0.0" }
-pallet-timestamp = { default-features = false, version = "28.0.0" }
-pallet-transaction-payment = { default-features = false, version = "29.0.0" }
-pallet-transaction-payment-rpc-runtime-api = { default-features = false, version = "29.0.0" }
-pallet-uniques = { default-features = false, version = "29.0.0" }
-pallet-utility = { default-features = false, version = "29.0.0" }
-sp-api = { default-features = false, version = "27.0.0" }
-sp-block-builder = { default-features = false, version = "27.0.0" }
-sp-consensus-aura = { default-features = false, version = "0.33.0" }
-sp-core = { default-features = false, version = "29.0.0" }
-sp-genesis-builder = { default-features = false , version = "0.8.0" }
-sp-io = { default-features = false , version = "31.0.0" }
-sp-inherents = { default-features = false, version = "27.0.0" }
-sp-offchain = { default-features = false, version = "27.0.0" }
-sp-runtime = { default-features = false, version = "32.0.0" }
-sp-session = { default-features = false, version = "28.0.0" }
-sp-std = { default-features = false, version = "14.0.0" }
-sp-storage = { default-features = false, version = "20.0.0" }
-sp-transaction-pool = { default-features = false, version = "27.0.0" }
-sp-version = { default-features = false, version = "30.0.0" }
-sp-weights = { default-features = false, version = "28.0.0" }
+frame-benchmarking = { optional = true, workspace = true }
+frame-executive = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+frame-system-rpc-runtime-api = { workspace = true }
+frame-try-runtime = { optional = true, workspace = true }
+pallet-asset-conversion-tx-payment = { workspace = true }
+pallet-asset-conversion = { workspace = true }
+pallet-assets = { workspace = true }
+pallet-aura = { features = ["experimental"] , workspace = true }
+pallet-authorship = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-message-queue = { workspace = true }
+pallet-multisig = { workspace = true }
+pallet-nfts = { workspace = true }
+pallet-nfts-runtime-api = { workspace = true }
+pallet-proxy = { workspace = true }
+pallet-session = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-uniques = { workspace = true }
+pallet-utility = { workspace = true }
+sp-api = { workspace = true }
+sp-block-builder = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-core = { workspace = true }
+sp-genesis-builder = { workspace = true }
+sp-io = { workspace = true }
+sp-inherents = { workspace = true }
+sp-offchain = { workspace = true }
+sp-runtime = { workspace = true }
+sp-session = { workspace = true }
+sp-std = { workspace = true }
+sp-storage = { workspace = true }
+sp-transaction-pool = { workspace = true }
+sp-version = { workspace = true }
+sp-weights = { workspace = true }
 # num-traits feature needed for dex integer sq root:
-primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "num-traits"] }
+primitive-types = { features = ["codec", "scale-info", "num-traits"] , workspace = true }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.3" }
-pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
-polkadot-core-primitives = { default-features = false, version = "8.0.0" }
-polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
-polkadot-runtime-common = { default-features = false, version = "8.0.1" }
+pallet-xcm = { workspace = true }
+pallet-xcm-benchmarks = { optional = true , workspace = true }
+polkadot-core-primitives = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
 xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
 
 # Cumulus
-cumulus-pallet-aura-ext = { default-features = false , version = "0.8.0" }
-cumulus-pallet-dmp-queue = { default-features = false , version = "0.8.0" }
-cumulus-pallet-parachain-system = { default-features = false, features = ["parameterized-consensus-hook",] , version = "0.8.1" }
-cumulus-pallet-session-benchmarking = { default-features = false, version = "10.0.0" }
-cumulus-pallet-xcm = { default-features = false , version = "0.8.0" }
-cumulus-pallet-xcmp-queue = { default-features = false , features = ["bridging"] , version = "0.8.0" }
-cumulus-primitives-aura = { default-features = false , version = "0.8.0" }
-cumulus-primitives-core = { default-features = false , version = "0.8.0" }
-cumulus-primitives-utility = { default-features = false , version = "0.8.1" }
-pallet-collator-selection = { default-features = false , version = "10.0.0" }
+cumulus-pallet-aura-ext = { workspace = true }
+cumulus-pallet-dmp-queue = { workspace = true }
+cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-session-benchmarking = { workspace = true }
+cumulus-pallet-xcm = { workspace = true }
+cumulus-pallet-xcmp-queue = { features = ["bridging"] , workspace = true }
+cumulus-primitives-aura = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+cumulus-primitives-utility = { workspace = true }
+pallet-collator-selection = { workspace = true }
 parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
-parachains-common = { default-features = false , version = "8.0.0" }
+parachains-common = { workspace = true }
 system-parachains-constants = { path = "../../constants", default-features = false }
-assets-common = { default-features = false , version = "0.8.0" }
+assets-common = { workspace = true }
 
 # Bridges
-pallet-xcm-bridge-hub-router = { default-features = false , version = "0.6.0" }
-snowbridge-router-primitives = { default-features = false, version = "0.1.0" }
+pallet-xcm-bridge-hub-router = { workspace = true }
+snowbridge-router-primitives = { workspace = true }
 
 [dev-dependencies]
-hex-literal = "0.4.1"
-asset-test-utils = { version = "8.0.1" }
-parachains-runtimes-test-utils = { version = "8.0.0" }
+hex-literal = { workspace = true }
+asset-test-utils = { workspace = true }
+parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]
-substrate-wasm-builder = { optional = true , version = "18.0.0" }
+substrate-wasm-builder = { optional = true , workspace = true }
 
 [features]
 default = [ "std" ]

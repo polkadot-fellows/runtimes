@@ -8,17 +8,17 @@ description = "Emulated integration tests helpers"
 publish = false
 
 [dependencies]
-paste = "1.0.14"
+paste = { workspace = true }
 
 # Substrate
-pallet-balances = { version = "29.0.0" }
-pallet-message-queue = { version = "32.0.0" }
+pallet-balances = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.1" }
-pallet-xcm = { version = "8.0.3" }
+pallet-xcm = { workspace = true, default-features = true }
 
 # Cumulus
-xcm-emulator = { version = "0.6.0" }
-cumulus-pallet-xcmp-queue = { version = "0.8.0" }
-asset-test-utils = { version = "8.0.1" }
+xcm-emulator = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
+asset-test-utils = { workspace = true }

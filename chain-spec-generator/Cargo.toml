@@ -7,28 +7,28 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { version = "4.5.0", features = [ "derive" ] }
-serde_json = "1.0.113"
-serde = { version = "1.0.196", features = ["derive"] }
+clap = { features = [ "derive" ] , workspace = true }
+serde_json = { workspace = true }
+serde = { features = ["derive"] , workspace = true }
 
 polkadot-runtime = { path = "../relay/polkadot" }
 polkadot-runtime-constants = { path = "../relay/polkadot/constants" }
 kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" }
 kusama-runtime-constants = { path = "../relay/kusama/constants" }
 
-sc-chain-spec = "28.0.0"
-polkadot-runtime-parachains = "8.0.1"
-polkadot-primitives = "8.0.1"
-sp-consensus-babe = "0.33.0"
-sp-authority-discovery = "27.0.0"
-sp-core = "29.0.0"
-pallet-staking = "29.0.0"
-sc-consensus-grandpa = "0.20.0"
-sp-runtime = "32.0.0"
-sp-consensus-beefy = "14.0.0"
+sc-chain-spec = { workspace = true }
+polkadot-runtime-parachains = { workspace = true, default-features = true }
+polkadot-primitives = { workspace = true, default-features = true }
+sp-consensus-babe = { workspace = true, default-features = true }
+sp-authority-discovery = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+pallet-staking = { workspace = true, default-features = true }
+sc-consensus-grandpa = { workspace = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-consensus-beefy = { workspace = true, default-features = true }
 xcm = { package = "staging-xcm", version = "8.0.1" }
-parachains-common = { version = "8.0.0" }
-cumulus-primitives-core = { version = "0.8.0" }
+parachains-common = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
 
 asset-hub-polkadot-runtime = { path = "../system-parachains/asset-hubs/asset-hub-polkadot" }
 asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-kusama" }
