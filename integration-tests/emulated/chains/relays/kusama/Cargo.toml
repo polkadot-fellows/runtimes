@@ -10,18 +10,18 @@ publish = false
 [dependencies]
 
 # Substrate
-sp-core = { version = "29.0.0" }
+sp-core = { workspace = true, default-features = true }
 authority-discovery-primitives = { package = "sp-authority-discovery", version = "27.0.0" }
 babe-primitives = { package = "sp-consensus-babe", version = "0.33.0" }
 beefy-primitives = { package = "sp-consensus-beefy", version = "14.0.0" }
 grandpa = { package = "sc-consensus-grandpa", version = "0.20.0" }
 
 # Polkadot
-polkadot-primitives = { version = "8.0.1" }
+polkadot-primitives = { workspace = true, default-features = true }
 
 # Cumulus
-parachains-common = { version = "8.0.0" }
-emulated-integration-tests-common = { version = "4.0.0" }
+parachains-common = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
