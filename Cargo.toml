@@ -25,6 +25,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
+	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
@@ -45,6 +46,7 @@ members = [
 	"integration-tests/emulated/tests/assets/asset-hub-polkadot",
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
+	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 ]
 

@@ -32,7 +32,7 @@ pub use bp_messages::LaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{
-	accounts::ALICE,
+	accounts::{ALICE, BOB},
 	impls::Inspect,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
@@ -53,7 +53,7 @@ pub use kusama_polkadot_system_emulated_network::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
-	polkadot_emulated_chain::PolkadotRelayPallet as PolkadotPallet,
+	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
@@ -62,6 +62,11 @@ pub use kusama_polkadot_system_emulated_network::{
 	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PolkadotRelay as Polkadot,
 };
 pub use parachains_common::{AccountId, Balance};
+pub use polkadot_system_emulated_network::{
+	penpal_emulated_chain::PenpalBParaPallet as PenpalBPallet,
+	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver, PenpalBPara as PenpalB,
+	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
+};
 
 pub const ASSET_ID: u32 = 1;
 pub const ASSET_MIN_BALANCE: u128 = 1000;

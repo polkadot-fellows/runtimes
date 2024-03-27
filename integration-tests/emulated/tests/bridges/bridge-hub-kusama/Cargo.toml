@@ -8,17 +8,22 @@ description = "Bridge Hub Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.9" }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+hex-literal = "0.4.1"
 
 # Substrate
+sp-core = { version = "29.0.0" }
 sp-runtime = { version = "32.0.0" }
 frame-support = { version = "29.0.0" }
 pallet-balances = { version = "29.0.0" }
+pallet-asset-conversion = { version = "11.0.0" }
 pallet-assets = { version = "30.0.0" }
 pallet-message-queue = { version = "32.0.0" }
 
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.1" }
-pallet-xcm = { version = "8.0.2" }
+pallet-xcm = { version = "8.0.4" }
 xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
 
 # Cumulus
@@ -31,7 +36,18 @@ bp-messages = { version = "0.8.0" }
 pallet-bridge-messages = { version = "0.8.0" }
 
 # Local
+bp-bridge-hub-kusama = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama/primitives"}
 bridge-hub-kusama-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
+asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
 integration-tests-helpers = { path = "../../../helpers" }
 kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
 kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
+system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+
+# Snowbridge
+snowbridge-beacon-primitives = { version = "0.1.0" }
+snowbridge-core = { version = "0.1.1" }
+snowbridge-router-primitives = { version = "0.1.0" }
+snowbridge-pallet-system = { version = "0.1.1" }
+snowbridge-pallet-outbound-queue = { version = "0.1.1" }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.9.0" }

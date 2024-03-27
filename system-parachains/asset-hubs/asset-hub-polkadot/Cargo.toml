@@ -31,7 +31,8 @@ frame-system = { default-features = false, version = "29.0.0" }
 frame-system-benchmarking = { default-features = false, optional = true, version = "29.0.0" }
 frame-system-rpc-runtime-api = { default-features = false, version = "27.0.0" }
 frame-try-runtime = { default-features = false, optional = true, version = "0.35.0" }
-pallet-asset-tx-payment = { default-features = false , version = "29.0.0" }
+pallet-asset-conversion-tx-payment = { default-features = false, version = "11.0.0" }
+pallet-asset-conversion = { default-features = false, version = "11.0.0" }
 pallet-assets = { default-features = false, version = "30.0.0" }
 pallet-aura = { default-features = false, version = "28.0.0", features = ["experimental"] }
 pallet-authorship = { default-features = false, version = "29.0.0" }
@@ -52,6 +53,7 @@ sp-block-builder = { default-features = false, version = "27.0.0" }
 sp-consensus-aura = { default-features = false, version = "0.33.0" }
 sp-core = { default-features = false, version = "29.0.0" }
 sp-genesis-builder = { default-features = false , version = "0.8.0" }
+sp-io = { default-features = false , version = "31.0.0" }
 sp-inherents = { default-features = false, version = "27.0.0" }
 sp-offchain = { default-features = false, version = "27.0.0" }
 sp-runtime = { default-features = false, version = "32.0.0" }
@@ -61,9 +63,11 @@ sp-storage = { default-features = false, version = "20.0.0" }
 sp-transaction-pool = { default-features = false, version = "27.0.0" }
 sp-version = { default-features = false, version = "30.0.0" }
 sp-weights = { default-features = false, version = "28.0.0" }
+# num-traits feature needed for dex integer sq root:
+primitive-types = { version = "0.12.2", default-features = false, features = ["codec", "scale-info", "num-traits"] }
 
 # Polkadot
-pallet-xcm = { default-features = false, version = "8.0.2" }
+pallet-xcm = { default-features = false, version = "8.0.4" }
 pallet-xcm-benchmarks = { default-features = false, optional = true , version = "8.0.2" }
 polkadot-core-primitives = { default-features = false, version = "8.0.0" }
 polkadot-parachain-primitives = { default-features = false, version = "7.0.0" }
@@ -90,12 +94,12 @@ assets-common = { default-features = false , version = "0.8.0" }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { default-features = false , version = "0.6.0" }
+snowbridge-router-primitives = { default-features = false, version = "0.1.0" }
 
 [dev-dependencies]
 hex-literal = "0.4.1"
 asset-test-utils = { version = "8.0.1" }
 parachains-runtimes-test-utils = { version = "8.0.0" }
-sp-io = { version = "31.0.0" }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true , version = "18.0.0" }
@@ -114,7 +118,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"hex-literal",
-	"pallet-asset-tx-payment/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
@@ -130,6 +134,7 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -144,7 +149,8 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-asset-tx-payment/try-runtime",
+	"pallet-asset-conversion-tx-payment/try-runtime",
+	"pallet-asset-conversion/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -190,7 +196,8 @@ std = [
 	"frame-try-runtime?/std",
 	"kusama-runtime-constants/std",
 	"log/std",
-	"pallet-asset-tx-payment/std",
+	"pallet-asset-conversion-tx-payment/std",
+	"pallet-asset-conversion/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -217,12 +224,14 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
+	"snowbridge-router-primitives/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
+	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
