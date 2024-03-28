@@ -24,7 +24,7 @@ use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
 
-use system_parachains_constants::polkadot::currency::UNITS;
+use system_parachains_constants::polkadot::currency::*;
 
 /// `AssetHubPolkadot` Runtime `Call` enum.
 ///
@@ -52,7 +52,7 @@ frame_support::parameter_types! {
 	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
 
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
-	pub const CreateForeignAssetDeposit: u128 = 10 * UNITS;
+	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
 }
 
 fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {
