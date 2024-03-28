@@ -19,15 +19,14 @@ jobs:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: clippy
-
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component clippy
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -35,6 +34,6 @@ jobs:
           shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
-        run: cargo +nightly clippy --all-targets --locked -q
+        run: cargo +nightly-$RUST_NIGHTLY_VERSION clippy --all-targets --locked -q
         env:
           SKIP_WASM_BUILD: 1
