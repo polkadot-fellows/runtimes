@@ -15,16 +15,16 @@ polkadot-runtime-constants = { path = "../../../../relay/polkadot/constants", de
 system-parachains-constants = { path = "../../../constants", default-features = false }
 
 # Bridge Dependencies
-bp-bridge-hub-cumulus = { default-features = false , version = "0.8.0" }
-bp-runtime = { default-features = false , version = "0.8.0" }
-bp-messages = { default-features = false , version = "0.8.0" }
-snowbridge-core = { default-features = false , version = "0.1.0" }
+bp-bridge-hub-cumulus = { workspace = true }
+bp-runtime = { workspace = true }
+bp-messages = { workspace = true }
+snowbridge-core = { workspace = true }
 
 # Substrate Based Dependencies
-frame-support = { default-features = false, version = "29.0.0" }
-sp-api = { default-features = false, version = "27.0.0" }
-sp-runtime = { default-features = false, version = "32.0.0" }
-sp-std = { default-features = false , version = "14.0.0" }
+frame-support = { workspace = true }
+sp-api = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 # Polkadot
 xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }

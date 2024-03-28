@@ -185,7 +185,9 @@ pub mod snowbridge {
 				local: 1,
 				// Reward for submitting a message to the Gateway contract on Ethereum
 				remote: U256::one(),
-			}
+			},
+			// Safety factor to cover unfavourable fluctuations in the ETH/DOT exchange rate.
+			multiplier: FixedU128::from_rational(1, 1),
 		};
 		/// Network and location for the Ethereum chain. On Kusama, the Ethereum chain bridged
 		/// to is the Ethereum Main network, with chain ID 1.

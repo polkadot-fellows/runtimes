@@ -9,31 +9,31 @@ publish = false
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9" }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-hex-literal = "0.4.1"
+scale-info = { features = ["derive"] , workspace = true }
+hex-literal = { workspace = true }
 
 # Substrate
-sp-core = { version = "29.0.0" }
-sp-runtime = { version = "32.0.0" }
-frame-support = { version = "29.0.0" }
-pallet-balances = { version = "29.0.0" }
-pallet-asset-conversion = { version = "11.0.0" }
-pallet-assets = { version = "30.0.0" }
-pallet-message-queue = { version = "32.0.0" }
+sp-core = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-asset-conversion = { workspace = true, default-features = true }
+pallet-assets = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { package = "staging-xcm", version = "8.0.1" }
-pallet-xcm = { version = "8.0.3" }
+pallet-xcm = { workspace = true, default-features = true }
 xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
 
 # Cumulus
-emulated-integration-tests-common = { version = "4.0.0" }
-parachains-common = { version = "8.0.0" }
-cumulus-pallet-xcmp-queue = { version = "0.8.0" }
+emulated-integration-tests-common = { workspace = true }
+parachains-common = { workspace = true, default-features = true }
+cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 
 # Bridges
-bp-messages = { version = "0.8.0" }
-pallet-bridge-messages = { version = "0.8.0" }
+bp-messages = { workspace = true, default-features = true }
+pallet-bridge-messages = { workspace = true, default-features = true }
 
 # Local
 bp-bridge-hub-kusama = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama/primitives"}
@@ -45,9 +45,9 @@ kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
 system-parachains-constants = { path = "../../../../../system-parachains/constants" }
 
 # Snowbridge
-snowbridge-beacon-primitives = { version = "0.1.0" }
-snowbridge-core = { version = "0.1.0" }
-snowbridge-router-primitives = { version = "0.1.0" }
-snowbridge-pallet-system = { version = "0.1.0" }
-snowbridge-pallet-outbound-queue = { version = "0.1.0" }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.9.0" }
+snowbridge-beacon-primitives = { workspace = true, default-features = true }
+snowbridge-core = { workspace = true, default-features = true }
+snowbridge-router-primitives = { workspace = true, default-features = true }
+snowbridge-pallet-system = { workspace = true, default-features = true }
+snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
+snowbridge-pallet-inbound-queue-fixtures = { workspace = true }

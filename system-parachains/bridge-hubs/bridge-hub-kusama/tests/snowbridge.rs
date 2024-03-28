@@ -18,12 +18,11 @@
 
 use bp_polkadot_core::Signature;
 use bridge_hub_kusama_runtime::{
-	bridge_to_ethereum_config::EthereumNetwork,
+	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
-	BridgeRejectObsoleteHeadersAndMessages, EthereumGatewayAddress, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
-	UncheckedExtrinsic,
+	BridgeRejectObsoleteHeadersAndMessages, Executive, MessageQueueServiceWeight, Runtime,
+	RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra, UncheckedExtrinsic,
 };
 use bridge_hub_test_utils::ValidatorIdOf;
 use codec::{Decode, Encode};
@@ -253,6 +252,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 							local: (1 * UNITS / 100).into(), // 0.01 KSM
 							remote: meth(1),
 						},
+						multiplier: FixedU128::from_rational(1, 1),
 					}
 				},
 			});
