@@ -6,6 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
+# triggered (ref https://stackoverflow.com/a/72408109)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   rustfmt:
     runs-on: ubuntu-22.04
