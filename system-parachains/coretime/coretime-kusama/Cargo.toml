@@ -142,6 +142,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"system-parachains-constants/std"
 ]
 
 runtime-benchmarks = [
