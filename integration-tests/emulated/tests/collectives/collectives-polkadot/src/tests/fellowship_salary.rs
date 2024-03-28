@@ -15,12 +15,15 @@
 
 use crate::*;
 use collectives_polkadot_runtime::fellowship::FellowshipSalaryPaymaster;
-use frame_support::{assert_ok, traits::{
-	fungibles::{Create, Mutate},
-	tokens::Pay,
-}};
-use sp_core::crypto::Ss58Codec;
+use frame_support::{
+	assert_ok,
+	traits::{
+		fungibles::{Create, Mutate},
+		tokens::Pay,
+	},
+};
 use parachains_common::AccountId;
+use sp_core::crypto::Ss58Codec;
 
 #[test]
 fn pay_salary() {
