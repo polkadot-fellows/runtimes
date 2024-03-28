@@ -292,8 +292,7 @@ fn assert_reap_id_relay(total_deposit: Balance, id: &Identity) {
 
 		assert_ok!(KusamaIdentityMigrator::reap_identity(
 			// Note: Root for launch testing, Signed once we open migrations.
-			KusamaOrigin::root(),
-			// KusamaOrigin::signed(KusamaRelaySender::get()),
+			KusamaOrigin::signed(KusamaRelaySender::get()),
 			KusamaRelaySender::get()
 		));
 
