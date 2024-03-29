@@ -19,11 +19,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::weights::Weight;
 use scale_info::TypeInfo;
 use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
+
+use system_parachains_constants::kusama::currency::*;
 
 /// `AssetHubKusama` Runtime `Call` enum.
 ///
@@ -49,6 +50,9 @@ frame_support::parameter_types! {
 	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
 	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
 	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
+
+	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
+	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
 }
 
 fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {

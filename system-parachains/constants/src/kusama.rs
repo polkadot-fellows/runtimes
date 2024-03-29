@@ -64,6 +64,11 @@ pub mod fee {
 	/// The block saturation level. Fees will be updates based on this value.
 	pub const TARGET_BLOCK_FULLNESS: Perbill = Perbill::from_percent(25);
 
+	/// Cost of every transaction byte at Kusama system parachains.
+	///
+	/// It is the Relay Chain (Kusama) `TransactionByteFee` / 10.
+	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
+
 	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 	/// node's balance type.
 	///
@@ -122,5 +127,9 @@ pub mod fee {
 				coeff_integer: p / q,
 			}]
 		}
+	}
+
+	pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
+		<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
 	}
 }

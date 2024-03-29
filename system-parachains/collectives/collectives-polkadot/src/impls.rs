@@ -13,18 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::*;
 use crate::OriginCaller;
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
-	traits::{Currency, Get, Imbalance, OnUnbalanced, OriginTrait, PrivilegeCmp},
+	traits::{
+		tokens::ConversionFromAssetBalance, Contains, Currency, Get, Imbalance, OnUnbalanced,
+		OriginTrait, PrivilegeCmp,
+	},
 	weights::Weight,
 };
 use log;
 use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
+use polkadot_parachain_primitives::primitives::{Id as ParaId, IsSystem};
 use sp_runtime::DispatchError;
 use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
-use xcm::latest::{Fungibility, Junction, Junctions::Here, MultiLocation, Parent, WeightLimit};
+use xcm::latest::{Fungibility, Junction, Junctions::Here, Location, Parent, WeightLimit};
 use xcm_executor::traits::ConvertLocation;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -59,7 +64,7 @@ where
 			Err(amount) => amount,
 		};
 		let imbalance = amount.peek();
-		let root_location: MultiLocation = Here.into();
+		let root_location: Location = Here.into();
 		let root_account: AccountIdOf<T> =
 			match AccountIdConverter::convert_location(&root_location) {
 				Some(a) => a,
@@ -156,6 +161,55 @@ impl PrivilegeCmp<OriginCaller> for EqualOrGreatestRootCmp {
 			(OriginCaller::system(frame_system::RawOrigin::Root), _) => Some(Ordering::Greater),
 			_ => None,
 		}
+	}
+}
+
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
+/// Contains a system-level sibling parachain.
+pub struct IsSiblingSystemParachain<ParaId, SelfParaId>(PhantomData<(ParaId, SelfParaId)>);
+impl<ParaId: IsSystem + From<u32> + Eq, SelfParaId: Get<ParaId>> Contains<Location>
+	for IsSiblingSystemParachain<ParaId, SelfParaId>
+{
+	fn contains(l: &Location) -> bool {
+		matches!(
+			l.unpack(),
+			(1,	[Parachain(id)]) if ParaId::from(*id).is_system() && SelfParaId::get() != ParaId::from(*id),
+		)
+	}
+}
+
+// TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659
+/// Determines if the given `asset_kind` is a native asset. If it is, returns the balance without
+/// conversion; otherwise, delegates to the implementation specified by `I`.
+pub struct NativeOnSiblingParachain<I, SelfParaId>(PhantomData<(I, SelfParaId)>);
+impl<I, SelfParaId> ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>
+	for NativeOnSiblingParachain<I, SelfParaId>
+where
+	I: ConversionFromAssetBalance<Balance, VersionedLocatableAsset, Balance>,
+	SelfParaId: Get<ParaId>,
+{
+	type Error = ();
+	fn from_asset_balance(
+		balance: Balance,
+		asset_kind: VersionedLocatableAsset,
+	) -> Result<Balance, Self::Error> {
+		use VersionedLocatableAsset::*;
+		let (location, asset_id) = match asset_kind.clone() {
+			V3 { location, asset_id } => (location.try_into()?, asset_id.try_into()?),
+			V4 { location, asset_id } => (location, asset_id),
+		};
+
+		if asset_id.0.contains_parents_only(1) &&
+			IsSiblingSystemParachain::<ParaId, SelfParaId>::contains(&location)
+		{
+			Ok(balance)
+		} else {
+			I::from_asset_balance(balance, asset_kind).map_err(|_| ())
+		}
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful(asset_kind: VersionedLocatableAsset) {
+		I::ensure_successful(asset_kind)
 	}
 }
 

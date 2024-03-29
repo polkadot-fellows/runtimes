@@ -1,0 +1,53 @@
+[package]
+name = "bridge-hub-polkadot-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Bridge Hub Polkadot runtime integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.9" }
+scale-info = { features = ["derive"] , workspace = true }
+hex-literal = { workspace = true }
+
+# Substrate
+sp-core = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-asset-conversion = { workspace = true, default-features = true }
+pallet-assets = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+
+# Polkadot
+xcm = { package = "staging-xcm", version = "8.0.1" }
+pallet-xcm = { workspace = true, default-features = true }
+xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
+
+# Cumulus
+emulated-integration-tests-common = { workspace = true }
+parachains-common = { workspace = true, default-features = true }
+cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
+
+# Bridges
+bp-messages = { workspace = true, default-features = true }
+pallet-bridge-messages = { workspace = true, default-features = true }
+
+# Local
+bp-bridge-hub-polkadot = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot/primitives"}
+bridge-hub-polkadot-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
+asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
+integration-tests-helpers = { path = "../../../helpers" }
+kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
+polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
+system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+
+# Snowbridge
+snowbridge-beacon-primitives = { workspace = true, default-features = true }
+snowbridge-core = { workspace = true, default-features = true }
+snowbridge-router-primitives = { workspace = true, default-features = true }
+snowbridge-pallet-system = { workspace = true, default-features = true }
+snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
+snowbridge-pallet-inbound-queue-fixtures = { workspace = true }

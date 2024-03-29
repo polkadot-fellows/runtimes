@@ -70,6 +70,9 @@ pub mod fee {
 	/// The block saturation level. Fees will be updates based on this value.
 	pub const TARGET_BLOCK_FULLNESS: Perbill = Perbill::from_percent(25);
 
+	/// Cost of every transaction byte at Kusama relay chain.
+	pub const TRANSACTION_BYTE_FEE: Balance = 10 * super::currency::MILLICENTS;
+
 	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 	/// node's balance type.
 	///
@@ -99,7 +102,8 @@ pub mod fee {
 
 /// System Parachains.
 pub mod system_parachain {
-	use xcm::latest::prelude::*;
+	use primitives::Id;
+	use xcm_builder::IsChildSystemParachain;
 
 	/// Asset Hub parachain ID.
 	pub const ASSET_HUB_ID: u32 = 1000;
@@ -107,20 +111,13 @@ pub mod system_parachain {
 	pub const ENCOINTER_ID: u32 = 1001;
 	/// Bridge Hub parachain ID.
 	pub const BRIDGE_HUB_ID: u32 = 1002;
+	/// People parachain ID.
+	pub const PEOPLE_ID: u32 = 1004;
+	/// Brokerage parachain ID.
+	pub const BROKER_ID: u32 = 1005;
 
-	frame_support::match_types! {
-		// System parachains from Kusama point of view.
-		pub type SystemParachains: impl Contains<MultiLocation> = {
-			MultiLocation {
-				parents: 0,
-				interior: X1(Parachain(
-					ASSET_HUB_ID |
-					ENCOINTER_ID |
-					BRIDGE_HUB_ID
-				)),
-			}
-		};
-	}
+	// System parachains from Kusama point of view.
+	pub type SystemParachains = IsChildSystemParachain<Id>;
 }
 
 /// Kusama Treasury pallet instance.

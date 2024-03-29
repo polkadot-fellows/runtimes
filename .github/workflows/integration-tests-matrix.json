@@ -1,0 +1,26 @@
+[
+  {
+    "name": "asset-hub-kusama",
+    "package": "asset-hub-kusama-integration-tests"
+  },
+  {
+    "name": "asset-hub-polkadot",
+    "package": "asset-hub-polkadot-integration-tests"
+  },
+  {
+    "name": "bridge-hub-kusama",
+    "package": "bridge-hub-kusama-integration-tests"
+  },
+  {
+    "name": "bridge-hub-polkadot",
+    "package": "bridge-hub-polkadot-integration-tests"
+  },
+  {
+    "name": "people-kusama",
+    "package": "people-kusama-integration-tests"
+  },
+  {
+    "name": "collectives-polkadot",
+    "package": "collectives-polkadot-integration-tests"
+  }
+]

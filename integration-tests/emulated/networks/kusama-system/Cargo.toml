@@ -1,0 +1,20 @@
+[package]
+name = "kusama-system-emulated-network"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Kusama System emulated network"
+publish = false
+
+[dependencies]
+
+# Cumulus
+emulated-integration-tests-common = { workspace = true }
+
+# Runtimes
+asset-hub-kusama-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-kusama" }
+bridge-hub-kusama-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-kusama" }
+kusama-emulated-chain = { path = "../../chains/relays/kusama" }
+penpal-emulated-chain = { path = "../../chains/parachains/testing/penpal" }
+people-kusama-emulated-chain = { path = "../../chains/parachains/people/people-kusama" }

@@ -1,0 +1,24 @@
+[package]
+name = "integration-tests-helpers"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Emulated integration tests helpers"
+publish = false
+
+[dependencies]
+paste = { workspace = true }
+
+# Substrate
+pallet-balances = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+
+# Polkadot
+xcm = { package = "staging-xcm", version = "8.0.1" }
+pallet-xcm = { workspace = true, default-features = true }
+
+# Cumulus
+xcm-emulator = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
+asset-test-utils = { workspace = true }

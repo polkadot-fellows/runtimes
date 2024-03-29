@@ -61,6 +61,8 @@ pub mod pallet_custom_origins {
 		BigSpender,
 		/// Origin able to dispatch a whitelisted call.
 		WhitelistedCaller,
+		/// Origin for signaling that the network wishes for some change.
+		WishForChange,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -103,6 +105,7 @@ pub mod pallet_custom_origins {
 		ReferendumCanceller,
 		ReferendumKiller,
 		WhitelistedCaller,
+		WishForChange,
 	);
 
 	macro_rules! decl_ensure {
