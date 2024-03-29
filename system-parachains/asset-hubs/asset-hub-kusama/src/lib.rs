@@ -189,7 +189,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = frame_support::traits::ConstU32<256>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -245,7 +245,7 @@ impl pallet_transaction_payment::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AssetDeposit: Balance = UNITS / 10; // 1 / 10 UNITS deposit to create asset
+	pub const AssetDeposit: Balance = system_para_deposit(1, 190);
 	pub const AssetAccountDeposit: Balance = system_para_deposit(1, 16);
 	pub const AssetsStringLimit: u32 = 50;
 	/// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)

@@ -4201,9 +4201,9 @@ dependencies = [
 
 [[package]]
 name = "frame-support"
-version = "29.0.0"
+version = "29.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b24824d29c43d0af94be3356bbf30338ededed649f6841d315a9ae067ce872"
+checksum = "b8e52c84b611d2049d9253f83a62ab0f093e4be5c42a7ef42ea5bb16d6611e32"
 dependencies = [
  "aquamarine",
  "array-bytes 6.2.2",
@@ -7113,9 +7113,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-balances"
-version = "29.0.0"
+version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942007f4f7aace74b77009db1675e7ca98683a42dde5e2d85bba2a9f404d2e5a"
+checksum = "e27946a57494d7c6231ae8909275bbd3cb5460ee3d27b7a5774a8b8e64d3ab92"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -8180,9 +8180,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking"
-version = "29.0.0"
+version = "29.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a94127295cf027a26e933ea6788b0824e9fedd90740013673e2d36b5d707efe"
+checksum = "668b7d28c499f0d9f295fad26cf6c342472e21842e3b13bcaaac8536358b2d6c"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
