@@ -20,15 +20,47 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use bp_bridge_hub_cumulus::*;
+
 use bp_messages::*;
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::{
 	dispatch::DispatchClass,
+	parameter_types,
 	sp_runtime::{MultiAddress, MultiSigner},
+	weights::constants,
 };
+use frame_system::limits;
 use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
+
+// TODO: Remove this as soon as the `bp-bridge-hub-cumulus` version is bumped to 0.10.0
+// See https://github.com/polkadot-fellows/runtimes/issues/186
+const MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING: Weight = Weight::from_parts(
+	constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
+
+parameter_types! {
+	pub BlockWeightsForAsyncBacking: limits::BlockWeights = limits::BlockWeights::builder()
+		.base_block(BlockExecutionWeight::get())
+		.for_class(DispatchClass::all(), |weights| {
+			weights.base_extrinsic = ExtrinsicBaseWeight::get();
+		})
+		.for_class(DispatchClass::Normal, |weights| {
+			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING);
+		})
+		.for_class(DispatchClass::Operational, |weights| {
+			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING);
+			// Operational transactions have an extra reserved space, so that they
+			// are included even if block reached `MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING`.
+			weights.reserved = Some(
+				MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING,
+			);
+		})
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic();
+}
 
 /// BridgeHubKusama parachain.
 #[derive(RuntimeDebug)]
@@ -52,7 +84,7 @@ impl Chain for BridgeHubKusama {
 	}
 
 	fn max_extrinsic_weight() -> Weight {
-		BlockWeights::get()
+		BlockWeightsForAsyncBacking::get()
 			.get(DispatchClass::Normal)
 			.max_extrinsic
 			.unwrap_or(Weight::MAX)

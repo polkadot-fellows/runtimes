@@ -395,7 +395,7 @@ mod tests {
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_polkadot::BlockLength::get(),
-				block_weights: bp_bridge_hub_polkadot::BlockWeights::get(),
+				block_weights: bp_bridge_hub_polkadot::BlockWeightsForAsyncBacking::get(),
 			},
 			messages_pallet_constants: AssertBridgeMessagesPalletConstants {
 				max_unrewarded_relayers_in_bridged_confirmation_tx:
