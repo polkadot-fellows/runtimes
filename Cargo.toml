@@ -90,6 +90,7 @@ pallet-fast-unstake = { version = "28.0.0", default-features = false }
 pallet-glutton = { version = "15.0.0", default-features = false }
 pallet-grandpa = { version = "29.0.0", default-features = false }
 pallet-identity = { version = "29.0.0", default-features = false }
+pallet-im-online = { version = "30.0.0", default-features = false }
 pallet-indices = { version = "29.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "17.0.0", default-features = false }
 pallet-membership = { version = "29.0.0", default-features = false }
