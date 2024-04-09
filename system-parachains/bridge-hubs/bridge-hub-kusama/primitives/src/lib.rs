@@ -34,8 +34,6 @@ use frame_support::{
 use frame_system::limits;
 use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
 
-// TODO: Remove this as soon as the `bp-bridge-hub-cumulus` version is bumped to 0.10.0
-// See https://github.com/polkadot-fellows/runtimes/issues/186
 const MAXIMUM_BLOCK_WEIGHT_FOR_ASYNC_BACKING: Weight = Weight::from_parts(
 	constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
 	polkadot_primitives::MAX_POV_SIZE as u64,
