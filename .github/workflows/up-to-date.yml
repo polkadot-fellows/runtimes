@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: [Auto Merge Bot]
+    types: [completed]
 
 jobs:
   updatePullRequests:
