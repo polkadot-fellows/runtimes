@@ -158,6 +158,7 @@ std = [
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
+	"cumulus-pallet-session-benchmarking?/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
