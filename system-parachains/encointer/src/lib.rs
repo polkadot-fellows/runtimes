@@ -711,19 +711,7 @@ pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, Si
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// we're actually too late with applying the migration. however, the migration does
-	// work as-is.
-	pallet_xcm::migration::v1::VersionUncheckedMigrateToV1<Runtime>,
-	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
-	// state which can't be decoded to V0, yet the StorageVersion is V0.
-	// the strategy is to: just pretend we're on V1
-	migrations_fix::balances::v1::BruteForceToV1<Runtime>,
-	// then reset to V0
-	pallet_balances::migration::ResetInactive<Runtime>,
-	//then apply the proper migration as we should have done earlier
-	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
-	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
-	pallet_encointer_ceremonies::migrations::v2::MigrateToV2<Runtime>,
+	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
