@@ -31,7 +31,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-mod deal_with_fees;
 mod migrations_fix;
 mod weights;
 pub mod xcm_config;
@@ -39,7 +38,6 @@ pub mod xcm_config;
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use deal_with_fees::FeesToTreasury;
 use encointer_balances_tx_payment::{AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance};
 pub use encointer_primitives::{
     balances::{BalanceEntry, BalanceType, Demurrage},
@@ -58,7 +56,7 @@ use frame_support::{
     genesis_builder_helper::{build_config, create_default_config},
     parameter_types,
     traits::{
-        tokens::{pay::PayFromAccount, ConversionFromAssetBalance, ConversionToAssetBalance},
+        tokens::{ConversionToAssetBalance},
         ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
     },
     weights::{ConstantMultiplier, Weight},
@@ -87,9 +85,9 @@ use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentityLookup, Verify},
+    traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+    ApplyExtrinsicResult, Perbill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -321,72 +319,12 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    // `FeesToTreasury is an encointer adaptation.
     type OnChargeTransaction =
-    pallet_transaction_payment::CurrencyAdapter<Balances, FeesToTreasury<Runtime>>;
+    pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
     type WeightToFee = WeightToFee;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
-}
-
-pub const ENCOINTER_TREASURY_PALLET_ID: u8 = 43;
-
-parameter_types! {
-	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: Balance = 100 * MILLICENTS;
-	pub const ProposalBondMaximum: Balance = 500 * CENTS;
-	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const Burn: Permill = Permill::from_percent(1);
-	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
-	pub const MaxApprovals: u32 = 10;
-	pub TreasuryAccount: AccountId = Treasury::account_id();
-}
-
-pub struct NoConversion;
-
-impl ConversionFromAssetBalance<u128, (), u128> for NoConversion {
-    type Error = ();
-    fn from_asset_balance(balance: Balance, _asset_id: ()) -> Result<Balance, Self::Error> {
-        return Ok(balance);
-    }
-    #[cfg(feature = "runtime-benchmarks")]
-    fn ensure_successful(_: ()) {}
-}
-
-impl pallet_treasury::Config for Runtime {
-    type PalletId = TreasuryPalletId;
-    type Currency = pallet_balances::Pallet<Runtime>;
-    type ApproveOrigin = MoreThanHalfCouncil;
-    type RejectOrigin = MoreThanHalfCouncil;
-    type RuntimeEvent = RuntimeEvent;
-    type OnSlash = ();
-    //No proposal
-    type ProposalBond = ProposalBond;
-    type ProposalBondMinimum = ProposalBondMinimum;
-    type ProposalBondMaximum = ProposalBondMaximum;
-    type SpendPeriod = SpendPeriod;
-    //Cannot be 0: Error: Thread 'tokio-runtime-worker' panicked at 'attempt to calculate the
-    // remainder with a divisor of zero
-    type Burn = ();
-    //No burn
-    type BurnDestination = ();
-    //No burn
-    type SpendFunds = ();
-    //No spend, no bounty
-    type MaxApprovals = MaxApprovals;
-    type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
-    //No spend, no bounty
-    type AssetKind = ();
-    type Beneficiary = AccountId;
-    type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
-    type BalanceConverter = NoConversion;
-    type PayoutPeriod = PayoutSpendPeriod;
-    #[cfg(feature = "runtime-benchmarks")]
-    type BenchmarkHelper = ();
 }
 
 impl pallet_utility::Config for Runtime {
@@ -707,7 +645,6 @@ construct_runtime! {
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,
-		Treasury: pallet_treasury = 43,
 		Proxy: pallet_proxy = 44,
 		Scheduler: pallet_scheduler = 48,
 
@@ -790,8 +727,6 @@ mod benches {
         [pallet_session, SessionBench::<Runtime>]
         [pallet_collator_selection, CollatorSelection]
 		[pallet_timestamp, Timestamp]
-		// todo: treasury will be removed in separate PR, so no need to fix broken benchmarks: https://github.com/polkadot-fellows/runtimes/issues/176
-		//[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_proxy, Proxy]
 		[pallet_encointer_balances, EncointerBalances]
@@ -1064,8 +999,6 @@ impl_runtime_apis! {
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
 				// System Events
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
-				// Treasury Account
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec().into(),
 			];
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
@@ -1099,17 +1032,6 @@ pub fn aura_config_for_chain_spec(seeds: &[&str]) -> AuraConfig {
 
     AuraConfig {
         authorities: seeds.iter().map(|s| get_from_seed::<sr25519::Public>(s).into()).collect(),
-    }
-}
-
-#[cfg(test)]
-mod multiplier_tests {
-    use super::*;
-    use frame_support::pallet_prelude::PalletInfoAccess;
-
-    #[test]
-    fn treasury_pallet_index_is_correct() {
-        assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
     }
 }
 

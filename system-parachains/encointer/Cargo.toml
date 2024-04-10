@@ -66,7 +66,6 @@ pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
-pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
@@ -140,7 +139,6 @@ runtime-benchmarks = [
     "pallet-membership/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
-    "pallet-treasury/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-xcm/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
@@ -200,7 +198,6 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
-    "pallet-treasury/std",
     "pallet-utility/std",
     "pallet-xcm/std",
     "parachain-info/std",
@@ -261,7 +258,6 @@ try-runtime = [
     "pallet-session/try-runtime",
     "pallet-timestamp/try-runtime",
     "pallet-transaction-payment/try-runtime",
-    "pallet-treasury/try-runtime",
     "pallet-utility/try-runtime",
     "pallet-xcm/try-runtime",
     "parachain-info/try-runtime",
