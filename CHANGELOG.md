@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 
+## [1.2.1] 09.04.2024
+
+### Changed
+
+- Modify runtimes for phase two of People Chain launch (Kusama) ([polkadot-fellows/runtimes#246](https://github.com/polkadot-fellows/runtimes/pull/246))
+
 ## [1.2.0] 28.03.2024
 
 ### Added
