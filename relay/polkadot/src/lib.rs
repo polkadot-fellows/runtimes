@@ -1789,7 +1789,7 @@ pub mod migrations {
 	/// Upgrade Session keys to exclude `ImOnline` key.
 	/// When this is removed, should also remove `OldSessionKeys`.
 	pub struct UpgradeSessionKeys;
-	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001002;
+	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001003;
 
 	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
 		#[cfg(feature = "try-runtime")]
