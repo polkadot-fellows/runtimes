@@ -232,7 +232,6 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = CENTS;
 	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
 		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
@@ -241,9 +240,13 @@ impl pallet_vesting::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BlockNumberToBalance = ConvertInto;
-	type MinVestedTransfer = MinVestedTransfer;
+	type MinVestedTransfer = ExistentialDeposit;
 	type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
 	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
+	/// Note for wallets and implementers: This means that vesting schedules are evaluated with the
+	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
+	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
+	/// be set accordingly.
 	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	const MAX_VESTING_SCHEDULES: u32 = 28;
 }

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#XXX](https://github.com/polkadot-fellows/runtimes/pull/XXX))
+- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 
 ## [1.2.0] 28.03.2024
 
