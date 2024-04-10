@@ -36,6 +36,7 @@ mod weights;
 pub mod xcm_config;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use core::marker::PhantomData;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use encointer_balances_tx_payment::{
@@ -96,7 +97,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use std::marker::PhantomData;
 use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,

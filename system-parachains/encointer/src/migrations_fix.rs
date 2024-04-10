@@ -26,15 +26,14 @@ pub mod collator_selection_init {
 	const TARGET: &'static str = "runtime::fix::collator_selection_init";
 	pub mod v0 {
 		use super::*;
-		use codec::EncodeLike;
-
-		//crate::Pallet::ExistentialDeposit;
 		use crate::SessionKeys;
+		use codec::EncodeLike;
 		use frame_support::{pallet_prelude::*, traits::Currency};
 		use hex_literal::hex;
 		use log::info;
 		use parachains_common::impls::BalanceOf;
 		use sp_core::{crypto::key_types::AURA, sr25519};
+		use sp_std::{vec, vec::Vec};
 
 		const INVULNERABLE_A: [u8; 32] =
 			hex!("5e962096da68302d5c47fce0178d72fab503c4f00a3f1df64856748f0d9dd51e");
