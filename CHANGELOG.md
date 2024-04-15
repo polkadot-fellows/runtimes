@@ -4,11 +4,10 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## Unreleased
 
-### Changed
-
-- introduce [Encointer](https://encointer.org) collator selection and send fees to authors instead of treasury ([polkadot-fellows/runtimes#270](https://github.com/polkadot-fellows/runtimes/pull/270))
+- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
+- Introduce [Encointer](https://encointer.org) collator selection and send fees to authors instead of treasury ([polkadot-fellows/runtimes#270](https://github.com/polkadot-fellows/runtimes/pull/270))
 
 ## [1.2.1] 09.04.2024
 
