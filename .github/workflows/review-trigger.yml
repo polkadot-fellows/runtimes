@@ -12,19 +12,6 @@ on:
   pull_request_review:
 
 jobs:
-  dismiss-reviews:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request_target' && github.event.action == 'synchronize' }}
-    steps:
-      - name: Dismiss Approvals
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run:  |
-          gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/reviews \
-          --jq '.[] | select(.state == "APPROVED") | .id' \
-          | xargs -I '{}' gh api --method=PUT -f message="Dismissed due to PR edit." \
-          repos/${{ github.repository }}/pulls/${{ github.event.number }}/reviews/'{}'/dismissals
-
   trigger-review-bot:
     runs-on: ubuntu-latest
     name: trigger review bot
