@@ -36,7 +36,7 @@ pub mod bootstrapping {
 	use sp_std::vec::Vec;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::bootstrapping::import-leases";
+	const TARGET: &str = "runtime::bootstrapping::import-leases";
 
 	// Alias into the broker weights for this runtime.
 	type BrokerWeights = weights::pallet_broker::WeightInfo<Runtime>;
