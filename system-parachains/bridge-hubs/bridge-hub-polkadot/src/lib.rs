@@ -24,6 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod bridge_to_ethereum_config;
 pub mod bridge_to_kusama_config;
+mod bridge_to_kusama_unstuck;
 mod weights;
 pub mod xcm_config;
 
@@ -142,6 +143,7 @@ pub type Migrations = (
 		ConstU32<BRIDGE_HUB_ID>,
 		ConstU32<ASSET_HUB_ID>,
 	>,
+	bridge_to_kusama_unstuck::BridgeToKusamaUnstuck,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -167,7 +169,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("bridge-hub-polkadot"),
 	impl_name: create_runtime_str!("bridge-hub-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 3,
