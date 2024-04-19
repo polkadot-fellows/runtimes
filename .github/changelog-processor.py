@@ -32,11 +32,34 @@ group.add_argument(
     help="Print the changelog from the last release.",
     action="store_true"
 )
+group.add_argument(
+    "--validate-changelog",
+    dest="validate_changelog",
+    help="Validates that the changelog uses the correct syntax",
+    action="store_true"
+)
 
 args = parser.parse_args()
 
 with open(args.changelog, "r") as changelog:
     lines = changelog.readlines()
+
+    if args.validate_changelog:
+        for line in lines:
+            if line.startswith("##"):
+                if line.startswith("###"):
+                    continue
+                elif not line.startswith("## ["):
+                    print("Line starting with `##` needs to be followed by ` [`, e.g.: `## [Unreleased]`, `## [400.2.1]`")
+                    print(line)
+                    sys.exit(-1)
+            elif line.startswith("#"):
+                if line.strip() != "# Changelog":
+                    print("Line starting with `#` is only allowed for `# Changelog`")
+                    print(line)
+                    sys.exit(-1)
+
+        sys.exit(0)
 
     changelog_last_release = ""
     found_last_version = False
@@ -52,7 +75,6 @@ with open(args.changelog, "r") as changelog:
             version = line.strip().removeprefix("## [").split("]")[0]
         else:
             break
-
 
     if args.changelog_last_release:
         print(changelog_last_release, end = "")

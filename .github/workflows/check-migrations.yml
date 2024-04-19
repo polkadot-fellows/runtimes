@@ -59,7 +59,8 @@ jobs:
           fi
 
           # Disable the spec version check when we dont want to release.
-          if ! .github/changelog-processor.py CHANGELOG.md --should-release ; then
+          # The program prints either `1` or `0`.
+          if [ "$(.github/changelog-processor.py CHANGELOG.md --should-release)" = "1" ]; then
             EXTRA_FLAGS+=" --disable-spec-version-check"
             echo "Disabling the spec version check since we are not releasing"
           else
