@@ -147,7 +147,7 @@ pub mod bootstrapping {
 			let leases = Leases::<Runtime>::get();
 			assert_eq!(
 				leases.len(),
-				LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= l).count()
+				LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= *l).count()
 			);
 
 			// Iterate through hardcoded leases and check they're all correctly in state (leases or
@@ -180,8 +180,11 @@ pub mod bootstrapping {
 			}
 
 			// Ensure we have requested the correct number of events.
-			assert!(frame_system::Pallet::<Runtime>::read_events_no_consensus()
-				.any(|e| pallet_broker::Event::CoreCountRequested { core_count: 55 }.into() == e));
+			assert!(frame_system::Pallet::<Runtime>::read_events_no_consensus().any(|e| {
+				crate::RuntimeEvent::from(pallet_broker::Event::<Runtime>::CoreCountRequested {
+					core_count: 55,
+				}) == e.event
+			}));
 
 			Ok(())
 		}
