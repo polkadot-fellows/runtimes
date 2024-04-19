@@ -147,7 +147,7 @@ pub mod bootstrapping {
 			let leases = Leases::<Runtime>::get();
 			assert_eq!(
 				leases.len(),
-				LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= *l).count()
+				LEASES.iter().filter(|(_, l)| sale_info.region_end <= *l).count()
 			);
 
 			// Iterate through hardcoded leases and check they're all correctly in state (leases or
