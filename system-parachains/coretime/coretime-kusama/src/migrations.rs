@@ -77,7 +77,7 @@ pub mod bootstrapping {
 			}
 			match pallet_broker::Pallet::<Runtime>::start_sales(
 				RuntimeOrigin::root(),
-				5_000_000_000_0000,
+				5_000_000_000_000,
 				55,
 			) {
 				Ok(_) => log::info!(target: TARGET, "Sales started"),
@@ -95,17 +95,21 @@ pub mod bootstrapping {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			if Leases::<Runtime>::get().decode_len().unwrap_or(0) > 0 { return Ok(Vec::new()) }
+			if Leases::<Runtime>::decode_len().unwrap_or(0) > 0 {
+				return Ok(Vec::new())
+			}
 			let sale_info = SaleInfo::<Runtime>::get().unwrap();
 			Ok(sale_info.encode())
 		}
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			if state.is_empty() { return Ok(()) }
+			if state.is_empty() {
+				return Ok(())
+			}
 			let prev_sale_info = <SaleInfoRecordOf<Runtime>>::decode(&mut &state[..]).unwrap();
 
-			log::info!(target: TARGET, "Idempotency hack has not affected us for this run.");
+			log::info!(target: TARGET, "Checking migration.");
 
 			let sale_info = SaleInfo::<Runtime>::get().unwrap();
 			let now = frame_system::Pallet::<Runtime>::block_number();
@@ -136,7 +140,10 @@ pub mod bootstrapping {
 			// Because we also run start_sales, 12 expiring leases are removed from the original 47,
 			// leaving 35.
 			let leases = Leases::<Runtime>::get();
-			assert_eq!(leases.len(), LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= l).count());
+			assert_eq!(
+				leases.len(),
+				LEASES.iter().filter(|(_, l)| sale_info.region_end <= *l).count()
+			);
 
 			// Iterate through hardcoded leases and check they're all correctly in state (leases or
 			// allowedrenewals) and scheduled in the workplan.
@@ -158,7 +165,7 @@ pub mod bootstrapping {
 							when: sale_info.region_end,
 						}),
 						Some(AllowedRenewalRecord {
-							price: 5_000_000_000_0000,
+							price: 5_000_000_000_000,
 							completion: pallet_broker::CompletionStatus::Complete(workload.clone())
 						})
 					);
