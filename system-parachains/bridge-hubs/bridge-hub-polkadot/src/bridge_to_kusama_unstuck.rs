@@ -22,6 +22,11 @@ use codec::Decode;
 use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 use pallet_bridge_grandpa::{BestFinalized, CurrentAuthoritySet, StoredAuthoritySet};
 
+#[cfg(feature = "try-runtime")]
+use sp_runtime::TryRuntimeError;
+#[cfg(feature = "try-runtime")]
+use sp_std::prelude::*;
+
 const LOG_TARGET: &str = "runtime::bridge::migration";
 
 /// Number of best Kusama header known to Polkadot BH.
@@ -56,7 +61,7 @@ impl OnRuntimeUpgrade for BridgeToKusamaUnstuck {
 	}
 
 	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(is_stuck: Vec<u8>) -> Result<(), TryRuntimeError> {
+	fn post_upgrade(_: Vec<u8>) -> Result<(), TryRuntimeError> {
 		frame_support::ensure!(!is_bridge_stuck(), "Bridge is still stuck.");
 		Ok(())
 	}
