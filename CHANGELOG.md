@@ -8,9 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Bumped `bp-header-chain` dependency and added migration to Polkadot Bridge Hub to unstuck
-  bridge with Kusama. Details may be found in relevant
-  [polkadot-sdk](https://github.com/paritytech/polkadot-sdk/pull/4208) PR.
+- Polkadot Bridge Hub: Unstuck bridge with Kusama ([polkadot-fellows/runtimes#277](https://github.com/polkadot-fellows/runtimes/pull/277))
+- Fix Kusama Coretime launch issues: import leases and fix renewals for short leases ([polkadot-fellows/runtimes#276](https://github.com/polkadot-fellows/runtimes/pull/276))
 
 ## [1.2.1] 09.04.2024
 

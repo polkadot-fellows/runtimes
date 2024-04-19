@@ -7280,9 +7280,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-broker"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8cfe04e8c3f9ca8342ac785f2b1aee6140e1809546fc6f3a99fad20a8dfbf9"
+checksum = "3626d7e8e49b153b84c74594e1fb4b6d64720b5a9588297d3ba3c049c3b3b9e3"
 dependencies = [
  "bitvec",
  "frame-benchmarking",
