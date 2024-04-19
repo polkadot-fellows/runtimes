@@ -26,6 +26,7 @@ pub mod bootstrapping {
 	use pallet_broker::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use pallet_broker::{
+		AllowedRenewalId, AllowedRenewalRecord, AllowedRenewals, Configuration,
 		CoreAssignment::{Pool, Task},
 		CoreMask, LeaseRecordItem, Leases, SaleInfo, SaleInfoRecordOf, Schedule, ScheduleItem,
 		Workplan,
@@ -101,8 +102,6 @@ pub mod bootstrapping {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			use pallet_broker::{AllowedRenewalId, AllowedRenewals, Configuration};
-
 			let prev_sale_info = <SaleInfoRecordOf<Runtime>>::decode(&mut &state[..]).unwrap();
 
 			// Idempotency hack - sorry. This just checks that the migration has run in the correct
@@ -152,21 +151,27 @@ pub mod bootstrapping {
 				// Add the system parachains and pool core as an offset - these should come before
 				// the leases.
 				let core_id = i as u16 + 5;
+				// This is the entry found in Workplan and AllowedRenewal
+				let workload = Schedule::truncate_from(Vec::from([ScheduleItem {
+					mask: CoreMask::complete(),
+					assignment: Task(*para_id),
+				}]));
+
+				// Check that the 12 who no longer have a lease can renew.
 				if !leases.contains(&LeaseRecordItem { until: *until, task: *para_id }) {
-					// Check that the 12 who no longer have a lease can renew.
-					AllowedRenewals::<Runtime>::get(AllowedRenewalId {
-						core: core_id,
-						when: sale_info.region_end,
-					});
+					assert_eq!(
+						AllowedRenewals::<Runtime>::get(AllowedRenewalId {
+							core: core_id,
+							when: sale_info.region_end,
+						}),
+						Some(AllowedRenewalRecord {
+							price: 5_000_000_000_0000,
+							completion: pallet_broker::CompletionStatus::Complete(workload.clone())
+						})
+					);
 				}
 				// They should all be in the workplan for next sale.
-				assert_eq!(
-					Workplan::<Runtime>::get((workplan_start, core_id)),
-					Some(Schedule::truncate_from(Vec::from([ScheduleItem {
-						mask: CoreMask::complete(),
-						assignment: Task(*para_id),
-					}])))
-				);
+				assert_eq!(Workplan::<Runtime>::get((workplan_start, core_id)), Some(workload));
 			}
 
 			Ok(())
