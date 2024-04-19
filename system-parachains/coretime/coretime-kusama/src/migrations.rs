@@ -71,7 +71,12 @@ pub mod bootstrapping {
 			// recalculating the number of cores to be offered. However, there are 4 system
 			// parachains + 1 pool core + 47 leases + 3 cores for the open market, therefore we need
 			// to start sales with 55 cores.
-			match pallet_broker::Pallet::<Runtime>::request_core_count(RuntimeOrigin::root(), 55) {
+			match pallet_broker::Pallet::<Runtime>::request_core_count(
+				RuntimeOrigin::root(),
+				pallet_broker::Reservations::<Runtime>::decode_len().unwrap_or(0) as u16 +
+					pallet_broker::Leases::<Runtime>::decode_len().unwrap_or(0) as u16 +
+					1 + 3,
+			) {
 				Ok(_) => log::info!(target: TARGET, "Request for 55 cores sent."),
 				Err(_) => log::error!(target: TARGET, "Request for 55 cores failed to send."),
 			}
@@ -142,7 +147,7 @@ pub mod bootstrapping {
 			let leases = Leases::<Runtime>::get();
 			assert_eq!(
 				leases.len(),
-				LEASES.iter().filter(|(_, l)| sale_info.region_end <= *l).count()
+				LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= l).count()
 			);
 
 			// Iterate through hardcoded leases and check they're all correctly in state (leases or
@@ -173,6 +178,10 @@ pub mod bootstrapping {
 				// They should all be in the workplan for next sale.
 				assert_eq!(Workplan::<Runtime>::get((workplan_start, core_id)), Some(workload));
 			}
+
+			// Ensure we have requested the correct number of events.
+			assert!(frame_system::Pallet::<Runtime>::read_events_no_consensus()
+				.any(|e| pallet_broker::Event::CoreCountRequested { core_count: 55 }.into() == e));
 
 			Ok(())
 		}
