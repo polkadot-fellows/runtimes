@@ -11,7 +11,7 @@ asset-test-utils = { version = "8.0.1" }
 assets-common = { version = "0.8.0", default-features = false }
 binary-merkle-tree = { version = "14.0.0", default-features = false }
 bp-bridge-hub-cumulus = { version = "0.8.0", default-features = false }
-bp-header-chain = { version = "0.8.0", default-features = false }
+bp-header-chain = { version = "0.8.1", default-features = false }
 bp-kusama = { version = "0.6.0", default-features = false }
 bp-messages = { version = "0.8.0", default-features = false }
 bp-parachains = { version = "0.8.0", default-features = false }

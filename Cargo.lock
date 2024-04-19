@@ -1303,9 +1303,9 @@ dependencies = [
 
 [[package]]
 name = "bp-header-chain"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96157f586811969b3911d26cc79e02b28cfbecf859d96d7c12b6af10b9ea9350"
+checksum = "0d7e059216225bc586fb74f2be6a9f527c19f47c8c7aeaf95b1738050d2afac1"
 dependencies = [
  "bp-runtime",
  "finality-grandpa",
