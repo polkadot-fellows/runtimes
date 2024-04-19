@@ -25,6 +25,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
+	storage::generator::StorageValue,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
@@ -158,7 +159,11 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				if items.iter().all(|(k, _)| {
 					k.eq(&DeliveryRewardInBalance::key()) ||
 						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
-						k.eq(&EthereumGatewayAddress::key())
+						k.eq(&EthereumGatewayAddress::key()) ||
+						k.eq(&pallet_bridge_grandpa::CurrentAuthoritySet::<
+							Runtime,
+							crate::bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
+						>::storage_value_final_key())
 				}) =>
 				return true,
 			_ => (),
