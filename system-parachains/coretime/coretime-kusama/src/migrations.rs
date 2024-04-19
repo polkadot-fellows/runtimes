@@ -47,7 +47,7 @@ pub mod bootstrapping {
 		fn on_runtime_upgrade() -> Weight {
 			// This migration contains hardcoded values only relevant to Kusama Coretime
 			// 1002000 before it has any leases. These checks could be tightened.
-			if Leases::<Runtime>::get().decode_len().unwrap_or(0) > 0 {
+			if Leases::<Runtime>::decode_len().unwrap_or(0) > 0 {
 				// Already has leases, bail
 				log::error!(target: TARGET, "This migration includes hardcoded values not relevant to this runtime. Bailing.");
 				return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
@@ -136,7 +136,7 @@ pub mod bootstrapping {
 			// Because we also run start_sales, 12 expiring leases are removed from the original 47,
 			// leaving 35.
 			let leases = Leases::<Runtime>::get();
-			assert_eq!(leases.len(), 35);
+			assert_eq!(leases.len(), LEASES.iter().filter(|(_, l)| sale_info.region_end * 80 <= l).count());
 
 			// Iterate through hardcoded leases and check they're all correctly in state (leases or
 			// allowedrenewals) and scheduled in the workplan.
