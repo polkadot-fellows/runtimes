@@ -23,6 +23,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod coretime;
+mod migrations;
 #[cfg(test)]
 mod tests;
 mod weights;
@@ -106,7 +107,10 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// Migrations to apply on runtime upgrade.
-pub type Migrations = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+pub type Migrations = (
+	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+	migrations::bootstrapping::ImportLeases,
+);
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
