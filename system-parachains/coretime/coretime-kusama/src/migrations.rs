@@ -47,7 +47,7 @@ pub mod bootstrapping {
 		fn on_runtime_upgrade() -> Weight {
 			// This migration contains hardcoded values only relevant to Kusama Coretime
 			// 1002000 before it has any leases. These checks could be tightened.
-			if Leases::<Runtime>::get().len() > 0 {
+			if Leases::<Runtime>::get().decode_len().unwrap_or(0) > 0 {
 				// Already has leases, bail
 				log::error!(target: TARGET, "This migration includes hardcoded values not relevant to this runtime. Bailing.");
 				return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
@@ -95,21 +95,15 @@ pub mod bootstrapping {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			if Leases::<Runtime>::get().decode_len().unwrap_or(0) > 0 { return Ok(Vec::new()) }
 			let sale_info = SaleInfo::<Runtime>::get().unwrap();
 			Ok(sale_info.encode())
 		}
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
+			if state.is_empty() { return Ok(()) }
 			let prev_sale_info = <SaleInfoRecordOf<Runtime>>::decode(&mut &state[..]).unwrap();
-
-			// Idempotency hack - sorry. This just checks that the migration has run in the correct
-			// sale period, because the following checks only matter in that case. A bit of a "trust
-			// me bro", but this is the first sale for coretime-kusama.
-			if prev_sale_info.sale_start != 104193 {
-				log::info!(target: TARGET, "Idempotency hack has filtered checks for this run.");
-				return Ok(());
-			}
 
 			log::info!(target: TARGET, "Idempotency hack has not affected us for this run.");
 
