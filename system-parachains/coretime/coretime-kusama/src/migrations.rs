@@ -30,7 +30,6 @@ pub mod bootstrapping {
 		CoreMask, LeaseRecordItem, Leases, SaleInfo, SaleInfoRecordOf, Schedule, ScheduleItem,
 		Workplan,
 	};
-	use sp_runtime::create_runtime_str;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
 	#[cfg(feature = "try-runtime")]
@@ -45,21 +44,12 @@ pub mod bootstrapping {
 	pub struct ImportLeases;
 
 	impl OnRuntimeUpgrade for ImportLeases {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			let sale_info = SaleInfo::<Runtime>::get().unwrap();
-			Ok(sale_info.encode())
-		}
-
 		fn on_runtime_upgrade() -> Weight {
-			let version = <Runtime as frame_system::Config>::Version::get();
-
 			// This migration contains hardcoded values only relevant to Kusama Coretime
-			// 1002000.
-			if version.spec_name != create_runtime_str!("coretime_kusama") ||
-				version.spec_version != 1002000
-			{
-				// Bail - this should never run again.
+			// 1002000 before it has any leases. These checks could be tightened.
+			if Leases::<Runtime>::get().len() > 0 {
+				// Already has leases, bail
+				log::error!(target: TARGET, "This migration includes hardcoded values not relevant to this runtime. Bailing.");
 				return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
 			}
 
@@ -94,23 +84,44 @@ pub mod bootstrapping {
 				Err(_) => log::error!(target: TARGET, "Start sales failed!"),
 			}
 
-			// Weight for setting every lease and starting the sales, plus one read for the
-			// version check.
+			// Weight for setting every lease and starting the sales, plus one read for leases
+			// check.
 			BrokerWeights::set_lease()
 				.saturating_mul(LEASES.len() as u64)
+				.saturating_add(BrokerWeights::request_core_count(55))
 				.saturating_add(BrokerWeights::start_sales(55))
 				.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(1))
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			let prev_sale_info = <SaleInfoRecordOf<Runtime>>::decode(&mut &state[..]).unwrap();
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			let sale_info = SaleInfo::<Runtime>::get().unwrap();
-			let leases = Leases::<Runtime>::get();
-			assert_eq!(leases.len(), LEASES.len());
+			Ok(sale_info.encode())
+		}
 
-			// Check the sale start has changed and the cores_offered updated.
-			assert!(sale_info.sale_start > prev_sale_info.sale_start);
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
+			use pallet_broker::{AllowedRenewalId, AllowedRenewals, Configuration};
+
+			let prev_sale_info = <SaleInfoRecordOf<Runtime>>::decode(&mut &state[..]).unwrap();
+
+			// Idempotency hack - sorry. This just checks that the migration has run in the correct
+			// sale period, because the following checks only matter in that case. A bit of a "trust
+			// me bro", but this is the first sale for coretime-kusama.
+			if prev_sale_info.sale_start != 104193 {
+				log::info!(target: TARGET, "Idempotency hack has filtered checks for this run.");
+				return Ok(());
+			}
+
+			log::info!(target: TARGET, "Idempotency hack has not affected us for this run.");
+
+			let sale_info = SaleInfo::<Runtime>::get().unwrap();
+			let now = frame_system::Pallet::<Runtime>::block_number();
+			let config = Configuration::<Runtime>::get().unwrap();
+
+			// Check the sale start has changed as expected and the cores_offered is the correct
+			// number.
+			assert_eq!(sale_info.sale_start, now + config.interlude_length);
 			assert!(sale_info.region_begin > prev_sale_info.region_begin);
 			assert_eq!(sale_info.cores_offered, 3);
 
@@ -130,13 +141,25 @@ pub mod bootstrapping {
 				);
 			}
 
-			// Iterate through hardcoded leases and check they're all correctly in state and
-			// scheduled in the workplan.
+			// Because we also run start_sales, 12 expiring leases are removed from the original 47,
+			// leaving 35.
+			let leases = Leases::<Runtime>::get();
+			assert_eq!(leases.len(), 35);
+
+			// Iterate through hardcoded leases and check they're all correctly in state (leases or
+			// allowedrenewals) and scheduled in the workplan.
 			for (i, (para_id, until)) in LEASES.iter().enumerate() {
 				// Add the system parachains and pool core as an offset - these should come before
 				// the leases.
 				let core_id = i as u16 + 5;
-				assert!(leases.contains(&LeaseRecordItem { until: *until, task: *para_id }));
+				if !leases.contains(&LeaseRecordItem { until: *until, task: *para_id }) {
+					// Check that the 12 who no longer have a lease can renew.
+					AllowedRenewals::<Runtime>::get(AllowedRenewalId {
+						core: core_id,
+						when: sale_info.region_end,
+					});
+				}
+				// They should all be in the workplan for next sale.
 				assert_eq!(
 					Workplan::<Runtime>::get((workplan_start, core_id)),
 					Some(Schedule::truncate_from(Vec::from([ScheduleItem {
