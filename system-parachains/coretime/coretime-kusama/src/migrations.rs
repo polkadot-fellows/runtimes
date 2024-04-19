@@ -23,14 +23,13 @@
 pub mod bootstrapping {
 	use crate::{weights, Runtime, RuntimeOrigin};
 	use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
-	use pallet_broker::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use pallet_broker::{
 		AllowedRenewalId, AllowedRenewalRecord, AllowedRenewals, Configuration,
 		CoreAssignment::{Pool, Task},
-		CoreMask, LeaseRecordItem, Leases, SaleInfo, SaleInfoRecordOf, Schedule, ScheduleItem,
-		Workplan,
+		CoreMask, LeaseRecordItem, SaleInfo, SaleInfoRecordOf, Schedule, ScheduleItem, Workplan,
 	};
+	use pallet_broker::{Leases, WeightInfo};
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
 	#[cfg(feature = "try-runtime")]
