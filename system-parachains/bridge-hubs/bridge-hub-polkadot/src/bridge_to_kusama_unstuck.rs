@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{bridge_to_kusama_config::BridgeGrandpaKusamaInstance, weights::RocksDbWeight, Runtime};
+use crate::{
+	bridge_to_kusama_config::BridgeGrandpaKusamaInstance, weights::RocksDbWeight, Runtime,
+};
 use bp_header_chain::GrandpaConsensusLogReader;
 use codec::Decode;
 use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
@@ -62,17 +64,25 @@ impl OnRuntimeUpgrade for BridgeToKusamaUnstuck {
 
 fn is_bridge_stuck() -> bool {
 	// bad state is where best header is #22_780_167 and set id is not 8906
-	BestFinalized::<Runtime, BridgeGrandpaKusamaInstance>::get().map(|h| h.number() == KUSAMA_HEADER_NUMBER).unwrap_or(false)
-		&& CurrentAuthoritySet::<Runtime, BridgeGrandpaKusamaInstance>::get().set_id != NEXT_AUTHORITIES_SET_ID
+	BestFinalized::<Runtime, BridgeGrandpaKusamaInstance>::get()
+		.map(|h| h.number() == KUSAMA_HEADER_NUMBER)
+		.unwrap_or(false) &&
+		CurrentAuthoritySet::<Runtime, BridgeGrandpaKusamaInstance>::get().set_id !=
+			NEXT_AUTHORITIES_SET_ID
 }
 
 fn next_authorities() -> StoredAuthoritySet<Runtime, BridgeGrandpaKusamaInstance> {
-	let header = bp_kusama::Header::decode(&mut &KUSAMA_HEADER_22780167[..]).expect("checked by tests; qed");
+	let header =
+		bp_kusama::Header::decode(&mut &KUSAMA_HEADER_22780167[..]).expect("checked by tests; qed");
 	StoredAuthoritySet {
 		set_id: NEXT_AUTHORITIES_SET_ID,
 		authorities: GrandpaConsensusLogReader::<bp_kusama::BlockNumber>::find_scheduled_change(
 			&header.digest,
-		).expect("is checked by tests; qed").next_authorities.try_into().expect("checked by tests; qed"),
+		)
+		.expect("is checked by tests; qed")
+		.next_authorities
+		.try_into()
+		.expect("checked by tests; qed"),
 	}
 }
 
