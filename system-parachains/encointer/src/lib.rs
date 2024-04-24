@@ -698,9 +698,6 @@ pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, Si
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// we're actually too late with applying the migration. however, the migration does
-	// work as-is.
-	pallet_xcm::migration::v1::VersionUncheckedMigrateToV1<Runtime>,
 	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
 	// state which can't be decoded to V0, yet the StorageVersion is V0.
 	// the strategy is to: just pretend we're on V1
