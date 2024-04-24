@@ -706,7 +706,6 @@ pub type Migrations = (
 	pallet_balances::migration::ResetInactive<Runtime>,
 	//then apply the proper migration as we should have done earlier
 	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
-	pallet_encointer_ceremonies::migrations::v2::MigrateToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
