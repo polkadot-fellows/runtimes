@@ -1001,7 +1001,7 @@ parameter_types! {
 	pub DmpQueueName: &'static str = "DmpQueue";
 }
 
-	/// Migrations to apply on runtime upgrade.
+/// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	// unreleased
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
