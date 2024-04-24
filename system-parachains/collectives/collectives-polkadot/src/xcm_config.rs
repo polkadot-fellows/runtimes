@@ -193,7 +193,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					pallet_xcm::Call::force_xcm_version { .. } |
 						pallet_xcm::Call::force_default_xcm_version { .. }
 				) | RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
 				RuntimeCall::Alliance(
 					// `init_members` accepts unbounded vecs as arguments,
 					// but the call can be initiated only by root origin.
