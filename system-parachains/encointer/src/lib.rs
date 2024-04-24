@@ -696,8 +696,13 @@ pub type UncheckedExtrinsic =
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
+parameter_types! {
+	pub DmpQueueName: &'static str = "DmpQueue";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
+	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
 	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
 	// state which can't be decoded to V0, yet the StorageVersion is V0.
 	// the strategy is to: just pretend we're on V1
