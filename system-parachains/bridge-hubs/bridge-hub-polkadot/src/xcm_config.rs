@@ -55,7 +55,7 @@ use xcm_builder::{
 	XcmFeeToAccount,
 };
 use xcm_executor::{
-	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export, WithOriginFilter},
+	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export},
 	XcmExecutor,
 };
 
@@ -153,99 +153,6 @@ impl Contains<Location> for FellowsPlurality {
 	}
 }
 
-/// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
-/// account for proof size weights.
-///
-/// Calls that are allowed through this filter must:
-/// 1. Have a fixed weight;
-/// 2. Cannot lead to another call being made;
-/// 3. Have a defined proof size weight, e.g. no unbounded vecs in call parameters.
-pub struct SafeCallFilter;
-impl Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		#[cfg(feature = "runtime-benchmarks")]
-		{
-			if matches!(call, RuntimeCall::System(frame_system::Call::remark_with_event { .. })) {
-				return true
-			}
-		}
-
-		// Allow to change dedicated storage items (called by governance-like)
-		match call {
-			RuntimeCall::System(frame_system::Call::set_storage { items })
-				if items.iter().all(|(k, _)| {
-					k.eq(&DeliveryRewardInBalance::key()) ||
-						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
-						k.eq(&EthereumGatewayAddress::key()) ||
-						k.eq(&pallet_bridge_grandpa::CurrentAuthoritySet::<
-							Runtime,
-							crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-						>::storage_value_final_key())
-				}) =>
-				return true,
-			_ => (),
-		};
-
-		matches!(
-			call,
-			RuntimeCall::PolkadotXcm(
-				pallet_xcm::Call::force_xcm_version { .. } |
-					pallet_xcm::Call::force_default_xcm_version { .. }
-			) | RuntimeCall::System(
-				frame_system::Call::set_heap_pages { .. } |
-					frame_system::Call::set_code { .. } |
-					frame_system::Call::set_code_without_checks { .. } |
-					frame_system::Call::authorize_upgrade { .. } |
-					frame_system::Call::authorize_upgrade_without_checks { .. } |
-					frame_system::Call::kill_prefix { .. },
-			) | RuntimeCall::ParachainSystem(..) |
-				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Balances(..) |
-				RuntimeCall::CollatorSelection(
-					pallet_collator_selection::Call::set_desired_candidates { .. } |
-						pallet_collator_selection::Call::set_candidacy_bond { .. } |
-						pallet_collator_selection::Call::register_as_candidate { .. } |
-						pallet_collator_selection::Call::leave_intent { .. } |
-						pallet_collator_selection::Call::set_invulnerables { .. } |
-						pallet_collator_selection::Call::add_invulnerable { .. } |
-						pallet_collator_selection::Call::remove_invulnerable { .. },
-				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
-					Runtime,
-					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-				>::initialize { .. }) |
-				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
-					Runtime,
-					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-				>::set_operating_mode { .. }) |
-				RuntimeCall::BridgeKusamaParachains(pallet_bridge_parachains::Call::<
-					Runtime,
-					crate::bridge_to_kusama_config::BridgeParachainKusamaInstance,
-				>::set_operating_mode { .. }) |
-				RuntimeCall::BridgeKusamaMessages(pallet_bridge_messages::Call::<
-					Runtime,
-					crate::bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
-				>::set_operating_mode { .. }) |
-				RuntimeCall::EthereumBeaconClient(
-					snowbridge_pallet_ethereum_client::Call::force_checkpoint { .. } |
-						snowbridge_pallet_ethereum_client::Call::set_operating_mode { .. },
-				) | RuntimeCall::EthereumInboundQueue(
-				snowbridge_pallet_inbound_queue::Call::set_operating_mode { .. },
-			) | RuntimeCall::EthereumOutboundQueue(
-				snowbridge_pallet_outbound_queue::Call::set_operating_mode { .. },
-			) | RuntimeCall::EthereumSystem(
-				snowbridge_pallet_system::Call::upgrade { .. } |
-					snowbridge_pallet_system::Call::set_operating_mode { .. } |
-					snowbridge_pallet_system::Call::set_pricing_parameters { .. } |
-					snowbridge_pallet_system::Call::force_update_channel { .. } |
-					snowbridge_pallet_system::Call::force_transfer_native_from_agent { .. } |
-					snowbridge_pallet_system::Call::set_token_transfer_fees { .. },
-			)
-		)
-	}
-}
-
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -333,8 +240,8 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter =
 		(ToBridgeHubKusamaHaulBlobExporter, crate::bridge_to_ethereum_config::SnowbridgeExporter);
 	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
-	type SafeCallFilter = SafeCallFilter;
+	type CallDispatcher = RuntimeCall;
+	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
