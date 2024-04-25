@@ -70,7 +70,7 @@ pallet-bridge-parachains = { version = "0.8.0", default-features = false }
 pallet-bridge-relayers = { version = "0.8.0", default-features = false }
 pallet-broker = { version = "0.7.1", default-features = false }
 pallet-child-bounties = { version = "28.0.0", default-features = false }
-pallet-collator-selection = { version = "10.0.0", default-features = false }
+pallet-collator-selection = { version = "10.0.2", default-features = false }
 pallet-collective = { version = "29.0.0", default-features = false }
 pallet-conviction-voting = { version = "29.0.0", default-features = false }
 pallet-core-fellowship = { version = "13.0.0", default-features = false }
