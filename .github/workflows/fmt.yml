@@ -11,16 +11,14 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component rustfmt
+
       - name: Rustfmt (check)
-        run: cargo +nightly fmt --all -- --check
+        run: cargo +nightly-$RUST_NIGHTLY_VERSION fmt --all -- --check

@@ -15,16 +15,17 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork,
+	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::{
 		DeliveryRewardInBalance, RequiredStakeForStakeAndSlash, ToBridgeHubKusamaHaulBlobExporter,
 	},
-	AccountId, AllPalletsWithSystem, Balances, EthereumGatewayAddress, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
+	XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
+	storage::generator::StorageValue,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
@@ -175,7 +176,11 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				if items.iter().all(|(k, _)| {
 					k.eq(&DeliveryRewardInBalance::key()) ||
 						k.eq(&RequiredStakeForStakeAndSlash::key()) ||
-						k.eq(&EthereumGatewayAddress::key())
+						k.eq(&EthereumGatewayAddress::key()) ||
+						k.eq(&pallet_bridge_grandpa::CurrentAuthoritySet::<
+							Runtime,
+							crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
+						>::storage_value_final_key())
 				}) =>
 				return true,
 			_ => (),
@@ -190,6 +195,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				frame_system::Call::set_heap_pages { .. } |
 					frame_system::Call::set_code { .. } |
 					frame_system::Call::set_code_without_checks { .. } |
+					frame_system::Call::authorize_upgrade { .. } |
+					frame_system::Call::authorize_upgrade_without_checks { .. } |
 					frame_system::Call::kill_prefix { .. },
 			) | RuntimeCall::ParachainSystem(..) |
 				RuntimeCall::Timestamp(..) |
@@ -204,7 +211,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
 				RuntimeCall::BridgeKusamaGrandpa(pallet_bridge_grandpa::Call::<
 					Runtime,
 					crate::bridge_to_kusama_config::BridgeGrandpaKusamaInstance,

@@ -22,7 +22,7 @@ use frame_support::{
 	assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		Get, OnInitialize,
+		OnInitialize,
 	},
 };
 use pallet_broker::{AdaptPrice, ConfigRecordOf, SaleInfo};

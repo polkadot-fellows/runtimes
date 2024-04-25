@@ -309,6 +309,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				frame_system::Call::set_heap_pages { .. } |
 					frame_system::Call::set_code { .. } |
 					frame_system::Call::set_code_without_checks { .. } |
+					frame_system::Call::authorize_upgrade { .. } |
+					frame_system::Call::authorize_upgrade_without_checks { .. } |
 					frame_system::Call::kill_prefix { .. },
 			) | RuntimeCall::ParachainSystem(..) |
 				RuntimeCall::Timestamp(..) |
@@ -323,7 +325,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 						pallet_collator_selection::Call::remove_invulnerable { .. },
 				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
 				RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
 				RuntimeCall::Assets(
 					pallet_assets::Call::create { .. } |
 						pallet_assets::Call::force_create { .. } |

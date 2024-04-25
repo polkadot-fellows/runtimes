@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
+- Fix Kusama Coretime launch issues: import leases and fix renewals for short leases ([polkadot-fellows/runtimes#276](https://github.com/polkadot-fellows/runtimes/pull/276))
+- Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+
+### Fixed
+
+- Bumped `bp-header-chain` dependency and added migration to Polkadot Bridge Hub to unstuck
+  bridge with Kusama. Details may be found in relevant
+  [polkadot-sdk](https://github.com/paritytech/polkadot-sdk/pull/4208) PR.
+
+## [1.2.1] 09.04.2024
+
+### Changed
+
+- Modify runtimes for phase two of People Chain launch (Kusama) ([polkadot-fellows/runtimes#246](https://github.com/polkadot-fellows/runtimes/pull/246))
+
+## [1.2.0] 28.03.2024
+
 ### Added
 
 - Remove state-trie-migration pallet from kusama, add state trie migration to V1 on polkadot ([polkadot-fellows/runtimes#170](https://github.com/polkadot-fellows/runtimes/pull/170))
@@ -38,6 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Prepared system parachain runtimes for async backing enabling ([polkadot-fellows/runtimes#228](https://github.com/polkadot-fellows/runtimes/pull/228))
 - Update runtime weights [polkadot-fellows/runtimes#223](https://github.com/polkadot-fellows/runtimes/pull/223)
 - Treasury Spend detects relative locations of the native asset ([polkadot-fellows/runtimes#233](https://github.com/polkadot-fellows/runtimes/pull/233))
+- Increase consumer reference limits for Asset Hubs ([polkadot-fellows/runtimes#258](https://github.com/polkadot-fellows/runtimes/pull/258))
+- Updated Asset Hub asset class creation deposit to use `system_para_deposit()` ([polkadot-fellows/runtimes#259](https://github.com/polkadot-fellows/runtimes/pull/259))
 
 ### Removed
 

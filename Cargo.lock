@@ -644,6 +644,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-uniques",
  "pallet-utility",
+ "pallet-vesting",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
@@ -735,7 +736,6 @@ dependencies = [
  "bp-bridge-hub-polkadot",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -771,6 +771,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-uniques",
  "pallet-utility",
+ "pallet-vesting",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
@@ -1301,9 +1302,9 @@ dependencies = [
 
 [[package]]
 name = "bp-header-chain"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96157f586811969b3911d26cc79e02b28cfbecf859d96d7c12b6af10b9ea9350"
+checksum = "0d7e059216225bc586fb74f2be6a9f527c19f47c8c7aeaf95b1738050d2afac1"
 dependencies = [
  "bp-runtime",
  "finality-grandpa",
@@ -1715,7 +1716,6 @@ dependencies = [
  "bridge-hub-test-utils",
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -2274,7 +2274,6 @@ version = "1.0.0"
 dependencies = [
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -2486,7 +2485,6 @@ dependencies = [
  "cumulus-primitives-aura",
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
- "emulated-integration-tests-common",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -3550,7 +3548,6 @@ name = "encointer-kusama-runtime"
 version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
@@ -4203,9 +4200,9 @@ dependencies = [
 
 [[package]]
 name = "frame-support"
-version = "29.0.0"
+version = "29.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b24824d29c43d0af94be3356bbf30338ededed649f6841d315a9ae067ce872"
+checksum = "b8e52c84b611d2049d9253f83a62ab0f093e4be5c42a7ef42ea5bb16d6611e32"
 dependencies = [
  "aquamarine",
  "array-bytes 6.2.2",
@@ -7115,9 +7112,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-balances"
-version = "29.0.0"
+version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942007f4f7aace74b77009db1675e7ca98683a42dde5e2d85bba2a9f404d2e5a"
+checksum = "e27946a57494d7c6231ae8909275bbd3cb5460ee3d27b7a5774a8b8e64d3ab92"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -7282,9 +7279,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-broker"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8cfe04e8c3f9ca8342ac785f2b1aee6140e1809546fc6f3a99fad20a8dfbf9"
+checksum = "3626d7e8e49b153b84c74594e1fb4b6d64720b5a9588297d3ba3c049c3b3b9e3"
 dependencies = [
  "bitvec",
  "frame-benchmarking",
@@ -8182,9 +8179,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking"
-version = "29.0.0"
+version = "29.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a94127295cf027a26e933ea6788b0824e9fedd90740013673e2d36b5d707efe"
+checksum = "668b7d28c499f0d9f295fad26cf6c342472e21842e3b13bcaaac8536358b2d6c"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -8427,9 +8424,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "8.0.3"
+version = "8.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0493c09d29fefc62579284b596618fcceb68fdb3dd38de79fe3c922a19916249"
+checksum = "c13f5c598737e84294880333170d1df3868a11ad7ee79d0b1d1af37365e1c277"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -12962,9 +12959,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d3615664be8525d6f23e42dce1c314abc7f961a7f862b74012444e16d5dde5c"
+checksum = "6a3e2e3b94bfcfc8f363e21a6c5a1d3c67eb4592ada672c868a3236ad1dd563b"
 dependencies = [
  "ethabi-decode",
  "frame-support",
@@ -13036,9 +13033,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-runtime-api"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4933810488df1660cf60f53a7952ce1dff6aaef72d9fc740e1274e937136444e"
+checksum = "1c822746dcdf13b2e98d5474b2257d86f04362435a6b9355abeaecd8bca6c2d9"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -13052,9 +13049,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0fd437cd5db8b7d16cdd4da110d674d245532afa31df10108a11858a07844a6"
+checksum = "cb89a9f375672031669fef4b2f4037cdf84dc1624ebd204c5cea839a0844bcdd"
 dependencies = [
  "bp-runtime",
  "byte-slice-cast",
@@ -13099,9 +13096,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79c1fbfd32dbba082a9312c02c3ef35de929741f78f48e88b7668909350ef9e2"
+checksum = "08f9709398848997157335598e46a16c357bcec29e1a0db0917bbfe8aa64f45b"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -13148,9 +13145,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-outbound-queue"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c7498ba5bc2b15e1d032b3e44659cd117cad24eab457a40dc5e17acfaac0aff"
+checksum = "3467d4c9f2eea9ef1b9a86e0ee811727bd373140b01a35216b5a02d54dd9108f"
 dependencies = [
  "bridge-hub-common",
  "ethabi-decode",
@@ -13173,9 +13170,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-system"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6a410d9312bdcc3ba5944abb7d21f6b25065b32c7f8b39b9c7a4b0bd0dacfb4"
+checksum = "514249487076bff142a2a5b5ddc7bd2f51826247af39ef1a0e48ca0db48ccfc3"
 dependencies = [
  "ethabi-decode",
  "frame-benchmarking",
