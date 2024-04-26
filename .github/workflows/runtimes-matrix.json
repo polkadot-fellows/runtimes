@@ -58,6 +58,7 @@
     "name": "coretime-kusama",
     "package": "coretime-kusama-runtime",
     "path": "system-parachains/coretime/coretime-kusama",
+    "uri": "wss://kusama-coretime-rpc.polkadot.io:443",
     "is_relay": false
   },
   {
