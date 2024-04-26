@@ -36,11 +36,13 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+pub mod ambassador;
 pub mod impls;
 mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub use ambassador::pallet_ambassador_origins;
 
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -295,6 +297,8 @@ pub enum ProxyType {
 	Alliance,
 	/// Fellowship proxy. Allows calls related to the Fellowship.
 	Fellowship,
+	/// Ambassador proxy. Allows calls related to the Ambassador Program.
+	Ambassador,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -329,6 +333,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
+			),
+			ProxyType::Ambassador => matches!(
+				c,
+				RuntimeCall::AmbassadorCollective { .. } |
+					RuntimeCall::AmbassadorReferenda { .. } |
+					RuntimeCall::AmbassadorCore { .. } |
+					RuntimeCall::AmbassadorSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -689,6 +702,14 @@ construct_runtime!(
 		FellowshipSalary: pallet_salary::<Instance1> = 64,
 		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
+
+		// Ambassador Program.
+		AmbassadorCollective: pallet_ranked_collective::<Instance2> = 70,
+		AmbassadorReferenda: pallet_referenda::<Instance2> = 71,
+		AmbassadorOrigins: pallet_ambassador_origins = 72,
+		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
+		AmbassadorSalary: pallet_salary::<Instance2> = 74,
+		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
 	}
 );
 
@@ -758,6 +779,11 @@ mod benches {
 		[pallet_salary, FellowshipSalary]
 		[pallet_treasury, FellowshipTreasury]
 		[pallet_asset_rate, AssetRate]
+		[pallet_referenda, AmbassadorReferenda]
+		[pallet_ranked_collective, AmbassadorCollective]
+		[pallet_core_fellowship, AmbassadorCore]
+		[pallet_salary, AmbassadorSalary]
+		[pallet_salary, AmbassadorTreasury]
 	);
 }
 

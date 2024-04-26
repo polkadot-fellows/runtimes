@@ -21,12 +21,11 @@ mod tracks;
 use crate::{
 	impls::ToParentTreasury,
 	weights,
-	xcm_config::{LocationToAccountId, TreasurerBodyId},
+	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
-use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -44,14 +43,11 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{
-	currency::GRAND, system_parachain, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX,
-};
+use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
-use xcm::latest::BodyId;
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::{
@@ -216,12 +212,6 @@ pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 use xcm::prelude::*;
 
 parameter_types! {
-	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
-	pub AssetHubUsdtId: AssetId = (PalletInstance(50), GeneralIndex(1984)).into();
-	pub UsdtAsset: LocatableAssetId = LocatableAssetId {
-		location: AssetHub::get(),
-		asset_id: AssetHubUsdtId::get(),
-	};
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
 	pub Interior: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
@@ -237,7 +227,7 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	ConvertToValue<UsdtAsset>,
+	ConvertToValue<AssetHubUsdt>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
