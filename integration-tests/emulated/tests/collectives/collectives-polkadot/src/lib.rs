@@ -19,7 +19,7 @@ pub use xcm::{prelude::*, v3};
 // Cumulus
 pub use emulated_integration_tests_common::{
 	accounts::ALICE,
-	xcm_emulator::{assert_expected_events, bx, Chain, RelayChain as Relay, TestExt},
+	xcm_emulator::{assert_expected_events, bx, Chain, Parachain, RelayChain as Relay, TestExt},
 };
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,

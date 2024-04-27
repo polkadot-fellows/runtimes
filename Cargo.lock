@@ -2243,6 +2243,7 @@ dependencies = [
  "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "collectives-polkadot-runtime",
+ "collectives-polkadot-runtime-constants",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
