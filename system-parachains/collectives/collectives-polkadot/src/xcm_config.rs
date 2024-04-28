@@ -182,6 +182,8 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 				frame_system::Call::set_heap_pages { .. } |
 					frame_system::Call::set_code { .. } |
 					frame_system::Call::set_code_without_checks { .. } |
+					frame_system::Call::authorize_upgrade { .. } |
+					frame_system::Call::authorize_upgrade_without_checks { .. } |
 					frame_system::Call::kill_prefix { .. },
 			) | RuntimeCall::ParachainSystem(..) |
 				RuntimeCall::Timestamp(..) |
@@ -199,7 +201,6 @@ impl Contains<RuntimeCall> for SafeCallFilter {
 					pallet_xcm::Call::force_xcm_version { .. } |
 						pallet_xcm::Call::force_default_xcm_version { .. }
 				) | RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
 				RuntimeCall::Alliance(
 					// `init_members` accepts unbounded vecs as arguments,
 					// but the call can be initiated only by root origin.

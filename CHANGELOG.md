@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 - The Ambassador Program ([polkadot-fellows/runtimes#291](https://github.com/polkadot-fellows/runtimes/pull/291))
 
+### Changed
+
+- Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+
 ### Fixed
 
 - Bumped `bp-header-chain` dependency and added migration to Polkadot Bridge Hub to unstuck
