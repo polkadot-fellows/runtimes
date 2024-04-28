@@ -39,7 +39,7 @@ use crate::{
 };
 use frame_support::{
 	pallet_prelude::PalletInfoAccess,
-	traits::{EitherOf, MapSuccess, NeverEnsureOrigin, TryMapSuccess},
+	traits::{EitherOf, MapSuccess, TryMapSuccess},
 };
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
@@ -72,7 +72,7 @@ impl pallet_ambassador_origins::Config for Runtime {}
 /// - Head Ambassadors voice can demote Senior Ambassador or Ambassador;
 /// - Senior Ambassadors voice can demote Ambassador.
 pub type DemoteOrigin = EitherOf<
-	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
+	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
 		MapSuccess<
 			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
@@ -94,7 +94,7 @@ pub type PromoteOrigin = DemoteOrigin;
 
 /// Root, FellowshipAdmin or HeadAmbassadors.
 pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
-	frame_system::EnsureRoot<AccountId>,
+	EnsureRoot<AccountId>,
 	EitherOfDiverse<
 		HeadAmbassadors,
 		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
@@ -102,14 +102,17 @@ pub type OpenGovOrHeadAmbassadors = EitherOfDiverse<
 >;
 
 /// Ambassadors' vote weights for referendums.
+/// - Each member with an excess rank of 0 gets 1 vote;
+/// - ...with an excess rank of 1 gets 5 votes;
+/// - ...with an excess rank of 2 gets 10 votes;
+/// - ...with an excess rank of 3 gets 15 votes;
 pub struct VoteWeight;
 impl Convert<Rank, Votes> for VoteWeight {
-	fn convert(rank: Rank) -> Votes {
-		match rank {
-			ranks::HEAD_AMBASSADOR => 10,
-			ranks::SENIOR_AMBASSADOR => 2,
-			ranks::AMBASSADOR => 1,
-			_ => 0,
+	fn convert(excess: Rank) -> Votes {
+		if excess == 0 {
+			1
+		} else {
+			(excess * 5).into()
 		}
 	}
 }
@@ -120,15 +123,18 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type WeightInfo = (); // TODO weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
-	type PromoteOrigin = NeverEnsureOrigin<Rank>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type PromoteOrigin = frame_support::traits::NeverEnsureOrigin<Rank>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
 	type DemoteOrigin = DemoteOrigin;
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type VoteWeight = VoteWeight;
 	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
-	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
+	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = (crate::FellowshipCore, crate::FellowshipSalary);
+	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
 }
 
 parameter_types! {
@@ -189,7 +195,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a single member of the Ambassador Program;
 	type InductOrigin = EitherOfDiverse<
-		frame_system::EnsureRoot<AccountId>,
+		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
 			pallet_ranked_collective::EnsureMember<

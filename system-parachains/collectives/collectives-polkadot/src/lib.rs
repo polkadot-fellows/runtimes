@@ -783,7 +783,7 @@ mod benches {
 		[pallet_ranked_collective, AmbassadorCollective]
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
-		[pallet_salary, AmbassadorTreasury]
+		[pallet_treasury, AmbassadorTreasury]
 	);
 }
 
