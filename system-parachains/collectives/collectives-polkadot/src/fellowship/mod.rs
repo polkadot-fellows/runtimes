@@ -79,7 +79,7 @@ impl pallet_fellowship_origins::Config for Runtime {}
 pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 
 impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
-	type WeightInfo = weights::pallet_referenda::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_referenda_fellowship_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -114,7 +114,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 
 impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -154,7 +154,7 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
 
 impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_core_fellowship_fellowship_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, FellowshipCollectiveInstance>;
 	type Balance = Balance;
@@ -232,7 +232,7 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 >;
 
 impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_fellowship_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -309,7 +309,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
-	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury_fellowship_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = FellowshipTreasuryPalletId;
 	type Currency = Balances;

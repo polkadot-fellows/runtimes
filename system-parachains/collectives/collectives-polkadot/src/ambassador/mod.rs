@@ -120,7 +120,7 @@ impl Convert<Rank, Votes> for VoteWeight {
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
 
 impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -146,7 +146,7 @@ parameter_types! {
 pub type AmbassadorReferendaInstance = pallet_referenda::Instance2;
 
 impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_referenda_ambassador_referenda::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_referenda_ambassador_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -181,7 +181,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
 
 impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
 	type Balance = Balance;
@@ -234,7 +234,7 @@ pub type AmbassadorSalaryPaymaster = PayOverXcm<
 pub type AmbassadorSalaryInstance = pallet_salary::Instance2;
 
 impl pallet_salary::Config<AmbassadorSalaryInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_salary_ambassador_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_ambassador_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -315,7 +315,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
-	type WeightInfo = (); // TODO weights::pallet_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury_ambassador_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = AmbassadorTreasuryPalletId;
 	type Currency = Balances;
