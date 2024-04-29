@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 - Fix Kusama Coretime launch issues: import leases and fix renewals for short leases ([polkadot-fellows/runtimes#276](https://github.com/polkadot-fellows/runtimes/pull/276))
 - Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+- Add migration to Kusama Coretime to onboard People Chain without long delay ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
+- Clean up outdated assignment in Kusama Coretime Chain state ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
 
 ### Fixed
 
