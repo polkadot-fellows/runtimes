@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3] 29.04.2024
+
+### Added
+
+- Add migration to Kusama Coretime to onboard People Chain without long delay ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
+
+### Fixed
+
+- Clean up outdated assignment in Kusama Coretime Chain state ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
+
 ## [1.2.2] 20.04.2024
 
 ### Fixed
