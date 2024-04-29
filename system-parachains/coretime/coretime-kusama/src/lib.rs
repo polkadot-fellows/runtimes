@@ -110,8 +110,9 @@ pub type UncheckedExtrinsic =
 pub type Migrations = (
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 	migrations::bootstrapping::ImportLeases,
-	// unreleased
 	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
+	migrations::bootstrapping::RemoveOutdatedPoolAssignment,
+	migrations::bootstrapping::OnboardPeople,
 );
 
 /// Executive: handles dispatch to the various modules.
@@ -135,7 +136,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("coretime-kusama"),
 	impl_name: create_runtime_str!("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 1_002_002,
+	spec_version: 1_002_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
