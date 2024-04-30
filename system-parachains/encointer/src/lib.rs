@@ -582,8 +582,16 @@ where
 {
 	fn handle_credit(credit: Credit<AccountIdOf<R>, pallet_encointer_balances::Pallet<R>>) {
 		if let Some(author) = pallet_authorship::Pallet::<R>::author() {
+			// We will burn 50% of community currency fees and send 50% to the block author.
+			// reasoning: If you send 100% to the author, then the author can attempt to increase
+			// the fee rate by making transactions up to the block limit at zero cost
+			// (since they pocket the fees).
+			// In the future, fees might be collected in community treasuries instead of being
+			// burned (https://forum.polkadot.network/t/towards-encointer-self-sustainability/4195)
+			let half_amount = credit.peek() / 2;
+			let (author_credit, _burnable) = credit.split(half_amount);
 			// In case of error: Will drop the result triggering the `OnDrop` of the imbalance.
-			let _ = pallet_encointer_balances::Pallet::<R>::resolve(&author, credit);
+			let _ = pallet_encointer_balances::Pallet::<R>::resolve(&author, author_credit);
 		}
 	}
 }
@@ -717,8 +725,8 @@ parameter_types! {
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
-  migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
-  // permanent
+	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
+	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
