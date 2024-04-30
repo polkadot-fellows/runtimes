@@ -736,7 +736,6 @@ dependencies = [
  "bp-bridge-hub-polkadot",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -1303,9 +1302,9 @@ dependencies = [
 
 [[package]]
 name = "bp-header-chain"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96157f586811969b3911d26cc79e02b28cfbecf859d96d7c12b6af10b9ea9350"
+checksum = "0d7e059216225bc586fb74f2be6a9f527c19f47c8c7aeaf95b1738050d2afac1"
 dependencies = [
  "bp-runtime",
  "finality-grandpa",
@@ -1717,7 +1716,6 @@ dependencies = [
  "bridge-hub-test-utils",
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -2275,7 +2273,6 @@ version = "1.0.0"
 dependencies = [
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-aura-ext",
- "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
@@ -7284,9 +7281,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-broker"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8cfe04e8c3f9ca8342ac785f2b1aee6140e1809546fc6f3a99fad20a8dfbf9"
+checksum = "3626d7e8e49b153b84c74594e1fb4b6d64720b5a9588297d3ba3c049c3b3b9e3"
 dependencies = [
  "bitvec",
  "frame-benchmarking",

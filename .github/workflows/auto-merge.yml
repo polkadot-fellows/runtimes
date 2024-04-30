@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/merge') }}
     steps:
       - name: Get the GitHub handle of the fellows
-        uses: paritytech/get-fellows-action@v1.1.1
+        uses: paritytech/get-fellows-action@v1.1.2
         id: fellows
       - name: Generate a token
         id: merge_token

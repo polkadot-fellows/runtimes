@@ -663,6 +663,7 @@ construct_runtime! {
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
 		PolkadotXcm: pallet_xcm = 31,
 		CumulusXcm: cumulus_pallet_xcm = 32,
+		// DmpQueue: cumulus_pallet_dmp_queue = 33, removed
 		MessageQueue: pallet_message_queue = 35,
 
 		// Handy utilities.
@@ -709,10 +710,15 @@ pub type UncheckedExtrinsic =
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
+parameter_types! {
+	pub DmpQueueName: &'static str = "DmpQueue";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
-	// permanent
+	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
+  migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
+  // permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
 
