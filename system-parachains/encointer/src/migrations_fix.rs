@@ -117,7 +117,7 @@ pub mod collator_selection_init {
 				pallet_collator_selection::Invulnerables::<T>::put(invulnerables);
 
 				pallet_collator_selection::CandidacyBond::<T>::put::<BalanceOf<T>>(
-					533_333_328u128.into(),
+					5_000_000_000_000u128.into(),
 				);
 
 				T::DbWeight::get().reads_writes(0, 4 + 5 * 2)
