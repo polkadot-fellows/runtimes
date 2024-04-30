@@ -65,6 +65,11 @@ pub mod collator_selection_init {
 		{
 			#[cfg(feature = "try-runtime")]
 			fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, TryRuntimeError> {
+				let invulnerables_len = pallet_collator_selection::Invulnerables::<T>::get().len();
+				ensure!(
+					invulnerables_len == 0,
+					"this migration has been executed previously. won't apply it again"
+				);
 				Ok(().encode())
 			}
 
@@ -110,8 +115,9 @@ pub mod collator_selection_init {
 					>((AURA, pk.encode()), pk.into());
 				}
 
-				let invulnerables: Vec<<T as frame_system::Config>::AccountId> =
+				let mut invulnerables: Vec<<T as frame_system::Config>::AccountId> =
 					raw_keys.iter().map(|&pk| pk.into()).collect();
+				invulnerables.sort();
 				let invulnerables: BoundedVec<_, T::MaxInvulnerables> =
 					invulnerables.try_into().unwrap();
 				pallet_collator_selection::Invulnerables::<T>::put(invulnerables);
@@ -125,6 +131,11 @@ pub mod collator_selection_init {
 
 			#[cfg(feature = "try-runtime")]
 			fn post_upgrade(_state: sp_std::vec::Vec<u8>) -> Result<(), TryRuntimeError> {
+				let invulnerables_len = pallet_collator_selection::Invulnerables::<T>::get().len();
+				ensure!(
+					invulnerables_len > 0,
+					"invulnerables are empty after initialization. that should not happen"
+				);
 				Ok(())
 			}
 		}
