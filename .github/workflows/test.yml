@@ -94,6 +94,30 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+      - name: Test benchmarks ${{ matrix.runtime.name }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          # TODO: remove
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+          # build wasm
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          # TODO: remove
+          ls -lrt $RUNTIME_BLOB_PATH
+          # TODO: get `frame-omni-bencher` somehow - GHA? or download released binary? or whatever?
+          # TODO: we just try to build in-place
+          git clone https://github.com/paritytech/polkadot-sdk
+          git branch
+          cd ./polkadot-sdk
+          cargo build --locked --release -p frame-omni-bencher
+          cd ..
+          # run benchmarking
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+          ./polkadot-sdk/target/release/frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+        env:
+          RUSTFLAGS: "-C debug-assertions -D warnings"
+
   integration-test:
     needs: [integration-test-matrix]
     continue-on-error: true
