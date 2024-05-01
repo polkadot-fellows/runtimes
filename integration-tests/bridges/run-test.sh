@@ -18,7 +18,8 @@ git clone --branch master -n --depth=1 --filter=tree:0 \
   https://github.com/paritytech/polkadot-sdk.git $framework_repo_path
 pushd $framework_repo_path
 git sparse-checkout set --no-cone bridges/testing/framework
-git checkout 2cdda0e62dd3088d2fd09cea627059674070c277
+git fetch --tags
+git checkout polkadot-v1.11.0
 popd
 export FRAMEWORK_PATH=$framework_repo_path/bridges/testing/framework
 echo
