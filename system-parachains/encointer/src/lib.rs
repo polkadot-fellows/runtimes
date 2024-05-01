@@ -578,20 +578,30 @@ impl<R> HandleCredit<AccountIdOf<R>, pallet_encointer_balances::Pallet<R>>
 	for AssetsToBlockAuthor<R>
 where
 	R: pallet_authorship::Config + pallet_encointer_balances::Config,
-	AccountIdOf<R>: From<polkadot_primitives::AccountId> + Into<polkadot_primitives::AccountId>,
+	AccountIdOf<R>: From<polkadot_primitives::AccountId>
+		+ Into<polkadot_primitives::AccountId>
+		+ From<[u8; 32]>,
 {
 	fn handle_credit(credit: Credit<AccountIdOf<R>, pallet_encointer_balances::Pallet<R>>) {
 		if let Some(author) = pallet_authorship::Pallet::<R>::author() {
-			// We will burn 50% of community currency fees and send 50% to the block author.
+			// This only affects fees paid in CC!
+
+			// We will only grant 50% of CC fees to the current block author
 			// reasoning: If you send 100% to the author, then the author can attempt to increase
 			// the fee rate by making transactions up to the block limit at zero cost
 			// (since they pocket the fees).
 			// In the future, fees might be collected in community treasuries instead of being
-			// burned (https://forum.polkadot.network/t/towards-encointer-self-sustainability/4195)
+			// "burned" to dead account 0x00 = 5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM
+			// See: https://forum.polkadot.network/t/towards-encointer-self-sustainability/4195
+
 			let half_amount = credit.peek() / 2;
-			let (author_credit, _burnable) = credit.split(half_amount);
+			let community_pot = AccountIdOf::<R>::from([0u8; 32]);
+
+			let (author_credit, community_credit) = credit.split(half_amount);
 			// In case of error: Will drop the result triggering the `OnDrop` of the imbalance.
 			let _ = pallet_encointer_balances::Pallet::<R>::resolve(&author, author_credit);
+			let _ =
+				pallet_encointer_balances::Pallet::<R>::resolve(&community_pot, community_credit);
 		}
 	}
 }
