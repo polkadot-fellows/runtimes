@@ -35,16 +35,27 @@ pub mod collator_selection_init {
 		use sp_core::{crypto::key_types::AURA, sr25519};
 		use sp_std::{vec, vec::Vec};
 
-		const INVULNERABLE_A: [u8; 32] =
+		const INVULNERABLE_AURA_A: [u8; 32] =
 			hex!("5e962096da68302d5c47fce0178d72fab503c4f00a3f1df64856748f0d9dd51e");
-		const INVULNERABLE_B: [u8; 32] =
+		const INVULNERABLE_AURA_B: [u8; 32] =
 			hex!("0cecb8d1c2c744ca4c5cea57f5d6c40238f4dad17afa213672b8b7d43b80a659");
-		const INVULNERABLE_C: [u8; 32] =
+		const INVULNERABLE_AURA_C: [u8; 32] =
 			hex!("ca1951a3c4e100fb5a899e7bae3ea124491930a72000c5e4b2775fea27ecf05d");
-		const INVULNERABLE_D: [u8; 32] =
+		const INVULNERABLE_AURA_D: [u8; 32] =
 			hex!("484b443bd95068b860c92b0f66487b78f58234eca0f88e2adbe80bae4807b809");
-		const INVULNERABLE_E: [u8; 32] =
+		const INVULNERABLE_AURA_E: [u8; 32] =
 			hex!("6c642fb4b571a5685a869cd291fafd575be47a918b231ba28165e5c0cd0cfa15");
+
+		const INVULNERABLE_ACCOUNT_A: [u8; 32] =
+			hex!("920534bf448645557bae98bc7f681bd3ebed13d39bee28e10b193d4073357572");
+		const INVULNERABLE_ACCOUNT_B: [u8; 32] =
+			hex!("76bff5abc7a4fce647fab172c9f016af8f5b5f8c3da56a92b619bbc02989fb71");
+		const INVULNERABLE_ACCOUNT_C: [u8; 32] =
+			hex!("c0e021ab805fa956f29661c4380377e5296c5fa5fc16be26ffd516675a66bf6d");
+		const INVULNERABLE_ACCOUNT_D: [u8; 32] =
+			hex!("9c17e9b360d9ca3cf8e42ce015ab649281d42484e7240020a12f5b16acc0d718");
+		const INVULNERABLE_ACCOUNT_E: [u8; 32] =
+			hex!("2c3b7e77d0a8db2e3389669c4bc8112c34d5d1619cf20edc79c12c57a75f8c19");
 
 		pub struct InitInvulnerables<T>(sp_std::marker::PhantomData<T>);
 		impl<T> OnRuntimeUpgrade for InitInvulnerables<T>
@@ -77,23 +88,23 @@ pub mod collator_selection_init {
 				}
 				info!(target: TARGET, "initializing the set of invulnerables");
 
-				let raw_keys: Vec<[u8; 32]> = vec![
-					INVULNERABLE_A,
-					INVULNERABLE_B,
-					INVULNERABLE_C,
-					INVULNERABLE_D,
-					INVULNERABLE_E,
+				let raw_aura_keys: Vec<[u8; 32]> = vec![
+					INVULNERABLE_AURA_A,
+					INVULNERABLE_AURA_B,
+					INVULNERABLE_AURA_C,
+					INVULNERABLE_AURA_D,
+					INVULNERABLE_AURA_E,
 				];
 
 				let validatorids: Vec<<T as pallet_session::Config>::ValidatorId> =
-					raw_keys.iter().map(|&pk| pk.into()).collect();
+					raw_aura_keys.iter().map(|&pk| pk.into()).collect();
 
 				pallet_session::Validators::<T>::put(validatorids);
 
 				let queued_keys: Vec<(
 					<T as pallet_session::Config>::ValidatorId,
 					<T as pallet_session::Config>::Keys,
-				)> = raw_keys
+				)> = raw_aura_keys
 					.iter()
 					.map(|&pk| {
 						(
@@ -105,7 +116,7 @@ pub mod collator_selection_init {
 
 				pallet_session::QueuedKeys::<T>::put(queued_keys);
 
-				for pk in raw_keys.clone() {
+				for pk in raw_aura_keys.clone() {
 					pallet_session::NextKeys::<T>::insert::<
 						<T as pallet_session::Config>::ValidatorId,
 						<T as pallet_session::Config>::Keys,
@@ -116,8 +127,15 @@ pub mod collator_selection_init {
 					>((AURA, pk.encode()), pk.into());
 				}
 
+				let raw_account_keys: Vec<[u8; 32]> = vec![
+					INVULNERABLE_ACCOUNT_A,
+					INVULNERABLE_ACCOUNT_B,
+					INVULNERABLE_ACCOUNT_C,
+					INVULNERABLE_ACCOUNT_D,
+					INVULNERABLE_ACCOUNT_E,
+				];
 				let mut invulnerables: Vec<<T as frame_system::Config>::AccountId> =
-					raw_keys.iter().map(|&pk| pk.into()).collect();
+					raw_account_keys.iter().map(|&pk| pk.into()).collect();
 				invulnerables.sort();
 				let invulnerables: BoundedVec<_, T::MaxInvulnerables> =
 					invulnerables.try_into().unwrap();
