@@ -95,38 +95,6 @@ pub mod collator_selection_init {
 					INVULNERABLE_AURA_D,
 					INVULNERABLE_AURA_E,
 				];
-
-				let validatorids: Vec<<T as pallet_session::Config>::ValidatorId> =
-					raw_aura_keys.iter().map(|&pk| pk.into()).collect();
-
-				pallet_session::Validators::<T>::put(validatorids);
-
-				let queued_keys: Vec<(
-					<T as pallet_session::Config>::ValidatorId,
-					<T as pallet_session::Config>::Keys,
-				)> = raw_aura_keys
-					.iter()
-					.map(|&pk| {
-						(
-							pk.into(),
-							SessionKeys { aura: sr25519::Public::from_raw(pk).into() }.into(),
-						)
-					})
-					.collect();
-
-				pallet_session::QueuedKeys::<T>::put(queued_keys);
-
-				for pk in raw_aura_keys.clone() {
-					pallet_session::NextKeys::<T>::insert::<
-						<T as pallet_session::Config>::ValidatorId,
-						<T as pallet_session::Config>::Keys,
-					>(pk.into(), SessionKeys { aura: sr25519::Public::from_raw(pk).into() }.into());
-					pallet_session::KeyOwner::<T>::insert::<
-						_,
-						<T as pallet_session::Config>::ValidatorId,
-					>((AURA, pk.encode()), pk.into());
-				}
-
 				let raw_account_keys: Vec<[u8; 32]> = vec![
 					INVULNERABLE_ACCOUNT_A,
 					INVULNERABLE_ACCOUNT_B,
@@ -134,6 +102,42 @@ pub mod collator_selection_init {
 					INVULNERABLE_ACCOUNT_D,
 					INVULNERABLE_ACCOUNT_E,
 				];
+
+				let validatorids: Vec<<T as pallet_session::Config>::ValidatorId> =
+					raw_account_keys.iter().map(|&pk| pk.into()).collect();
+
+				pallet_session::Validators::<T>::put(validatorids);
+
+				let queued_keys: Vec<(
+					<T as pallet_session::Config>::ValidatorId,
+					<T as pallet_session::Config>::Keys,
+				)> = raw_account_keys
+					.iter()
+					.zip(raw_aura_keys.iter())
+					.map(|(&account, &aura)| {
+						(
+							account.into(),
+							SessionKeys { aura: sr25519::Public::from_raw(aura).into() }.into(),
+						)
+					})
+					.collect();
+
+				pallet_session::QueuedKeys::<T>::put(queued_keys);
+
+				for (&account, &aura) in raw_account_keys.iter().zip(raw_aura_keys.iter()) {
+					pallet_session::NextKeys::<T>::insert::<
+						<T as pallet_session::Config>::ValidatorId,
+						<T as pallet_session::Config>::Keys,
+					>(
+						account.into(),
+						SessionKeys { aura: sr25519::Public::from_raw(aura).into() }.into(),
+					);
+					pallet_session::KeyOwner::<T>::insert::<
+						_,
+						<T as pallet_session::Config>::ValidatorId,
+					>((AURA, aura.encode()), account.into());
+				}
+
 				let mut invulnerables: Vec<<T as frame_system::Config>::AccountId> =
 					raw_account_keys.iter().map(|&pk| pk.into()).collect();
 				invulnerables.sort();
