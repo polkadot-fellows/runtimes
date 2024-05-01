@@ -23,11 +23,10 @@ use frame_support::traits::{MapSuccess, TryMapSuccess};
 use sp_arithmetic::traits::CheckedSub;
 use sp_runtime::{
 	morph_types,
-	traits::{ConstU16, Replace, TypedGet},
+	traits::{Replace, TypedGet},
 };
 
 use super::*;
-use crate::{DAYS, QUID};
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;

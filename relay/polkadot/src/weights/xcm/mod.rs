@@ -18,7 +18,6 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::Runtime;
-use frame_support::weights::Weight;
 use sp_std::prelude::*;
 use xcm::{latest::prelude::*, DoubleEncoded};
 

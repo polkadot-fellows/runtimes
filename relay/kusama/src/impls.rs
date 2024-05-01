@@ -15,19 +15,18 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::*;
-use crate::xcm_config;
 use core::marker::PhantomData;
 use frame_support::{
 	defensive,
 	pallet_prelude::DispatchResult,
-	traits::{tokens::ConversionFromAssetBalance, Contains},
+	traits::{tokens::ConversionFromAssetBalance},
 };
 use frame_system::RawOrigin;
 use kusama_runtime_constants::system_parachain::PEOPLE_ID;
 use parity_scale_codec::{Decode, Encode};
-use primitives::{Balance, Id as ParaId};
+use primitives::{Id as ParaId};
 use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
-use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
+use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::TransactAsset;
 

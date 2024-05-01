@@ -26,7 +26,6 @@ use crate::{
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
-use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -50,7 +49,6 @@ use polkadot_runtime_constants::{
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
-use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]

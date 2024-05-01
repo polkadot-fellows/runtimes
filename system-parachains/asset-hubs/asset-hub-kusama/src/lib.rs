@@ -1722,7 +1722,6 @@ fn ensure_key_ss58() {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{CENTS, MILLICENTS};
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
 	use system_parachains_constants::kusama::fee;

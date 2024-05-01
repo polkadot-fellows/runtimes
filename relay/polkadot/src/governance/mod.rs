@@ -18,7 +18,7 @@
 
 use super::*;
 use crate::xcm_config::CollectivesLocation;
-use frame_support::{parameter_types, traits::EitherOf};
+use frame_support::{parameter_types};
 use frame_system::EnsureRootWithSuccess;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use xcm::latest::BodyId;

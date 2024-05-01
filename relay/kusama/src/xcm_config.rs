@@ -24,7 +24,6 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Equals, Everything, Nothing},
-	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};

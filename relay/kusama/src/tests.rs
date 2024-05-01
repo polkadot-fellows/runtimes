@@ -21,12 +21,9 @@ use frame_support::{
 	dispatch::GetDispatchInfo, traits::WhitelistedStorageKeys, weights::WeightToFee as WeightToFeeT,
 };
 use keyring::Sr25519Keyring::Charlie;
-use pallet_transaction_payment::Multiplier;
-use parity_scale_codec::Encode;
 use runtime_common::MinimumMultiplier;
 use separator::Separatable;
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::FixedPointNumber;
 use std::collections::HashSet;
 
 #[test]

@@ -2720,10 +2720,9 @@ mod test_fees {
 	use super::*;
 	use frame_support::{dispatch::GetDispatchInfo, weights::WeightToFee as WeightToFeeT};
 	use keyring::Sr25519Keyring::{Alice, Charlie};
-	use pallet_transaction_payment::Multiplier;
 	use runtime_common::MinimumMultiplier;
 	use separator::Separatable;
-	use sp_runtime::{assert_eq_error_rate, FixedPointNumber, MultiAddress, MultiSignature};
+	use sp_runtime::{assert_eq_error_rate, MultiAddress, MultiSignature};
 
 	#[test]
 	fn payout_weight_portion() {
