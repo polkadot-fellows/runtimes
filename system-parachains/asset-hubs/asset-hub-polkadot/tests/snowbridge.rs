@@ -34,7 +34,7 @@ fn network_export_table_works() {
 				EthereumNetwork::get(),
 				Junctions::Here,
 				Some((
-					SiblingBridgeHub::get().into(),
+					SiblingBridgeHub::get(),
 					Some(Asset {
 						id: XcmBridgeHubRouterFeeAssetId::get(),
 						fun: Fungible(BridgeHubEthereumBaseFee::get()),

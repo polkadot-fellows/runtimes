@@ -50,7 +50,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -72,7 +72,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -94,7 +94,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -116,7 +116,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -138,7 +138,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -156,11 +156,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				pallet_referenda::TrackInfo {
 					name: "experts",
 					max_deciding: 10,
-					decision_deposit: 1 * QUID,
+					decision_deposit: QUID,
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -178,11 +178,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				pallet_referenda::TrackInfo {
 					name: "senior experts",
 					max_deciding: 10,
-					decision_deposit: 1 * QUID,
+					decision_deposit: QUID,
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -200,11 +200,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				pallet_referenda::TrackInfo {
 					name: "masters",
 					max_deciding: 10,
-					decision_deposit: 1 * QUID,
+					decision_deposit: QUID,
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -222,11 +222,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				pallet_referenda::TrackInfo {
 					name: "senior masters",
 					max_deciding: 10,
-					decision_deposit: 1 * QUID,
+					decision_deposit: QUID,
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -244,11 +244,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				pallet_referenda::TrackInfo {
 					name: "grand masters",
 					max_deciding: 10,
-					decision_deposit: 1 * QUID,
+					decision_deposit: QUID,
 					prepare_period: 30 * MINUTES,
 					decision_period: 7 * DAYS,
 					confirm_period: 30 * MINUTES,
-					min_enactment_period: 1 * MINUTES,
+					min_enactment_period: MINUTES,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),

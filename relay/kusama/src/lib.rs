@@ -407,13 +407,12 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
 		let mut para_heads: Vec<(u32, Vec<u8>)> = Paras::parachains()
 			.into_iter()
-			.filter_map(|id| Paras::para_head(&id).map(|head| (id.into(), head.0)))
+			.filter_map(|id| Paras::para_head(id).map(|head| (id.into(), head.0)))
 			.collect();
 		para_heads.sort_by_key(|k| k.0);
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
 		)
-		.into()
 	}
 }
 
@@ -540,12 +539,12 @@ parameter_types! {
 	// in testing: 1min or half of the session for each
 	pub SignedPhase: u32 = prod_or_fast!(
 		EPOCH_DURATION_IN_SLOTS / 4,
-		(1 * MINUTES).min(EpochDuration::get().saturated_into::<u32>() / 2),
+		MINUTES.min(EpochDuration::get().saturated_into::<u32>() / 2),
 		"KSM_SIGNED_PHASE"
 	);
 	pub UnsignedPhase: u32 = prod_or_fast!(
 		EPOCH_DURATION_IN_SLOTS / 4,
-		(1 * MINUTES).min(EpochDuration::get().saturated_into::<u32>() / 2),
+		MINUTES.min(EpochDuration::get().saturated_into::<u32>() / 2),
 		"KSM_UNSIGNED_PHASE"
 	);
 
@@ -773,7 +772,7 @@ impl pallet_fast_unstake::Config for Runtime {
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 2000 * CENTS;
-	pub const ProposalBondMaximum: Balance = 1 * GRAND;
+	pub const ProposalBondMaximum: Balance = GRAND;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const Burn: Permill = Permill::from_perthousand(2);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
@@ -782,10 +781,10 @@ parameter_types! {
 	// pallet instance (which sits at index 18).
 	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
 
-	pub const TipCountdown: BlockNumber = 1 * DAYS;
+	pub const TipCountdown: BlockNumber = DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 100 * CENTS;
-	pub const DataDepositPerByte: Balance = 1 * CENTS;
+	pub const DataDepositPerByte: Balance = CENTS;
 	pub const MaxApprovals: u32 = 100;
 	pub const MaxAuthorities: u32 = 100_000;
 	pub const MaxKeys: u32 = 10_000;
@@ -2876,7 +2875,7 @@ mod multiplier_tests {
 
 	fn run_with_system_weight<F>(w: Weight, mut assertions: F)
 	where
-		F: FnMut() -> (),
+		F: FnMut(),
 	{
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()

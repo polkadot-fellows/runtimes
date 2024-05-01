@@ -24,7 +24,7 @@ pub mod balances {
 	use sp_runtime::TryRuntimeError;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::fix::balances::migration";
+	const TARGET: &str = "runtime::fix::balances::migration";
 	pub mod v1 {
 		use super::*;
 		use frame_support::pallet_prelude::*;
@@ -72,7 +72,7 @@ pub mod scheduler {
 	use sp_runtime::TryRuntimeError;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::fix::scheduler::migration";
+	const TARGET: &str = "runtime::fix::scheduler::migration";
 
 	pub mod v1 {
 		use super::*;

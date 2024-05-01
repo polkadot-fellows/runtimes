@@ -161,8 +161,7 @@ where
 			DepositAsset {
 				assets: Wild(AllCounted(1)),
 				beneficiary: Junction::AccountId32 { network: None, id: who.clone().into() }
-					.into_location()
-					.into(),
+					.into_location(),
 			},
 			// Poke the deposit to reserve the appropriate amount on the parachain.
 			Transact {
@@ -173,7 +172,7 @@ where
 		]);
 
 		// send
-		let _ = <pallet_xcm::Pallet<Runtime>>::send(
+		<pallet_xcm::Pallet<Runtime>>::send(
 			RawOrigin::Root.into(),
 			Box::new(VersionedLocation::V4(destination)),
 			Box::new(VersionedXcm::V4(program)),

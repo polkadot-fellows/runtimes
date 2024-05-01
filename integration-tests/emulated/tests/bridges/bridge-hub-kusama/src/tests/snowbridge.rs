@@ -224,7 +224,7 @@ fn create_channel() {
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
 	// Fund AH sovereign account on BH so that it can pay execution fees.
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
@@ -379,7 +379,7 @@ fn send_token_from_ethereum_to_penpal() {
 /// a token from Ethereum to AssetHub.
 #[test]
 fn send_token_from_ethereum_to_asset_hub() {
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubKusama::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
@@ -466,7 +466,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 					exchange_rate: FixedU128::from_rational(1, 75),
 					fee_per_gas: gwei(20),
 					rewards: Rewards {
-						local: (1 * UNITS / 100).into(), // 0.01 KSM
+						local: (UNITS / 100), // 0.01 KSM
 						remote: meth(1),
 					},
 					multiplier: FixedU128::from_rational(1, 1),
@@ -537,7 +537,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 		let beneficiary = VersionedLocation::V4(Location::new(
 			0,
-			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }],
+			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
 		));
 
 		let free_balance_before = <AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(
@@ -599,7 +599,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 #[test]
 fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), INITIAL_FUND);
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), INITIAL_FUND);
 
 	BridgeHubKusama::execute_with(|| {
 		type RuntimeEvent = <BridgeHubKusama as Chain>::RuntimeEvent;
@@ -636,7 +636,7 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 #[test]
 fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	// Insufficient fund
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id().into(), 1_000);
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 1_000);
 
 	BridgeHubKusama::execute_with(|| {
 		assert_ok!(<BridgeHubKusama as Chain>::System::set_storage(
