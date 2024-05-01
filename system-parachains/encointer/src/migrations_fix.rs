@@ -73,7 +73,7 @@ pub mod collator_selection_init {
 				let invulnerables_len = pallet_collator_selection::Invulnerables::<T>::get().len();
 				if invulnerables_len > 0 {
 					info!(target: TARGET, "no need to initialize invulnerables");
-					return T::DbWeight::get().reads_writes(0, 0)
+					return T::DbWeight::get().reads_writes(1, 0)
 				}
 				info!(target: TARGET, "initializing the set of invulnerables");
 
