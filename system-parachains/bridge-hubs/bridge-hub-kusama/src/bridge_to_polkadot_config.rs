@@ -44,9 +44,7 @@ use bridge_runtime_common::{
 use frame_support::{parameter_types, traits::PalletInfoAccess};
 use kusama_runtime_constants as constants;
 use sp_runtime::{traits::ConstU32, RuntimeDebug};
-use xcm::{
-	latest::prelude::*,
-};
+use xcm::latest::prelude::*;
 use xcm_builder::BridgeBlobDispatcher;
 
 /// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.

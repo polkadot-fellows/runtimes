@@ -38,23 +38,16 @@ fn main() -> Result<(), String> {
 
 	let supported_chains =
 		HashMap::<_, Box<dyn Fn() -> Result<Box<dyn ChainSpec>, String>>>::from([
-			(
-				"polkadot-dev",
-				Box::new(relay_chain_specs::polkadot_development_config) as Box<_>,
-			),
+			("polkadot-dev", Box::new(relay_chain_specs::polkadot_development_config) as Box<_>),
 			(
 				"polkadot-local",
 				Box::new(relay_chain_specs::polkadot_local_testnet_config) as Box<_>,
 			),
 			("kusama-dev", Box::new(relay_chain_specs::kusama_development_config) as Box<_>),
-			(
-				"kusama-local",
-				Box::new(relay_chain_specs::kusama_local_testnet_config) as Box<_>,
-			),
+			("kusama-local", Box::new(relay_chain_specs::kusama_local_testnet_config) as Box<_>),
 			(
 				"asset-hub-kusama-local",
-				Box::new(system_parachains_specs::asset_hub_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::asset_hub_kusama_local_testnet_config) as Box<_>,
 			),
 			(
 				"asset-hub-polkadot-local",
@@ -73,28 +66,23 @@ fn main() -> Result<(), String> {
 			),
 			(
 				"bridge-hub-kusama-local",
-				Box::new(system_parachains_specs::bridge_hub_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::bridge_hub_kusama_local_testnet_config) as Box<_>,
 			),
 			(
 				"glutton-kusama-local",
-				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
 			),
 			(
 				"encointer-kusama-local",
-				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
 			),
 			(
 				"coretime-kusama-local",
-				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
 			),
 			(
 				"people-kusama-local",
-				Box::new(system_parachains_specs::people_kusama_local_testnet_config)
-					as Box<_>,
+				Box::new(system_parachains_specs::people_kusama_local_testnet_config) as Box<_>,
 			),
 		]);
 
