@@ -334,7 +334,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 			>,
 		>,
 		EitherOf<
-			MapSuccess<SeniorAmbassadors, Replace<ConstU128<{ 1 * GRAND }>>>,
+			MapSuccess<SeniorAmbassadors, Replace<ConstU128<{ 100 * UNITS }>>>,
 			MapSuccess<HeadAmbassadors, Replace<ConstU128<{ 10 * GRAND }>>>,
 		>,
 	>;
