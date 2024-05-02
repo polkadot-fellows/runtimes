@@ -144,6 +144,7 @@ pub mod scheduler {
 			StorageMap<Pallet<T>, Twox64Concat, TaskName, TaskAddress<BlockNumberFor<T>>>;
 
 		/// Migrate the scheduler pallet from V0 to V4 by brute-force emptying the agenda.
+		#[allow(dead_code)]
 		pub struct MigrateToV4<T>(sp_std::marker::PhantomData<T>);
 
 		impl<T: Config> OnRuntimeUpgrade for MigrateToV4<T> {
