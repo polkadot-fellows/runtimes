@@ -107,7 +107,7 @@ jobs:
           ls -lrt $RUNTIME_BLOB_PATH
           # TODO: get `frame-omni-bencher` somehow - GHA? or download released binary? or whatever?
           # TODO: we just try to build in-place
-          git clone https://github.com/paritytech/polkadot-sdk
+          git clone https://github.com/paritytech/polkadot-sdk --branch master --depth 1
           git branch
           cd ./polkadot-sdk
           cargo build --locked --release -p frame-omni-bencher
