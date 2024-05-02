@@ -180,6 +180,7 @@ fn testnet_accounts() -> Vec<AccountId> {
 	]
 }
 
+#[allow(clippy::type_complexity)]
 pub fn polkadot_testnet_genesis(
 	initial_authorities: Vec<(
 		AccountId,
@@ -242,6 +243,7 @@ pub fn polkadot_testnet_genesis(
 	})
 }
 
+#[allow(clippy::type_complexity)]
 pub fn kusama_testnet_genesis(
 	initial_authorities: Vec<(
 		AccountId,
