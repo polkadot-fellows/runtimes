@@ -30,7 +30,8 @@ use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, MapSuccess, OriginTrait,
+		PalletInfoAccess, TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -39,7 +40,8 @@ pub use origins::{
 	pallet_origins as pallet_fellowship_origins, Architects, EnsureCanPromoteTo, EnsureCanRetainAt,
 	EnsureFellowship, Fellows, Masters, Members, ToVoice,
 };
-use pallet_ranked_collective::EnsureOfRank;
+use pallet_ranked_collective::{EnsureOfRank, EnsureRankedMember};
+use pallet_referenda::PalletsOriginOf;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
@@ -82,6 +84,31 @@ impl pallet_fellowship_origins::Config for Runtime {}
 
 pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 
+pub struct EnsureRetainAt;
+
+impl EnsureOriginWithArg<RuntimeOrigin, PalletsOriginOf<Runtime>> for EnsureRetainAt {
+	type Success = AccountId;
+
+	fn try_origin(
+		o: RuntimeOrigin,
+		referenda_origin: &PalletsOriginOf<Runtime>,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		let (account, rank) =
+			<EnsureRankedMember::<Runtime, FellowshipCollectiveInstance, 0> as EnsureOrigin<_>>::try_origin(o.clone())?;
+
+		let retain_rank = <EnsureCanRetainAt as EnsureOrigin<RuntimeOrigin>>::try_origin(
+			referenda_origin.clone().into(),
+		)
+		.map_err(|_| o.clone())?;
+
+		if retain_rank == rank {
+			Ok(account)
+		} else {
+			Err(o)
+		}
+	}
+}
+
 impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type WeightInfo = weights::pallet_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
@@ -91,15 +118,18 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	// Fellows can submit proposals.
 	type SubmitOrigin = EitherOf<
 		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
-		MapSuccess<
-			TryWithMorphedArg<
-				RuntimeOrigin,
-				<RuntimeOrigin as OriginTrait>::PalletsOrigin,
-				ToVoice,
-				EnsureOfRank<Runtime, FellowshipCollectiveInstance>,
-				(AccountId, u16),
+		EitherOf<
+			MapSuccess<
+				TryWithMorphedArg<
+					RuntimeOrigin,
+					<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+					ToVoice,
+					EnsureOfRank<Runtime, FellowshipCollectiveInstance>,
+					(AccountId, u16),
+				>,
+				TakeFirst,
 			>,
-			TakeFirst,
+			EnsureRetainAt,
 		>,
 	>;
 	type CancelOrigin = Architects;
