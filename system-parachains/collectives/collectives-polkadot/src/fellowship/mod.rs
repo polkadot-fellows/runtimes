@@ -84,6 +84,10 @@ impl pallet_fellowship_origins::Config for Runtime {}
 
 pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 
+/// Special origin check for the `FellowshipReferenda`.
+///
+/// This checks that the sending account is a member of the fellowship that wants to submit a
+/// proposal to retain its rank.
 pub struct EnsureRetainAt;
 
 impl EnsureOriginWithArg<RuntimeOrigin, PalletsOriginOf<Runtime>> for EnsureRetainAt {
@@ -102,6 +106,35 @@ impl EnsureOriginWithArg<RuntimeOrigin, PalletsOriginOf<Runtime>> for EnsureReta
 		.map_err(|_| o.clone())?;
 
 		if retain_rank == rank {
+			Ok(account)
+		} else {
+			Err(o)
+		}
+	}
+}
+
+/// Special origin check for the `FellowshipReferenda`.
+///
+/// This checks that the sending account is a member of the fellowship that wants to submit a
+/// proposal to get promoted to a new rank.
+pub struct EnsurePromoteTo;
+
+impl EnsureOriginWithArg<RuntimeOrigin, PalletsOriginOf<Runtime>> for EnsurePromoteTo {
+	type Success = AccountId;
+
+	fn try_origin(
+		o: RuntimeOrigin,
+		referenda_origin: &PalletsOriginOf<Runtime>,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		let (account, rank) =
+			<EnsureRankedMember::<Runtime, FellowshipCollectiveInstance, 0> as EnsureOrigin<_>>::try_origin(o.clone())?;
+
+		let promote_to_rank = <EnsureCanPromoteTo as EnsureOrigin<RuntimeOrigin>>::try_origin(
+			referenda_origin.clone().into(),
+		)
+		.map_err(|_| o.clone())?;
+
+		if promote_to_rank.saturating_sub(1) == rank {
 			Ok(account)
 		} else {
 			Err(o)
@@ -129,7 +162,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 				>,
 				TakeFirst,
 			>,
-			EnsureRetainAt,
+			EitherOf<EnsureRetainAt, EnsureCanPromoteTo>,
 		>,
 	>;
 	type CancelOrigin = Architects;
