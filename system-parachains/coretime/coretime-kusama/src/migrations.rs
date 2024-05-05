@@ -31,7 +31,6 @@ pub mod bootstrapping {
 	};
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
-	#[cfg(feature = "try-runtime")]
 	use sp_std::vec::Vec;
 
 	/// The log target.
