@@ -7318,15 +7318,16 @@ dependencies = [
 
 [[package]]
 name = "pallet-collator-selection"
-version = "10.0.0"
+version = "10.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59b5ad46601c613396e92292a24c5b5d76e904c456ece9deb10913f6ea2e2999"
+checksum = "49d1157d9a4b7966040158a7b4f1fb29f0cefa8deb6eb9b3452df7ce4161a31c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
+ "pallet-balances",
  "pallet-session",
  "parity-scale-codec",
  "rand",
