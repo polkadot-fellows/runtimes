@@ -144,15 +144,6 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
-pub struct SafeCallFilter;
-impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(_call: &RuntimeCall) -> bool {
-		// This is safe, as we prevent arbitrary xcm-transact executions.
-		// For rationale, see:https://github.com/paritytech/polkadot/blob/19fdd197aff085f7f66e54942999fd536e7df475/runtime/kusama/src/xcm_config.rs#L171
-		true
-	}
-}
-
 parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub const KsmRelayLocation: Location = Location::parent();
@@ -188,7 +179,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = SafeCallFilter;
+	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
