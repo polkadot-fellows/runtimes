@@ -26,7 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Get the GitHub handle of the fellows
-        uses: paritytech/get-fellows-action@v1.1.1
+        uses: paritytech/get-fellows-action@v1.1.2
         id: fellows
         # Require new reviews when the author is pushing and he is not a fellow
       - name: Fail when author pushes new code
@@ -44,7 +44,7 @@ jobs:
 
           # We request them to review again
           echo $REVIEWERS | gh api --method POST repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers --input -
-          
+
           echo "::error::Project needs to be reviewed again"
           exit 1
         env:
@@ -52,7 +52,7 @@ jobs:
       - name: Comment requirements
         # If the previous step failed and github-actions hasn't commented yet we comment instructions
         if: failure() && !contains(fromJson(steps.comments.outputs.bodies), 'Review required! Latest push from author must always be reviewed')
-        run: |          
+        run: |
           gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body "Review required! Latest push from author must always be reviewed"
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,7 +64,7 @@ jobs:
           echo "Saving PR number: $PR_NUMBER"
           mkdir -p ./pr
           echo $PR_NUMBER > ./pr/pr_number
-      - uses: actions/upload-artifact@v4.3.1
+      - uses: actions/upload-artifact@v4
         name: Save PR number
         with:
           name: pr_number
