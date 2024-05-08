@@ -34,7 +34,7 @@ use frame_support::{
 		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Everything, InstanceFilter,
 		TransformOrigin,
 	},
-	weights::{ConstantMultiplier, Weight},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight},
 	PalletId,
 };
 use frame_system::{
@@ -45,8 +45,7 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	impls::DealWithFees,
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
-	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use polkadot_runtime_common::{identity_migrator, BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
@@ -72,6 +71,33 @@ use xcm_config::{
 	FellowshipLocation, GovernanceLocation, PriceForSiblingParachainDelivery, XcmConfig,
 	XcmOriginToTransactDispatchOrigin,
 };
+
+/// This determines the average expected block time that we are targeting. Blocks will be
+/// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
+/// `pallet_timestamp` which is in turn picked up by `pallet_aura` to implement `fn
+/// slot_duration()`.
+///
+/// Change this to adjust the block time.
+pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+
+// Time is measured by number of blocks.
+pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+pub const HOURS: BlockNumber = MINUTES * 60;
+pub const DAYS: BlockNumber = HOURS * 24;
+
+/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
+/// used to limit the maximal weight of a single extrinsic.
+pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
+/// Operational  extrinsics.
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+
+/// We allow for 2 seconds of compute with a 6 second average block time.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -188,7 +214,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -334,7 +360,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
