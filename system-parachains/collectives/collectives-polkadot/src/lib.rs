@@ -42,9 +42,13 @@ pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
 
+// Secretary Configuration
+pub mod secretary;
+
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
+use secretary::pallet_secretary_origins;
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use sp_api::impl_runtime_apis;
@@ -295,6 +299,8 @@ pub enum ProxyType {
 	Alliance,
 	/// Fellowship proxy. Allows calls related to the Fellowship.
 	Fellowship,
+	/// Secretary proxy. Allows calls related to the Secretary collective
+	Secretary
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -331,6 +337,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::FellowshipReferenda { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
+			),
+			ProxyType::Secretary => matches!(
+				c,
+				RuntimeCall::SecretaryCollective { .. } |
+				RuntimeCall::SecretaryReferenda { .. } |
+				RuntimeCall::Utility { .. } |
+				RuntimeCall::Multisig { .. }
 			),
 		}
 	}
@@ -680,6 +693,19 @@ construct_runtime!(
 		FellowshipSalary: pallet_salary::<Instance1> = 64,
 		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
+
+		// The Secretary Collective
+		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance2;
+		SecretaryCollective: pallet_ranked_collective::<Instance2> = 70,
+		//pub type SecretaryReferandaInstance = pallet_referanda::Instance2; 
+		SecretaryReferenda: pallet_referenda::<Instance2> = 71,
+		SecretaryOrigins: pallet_secretary_origins = 72,
+		// pub type SecretaryCoreInstance = pallet_core_fellowship::Instance2;
+		SecretaryCore: pallet_core_fellowship::<Instance2> = 73,
+		// pub type SecretarySalaryInstance = pallet_salary::Instance2;
+		SecretarySalary: pallet_salary::<Instance2> = 74,
+		// pub type SecretaryTreasuryInstance = pallet_treasury::Instance2;
+		SecretaryTreasury: pallet_treasury::<Instance2> = 75,
 	}
 );
 
@@ -754,6 +780,11 @@ mod benches {
 		[pallet_core_fellowship, FellowshipCore]
 		[pallet_salary, FellowshipSalary]
 		[pallet_treasury, FellowshipTreasury]
+		[pallet_referenda, SecretaryReferenda]
+		[pallet_ranked_cllective, SecretaryCollective]
+		[pallet_core_fellowship, SecretaryCore]
+		[pallet_salary, SecretarySalary]
+		[pallet_treasury, SecretaryTreasury]
 		[pallet_asset_rate, AssetRate]
 	);
 }
