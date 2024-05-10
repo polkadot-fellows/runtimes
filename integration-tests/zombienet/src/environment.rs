@@ -18,7 +18,7 @@ pub enum Provider {
     Docker,
 }
 
-// Use `kubernetes` as default provider
+// Use `docker` as default provider
 impl From<String> for Provider {
 	fn from(value: String) -> Self {
         match value.to_ascii_lowercase().as_ref() {
@@ -41,8 +41,8 @@ pub fn get_provider_from_env() -> Provider {
 
 type SpawnResult = Result<Network<LocalFileSystem>, OrchestratorError>;
 pub fn get_spawn_fn() -> fn(NetworkConfig) -> Pin<Box<dyn Future<Output = SpawnResult> + Send>> {
-
 	let provider = get_provider_from_env();
+
 	match provider {
     	Provider::Native => zombienet_sdk::NetworkConfig::spawn_native,
     	Provider::K8s => zombienet_sdk::NetworkConfig::spawn_k8s,
