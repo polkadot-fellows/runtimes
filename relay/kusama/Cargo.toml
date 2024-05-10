@@ -21,7 +21,7 @@ kusama-runtime-constants = { package = "kusama-runtime-constants", path = "const
 sp-api = { workspace = true }
 inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
 offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
-sp-std = { package = "sp-std", workspace = true }
+sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-genesis-builder = { workspace = true }
