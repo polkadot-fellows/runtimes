@@ -19,8 +19,8 @@ use crate::{
 	relay_chain_specs::{KusamaChainSpec, PolkadotChainSpec},
 	system_parachains_specs::{
 		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
-		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, EncointerKusamaChainSpec,
-		GluttonKusamaChainSpec, PeopleKusamaChainSpec,
+		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, CoretimeKusamaChainSpec,
+		EncointerKusamaChainSpec, GluttonKusamaChainSpec, PeopleKusamaChainSpec,
 	},
 	ChainSpec,
 };
@@ -92,6 +92,8 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 			Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("people-kusama") =>
 			Ok(Box::new(PeopleKusamaChainSpec::from_json_file(path)?)),
+		x if x.starts_with("coretime-kusama") =>
+			Ok(Box::new(CoretimeKusamaChainSpec::from_json_file(path)?)),
 		_ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }
