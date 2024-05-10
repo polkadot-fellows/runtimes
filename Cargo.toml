@@ -243,6 +243,10 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 ]
 
+exclude = [
+	"integration-tests/zombienet",
+]
+
 [profile.release]
 # Polkadot runtime requires unwinding.
 panic = "unwind"
