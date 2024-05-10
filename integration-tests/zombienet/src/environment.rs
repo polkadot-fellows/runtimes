@@ -4,7 +4,7 @@ use std::{env, future::Future, pin::Pin};
 use zombienet_sdk::{LocalFileSystem, Network, NetworkConfig, NetworkConfigExt, OrchestratorError};
 
 const DEFAULT_POLKADOT_IMAGE: &str = "docker.io/parity/polkadot:latest";
-const DEFAULT_CUMULUS_IMAGE: &str = "docker.io/paritypr/polkadot-parachain-debug:master-12eb285d";
+const DEFAULT_CUMULUS_IMAGE: &str = "docker.io/parity/polkadot-parachain:latest";
 
 #[derive(Debug, Default)]
 pub struct Images {
