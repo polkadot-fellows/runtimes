@@ -17,6 +17,3 @@ parity-scale-codec = { version = "3.6.9", features = ["derive", "parity-scale-co
 anyhow = "1.0.82"
 
 toml_datetime = { version = "=0.6.5" }
-
-#[patch."https://github.com/paritytech/zombienet-sdk"]
-#zombienet-sdk = {  path = "../../../../zombienet-sdk/crates/sdk" }

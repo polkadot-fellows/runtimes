@@ -4,9 +4,6 @@ use anyhow::anyhow;
 
 pub mod environment;
 
-// #[subxt::subxt(runtime_metadata_path = "artifacts/polkadot_metadata_small.scale")]
-// pub mod polkadot {}
-
 pub type Error = Box<dyn std::error::Error>;
 
 const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
