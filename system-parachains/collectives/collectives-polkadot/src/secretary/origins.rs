@@ -41,7 +41,6 @@ pub mod pallet_origins {
 		fn try_origin(o: O) -> Result<Self::Success, O> {
 			o.into().and_then(|o| match o {
 				Origin::Secretary => Ok(()),
-				_ => Err(O::from(o)),
 			})
 		}
 
