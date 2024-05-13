@@ -33,14 +33,12 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
-pub use origins::{pallet_origins as pallet_secretary_origins, EnsureSecretaryVoice};
+pub use origins::{pallet_origins as pallet_secretary_origins, Secretary};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{
-	currency::GRAND, system_parachain, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX,
-};
+use polkadot_runtime_constants::{currency::GRAND, system_parachain, time::HOURS};
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::{
 	traits::{ConstU16, ConvertToValue, Identity, IdentityLookup, Replace},
@@ -68,11 +66,16 @@ type ApproveOrigin = EitherOf<
 	Fellows,
 >;
 
+type OpenGovOrSecretary = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EitherOfDiverse<Secretary, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
+>;
+
 impl pallet_secretary_origins::Config for Runtime {}
 
-pub type SecretaryReferendaInstance = pallet_referenda::Instance2;
+pub type SecretaryReferendaInstance = pallet_referenda::Instance3;
 
-pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance2;
+pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 
 impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 	type WeightInfo = weights::pallet_referenda::WeightInfo<Runtime>;
@@ -86,10 +89,16 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 		SecretaryCollectiveInstance,
 		{ ranks::SECRETARY },
 	>;
-	// Secretary collective or root can cancel proposals.
-	type CancelOrigin = EitherOf<EnsureRoot<AccountId>, EnsureSecretaryVoice>;
-	// Secretary collective or root can kill proposals.
-	type KillOrigin = EitherOf<EnsureRoot<AccountId>, EnsureSecretaryVoice>;
+	// Referandum can be cancled by any of:
+	// - Root;
+	// - the FellowshipAdmiin origin(i.e token holder referendum)
+	// - a vote by a member of the Secretary collective;
+	type CancelOrigin = OpenGovOrSecretary;
+	// Referandum can be killed by any of:
+	// - Root;
+	// the FellowshipAdmin oriigin (i.e. token holder referandum);
+	// - a vote by a member of the Secretary collective;
+	type KillOrigin = OpenGovOrSecretary;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, SecretaryCollectiveInstance>;
@@ -106,7 +115,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
+	// Promotions and inductions should be done through the [`crate::SecretaryCore`] pallet instance instance.
 	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
 	#[cfg(feature = "runtime-benchmarks")]
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
@@ -129,13 +138,13 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
-	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
+	type MemberSwappedHandler = (crate::SecretaryCore, crate::SecretarySalary);
 	type VoteWeight = pallet_ranked_collective::Geometric;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::SecretaryCore, crate::SecretarySalary);
 }
 
-pub type SecretaryCoreInstance = pallet_core_fellowship::Instance2;
+pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
 
 impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	type WeightInfo = weights::pallet_core_fellowship::WeightInfo<Runtime>;
@@ -145,26 +154,26 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	// Parameters are set by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote among all Fellows. 
+	// - a Fellow;
 	type ParamsOrigin = ParamsOrigin;
 	// Induction (creating a candidate) is by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single Fellow;
+	// - a Fellow;
 	type InductOrigin = ParamsOrigin;
 	// Approval (rank-retention) of a Member's current rank is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single fellow
+	// - a Fellow;
 	type ApproveOrigin = ApproveOrigin;
 	// Promotion is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single fellow
+	// - a Fellow;
 	type PromoteOrigin = ApproveOrigin;
 
 	type EvidenceSize = ConstU32<65536>;
 }
 
-pub type SecretarySalaryInstance = pallet_salary::Instance2;
+pub type SecretarySalaryInstance = pallet_salary::Instance3;
 
 use xcm::prelude::*;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
@@ -176,14 +185,14 @@ parameter_types! {
 		location: AssetHub::get(),
 		asset_id: AssetHubUsdtId::get(),
 	};
-	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
+	// The interior location on AssetHub for the paying account. This is the Secretary Salary
 	// pallet instance. This sovereign account will need funding.
 	pub Interior: InteriorLocation = PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
 }
 
 const USDT_UNITS: u128 = 1_000_000;
 
-/// [`PayOverXcm`] setup to pay the Fellowship salary on the AssetHub in USDT.
+/// [`PayOverXcm`] setup to pay the Secretary salary on the AssetHub in USDT.
 pub type SecretarySalaryPaymaster = PayOverXcm<
 	Interior,
 	crate::xcm_config::XcmRouter,
@@ -231,7 +240,7 @@ parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
 	pub const MaxBalance: Balance = Balance::max_value();
-	// The asset's interior location for the paying account. This is the Fellowship Treasury
+	// The asset's interior location for the paying account. This is the Secretary Treasury
 	// pallet instance.
 	pub SecretaryTreasuryInteriorLocation: InteriorLocation =
 		PalletInstance(<crate::SecretaryTreasury as PalletInfoAccess>::index() as u8).into();
@@ -249,7 +258,7 @@ pub type SecretaryTreasuryPaymaster = PayOverXcm<
 	VersionedLocationConverter,
 >;
 
-pub type SecretaryTreasuryInstance = pallet_treasury::Instance2;
+pub type SecretaryTreasuryInstance = pallet_treasury::Instance3;
 
 impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	// The creation of proposals via the treasury pallet is deprecated and should not be utilized.

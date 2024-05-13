@@ -35,13 +35,13 @@ pub mod pallet_origins {
 	}
 
 	/// Implementation of the [EnsureOrigin] trait for the [Origin::Secretary] origin.
-	pub struct EnsureSecretaryVoice;
-	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for EnsureSecretaryVoice {
+	pub struct Secretary;
+	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for Secretary {
 		type Success = ();
 		fn try_origin(o: O) -> Result<Self::Success, O> {
 			o.into().and_then(|o| match o {
 				Origin::Secretary => Ok(()),
-				r => Err(O::from(r)),
+				_ => Err(O::from(o)),
 			})
 		}
 
@@ -49,5 +49,5 @@ pub mod pallet_origins {
 		fn try_successful_origin() -> Result<O, ()> {
 			Ok(O::from(Origin::Secretary))
 		}
-	} 
+	}
 }

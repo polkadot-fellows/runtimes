@@ -341,9 +341,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
-				RuntimeCall::SecretaryReferenda { .. } |
-				RuntimeCall::Utility { .. } |
-				RuntimeCall::Multisig { .. }
+					RuntimeCall::SecretaryReferenda { .. } |
+					RuntimeCall::SecretaryCore { .. } |
+					RuntimeCall::SecretarySalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
 			),
 		}
 	}
@@ -695,17 +697,17 @@ construct_runtime!(
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
 
 		// The Secretary Collective
-		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance2;
-		SecretaryCollective: pallet_ranked_collective::<Instance2> = 70,
-		//pub type SecretaryReferandaInstance = pallet_referanda::Instance2; 
-		SecretaryReferenda: pallet_referenda::<Instance2> = 71,
-		SecretaryOrigins: pallet_secretary_origins = 72,
-		// pub type SecretaryCoreInstance = pallet_core_fellowship::Instance2;
-		SecretaryCore: pallet_core_fellowship::<Instance2> = 73,
-		// pub type SecretarySalaryInstance = pallet_salary::Instance2;
-		SecretarySalary: pallet_salary::<Instance2> = 74,
-		// pub type SecretaryTreasuryInstance = pallet_treasury::Instance2;
-		SecretaryTreasury: pallet_treasury::<Instance2> = 75,
+		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
+		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
+		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3; 
+		SecretaryReferenda: pallet_referenda::<Instance3> = 81,
+		SecretaryOrigins: pallet_secretary_origins = 82,
+		// pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
+		SecretaryCore: pallet_core_fellowship::<Instance3> = 83,
+		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
+		SecretarySalary: pallet_salary::<Instance3> = 84,
+		// pub type SecretaryTreasuryInstance = pallet_treasury::Instance3;
+		SecretaryTreasury: pallet_treasury::<Instance3> = 85,
 	}
 );
 
@@ -780,12 +782,12 @@ mod benches {
 		[pallet_core_fellowship, FellowshipCore]
 		[pallet_salary, FellowshipSalary]
 		[pallet_treasury, FellowshipTreasury]
+		[pallet_asset_rate, AssetRate]
 		[pallet_referenda, SecretaryReferenda]
 		[pallet_ranked_cllective, SecretaryCollective]
 		[pallet_core_fellowship, SecretaryCore]
 		[pallet_salary, SecretarySalary]
 		[pallet_treasury, SecretaryTreasury]
-		[pallet_asset_rate, AssetRate]
 	);
 }
 
