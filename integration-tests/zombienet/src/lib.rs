@@ -48,23 +48,23 @@ pub async fn wait_subxt_client(
 ) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
 	log::trace!("trying to connect to: {}", node.ws_uri());
 	loop {
-			match node.client::<PolkadotConfig>().await {
-				Ok(cli) => {
-					log::trace!("returning client for: {}", node.ws_uri());
-					return Ok(cli);
-				},
-				Err(e) => {
-					log::trace!("{e:?}");
-					if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(ref inner)) = e {
-						log::trace!("inner: {inner}");
-						if inner.to_string().contains("i/o error") {
-							// The node is not ready to accept connections yet
-							tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-							continue;
-						}
+		match node.client::<PolkadotConfig>().await {
+			Ok(cli) => {
+				log::trace!("returning client for: {}", node.ws_uri());
+				return Ok(cli);
+			},
+			Err(e) => {
+				log::trace!("{e:?}");
+				if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(ref inner)) = e {
+					log::trace!("inner: {inner}");
+					if inner.to_string().contains("i/o error") {
+						// The node is not ready to accept connections yet
+						tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+						continue;
 					}
-					return Err(anyhow!("Cannot connect to node : {e:?}"));
-				},
-			};
+				}
+				return Err(anyhow!("Cannot connect to node : {e:?}"));
+			},
+		};
 	}
 }
