@@ -8,7 +8,6 @@ subxt = { version = "0.35.0", default-features = false, features = ["native"] }
 tokio = "1.35.0"
 tracing-subscriber = "0.3.18"
 zombienet-sdk = { git = "https://github.com/paritytech/zombienet-sdk", tag = "v0.2.1" }
-log = { version = "0.4" }
+log = "0.4"
 anyhow = "1.0.82"
-
-toml_datetime = { version = "=0.6.5" }
+toml_datetime = "=0.6.5"
