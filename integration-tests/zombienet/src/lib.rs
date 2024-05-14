@@ -6,7 +6,14 @@ pub mod environment;
 
 pub type Error = Box<dyn std::error::Error>;
 
+// Chain generator command template
 const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
+
+// Relaychain nodes
+const ALICE: &str = "alice";
+const BOB: &str = "bob";
+// Collator
+const COLLATOR: &str = "collator";
 
 pub fn small_network() -> Result<NetworkConfig, Error> {
 	let images = environment::get_images_from_env();
@@ -17,12 +24,12 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 				.with_default_image(images.polkadot.as_str())
 				.with_chain_spec_command(CMD_TPL)
 				.chain_spec_command_is_local(true)
-				.with_node(|node| node.with_name("alice"))
-				.with_node(|node| node.with_name("bob"))
+				.with_node(|node| node.with_name(ALICE))
+				.with_node(|node| node.with_name(BOB))
 		})
 		.with_parachain(|p| {
 			p.with_id(2000).cumulus_based(true).with_collator(|n| {
-				n.with_name("collator")
+				n.with_name(COLLATOR)
 					.with_command("polkadot-parachain")
 					.with_image(images.cumulus.as_str())
 			})
@@ -38,29 +45,26 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 
 pub async fn wait_subxt_client(
 	node: &NetworkNode,
-) -> Result<subxt::OnlineClient<PolkadotConfig>, Error> {
-	log::debug!("trying to connect to: {}", node.ws_uri());
+) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	log::trace!("trying to connect to: {}", node.ws_uri());
 	loop {
-		let res: Result<OnlineClient<PolkadotConfig>, Error> =
-			match node.client::<subxt::PolkadotConfig>().await {
+			match node.client::<PolkadotConfig>().await {
 				Ok(cli) => {
-					break Ok(cli);
+					log::trace!("returning client for: {}", node.ws_uri());
+					return Ok(cli);
 				},
 				Err(e) => {
-					let cause = e.to_string();
-					log::trace!("{:?}", e);
-					if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(inner)) = e {
-						log::trace!("inner: {}", inner.to_string());
+					log::trace!("{e:?}");
+					if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(ref inner)) = e {
+						log::trace!("inner: {inner}");
 						if inner.to_string().contains("i/o error") {
 							// The node is not ready to accept connections yet
 							tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 							continue;
 						}
 					}
-					Err(anyhow!("Cannot connect to node : {:?}", cause))?
+					return Err(anyhow!("Cannot connect to node : {e:?}"));
 				},
 			};
-
-		return res;
 	}
 }
