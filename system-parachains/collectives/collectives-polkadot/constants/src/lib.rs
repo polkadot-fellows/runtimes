@@ -21,3 +21,9 @@ pub const FELLOWSHIP_SALARY_PALLET_INDEX: u8 = 64;
 
 /// Polkadot Collectives Treasury pallet instance.
 pub const FELLOWSHIP_TREASURY_PALLET_INDEX: u8 = 65;
+
+/// Polkadot Ambassador Salary pallet instance.
+pub const SECRETARY_SALARY_PALLET_INDEX: u8 = 84;
+
+/// Polkadot Ambassador Treasury pallet instance.
+pub const SECRETARY_TREASURY_PALLET_INDEX: u8 = 85;
