@@ -24,7 +24,7 @@ use integration_tests_helpers::{
 use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
 
 #[test]
-fn teleport_from_relay_to_relay() {
+fn teleport_from_and_to_relay() {
 	let amount = POLKADOT_ED * 10;
 	let native_asset: Assets = (Here, amount).into();
 
@@ -44,7 +44,7 @@ fn teleport_from_relay_to_relay() {
 }
 
 #[test]
-fn teleport_to_asset_hub_from_collectives() {
+fn teleport_from_collectives_to_asset_hub() {
 	let amount = ASSET_HUB_POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
@@ -57,7 +57,7 @@ fn teleport_to_asset_hub_from_collectives() {
 }
 
 #[test]
-fn teleport_to_collectives_from_asset_hub() {
+fn teleport_from_asset_hub_to_collectives() {
 	let amount = COLLECTIVES_POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
