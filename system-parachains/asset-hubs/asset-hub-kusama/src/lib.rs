@@ -1019,6 +1019,7 @@ parameter_types! {
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
+	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
