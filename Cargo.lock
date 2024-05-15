@@ -8426,9 +8426,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "8.0.4"
+version = "8.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c13f5c598737e84294880333170d1df3868a11ad7ee79d0b1d1af37365e1c277"
+checksum = "ba9138b04168b07b1aff4a2079f5514753c31dddba40e5fb471b9cda7da27ad6"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -14395,9 +14395,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "8.0.1"
+version = "8.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a638f4c8735cc04b5c93920a1f59e679f48b131315a07d146798e0decebf7720"
+checksum = "74b5c5f2a1d610c5e20e5fae2680c9a28380f305afafeed62f341bfbce57b79a"
 dependencies = [
  "environmental",
  "frame-benchmarking",
