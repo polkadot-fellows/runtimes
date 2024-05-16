@@ -6,17 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
-- Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
-- Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
-- Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
+### Changed
+
 - Kusama chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#261](https://github.com/polkadot-fellows/runtimes/pull/261))
 - Allow everything through XCM SafeCallFilter ([polkadot-fellows/runtimes#285](https://github.com/polkadot-fellows/runtimes/pull/285))
 - Disable Coretime credit purchasing until we have the credit system implemented ([polkadot-fellows/runtimes#312](https://github.com/polkadot-fellows/runtimes/pull/312))
 
+### Added
+
+- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
+- Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
+
 ### Removed
 
 - Remove one-shot migrations from Kusama Coretime ([polkadot-fellows/runtimes#300](https://github.com/polkadot-fellows/runtimes/pull/300))
+- Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+
+### Fixed
+
+- Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
+- Safeguard pallet-balances against consumer ref underflow ([polkadot-fellows/runtimes#309](https://github.com/polkadot-fellows/runtimes/pull/309))
 
 ## [1.2.3] 29.04.2024
 
