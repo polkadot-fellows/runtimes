@@ -140,7 +140,6 @@ paste = { version = "1.0.14" }
 penpal-runtime = { version = "0.15.1" }
 polkadot-core-primitives = { version = "8.0.0", default-features = false }
 polkadot-parachain-primitives = { version = "7.0.0", default-features = false }
-polkadot-primitives = { version = "8.0.1", default-features = false }
 polkadot-runtime-common = { version = "8.0.1", default-features = false }
 polkadot-runtime-parachains = { version = "8.0.1", default-features = false }
 primitive-types = { version = "0.12.2", default-features = false }
@@ -197,6 +196,7 @@ substrate-wasm-builder = { version = "18.0.0" }
 tokio = { version = "1.36.0" }
 xcm-emulator = { version = "0.6.0" }
 authority-discovery-primitives = { version = "27.0.0", default-features = false, package = "sp-authority-discovery" }
+polkadot-primitives = { version = "8.0.1", default-features = false }
 
 [workspace]
 resolver = "2"

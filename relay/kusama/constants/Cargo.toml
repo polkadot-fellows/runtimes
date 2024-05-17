@@ -10,7 +10,7 @@ license.workspace = true
 smallvec = { workspace = true }
 
 frame-support = { workspace = true }
-primitives = { package = "polkadot-primitives", default-features = false , version = "8.0.1" }
+polkadot-primitives = { workspace = true }
 runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "8.0.1" }
 sp-runtime = { workspace = true }
 sp-weights = { workspace = true }
@@ -22,7 +22,7 @@ xcm-builder = { package = "staging-xcm-builder", default-features = false , vers
 default = [ "std" ]
 std = [
 	"frame-support/std",
-	"primitives/std",
+	"polkadot-primitives/std",
 	"runtime-common/std",
 	"sp-core/std",
 	"sp-runtime/std",
