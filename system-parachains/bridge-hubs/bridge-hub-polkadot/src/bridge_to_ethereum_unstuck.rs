@@ -20,13 +20,17 @@ use crate::{
 };
 use codec::Decode;
 use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
-use snowbridge_pallet_ethereum_client::{CurrentSyncCommittee, NextSyncCommittee, InitialCheckpointRoot,
-                                        LatestExecutionState, types::FinalizedBeaconStateBuffer, LatestFinalizedBlockRoot};
 use snowbridge_core::RingBufferMap;
+use snowbridge_pallet_ethereum_client::{
+    CurrentSyncCommittee, NextSyncCommittee, InitialCheckpointRoot,
+    LatestExecutionState, types::FinalizedBeaconStateBuffer, LatestFinalizedBlockRoot,
+    types::{
+        CheckpointUpdate, SyncCommittee, SyncCommitteePrepared
+    },
+};
 
 #[cfg(test)]
 use frame_support::assert_ok;
-
 #[cfg(test)]
 use snowbridge_beacon_primitives::BlsError;
 
@@ -55,14 +59,18 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
 
         log::info!(target: LOG_TARGET, "Updating beacon checkpoint set to unstuck bridge.");
 
-        let checkpoint = checkpoint();
-        CurrentSyncCommittee::<Runtime>::set(sync_committee_keys(checkpoint.current_sync_committee));
+        let checkpoint_update = checkpoint_update();
+        CurrentSyncCommittee::<Runtime>::set(sync_committee_keys(checkpoint_update.current_sync_committee));
         NextSyncCommittee::<Runtime>::kill();
         InitialCheckpointRoot::<Runtime>::set(NEW_CHECKPOINT_HEADER_ROOT.into());
         LatestExecutionState::<Runtime>::kill();
         FinalizedBeaconStateBuffer::<Runtime>::insert(
             NEW_CHECKPOINT_HEADER_ROOT.into(),
-            snowbridge_beacon_primitives::CompactBeaconState { slot: checkpoint.header.slot, block_roots_root: checkpoint.block_roots_root },
+            snowbridge_beacon_primitives::CompactBeaconState {
+                slot: checkpoint_update.header.slot,
+                block_roots_root:
+                checkpoint_update.block_roots_root
+            },
         );
         LatestFinalizedBlockRoot::<Runtime>::set(NEW_CHECKPOINT_HEADER_ROOT.into());
 
@@ -90,12 +98,12 @@ fn is_bridge_stuck() -> bool {
     LatestFinalizedBlockRoot::<Runtime>::get() == LAST_IMPORTED_BEACON_HEADER.into()
 }
 
-fn checkpoint() -> snowbridge_pallet_ethereum_client::types::CheckpointUpdate {
-    snowbridge_pallet_ethereum_client::types::CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]).expect("checked by tests; qed")
+fn checkpoint_update() -> CheckpointUpdate {
+    CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]).expect("checked by tests; qed")
 }
 
-fn sync_committee_keys(sync_committee: snowbridge_pallet_ethereum_client::types::SyncCommittee) -> snowbridge_pallet_ethereum_client::types::SyncCommitteePrepared {
-    let prepared: snowbridge_pallet_ethereum_client::types::SyncCommitteePrepared = (&sync_committee)
+fn sync_committee_keys(sync_committee: SyncCommittee) -> SyncCommitteePrepared {
+    let prepared: SyncCommitteePrepared = (&sync_committee)
         .try_into()
         .expect("checked by tests; qed");
     prepared
@@ -103,13 +111,13 @@ fn sync_committee_keys(sync_committee: snowbridge_pallet_ethereum_client::types:
 
 #[test]
 fn header_hash_matches() {
-    assert_eq!(checkpoint().header.hash_tree_root().expect("checked by tests; qed"), NEW_CHECKPOINT_HEADER_ROOT.into());
+    assert_eq!(checkpoint_update().header.hash_tree_root().expect("checked by tests; qed"), NEW_CHECKPOINT_HEADER_ROOT.into());
 }
 #[test]
-fn checkpoint_sanity_checks() {
-    let checkpoint = snowbridge_pallet_ethereum_client::types::CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]);
-    assert_ok!(checkpoint.clone());
-    let prepared: Result<snowbridge_pallet_ethereum_client::types::SyncCommitteePrepared, BlsError> = (&checkpoint.unwrap().current_sync_committee)
+fn decodes_checkpoint() {
+    let checkpoint_update = CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]);
+    assert_ok!(checkpoint_update.clone());
+    let prepared_sync_committee: Result<SyncCommitteePrepared, BlsError> = (&checkpoint_update.unwrap().current_sync_committee)
         .try_into();
-    assert!(prepared.is_ok());
+    assert!(prepared_sync_committee.is_ok());
 }
