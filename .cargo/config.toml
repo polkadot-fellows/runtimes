@@ -8,7 +8,7 @@
 [target.'cfg(feature = "cargo-clippy")']
 rustflags = [
 	"-Aclippy::all",
-	"-Aclippy::bind_instead_of_map",          # styalistic
+	"-Aclippy::bind_instead_of_map",          # stylistic
 	"-Aclippy::borrowed-box",                 # Reasonable to fix this one
 	"-Aclippy::derivable_impls",              # false positives
 	"-Aclippy::eq_op",                        # In tests we test equality.
@@ -18,11 +18,11 @@ rustflags = [
 	"-Aclippy::if-same-then-else",
 	"-Aclippy::needless_option_as_deref",     # false positives
 	"-Aclippy::nonminimal-bool",              # maybe
-	"-Aclippy::option-map-unit-fn",           # styalistic
+	"-Aclippy::option-map-unit-fn",           # stylistic
 	"-Aclippy::stable_sort_primitive",        # prefer stable sort
 	"-Aclippy::too-many-arguments",           # (Turning this on would lead to)
 	"-Aclippy::type_complexity",              # raison d'etre
-	"-Aclippy::unit_arg",                     # styalistic.
+	"-Aclippy::unit_arg",                     # stylistic
 	"-Aclippy::unnecessary_cast",             # Types may change
 	"-Aclippy::useless_conversion",           # Types may change
 	"-Aclippy::while_immutable_condition",    # false positives
