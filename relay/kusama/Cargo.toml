@@ -9,18 +9,21 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-parity-scale-codec = { features = ["derive", "max-encoded-len"] , workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
+parity-scale-codec = { features = [
+	"derive",
+	"max-encoded-len",
+], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 log = { workspace = true }
 
-authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "27.0.0" }
-babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.33.0" }
-beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "14.0.0" }
+authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false, version = "27.0.0" }
+babe-primitives = { package = "sp-consensus-babe", default-features = false, version = "0.33.0" }
+beefy-primitives = { package = "sp-consensus-beefy", default-features = false, version = "14.0.0" }
 binary-merkle-tree = { workspace = true }
 kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
 sp-api = { workspace = true }
-inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
-offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
+inherents = { package = "sp-inherents", default-features = false, version = "27.0.0" }
+offchain-primitives = { package = "sp-offchain", default-features = false, version = "27.0.0" }
 sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
@@ -32,8 +35,8 @@ sp-core = { workspace = true }
 sp-session = { workspace = true }
 sp-storage = { workspace = true }
 sp-version = { workspace = true }
-tx-pool-api = { package = "sp-transaction-pool", default-features = false , version = "27.0.0" }
-block-builder-api = { package = "sp-block-builder", default-features = false , version = "27.0.0" }
+tx-pool-api = { package = "sp-transaction-pool", default-features = false, version = "27.0.0" }
+block-builder-api = { package = "sp-block-builder", default-features = false, version = "27.0.0" }
 sp-npos-elections = { workspace = true }
 
 pallet-asset-rate = { workspace = true }
@@ -70,7 +73,7 @@ pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-society = { workspace = true }
-frame-support = { features = [ "tuples-96" ] , workspace = true }
+frame-support = { features = ["tuples-96"], workspace = true }
 pallet-staking = { workspace = true }
 pallet-staking-runtime-api = { workspace = true }
 frame-system = { workspace = true }
@@ -81,25 +84,25 @@ pallet-utility = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-whitelist = { workspace = true }
 pallet-xcm = { workspace = true }
-pallet-xcm-benchmarks = { optional = true , workspace = true }
+pallet-xcm-benchmarks = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
 
-frame-benchmarking = { optional = true , workspace = true }
-frame-try-runtime = { optional = true , workspace = true }
-pallet-offences-benchmarking = { optional = true , workspace = true }
-pallet-session-benchmarking = { optional = true , workspace = true }
-pallet-nomination-pools-benchmarking = { optional = true , workspace = true }
-frame-system-benchmarking = { optional = true , workspace = true }
-pallet-election-provider-support-benchmarking = { optional = true , workspace = true }
+frame-benchmarking = { optional = true, workspace = true }
+frame-try-runtime = { optional = true, workspace = true }
+pallet-offences-benchmarking = { optional = true, workspace = true }
+pallet-session-benchmarking = { optional = true, workspace = true }
+pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+pallet-election-provider-support-benchmarking = { optional = true, workspace = true }
 hex-literal = { workspace = true }
 
 runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
-runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "8.0.1" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "8.0.1" }
+runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false, version = "8.0.1" }
+primitives = { package = "polkadot-primitives", default-features = false, version = "8.0.1" }
 
-xcm = { package = "staging-xcm", default-features = false , version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.1" }
+xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
+xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
 
 sp-debug-derive = { workspace = true }
 
@@ -109,14 +112,14 @@ sp-trie = { workspace = true }
 separator = { workspace = true }
 serde_json = { workspace = true }
 remote-externalities = { package = "frame-remote-externalities", version = "0.36.0" }
-tokio = { features = ["macros"] , workspace = true }
+tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 no_std = []
 only-staking = []
 std = [
@@ -309,14 +312,16 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
+disable-runtime-api = []
+
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []
 
-runtime-metrics = [ "runtime-parachains/runtime-metrics", "sp-io/with-tracing" ]
+runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
-force-debug = [ "sp-debug-derive/force-debug" ]
+force-debug = ["sp-debug-derive/force-debug"]

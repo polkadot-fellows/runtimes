@@ -162,6 +162,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	authoring_version: 2,
 	spec_version: 1_002_001,
 	impl_version: 0,
+	#[cfg(not(feature = "disable-runtime-api"))]
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 25,
 	state_version: 1,
@@ -235,7 +236,7 @@ pub struct OriginPrivilegeCmp;
 impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 
 		match (left, right) {
@@ -484,10 +485,12 @@ impl OpaqueKeys for OldSessionKeys {
 			<<Babe as BoundToRuntimeAppPublic>::Public>::ID => self.babe.as_ref(),
 			sp_core::crypto::key_types::IM_ONLINE => self.im_online.as_ref(),
 			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID => self.para_validator.as_ref(),
-			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.para_assignment.as_ref(),
-			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.authority_discovery.as_ref(),
+			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID => {
+				self.para_assignment.as_ref()
+			},
+			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID => {
+				self.authority_discovery.as_ref()
+			},
 			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID => self.beefy.as_ref(),
 			_ => &[],
 		}
@@ -1198,11 +1201,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Staking => {
 				matches!(
 					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
-						RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
+					RuntimeCall::Staking(..)
+						| RuntimeCall::Session(..)
+						| RuntimeCall::Utility(..)
+						| RuntimeCall::FastUnstake(..)
+						| RuntimeCall::VoterList(..)
+						| RuntimeCall::NominationPools(..)
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1210,18 +1214,18 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			},
 			ProxyType::IdentityJudgement => matches!(
 				c,
-				RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::Utility(..)
+				RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+					| RuntimeCall::Utility(..)
 			),
 			ProxyType::CancelProxy => {
 				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
 			},
 			ProxyType::Auction => matches!(
 				c,
-				RuntimeCall::Auctions(..) |
-					RuntimeCall::Crowdloan(..) |
-					RuntimeCall::Registrar(..) |
-					RuntimeCall::Slots(..)
+				RuntimeCall::Auctions(..)
+					| RuntimeCall::Crowdloan(..)
+					| RuntimeCall::Registrar(..)
+					| RuntimeCall::Slots(..)
 			),
 			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
 		}
@@ -1815,7 +1819,7 @@ pub mod migrations {
 			let now = frame_system::Pallet::<Runtime>::block_number();
 			let lease = slots::Pallet::<Runtime>::lease(para);
 			if lease.is_empty() {
-				return None
+				return None;
 			}
 			// Lease not yet started/or having holes, refund (coretime can't handle this):
 			if lease.iter().any(Option::is_none) {
@@ -1830,7 +1834,7 @@ pub mod migrations {
 						err
 					);
 				};
-				return None
+				return None;
 			}
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
@@ -1865,7 +1869,7 @@ pub mod migrations {
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
 				log::warn!(target: "runtime::session_keys", "Skipping session keys migration pre-upgrade check due to spec version (already applied?)");
-				return Ok(Vec::new())
+				return Ok(Vec::new());
 			}
 
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
@@ -1897,7 +1901,7 @@ pub mod migrations {
 		fn on_runtime_upgrade() -> Weight {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
 				log::info!("Skipping session keys upgrade: already applied");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
 			}
 			log::trace!("Upgrading session keys");
 			Session::upgrade_keys::<OldSessionKeys, _>(transform_session_keys);
@@ -1910,7 +1914,7 @@ pub mod migrations {
 		) -> Result<(), sp_runtime::TryRuntimeError> {
 			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
 				log::warn!(target: "runtime::session_keys", "Skipping session keys migration post-upgrade check due to spec version (already applied?)");
-				return Ok(())
+				return Ok(());
 			}
 
 			let key_ids = SessionKeys::key_ids();
@@ -2077,6 +2081,7 @@ mod benches {
 	);
 }
 
+#[cfg(not(feature = "disable-runtime-api"))]
 sp_api::impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
@@ -2890,8 +2895,8 @@ mod multiplier_tests {
 	#[test]
 	fn multiplier_can_grow_from_zero() {
 		let minimum_multiplier = MinimumMultiplier::get();
-		let target = TargetBlockFullness::get() *
-			BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
+		let target = TargetBlockFullness::get()
+			* BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
 		// if the min is too small, then this will not change, and we are doomed forever.
 		// the weight is 1/100th bigger than target.
 		run_with_system_weight(target.saturating_mul(101) / 100, || {
@@ -3011,7 +3016,7 @@ mod remote_tests {
 	#[tokio::test]
 	async fn run_migrations() {
 		if var("RUN_MIGRATION_TESTS").is_err() {
-			return
+			return;
 		}
 
 		sp_tracing::try_init_simple();
