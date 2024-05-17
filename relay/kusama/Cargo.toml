@@ -94,7 +94,7 @@ pallet-election-provider-support-benchmarking = { optional = true , workspace = 
 hex-literal = { workspace = true }
 
 runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
-runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "8.0.1" }
+runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 
 xcm = { package = "staging-xcm", default-features = false , version = "8.0.1" }

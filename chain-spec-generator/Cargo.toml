@@ -17,7 +17,7 @@ kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" 
 kusama-runtime-constants = { path = "../relay/kusama/constants" }
 
 sc-chain-spec = { workspace = true }
-polkadot-runtime-parachains = { workspace = true, default-features = true }
+runtime-parachains = { default-features = true, workspace = true }
 polkadot-primitives = { workspace = true, default-features = true }
 sp-consensus-babe = { workspace = true, default-features = true }
 authority-discovery-primitives = { workspace = true, default-features = true }
@@ -61,6 +61,6 @@ runtime-benchmarks = [
 	"pallet-staking/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"polkadot-runtime-parachains/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks"
 ]
