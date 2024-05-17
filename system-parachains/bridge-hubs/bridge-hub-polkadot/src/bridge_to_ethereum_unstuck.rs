@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{weights::RocksDbWeight, Runtime, weights};
+use crate::{weights, weights::RocksDbWeight, Runtime};
 use codec::Decode;
 use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 use hex_literal::hex;
