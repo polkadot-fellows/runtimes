@@ -154,7 +154,7 @@ smallvec = { version = "1.13.1" }
 snowbridge-beacon-primitives = { version = "0.1.0", default-features = false }
 snowbridge-core = { version = "0.1.1", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.1.1", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.1.1", default-features = false }
+snowbridge-pallet-ethereum-client = { version = "0.1.2", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.1.1", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.9.0" }
 snowbridge-pallet-outbound-queue = { version = "0.1.1", default-features = false }
