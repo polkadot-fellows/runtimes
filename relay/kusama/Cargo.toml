@@ -20,7 +20,7 @@ binary-merkle-tree = { workspace = true }
 kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
 sp-api = { workspace = true }
 inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
-offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
+sp-offchain = { default-features = false , version = "27.0.0" }
 sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
@@ -136,7 +136,7 @@ std = [
 	"inherents/std",
 	"kusama-runtime-constants/std",
 	"log/std",
-	"offchain-primitives/std",
+	"sp-offchain/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",

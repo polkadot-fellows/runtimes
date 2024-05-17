@@ -18,7 +18,7 @@ beefy-primitives = { package = "sp-consensus-beefy", default-features = false , 
 binary-merkle-tree = { workspace = true }
 block-builder-api = { package = "sp-block-builder", default-features = false , version = "27.0.0" }
 inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
-offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
+sp-offchain = { default-features = false , version = "27.0.0" }
 sp-transaction-pool = { default-features = false , version = "27.0.0" }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
@@ -132,7 +132,7 @@ std = [
 	"frame-try-runtime/std",
 	"inherents/std",
 	"log/std",
-	"offchain-primitives/std",
+	"sp-offchain/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
