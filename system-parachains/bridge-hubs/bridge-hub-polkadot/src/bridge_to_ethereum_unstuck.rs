@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{weights::RocksDbWeight, Runtime};
+use crate::{weights::RocksDbWeight, Runtime, weights};
 use codec::Decode;
 use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 use hex_literal::hex;
@@ -22,7 +22,7 @@ use snowbridge_core::RingBufferMap;
 use snowbridge_pallet_ethereum_client::{
 	types::{CheckpointUpdate, FinalizedBeaconStateBuffer, SyncCommitteePrepared},
 	CurrentSyncCommittee, InitialCheckpointRoot, LatestExecutionState, LatestFinalizedBlockRoot,
-	NextSyncCommittee,
+	NextSyncCommittee, WeightInfo,
 };
 
 #[cfg(feature = "try-runtime")]
@@ -48,7 +48,7 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
 			return RocksDbWeight::get().reads(1);
 		}
 
-		log::info!(target: LOG_TARGET, "Updating beacon checkpoint to unstuck beacon clieny");
+		log::info!(target: LOG_TARGET, "Updating beacon checkpoint to unstuck beacon client");
 
 		let checkpoint_update = checkpoint_update();
 		let sync_committee: SyncCommitteePrepared = (&checkpoint_update.current_sync_committee)
@@ -69,7 +69,7 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
 		LatestFinalizedBlockRoot::<Runtime>::put(header_root);
 		LatestExecutionState::<Runtime>::kill();
 
-		RocksDbWeight::get().reads_writes(6, 6)
+		weights::snowbridge_pallet_ethereum_client::WeightInfo::<Runtime>::force_checkpoint()
 	}
 
 	#[cfg(feature = "try-runtime")]
