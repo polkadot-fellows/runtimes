@@ -24,7 +24,6 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Equals, Everything, Nothing},
-	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
@@ -321,7 +320,7 @@ fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 	assert!(weight.all_lte(Weight::from_parts(30_313_281_000, 72_722)));
 
 	let Some(Transact { require_weight_at_most, call, .. }) =
-		xcm.inner_mut().into_iter().find(|inst| matches!(inst, Transact { .. }))
+		xcm.inner_mut().iter_mut().find(|inst| matches!(inst, Transact { .. }))
 	else {
 		panic!("no Transact instruction found")
 	};
