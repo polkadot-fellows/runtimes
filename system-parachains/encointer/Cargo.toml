@@ -9,9 +9,9 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = [
+codec = { features = [
   "derive",
-] }
+] , workspace = true }
 hex-literal = { optional = true , workspace = true }
 log = { workspace = true }
 scale-info = { features = [

@@ -8,7 +8,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
+codec = { features = ["derive", "max-encoded-len"] , workspace = true }
 scale-info = { features = ["derive"] , workspace = true }
 
 # Local

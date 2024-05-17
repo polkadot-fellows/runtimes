@@ -298,7 +298,7 @@ impl pallet_xcm::Config for Runtime {
 #[test]
 fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 	use frame_support::dispatch::GetDispatchInfo;
-	use parity_scale_codec::Decode;
+	use codec::Decode;
 	use xcm::VersionedXcm;
 	use xcm_executor::traits::WeightBounds;
 

@@ -8,7 +8,7 @@ description = "Asset Hub Polkadot runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
+codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
 
 # Substrate

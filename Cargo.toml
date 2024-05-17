@@ -135,7 +135,7 @@ pallet-xcm-bridge-hub = { version = "0.3.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.6.0", default-features = false }
 parachains-common = { version = "8.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "8.0.0" }
-parity-scale-codec = { version = "3.6.9", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
 paste = { version = "1.0.14" }
 penpal-runtime = { version = "0.15.1" }
 polkadot-core-primitives = { version = "8.0.0", default-features = false }

@@ -9,7 +9,7 @@ license.workspace = true
 build = "build.rs"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
+codec = { features = ["derive"] , workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"] , workspace = true }

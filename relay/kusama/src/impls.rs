@@ -24,7 +24,7 @@ use frame_support::{
 };
 use frame_system::RawOrigin;
 use kusama_runtime_constants::system_parachain::PEOPLE_ID;
-use parity_scale_codec::{Decode, Encode};
+use codec::{Decode, Encode};
 use primitives::{Balance, Id as ParaId};
 use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};

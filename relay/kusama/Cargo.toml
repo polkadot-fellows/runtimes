@@ -9,7 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-parity-scale-codec = { features = ["derive", "max-encoded-len"] , workspace = true }
+codec = { features = ["derive", "max-encoded-len"] , workspace = true }
 scale-info = { features = ["derive"] , workspace = true }
 log = { workspace = true }
 
@@ -183,7 +183,7 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
-	"parity-scale-codec/std",
+	"codec/std",
 	"primitives/std",
 	"runtime-common/std",
 	"runtime-parachains/std",
