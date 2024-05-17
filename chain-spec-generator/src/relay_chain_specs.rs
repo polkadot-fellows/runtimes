@@ -21,7 +21,7 @@ use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
-use sc_consensus_grandpa::AuthorityId as GrandpaId;
+use grandpa::AuthorityId as GrandpaId;
 use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use babe_primitives::AuthorityId as BabeId;
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
