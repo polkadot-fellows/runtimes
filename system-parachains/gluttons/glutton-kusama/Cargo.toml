@@ -37,15 +37,15 @@ sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-primitives-core = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-constants = { path = "../../constants", default-features = false }
 

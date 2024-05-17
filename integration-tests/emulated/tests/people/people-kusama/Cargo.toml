@@ -19,8 +19,8 @@ pallet-identity = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
-xcm = { package = "staging-xcm", version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }

@@ -6,6 +6,9 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only" # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
+authority-discovery-primitives = { version = "27.0.0", default-features = false, package = "sp-authority-discovery" }
+runtime-parachains = { version = "8.0.1", default-features = false, package = "polkadot-runtime-parachains" }
 assert_matches = { version = "1.5.0" }
 asset-test-utils = { version = "8.0.1" }
 assets-common = { version = "0.8.0", default-features = false }
@@ -41,7 +44,7 @@ enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "29.0.0", default-features = false }
 frame-election-provider-support = { version = "29.0.0", default-features = false }
 frame-executive = { version = "29.0.0", default-features = false }
-frame-remote-externalities = { version = "0.36.0" }
+remote-externalities = { version = "0.36.0", package = "frame-remote-externalities" }
 frame-support = { version = "29.0.2", default-features = false }
 frame-system = { version = "29.0.0", default-features = false }
 frame-system-benchmarking = { version = "29.0.0", default-features = false }
@@ -135,15 +138,15 @@ pallet-xcm-bridge-hub = { version = "0.3.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.6.0", default-features = false }
 parachains-common = { version = "8.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "8.0.0" }
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
 paste = { version = "1.0.14" }
 penpal-runtime = { version = "0.15.1" }
 polkadot-core-primitives = { version = "8.0.0", default-features = false }
 polkadot-parachain-primitives = { version = "7.0.0", default-features = false }
+polkadot-primitives = { version = "8.0.1", default-features = false }
 polkadot-runtime-common = { version = "8.0.1", default-features = false }
 primitive-types = { version = "0.12.2", default-features = false }
 sc-chain-spec = { version = "28.0.0" }
-sc-consensus-grandpa = { version = "0.20.0" }
+grandpa = { version = "0.20.0", package = "sc-consensus-grandpa" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
@@ -166,8 +169,8 @@ sp-application-crypto = { version = "31.0.0", default-features = false }
 sp-arithmetic = { version = "24.0.0", default-features = false }
 sp-block-builder = { version = "27.0.0", default-features = false }
 sp-consensus-aura = { version = "0.33.0", default-features = false }
-sp-consensus-babe = { version = "0.33.0", default-features = false }
-sp-consensus-beefy = { version = "14.0.0", default-features = false }
+babe-primitives = { version = "0.33.0", default-features = false, package = "sp-consensus-babe" }
+beefy-primitives = { version = "14.0.0", default-features = false, package = "sp-consensus-beefy" }
 sp-core = { version = "29.0.0", default-features = false }
 sp-debug-derive = { version = "14.0.0", default-features = false }
 sp-genesis-builder = { version = "0.8.0", default-features = false }
@@ -186,17 +189,14 @@ sp-transaction-pool = { version = "27.0.0", default-features = false }
 sp-trie = { version = "30.0.0" }
 sp-version = { version = "30.0.0", default-features = false }
 sp-weights = { version = "28.0.0", default-features = false }
-staging-parachain-info = { version = "0.8.0", default-features = false }
-staging-xcm = { version = "8.0.1", default-features = false }
-staging-xcm-builder = { version = "8.0.1", default-features = false }
-staging-xcm-executor = { version = "8.0.1", default-features = false }
+parachain-info = { version = "0.8.0", default-features = false, package = "staging-parachain-info" }
+xcm = { version = "8.0.1", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "8.0.1", default-features = false, package = "staging-xcm-builder" }
+xcm-executor = { version = "8.0.1", default-features = false, package = "staging-xcm-executor" }
 static_assertions = { version = "1.1.0" }
 substrate-wasm-builder = { version = "18.0.0" }
 tokio = { version = "1.36.0" }
 xcm-emulator = { version = "0.6.0" }
-authority-discovery-primitives = { version = "27.0.0", default-features = false, package = "sp-authority-discovery" }
-polkadot-primitives = { version = "8.0.1", default-features = false }
-runtime-parachains = { version = "8.0.1", default-features = false, package = "polkadot-runtime-parachains" }
 
 [workspace]
 resolver = "2"

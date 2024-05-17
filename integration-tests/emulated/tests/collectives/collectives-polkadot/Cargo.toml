@@ -24,9 +24,9 @@ pallet-utility = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
-xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
-xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
+xcm-executor = { workspace = true, default-features = true }
 
 # Cumulus
 asset-test-utils = { workspace = true }

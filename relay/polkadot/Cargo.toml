@@ -13,13 +13,13 @@ scale-info = { features = ["derive"] , workspace = true }
 log = { workspace = true }
 
 authority-discovery-primitives = { workspace = true }
-babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.33.0" }
-beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "14.0.0" }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
 binary-merkle-tree = { workspace = true }
-sp-block-builder = { default-features = false , version = "27.0.0" }
-sp-inherents = { default-features = false , version = "27.0.0" }
-sp-offchain = { default-features = false , version = "27.0.0" }
-sp-transaction-pool = { default-features = false , version = "27.0.0" }
+sp-block-builder = { workspace = true }
+sp-inherents = { workspace = true }
+sp-offchain = { workspace = true }
+sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -90,22 +90,22 @@ pallet-offences-benchmarking = { optional = true , workspace = true }
 pallet-session-benchmarking = { optional = true , workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true , workspace = true }
 
-polkadot-runtime-common = { default-features = false, version = "8.0.1" }
+polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 
-xcm = { package = "staging-xcm", default-features = false , version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.1" }
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
+xcm-builder = { workspace = true }
 
 sp-debug-derive = { workspace = true }
 
 [dev-dependencies]
-sp-keyring = { version = "32.0.0" }
+sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 serde_json = { workspace = true }
 separator = { workspace = true }
-remote-externalities = { package = "frame-remote-externalities", version = "0.36.0" }
+remote-externalities = { workspace = true }
 tokio = { features = ["macros"] , workspace = true }
 sp-tracing = { workspace = true }
 
