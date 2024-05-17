@@ -30,18 +30,18 @@ sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"bp-bridge-hub-cumulus/std",
-	"bp-messages/std",
-	"bp-runtime/std",
-	"frame-support/std",
-	"kusama-runtime-constants/std",
-	"polkadot-runtime-constants/std",
-	"sp-api/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"system-parachains-constants/std",
-	"xcm/std",
-	"snowbridge-core/std"
+  "bp-bridge-hub-cumulus/std",
+  "bp-messages/std",
+  "bp-runtime/std",
+  "frame-support/std",
+  "kusama-runtime-constants/std",
+  "polkadot-runtime-constants/std",
+  "sp-api/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "system-parachains-constants/std",
+  "xcm/std",
+  "snowbridge-core/std",
 ]

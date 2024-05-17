@@ -12,7 +12,7 @@ codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
 
 # Substrate
-sp-core ={ workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
 sp-runtime = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
@@ -33,7 +33,9 @@ asset-test-utils = { workspace = true }
 emulated-integration-tests-common = { workspace = true }
 parachains-common = { workspace = true, default-features = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { features = [
+  "parameterized-consensus-hook",
+], workspace = true, default-features = true }
 
 # Local
 asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }

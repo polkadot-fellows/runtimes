@@ -8,8 +8,8 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-codec = { features = ["derive", "max-encoded-len"] , workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 
 # Local
 system-parachains-constants = { path = "../../../constants", default-features = false }
@@ -25,13 +25,13 @@ sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"bp-xcm-bridge-hub-router/std",
-	"codec/std",
-	"frame-support/std",
-	"scale-info/std",
-	"sp-std/std",
-	"system-parachains-constants/std",
-	"xcm/std"
+  "bp-xcm-bridge-hub-router/std",
+  "codec/std",
+  "frame-support/std",
+  "scale-info/std",
+  "sp-std/std",
+  "system-parachains-constants/std",
+  "xcm/std",
 ]

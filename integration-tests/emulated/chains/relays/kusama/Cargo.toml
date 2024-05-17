@@ -25,4 +25,4 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
-kusama-runtime = {  package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
+kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }

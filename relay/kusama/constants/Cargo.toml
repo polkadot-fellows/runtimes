@@ -19,13 +19,13 @@ sp-core = { workspace = true }
 xcm-builder = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"frame-support/std",
-	"polkadot-primitives/std",
-	"polkadot-runtime-common/std",
-	"sp-core/std",
-	"sp-runtime/std",
-	"sp-weights/std",
-	"xcm-builder/std"
+  "frame-support/std",
+  "polkadot-primitives/std",
+  "polkadot-runtime-common/std",
+  "sp-core/std",
+  "sp-runtime/std",
+  "sp-weights/std",
+  "xcm-builder/std",
 ]

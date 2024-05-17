@@ -7,9 +7,9 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { features = [ "derive" ] , workspace = true }
+clap = { features = ["derive"], workspace = true }
 serde_json = { workspace = true }
-serde = { features = ["derive"] , workspace = true }
+serde = { features = ["derive"], workspace = true }
 
 polkadot-runtime = { path = "../relay/polkadot" }
 polkadot-runtime-constants = { path = "../relay/polkadot/constants" }
@@ -41,26 +41,23 @@ coretime-kusama-runtime = { path = "../system-parachains/coretime/coretime-kusam
 people-kusama-runtime = { path = "../system-parachains/people/people-kusama" }
 
 [features]
-fast-runtime = [
-	"kusama-runtime/fast-runtime",
-	"polkadot-runtime/fast-runtime",
-]
+fast-runtime = ["kusama-runtime/fast-runtime", "polkadot-runtime/fast-runtime"]
 runtime-benchmarks = [
-	"asset-hub-polkadot-runtime/runtime-benchmarks",
-	"asset-hub-kusama-runtime/runtime-benchmarks",
-	"bridge-hub-polkadot-runtime/runtime-benchmarks",
-	"bridge-hub-kusama-runtime/runtime-benchmarks",
-	"collectives-polkadot-runtime/runtime-benchmarks",
-	"kusama-runtime/runtime-benchmarks",
-	"polkadot-runtime/runtime-benchmarks",
-	"encointer-kusama-runtime/runtime-benchmarks",
-	"glutton-kusama-runtime/runtime-benchmarks",
-	"coretime-kusama-runtime/runtime-benchmarks",
-	"people-kusama-runtime/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"pallet-staking/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
-	"runtime-parachains/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks"
+  "asset-hub-polkadot-runtime/runtime-benchmarks",
+  "asset-hub-kusama-runtime/runtime-benchmarks",
+  "bridge-hub-polkadot-runtime/runtime-benchmarks",
+  "bridge-hub-kusama-runtime/runtime-benchmarks",
+  "collectives-polkadot-runtime/runtime-benchmarks",
+  "kusama-runtime/runtime-benchmarks",
+  "polkadot-runtime/runtime-benchmarks",
+  "encointer-kusama-runtime/runtime-benchmarks",
+  "glutton-kusama-runtime/runtime-benchmarks",
+  "coretime-kusama-runtime/runtime-benchmarks",
+  "people-kusama-runtime/runtime-benchmarks",
+  "cumulus-primitives-core/runtime-benchmarks",
+  "pallet-staking/runtime-benchmarks",
+  "parachains-common/runtime-benchmarks",
+  "polkadot-primitives/runtime-benchmarks",
+  "runtime-parachains/runtime-benchmarks",
+  "sp-runtime/runtime-benchmarks",
 ]

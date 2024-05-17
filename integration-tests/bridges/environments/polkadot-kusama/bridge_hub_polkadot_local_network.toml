@@ -39,16 +39,12 @@ name = "asset-hub-polkadot-collator-1"
 rpc_port = 9911
 ws_port = 9910
 command = "{{POLKADOT_PARACHAIN_BINARY}}"
-args = [
-    "-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"
-]
-	
+args = ["-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"]
+
 [[parachains.collators]]
 name = "asset-hub-polkadot-collator-2"
 command = "{{POLKADOT_PARACHAIN_BINARY}}"
-args = [
-    "-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"
-]
+args = ["-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"]
 
 [[parachains]]
 id = 1002
@@ -63,7 +59,7 @@ command = "{{POLKADOT_PARACHAIN_BINARY}}"
 rpc_port = 8933
 ws_port = 8943
 args = [
-    "-lparachain=debug,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace"
+  "-lparachain=debug,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace",
 ]
 
 [[parachains.collators]]
@@ -73,5 +69,5 @@ command = "{{POLKADOT_PARACHAIN_BINARY}}"
 rpc_port = 8934
 ws_port = 8944
 args = [
-    "-lparachain=trace,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace"
+  "-lparachain=trace,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace",
 ]
