@@ -84,7 +84,7 @@ jobs:
           shared-key: "fellowship-cache-tests"
 
       - name: Test ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=try-runtime
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 

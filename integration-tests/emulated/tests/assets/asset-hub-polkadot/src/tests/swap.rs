@@ -15,7 +15,6 @@
 
 use crate::*;
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
-use sp_runtime::ModuleError;
 use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 
 #[test]

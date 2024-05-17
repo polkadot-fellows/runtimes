@@ -1006,6 +1006,7 @@ pub type Migrations = (
 	// unreleased
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -1679,7 +1680,6 @@ cumulus_pallet_parachain_system::register_validate_block! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{CENTS, MILLICENTS};
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
 	use system_parachains_constants::polkadot::fee;

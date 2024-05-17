@@ -71,7 +71,7 @@ impl Convert<TrackId, Rank> for MinRankOfClass {
 			// A promotion vote; the track ID turns out to be 18 more than the minimum required
 			// rank.
 			promotion @ 21..=26 => promotion - 18,
-			_ => Rank::max_value(),
+			_ => Rank::MAX,
 		}
 	}
 }
@@ -80,7 +80,7 @@ const RETAIN_MAX_DECIDING: u32 = 25;
 const RETAIN_DECISION_DEPOSIT: Balance = 5 * DOLLARS;
 const RETAIN_PREPARE_PERIOD: BlockNumber = 0;
 const RETAIN_DECISION_PERIOD: BlockNumber = 14 * DAYS;
-const RETAIN_CONFIRM_PERIOD: BlockNumber = 1 * HOURS;
+const RETAIN_CONFIRM_PERIOD: BlockNumber = HOURS;
 const RETAIN_MIN_ENACTMENT_PERIOD: BlockNumber = 0;
 const RETAIN_MIN_APPROVAL: pallet_referenda::Curve = pallet_referenda::Curve::LinearDecreasing {
 	length: Perbill::from_percent(100),
@@ -97,7 +97,7 @@ const PROMOTE_MAX_DECIDING: u32 = 10;
 const PROMOTE_DECISION_DEPOSIT: Balance = 5 * DOLLARS;
 const PROMOTE_PREPARE_PERIOD: BlockNumber = 0;
 const PROMOTE_DECISION_PERIOD: BlockNumber = 30 * DAYS;
-const PROMOTE_CONFIRM_PERIOD: BlockNumber = 1 * HOURS;
+const PROMOTE_CONFIRM_PERIOD: BlockNumber = HOURS;
 const PROMOTE_MIN_ENACTMENT_PERIOD: BlockNumber = 0;
 const PROMOTE_MIN_APPROVAL: pallet_referenda::Curve = pallet_referenda::Curve::LinearDecreasing {
 	length: Perbill::from_percent(100),

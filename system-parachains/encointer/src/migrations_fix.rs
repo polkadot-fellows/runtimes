@@ -24,7 +24,7 @@ pub mod balances {
 	use sp_runtime::TryRuntimeError;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::fix::balances::migration";
+	const TARGET: &str = "runtime::fix::balances::migration";
 	pub mod v1 {
 		use super::*;
 		use frame_support::pallet_prelude::*;
@@ -72,7 +72,7 @@ pub mod scheduler {
 	use sp_runtime::TryRuntimeError;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::fix::scheduler::migration";
+	const TARGET: &str = "runtime::fix::scheduler::migration";
 
 	pub mod v1 {
 		use super::*;
@@ -144,6 +144,7 @@ pub mod scheduler {
 			StorageMap<Pallet<T>, Twox64Concat, TaskName, TaskAddress<BlockNumberFor<T>>>;
 
 		/// Migrate the scheduler pallet from V0 to V4 by brute-force emptying the agenda.
+		#[allow(dead_code)]
 		pub struct MigrateToV4<T>(sp_std::marker::PhantomData<T>);
 
 		impl<T: Config> OnRuntimeUpgrade for MigrateToV4<T> {
