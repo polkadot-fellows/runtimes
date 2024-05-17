@@ -68,7 +68,7 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
         if !is_bridge_stuck() {
             log::info!(target: LOG_TARGET, "Going to unstuck Snowbridge.");
         } else {
-            log::info!(target: LOG_TARGET, "Bridge is not stuck.");
+            log::info!(target: LOG_TARGET, "Snowbridge is not stuck.");
         }
         Ok(vec![])
     }
