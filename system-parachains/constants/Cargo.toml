@@ -21,11 +21,11 @@ sp-runtime = { workspace = true }
 [features]
 default = ["std"]
 std = [
-  "frame-support/std",
-  "kusama-runtime-constants/std",
-  "parachains-common/std",
-  "polkadot-core-primitives/std",
-  "polkadot-primitives/std",
-  "polkadot-runtime-constants/std",
-  "sp-runtime/std",
+	"frame-support/std",
+	"kusama-runtime-constants/std",
+	"parachains-common/std",
+	"polkadot-core-primitives/std",
+	"polkadot-primitives/std",
+	"polkadot-runtime-constants/std",
+	"sp-runtime/std",
 ]
