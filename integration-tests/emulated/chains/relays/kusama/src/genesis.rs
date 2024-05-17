@@ -37,6 +37,7 @@ mod validators {
 	use super::*;
 	use parachains_common::AccountId;
 
+	#[allow(clippy::type_complexity)]
 	pub fn initial_authorities() -> Vec<(
 		AccountId,
 		AccountId,

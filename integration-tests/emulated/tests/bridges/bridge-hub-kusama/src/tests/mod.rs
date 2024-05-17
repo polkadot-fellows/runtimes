@@ -40,7 +40,7 @@ pub(crate) fn send_asset_from_asset_hub_kusama(
 	(id, amount): (Location, u128),
 ) -> DispatchResult {
 	let signed_origin =
-		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
+		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
 
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
