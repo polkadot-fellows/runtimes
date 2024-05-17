@@ -11,7 +11,7 @@ publish = false
 
 # Substrate
 sp-core = { workspace = true, default-features = true }
-authority-discovery-primitives = { package = "sp-authority-discovery", version = "27.0.0" }
+authority-discovery-primitives = { workspace = true, default-features = true }
 babe-primitives = { package = "sp-consensus-babe", version = "0.33.0" }
 beefy-primitives = { package = "sp-consensus-beefy", version = "14.0.0" }
 grandpa = { package = "sc-consensus-grandpa", version = "0.20.0" }

@@ -166,7 +166,6 @@ snowbridge-system-runtime-api = { version = "0.1.0", default-features = false }
 sp-api = { version = "27.0.0", default-features = false }
 sp-application-crypto = { version = "31.0.0", default-features = false }
 sp-arithmetic = { version = "24.0.0", default-features = false }
-sp-authority-discovery = { version = "27.0.0", default-features = false }
 sp-block-builder = { version = "27.0.0", default-features = false }
 sp-consensus-aura = { version = "0.33.0", default-features = false }
 sp-consensus-babe = { version = "0.33.0", default-features = false }
@@ -197,6 +196,7 @@ static_assertions = { version = "1.1.0" }
 substrate-wasm-builder = { version = "18.0.0" }
 tokio = { version = "1.36.0" }
 xcm-emulator = { version = "0.6.0" }
+authority-discovery-primitives = { version = "27.0.0", default-features = false, package = "sp-authority-discovery" }
 
 [workspace]
 resolver = "2"

@@ -12,7 +12,7 @@ codec = { features = ["derive", "max-encoded-len"] , workspace = true }
 scale-info = { features = ["derive"] , workspace = true }
 log = { workspace = true }
 
-authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "27.0.0" }
+authority-discovery-primitives = { workspace = true }
 babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.33.0" }
 beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "14.0.0" }
 binary-merkle-tree = { workspace = true }
