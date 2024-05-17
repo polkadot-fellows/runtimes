@@ -89,26 +89,26 @@ pub mod tx_payment {
 			_tip: Self::Balance,
 			already_withdrawn: Self::LiquidityInfo,
 		) -> Result<(), TransactionValidityError> {
-			if let Some(paid) = already_withdrawn {
-				// Make sure the credit is in desired asset id.
-				ensure!(paid.asset() == A::get(), InvalidTransaction::Payment);
-				// Calculate how much refund we should return.
-				let refund_amount = paid.peek().saturating_sub(corrected_fee);
-				// Refund to the the account that paid the fees if it was not removed by the
-				// dispatched function. If fails for any reason (eg. ED requirement is not met) no
-				// refund given.
-				let refund_debt = if F::total_balance(A::get(), who) > F::Balance::zero() &&
-					refund_amount > F::Balance::zero()
-				{
+			let Some(paid) = already_withdrawn else {
+				return Ok(());
+			};
+			// Make sure the credit is in desired asset id.
+			ensure!(paid.asset() == A::get(), InvalidTransaction::Payment);
+			// Calculate how much refund we should return.
+			let refund_amount = paid.peek().saturating_sub(corrected_fee);
+			// Refund to the the account that paid the fees if it was not removed by the
+			// dispatched function. If fails for any reason (eg. ED requirement is not met) no
+			// refund given.
+			let refund_debt =
+				if F::total_balance(A::get(), who).is_zero() || refund_amount.is_zero() {
+					fungibles::Debt::<T::AccountId, F>::zero(A::get())
+				} else {
 					F::deposit(A::get(), who, refund_amount, Precision::BestEffort)
 						.unwrap_or_else(|_| fungibles::Debt::<T::AccountId, F>::zero(A::get()))
-				} else {
-					fungibles::Debt::<T::AccountId, F>::zero(A::get())
 				};
-				// Merge the imbalance caused by paying the fees and refunding parts of it again.
-				let adjusted_paid: fungibles::Credit<T::AccountId, F> = match paid
-					.offset(refund_debt)
-				{
+			// Merge the imbalance caused by paying the fees and refunding parts of it again.
+			let adjusted_paid: fungibles::Credit<T::AccountId, F> =
+				match paid.offset(refund_debt).defensive_proof("credits should be identical") {
 					Ok(SameOrOther::Same(credit)) => credit,
 					// Paid amount is fully refunded.
 					Ok(SameOrOther::None) => fungibles::Credit::<T::AccountId, F>::zero(A::get()),
@@ -116,12 +116,11 @@ pub mod tx_payment {
 					// refund amount is not greater than paid amount.
 					_ => return Err(InvalidTransaction::Payment.into()),
 				};
-				// No separation for simplicity.
-				// In our case the fees and the tips are deposited to the same pot.
-				// We cannot call [`OnUnbalanced::on_unbalanceds`] since fungibles credit does not
-				// implement `Imbalanced` trait.
-				OU::on_unbalanced(adjusted_paid);
-			}
+			// No separation for simplicity.
+			// In our case the fees and the tips are deposited to the same pot.
+			// We cannot call [`OnUnbalanced::on_unbalanceds`] since fungibles credit does not
+			// implement `Imbalanced` trait.
+			OU::on_unbalanced(adjusted_paid);
 			Ok(())
 		}
 	}
@@ -195,7 +194,7 @@ pub mod tx_payment {
 				},
 			};
 
-			ensure!(change.peek() == Zero::zero(), InvalidTransaction::Payment);
+			ensure!(change.peek().is_zero(), InvalidTransaction::Payment);
 
 			Ok((Some(fee_credit), fee, asset_fee))
 		}
@@ -210,15 +209,13 @@ pub mod tx_payment {
 			asset_id: Self::AssetId,
 			initial_asset_consumed: T::Balance,
 		) -> Result<T::Balance, TransactionValidityError> {
-			let fee_paid = if let Some(fee_paid) = fee_paid {
-				fee_paid
-			} else {
+			let Some(fee_paid) = fee_paid else {
 				return Ok(Zero::zero());
 			};
 			// Try to refund if the fee paid is more than the corrected fee and the account was not
 			// removed by the dispatched function.
 			let (fee, fee_in_asset) = if fee_paid.peek() > corrected_fee &&
-				T::Assets::total_balance(asset_id.clone(), who) > Zero::zero()
+				!T::Assets::total_balance(asset_id.clone(), who).is_zero()
 			{
 				let refund_amount = fee_paid.peek().saturating_sub(corrected_fee);
 				// Check if the refund amount can be swapped back into the asset used by `who` for
@@ -245,7 +242,7 @@ pub mod tx_payment {
 					Err(_) => fungibles::Debt::<T::AccountId, T::Assets>::zero(asset_id.clone()),
 				};
 
-				if debt.peek() == Zero::zero() {
+				if debt.peek().is_zero() {
 					// No refund given.
 					(fee_paid, initial_asset_consumed)
 				} else {
@@ -271,10 +268,8 @@ pub mod tx_payment {
 						// The error should not occur since swap was quoted before.
 						Err((refund, _)) => {
 							match T::Assets::settle(who, debt, Preservation::Expendable) {
-								Ok(dust) => ensure!(
-									dust.peek() == Zero::zero(),
-									InvalidTransaction::Payment
-								),
+								Ok(dust) =>
+									ensure!(dust.peek().is_zero(), InvalidTransaction::Payment),
 								// The error should not occur as the `debt` was just withdrawn
 								// above.
 								Err(_) => return Err(InvalidTransaction::Payment.into()),
