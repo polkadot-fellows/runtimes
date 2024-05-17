@@ -20,5 +20,5 @@ emulated-integration-tests-common = { workspace = true }
 penpal-runtime = { features = ["experimental"], workspace = true }
 
 # Runtimes
-kusama-emulated-chain = { path = "../../../relays/kusama" }
-polkadot-emulated-chain = { path = "../../../relays/polkadot" }
+kusama-emulated-chain = { workspace = true }
+polkadot-emulated-chain = { workspace = true }

@@ -17,7 +17,7 @@ authority-discovery-primitives = { workspace = true }
 babe-primitives = { workspace = true }
 beefy-primitives = { workspace = true }
 binary-merkle-tree = { workspace = true }
-kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
+kusama-runtime-constants = { workspace = true }
 sp-api = { workspace = true }
 sp-inherents = { workspace = true }
 sp-offchain = { workspace = true }

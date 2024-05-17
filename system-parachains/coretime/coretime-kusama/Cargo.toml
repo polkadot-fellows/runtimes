@@ -16,8 +16,8 @@ scale-info = { features = ["derive"], workspace = true }
 serde = { optional = true, features = ["derive"], workspace = true }
 
 # Local
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false }
-system-parachains-constants = { path = "../../constants", default-features = false }
+kusama-runtime-constants = { workspace = true }
+system-parachains-constants = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }

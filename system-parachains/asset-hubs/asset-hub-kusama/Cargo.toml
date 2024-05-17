@@ -15,12 +15,12 @@ log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 
 # Local
-bp-asset-hub-kusama = { path = "./primitives", default-features = false }
-bp-asset-hub-polkadot = { path = "../asset-hub-polkadot/primitives", default-features = false }
-bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
-bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false }
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false }
+bp-asset-hub-kusama = { workspace = true }
+bp-asset-hub-polkadot = { workspace = true }
+bp-bridge-hub-kusama = { workspace = true }
+bp-bridge-hub-polkadot = { workspace = true }
+kusama-runtime-constants = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
@@ -96,7 +96,7 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-constants = { path = "../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 assets-common = { workspace = true }
 
 # Bridges

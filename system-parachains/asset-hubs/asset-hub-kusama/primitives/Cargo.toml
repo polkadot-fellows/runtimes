@@ -12,7 +12,7 @@ codec = { features = ["derive", "max-encoded-len"], workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 
 # Local
-system-parachains-constants = { path = "../../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 
 # Bridge Dependencies
 bp-xcm-bridge-hub-router = { workspace = true }

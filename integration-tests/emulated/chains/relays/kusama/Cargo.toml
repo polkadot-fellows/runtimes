@@ -24,5 +24,5 @@ parachains-common = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
-kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
-kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
+kusama-runtime-constants = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true }

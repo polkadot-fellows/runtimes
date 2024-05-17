@@ -36,13 +36,13 @@ bp-messages = { workspace = true, default-features = true }
 pallet-bridge-messages = { workspace = true, default-features = true }
 
 # Local
-bp-bridge-hub-polkadot = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot/primitives" }
-bridge-hub-polkadot-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
-asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
-integration-tests-helpers = { path = "../../../helpers" }
-kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
-polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+bp-bridge-hub-polkadot = { workspace = true, default-features = true }
+bridge-hub-polkadot-runtime = { workspace = true }
+asset-hub-polkadot-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+kusama-polkadot-system-emulated-network = { workspace = true }
+polkadot-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }
 
 # Snowbridge
 snowbridge-beacon-primitives = { workspace = true, default-features = true }

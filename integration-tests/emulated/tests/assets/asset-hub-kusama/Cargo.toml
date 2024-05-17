@@ -36,9 +36,9 @@ cumulus-pallet-parachain-system = { features = [
 ], workspace = true, default-features = true }
 
 # Local
-asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
-integration-tests-helpers = { path = "../../../helpers" }
-kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
-kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
-kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
+asset-hub-kusama-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+kusama-runtime = { workspace = true }
+kusama-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }
+kusama-runtime-constants = { workspace = true, default-features = true }

@@ -49,7 +49,7 @@ cumulus-pallet-xcm = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-constants = { path = "../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }

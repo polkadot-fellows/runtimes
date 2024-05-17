@@ -38,11 +38,11 @@ cumulus-pallet-parachain-system = { features = [
 ], workspace = true, default-features = true }
 
 # Local
-asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
-collectives-polkadot-runtime = { path = "../../../../../system-parachains/collectives/collectives-polkadot" }
-collectives-polkadot-runtime-constants = { path = "../../../../../system-parachains/collectives/collectives-polkadot/constants" }
-integration-tests-helpers = { path = "../../../helpers" }
-polkadot-runtime = { path = "../../../../../relay/polkadot" }
-polkadot-runtime-constants = { path = "../../../../../relay/polkadot/constants" }
-polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+asset-hub-polkadot-runtime = { workspace = true }
+collectives-polkadot-runtime = { workspace = true }
+collectives-polkadot-runtime-constants = { workspace = true }
+integration-tests-helpers = { workspace = true }
+polkadot-runtime = { workspace = true }
+polkadot-runtime-constants = { workspace = true, default-features = true }
+polkadot-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }

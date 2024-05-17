@@ -106,8 +106,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 # so we need to copy all the contents from `system-parachains-constants` and `kusama-runtime-constants`.
 # We use these crates only for testing to ensure compatible values.
 # NOTE: Do not add this to the `[dependencies]`
-kusama-runtime-constants = { path = "../../relay/kusama/constants" }
-system-parachains-constants = { path = "../constants" }
+kusama-runtime-constants = { workspace = true, default-features = true }
+system-parachains-constants = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
