@@ -19,7 +19,7 @@ binary-merkle-tree = { workspace = true }
 block-builder-api = { package = "sp-block-builder", default-features = false , version = "27.0.0" }
 inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
 offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
-tx-pool-api = { package = "sp-transaction-pool", default-features = false , version = "27.0.0" }
+sp-transaction-pool = { default-features = false , version = "27.0.0" }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -198,7 +198,7 @@ std = [
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-version/std",
-	"tx-pool-api/std",
+	"sp-transaction-pool/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
