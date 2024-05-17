@@ -48,9 +48,9 @@ pub mod secretary;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
-use secretary::pallet_secretary_origins;
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use secretary::pallet_secretary_origins;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -300,7 +300,7 @@ pub enum ProxyType {
 	/// Fellowship proxy. Allows calls related to the Fellowship.
 	Fellowship,
 	/// Secretary proxy. Allows calls related to the Secretary collective
-	Secretary
+	Secretary,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -699,7 +699,7 @@ construct_runtime!(
 		// The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
-		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3; 
+		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3;
 		SecretaryReferenda: pallet_referenda::<Instance3> = 81,
 		SecretaryOrigins: pallet_secretary_origins = 82,
 		// pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;

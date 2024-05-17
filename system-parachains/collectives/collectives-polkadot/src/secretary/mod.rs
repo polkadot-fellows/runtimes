@@ -25,7 +25,7 @@ use crate::{
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetRate, Balance, Balances, GovernanceLocation, ParachainInfo,
 	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, Scheduler,
-	SecretaryReferenda, DAYS,
+	SecretaryReferenda, DAYS, UNITS,
 };
 use frame_support::{
 	parameter_types,
@@ -46,6 +46,13 @@ use sp_runtime::{
 };
 use system_parachains_constants::polkadot::account::SECRETARY_TREASURY_PALLET_ID;
 
+use crate::fellowship::FellowshipCollectiveInstance;
+
+use xcm::prelude::*;
+use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+
+use crate::fellowship::ranks::DAN_3;
+
 /// The Secretary members' ranks.
 pub mod ranks {
 	use pallet_ranked_collective::Rank;
@@ -55,20 +62,37 @@ pub mod ranks {
 	pub const SECRETARY: Rank = 1;
 }
 
-type ParamsOrigin =
-	EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>, Fellows>;
-
 type ApproveOrigin = EitherOf<
+	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	MapSuccess<
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-		Replace<ConstU16<{ ranks::SECRETARY }>>,
+		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
+		Replace<ConstU16<1>>,
 	>,
-	Fellows,
+>;
+
+type InductOrigin = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EitherOfDiverse<
+		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
+		pallet_ranked_collective::EnsureMember<
+			Runtime,
+			SecretaryCollectiveInstance,
+			{ ranks::SECRETARY },
+		>,
+	>,
 >;
 
 type OpenGovOrSecretary = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<Secretary, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
+>;
+
+type OpenGovOrFellow = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EitherOfDiverse<
+		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
+		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+	>,
 >;
 
 impl pallet_secretary_origins::Config for Runtime {}
@@ -91,13 +115,13 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 	>;
 	// Referandum can be cancled by any of:
 	// - Root;
-	// - the FellowshipAdmiin origin(i.e token holder referendum)
-	// - a vote by a member of the Secretary collective;
+	// - a member of the Secretary Program.
+	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	type CancelOrigin = OpenGovOrSecretary;
 	// Referandum can be killed by any of:
 	// - Root;
-	// the FellowshipAdmin oriigin (i.e. token holder referandum);
-	// - a vote by a member of the Secretary collective;
+	// - a member of the Secretary Program.
+	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	type KillOrigin = OpenGovOrSecretary;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
@@ -115,7 +139,8 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	// Promotions and inductions should be done through the [`crate::SecretaryCore`] pallet instance instance.
+	// Promotions and inductions should be done through the [`crate::SecretaryCore`] pallet instance
+	// instance.
 	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
 	#[cfg(feature = "runtime-benchmarks")]
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
@@ -123,19 +148,23 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
 	// Demotion is by any of:
 	// - Root can demote arbitrarily.
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
+	// - a single member of the Fellowship Program (DAN III);
 	type DemoteOrigin = EitherOf<
 		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<{ ranks::SECRETARY }>>,
+			pallet_ranked_collective::EnsureMember<
+				Runtime,
+				FellowshipCollectiveInstance,
+				{ DAN_3 },
+			>,
+			Replace<ConstU16<2>>,
 		>,
 	>;
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
-	// - the Fellows origin
-	type ExchangeOrigin =
-		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
+	// - the Secretary Origin.
+	// - the FellowshipAdmin origin (i.e. token holder referendum);
+	type ExchangeOrigin = OpenGovOrSecretary;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
 	type MemberSwappedHandler = (crate::SecretaryCore, crate::SecretarySalary);
@@ -153,30 +182,42 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	type Balance = Balance;
 	// Parameters are set by any of:
 	// - Root;
+	// - a single member of the Fellowship Program (DAN III).
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a Fellow;
-	type ParamsOrigin = ParamsOrigin;
+	type ParamsOrigin = OpenGovOrFellow;
 	// Induction (creating a candidate) is by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a Fellow;
-	type InductOrigin = ParamsOrigin;
+	// - a single member of the Fellowship Program (DAN III);
+	// - a single member of the Secretary Program;
+	type InductOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EitherOfDiverse<
+			pallet_ranked_collective::EnsureMember<
+				Runtime,
+				FellowshipCollectiveInstance,
+				{ DAN_3 },
+			>,
+			pallet_ranked_collective::EnsureMember<
+				Runtime,
+				SecretaryCollectiveInstance,
+				{ ranks::SECRETARY },
+			>,
+		>,
+	>;
 	// Approval (rank-retention) of a Member's current rank is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a Fellow;
+	// - a single member of the Fellowship program (DAN III);
 	type ApproveOrigin = ApproveOrigin;
 	// Promotion is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a Fellow;
+	// - a single member of the Fellowship program (DAN III);
 	type PromoteOrigin = ApproveOrigin;
 
 	type EvidenceSize = ConstU32<65536>;
 }
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
-
-use xcm::prelude::*;
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 parameter_types! {
 	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
@@ -246,7 +287,7 @@ parameter_types! {
 		PalletInstance(<crate::SecretaryTreasury as PalletInfoAccess>::index() as u8).into();
 }
 
-/// [`PayOverXcm`] setup to pay the Fellowship Treasury.
+/// [`PayOverXcm`] setup to pay the Secretary Treasury.
 pub type SecretaryTreasuryPaymaster = PayOverXcm<
 	Interior,
 	crate::xcm_config::XcmRouter,
@@ -298,11 +339,14 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	type SpendFunds = ();
 	type MaxApprovals = ConstU32<100>;
 	type SpendOrigin = EitherOf<
-		EnsureRootWithSuccess<AccountId, MaxBalance>,
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
-			Replace<ConstU128<{ 10_000 * GRAND }>>,
+		EitherOf<
+			EnsureRootWithSuccess<AccountId, MaxBalance>,
+			MapSuccess<
+				EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>,
+				Replace<ConstU128<{ 10_000 * GRAND }>>,
+			>,
 		>,
+		MapSuccess<Secretary, Replace<ConstU128<{ 100 * UNITS }>>>,
 	>;
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocation;
@@ -310,7 +354,7 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = SecretaryTreasuryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
-	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
+	type Paymaster = PayWithEnsure<SecretaryTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
 	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
