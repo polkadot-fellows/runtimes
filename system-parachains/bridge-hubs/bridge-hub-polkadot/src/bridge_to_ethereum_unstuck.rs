@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::convert::TryInto;
 use crate::{
     weights::RocksDbWeight, Runtime,
 };
@@ -97,5 +98,17 @@ fn sync_committee_keys(sync_committee: snowbridge_pallet_ethereum_client::types:
 #[test]
 fn header_hash_matches() {
     assert_eq!(checkpoint().header.hash_tree_root().expect("checked by tests; qed"), NEW_CHECKPOINT_HEADER_ROOT.into());
+}
+
+#[test]
+fn can_decode_checkpoint() {
+    assert_ok!(snowbridge_pallet_ethereum_client::types::CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]));
+}
+
+#[test]
+fn sync_committee_can_be_converted_to_prepared_keys() {
+    let prepared: snowbridge_pallet_ethereum_client::types::SyncCommitteePrepared = (&sync_committee)
+        .try_into();
+    assert_ok(prepared);
 }
 
