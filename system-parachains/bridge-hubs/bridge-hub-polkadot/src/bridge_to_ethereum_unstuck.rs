@@ -75,7 +75,7 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade(_: Vec<u8>) -> Result<(), TryRuntimeError> {
-        frame_support::ensure!(!is_bridge_stuck(), "Bridge is still stuck.");
+        frame_support::ensure!(!is_bridge_stuck(), "Snowbridge is still stuck.");
         Ok(())
     }
 }
