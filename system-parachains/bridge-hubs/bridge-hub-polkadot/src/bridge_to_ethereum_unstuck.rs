@@ -66,7 +66,7 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
     #[cfg(feature = "try-runtime")]
     fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
         if !is_bridge_stuck() {
-            log::info!(target: LOG_TARGET, "Going to unstuck bridge.");
+            log::info!(target: LOG_TARGET, "Going to unstuck Snowbridge.");
         } else {
             log::info!(target: LOG_TARGET, "Bridge is not stuck.");
         }
