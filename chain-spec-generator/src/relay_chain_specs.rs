@@ -15,16 +15,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
+use babe_primitives::AuthorityId as BabeId;
+use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
+use grandpa::AuthorityId as GrandpaId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::Forcing;
 use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
-use grandpa::AuthorityId as GrandpaId;
-use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
-use babe_primitives::AuthorityId as BabeId;
-use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{traits::IdentifyAccount, Perbill};
 
