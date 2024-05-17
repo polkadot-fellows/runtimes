@@ -46,11 +46,11 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 pub async fn wait_subxt_client(
 	node: &NetworkNode,
 ) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
-	log::trace!("trying to connect to: {}", node.ws_uri());
+	log::info!("trying to connect to: {}", node.ws_uri());
 	loop {
 		match node.client::<PolkadotConfig>().await {
 			Ok(cli) => {
-				log::trace!("returning client for: {}", node.ws_uri());
+				log::info!("returning client for: {}", node.ws_uri());
 				return Ok(cli);
 			},
 			Err(e) => {

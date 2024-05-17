@@ -24,7 +24,7 @@ async fn smoke() {
 	let mut blocks = client.blocks().subscribe_finalized().await.unwrap().take(10);
 
 	while let Some(block) = blocks.next().await {
-		println!("Block #{}", block.unwrap().header().number);
+		log::info!("Block #{}", block.unwrap().header().number);
 	}
 
 	// wait 10 blocks on the parachain
@@ -34,6 +34,6 @@ async fn smoke() {
 	let mut blocks = collator_client.blocks().subscribe_finalized().await.unwrap().take(10);
 
 	while let Some(block) = blocks.next().await {
-		println!("Parachain Block #{}", block.unwrap().header().number);
+		log::info!("Parachain Block #{}", block.unwrap().header().number);
 	}
 }
