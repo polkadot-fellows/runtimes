@@ -67,16 +67,16 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
     #[cfg(feature = "try-runtime")]
     fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
         if !is_bridge_stuck() {
-            log::info!(target: LOG_TARGET, "Going to unstuck bridge.");
+            log::info!(target: LOG_TARGET, "Going to unstuck Snowbridge.");
         } else {
-            log::info!(target: LOG_TARGET, "Bridge is not stuck.");
+            log::info!(target: LOG_TARGET, "Snowbridge is not stuck.");
         }
         Ok(vec![])
     }
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade(_: Vec<u8>) -> Result<(), TryRuntimeError> {
-        frame_support::ensure!(!is_bridge_stuck(), "Bridge is still stuck.");
+        frame_support::ensure!(!is_bridge_stuck(), "Snowbridge is still stuck.");
         Ok(())
     }
 }
