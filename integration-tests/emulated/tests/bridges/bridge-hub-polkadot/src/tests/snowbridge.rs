@@ -224,7 +224,7 @@ fn create_channel() {
 #[test]
 fn register_weth_token_from_ethereum_to_asset_hub() {
 	// Fund AH sovereign account on BH so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
@@ -379,7 +379,7 @@ fn send_token_from_ethereum_to_penpal() {
 /// a token from Ethereum to AssetHub.
 #[test]
 fn send_token_from_ethereum_to_asset_hub() {
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
@@ -466,7 +466,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 					exchange_rate: FixedU128::from_rational(1, 75),
 					fee_per_gas: gwei(20),
 					rewards: Rewards {
-						local: (1 * UNITS / 100).into(), // 0.01 DOT
+						local: (UNITS / 100), // 0.01 DOT
 						remote: meth(1),
 					},
 					multiplier: FixedU128::from_rational(1, 1),
@@ -537,7 +537,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 		let beneficiary = VersionedLocation::V4(Location::new(
 			0,
-			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS.into() }],
+			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
 		));
 
 		let free_balance_before =
@@ -603,7 +603,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 #[test]
 fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), INITIAL_FUND);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -640,7 +640,7 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 #[test]
 fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
 	// Insufficient fund
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id().into(), 1_000);
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 1_000);
 
 	BridgeHubPolkadot::execute_with(|| {
 		assert_ok!(<BridgeHubPolkadot as Chain>::System::set_storage(

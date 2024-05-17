@@ -24,7 +24,6 @@ use super::{
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Equals, Everything, Nothing},
-	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;

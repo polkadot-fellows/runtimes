@@ -107,7 +107,7 @@ fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Burned { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahp.clone().into(),
+				who: *who == sov_penpal_on_ahp.clone(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
@@ -267,7 +267,7 @@ fn para_to_para_limited_reserve_transfer_assets(t: ParaToParaTest) -> DispatchRe
 /// Reserve Transfers of native asset from Relay Chain to the System Parachain shouldn't work
 #[test]
 fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
-	let signed_origin = <Polkadot as Chain>::RuntimeOrigin::signed(PolkadotSender::get().into());
+	let signed_origin = <Polkadot as Chain>::RuntimeOrigin::signed(PolkadotSender::get());
 	let destination = Polkadot::child_location_of(AssetHubPolkadot::para_id());
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
@@ -301,7 +301,7 @@ fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 	// Init values for System Parachain
 	let signed_origin =
-		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get().into());
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
 	let destination = AssetHubPolkadot::parent_location();
 	let beneficiary_id = PolkadotReceiver::get();
 	let beneficiary: Location =
@@ -445,7 +445,7 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 		AssetHubPolkadot::sovereign_account_id_of(penpal_location_as_seen_by_ahp);
 
 	// fund the Penpal's SA on AHP with the native tokens held in reserve
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp.into(), amount_to_send * 2)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp, amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalB>(para_to_system_para_sender_assertions);
 	test.set_assertion::<AssetHubPolkadot>(para_to_system_para_receiver_assertions);
@@ -528,7 +528,7 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 	// Create SA-of-Penpal-on-AHP with ED.
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_ahp = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp.into(), POLKADOT_ED)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp, POLKADOT_ED)]);
 
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
@@ -599,7 +599,7 @@ fn reserve_transfer_native_asset_from_para_to_para() {
 	let sov_of_sender_on_relay = Polkadot::sovereign_account_id_of(sender_as_seen_by_relay);
 
 	// fund the PenpalB's SA on Polkadot with the native tokens held in reserve
-	Polkadot::fund_accounts(vec![(sov_of_sender_on_relay.into(), amount_to_send * 2)]);
+	Polkadot::fund_accounts(vec![(sov_of_sender_on_relay, amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalB>(para_to_para_sender_assertions);
 	test.set_assertion::<Polkadot>(para_to_para_relay_hop_assertions);
