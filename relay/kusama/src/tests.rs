@@ -20,7 +20,7 @@ use crate::*;
 use frame_support::{
 	dispatch::GetDispatchInfo, traits::WhitelistedStorageKeys, weights::WeightToFee as WeightToFeeT,
 };
-use keyring::Sr25519Keyring::Charlie;
+use sp_keyring::Sr25519Keyring::Charlie;
 use pallet_transaction_payment::Multiplier;
 use codec::Encode;
 use runtime_common::MinimumMultiplier;
