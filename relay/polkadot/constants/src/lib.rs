@@ -41,7 +41,7 @@ pub mod currency {
 /// Time and blocks.
 pub mod time {
 	use polkadot_primitives::{BlockNumber, Moment};
-	use runtime_common::prod_or_fast;
+	use polkadot_runtime_common::prod_or_fast;
 	pub const MILLISECS_PER_BLOCK: Moment = 6000;
 	pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 	pub const EPOCH_DURATION_IN_SLOTS: BlockNumber = prod_or_fast!(4 * HOURS, 1 * MINUTES);
@@ -145,7 +145,7 @@ mod tests {
 	};
 	use crate::weights::ExtrinsicBaseWeight;
 	use frame_support::weights::WeightToFee as WeightToFeeT;
-	use runtime_common::MAXIMUM_BLOCK_WEIGHT;
+	use polkadot_runtime_common::MAXIMUM_BLOCK_WEIGHT;
 
 	#[test]
 	// Test that the fee for `MAXIMUM_BLOCK_WEIGHT` of weight has sane bounds.

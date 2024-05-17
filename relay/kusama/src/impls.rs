@@ -26,7 +26,7 @@ use frame_system::RawOrigin;
 use kusama_runtime_constants::system_parachain::PEOPLE_ID;
 use codec::{Decode, Encode};
 use polkadot_primitives::{Balance, Id as ParaId};
-use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
+use polkadot_runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::TransactAsset;

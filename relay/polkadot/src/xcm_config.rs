@@ -31,7 +31,7 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_runtime_constants::{
 	currency::CENTS, system_parachain::*, xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
-use runtime_common::{
+use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
 };

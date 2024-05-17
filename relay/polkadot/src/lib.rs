@@ -21,7 +21,7 @@
 #![recursion_limit = "512"]
 
 use pallet_transaction_payment::CurrencyAdapter;
-use runtime_common::{
+use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
@@ -134,6 +134,7 @@ pub mod xcm_config;
 
 pub const LOG_TARGET: &'static str = "runtime::polkadot";
 
+use polkadot_runtime_common as runtime_common;
 impl_runtime_weights!(polkadot_runtime_constants);
 
 // Make the WASM binary available.
@@ -563,7 +564,7 @@ generate_solution_type!(
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
 	type System = Runtime;
-	type Solver = SequentialPhragmen<AccountId, runtime_common::elections::OnChainAccuracy>;
+	type Solver = SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
 	type DataProvider = Staking;
 	type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
 	type MaxWinners = MaxActiveValidators;
@@ -630,7 +631,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		pallet_election_provider_multi_phase::SolutionAccuracyOf<Self>,
 		(),
 	>;
-	type BenchmarkingConfig = runtime_common::elections::BenchmarkConfig;
+	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type MaxWinners = MaxActiveValidators;
@@ -794,7 +795,7 @@ impl pallet_staking::Config for Runtime {
 	type MaxUnlockingChunks = frame_support::traits::ConstU32<32>;
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5314>;
-	type BenchmarkingConfig = runtime_common::StakingBenchmarkingConfig;
+	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = NominationPools;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
@@ -898,7 +899,7 @@ impl pallet_treasury::Config for Runtime {
 	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 }
 
 parameter_types! {
@@ -1505,8 +1506,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type RewardCounter = FixedU128;
-	type BalanceToU256 = runtime_common::BalanceToU256;
-	type U256ToBalance = runtime_common::U256ToBalance;
+	type BalanceToU256 = polkadot_runtime_common::BalanceToU256;
+	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
 	type Staking = Staking;
 	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
@@ -1571,7 +1572,7 @@ impl pallet_asset_rate::Config for Runtime {
 	type Currency = Balances;
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
 // A mock pallet to keep `ImOnline` events decodable after pallet removal
@@ -1909,13 +1910,13 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `runtime_common::` so
+		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
 		// the that path resolves correctly in the generated file.
-		[runtime_common::auctions, Auctions]
-		[runtime_common::claims, Claims]
-		[runtime_common::crowdloan, Crowdloan]
-		[runtime_common::slots, Slots]
-		[runtime_common::paras_registrar, Registrar]
+		[polkadot_runtime_common::auctions, Auctions]
+		[polkadot_runtime_common::claims, Claims]
+		[polkadot_runtime_common::crowdloan, Crowdloan]
+		[polkadot_runtime_common::slots, Slots]
+		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
 		[runtime_parachains::disputes, ParasDisputes]
 		[runtime_parachains::disputes::slashing, ParasSlashing]
@@ -1989,7 +1990,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl block_builder_api::BlockBuilder<Block> for Runtime {
+	impl sp_block_builder::BlockBuilder<Block> for Runtime {
 		fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
 			Executive::apply_extrinsic(extrinsic)
 		}
@@ -1998,14 +1999,14 @@ sp_api::impl_runtime_apis! {
 			Executive::finalize_block()
 		}
 
-		fn inherent_extrinsics(data: inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
+		fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
 			data.create_extrinsics()
 		}
 
 		fn check_inherents(
 			block: Block,
-			data: inherents::InherentData,
-		) -> inherents::CheckInherentsResult {
+			data: sp_inherents::InherentData,
+		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
 	}
@@ -2542,14 +2543,14 @@ sp_api::impl_runtime_apis! {
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
 				type DeliveryHelper = (
-					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 						XcmConfig,
 						ExistentialDepositAsset,
 						xcm_config::PriceForChildParachainDelivery,
 						AssetHubParaId,
 						(),
 					>,
-					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 						XcmConfig,
 						ExistentialDepositAsset,
 						xcm_config::PriceForChildParachainDelivery,
@@ -2606,7 +2607,7 @@ sp_api::impl_runtime_apis! {
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = XcmConfig;
 				type AccountIdConverter = SovereignAccountOf;
-				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 					XcmConfig,
 					ExistentialDepositAsset,
 					xcm_config::PriceForChildParachainDelivery,
@@ -2722,7 +2723,7 @@ mod test_fees {
 	use frame_support::{dispatch::GetDispatchInfo, weights::WeightToFee as WeightToFeeT};
 	use sp_keyring::Sr25519Keyring::{Alice, Charlie};
 	use pallet_transaction_payment::Multiplier;
-	use runtime_common::MinimumMultiplier;
+	use polkadot_runtime_common::MinimumMultiplier;
 	use separator::Separatable;
 	use sp_runtime::{assert_eq_error_rate, FixedPointNumber, MultiAddress, MultiSignature};
 
@@ -2931,7 +2932,7 @@ mod multiplier_tests {
 		dispatch::DispatchInfo,
 		traits::{OnFinalize, PalletInfoAccess},
 	};
-	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
+	use polkadot_runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
 
@@ -3174,7 +3175,7 @@ mod remote_tests {
 			.unwrap();
 		ext.execute_with(|| {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
-			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
+			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
 	}
 }

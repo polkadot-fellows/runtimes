@@ -19,7 +19,7 @@ beefy-primitives = { package = "sp-consensus-beefy", default-features = false , 
 binary-merkle-tree = { workspace = true }
 kusama-runtime-constants = { package = "kusama-runtime-constants", path = "constants", default-features = false }
 sp-api = { workspace = true }
-inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
+sp-inherents = { default-features = false , version = "27.0.0" }
 sp-offchain = { default-features = false , version = "27.0.0" }
 sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
@@ -33,7 +33,7 @@ sp-session = { workspace = true }
 sp-storage = { workspace = true }
 sp-version = { workspace = true }
 sp-transaction-pool = { default-features = false , version = "27.0.0" }
-block-builder-api = { package = "sp-block-builder", default-features = false , version = "27.0.0" }
+sp-block-builder = { default-features = false , version = "27.0.0" }
 sp-npos-elections = { workspace = true }
 
 pallet-asset-rate = { workspace = true }
@@ -93,7 +93,7 @@ frame-system-benchmarking = { optional = true , workspace = true }
 pallet-election-provider-support-benchmarking = { optional = true , workspace = true }
 hex-literal = { workspace = true }
 
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
+polkadot-runtime-common = { default-features = false, version = "8.0.1" }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 
@@ -124,7 +124,7 @@ std = [
 	"babe-primitives/std",
 	"beefy-primitives/std",
 	"binary-merkle-tree/std",
-	"block-builder-api/std",
+	"sp-block-builder/std",
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
 	"frame-executive/std",
@@ -133,7 +133,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime/std",
-	"inherents/std",
+	"sp-inherents/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"sp-offchain/std",
@@ -185,7 +185,7 @@ std = [
 	"pallet-xcm/std",
 	"codec/std",
 	"polkadot-primitives/std",
-	"runtime-common/std",
+	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"sp-api/std",
@@ -252,7 +252,7 @@ runtime-benchmarks = [
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"runtime-common/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -304,7 +304,7 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
-	"runtime-common/try-runtime",
+	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]

@@ -11,7 +11,7 @@ smallvec = { workspace = true }
 
 frame-support = { workspace = true }
 polkadot-primitives = { workspace = true }
-runtime-common = { package = "polkadot-runtime-common", default-features = false , version = "8.0.1" }
+polkadot-runtime-common = { default-features = false , version = "8.0.1" }
 sp-runtime = { workspace = true }
 sp-weights = { workspace = true }
 sp-core = { workspace = true }
@@ -23,7 +23,7 @@ default = [ "std" ]
 std = [
 	"frame-support/std",
 	"polkadot-primitives/std",
-	"runtime-common/std",
+	"polkadot-runtime-common/std",
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-weights/std",

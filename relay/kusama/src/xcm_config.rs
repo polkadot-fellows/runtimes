@@ -28,7 +28,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
-use runtime_common::{
+use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
 };

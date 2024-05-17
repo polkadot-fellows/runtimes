@@ -19,13 +19,13 @@ kusama-runtime-constants = { path = "../relay/kusama/constants" }
 sc-chain-spec = { workspace = true }
 runtime-parachains = { default-features = true, workspace = true }
 polkadot-primitives = { workspace = true, default-features = true }
-sp-consensus-babe = { workspace = true, default-features = true }
+babe-primitives = { package = "sp-consensus-babe", version = "0.33.0" }
 authority-discovery-primitives = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 pallet-staking = { workspace = true, default-features = true }
 sc-consensus-grandpa = { workspace = true }
 sp-runtime = { workspace = true, default-features = true }
-sp-consensus-beefy = { workspace = true, default-features = true }
+beefy-primitives = { package = "sp-consensus-beefy", version = "14.0.0" }
 xcm = { package = "staging-xcm", version = "8.0.1" }
 parachains-common = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
