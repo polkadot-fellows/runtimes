@@ -14,22 +14,18 @@
 // limitations under the License.
 
 use super::*;
-use crate::OriginCaller;
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
 	traits::{
 		tokens::ConversionFromAssetBalance, Contains, Currency, Get, Imbalance, OnUnbalanced,
 		OriginTrait, PrivilegeCmp,
 	},
-	weights::Weight,
 };
-use log;
 use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
 use polkadot_parachain_primitives::primitives::{Id as ParaId, IsSystem};
 use sp_runtime::DispatchError;
 use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
-use xcm::latest::{Fungibility, Junction, Junctions::Here, Location, Parent, WeightLimit};
 use xcm_executor::traits::ConvertLocation;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;

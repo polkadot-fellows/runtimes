@@ -26,7 +26,6 @@ use crate::{
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
-use cumulus_primitives_core::Junction::GeneralIndex;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -50,7 +49,6 @@ use polkadot_runtime_constants::{
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
-use xcm::latest::BodyId;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -269,7 +267,7 @@ parameter_types! {
 	pub const FellowshipTreasuryPalletId: PalletId = FELLOWSHIP_TREASURY_PALLET_ID;
 	pub const ProposalBond: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
-	pub const MaxBalance: Balance = Balance::max_value();
+	pub const MaxBalance: Balance = Balance::MAX;
 	// The asset's interior location for the paying account. This is the Fellowship Treasury
 	// pallet instance.
 	pub FellowshipTreasuryInteriorLocation: InteriorLocation =
