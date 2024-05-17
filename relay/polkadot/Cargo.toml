@@ -72,7 +72,7 @@ pallet-staking-runtime-api = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
-polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }
+polkadot-runtime-constants = { path = "constants", default-features = false }
 pallet-timestamp = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-whitelist = { workspace = true }
