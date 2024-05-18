@@ -93,8 +93,8 @@ fn is_bridge_stuck() -> bool {
 	LatestFinalizedBlockRoot::<Runtime>::get() == LAST_IMPORTED_BEACON_HEADER.into()
 }
 
-fn checkpoint_update() -> CheckpointUpdate {
-	CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]).expect("checked by tests; qed")
+fn checkpoint_update() -> Box<CheckpointUpdate> {
+	Box::new(CheckpointUpdate::decode(&mut &NEW_CHECKPOINT[..]).expect("checked by tests; qed"))
 }
 
 #[cfg(test)]
