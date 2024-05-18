@@ -49,6 +49,9 @@ impl OnRuntimeUpgrade for UnstuckSnowbridge {
 		if !is_bridge_stuck() {
 			return RocksDbWeight::get().reads(1);
 		}
+		if is_bridge_upgraded() {
+			return RocksDbWeight::get().reads(1);
+		}
 
 		log::info!(target: LOG_TARGET, "Updating beacon checkpoint to unstuck beacon client");
 
