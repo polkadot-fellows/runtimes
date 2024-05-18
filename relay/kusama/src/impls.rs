@@ -15,15 +15,15 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::*;
+use codec::{Decode, Encode};
 use core::marker::PhantomData;
 use frame_support::{
 	defensive, pallet_prelude::DispatchResult, traits::tokens::ConversionFromAssetBalance,
 };
 use frame_system::RawOrigin;
 use kusama_runtime_constants::system_parachain::PEOPLE_ID;
-use parity_scale_codec::{Decode, Encode};
-use primitives::Id as ParaId;
-use runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
+use polkadot_primitives::Id as ParaId;
+use polkadot_runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
 use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::TransactAsset;

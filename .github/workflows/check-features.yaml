@@ -32,4 +32,7 @@ jobs:
           fetch-depth: 0 # Dont clone historic commits.
 
       - name: Check features
-        run: zepter run check
+        run: |
+          zepter run check
+          # We will add this to the config file once its stabilized. Just run it in the CI for now.
+          zepter transpose dep lift-to-workspace 'regex:.*'

@@ -27,7 +27,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
-use runtime_common::{
+use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
 };
@@ -297,8 +297,8 @@ impl pallet_xcm::Config for Runtime {
 
 #[test]
 fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
+	use codec::Decode;
 	use frame_support::dispatch::GetDispatchInfo;
-	use parity_scale_codec::Decode;
 	use xcm::VersionedXcm;
 	use xcm_executor::traits::WeightBounds;
 
