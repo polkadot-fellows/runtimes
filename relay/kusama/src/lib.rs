@@ -20,9 +20,9 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
+use codec::{Decode, Encode, MaxEncodedLen};
 use pallet_nis::WithMaximumOf;
-use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
-use primitives::{
+use polkadot_primitives::{
 	slashing,
 	vstaging::{ApprovalVotingParams, NodeFeatures},
 	AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CandidateHash,
@@ -32,7 +32,7 @@ use primitives::{
 	ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex, LOWEST_PUBLIC_ID,
 	PARACHAIN_KEY_TYPE_ID,
 };
-use runtime_common::{
+use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
@@ -147,6 +147,7 @@ pub mod impls;
 #[cfg(test)]
 mod tests;
 
+use polkadot_runtime_common as runtime_common;
 impl_runtime_weights!(kusama_runtime_constants);
 
 // Make the WASM binary available.
@@ -574,7 +575,8 @@ generate_solution_type!(
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
 	type System = Runtime;
-	type Solver = SequentialPhragmen<AccountId, runtime_common::elections::OnChainAccuracy>;
+	type Solver =
+		SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
 	type DataProvider = Staking;
 	type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
 	type MaxWinners = MaxActiveValidators;
@@ -641,7 +643,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 		pallet_election_provider_multi_phase::SolutionAccuracyOf<Self>,
 		(),
 	>;
-	type BenchmarkingConfig = runtime_common::elections::BenchmarkConfig;
+	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>;
 	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
 	type MaxWinners = MaxActiveValidators;
@@ -679,7 +681,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		runtime_common::impls::era_payout(
+		polkadot_runtime_common::impls::era_payout(
 			total_staked,
 			Nis::issuance().other,
 			MAX_ANNUAL_INFLATION,
@@ -741,7 +743,7 @@ impl pallet_staking::Config for Runtime {
 	type MaxUnlockingChunks = frame_support::traits::ConstU32<32>;
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
-	type BenchmarkingConfig = runtime_common::StakingBenchmarkingConfig;
+	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = NominationPools;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
@@ -812,7 +814,7 @@ impl pallet_treasury::Config for Runtime {
 	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 }
 
 parameter_types! {
@@ -1515,7 +1517,7 @@ impl pallet_asset_rate::Config for Runtime {
 	type Currency = Balances;
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = runtime_common::impls::benchmarks::AssetRateArguments;
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
 // A mock pallet to keep `ImOnline` events decodable after pallet removal
@@ -1742,7 +1744,7 @@ pub mod migrations {
 	use frame_support::traits::OnRuntimeUpgrade;
 	use frame_system::RawOrigin;
 	use pallet_scheduler::WeightInfo as SchedulerWeightInfo;
-	use runtime_common::auctions::WeightInfo as AuctionsWeightInfo;
+	use polkadot_runtime_common::auctions::WeightInfo as AuctionsWeightInfo;
 	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
@@ -1959,7 +1961,7 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `runtime_common::` so
+		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
 		// that the path resolves correctly in the generated file.
 		[runtime_common::auctions, Auctions]
 		[runtime_common::crowdloan, Crowdloan]
@@ -2046,7 +2048,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl block_builder_api::BlockBuilder<Block> for Runtime {
+	impl sp_block_builder::BlockBuilder<Block> for Runtime {
 		fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
 			Executive::apply_extrinsic(extrinsic)
 		}
@@ -2055,19 +2057,19 @@ sp_api::impl_runtime_apis! {
 			Executive::finalize_block()
 		}
 
-		fn inherent_extrinsics(data: inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
+		fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
 			data.create_extrinsics()
 		}
 
 		fn check_inherents(
 			block: Block,
-			data: inherents::InherentData,
-		) -> inherents::CheckInherentsResult {
+			data: sp_inherents::InherentData,
+		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
 	}
 
-	impl tx_pool_api::runtime_api::TaggedTransactionQueue<Block> for Runtime {
+	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
 			source: TransactionSource,
 			tx: <Block as BlockT>::Extrinsic,
@@ -2077,14 +2079,14 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl offchain_primitives::OffchainWorkerApi<Block> for Runtime {
+	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
 			Executive::offchain_worker(header)
 		}
 	}
 
 	#[api_version(10)]
-	impl primitives::runtime_api::ParachainHost<Block> for Runtime {
+	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
 		}
@@ -2114,7 +2116,7 @@ sp_api::impl_runtime_apis! {
 
 		fn check_validation_outputs(
 			para_id: ParaId,
-			outputs: primitives::CandidateCommitments,
+			outputs: polkadot_primitives::CandidateCommitments,
 		) -> bool {
 			parachains_runtime_api_impl::check_validation_outputs::<Runtime>(para_id, outputs)
 		}
@@ -2170,8 +2172,8 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn submit_pvf_check_statement(
-			stmt: primitives::PvfCheckStatement,
-			signature: primitives::ValidatorSignature,
+			stmt: polkadot_primitives::PvfCheckStatement,
+			signature: polkadot_primitives::ValidatorSignature,
 		) {
 			parachains_runtime_api_impl::submit_pvf_check_statement::<Runtime>(stmt, signature)
 		}
@@ -2198,7 +2200,7 @@ sp_api::impl_runtime_apis! {
 		fn key_ownership_proof(
 			validator_id: ValidatorId,
 		) -> Option<slashing::OpaqueKeyOwnershipProof> {
-			use parity_scale_codec::Encode;
+			use codec::Encode;
 
 			Historical::prove((PARACHAIN_KEY_TYPE_ID, validator_id))
 				.map(|p| p.encode())
@@ -2219,11 +2221,11 @@ sp_api::impl_runtime_apis! {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
-		fn para_backing_state(para_id: ParaId) -> Option<primitives::async_backing::BackingState> {
+		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
-		fn async_backing_params() -> primitives::AsyncBackingParams {
+		fn async_backing_params() -> polkadot_primitives::AsyncBackingParams {
 			parachains_runtime_api_impl::async_backing_params::<Runtime>()
 		}
 
@@ -2269,7 +2271,7 @@ sp_api::impl_runtime_apis! {
 			_set_id: beefy_primitives::ValidatorSetId,
 			authority_id: BeefyId,
 		) -> Option<beefy_primitives::OpaqueKeyOwnershipProof> {
-			use parity_scale_codec::Encode;
+			use codec::Encode;
 
 			Historical::prove((beefy_primitives::KEY_TYPE, authority_id))
 				.map(|p| p.encode())
@@ -2361,7 +2363,7 @@ sp_api::impl_runtime_apis! {
 			_set_id: fg_primitives::SetId,
 			authority_id: fg_primitives::AuthorityId,
 		) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-			use parity_scale_codec::Encode;
+			use codec::Encode;
 
 			Historical::prove((fg_primitives::KEY_TYPE, authority_id))
 				.map(|p| p.encode())
@@ -2398,7 +2400,7 @@ sp_api::impl_runtime_apis! {
 			_slot: babe_primitives::Slot,
 			authority_id: babe_primitives::AuthorityId,
 		) -> Option<babe_primitives::OpaqueKeyOwnershipProof> {
-			use parity_scale_codec::Encode;
+			use codec::Encode;
 
 			Historical::prove((babe_primitives::KEY_TYPE, authority_id))
 				.map(|p| p.encode())
@@ -2608,14 +2610,14 @@ sp_api::impl_runtime_apis! {
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
 				type DeliveryHelper = (
-					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 						XcmConfig,
 						ExistentialDepositAsset,
 						xcm_config::PriceForChildParachainDelivery,
 						AssetHubParaId,
 						(),
 					>,
-					runtime_common::xcm_sender::ToParachainDeliveryHelper<
+					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 						XcmConfig,
 						ExistentialDepositAsset,
 						xcm_config::PriceForChildParachainDelivery,
@@ -2672,7 +2674,7 @@ sp_api::impl_runtime_apis! {
 			impl pallet_xcm_benchmarks::Config for Runtime {
 				type XcmConfig = XcmConfig;
 				type AccountIdConverter = SovereignAccountOf;
-				type DeliveryHelper = runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 					XcmConfig,
 					ExistentialDepositAsset,
 					xcm_config::PriceForChildParachainDelivery,
@@ -2809,7 +2811,7 @@ mod multiplier_tests {
 		dispatch::DispatchInfo,
 		traits::{OnFinalize, PalletInfoAccess},
 	};
-	use runtime_common::{MinimumMultiplier, TargetBlockFullness};
+	use polkadot_runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
 
@@ -3002,7 +3004,7 @@ mod remote_tests {
 			.unwrap();
 		ext.execute_with(|| {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
-			runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
+			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
 	}
 }

@@ -8,7 +8,7 @@ description = "Asset Hub Polkadot runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
+codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
 
 # Substrate
@@ -22,21 +22,23 @@ pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
-xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
-xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
+xcm-executor = { workspace = true, default-features = true }
 
 # Cumulus
 asset-test-utils = { workspace = true }
 emulated-integration-tests-common = { workspace = true }
 parachains-common = { workspace = true, default-features = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true, default-features = true }
 
 # Local
-asset-hub-polkadot-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-polkadot" }
-collectives-polkadot-runtime-constants = { path = "../../../../../system-parachains/collectives/collectives-polkadot/constants" }
-integration-tests-helpers = { path = "../../../helpers" }
-polkadot-runtime = { path = "../../../../../relay/polkadot" }
-polkadot-system-emulated-network = { path = "../../../networks/polkadot-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+asset-hub-polkadot-runtime = { workspace = true }
+collectives-polkadot-runtime-constants = { workspace = true }
+integration-tests-helpers = { workspace = true }
+polkadot-runtime = { workspace = true }
+polkadot-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }
