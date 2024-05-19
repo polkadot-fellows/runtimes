@@ -151,7 +151,7 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Burned { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahk.clone().into(),
+				who: *who == sov_penpal_on_ahk.clone(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
@@ -383,8 +383,8 @@ fn limited_teleport_native_assets_back_from_system_para_to_relay_works() {
 fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	// Init values for Relay Chain
 	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 1000;
-	let destination = AssetHubKusama::parent_location().into();
-	let beneficiary_id = KusamaReceiver::get().into();
+	let destination = AssetHubKusama::parent_location();
+	let beneficiary_id = KusamaReceiver::get();
 	let assets = (Parent, amount_to_send).into();
 
 	let test_args = TestContext {
@@ -546,7 +546,7 @@ fn teleport_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_parachain_is_trusted_teleporter!(
+	test_sibling_is_trusted_teleporter!(
 		AssetHubKusama,          // Origin
 		AssetHubKusamaXcmConfig, // XCM Configuration
 		vec![BridgeHubKusama],   // Destinations

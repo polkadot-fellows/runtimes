@@ -19,4 +19,4 @@ bridge-hub-common = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
-bridge-hub-polkadot-runtime = { path = "../../../../../../system-parachains/bridge-hubs/bridge-hub-polkadot" }
+bridge-hub-polkadot-runtime = { workspace = true }

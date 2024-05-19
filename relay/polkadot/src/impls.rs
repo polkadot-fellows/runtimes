@@ -17,7 +17,7 @@
 use super::*;
 use core::marker::PhantomData;
 use frame_support::traits::{tokens::ConversionFromAssetBalance, Contains};
-use primitives::Id as ParaId;
+use polkadot_primitives::Id as ParaId;
 use xcm_builder::IsChildSystemParachain;
 
 // TODO: replace by types from polkadot-sdk https://github.com/paritytech/polkadot-sdk/pull/3659

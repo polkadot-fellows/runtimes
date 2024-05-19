@@ -74,7 +74,7 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	// fund the AHK's SA on BHK for paying bridge transport fees
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
 	// fund sender
-	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get().into(), amount * 10)]);
+	AssetHubPolkadot::fund_accounts(vec![(AssetHubPolkadotSender::get(), amount * 10)]);
 
 	// send XCM from AssetHubPolkadot - fails - destination version not known
 	assert_err!(

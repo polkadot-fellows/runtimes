@@ -18,8 +18,7 @@ use crate::xcm_config::LocationToAccountId;
 use codec::{Decode, Encode, MaxEncodedLen};
 use enumflags2::{bitflags, BitFlags};
 use frame_support::{
-	parameter_types, traits::ConstU32, CloneNoBound, EqNoBound, PartialEqNoBound,
-	RuntimeDebugNoBound,
+	parameter_types, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_identity::{Data, IdentityInformationProvider};
 use parachains_common::{impls::ToParentTreasury, DAYS};

@@ -18,7 +18,7 @@
 
 use super::*;
 use crate::xcm_config::CollectivesLocation;
-use frame_support::{parameter_types, traits::EitherOf};
+use frame_support::parameter_types;
 use frame_system::EnsureRootWithSuccess;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use xcm::latest::BodyId;
@@ -48,12 +48,12 @@ impl pallet_conviction_voting::Config for Runtime {
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
-	pub const SubmissionDeposit: Balance = 1 * DOLLARS;
+	pub const SubmissionDeposit: Balance = DOLLARS;
 	pub const UndecidingTimeout: BlockNumber = 14 * DAYS;
 }
 
 parameter_types! {
-	pub const MaxBalance: Balance = Balance::max_value();
+	pub const MaxBalance: Balance = Balance::MAX;
 }
 pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
 
