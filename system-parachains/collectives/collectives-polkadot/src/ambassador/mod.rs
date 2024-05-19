@@ -265,7 +265,7 @@ parameter_types! {
 	pub const AmbassadorTreasuryPalletId: PalletId = AMBASSADOR_TREASURY_PALLET_ID;
 	pub const ProposalBond: Permill = Permill::from_percent(100);
 	pub const Burn: Permill = Permill::from_percent(0);
-	pub const MaxBalance: Balance = Balance::max_value();
+	pub const MaxBalance: Balance = Balance::MAX;
 	// The asset's interior location for the paying account. This is the Ambassador Treasury
 	// pallet instance.
 	pub AmbassadorTreasuryInteriorLocation: InteriorLocation =

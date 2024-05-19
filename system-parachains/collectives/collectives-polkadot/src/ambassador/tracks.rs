@@ -52,7 +52,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 24 * HOURS,
 					decision_period: 7 * DAYS,
 					confirm_period: 24 * HOURS,
-					min_enactment_period: 1 * HOURS,
+					min_enactment_period: HOURS,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -74,7 +74,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 24 * HOURS,
 					decision_period: 7 * DAYS,
 					confirm_period: 24 * HOURS,
-					min_enactment_period: 1 * HOURS,
+					min_enactment_period: HOURS,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
@@ -96,7 +96,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					prepare_period: 24 * HOURS,
 					decision_period: 7 * DAYS,
 					confirm_period: 24 * HOURS,
-					min_enactment_period: 1 * HOURS,
+					min_enactment_period: HOURS,
 					min_approval: pallet_referenda::Curve::LinearDecreasing {
 						length: Perbill::from_percent(100),
 						floor: Perbill::from_percent(50),
