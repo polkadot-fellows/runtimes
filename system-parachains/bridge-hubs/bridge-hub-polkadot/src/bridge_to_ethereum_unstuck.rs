@@ -24,6 +24,7 @@ use snowbridge_pallet_ethereum_client::{
 	CurrentSyncCommittee, InitialCheckpointRoot, LatestExecutionState, LatestFinalizedBlockRoot,
 	NextSyncCommittee, WeightInfo,
 };
+use sp_std::boxed::Box;
 
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
