@@ -23,6 +23,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod bridge_to_ethereum_config;
+mod bridge_to_ethereum_unstuck;
 pub mod bridge_to_kusama_config;
 mod bridge_to_kusama_unstuck;
 mod weights;
@@ -149,6 +150,7 @@ pub type Migrations = (
 		ConstU32<ASSET_HUB_ID>,
 	>,
 	bridge_to_kusama_unstuck::BridgeToKusamaUnstuck,
+	bridge_to_ethereum_unstuck::UnstuckSnowbridge,
 	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,

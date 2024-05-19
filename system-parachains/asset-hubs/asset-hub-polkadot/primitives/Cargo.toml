@@ -8,11 +8,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
-scale-info = { features = ["derive"] , workspace = true }
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 
 # Local
-system-parachains-constants = { path = "../../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 
 # Bridge Dependencies
 bp-xcm-bridge-hub-router = { workspace = true }
@@ -22,10 +22,10 @@ frame-support = { workspace = true }
 sp-std = { workspace = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"bp-xcm-bridge-hub-router/std",
 	"codec/std",
@@ -33,5 +33,5 @@ std = [
 	"scale-info/std",
 	"sp-std/std",
 	"system-parachains-constants/std",
-	"xcm/std"
+	"xcm/std",
 ]
