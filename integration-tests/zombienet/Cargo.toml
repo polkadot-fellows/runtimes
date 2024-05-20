@@ -8,5 +8,5 @@ subxt = { version = "0.35.0", default-features = false, features = ["native"] }
 tokio = "1.35.0"
 tracing-subscriber = "0.3.18"
 zombienet-sdk = "0.2"
-log = "0.4"
+log = "0.4.20"
 anyhow = "1.0.82"
