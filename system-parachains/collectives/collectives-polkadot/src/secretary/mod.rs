@@ -19,7 +19,10 @@
 mod origins;
 mod tracks;
 use crate::{
-	fellowship::{pallet_fellowship_origins::Fellows, FellowshipAdminBodyId, FellowshipCollectiveInstance, ranks::DAN_3},
+	fellowship::{
+		pallet_fellowship_origins::Fellows, ranks::DAN_3, FellowshipAdminBodyId,
+		FellowshipCollectiveInstance,
+	},
 	impls::ToParentTreasury,
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	*,

@@ -303,7 +303,7 @@ pub enum ProxyType {
 	Fellowship,
 	/// Ambassador proxy. Allows calls related to the Ambassador Program.
 	Ambassador,
-  /// Secretary proxy. Allows calls related to the Secretary collective
+	/// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
 impl Default for ProxyType {
@@ -351,13 +351,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-      ProxyType::Secretary => matches!(
+			ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
 					RuntimeCall::SecretaryReferenda { .. } |
 					RuntimeCall::SecretaryCore { .. } |
 					RuntimeCall::SecretarySalary { .. } |
-        	RuntimeCall::Utility { .. } |
+					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
 		}
@@ -716,8 +716,8 @@ construct_runtime!(
 		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
 		AmbassadorSalary: pallet_salary::<Instance2> = 74,
 		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
-    
-    // The Secretary Collective
+
+	// The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
 		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3;
@@ -809,7 +809,7 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
-    [pallet_referenda, SecretaryReferenda]
+	[pallet_referenda, SecretaryReferenda]
 		[pallet_ranked_cllective, SecretaryCollective]
 		[pallet_core_fellowship, SecretaryCore]
 		[pallet_salary, SecretarySalary]
