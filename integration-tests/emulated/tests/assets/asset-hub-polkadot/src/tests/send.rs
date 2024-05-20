@@ -23,7 +23,7 @@ fn send_transact_as_superuser_from_relay_to_system_para_works() {
 		ASSET_ID,
 		ASSET_MIN_BALANCE,
 		true,
-		AssetHubPolkadotSender::get().into(),
+		AssetHubPolkadotSender::get(),
 		Some(Weight::from_parts(1_019_445_000, 200_000)),
 	)
 }

@@ -20,13 +20,10 @@ use crate::*;
 use frame_support::{
 	dispatch::GetDispatchInfo, traits::WhitelistedStorageKeys, weights::WeightToFee as WeightToFeeT,
 };
-use keyring::Sr25519Keyring::Charlie;
-use pallet_transaction_payment::Multiplier;
-use parity_scale_codec::Encode;
-use runtime_common::MinimumMultiplier;
+use polkadot_runtime_common::MinimumMultiplier;
 use separator::Separatable;
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::FixedPointNumber;
+use sp_keyring::Sr25519Keyring::Charlie;
 use std::collections::HashSet;
 
 #[test]
@@ -36,7 +33,7 @@ fn nis_hold_reason_encoding_is_correct() {
 
 #[test]
 fn remove_keys_weight_is_sensible() {
-	use runtime_common::crowdloan::WeightInfo;
+	use polkadot_runtime_common::crowdloan::WeightInfo;
 	let max_weight = <Runtime as crowdloan::Config>::WeightInfo::refund(RemoveKeysLimit::get());
 	// Max remove keys limit should be no more than half the total block weight.
 	assert!((max_weight * 2).all_lt(BlockWeights::get().max_block));
@@ -44,7 +41,7 @@ fn remove_keys_weight_is_sensible() {
 
 #[test]
 fn sample_size_is_sensible() {
-	use runtime_common::auctions::WeightInfo;
+	use polkadot_runtime_common::auctions::WeightInfo;
 	// Need to clean up all samples at the end of an auction.
 	let samples: BlockNumber = EndingPeriod::get() / SampleLength::get();
 	let max_weight: Weight = RocksDbWeight::get().reads_writes(samples.into(), samples.into());
