@@ -13,8 +13,8 @@ publish = false
 emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
-asset-hub-kusama-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-kusama" }
-bridge-hub-kusama-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-kusama" }
-kusama-emulated-chain = { path = "../../chains/relays/kusama" }
-penpal-emulated-chain = { path = "../../chains/parachains/testing/penpal" }
-people-kusama-emulated-chain = { path = "../../chains/parachains/people/people-kusama" }
+asset-hub-kusama-emulated-chain = { workspace = true }
+bridge-hub-kusama-emulated-chain = { workspace = true }
+kusama-emulated-chain = { workspace = true }
+penpal-emulated-chain = { workspace = true }
+people-kusama-emulated-chain = { workspace = true }

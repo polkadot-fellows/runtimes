@@ -36,11 +36,13 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+pub mod ambassador;
 pub mod impls;
 mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub use ambassador::pallet_ambassador_origins;
 
 // Secretary Configuration
 pub mod secretary;
@@ -117,7 +119,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 6,
@@ -299,7 +301,9 @@ pub enum ProxyType {
 	Alliance,
 	/// Fellowship proxy. Allows calls related to the Fellowship.
 	Fellowship,
-	/// Secretary proxy. Allows calls related to the Secretary collective
+	/// Ambassador proxy. Allows calls related to the Ambassador Program.
+	Ambassador,
+  /// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
 impl Default for ProxyType {
@@ -338,13 +342,22 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			ProxyType::Secretary => matches!(
+			ProxyType::Ambassador => matches!(
+				c,
+				RuntimeCall::AmbassadorCollective { .. } |
+					RuntimeCall::AmbassadorReferenda { .. } |
+					RuntimeCall::AmbassadorCore { .. } |
+					RuntimeCall::AmbassadorSalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
+			),
+      ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
 					RuntimeCall::SecretaryReferenda { .. } |
 					RuntimeCall::SecretaryCore { .. } |
 					RuntimeCall::SecretarySalary { .. } |
-					RuntimeCall::Utility { .. } |
+        	RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
 		}
@@ -696,7 +709,15 @@ construct_runtime!(
 		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
 
-		// The Secretary Collective
+		// Ambassador Program.
+		AmbassadorCollective: pallet_ranked_collective::<Instance2> = 70,
+		AmbassadorReferenda: pallet_referenda::<Instance2> = 71,
+		AmbassadorOrigins: pallet_ambassador_origins = 72,
+		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
+		AmbassadorSalary: pallet_salary::<Instance2> = 74,
+		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
+    
+    // The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
 		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3;
@@ -783,7 +804,12 @@ mod benches {
 		[pallet_salary, FellowshipSalary]
 		[pallet_treasury, FellowshipTreasury]
 		[pallet_asset_rate, AssetRate]
-		[pallet_referenda, SecretaryReferenda]
+		[pallet_referenda, AmbassadorReferenda]
+		[pallet_ranked_collective, AmbassadorCollective]
+		[pallet_core_fellowship, AmbassadorCore]
+		[pallet_salary, AmbassadorSalary]
+		[pallet_treasury, AmbassadorTreasury]
+    [pallet_referenda, SecretaryReferenda]
 		[pallet_ranked_cllective, SecretaryCollective]
 		[pallet_core_fellowship, SecretaryCore]
 		[pallet_salary, SecretarySalary]

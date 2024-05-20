@@ -30,7 +30,7 @@ use frame_support::{
 		fungible::{Inspect, Mutate},
 		fungibles::{Create, Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 	},
-	weights::{Weight, WeightToFee as WeightToFeeT},
+	weights::WeightToFee as WeightToFeeT,
 };
 
 use asset_hub_kusama_runtime::{

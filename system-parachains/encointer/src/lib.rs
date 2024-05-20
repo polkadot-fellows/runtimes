@@ -122,7 +122,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("encointer-parachain"),
 	impl_name: create_runtime_str!("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 3,
@@ -345,7 +345,7 @@ pub struct NoConversion;
 impl ConversionFromAssetBalance<u128, (), u128> for NoConversion {
 	type Error = ();
 	fn from_asset_balance(balance: Balance, _asset_id: ()) -> Result<Balance, Self::Error> {
-		return Ok(balance)
+		Ok(balance)
 	}
 	#[cfg(feature = "runtime-benchmarks")]
 	fn ensure_successful(_: ()) {}
@@ -1296,7 +1296,7 @@ mod system_parachains_constants {
 			use polkadot_primitives::Balance;
 
 			/// The existential deposit.
-			pub const EXISTENTIAL_DEPOSIT: Balance = 1 * CENTS;
+			pub const EXISTENTIAL_DEPOSIT: Balance = CENTS;
 
 			pub const UNITS: Balance = 1_000_000_000_000;
 			pub const QUID: Balance = UNITS / 30;

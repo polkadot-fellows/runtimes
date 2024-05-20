@@ -33,7 +33,9 @@ pub mod account {
 	pub const IDENTITY_PALLET_ID: PalletId = PalletId(*b"py/ident");
 	/// Fellowship treasury pallet ID
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
-	/// Secretary treasury pallet ID
+	/// Ambassador treasury pallet ID
+	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+  /// Secretary treasury pallet ID
 	pub const SECRETARY_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/secrt");
 }
 
