@@ -212,14 +212,12 @@ where
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarks {
 	use super::*;
-	use crate::ParachainSystem;
 	use cumulus_primitives_core::{ChannelStatus, GetChannelInfo};
 	use frame_support::traits::{
 		fungible,
 		tokens::{Pay, PaymentStatus},
 	};
 	use pallet_ranked_collective::Rank;
-	use parachains_common::{AccountId, Balance};
 	use sp_runtime::traits::Convert;
 
 	/// Rank to salary conversion helper type.
