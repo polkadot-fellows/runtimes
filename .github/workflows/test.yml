@@ -233,10 +233,10 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --release --locked
+          cargo build -p chain-spec-generator --features fast-runtime --release --locked
 
       - name: Zombienet smoke test
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: |
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
