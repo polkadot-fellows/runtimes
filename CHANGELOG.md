@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Add new staking runtime api to check if reward is pending for an era. - Handle extra consumer reference when pool is destroyed ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+
+### Fixed
+
+- Handle extra erroneous consumer reference when a nomination pool is destroying. ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+
 ## [1.2.4] 20.05.2024
 
 ### Changed
@@ -17,7 +27,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
 - Add `pallet-xcm::transfer_assets_using_type_and_then()` for complex asset transfers ([polkadot-fellows/runtimes#311](https://github.com/polkadot-fellows/runtimes/pull/311))
 - The Ambassador Program ([polkadot-fellows/runtimes#291](https://github.com/polkadot-fellows/runtimes/pull/291))
-- Add new staking runtime api to check if reward is pending for an era. - Handle extra consumer reference when pool is destroyed ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
 
 ### Removed
 
@@ -30,7 +39,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
 - Safeguard pallet-balances against consumer ref underflow ([polkadot-fellows/runtimes#309](https://github.com/polkadot-fellows/runtimes/pull/309))
 - Polkadot Bridge Hub: Unstuck Snowbridge ([polkadot-fellows/runtimes#313](https://github.com/polkadot-fellows/runtimes/pull/313))
-- Handle extra consumer reference when pool is destroyed. ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
 
 ## [1.2.3] 29.04.2024
 
