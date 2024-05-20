@@ -229,6 +229,10 @@ xcm = { version = "8.0.1", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "8.0.1", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.6.0" }
 xcm-executor = { version = "8.0.1", default-features = false, package = "staging-xcm-executor" }
+anyhow = { version = "1.0.82" }
+subxt = { version = "0.35.0", default-features = false }
+tracing-subscriber = { version = "0.3.18" }
+zombienet-sdk = { version = "0.2" }
 
 [workspace]
 resolver = "2"
