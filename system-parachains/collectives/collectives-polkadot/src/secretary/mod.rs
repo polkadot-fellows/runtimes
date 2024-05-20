@@ -19,13 +19,10 @@
 mod origins;
 mod tracks;
 use crate::{
-	fellowship::{pallet_fellowship_origins::Fellows, FellowshipAdminBodyId},
+	fellowship::{pallet_fellowship_origins::Fellows, FellowshipAdminBodyId, FellowshipCollectiveInstance, ranks::DAN_3},
 	impls::ToParentTreasury,
-	weights,
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
-	AccountId, AssetRate, Balance, Balances, GovernanceLocation, ParachainInfo,
-	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, Scheduler,
-	SecretaryReferenda, DAYS, UNITS,
+	*,
 };
 use frame_support::{
 	parameter_types,
@@ -46,12 +43,8 @@ use sp_runtime::{
 };
 use system_parachains_constants::polkadot::account::SECRETARY_TREASURY_PALLET_ID;
 
-use crate::fellowship::FellowshipCollectiveInstance;
-
 use xcm::prelude::*;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
-
-use crate::fellowship::ranks::DAN_3;
 
 /// The Secretary members' ranks.
 pub mod ranks {
@@ -67,18 +60,6 @@ type ApproveOrigin = EitherOf<
 	MapSuccess<
 		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
 		Replace<ConstU16<1>>,
-	>,
->;
-
-type InductOrigin = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EitherOfDiverse<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
-		pallet_ranked_collective::EnsureMember<
-			Runtime,
-			SecretaryCollectiveInstance,
-			{ ranks::SECRETARY },
-		>,
 	>,
 >;
 
@@ -259,7 +240,10 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = SecretarySalaryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
-	type Paymaster = PayWithEnsure<FellowshipSalaryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
+	type Paymaster = crate::impls::benchmarks::PayWithEnsure<
+		SecretarySalaryPaymaster,
+		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
+	>;
 	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -285,6 +269,11 @@ parameter_types! {
 	// pallet instance.
 	pub SecretaryTreasuryInteriorLocation: InteriorLocation =
 		PalletInstance(<crate::SecretaryTreasury as PalletInfoAccess>::index() as u8).into();
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub const ProposalBondForBenchmark: Permill = Permill::from_percent(5);
 }
 
 /// [`PayOverXcm`] setup to pay the Secretary Treasury.
@@ -354,7 +343,10 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Paymaster = SecretaryTreasuryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
-	type Paymaster = PayWithEnsure<SecretaryTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
+	type Paymaster = crate::impls::benchmarks::PayWithEnsure<
+		SecretaryTreasuryPaymaster,
+		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
+	>;
 	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
