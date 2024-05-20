@@ -8,7 +8,7 @@ description = "Asset Hub Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
+codec = { workspace = true, default-features = true }
 assert_matches = { workspace = true }
 
 # Substrate
@@ -22,21 +22,23 @@ pallet-message-queue = { workspace = true, default-features = true }
 pallet-utility = { workspace = true, default-features = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
+polkadot-runtime-common = { workspace = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 asset-test-utils = { workspace = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true, default-features = true }
 
 # Local
-asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
-integration-tests-helpers = { path = "../../../helpers" }
-kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
-kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
-kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
+asset-hub-kusama-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+kusama-runtime = { workspace = true }
+kusama-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }
+kusama-runtime-constants = { workspace = true, default-features = true }

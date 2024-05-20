@@ -24,6 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod impls;
 mod weights;
 pub mod xcm_config;
 
@@ -69,11 +70,10 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use pallet_asset_conversion_tx_payment::AssetConversionAdapter;
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance,
-	BlockNumber, Hash, Header, Nonce, Signature,
+	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
+	Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
@@ -254,12 +254,16 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
 	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
+		NativeAndAssets,
+		KsmLocationV3,
+		ResolveAssetTo<StakingPot, NativeAndAssets>,
+	>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -807,7 +811,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = LocalAndForeignAssets;
 	type OnChargeAssetTransaction =
-		AssetConversionAdapter<Balances, AssetConversion, KsmLocationV3>;
+		impls::tx_payment::SwapCreditAdapter<KsmLocationV3, AssetConversion>;
 }
 
 parameter_types! {
@@ -859,7 +863,7 @@ impl pallet_nft_fractionalization::Config for Runtime {
 	type Assets = Assets;
 	type Nfts = Nfts;
 	type PalletId = NftFractionalizationPalletId;
-	type WeightInfo = pallet_nft_fractionalization::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::pallet_nft_fractionalization::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -1723,7 +1727,6 @@ fn ensure_key_ss58() {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{CENTS, MILLICENTS};
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
 	use system_parachains_constants::kusama::fee;
