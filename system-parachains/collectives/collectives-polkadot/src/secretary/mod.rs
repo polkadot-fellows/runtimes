@@ -86,7 +86,7 @@ pub type SecretaryReferendaInstance = pallet_referenda::Instance3;
 pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 
 impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
-	type WeightInfo = weights::pallet_referenda::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO weights::pallet_referenda_secretary_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -119,7 +119,7 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 }
 
 impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -160,7 +160,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
 
 impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO weights::pallet_core_fellowship_secretary_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
 	type Balance = Balance;
@@ -237,7 +237,7 @@ impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 }
 
 impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO weights::pallet_salary_secretary_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -317,7 +317,7 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
-	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+	type WeightInfo = (); // TODO weights::pallet_treasury_secretary_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = SecretaryTreasuryPalletId;
 	type Currency = Balances;
