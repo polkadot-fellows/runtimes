@@ -19,10 +19,7 @@
 mod origins;
 mod tracks;
 use crate::{
-	fellowship::{
-		pallet_fellowship_origins::Fellows, ranks::DAN_3, FellowshipAdminBodyId,
-		FellowshipCollectiveInstance,
-	},
+	fellowship::{ranks::DAN_3, FellowshipAdminBodyId, FellowshipCollectiveInstance},
 	impls::ToParentTreasury,
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	*,
@@ -38,7 +35,7 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{currency::GRAND, system_parachain, time::HOURS};
+use polkadot_runtime_constants::{currency::GRAND, time::HOURS};
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::{
 	traits::{ConstU16, ConvertToValue, Identity, IdentityLookup, Replace},
@@ -47,7 +44,9 @@ use sp_runtime::{
 use system_parachains_constants::polkadot::account::SECRETARY_TREASURY_PALLET_ID;
 
 use xcm::prelude::*;
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
+
+use self::xcm_config::AssetHubUsdt;
 
 /// The Secretary members' ranks.
 pub mod ranks {
@@ -204,28 +203,22 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
 
 parameter_types! {
-	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
-	pub AssetHubUsdtId: AssetId = (PalletInstance(50), GeneralIndex(1984)).into();
-	pub UsdtAsset: LocatableAssetId = LocatableAssetId {
-		location: AssetHub::get(),
-		asset_id: AssetHubUsdtId::get(),
-	};
 	// The interior location on AssetHub for the paying account. This is the Secretary Salary
 	// pallet instance. This sovereign account will need funding.
-	pub Interior: InteriorLocation = PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
+	pub SecretarySalaryInteriorLocation: InteriorLocation = PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
 }
 
 const USDT_UNITS: u128 = 1_000_000;
 
 /// [`PayOverXcm`] setup to pay the Secretary salary on the AssetHub in USDT.
 pub type SecretarySalaryPaymaster = PayOverXcm<
-	Interior,
+	SecretarySalaryInteriorLocation,
 	crate::xcm_config::XcmRouter,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	ConvertToValue<UsdtAsset>,
+	ConvertToValue<AssetHubUsdt>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
@@ -260,7 +253,7 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	// 15 days to claim the salary payment.
 	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
-	type Budget = ConstU128<{ 250_000 * USDT_UNITS }>;
+	type Budget = ConstU128<{ 10_000 * USDT_UNITS }>;
 }
 
 parameter_types! {
@@ -281,7 +274,7 @@ parameter_types! {
 
 /// [`PayOverXcm`] setup to pay the Secretary Treasury.
 pub type SecretaryTreasuryPaymaster = PayOverXcm<
-	Interior,
+	SecretaryTreasuryInteriorLocation,
 	crate::xcm_config::XcmRouter,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
@@ -321,10 +314,7 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = SecretaryTreasuryPalletId;
 	type Currency = Balances;
-	type RejectOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, TreasurerBodyId>>, Fellows>,
-	>;
+	type RejectOrigin = OpenGovOrSecretary;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
 	type BurnDestination = ();
