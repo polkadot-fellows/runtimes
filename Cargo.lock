@@ -3551,6 +3551,7 @@ version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
+ "cumulus-pallet-session-benchmarking",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-aura",
@@ -3571,7 +3572,9 @@ dependencies = [
  "log",
  "pallet-asset-tx-payment",
  "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-collective",
  "pallet-encointer-balances",
  "pallet-encointer-bazaar",
@@ -3588,10 +3591,10 @@ dependencies = [
  "pallet-message-queue",
  "pallet-proxy",
  "pallet-scheduler",
+ "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-treasury",
  "pallet-utility",
  "pallet-xcm",
  "parachains-common",
@@ -7557,9 +7560,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-encointer-faucet"
-version = "6.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef912a2cdd0f586054d5df1078037ef324fd64515671d6630cfbd1787c4ebe2a"
+checksum = "3024bc49c1fd7fffa68f4aa636b199c7a0772690049d0471a6b60d17080024d8"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -7569,7 +7572,6 @@ dependencies = [
  "log",
  "pallet-encointer-communities",
  "pallet-encointer-reputation-commitments",
- "pallet-treasury",
  "parity-scale-codec",
  "scale-info",
  "sp-core",

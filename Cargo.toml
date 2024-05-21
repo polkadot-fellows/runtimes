@@ -111,7 +111,7 @@ pallet-encointer-ceremonies = { version = "~6.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~6.1.0", default-features = false }
 pallet-encointer-communities = { version = "~6.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~6.1.0", default-features = false }
-pallet-encointer-faucet = { version = "~6.1.0", default-features = false }
+pallet-encointer-faucet = { version = "~6.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~6.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~6.1.0", default-features = false }
 pallet-fast-unstake = { version = "28.0.0", default-features = false }
