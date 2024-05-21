@@ -92,6 +92,7 @@ pub fn transfer_token_to_ethereum_works() {
 #[test]
 pub fn unpaid_transfer_token_to_ethereum_fails_with_barrier() {
 	snowbridge_runtime_test_common::send_unpaid_transfer_token_message::<Runtime, XcmConfig>(
+		11155111,
 		collator_session_keys(),
 		1013,
 		1000,
