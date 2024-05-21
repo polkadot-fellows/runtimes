@@ -7899,9 +7899,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "26.0.0"
+version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f14519c1c613d2f8c95c27015864c11a37969a23deeba9f6dbaff4276e1b81c"
+checksum = "b62091305ec7426e71c3da2b0944c2df5a804109ee4d2e8f4fe34865e049f8ac"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8184,9 +8184,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking"
-version = "29.0.2"
+version = "29.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "668b7d28c499f0d9f295fad26cf6c342472e21842e3b13bcaaac8536358b2d6c"
+checksum = "061b00814eb794a40df4eca7972a7c67b26473cd85cc7c54f5816ae49ad6e11b"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -8230,9 +8230,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-staking-runtime-api"
-version = "15.0.0"
+version = "15.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "237d7b5a10cb6cba727c3e957fb241776302aa3cce589e6759ba53f50129c1a5"
+checksum = "e47c73850103db30b61ef170107afe1ef0dab6905c495bd6dfb57b3c1dd81bc7"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
