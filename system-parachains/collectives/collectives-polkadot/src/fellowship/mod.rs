@@ -21,7 +21,7 @@ mod tracks;
 use crate::{
 	impls::ToParentTreasury,
 	weights,
-	xcm_config::{LocationToAccountId, TreasurerBodyId},
+	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
@@ -43,13 +43,11 @@ use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{
-	currency::GRAND, system_parachain, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX,
-};
+use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
-use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::{
@@ -81,7 +79,7 @@ impl pallet_fellowship_origins::Config for Runtime {}
 pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 
 impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
-	type WeightInfo = weights::pallet_referenda::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_referenda_fellowship_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -116,7 +114,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 
 impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -156,7 +154,7 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
 
 impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_core_fellowship_fellowship_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, FellowshipCollectiveInstance>;
 	type Balance = Balance;
@@ -214,12 +212,6 @@ pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 use xcm::prelude::*;
 
 parameter_types! {
-	pub AssetHub: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
-	pub AssetHubUsdtId: AssetId = (PalletInstance(50), GeneralIndex(1984)).into();
-	pub UsdtAsset: LocatableAssetId = LocatableAssetId {
-		location: AssetHub::get(),
-		asset_id: AssetHubUsdtId::get(),
-	};
 	// The interior location on AssetHub for the paying account. This is the Fellowship Salary
 	// pallet instance. This sovereign account will need funding.
 	pub Interior: InteriorLocation = PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
@@ -235,12 +227,12 @@ pub type FellowshipSalaryPaymaster = PayOverXcm<
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
 	(),
-	ConvertToValue<UsdtAsset>,
+	ConvertToValue<AssetHubUsdt>,
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
 impl pallet_salary::Config<FellowshipSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_fellowship_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -317,7 +309,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
 	// end.
 
-	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury_fellowship_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = FellowshipTreasuryPalletId;
 	type Currency = Balances;

@@ -13052,9 +13052,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb89a9f375672031669fef4b2f4037cdf84dc1624ebd204c5cea839a0844bcdd"
+checksum = "e41b74c0509a263bec0b86a5892d3a5fbac0084fc7f7b2e5cc523119ed91c7e3"
 dependencies = [
  "bp-runtime",
  "byte-slice-cast",

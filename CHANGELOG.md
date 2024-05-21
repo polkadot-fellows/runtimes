@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.2.4] 20.05.2024
 
 ### Changed
 
@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 - Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
 - Add `pallet-xcm::transfer_assets_using_type_and_then()` for complex asset transfers ([polkadot-fellows/runtimes#311](https://github.com/polkadot-fellows/runtimes/pull/311))
+- The Ambassador Program ([polkadot-fellows/runtimes#291](https://github.com/polkadot-fellows/runtimes/pull/291))
 
 ### Removed
 
@@ -28,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
 - Safeguard pallet-balances against consumer ref underflow ([polkadot-fellows/runtimes#309](https://github.com/polkadot-fellows/runtimes/pull/309))
+- Polkadot Bridge Hub: Unstuck Snowbridge ([polkadot-fellows/runtimes#313](https://github.com/polkadot-fellows/runtimes/pull/313))
 
 ## [1.2.3] 29.04.2024
 
@@ -123,6 +125,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update the fellowship salary budget amount in alignment with the Fellowship Salary [RFC](https://github.com/polkadot-fellows/RFCs/pull/50) ([polkadot-fellows/runtimes#121](https://github.com/polkadot-fellows/runtimes/pull/121))
 - Set up an account ID for the local root location on Polkadot Collectives ([polkadot-fellows/runtimes#125](https://github.com/polkadot-fellows/runtimes/pull/125))
 - Increase confirmation period for treasury spend tracks on Polkadot & Kusama ([polkadot-fellows/runtimes#119](https://github.com/polkadot-fellows/runtimes/pull/119))
+- Drop ED requirement for transaction payments with an exchangeable asset ([polkadot-fellows/runtimes#310](https://github.com/polkadot-fellows/runtimes/pull/310))
 
 ### Added
 
