@@ -21,7 +21,7 @@ use frame_support::traits::OnInitialize;
 // Cumulus
 use emulated_integration_tests_common::{
 	impl_accounts_helpers_for_parachain, impl_assert_events_helpers_for_parachain,
-	impl_assets_helpers_for_parachain, impl_foreign_assets_helpers_for_parachain,
+	impl_assets_helpers_for_parachain, impl_assets_helpers_for_system_parachain,
 	impl_xcm_helpers_for_parachain, impls::Parachain, xcm_emulator::decl_test_parachains,
 };
 use polkadot_emulated_chain::Polkadot;
@@ -54,6 +54,6 @@ decl_test_parachains! {
 // AssetHubPolkadot implementation
 impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
 impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
-impl_assets_helpers_for_parachain!(AssetHubPolkadot, Polkadot);
-impl_foreign_assets_helpers_for_parachain!(AssetHubPolkadot, Polkadot);
+impl_assets_helpers_for_system_parachain!(AssetHubPolkadot, Polkadot);
+impl_assets_helpers_for_parachain!(AssetHubPolkadot);
 impl_xcm_helpers_for_parachain!(AssetHubPolkadot);

@@ -319,7 +319,7 @@ fn limited_teleport_native_assets_from_relay_to_system_para_works() {
 	test.assert();
 
 	let delivery_fees = Polkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<PolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -366,7 +366,7 @@ fn limited_teleport_native_assets_back_from_system_para_to_relay_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -407,7 +407,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -442,7 +442,7 @@ fn teleport_native_assets_from_relay_to_system_para_works() {
 	test.assert();
 
 	let delivery_fees = Polkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<PolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -489,7 +489,7 @@ fn teleport_native_assets_back_from_system_para_to_relay_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -527,7 +527,7 @@ fn teleport_native_assets_from_system_para_to_relay_fails() {
 	test.assert();
 
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -570,6 +570,8 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 		v3::Location::new(1, [v3::Junction::Parachain(PenpalB::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
+	/*
+	// FAIL-CI
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_polkadot,
@@ -577,7 +579,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 		false,
 		asset_owner_on_penpal,
 		ASSET_MIN_BALANCE * 1_000_000,
-	);
+	);*/
 	let penpal_to_ah_beneficiary_id = AssetHubPolkadotReceiver::get();
 
 	let fee_amount_to_send = ASSET_HUB_POLKADOT_ED * 1000;

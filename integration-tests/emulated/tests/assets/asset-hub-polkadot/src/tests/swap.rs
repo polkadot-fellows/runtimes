@@ -147,6 +147,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			.unwrap();
 
 	// 1. Create asset on penpal and, 2. Create foreign asset on asset_hub_polkadot
+	/*
+	// FAIL-CI
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_polkadot,
@@ -154,7 +156,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		true,
 		asset_owner_on_penpal,
 		ASSET_MIN_BALANCE * 1_000_000,
-	);
+	);*/
 
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(penpal_as_seen_by_ah);

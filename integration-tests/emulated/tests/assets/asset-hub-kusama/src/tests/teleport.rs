@@ -319,7 +319,7 @@ fn limited_teleport_native_assets_from_relay_to_system_para_works() {
 	test.assert();
 
 	let delivery_fees = Kusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<KusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -366,7 +366,7 @@ fn limited_teleport_native_assets_back_from_system_para_to_relay_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -407,7 +407,7 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -442,7 +442,7 @@ fn teleport_native_assets_from_relay_to_system_para_works() {
 	test.assert();
 
 	let delivery_fees = Kusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<KusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -489,7 +489,7 @@ fn teleport_native_assets_back_from_system_para_to_relay_works() {
 	let receiver_balance_after = test.receiver.balance;
 
 	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -527,7 +527,7 @@ fn teleport_native_assets_from_system_para_to_relay_fails() {
 	test.assert();
 
 	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::transfer_assets_delivery_fees::<
+		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
@@ -546,12 +546,14 @@ fn teleport_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_sibling_is_trusted_teleporter!(
+
+	/*test_sibling_is_trusted_teleporter!(
 		AssetHubKusama,          // Origin
 		AssetHubKusamaXcmConfig, // XCM Configuration
 		vec![BridgeHubKusama],   // Destinations
 		(native_asset, amount)
-	);
+	);*/
+	todo!() // FAIL-CI
 }
 
 /// Bidirectional teleports of local Penpal assets to Asset Hub as foreign assets should work
@@ -570,6 +572,8 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
+	/*
+	// FAIL-CI
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_kusama,
@@ -577,7 +581,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 		false,
 		asset_owner_on_penpal,
 		ASSET_MIN_BALANCE * 1_000_000,
-	);
+	);*/
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();
 
 	let fee_amount_to_send = ASSET_HUB_KUSAMA_ED * 10_000;
