@@ -27,7 +27,7 @@ pub const EXISTENTIAL_WEIGHT: u64 = 33_333_333;
 /// Constant ratio between bags for this runtime.
 #[cfg(any(test, feature = "std"))]
 #[allow(unused)]
-pub const CONSTANT_RATIO: f64 = 1.1455399939091000;
+pub const CONSTANT_RATIO: f64 = 1.145_539_993_909_1;
 
 /// Upper thresholds delimiting the bag list.
 pub const THRESHOLDS: [u64; 200] = [

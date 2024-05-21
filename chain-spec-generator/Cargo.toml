@@ -7,60 +7,57 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { features = [ "derive" ] , workspace = true }
+clap = { features = ["derive"], workspace = true }
 serde_json = { workspace = true }
-serde = { features = ["derive"] , workspace = true }
+serde = { features = ["derive"], workspace = true }
 
-polkadot-runtime = { path = "../relay/polkadot" }
-polkadot-runtime-constants = { path = "../relay/polkadot/constants" }
-kusama-runtime = { package = "staging-kusama-runtime", path = "../relay/kusama" }
-kusama-runtime-constants = { path = "../relay/kusama/constants" }
+polkadot-runtime = { workspace = true }
+polkadot-runtime-constants = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true }
+kusama-runtime-constants = { workspace = true, default-features = true }
 
 sc-chain-spec = { workspace = true }
-polkadot-runtime-parachains = { workspace = true, default-features = true }
+runtime-parachains = { default-features = true, workspace = true }
 polkadot-primitives = { workspace = true, default-features = true }
-sp-consensus-babe = { workspace = true, default-features = true }
-sp-authority-discovery = { workspace = true, default-features = true }
+babe-primitives = { workspace = true, default-features = true }
+authority-discovery-primitives = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 pallet-staking = { workspace = true, default-features = true }
-sc-consensus-grandpa = { workspace = true }
+grandpa = { workspace = true }
 sp-runtime = { workspace = true, default-features = true }
-sp-consensus-beefy = { workspace = true, default-features = true }
-xcm = { package = "staging-xcm", version = "8.0.1" }
+beefy-primitives = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
 
-asset-hub-polkadot-runtime = { path = "../system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-hub-kusama-runtime = { path = "../system-parachains/asset-hubs/asset-hub-kusama" }
-collectives-polkadot-runtime = { path = "../system-parachains/collectives/collectives-polkadot" }
-bridge-hub-polkadot-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-kusama-runtime = { path = "../system-parachains/bridge-hubs/bridge-hub-kusama" }
-encointer-kusama-runtime = { path = "../system-parachains/encointer" }
-glutton-kusama-runtime = { path = "../system-parachains/gluttons/glutton-kusama" }
-coretime-kusama-runtime = { path = "../system-parachains/coretime/coretime-kusama" }
-people-kusama-runtime = { path = "../system-parachains/people/people-kusama" }
+asset-hub-polkadot-runtime = { workspace = true }
+asset-hub-kusama-runtime = { workspace = true }
+collectives-polkadot-runtime = { workspace = true }
+bridge-hub-polkadot-runtime = { workspace = true }
+bridge-hub-kusama-runtime = { workspace = true }
+encointer-kusama-runtime = { workspace = true }
+glutton-kusama-runtime = { workspace = true }
+coretime-kusama-runtime = { workspace = true }
+people-kusama-runtime = { workspace = true }
 
 [features]
-fast-runtime = [
-	"kusama-runtime/fast-runtime",
-	"polkadot-runtime/fast-runtime",
-]
+fast-runtime = ["kusama-runtime/fast-runtime", "polkadot-runtime/fast-runtime"]
 runtime-benchmarks = [
-	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"asset-hub-kusama-runtime/runtime-benchmarks",
-	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
 	"collectives-polkadot-runtime/runtime-benchmarks",
-	"kusama-runtime/runtime-benchmarks",
-	"polkadot-runtime/runtime-benchmarks",
+	"coretime-kusama-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
-	"coretime-kusama-runtime/runtime-benchmarks",
-	"people-kusama-runtime/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
+	"people-kusama-runtime/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"polkadot-runtime-parachains/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks"
+	"polkadot-runtime/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
 ]

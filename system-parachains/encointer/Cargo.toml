@@ -9,9 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = [
-	"derive",
-] }
+codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
@@ -82,9 +80,9 @@ sp-version = { workspace = true }
 pallet-xcm = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { workspace = true }
@@ -98,7 +96,7 @@ cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false, version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
@@ -111,19 +109,24 @@ substrate-wasm-builder = { optional = true, workspace = true }
 # so we need to copy all the contents from `system-parachains-constants` and `kusama-runtime-constants`.
 # We use these crates only for testing to ensure compatible values.
 # NOTE: Do not add this to the `[dependencies]`
-kusama-runtime-constants = { path = "../../relay/kusama/constants" }
-system-parachains-constants = { path = "../constants" }
+kusama-runtime-constants = { workspace = true, default-features = true }
+system-parachains-constants = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
 runtime-benchmarks = [
-	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
+	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"cumulus-primitives-utility/runtime-benchmarks",
+	"encointer-balances-tx-payment/runtime-benchmarks",
+	"encointer-primitives/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
@@ -134,25 +137,20 @@ runtime-benchmarks = [
 	"pallet-encointer-faucet/runtime-benchmarks",
 	"pallet-encointer-reputation-commitments/runtime-benchmarks",
 	"pallet-encointer-scheduler/runtime-benchmarks",
-	"pallet-message-queue/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"cumulus-primitives-utility/runtime-benchmarks",
-	"encointer-balances-tx-payment/runtime-benchmarks",
-	"encointer-primitives/runtime-benchmarks",
-	"pallet-asset-tx-payment/runtime-benchmarks",
-	"pallet-scheduler/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks",
-	"polkadot-parachain-primitives/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
@@ -168,8 +166,10 @@ std = [
 	"encointer-balances-tx-payment/std",
 	"encointer-primitives/serde_derive",
 	"encointer-primitives/std",
+	"frame-benchmarking?/std",
 	"frame-executive/std",
 	"frame-support/std",
+	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
@@ -191,9 +191,10 @@ std = [
 	"pallet-encointer-reputation-commitments/std",
 	"pallet-encointer-scheduler/std",
 	"pallet-insecure-randomness-collective-flip/std",
-	"pallet-message-queue/std",
 	"pallet-membership/std",
+	"pallet-message-queue/std",
 	"pallet-proxy/std",
+	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -202,6 +203,10 @@ std = [
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
+	"polkadot-core-primitives/std",
+	"polkadot-parachain-primitives/std",
+	"polkadot-primitives/std",
+	"polkadot-runtime-common/std",
 	"scale-info/std",
 	"sp-api/std",
 	"sp-block-builder/std",
@@ -219,13 +224,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"frame-benchmarking?/std",
-	"frame-system-benchmarking?/std",
-	"pallet-scheduler/std",
-	"polkadot-core-primitives/std",
-	"polkadot-parachain-primitives/std",
-	"polkadot-primitives/std",
-	"polkadot-runtime-common/std",
 ]
 
 
@@ -234,7 +232,10 @@ try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
+	"encointer-balances-tx-payment/try-runtime",
+	"encointer-primitives/try-runtime",
 	"frame-executive/try-runtime",
+	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
@@ -251,8 +252,8 @@ try-runtime = [
 	"pallet-encointer-reputation-commitments/try-runtime",
 	"pallet-encointer-scheduler/try-runtime",
 	"pallet-insecure-randomness-collective-flip/try-runtime",
-	"pallet-message-queue/try-runtime",
 	"pallet-membership/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
@@ -261,9 +262,6 @@ try-runtime = [
 	"pallet-utility/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
-	"encointer-balances-tx-payment/try-runtime",
-	"encointer-primitives/try-runtime",
-	"frame-support/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 ]

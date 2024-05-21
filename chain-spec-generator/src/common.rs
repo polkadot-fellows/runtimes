@@ -67,7 +67,7 @@ struct EmptyChainSpecWithId {
 
 pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn ChainSpec>, String> {
 	let path = std::path::PathBuf::from(&filepath);
-	let file = std::fs::File::open(&filepath).expect("Failed to open file");
+	let file = std::fs::File::open(filepath).expect("Failed to open file");
 	let reader = std::io::BufReader::new(file);
 	let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
 		.expect("Failed to read 'json' file with ChainSpec configuration");

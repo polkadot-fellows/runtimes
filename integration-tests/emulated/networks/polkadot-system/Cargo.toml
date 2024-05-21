@@ -13,8 +13,8 @@ publish = false
 emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
-asset-hub-polkadot-emulated-chain = { path = "../../chains/parachains/assets/asset-hub-polkadot" }
-bridge-hub-polkadot-emulated-chain = { path = "../../chains/parachains/bridges/bridge-hub-polkadot" }
-collectives-polkadot-emulated-chain = { path = "../../chains/parachains/collectives/collectives-polkadot" }
-penpal-emulated-chain = { path = "../../chains/parachains/testing/penpal" }
-polkadot-emulated-chain = { path = "../../chains/relays/polkadot" }
+asset-hub-polkadot-emulated-chain = { workspace = true }
+bridge-hub-polkadot-emulated-chain = { workspace = true }
+collectives-polkadot-emulated-chain = { workspace = true }
+penpal-emulated-chain = { workspace = true }
+polkadot-emulated-chain = { workspace = true }

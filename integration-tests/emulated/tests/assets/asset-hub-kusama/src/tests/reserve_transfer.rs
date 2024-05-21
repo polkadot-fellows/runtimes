@@ -107,7 +107,7 @@ fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Burned { who, amount }
 			) => {
-				who: *who == sov_penpal_on_ahk.clone().into(),
+				who: *who == sov_penpal_on_ahk.clone(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
@@ -267,7 +267,7 @@ fn para_to_para_limited_reserve_transfer_assets(t: ParaToParaTest) -> DispatchRe
 /// Reserve Transfers of native asset from Relay Chain to the System Parachain shouldn't work
 #[test]
 fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
-	let signed_origin = <Kusama as Chain>::RuntimeOrigin::signed(KusamaSender::get().into());
+	let signed_origin = <Kusama as Chain>::RuntimeOrigin::signed(KusamaSender::get());
 	let destination = Kusama::child_location_of(AssetHubKusama::para_id());
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
@@ -301,7 +301,7 @@ fn reserve_transfer_native_asset_from_relay_to_system_para_fails() {
 fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 	// Init values for System Parachain
 	let signed_origin =
-		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
+		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
 	let destination = AssetHubKusama::parent_location();
 	let beneficiary_id = KusamaReceiver::get();
 	let beneficiary: Location =
@@ -444,7 +444,7 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_location_as_seen_by_ahk);
 
 	// fund the Penpal's SA on AHK with the native tokens held in reserve
-	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk.into(), amount_to_send * 2)]);
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk, amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalA>(para_to_system_para_sender_assertions);
 	test.set_assertion::<AssetHubKusama>(para_to_system_para_receiver_assertions);
@@ -527,7 +527,7 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 	// Create SA-of-Penpal-on-AHK with ED.
 	let penpal_location = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_location);
-	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk.into(), KUSAMA_ED)]);
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahk, KUSAMA_ED)]);
 
 	let sender_balance_before = test.sender.balance;
 	let receiver_balance_before = test.receiver.balance;
@@ -598,7 +598,7 @@ fn reserve_transfer_native_asset_from_para_to_para() {
 	let sov_of_sender_on_relay = Kusama::sovereign_account_id_of(sender_as_seen_by_relay);
 
 	// fund the PenpalA's SA on Kusama with the native tokens held in reserve
-	Kusama::fund_accounts(vec![(sov_of_sender_on_relay.into(), amount_to_send * 2)]);
+	Kusama::fund_accounts(vec![(sov_of_sender_on_relay, amount_to_send * 2)]);
 
 	test.set_assertion::<PenpalA>(para_to_para_sender_assertions);
 	test.set_assertion::<Kusama>(para_to_para_relay_hop_assertions);

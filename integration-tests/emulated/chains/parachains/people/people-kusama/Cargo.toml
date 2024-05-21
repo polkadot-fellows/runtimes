@@ -19,5 +19,5 @@ cumulus-primitives-core = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 
 # Local
-people-kusama-runtime = { path = "../../../../../../system-parachains/people/people-kusama" }
-kusama-emulated-chain = { path = "../../../relays/kusama" }
+people-kusama-runtime = { workspace = true }
+kusama-emulated-chain = { workspace = true }

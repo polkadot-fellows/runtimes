@@ -21,7 +21,7 @@ fn teleport_to_other_system_parachains_works() {
 	let amount = BRIDGE_HUB_KUSAMA_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_parachain_is_trusted_teleporter!(
+	test_sibling_is_trusted_teleporter!(
 		BridgeHubKusama,      // Origin
 		XcmConfig,            // XCM configuration
 		vec![AssetHubKusama], // Destinations
