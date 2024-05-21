@@ -1310,7 +1310,7 @@ mod system_parachains_constants {
 			use polkadot_primitives::Balance;
 
 			/// The existential deposit.
-			pub const EXISTENTIAL_DEPOSIT: Balance = 1 * CENTS;
+			pub const EXISTENTIAL_DEPOSIT: Balance = CENTS;
 
 			pub const UNITS: Balance = 1_000_000_000_000;
 			pub const QUID: Balance = UNITS / 30;

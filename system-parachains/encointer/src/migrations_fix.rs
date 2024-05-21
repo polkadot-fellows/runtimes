@@ -23,7 +23,7 @@ pub mod collator_selection_init {
 	use sp_runtime::TryRuntimeError;
 
 	/// The log target.
-	const TARGET: &'static str = "runtime::fix::collator_selection_init";
+	const TARGET: &str = "runtime::fix::collator_selection_init";
 	pub mod v0 {
 		use super::*;
 		use crate::SessionKeys;
