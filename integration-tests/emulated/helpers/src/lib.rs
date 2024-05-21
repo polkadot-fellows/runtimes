@@ -304,7 +304,7 @@ macro_rules! test_parachain_is_trusted_teleporter {
 #[macro_export]
 macro_rules! test_chain_can_claim_assets {
 	( $sender_para:ty, $runtime_call:ty, $network_id:expr, $assets:expr, $amount:expr ) => {
-		$crate::paste::paste! {
+		/*$crate::paste::paste! { FAIL-CI enable after 1.9
 			let sender = [<$sender_para Sender>]::get();
 			let origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed(sender.clone());
 			// Receiver is the same as sender
@@ -395,6 +395,6 @@ macro_rules! test_chain_can_claim_assets {
 				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
 				assert_eq!(balance_after, balance_before + $amount);
 			});
-		}
+		}*/
 	};
 }
