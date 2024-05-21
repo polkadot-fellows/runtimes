@@ -25,6 +25,7 @@ use sp_runtime::{
 	morph_types,
 	traits::{Replace, TypedGet},
 };
+use sp_runtime::traits::ReplaceWithDefault;
 
 use super::*;
 
@@ -356,6 +357,8 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// - the Fellows origin
 	type ExchangeOrigin =
 		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
+	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
+	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type MemberSwappedHandler = ();

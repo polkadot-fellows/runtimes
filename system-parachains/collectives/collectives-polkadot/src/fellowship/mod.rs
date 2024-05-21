@@ -50,6 +50,7 @@ use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId, PayOverXcm};
+use sp_runtime::traits::ReplaceWithDefault;
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::{
@@ -145,6 +146,8 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// - the Fellows origin
 	type ExchangeOrigin =
 		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
+		type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
+	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
 	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
