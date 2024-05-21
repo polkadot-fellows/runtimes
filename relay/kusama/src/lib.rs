@@ -24,7 +24,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing,
-	vstaging::{ApprovalVotingParams, NodeFeatures},
+	ApprovalVotingParams, NodeFeatures,
 	AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CandidateHash,
 	CommittedCandidateReceipt, CoreState, DisputeState, ExecutorParams, GroupRotationInfo, Hash,
 	Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment, Nonce,
@@ -55,7 +55,7 @@ use runtime_parachains::{
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
 	runtime_api_impl::{
-		v7 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
+		v10 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
 	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
@@ -1342,6 +1342,7 @@ impl pallet_message_queue::Config for Runtime {
 	type QueueChangeHandler = ParaInclusion;
 	type QueuePausedQuery = ();
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
+	type IdleMaxServiceWeight = ();
 }
 
 impl parachains_dmp::Config for Runtime {}
@@ -2295,21 +2296,21 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn disabled_validators() -> Vec<ValidatorIndex> {
-			parachains_vstaging_api_impl::disabled_validators::<Runtime>()
+			parachains_runtime_api_impl::disabled_validators::<Runtime>()
 		}
 
 		fn node_features() -> NodeFeatures {
-			parachains_vstaging_api_impl::node_features::<Runtime>()
+			parachains_runtime_api_impl::node_features::<Runtime>()
 		}
 
 		fn approval_voting_params() -> ApprovalVotingParams {
-			parachains_vstaging_api_impl::approval_voting_params::<Runtime>()
+			parachains_runtime_api_impl::approval_voting_params::<Runtime>()
 		}
 	}
 
 	impl beefy_primitives::BeefyApi<Block, BeefyId> for Runtime {
 		fn beefy_genesis() -> Option<BlockNumber> {
-			Beefy::genesis_block()
+			pallet_beefy::GenesisBlock::<Runtime>::get()
 		}
 
 		fn validator_set() -> Option<beefy_primitives::ValidatorSet<BeefyId>> {
