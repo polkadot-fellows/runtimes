@@ -189,7 +189,25 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Proof: `Dmp::DownwardMessageQueueHeads` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `XcmPallet::Queries` (r:0 w:1)
 	/// Proof: `XcmPallet::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn force_unsubscribe_version_notify() -> Weight {
+	fn execute_blob() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 18_446_744_073_709_551_000 picoseconds.
+		Weight::from_parts(18_446_744_073_709_551_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+fn send_blob() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `145`
+		//  Estimated: `3610`
+		// Minimum execution time: 21_474_000 picoseconds.
+		Weight::from_parts(22_072_000, 0)
+			.saturating_add(Weight::from_parts(0, 3610))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+fn force_unsubscribe_version_notify() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `256`
 		//  Estimated: `3721`

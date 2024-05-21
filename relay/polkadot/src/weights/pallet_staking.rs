@@ -45,7 +45,18 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_staking`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {	
+	fn restore_ledger() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1014`
+		//  Estimated: `4764`
+		// Minimum execution time: 40_258_000 picoseconds.
+		Weight::from_parts(41_210_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
+
 	/// Storage: `Staking::Bonded` (r:1 w:1)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)

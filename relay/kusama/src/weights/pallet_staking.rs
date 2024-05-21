@@ -794,4 +794,15 @@ impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn restore_ledger() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1014`
+		//  Estimated: `4764`
+		// Minimum execution time: 40_258_000 picoseconds.
+		Weight::from_parts(41_210_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
 }
