@@ -83,10 +83,15 @@ fn session_keys(
 }
 
 pub fn genesis() -> Storage {
+	// Add the XCM Check Account to those funded.
+	let xcm_check = polkadot_runtime::XcmPallet::check_account();
+	let mut funded_accounts = accounts::init_balances();
+	funded_accounts.push(xcm_check);
+
 	let genesis_config = polkadot_runtime::RuntimeGenesisConfig {
 		system: polkadot_runtime::SystemConfig::default(),
 		balances: polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			balances: funded_accounts.iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
 		},
 		session: polkadot_runtime::SessionConfig {
 			keys: validators::initial_authorities()
