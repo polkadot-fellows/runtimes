@@ -41,8 +41,8 @@ pub fn genesis() -> Storage {
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                                 // account id
-						acc,                                         // validator id
+						acc.clone(),                                   // account id
+						acc,                                           // validator id
 						people_polkadot_runtime::SessionKeys { aura }, // session keys
 					)
 				})
