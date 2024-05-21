@@ -132,8 +132,6 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
-// Implemented types.
-mod impls;
 use impls::ToParachainIdentityReaper;
 
 pub const LOG_TARGET: &str = "runtime::polkadot";
