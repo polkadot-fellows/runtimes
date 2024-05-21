@@ -213,13 +213,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 	system_call_encode: Box<dyn Fn(snowbridge_pallet_system::Call<Runtime>) -> Vec<u8>>,
 	expected_error: Error,
 ) where
-	Runtime: frame_system::Config
-		+ pallet_balances::Config
-		+ pallet_session::Config
-		+ pallet_xcm::Config
-		+ parachain_info::Config
-		+ pallet_collator_selection::Config
-		+ cumulus_pallet_parachain_system::Config
+	Runtime: bridge_hub_test_utils::BasicParachainRuntime
 		+ snowbridge_pallet_outbound_queue::Config
 		+ snowbridge_pallet_system::Config,
 	XcmConfig: xcm_executor::Config,
@@ -422,14 +416,8 @@ pub fn send_transfer_token_message_success<Runtime, XcmConfig>(
 		dyn Fn(Vec<u8>) -> Option<snowbridge_pallet_outbound_queue::Event<Runtime>>,
 	>,
 ) where
-	Runtime: frame_system::Config
-		+ pallet_balances::Config
-		+ pallet_session::Config
-		+ pallet_xcm::Config
-		+ parachain_info::Config
-		+ pallet_collator_selection::Config
+	Runtime: bridge_hub_test_utils::BasicParachainRuntime
 		+ pallet_message_queue::Config
-		+ cumulus_pallet_parachain_system::Config
 		+ snowbridge_pallet_outbound_queue::Config
 		+ snowbridge_pallet_system::Config,
 	XcmConfig: xcm_executor::Config,
