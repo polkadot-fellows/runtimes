@@ -40,19 +40,19 @@
 
 use crate::*;
 use frame_support::BoundedVec;
-use polkadot_runtime::{
-	BasicDeposit, ByteDeposit, MaxAdditionalFields, MaxSubAccounts, RuntimeOrigin as PolkadotOrigin,
-	SubAccountDeposit,
-};
-use polkadot_runtime_constants::currency::*;
-use polkadot_system_emulated_network::{
-	polkadot_emulated_chain::PolkadotRelayPallet, PolkadotRelay, PolkadotRelaySender,
-};
 use pallet_balances::Event as BalancesEvent;
 use pallet_identity::{legacy::IdentityInfo, Data, Event as IdentityEvent};
 use people_polkadot_runtime::people::{
 	BasicDeposit as BasicDepositParachain, ByteDeposit as ByteDepositParachain,
 	IdentityInfo as IdentityInfoParachain, SubAccountDeposit as SubAccountDepositParachain,
+};
+use polkadot_runtime::{
+	BasicDeposit, ByteDeposit, MaxAdditionalFields, MaxSubAccounts,
+	RuntimeOrigin as PolkadotOrigin, SubAccountDeposit,
+};
+use polkadot_runtime_constants::currency::*;
+use polkadot_system_emulated_network::{
+	polkadot_emulated_chain::PolkadotRelayPallet, PolkadotRelay, PolkadotRelaySender,
 };
 
 type Balance = u128;
@@ -242,7 +242,8 @@ fn assert_set_id_parachain(id: &Identity) {
 	// Set identity and Subs on Parachain with zero deposit
 	PeoplePolkadot::execute_with(|| {
 		let free_bal = PeoplePolkadotBalances::free_balance(PeoplePolkadotSender::get());
-		let reserved_balance = PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
+		let reserved_balance =
+			PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
 
 		// total balance at Genesis should be zero
 		assert_eq!(reserved_balance + free_bal, 0);
@@ -268,7 +269,8 @@ fn assert_set_id_parachain(id: &Identity) {
 		}
 
 		// No amount should be reserved as deposit amounts are set to 0.
-		let reserved_balance = PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
+		let reserved_balance =
+			PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
 		assert_eq!(reserved_balance, 0);
 		assert!(PeoplePolkadotIdentity::identity(PeoplePolkadotSender::get()).is_some());
 
@@ -344,7 +346,8 @@ fn assert_reap_id_relay(total_deposit: Balance, id: &Identity) {
 // that everything happens as expected.
 fn assert_reap_parachain(id: &Identity) {
 	PeoplePolkadot::execute_with(|| {
-		let reserved_balance = PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
+		let reserved_balance =
+			PeoplePolkadotBalances::reserved_balance(PeoplePolkadotSender::get());
 		let id_deposit = IdentityOn::Para(&id.para).calculate_deposit();
 		let total_deposit = match id.subs {
 			Subs::Zero => id_deposit,
@@ -354,7 +357,9 @@ fn assert_reap_parachain(id: &Identity) {
 		assert_eq!(reserved_balance, total_deposit);
 
 		// Should have at least one ED after in free balance after the reap.
-		assert!(PeoplePolkadotBalances::free_balance(PeoplePolkadotSender::get()) >= PEOPLE_KUSAMA_ED);
+		assert!(
+			PeoplePolkadotBalances::free_balance(PeoplePolkadotSender::get()) >= PEOPLE_KUSAMA_ED
+		);
 	});
 }
 

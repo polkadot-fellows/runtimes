@@ -39,16 +39,17 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
+pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
-	polkadot_emulated_chain::{genesis::ED as KUSAMA_ED, PolkadotRelayPallet as PolkadotPallet},
 	people_polkadot_emulated_chain::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	},
-	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
-	PolkadotRelaySender as PolkadotSender, PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot,
-	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver, PeoplePolkadotParaSender as PeoplePolkadotSender,
+	polkadot_emulated_chain::{genesis::ED as KUSAMA_ED, PolkadotRelayPallet as PolkadotPallet},
+	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot,
+	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
+	PeoplePolkadotParaSender as PeoplePolkadotSender, PolkadotRelay as Polkadot,
+	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
-pub use parachains_common::{AccountId, Balance};
 
 pub type RelayToSystemParaTest = Test<Polkadot, PeoplePolkadot>;
 pub type RelayToParaTest = Test<Polkadot, PenpalA>;

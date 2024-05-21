@@ -14,8 +14,8 @@
 // limitations under the License.
 
 use crate::*;
-use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
+use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
 
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
 	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
