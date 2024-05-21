@@ -436,9 +436,10 @@ fn calculate_remote_deposit(bytes: u32, subs: u32) -> Balance {
 		para_basic_deposit.saturating_add(para_byte_deposit.saturating_mul(bytes as Balance));
 	let subs_deposit = para_sub_account_deposit.saturating_mul(subs as Balance);
 
-	id_deposit
+	let remote_deposit_needed = id_deposit
 		.saturating_add(subs_deposit)
-		.saturating_add(para_existential_deposit.saturating_mul(2))
+		.saturating_add(para_existential_deposit.saturating_mul(2));
+	remote_deposit_needed.max(EXISTENTIAL_DEPOSIT)
 }
 
 // Represent some `additional` data that would not be migrated to the parachain. The encoded size,
