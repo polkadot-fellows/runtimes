@@ -17,15 +17,15 @@ pub use asset_hub_polkadot_emulated_chain;
 pub use bridge_hub_polkadot_emulated_chain;
 pub use collectives_polkadot_emulated_chain;
 pub use penpal_emulated_chain;
-pub use polkadot_emulated_chain;
 pub use people_polkadot_emulated_chain;
+pub use polkadot_emulated_chain;
 
 use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
 use collectives_polkadot_emulated_chain::CollectivesPolkadot;
 use penpal_emulated_chain::{PenpalA, PenpalB};
-use polkadot_emulated_chain::Polkadot;
 use people_polkadot_emulated_chain::PeoplePolkadot;
+use polkadot_emulated_chain::Polkadot;
 
 // Cumulus
 use emulated_integration_tests_common::{
