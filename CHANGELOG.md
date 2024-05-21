@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Staking runtime api to check if reward is pending for an era ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
 - Add the Polkadot People Chain ([polkadot-fellows/runtimes#319](https://github.com/polkadot-fellows/runtimes/pull/319))
+
+### Fixed
+
+- Handle extra erroneous consumer reference when a nomination pool is destroying ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
 
 ## [1.2.4] 20.05.2024
 
