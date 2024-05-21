@@ -359,4 +359,16 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `PolkadotXcm::AssetTraps` (r:1 w:1)
+	/// Proof: `PolkadotXcm::AssetTraps` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn claim_assets() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `126`
+		//  Estimated: `3591`
+		// Minimum execution time: 35_624_000 picoseconds.
+		Weight::from_parts(36_104_000, 0)
+			.saturating_add(Weight::from_parts(0, 3591))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
