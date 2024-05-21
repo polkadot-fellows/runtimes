@@ -47,7 +47,7 @@ use people_polkadot_runtime::people::{
 	IdentityInfo as IdentityInfoParachain, SubAccountDeposit as SubAccountDepositParachain,
 };
 use polkadot_runtime::{
-	BasicDeposit, ByteDeposit, MaxAdditionalFields, MaxSubAccounts,
+	xcm_config::CheckAccount, BasicDeposit, ByteDeposit, MaxAdditionalFields, MaxSubAccounts,
 	RuntimeOrigin as PolkadotOrigin, SubAccountDeposit,
 };
 use polkadot_runtime_constants::currency::*;
@@ -166,6 +166,13 @@ fn account_from_u32(id: u32) -> AccountId32 {
 		chunk.clone_from_slice(&id_bytes);
 	}
 	AccountId32::new(buffer)
+}
+
+// Initialize the XCM Check Account with the existential deposit. We assume that it exists in
+// reality and is necessary in the test because the remote deposit is less than the ED, and we
+// cannot teleport (check out) an amount less than ED into a nonexistent account.
+fn init_check_account() {
+	PolkadotRelay::fund_accounts(vec![(CheckAccount::get(), EXISTENTIAL_DEPOSIT)]);
 }
 
 // Set up the Relay Chain with an identity.
@@ -473,6 +480,7 @@ fn meaningful_additional() -> BoundedVec<(Data, Data), MaxAdditionalFields> {
 
 // Execute a single test case.
 fn assert_relay_para_flow(id: &Identity) {
+	init_check_account();
 	let total_deposit = set_id_relay(id);
 	assert_set_id_parachain(id);
 	assert_reap_id_relay(total_deposit, id);
