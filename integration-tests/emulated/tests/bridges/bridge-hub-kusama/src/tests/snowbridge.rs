@@ -604,7 +604,8 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 		));
 
 		// Construct RegisterToken message and sent to inbound queue
-		let message = todo!(); // FAIL-CI @clara this does not exist anymore make_register_token_with_infufficient_fee_message();
+		let message = todo!(); // FAIL-CI @clara this does not exist anymore
+					   // make_register_token_with_infufficient_fee_message();
 		assert_ok!(send_inbound_message(message));
 
 		assert_expected_events!(
