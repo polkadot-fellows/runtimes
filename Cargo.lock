@@ -9170,9 +9170,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-identity"
-version = "29.0.0"
+version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9e1cae19e30e7dc822c419988b30bb1318d79a8d5da92733822d0e84fe760ca"
+checksum = "452bba25325b7f0148eeecbde13e7c26dfb677ad46b3f160b359d7643b44c94b"
 dependencies = [
  "enumflags2",
  "frame-benchmarking",
