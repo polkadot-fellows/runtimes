@@ -35,7 +35,7 @@ asset-hub-kusama-runtime = { workspace = true }
 collectives-polkadot-runtime = { workspace = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 bridge-hub-kusama-runtime = { workspace = true }
-#encointer-kusama-runtime = { workspace = true }
+encointer-kusama-runtime = { workspace = true }
 glutton-kusama-runtime = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 people-kusama-runtime = { workspace = true }
