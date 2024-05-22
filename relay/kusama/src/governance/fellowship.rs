@@ -23,9 +23,8 @@ use frame_support::traits::{MapSuccess, TryMapSuccess};
 use sp_arithmetic::traits::CheckedSub;
 use sp_runtime::{
 	morph_types,
-	traits::{Replace, TypedGet},
+	traits::{Replace, ReplaceWithDefault, TypedGet},
 };
-use sp_runtime::traits::ReplaceWithDefault;
 
 use super::*;
 

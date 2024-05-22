@@ -17,7 +17,6 @@ use asset_hub_kusama_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
 };
-use snowbridge_core::inbound::InboundQueueFixture;
 use bp_bridge_hub_kusama::snowbridge::CreateAssetCall;
 use bridge_hub_kusama_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
@@ -33,7 +32,7 @@ use kusama_system_emulated_network::{
 };
 use snowbridge_core::{
 	gwei,
-	inbound::{Log, Message, Proof},
+	inbound::{InboundQueueFixture, Log, Message, Proof},
 	meth,
 	outbound::OperatingMode,
 	Rewards,
@@ -605,7 +604,7 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 		));
 
 		// Construct RegisterToken message and sent to inbound queue
-		let message = todo!();// FAIL-CI make_register_token_with_infufficient_fee_message();
+		let message = todo!(); // FAIL-CI make_register_token_with_infufficient_fee_message();
 		assert_ok!(send_inbound_message(message));
 
 		assert_expected_events!(

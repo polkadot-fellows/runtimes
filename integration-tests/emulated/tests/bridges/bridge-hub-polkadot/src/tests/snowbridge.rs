@@ -17,8 +17,6 @@ use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
 };
-use snowbridge_core::inbound::InboundQueueFixture;
-use snowbridge_beacon_primitives::BeaconHeader;
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::EthereumGatewayAddress, EthereumBeaconClient, EthereumInboundQueue,
@@ -32,9 +30,10 @@ use polkadot_system_emulated_network::{
 	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,
 	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender,
 };
+use snowbridge_beacon_primitives::BeaconHeader;
 use snowbridge_core::{
 	gwei,
-	inbound::{Log, Message, Proof},
+	inbound::{InboundQueueFixture, Log, Message, Proof},
 	meth,
 	outbound::OperatingMode,
 	Rewards,

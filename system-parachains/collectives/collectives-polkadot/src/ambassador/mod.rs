@@ -47,7 +47,9 @@ use pallet_ranked_collective::{Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
-	traits::{ReplaceWithDefault, CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace},
+	traits::{
+		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
+	},
 	Permill,
 };
 use xcm::prelude::*;
