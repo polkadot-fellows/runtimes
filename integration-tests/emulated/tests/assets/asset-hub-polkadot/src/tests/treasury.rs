@@ -15,7 +15,7 @@
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
-use frame_support::traits::fungibles::{Create, Inspect, Mutate};
+use frame_support::traits::fungibles::{Create, Mutate};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Staking runtime api to check if reward is pending for an era ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+
+### Fixed
+
+- Handle extra erroneous consumer reference when a nomination pool is destroying ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+- Introduce [Encointer](https://encointer.org) collator selection and send fees to authors instead of treasury ([polkadot-fellows/runtimes#270](https://github.com/polkadot-fellows/runtimes/pull/270))
+
+## [1.2.4] 20.05.2024
+
 ### Changed
 
 - Kusama chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#261](https://github.com/polkadot-fellows/runtimes/pull/261))
@@ -16,16 +27,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
 - Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
+- Add `pallet-xcm::transfer_assets_using_type_and_then()` for complex asset transfers ([polkadot-fellows/runtimes#311](https://github.com/polkadot-fellows/runtimes/pull/311))
+- The Ambassador Program ([polkadot-fellows/runtimes#291](https://github.com/polkadot-fellows/runtimes/pull/291))
 
 ### Removed
 
 - Remove one-shot migrations from Kusama Coretime ([polkadot-fellows/runtimes#300](https://github.com/polkadot-fellows/runtimes/pull/300))
 - Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+- Allow Sending XCM messages using a Signed origin on Kusama ([polkadot-fellows/runtimes#290](https://github.com/polkadot-fellows/runtimes/pull/290))
 
 ### Fixed
 
 - Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
 - Safeguard pallet-balances against consumer ref underflow ([polkadot-fellows/runtimes#309](https://github.com/polkadot-fellows/runtimes/pull/309))
+- Polkadot Bridge Hub: Unstuck Snowbridge ([polkadot-fellows/runtimes#313](https://github.com/polkadot-fellows/runtimes/pull/313))
 
 ## [1.2.3] 29.04.2024
 
@@ -56,8 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Remove state-trie-migration pallet from kusama, add state trie migration to V1 on polkadot ([polkadot-fellows/runtimes#170](https://github.com/polkadot-fellows/runtimes/pull/170))
 - Introduce chain spec generator ([polkadot-fellows/runtimes#127](https://github.com/polkadot-fellows/runtimes/pull/127))
-- Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/
-0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
+- Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
 - Feature for enabling debug prints in the Polkadot and Kusama runtime ([polkadot-fellows/runtimes#85](https://github.com/polkadot-fellows/runtimes/pull/85))
 - Added new "Wish for Change" track ([polkadot-fellows/runtimes#184](https://github.com/polkadot-fellows/runtimes/pull/184))
 - Enable Coretime and on-demand on Kusama ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
@@ -121,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update the fellowship salary budget amount in alignment with the Fellowship Salary [RFC](https://github.com/polkadot-fellows/RFCs/pull/50) ([polkadot-fellows/runtimes#121](https://github.com/polkadot-fellows/runtimes/pull/121))
 - Set up an account ID for the local root location on Polkadot Collectives ([polkadot-fellows/runtimes#125](https://github.com/polkadot-fellows/runtimes/pull/125))
 - Increase confirmation period for treasury spend tracks on Polkadot & Kusama ([polkadot-fellows/runtimes#119](https://github.com/polkadot-fellows/runtimes/pull/119))
+- Drop ED requirement for transaction payments with an exchangeable asset ([polkadot-fellows/runtimes#310](https://github.com/polkadot-fellows/runtimes/pull/310))
 
 ### Added
 

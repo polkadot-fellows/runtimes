@@ -27,6 +27,7 @@ use xcm_builder::{ExporterFor, NetworkExportTable};
 #[test]
 fn network_export_table_works() {
 	sp_io::TestExternalities::default().execute_with(|| {
+		#[allow(clippy::type_complexity)]
 		let test_data: Vec<(NetworkId, InteriorLocation, Option<(Location, Option<Asset>)>)> = vec![
 			// From Ethereum (from GlobalConsensus(Ethereum) is routed to BridgeHub, with a fee,
 			// matched.
@@ -34,7 +35,7 @@ fn network_export_table_works() {
 				EthereumNetwork::get(),
 				Junctions::Here,
 				Some((
-					SiblingBridgeHub::get().into(),
+					SiblingBridgeHub::get(),
 					Some(Asset {
 						id: XcmBridgeHubRouterFeeAssetId::get(),
 						fun: Fungible(BridgeHubEthereumBaseFee::get()),

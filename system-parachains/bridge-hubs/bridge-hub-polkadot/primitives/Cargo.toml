@@ -10,9 +10,9 @@ license.workspace = true
 [dependencies]
 
 # Local
-kusama-runtime-constants = { path = "../../../../relay/kusama/constants", default-features = false }
-polkadot-runtime-constants = { path = "../../../../relay/polkadot/constants", default-features = false }
-system-parachains-constants = { path = "../../../constants", default-features = false }
+kusama-runtime-constants = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
+system-parachains-constants = { workspace = true }
 
 # Bridge Dependencies
 bp-bridge-hub-cumulus = { workspace = true }
@@ -27,10 +27,10 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"bp-bridge-hub-cumulus/std",
 	"bp-messages/std",
@@ -38,10 +38,10 @@ std = [
 	"frame-support/std",
 	"kusama-runtime-constants/std",
 	"polkadot-runtime-constants/std",
+	"snowbridge-core/std",
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-std/std",
 	"system-parachains-constants/std",
 	"xcm/std",
-	"snowbridge-core/std"
 ]
