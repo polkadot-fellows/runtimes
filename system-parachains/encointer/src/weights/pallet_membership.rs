@@ -46,6 +46,16 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_membership`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
+	fn reset_members(m: u32) -> Weight {
+		// FAIL-CI regenerate
+		Weight::from_parts(10_462_422, 0)
+			.saturating_add(Weight::from_parts(0, 4687))
+			// Standard Error: 247
+			.saturating_add(Weight::from_parts(27_500, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 64).saturating_mul(m.into()))
+	}
 	/// Storage: `Membership::Members` (r:1 w:1)
 	/// Proof: `Membership::Members` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
 	/// Storage: `Collective::Proposals` (r:1 w:0)
@@ -120,30 +130,6 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	/// Proof: `Membership::Members` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
 	/// Storage: `Collective::Proposals` (r:1 w:0)
 	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Membership::Prime` (r:1 w:0)
-	/// Proof: `Membership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
-	/// Storage: `Collective::Members` (r:0 w:1)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Prime` (r:0 w:1)
-	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// The range of component `m` is `[1, 100]`.
-	fn reset_member(m: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `206 + m * (64 ±0)`
-		//  Estimated: `4687 + m * (64 ±0)`
-		// Minimum execution time: 11_225_000 picoseconds.
-		Weight::from_parts(12_299_354, 0)
-			.saturating_add(Weight::from_parts(0, 4687))
-			// Standard Error: 582
-			.saturating_add(Weight::from_parts(130_831, 0).saturating_mul(m.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(3))
-			.saturating_add(Weight::from_parts(0, 64).saturating_mul(m.into()))
-	}
-	/// Storage: `Membership::Members` (r:1 w:1)
-	/// Proof: `Membership::Members` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
-	/// Storage: `Collective::Proposals` (r:1 w:0)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Membership::Prime` (r:1 w:1)
 	/// Proof: `Membership::Prime` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
 	/// Storage: `Collective::Members` (r:0 w:1)
@@ -189,7 +175,7 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	/// Storage: `Collective::Prime` (r:0 w:1)
 	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[1, 100]`.
-	fn clear_prime(_m: u32, ) -> Weight {
+	fn clear_prime() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`

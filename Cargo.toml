@@ -56,7 +56,7 @@ cumulus-primitives-utility = { version = "0.12.0", default-features = false }
 emulated-integration-tests-common = { version = "8.0.0" }
 encointer-balances-tx-payment = { version = "~10.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~10.1.0", default-features = false }
-#encointer-kusama-runtime = { path = "system-parachains/encointer" }
+encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-primitives = { version = "~10.1.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "33.0.0", default-features = false }
@@ -270,7 +270,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
-	#"system-parachains/encointer",
+	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 ]

@@ -23,8 +23,10 @@ use frame_support::{
 	parameter_types,
 	traits::{Contains, Everything, Nothing},
 };
+use pallet_collator_selection::StakingPotAccountId;
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
+use frame_support::traits::tokens::imbalance::ResolveTo;
 use parachains_common::{
 	impls::ToStakingPot,
 	xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains},
@@ -169,7 +171,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader =
-		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, ToStakingPot<Runtime>>;
+		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, ResolveTo<StakingPotAccountId<Runtime>, Balances>>; // FAIL-CI @brenzi
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;

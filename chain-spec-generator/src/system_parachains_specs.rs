@@ -612,7 +612,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_properties(properties)
 		.build(),
 	))
-}*/ // FAIL-CI @clangb
+}*/ // FAIL-CI @brenzi
 
 // CoretimeKusama
 fn coretime_kusama_genesis(

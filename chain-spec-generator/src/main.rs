@@ -75,7 +75,7 @@ fn main() -> Result<(), String> {
 			/*(
 				"encointer-kusama-local",
 				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
-			),*/ // FAIL-CI @clangb revert this folder back to master
+			),*/ // FAIL-CI @brenzi revert this folder back to master
 			(
 				"coretime-kusama-local",
 				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
