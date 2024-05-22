@@ -108,8 +108,8 @@ use frame_system::{
 };
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId,
-	AssetIdForTrustBackedAssets, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
+	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
 use sp_runtime::RuntimeDebug;
@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemint"),
 	impl_name: create_runtime_str!("statemint"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 14,
@@ -279,12 +279,16 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
 	pub const TransactionByteFee: Balance = system_parachains_constants::polkadot::fee::TRANSACTION_BYTE_FEE;
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
+		NativeAndAssets,
+		DotLocationV3,
+		ResolveAssetTo<StakingPot, NativeAndAssets>,
+	>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -740,11 +744,8 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = LocalAndForeignAssets;
-	type OnChargeAssetTransaction = pallet_asset_conversion_tx_payment::AssetConversionAdapter<
-		Balances,
-		AssetConversion,
-		DotLocationV3,
-	>;
+	type OnChargeAssetTransaction =
+		impls::tx_payment::SwapCreditAdapter<DotLocationV3, AssetConversion>;
 }
 
 parameter_types! {

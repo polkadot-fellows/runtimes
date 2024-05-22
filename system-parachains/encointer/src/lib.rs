@@ -31,15 +31,17 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-mod deal_with_fees;
 mod migrations_fix;
 mod weights;
 pub mod xcm_config;
+
 use codec::{Decode, Encode, MaxEncodedLen};
+use core::marker::PhantomData;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use deal_with_fees::FeesToTreasury;
-use encointer_balances_tx_payment::{AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance};
+use encointer_balances_tx_payment::{
+	AccountIdOf, AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance,
+};
 pub use encointer_primitives::{
 	balances::{BalanceEntry, BalanceType, Demurrage},
 	bazaar::{BusinessData, BusinessIdentifier, OfferingData},
@@ -48,17 +50,16 @@ pub use encointer_primitives::{
 	communities::{CommunityIdentifier, Location},
 	scheduler::CeremonyPhaseType,
 };
-use frame_support::traits::TransformOrigin;
-use parachains_common::message_queue::{NarrowOriginToSibling, ParaIdToSibling};
-
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::{pay::PayFromAccount, ConversionFromAssetBalance, ConversionToAssetBalance},
+		fungibles::{Balanced, Credit},
+		tokens::ConversionToAssetBalance,
 		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
+		TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -67,6 +68,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
+use pallet_asset_tx_payment::HandleCredit;
 pub use pallet_encointer_balances::Call as EncointerBalancesCall;
 pub use pallet_encointer_bazaar::Call as EncointerBazaarCall;
 pub use pallet_encointer_ceremonies::Call as EncointerCeremoniesCall;
@@ -75,6 +77,7 @@ pub use pallet_encointer_faucet::Call as EncointerFaucetCall;
 pub use pallet_encointer_reputation_commitments::Call as EncointerReputationCommitmentsCall;
 pub use pallet_encointer_scheduler::Call as EncointerSchedulerCall;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody};
+use parachains_common::message_queue::{NarrowOriginToSibling, ParaIdToSibling};
 pub use parachains_common::{
 	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
 	Hash, Header, Nonce, Signature,
@@ -86,9 +89,9 @@ use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentityLookup, Verify},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, Perbill, Permill, RuntimeDebug,
+	ApplyExtrinsicResult, Perbill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -122,7 +125,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("encointer-parachain"),
 	impl_name: create_runtime_str!("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 3,
@@ -172,6 +175,7 @@ impl Default for ProxyType {
 		Self::Any
 	}
 }
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
@@ -239,6 +243,7 @@ parameter_types! {
 }
 
 pub struct BaseFilter;
+
 impl Contains<RuntimeCall> for BaseFilter {
 	fn contains(_c: &RuntimeCall) -> bool {
 		true
@@ -323,65 +328,12 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// `FeesToTreasury is an encointer adaptation.
 	type OnChargeTransaction =
-		pallet_transaction_payment::FungibleAdapter<Balances, FeesToTreasury<Runtime>>;
+		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
-}
-
-pub const ENCOINTER_TREASURY_PALLET_ID: u8 = 43;
-
-parameter_types! {
-	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub const ProposalBondMinimum: Balance = 100 * MILLICENTS;
-	pub const ProposalBondMaximum: Balance = 500 * CENTS;
-	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const Burn: Permill = Permill::from_percent(1);
-	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
-	pub const MaxApprovals: u32 = 10;
-	pub TreasuryAccount: AccountId = Treasury::account_id();
-}
-
-pub struct NoConversion;
-impl ConversionFromAssetBalance<u128, (), u128> for NoConversion {
-	type Error = ();
-	fn from_asset_balance(balance: Balance, _asset_id: ()) -> Result<Balance, Self::Error> {
-		Ok(balance)
-	}
-	#[cfg(feature = "runtime-benchmarks")]
-	fn ensure_successful(_: ()) {}
-}
-
-impl pallet_treasury::Config for Runtime {
-	type PalletId = TreasuryPalletId;
-	type Currency = pallet_balances::Pallet<Runtime>;
-	type ApproveOrigin = MoreThanHalfCouncil;
-	type RejectOrigin = MoreThanHalfCouncil;
-	type RuntimeEvent = RuntimeEvent;
-	type OnSlash = (); //No proposal
-	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ProposalBondMinimum;
-	type ProposalBondMaximum = ProposalBondMaximum;
-	type SpendPeriod = SpendPeriod; //Cannot be 0: Error: Thread 'tokio-runtime-worker' panicked at 'attempt to calculate the
-								// remainder with a divisor of zero
-	type Burn = (); //No burn
-	type BurnDestination = (); //No burn
-	type SpendFunds = (); //No spend, no bounty
-	type MaxApprovals = MaxApprovals;
-	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
-	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>; //No spend, no bounty
-	type AssetKind = ();
-	type Beneficiary = AccountId;
-	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
-	type BalanceConverter = NoConversion;
-	type PayoutPeriod = PayoutSpendPeriod;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
 }
 
 impl pallet_utility::Config for Runtime {
@@ -596,6 +548,7 @@ type MoreThanHalfCouncil = EitherOfDiverse<
 >;
 
 pub type CouncilCollective = pallet_collective::Instance1;
+
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Proposal = RuntimeCall;
@@ -623,14 +576,90 @@ impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
 	type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
+/// A `HandleCredit` implementation that naively transfers the fees to the block author.
+/// Will drop and burn the assets in case the transfer fails.
+pub struct AssetsToBlockAuthor<R>(PhantomData<R>);
+
+impl<R> HandleCredit<AccountIdOf<R>, pallet_encointer_balances::Pallet<R>>
+	for AssetsToBlockAuthor<R>
+where
+	R: pallet_authorship::Config + pallet_encointer_balances::Config,
+	AccountIdOf<R>: From<polkadot_primitives::AccountId>
+		+ Into<polkadot_primitives::AccountId>
+		+ From<[u8; 32]>,
+{
+	fn handle_credit(credit: Credit<AccountIdOf<R>, pallet_encointer_balances::Pallet<R>>) {
+		if let Some(author) = pallet_authorship::Pallet::<R>::author() {
+			// This only affects fees paid in CC!
+
+			// We will only grant 50% of CC fees to the current block author
+			// reasoning: If you send 100% to the author, then the author can attempt to increase
+			// the fee rate by making transactions up to the block limit at zero cost
+			// (since they pocket the fees).
+			// In the future, fees might be collected in community treasuries instead of being
+			// "burned" to dead account 0x00 = 5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM
+			// See: https://forum.polkadot.network/t/towards-encointer-self-sustainability/4195
+
+			let half_amount = credit.peek() / 2;
+			let community_pot = AccountIdOf::<R>::from([0u8; 32]);
+
+			let (author_credit, community_credit) = credit.split(half_amount);
+			// In case of error: Will drop the result triggering the `OnDrop` of the imbalance.
+			let _ = pallet_encointer_balances::Pallet::<R>::resolve(&author, author_credit);
+			let _ =
+				pallet_encointer_balances::Pallet::<R>::resolve(&community_pot, community_credit);
+		}
+	}
+}
+
 // Allow fee payment in community currency
 impl pallet_asset_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = pallet_encointer_balances::Pallet<Runtime>;
 	type OnChargeAssetTransaction = pallet_asset_tx_payment::FungiblesAdapter<
 		encointer_balances_tx_payment::BalanceToCommunityBalance<Runtime>,
-		encointer_balances_tx_payment::BurnCredit,
+		AssetsToBlockAuthor<Runtime>,
 	>;
+}
+
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+	type EventHandler = (CollatorSelection,);
+}
+
+impl pallet_session::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	// we don't have stash and controller, thus we don't need the convert as well.
+	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type SessionManager = CollatorSelection;
+	// Essentially just Aura, but let's be pedantic.
+	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
+	type Keys = SessionKeys;
+	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	pub const PotId: PalletId = PalletId(*b"PotStake");
+	pub const SessionLength: BlockNumber = 6 * HOURS;
+}
+
+impl pallet_collator_selection::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type UpdateOrigin = MoreThanHalfCouncil;
+	type PotId = PotId;
+	type MaxCandidates = ConstU32<100>;
+	type MinEligibleCollators = ConstU32<4>;
+	type MaxInvulnerables = ConstU32<20>;
+	// should be a multiple of session or things will get inconsistent
+	type KickThreshold = Period;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+	type ValidatorRegistration = Session;
+	type WeightInfo = weights::pallet_collator_selection::WeightInfo<Runtime>;
 }
 
 construct_runtime! {
@@ -647,6 +676,10 @@ construct_runtime! {
 		TransactionPayment: pallet_transaction_payment = 11,
 		AssetTxPayment: pallet_asset_tx_payment = 12,
 
+		// Collator support. the order of these 5 are important and shall not change.
+		Authorship: pallet_authorship = 20,
+		CollatorSelection: pallet_collator_selection = 21,
+		Session: pallet_session = 22,
 		Aura: pallet_aura = 23,
 		AuraExt: cumulus_pallet_aura_ext = 24,
 
@@ -659,7 +692,6 @@ construct_runtime! {
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,
-		Treasury: pallet_treasury = 43,
 		Proxy: pallet_proxy = 44,
 		Scheduler: pallet_scheduler = 48,
 
@@ -709,14 +741,7 @@ parameter_types! {
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
-	// balances are more tricky. We missed to do the migration to V1 and now we have inconsistent
-	// state which can't be decoded to V0, yet the StorageVersion is V0.
-	// the strategy is to: just pretend we're on V1
-	migrations_fix::balances::v1::BruteForceToV1<Runtime>,
-	// then reset to V0
-	pallet_balances::migration::ResetInactive<Runtime>,
-	//then apply the proper migration as we should have done earlier
-	pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckingAccount>,
+	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -739,9 +764,9 @@ mod benches {
 		[pallet_collective, Collective]
 		[pallet_message_queue, MessageQueue]
 		[pallet_membership, Membership]
+		[pallet_session, SessionBench::<Runtime>]
+		[pallet_collator_selection, CollatorSelection]
 		[pallet_timestamp, Timestamp]
-		// todo: treasury will be removed in separate PR, so no need to fix broken benchmarks: https://github.com/polkadot-fellows/runtimes/issues/176
-		//[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_proxy, Proxy]
 		[pallet_encointer_balances, EncointerBalances]
@@ -978,6 +1003,7 @@ impl_runtime_apis! {
 			use frame_benchmarking::{Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -991,7 +1017,8 @@ impl_runtime_apis! {
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use frame_support::traits::TrackedStorageKey;
-
+			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {
 				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
@@ -1015,8 +1042,6 @@ impl_runtime_apis! {
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
 				// System Events
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
-				// Treasury Account
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000").to_vec().into(),
 			];
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
@@ -1050,17 +1075,6 @@ pub fn aura_config_for_chain_spec(seeds: &[&str]) -> AuraConfig {
 
 	AuraConfig {
 		authorities: seeds.iter().map(|s| get_from_seed::<sr25519::Public>(s).into()).collect(),
-	}
-}
-
-#[cfg(test)]
-mod multiplier_tests {
-	use super::*;
-	use frame_support::pallet_prelude::PalletInfoAccess;
-
-	#[test]
-	fn treasury_pallet_index_is_correct() {
-		assert_eq!(ENCOINTER_TREASURY_PALLET_ID, <Treasury as PalletInfoAccess>::index() as u8);
 	}
 }
 
