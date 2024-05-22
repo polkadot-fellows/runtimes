@@ -1617,7 +1617,7 @@ construct_runtime! {
 		// Utility module.
 		Utility: pallet_utility = 24,
 
-		// pallet_identity = 25 (removed post 1.2.1)
+		// pallet_identity = 25 (removed post 1.2.4)
 
 		// Society module.
 		Society: pallet_society = 26,
