@@ -10,7 +10,7 @@ version.workspace = true
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
-hex-literal = { optional = true, workspace = true }
+hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 smallvec = { workspace = true }
@@ -50,6 +50,7 @@ frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 pallet-asset-tx-payment = { workspace = true }
 pallet-aura = { features = ["experimental"], workspace = true }
+pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-insecure-randomness-collective-flip = { workspace = true }
@@ -57,15 +58,16 @@ pallet-membership = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-scheduler = { workspace = true }
+pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
-pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
+sp-genesis-builder = { workspace = true }
 sp-inherents = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true }
@@ -73,7 +75,6 @@ sp-session = { workspace = true }
 sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
-sp-genesis-builder = { workspace = true }
 
 # Polkadot dependencies
 pallet-xcm = { workspace = true }
@@ -88,11 +89,13 @@ cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { features = [
 	"parameterized-consensus-hook",
 ], workspace = true }
+cumulus-pallet-session-benchmarking = { optional = true, workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true }
 cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
+pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 polkadot-core-primitives = { workspace = true }
@@ -113,6 +116,7 @@ system-parachains-constants = { workspace = true, default-features = true }
 default = ["std"]
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
@@ -122,9 +126,9 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"hex-literal",
 	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-encointer-balances/runtime-benchmarks",
 	"pallet-encointer-bazaar/runtime-benchmarks",
@@ -138,7 +142,6 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
-	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
@@ -153,6 +156,7 @@ std = [
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
+	"cumulus-pallet-session-benchmarking?/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
@@ -172,7 +176,9 @@ std = [
 	"log/std",
 	"pallet-asset-tx-payment/std",
 	"pallet-aura/std",
+	"pallet-authorship/std",
 	"pallet-balances/std",
+	"pallet-collator-selection/std",
 	"pallet-collective/std",
 	"pallet-encointer-balances/std",
 	"pallet-encointer-bazaar-rpc-runtime-api/std",
@@ -189,10 +195,10 @@ std = [
 	"pallet-message-queue/std",
 	"pallet-proxy/std",
 	"pallet-scheduler/std",
+	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
-	"pallet-treasury/std",
 	"pallet-utility/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
@@ -234,7 +240,9 @@ try-runtime = [
 	"frame-try-runtime/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-aura/try-runtime",
+	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-collator-selection/try-runtime",
 	"pallet-collective/try-runtime",
 	"pallet-encointer-balances/try-runtime",
 	"pallet-encointer-bazaar/try-runtime",
@@ -248,9 +256,9 @@ try-runtime = [
 	"pallet-message-queue/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-scheduler/try-runtime",
+	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	"pallet-treasury/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
