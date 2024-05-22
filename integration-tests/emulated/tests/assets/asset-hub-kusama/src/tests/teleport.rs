@@ -552,7 +552,7 @@ fn teleport_to_other_system_parachains_works() {
 		vec![BridgeHubKusama],   // Destinations
 		(native_asset, amount)
 	);*/
-	todo!() // FAIL-CI
+	todo!() // FAIL-CI @bkontur
 }
 
 /// Bidirectional teleports of local Penpal assets to Asset Hub as foreign assets should work
@@ -572,7 +572,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	/*
-	// FAIL-CI
+	// FAIL-CI @bkontur
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_kusama,

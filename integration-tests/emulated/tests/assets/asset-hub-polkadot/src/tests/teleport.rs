@@ -571,7 +571,7 @@ fn bidirectional_teleport_foreign_assets_between_para_and_asset_hub() {
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	/*
-	// FAIL-CI
+	// FAIL-CI @bkontur
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_polkadot,

@@ -474,7 +474,7 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 /// work
 #[test]
 fn reserve_transfer_assets_from_system_para_to_para() {
-	// FAIL-CI @clara pls fix
+	// FAIL-CI @bkontur pls fix
 }
 
 /// Reserve Transfers of native asset from Parachain to Parachain (through Relay reserve) should

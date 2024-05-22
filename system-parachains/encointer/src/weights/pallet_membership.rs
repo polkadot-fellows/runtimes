@@ -47,7 +47,7 @@ use core::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	fn reset_members(m: u32) -> Weight {
-		// FAIL-CI regenerate
+		// FAIL-CI @bkontur we need to regenerate all the weights...
 		Weight::from_parts(10_462_422, 0)
 			.saturating_add(Weight::from_parts(0, 4687))
 			// Standard Error: 247

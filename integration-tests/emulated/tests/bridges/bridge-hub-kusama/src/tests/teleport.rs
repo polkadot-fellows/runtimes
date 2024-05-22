@@ -22,7 +22,7 @@ fn teleport_to_other_system_parachains_works() {
 	let native_asset: Assets = (Parent, amount).into();
 
 	/*
-	FAIL-CI
+	FAIL-CI @bkontur
 	test_sibling_is_trusted_teleporter!(
 		BridgeHubKusama,      // Origin
 		XcmConfig,            // XCM configuration

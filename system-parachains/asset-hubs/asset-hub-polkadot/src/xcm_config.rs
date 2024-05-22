@@ -157,7 +157,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
-	xcm::v3::Location, // FAIL-CI @branislav good?
+	xcm::v3::Location, // FAIL-CI @bkontur good?
 >;
 
 /// Means for transacting foreign assets from different global consensus.

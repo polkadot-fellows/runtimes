@@ -22,7 +22,7 @@ mod teleport;
 mod treasury;
 
 use crate::*;
-// FAIL-CI @branislav
+// FAIL-CI @bkontur
 /*emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
 	PenpalA,
 	AssetHubKusama,

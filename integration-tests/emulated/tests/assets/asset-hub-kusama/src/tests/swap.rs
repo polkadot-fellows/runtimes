@@ -139,7 +139,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 	// 1. Create asset on penpal and, 2. Create foreign asset on asset_hub_kusama
 	/*
-	// FAIL-CI
+	// FAIL-CI @bkontur
 	super::penpal_create_foreign_asset_on_asset_hub(
 		asset_id_on_penpal,
 		foreign_asset_at_asset_hub_kusama,

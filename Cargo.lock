@@ -1982,6 +1982,7 @@ dependencies = [
  "collectives-polkadot-runtime",
  "coretime-kusama-runtime",
  "cumulus-primitives-core",
+ "encointer-kusama-runtime",
  "glutton-kusama-runtime",
  "kusama-runtime-constants",
  "pallet-staking",
