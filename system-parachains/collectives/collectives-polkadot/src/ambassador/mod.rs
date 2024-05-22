@@ -47,7 +47,7 @@ use pallet_ranked_collective::{Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
-	traits::{CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace},
+	traits::{ReplaceWithDefault, CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace},
 	Permill,
 };
 use xcm::prelude::*;
@@ -128,6 +128,8 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	#[cfg(feature = "runtime-benchmarks")]
 	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
 	type DemoteOrigin = DemoteOrigin;
+	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
+	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type VoteWeight = VoteWeight;

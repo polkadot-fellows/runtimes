@@ -2056,9 +2056,9 @@ sp_api::impl_runtime_apis! {
 			Staking::api_eras_stakers_page_count(era, account)
 		}
 
-		fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
-			Staking::api_pending_rewards(era, account)
-		}
+		/*fn pending_rewards(era: sp_staking::EraIndex, account: AccountId) -> bool {
+			todo!()// FAIL-CI @ankan: this is not available yet Staking::api_pending_rewards(era, account)
+		}*/
 	}
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
