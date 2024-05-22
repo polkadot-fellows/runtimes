@@ -1067,7 +1067,8 @@ pub enum ProxyType {
 	NonTransfer,
 	Governance,
 	Staking,
-	IdentityJudgement, // dummy to maintain indices
+	// Formerly `IdentityJudgement`
+	_Unused,
 	CancelProxy,
 	Auction,
 	Society,
@@ -1159,7 +1160,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
-			ProxyType::IdentityJudgement => false,
+			ProxyType::_Unused => false,
 			ProxyType::CancelProxy => {
 				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
 			},
