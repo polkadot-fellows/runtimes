@@ -111,7 +111,7 @@ pallet-encointer-ceremonies = { version = "~6.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~6.1.0", default-features = false }
 pallet-encointer-communities = { version = "~6.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~6.1.0", default-features = false }
-pallet-encointer-faucet = { version = "~6.1.0", default-features = false }
+pallet-encointer-faucet = { version = "~6.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~6.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~6.1.0", default-features = false }
 pallet-fast-unstake = { version = "28.0.0", default-features = false }
@@ -128,7 +128,7 @@ pallet-nft-fractionalization = { version = "11.0.0", default-features = false }
 pallet-nfts = { version = "23.0.0", default-features = false }
 pallet-nfts-runtime-api = { version = "15.0.0", default-features = false }
 pallet-nis = { version = "29.0.0", default-features = false }
-pallet-nomination-pools = { version = "26.0.0", default-features = false }
+pallet-nomination-pools = { version = "26.0.1", default-features = false }
 pallet-nomination-pools-benchmarking = { version = "27.0.0", default-features = false }
 pallet-nomination-pools-runtime-api = { version = "24.0.0", default-features = false }
 pallet-offences = { version = "28.0.0", default-features = false }
@@ -143,10 +143,10 @@ pallet-scheduler = { version = "30.0.0", default-features = false }
 pallet-session = { version = "29.0.0", default-features = false }
 pallet-session-benchmarking = { version = "29.0.0", default-features = false }
 pallet-society = { version = "29.0.0", default-features = false }
-pallet-staking = { version = "29.0.2", default-features = false }
+pallet-staking = { version = "29.0.3", default-features = false }
 pallet-staking-reward-curve = { version = "11.0.0" }
 pallet-staking-reward-fn = { version = "20.0.0", default-features = false }
-pallet-staking-runtime-api = { version = "15.0.0", default-features = false }
+pallet-staking-runtime-api = { version = "15.0.1", default-features = false }
 pallet-state-trie-migration = { version = "30.0.0", default-features = false }
 pallet-sudo = { version = "29.0.0", default-features = false }
 pallet-timestamp = { version = "28.0.0", default-features = false }
@@ -229,6 +229,10 @@ xcm = { version = "8.0.1", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "8.0.1", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.6.0" }
 xcm-executor = { version = "8.0.1", default-features = false, package = "staging-xcm-executor" }
+anyhow = { version = "1.0.82" }
+subxt = { version = "0.35.0", default-features = false }
+tracing-subscriber = { version = "0.3.18" }
+zombienet-sdk = { version = "0.2" }
 
 [workspace]
 resolver = "2"
@@ -273,6 +277,7 @@ members = [
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
+	"integration-tests/zombienet",
 ]
 
 [profile.release]
