@@ -54,8 +54,6 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		max_code_size: MAX_CODE_SIZE,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,
-		group_rotation_frequency: 20,
-		paras_availability_period: 4,
 		max_upward_queue_count: 8,
 		max_upward_queue_size: 1024 * 1024,
 		max_downward_message_size: 1024 * 1024,

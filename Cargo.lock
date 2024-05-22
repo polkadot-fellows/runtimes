@@ -553,6 +553,7 @@ dependencies = [
  "kusama-emulated-chain",
  "parachains-common",
  "sp-core",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -682,6 +683,7 @@ dependencies = [
  "parachains-common",
  "polkadot-emulated-chain",
  "sp-core",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -7950,6 +7952,7 @@ dependencies = [
  "penpal-runtime",
  "polkadot-emulated-chain",
  "sp-core",
+ "staging-xcm",
 ]
 
 [[package]]

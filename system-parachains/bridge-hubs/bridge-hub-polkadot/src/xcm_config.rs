@@ -24,6 +24,8 @@ use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Contains, Equals, Everything, Nothing},
 };
+use frame_support::traits::tokens::imbalance::ResolveTo;
+use pallet_collator_selection::StakingPotAccountId;
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{
@@ -210,7 +212,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader =
-		UsingComponents<WeightToFee, DotRelayLocation, AccountId, Balances, ToStakingPot<Runtime>>;
+		UsingComponents<WeightToFee, DotRelayLocation, AccountId, Balances, ResolveTo<StakingPotAccountId<Runtime>, Balances>>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;

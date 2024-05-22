@@ -24,9 +24,11 @@ use assets_common::{
 	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
 	TrustBackedAssetsAsLocation,
 };
+use pallet_collator_selection::StakingPotAccountId;
 use frame_support::{
 	parameter_types,
 	traits::{
+		tokens::imbalance::ResolveTo,
 		tokens::imbalance::ResolveAssetTo, ConstU32, Contains, Equals, Everything, Nothing,
 		PalletInfoAccess,
 	},
@@ -34,7 +36,6 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::{
-	impls::ToStakingPot,
 	xcm_config::{
 		AllSiblingSystemParachains, AssetFeeAsExistentialDepositMultiplier,
 		ConcreteAssetFromSystem, ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
@@ -157,6 +158,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
+	xcm::v3::Location,
 >;
 
 /// Means for transacting foreign assets from different global consensus.
@@ -323,7 +325,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = (
-		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, ToStakingPot<Runtime>>,
+		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, ResolveTo<StakingPotAccountId<Runtime>, Balances>>,
 		// This trader allows to pay with any assets exchangeable to KSM with
 		// [`AssetConversion`].
 		cumulus_primitives_utility::SwapFirstAssetTrader<
@@ -332,7 +334,7 @@ impl xcm_executor::Config for XcmConfig {
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance>,
+				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, xcm::v3::Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,

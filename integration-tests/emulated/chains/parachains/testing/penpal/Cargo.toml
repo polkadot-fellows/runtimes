@@ -18,6 +18,7 @@ parachains-common = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 penpal-runtime = { workspace = true }
+xcm = { workspace = true, default-features = true }
 
 # Runtimes
 kusama-emulated-chain = { workspace = true }
