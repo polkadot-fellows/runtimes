@@ -141,6 +141,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"polkadot-primitives/std"
 ]
 
 runtime-benchmarks = [
@@ -169,6 +170,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks"
 ]
 
 try-runtime = [
