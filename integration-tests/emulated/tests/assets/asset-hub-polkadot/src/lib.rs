@@ -41,7 +41,7 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
-pub use integration_tests_helpers::test_parachain_is_trusted_teleporter;
+pub use integration_tests_helpers::test_sibling_is_trusted_teleporter;
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{

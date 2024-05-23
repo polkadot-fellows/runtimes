@@ -37,7 +37,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, InstanceFilter, TransformOrigin,
+		ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EverythingBut,
+		InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -132,7 +133,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("coretime-kusama"),
 	impl_name: create_runtime_str!("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 1_002_003,
+	spec_version: 1_002_004,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -170,9 +171,19 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 2;
 }
 
+/// Filter out credit purchase calls until the credit system is implemented. Otherwise, users
+/// may have chance of locking their funds forever on purchased credits they cannot use.
+pub struct IsBrokerCreditPurchaseCall;
+impl Contains<RuntimeCall> for IsBrokerCreditPurchaseCall {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }))
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
+	type BaseCallFilter = EverythingBut<IsBrokerCreditPurchaseCall>;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The nonce type for storing how many extrinsics an account has signed.

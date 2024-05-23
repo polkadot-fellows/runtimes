@@ -15,16 +15,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
+use babe_primitives::AuthorityId as BabeId;
+use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
+use grandpa::AuthorityId as GrandpaId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::Forcing;
 use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
 use polkadot_runtime_constants::currency::UNITS as DOT;
-use polkadot_runtime_parachains::configuration::HostConfiguration;
+use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
-use sc_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use sp_consensus_babe::AuthorityId as BabeId;
-use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{traits::IdentifyAccount, Perbill};
 
@@ -47,7 +47,7 @@ pub fn polkadot_chain_spec_properties() -> serde_json::map::Map<String, serde_js
 fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primitives::BlockNumber> {
 	use polkadot_primitives::{MAX_CODE_SIZE, MAX_POV_SIZE};
 
-	polkadot_runtime_parachains::configuration::HostConfiguration {
+	runtime_parachains::configuration::HostConfiguration {
 		validation_upgrade_cooldown: 2u32,
 		validation_upgrade_delay: 2,
 		code_retention_period: 1200,
@@ -180,6 +180,7 @@ fn testnet_accounts() -> Vec<AccountId> {
 	]
 }
 
+#[allow(clippy::type_complexity)]
 pub fn polkadot_testnet_genesis(
 	initial_authorities: Vec<(
 		AccountId,
@@ -242,6 +243,7 @@ pub fn polkadot_testnet_genesis(
 	})
 }
 
+#[allow(clippy::type_complexity)]
 pub fn kusama_testnet_genesis(
 	initial_authorities: Vec<(
 		AccountId,

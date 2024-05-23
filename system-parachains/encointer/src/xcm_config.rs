@@ -16,17 +16,19 @@
 //! Almost identical to ../asset-hubs/asset-hub-kusama
 
 use super::{
-	AccountId, Balances, FeesToTreasury, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, Balances, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
 	traits::{Contains, Everything, Nothing},
-	weights::Weight,
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
+use parachains_common::{
+	impls::ToStakingPot,
+	xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains},
+};
 use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_core::ConstU32;
@@ -112,6 +114,7 @@ parameter_types! {
 }
 
 pub struct ParentOrParentsPlurality;
+
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
 		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
@@ -154,6 +157,7 @@ parameter_types! {
 pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
 
 pub struct XcmConfig;
+
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
@@ -164,9 +168,8 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	// `FeesToTreasury` is an encointer adaptation
 	type Trader =
-		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, FeesToTreasury<Runtime>>;
+		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, ToStakingPot<Runtime>>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
