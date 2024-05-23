@@ -8,7 +8,7 @@ description = "People Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
+codec = { workspace = true, default-features = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
@@ -19,17 +19,19 @@ pallet-identity = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
-xcm = { package = "staging-xcm", version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 asset-test-utils = { workspace = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook"], workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true, default-features = true }
 
 # Local
-kusama-runtime-constants = { path = "../../../../../relay/kusama/constants" }
-kusama-runtime = { package = "staging-kusama-runtime", path = "../../../../../relay/kusama" }
-people-kusama-runtime = { path = "../../../../../system-parachains/people/people-kusama" }
-kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
+kusama-runtime-constants = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true }
+people-kusama-runtime = { workspace = true }
+kusama-system-emulated-network = { workspace = true }
