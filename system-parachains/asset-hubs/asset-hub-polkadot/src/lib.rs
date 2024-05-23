@@ -94,7 +94,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible, fungibles,
-		tokens::imbalance::{ResolveAssetTo, ResolveTo},
+		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
 		InstanceFilter, NeverEnsureOrigin, TransformOrigin, WithdrawReasons,
 	},
@@ -105,7 +105,6 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned,
 };
-use pallet_collator_selection::StakingPotAccountId;
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
 	message_queue::*, AccountId, AssetHubPolkadotAuraId as AuraId, AssetIdForTrustBackedAssets,
