@@ -302,6 +302,7 @@ fn ethereum_to_polkadot_message_extrinsics_work() {
 
 #[test]
 fn ethereum_outbound_queue_processes_messages_before_message_queue_works() {
+	// FAIL-CI @clara
 	// TODO: add test after dependencies are upgraded to >= 1.8
 }
 
