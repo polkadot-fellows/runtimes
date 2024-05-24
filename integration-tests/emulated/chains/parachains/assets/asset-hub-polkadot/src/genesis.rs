@@ -18,7 +18,8 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed,
+	PenpalSiblingSovereignAccount, PenpalTeleportableAssetLocation, SAFE_XCM_VERSION,
 };
 use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
 use sp_core::sr25519;
@@ -72,6 +73,18 @@ pub fn genesis() -> Storage {
 		},
 		polkadot_xcm: asset_hub_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+		foreign_assets: asset_hub_polkadot_runtime::ForeignAssetsConfig {
+			assets: vec![
+				// Penpal's teleportable asset representation
+				(
+					PenpalTeleportableAssetLocation::get(),
+					PenpalSiblingSovereignAccount::get(),
+					true,
+					ED,
+				),
+			],
 			..Default::default()
 		},
 		..Default::default()
