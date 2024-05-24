@@ -32,6 +32,7 @@ pub use xcm::{
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
+	test_parachain_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -39,7 +40,6 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
-pub use integration_tests_helpers::test_sibling_is_trusted_teleporter;
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,

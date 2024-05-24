@@ -546,13 +546,12 @@ fn teleport_to_other_system_parachains_works() {
 	let amount = ASSET_HUB_KUSAMA_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	/*test_sibling_is_trusted_teleporter!(
+	test_parachain_is_trusted_teleporter!(
 		AssetHubKusama,          // Origin
 		AssetHubKusamaXcmConfig, // XCM Configuration
 		vec![BridgeHubKusama],   // Destinations
 		(native_asset, amount)
-	);*/
-	todo!() // FAIL-CI @bkontur
+	);
 }
 
 /// Bidirectional teleports of local Penpal assets to Asset Hub as foreign assets should work
