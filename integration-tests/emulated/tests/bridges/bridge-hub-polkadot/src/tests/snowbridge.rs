@@ -88,11 +88,13 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 /// Create an agent on Ethereum. An agent is a representation of an entity in the Polkadot
 /// ecosystem (like a parachain) on Ethereum.
 #[test]
-#[ignore]
 fn create_agent() {
 	let origin_para: u32 = 1001;
 	// Fund the origin parachain sovereign account so that it can pay execution fees.
 	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
+	// Fund Treasury account with ED so that when create agent fees are paid to treasury,
+	// the treasury account may exist.
+	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
 
 	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
 	let destination = Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
@@ -145,11 +147,13 @@ fn create_agent() {
 /// Create a channel for a consensus system. A channel is a bidirectional messaging channel
 /// between BridgeHub and Ethereum.
 #[test]
-#[ignore]
 fn create_channel() {
 	let origin_para: u32 = 1001;
 	// Fund AssetHub sovereign account so that it can pay execution fees.
 	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
+	// Fund Treasury account with ED so that when create agent fees are paid to treasury,
+	// the treasury account may exist.
+	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
 
 	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
 	let destination: VersionedLocation =
