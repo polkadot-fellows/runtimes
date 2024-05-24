@@ -421,10 +421,8 @@ fn send_token_from_ethereum_to_asset_hub() {
 			chain_id: CHAIN_ID,
 			command: Command::SendToken {
 				token: WETH.into(),
-				destination: Destination::ForeignAccountId32 {
-					para_id: PenpalB::para_id().into(),
-					id: PenpalBReceiver::get().into(),
-					fee: XCM_FEE,
+				destination: Destination::AccountId32 {
+					id: AssetHubPolkadotReceiver::get().into(),
 				},
 				amount: WETH_AMOUNT,
 				fee: XCM_FEE,
@@ -434,13 +432,6 @@ fn send_token_from_ethereum_to_asset_hub() {
 		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
-
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
-			]
-		);
 
 		// Check that the message was sent
 		assert_expected_events!(
@@ -533,6 +524,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
+		// Check that the register token message was sent using xcm
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
@@ -557,6 +549,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
+		// Check that the send token message was sent using xcm
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
