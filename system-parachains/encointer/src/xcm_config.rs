@@ -172,7 +172,7 @@ impl xcm_executor::Config for XcmConfig {
 		AccountId,
 		Balances,
 		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
-	>; // FAIL-CI @brenzi
+	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
