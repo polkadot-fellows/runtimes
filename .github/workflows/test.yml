@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -38,6 +39,7 @@ jobs:
           echo $TASKS
           echo "itest=$TASKS" >> $GITHUB_OUTPUT
 
+  # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
     continue-on-error: true
@@ -94,6 +96,7 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+  # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
     continue-on-error: true
@@ -144,6 +147,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
+  # Job required by "confirmTestPassed"
   build-chain-spec-generator:
     runs-on: ubuntu-latest
     steps:
@@ -241,6 +245,10 @@ jobs:
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
+  # This will only run if all the tests in its "needs" array passed.
+  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # it will still require all the steps to succeed.
+  # If you add more tests, remember to add them to the "needs" array.
   confirmTestPassed:
     runs-on: ubuntu-latest
     name: All tests passed
