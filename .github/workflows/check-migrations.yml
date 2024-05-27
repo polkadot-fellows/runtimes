@@ -1,5 +1,8 @@
 name: Check Migrations
 
+# If you modify more jobs, ensure that you add them as required to the job "confirmMigrationsPassed"
+# which is located at the end of this file (more info in the job)
+
 on:
   push:
     branches: ["main", "release-*"]

@@ -1,5 +1,8 @@
 name: "Test all features"
 
+# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# which is located at the end of this file (more info in the job)
+
 on:
   push:
     branches: ["main", "release-*"]
@@ -248,7 +251,7 @@ jobs:
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
-  # If you add more tests, remember to add them to the "needs" array.
+  # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
     runs-on: ubuntu-latest
     name: All tests passed
