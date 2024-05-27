@@ -26,10 +26,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_collator_selection::StakingPotAccountId;
 use pallet_xcm::XcmPassthrough;
-use parachains_common::{
-	impls::ToStakingPot,
-	xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains},
-};
+use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
 use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_core::ConstU32;
@@ -175,7 +172,7 @@ impl xcm_executor::Config for XcmConfig {
 		AccountId,
 		Balances,
 		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
-	>; // FAIL-CI @brenzi
+	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
