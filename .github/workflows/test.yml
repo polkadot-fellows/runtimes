@@ -197,6 +197,7 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+  # Job required by "confirmTestPassed"
   zombienet-smoke:
     needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
@@ -260,5 +261,6 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
+      - zombienet-smoke
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
