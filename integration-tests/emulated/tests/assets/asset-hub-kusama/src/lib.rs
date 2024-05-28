@@ -45,7 +45,7 @@ pub use kusama_system_emulated_network::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
-	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,

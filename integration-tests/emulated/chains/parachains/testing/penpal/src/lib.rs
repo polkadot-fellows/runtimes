@@ -14,7 +14,7 @@
 // limitations under the License.
 
 mod genesis;
-pub use genesis::{genesis, ED, PARA_ID_A, PARA_ID_B};
+pub use genesis::{genesis, ED, PARA_ID_A, PARA_ID_B, PenpalAssetOwner};
 pub use penpal_runtime::xcm_config::{
 	CustomizableAssetFromSystemAssetHub, LocalTeleportableToAssetHub, XcmConfig,
 };
