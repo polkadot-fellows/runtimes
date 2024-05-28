@@ -57,7 +57,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungibles::{Balanced, Credit},
-		tokens::ConversionToAssetBalance,
+		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
 		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
 		TransformOrigin,
 	},
@@ -105,7 +105,7 @@ use system_parachains_constants::{
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::latest::prelude::{AssetId as XcmAssetId, BodyId};
 
-use xcm_config::{KsmLocation, XcmOriginToTransactDispatchOrigin};
+use xcm_config::{KsmLocation, StakingPot, XcmOriginToTransactDispatchOrigin};
 
 /// A type to hold UTC unix epoch [ms]
 pub type Moment = u64;
@@ -324,7 +324,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;

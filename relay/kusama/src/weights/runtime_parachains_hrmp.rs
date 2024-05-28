@@ -322,4 +322,34 @@ impl<T: frame_system::Config> runtime_parachains::hrmp::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `Paras::ParaLifecycles` (r:2 w:0)
+	/// Proof: `Paras::ParaLifecycles` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpOpenChannelRequests` (r:2 w:2)
+	/// Proof: `Hrmp::HrmpOpenChannelRequests` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpChannels` (r:2 w:0)
+	/// Proof: `Hrmp::HrmpChannels` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpEgressChannelsIndex` (r:2 w:0)
+	/// Proof: `Hrmp::HrmpEgressChannelsIndex` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpOpenChannelRequestCount` (r:2 w:2)
+	/// Proof: `Hrmp::HrmpOpenChannelRequestCount` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpOpenChannelRequestsList` (r:1 w:1)
+	/// Proof: `Hrmp::HrmpOpenChannelRequestsList` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueues` (r:2 w:2)
+	/// Proof: `Dmp::DownwardMessageQueues` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueueHeads` (r:2 w:2)
+	/// Proof: `Dmp::DownwardMessageQueueHeads` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpIngressChannelsIndex` (r:2 w:0)
+	/// Proof: `Hrmp::HrmpIngressChannelsIndex` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Hrmp::HrmpAcceptedChannelRequestCount` (r:2 w:2)
+	/// Proof: `Hrmp::HrmpAcceptedChannelRequestCount` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn establish_channel_with_system() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `421`
+		//  Estimated: `6361`
+		// Minimum execution time: 95_251_000 picoseconds.
+		Weight::from_parts(96_051_000, 0)
+			.saturating_add(Weight::from_parts(0, 6361))
+			.saturating_add(T::DbWeight::get().reads(19))
+			.saturating_add(T::DbWeight::get().writes(11))
+	}
 }
