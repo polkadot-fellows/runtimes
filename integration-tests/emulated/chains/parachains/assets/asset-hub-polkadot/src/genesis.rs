@@ -18,14 +18,35 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed,
-	PenpalSiblingSovereignAccount, PenpalTeleportableAssetLocation, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, SAFE_XCM_VERSION,
 };
+use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_core::sr25519;
+use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
+
+frame_support::parameter_types! {
+	pub PenpalATeleportableAssetLocation: Location
+		= Location::new(1, [
+				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+			]
+		);
+	pub PenpalBTeleportableAssetLocation: Location
+		= Location::new(1, [
+				Junction::Parachain(penpal_emulated_chain::PARA_ID_B),
+				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+			]
+		);
+	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
+}
 
 fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
 	vec![
@@ -44,7 +65,11 @@ pub fn genesis() -> Storage {
 	let genesis_config = asset_hub_polkadot_runtime::RuntimeGenesisConfig {
 		system: asset_hub_polkadot_runtime::SystemConfig::default(),
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
+			balances: accounts::init_balances()
+				.iter()
+				.cloned()
+				.map(|k| (k, ED * 4096 * 4096))
+				.collect(),
 		},
 		parachain_info: asset_hub_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
@@ -79,8 +104,14 @@ pub fn genesis() -> Storage {
 			assets: vec![
 				// Penpal's teleportable asset representation
 				(
-					PenpalTeleportableAssetLocation::get(),
-					PenpalSiblingSovereignAccount::get(),
+					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
+					PenpalASiblingSovereignAccount::get().try_into().unwrap(),
+					true,
+					ED,
+				),
+				(
+					PenpalBTeleportableAssetLocation::get().try_into().unwrap(),
+					PenpalBSiblingSovereignAccount::get().try_into().unwrap(),
 					true,
 					ED,
 				),

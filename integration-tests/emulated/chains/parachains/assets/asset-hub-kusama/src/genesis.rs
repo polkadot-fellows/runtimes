@@ -18,13 +18,26 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, PenpalSiblingSovereignAccount,
-	PenpalTeleportableAssetLocation, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
-use parachains_common::Balance;
+use frame_support::sp_runtime::traits::AccountIdConversion;
+use parachains_common::{AccountId, Balance};
+use polkadot_parachain_primitives::primitives::Sibling;
+use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
+
+frame_support::parameter_types! {
+	pub PenpalATeleportableAssetLocation: Location
+		= Location::new(1, [
+				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+			]
+		);
+	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+}
 
 pub fn genesis() -> Storage {
 	let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
@@ -65,8 +78,8 @@ pub fn genesis() -> Storage {
 			assets: vec![
 				// Penpal's teleportable asset representation
 				(
-					PenpalTeleportableAssetLocation::get(),
-					PenpalSiblingSovereignAccount::get(),
+					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
+					PenpalASiblingSovereignAccount::get(),
 					true,
 					ED,
 				),

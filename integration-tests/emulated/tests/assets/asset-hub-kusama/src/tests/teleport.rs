@@ -14,10 +14,9 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::XcmConfig as AssetHubKusamaXcmConfig;
+use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
 use kusama_runtime::xcm_config::XcmConfig as KusamaXcmConfig;
-use asset_hub_kusama_runtime::xcm_config::KsmLocation;
 use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 
 fn relay_origin_assertions(t: RelayToSystemParaTest) {
@@ -634,7 +633,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		),
 	};
 	let mut penpal_to_ah = ParaToSystemParaTest::new(penpal_to_ah_test_args);
-        let penpal_sender_balance_before = PenpalA::execute_with(|| {
+	let penpal_sender_balance_before = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(
 			system_para_native_asset_location.clone(),
