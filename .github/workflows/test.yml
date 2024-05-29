@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-v1.11.0
+
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -88,6 +91,13 @@ jobs:
         with:
           shared-key: "fellowship-cache-tests"
 
+      - name: Download frame-omni-bencher
+        run: |
+          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          chmod +x ./frame-omni-bencher
+          ./frame-omni-bencher --version
+        shell: bash
+
       - name: Test ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
@@ -104,22 +114,13 @@ jobs:
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
-          # TODO: remove
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           # build wasm
+          echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
-          # TODO: remove
           ls -lrt $RUNTIME_BLOB_PATH
-          # TODO: get `frame-omni-bencher` somehow - GHA? or download released binary? or whatever?
-          # TODO: we just try to build in-place
-          time git clone https://github.com/paritytech/polkadot-sdk --branch master --depth 1
-          git branch
-          cd ./polkadot-sdk
-          time cargo build --locked --release -p frame-omni-bencher
-          cd ..
           # run benchmarking
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          ./polkadot-sdk/target/release/frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
