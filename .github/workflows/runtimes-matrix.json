@@ -68,6 +68,12 @@
     "is_relay": false
   },
   {
+    "name": "people-polkadot",
+    "package": "people-polkadot-runtime",
+    "path": "system-parachains/people/people-polkadot",
+    "is_relay": false
+  },
+  {
     "name": "encointer-kusama",
     "package": "encointer-kusama-runtime",
     "path": "system-parachains/encointer",
