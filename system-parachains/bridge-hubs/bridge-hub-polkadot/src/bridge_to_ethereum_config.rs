@@ -139,13 +139,6 @@ parameter_types! {
 	};
 }
 
-parameter_types! {
-	// On Ethereum, a sync committee period spans 8192 slots, approximately 27 hours (or 256 epochs).
-	// We retain headers for 20 sync committee periods, equating to about 3 weeks. Headers older
-	// than this period are pruned.
-	pub const MaxExecutionHeadersToKeep: u32 = 8192 * 20;
-}
-
 impl snowbridge_pallet_ethereum_client::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ForkVersions = ChainForkVersions;
@@ -173,14 +166,14 @@ pub mod benchmark_helpers {
 	use codec::Encode;
 	use frame_support::traits::fungible;
 	use hex_literal::hex;
-	use snowbridge_beacon_primitives::CompactExecutionHeader;
+	use snowbridge_beacon_primitives::BeaconHeader;
 	use snowbridge_pallet_inbound_queue::BenchmarkHelper;
 	use sp_core::H256;
 	use xcm::latest::{Assets, Location, SendError, SendResult, SendXcm, Xcm, XcmHash};
 
 	impl<T: snowbridge_pallet_ethereum_client::Config> BenchmarkHelper<T> for Runtime {
-		fn initialize_storage(block_hash: H256, header: CompactExecutionHeader) {
-			EthereumBeaconClient::store_execution_header(block_hash, header, 0, H256::default());
+		fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+			EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
 			EthereumGatewayAddress::set(&hex!["EDa338E4dC46038493b885327842fD3E301CaB39"].into());
 		}
 	}
