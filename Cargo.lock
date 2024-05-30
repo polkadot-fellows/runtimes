@@ -2371,6 +2371,7 @@ dependencies = [
  "pallet-staking",
  "parachains-common",
  "people-kusama-runtime",
+ "people-polkadot-runtime",
  "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-constants",
