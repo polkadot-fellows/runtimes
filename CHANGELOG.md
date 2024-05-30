@@ -42,7 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove one-shot migrations from Kusama Coretime ([polkadot-fellows/runtimes#300](https://github.com/polkadot-fellows/runtimes/pull/300))
 - Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
 - Allow Sending XCM messages using a Signed origin on Kusama ([polkadot-fellows/runtimes#290](https://github.com/polkadot-fellows/runtimes/pull/290))
-- Removed Identity-related code from Kusama Relay Chain ([polkadot-fellows/runtimes#315](https://github.com/polkadot-fellows/runtimes/pull/315))
 
 ### Fixed
 
