@@ -1813,6 +1813,7 @@ pub mod migrations {
 		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
 		pub const IdentityPalletName: &'static str = "Identity";
+		pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
 	}
 
 	/// Upgrade Session keys to exclude `ImOnline` key.
@@ -1950,9 +1951,13 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		CancelAuctions,
-		// Remove `identity` pallet on-chain storage. `identity-migrator` is stateless.
+		// Remove `identity` and `identity-migrator`.
 		frame_support::migrations::RemovePallet<
 			IdentityPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			IdentityMigratorPalletName,
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 	);
