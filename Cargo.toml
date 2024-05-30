@@ -76,7 +76,7 @@ kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/n
 kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
 kusama-runtime-constants = { path = "relay/kusama/constants", default-features = false }
 kusama-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-system" }
-log = { version = "0.4.20", default-features = false }
+log = { version = "0.4.21", default-features = false }
 pallet-alliance = { version = "28.0.0", default-features = false }
 pallet-asset-conversion = { version = "11.0.0", default-features = false }
 pallet-asset-conversion-tx-payment = { version = "11.0.0", default-features = false }
