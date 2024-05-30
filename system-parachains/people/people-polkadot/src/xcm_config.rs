@@ -153,6 +153,23 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+/// A location matching the Core Technical Fellowship.
+pub struct FellowsPlurality;
+impl Contains<Location> for FellowsPlurality {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					Plurality { id: BodyId::Technical, .. }
+				]
+			)
+		)
+	}
+}
+
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
