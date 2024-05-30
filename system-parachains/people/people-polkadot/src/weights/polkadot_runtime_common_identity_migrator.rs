@@ -61,13 +61,13 @@ impl<T: frame_system::Config> polkadot_runtime_common::identity_migrator::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `741 + r * (5 ±0) + s * (32 ±0)`
 		//  Estimated: `6723`
-		// Minimum execution time: 36_410_000 picoseconds.
-		Weight::from_parts(38_271_710, 0)
+		// Minimum execution time: 36_130_000 picoseconds.
+		Weight::from_parts(38_663_715, 0)
 			.saturating_add(Weight::from_parts(0, 6723))
-			// Standard Error: 3_976
-			.saturating_add(Weight::from_parts(62_655, 0).saturating_mul(r.into()))
-			// Standard Error: 814
-			.saturating_add(Weight::from_parts(1_505_415, 0).saturating_mul(s.into()))
+			// Standard Error: 4_799
+			.saturating_add(Weight::from_parts(49_078, 0).saturating_mul(r.into()))
+			// Standard Error: 983
+			.saturating_add(Weight::from_parts(1_498_325, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
@@ -82,8 +82,8 @@ impl<T: frame_system::Config> polkadot_runtime_common::identity_migrator::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `706`
 		//  Estimated: `6723`
-		// Minimum execution time: 51_381_000 picoseconds.
-		Weight::from_parts(51_950_000, 0)
+		// Minimum execution time: 51_511_000 picoseconds.
+		Weight::from_parts(52_060_000, 0)
 			.saturating_add(Weight::from_parts(0, 6723))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
