@@ -1064,15 +1064,22 @@ parameter_types! {
 	TypeInfo,
 )]
 pub enum ProxyType {
+	#[codec(index = 0)]
 	Any,
+	#[codec(index = 1)]
 	NonTransfer,
+	#[codec(index = 2)]
 	Governance,
+	#[codec(index = 3)]
 	Staking,
-	// Formerly `IdentityJudgement`
-	_Unused,
+	// Index 4 skipped. Formerly `IdentityJudgement`.
+	#[codec(index = 5)]
 	CancelProxy,
+	#[codec(index = 6)]
 	Auction,
+	#[codec(index = 7)]
 	Society,
+	#[codec(index = 8)]
 	NominationPools,
 }
 
@@ -1161,7 +1168,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
-			ProxyType::_Unused => false,
 			ProxyType::CancelProxy => {
 				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
 			},
