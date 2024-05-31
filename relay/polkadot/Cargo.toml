@@ -21,7 +21,7 @@ sp-inherents = { workspace = true }
 sp-offchain = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
-sp-api = { workspace = true }
+sp-api = { workspace = true, features = [ "frame-metadata" ] }
 sp-genesis-builder = { workspace = true }
 sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
@@ -112,6 +112,9 @@ sp-tracing = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
+# Workaround for a bug in the compiler?
+# The code is fixed in `polkadot-sdk` and this will come with the next upgrade.
+sp-api = { workspace = true, features = [ "frame-metadata" ] }
 
 [features]
 default = ["std"]
