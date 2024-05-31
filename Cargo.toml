@@ -199,7 +199,7 @@ snowbridge-router-primitives = { version = "0.1.0", default-features = false }
 snowbridge-runtime-common = { version = "0.1.0", default-features = false }
 snowbridge-runtime-test-common = { version = "0.1.0" }
 snowbridge-system-runtime-api = { version = "0.1.0", default-features = false }
-sp-api = { version = "27.0.0", default-features = false }
+sp-api = { version = "27.0.1", default-features = false }
 sp-application-crypto = { version = "31.0.0", default-features = false }
 sp-arithmetic = { version = "24.0.0", default-features = false }
 sp-block-builder = { version = "27.0.0", default-features = false }

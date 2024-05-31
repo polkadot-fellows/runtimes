@@ -90,9 +90,6 @@ collectives-polkadot-runtime-constants = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
-# Workaround for a bug in the compiler?
-# The code is fixed in `polkadot-sdk` and this will come with the next upgrade.
-sp-api = { workspace = true, features = [ "frame-metadata" ] }
 
 [features]
 default = ["std"]
