@@ -61,8 +61,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
+		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
@@ -175,8 +175,16 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// A type to identify `identity::request_judgement` calls.
+pub struct IsIdentityJudgementRequestCall;
+impl Contains<RuntimeCall> for IsIdentityJudgementRequestCall {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. }))
+	}
+}
+
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = EverythingBut<IsIdentityJudgementRequestCall>;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
