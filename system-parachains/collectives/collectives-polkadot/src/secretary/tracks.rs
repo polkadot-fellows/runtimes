@@ -43,7 +43,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 			constants::SECRETARY,
 			pallet_referenda::TrackInfo {
 				name: "secretary",
-				max_deciding: 1,
+				max_deciding: 10,
 				decision_deposit: 5 * DOLLARS,
 				prepare_period: 24 * HOURS,
 				decision_period: 1 * DAYS,

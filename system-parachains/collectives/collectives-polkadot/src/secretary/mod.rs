@@ -59,14 +59,11 @@ pub mod ranks {
 
 type ApproveOrigin = EitherOf<
 	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
-	MapSuccess<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
-		Replace<ConstU16<1>>,
-	>,
+	MapSuccess<Fellows, Replace<ConstU16<2>>>,
 >;
 
-type OpenGovOrSecretary = EitherOfDiverse<
-	EnsureRoot<AccountId>,
+type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
+	EitherOfDiverse<EnsureRoot<AccountId>, Fellows>,
 	EitherOfDiverse<Secretary, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
 >;
 
@@ -99,13 +96,15 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 	// Referandum can be cancled by any of:
 	// - Root;
 	// - a member of the Secretary Program.
+	// - a vote by Fellows from the Technical Fellowship program.
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	type CancelOrigin = OpenGovOrSecretary;
+	type CancelOrigin = OpenGovOrSecretaryOrFellow;
 	// Referandum can be killed by any of:
 	// - Root;
 	// - a member of the Secretary Program.
+	// - a vote by Fellows from the Technical Fellowship program.
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	type KillOrigin = OpenGovOrSecretary;
+	type KillOrigin = OpenGovOrSecretaryOrFellow;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, SecretaryCollectiveInstance>;
@@ -122,32 +121,22 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	// Promotions and inductions should be done through the [`crate::SecretaryCore`] pallet instance
-	// instance.
+	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
 	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
 	#[cfg(feature = "runtime-benchmarks")]
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
 	// pass.
 	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
+
 	// Demotion is by any of:
 	// - Root can demote arbitrarily.
-	// - a single member of the Fellowship Program (DAN III);
-	type DemoteOrigin = EitherOf<
-		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
-		MapSuccess<
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				FellowshipCollectiveInstance,
-				{ DAN_3 },
-			>,
-			Replace<ConstU16<2>>,
-		>,
-	>;
+	// - a vote by Fellows from the Technical Fellowship program.
+	type DemoteOrigin = ApproveOrigin;
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
-	// - the Secretary Origin.
+	// - the Fellow Origin.
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	type ExchangeOrigin = OpenGovOrSecretary;
+	type ExchangeOrigin = OpenGovOrFellow;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
 	type MemberSwappedHandler = (crate::SecretaryCore, crate::SecretarySalary);
@@ -190,11 +179,11 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	>;
 	// Approval (rank-retention) of a Member's current rank is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single member of the Fellowship program (DAN III);
+	// - a vote by Fellows from the Technical Fellowship program.
 	type ApproveOrigin = ApproveOrigin;
 	// Promotion is by any of:
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single member of the Fellowship program (DAN III);
+	// - a vote by Fellows from the Technical Fellowship program.
 	type PromoteOrigin = ApproveOrigin;
 
 	type EvidenceSize = ConstU32<65536>;
@@ -224,8 +213,12 @@ pub type SecretarySalaryPaymaster = PayOverXcm<
 
 pub struct SalaryForRank;
 impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
-	fn get_salary(a: u16, _: &AccountId) -> Balance {
-		Balance::from(a) * 1000 * USDT_UNITS
+	fn get_salary(rank: u16, _: &AccountId) -> Balance {
+		if rank == 1 {
+			1000
+		} else {
+			0
+		}
 	}
 }
 
@@ -314,7 +307,7 @@ impl pallet_treasury::Config<SecretaryTreasuryInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = SecretaryTreasuryPalletId;
 	type Currency = Balances;
-	type RejectOrigin = OpenGovOrSecretary;
+	type RejectOrigin = OpenGovOrSecretaryOrFellow;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
 	type BurnDestination = ();
