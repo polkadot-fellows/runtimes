@@ -18,6 +18,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod identity_ops;
 pub mod people;
 mod weights;
 pub mod xcm_config;
@@ -41,6 +42,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
+use identity_ops::pallet_identity_ops;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
@@ -511,6 +513,8 @@ impl identity_migrator::Config for Runtime {
 	type WeightInfo = weights::polkadot_runtime_common_identity_migrator::WeightInfo<Runtime>;
 }
 
+impl pallet_identity_ops::Config for Runtime {}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -548,6 +552,9 @@ construct_runtime!(
 
 		// To migrate deposits
 		IdentityMigrator: identity_migrator = 248,
+
+		// Identity operations pallet.
+		IdentityOps: pallet_identity_ops = 247,
 	}
 );
 
