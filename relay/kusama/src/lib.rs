@@ -1832,10 +1832,8 @@ pub mod migrations {
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
 			let key_ids = SessionKeys::key_ids();
 			frame_support::ensure!(
-				key_ids
-					.into_iter()
-					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE)
-					.is_none(),
+				!key_ids
+					.iter().any(|k| *k == sp_core::crypto::key_types::IM_ONLINE),
 				"New session keys contain the ImOnline key that should have been removed",
 			);
 			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
@@ -1851,7 +1849,7 @@ pub mod migrations {
 					state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
-			frame_support::ensure!(state.len() > 0, "Queued keys are not empty before upgrade");
+			frame_support::ensure!(!state.is_empty(), "Queued keys are not empty before upgrade");
 			Ok(state)
 		}
 
@@ -1882,7 +1880,7 @@ pub mod migrations {
 					new_state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
-			frame_support::ensure!(new_state.len() > 0, "Queued keys are not empty after upgrade");
+			frame_support::ensure!(!new_state.is_empty(), "Queued keys are not empty after upgrade");
 			frame_support::ensure!(
 				old_state == new_state,
 				"Pre-upgrade and post-upgrade keys do not match!"
@@ -2037,11 +2035,7 @@ pub mod migrations {
 						// Remove filter out IdentityJudgement proxies.
 						let proxies_len_before = proxies.len() as u64;
 						proxies.retain(|proxy| {
-							if proxy.proxy_type == PrevProxyType::IdentityJudgement {
-								false
-							} else {
-								true
-							}
+							proxy.proxy_type != PrevProxyType::IdentityJudgement
 						});
 						let proxies_len_after = proxies.len() as u64;
 
@@ -2075,8 +2069,8 @@ pub mod migrations {
 							old_deposit
 						};
 
-						reads.saturating_accrue(proxies_len_before as u64 + 1);
-						writes.saturating_accrue(proxies_len_after as u64 + 1);
+						reads.saturating_accrue(proxies_len_before + 1);
+						writes.saturating_accrue(proxies_len_after + 1);
 						Some((proxies, deposit))
 					},
 				);
@@ -2103,7 +2097,7 @@ pub mod migrations {
 							ensure!(&deposit == expected_deposit, "Unexpected deposit");
 						},
 						None => {
-							return Err(TryRuntimeError::Other("Missing Proxy".into()));
+							return Err(TryRuntimeError::Other("Missing Proxy"));
 						},
 					}
 				}
@@ -2120,7 +2114,7 @@ pub mod migrations {
 				// current state
 				for (who, _) in expected_proxies.iter() {
 					if !Proxies::<Runtime>::contains_key(who) {
-						return Err(TryRuntimeError::Other("Extra entry in expected state".into()));
+						return Err(TryRuntimeError::Other("Extra entry in expected state"));
 					}
 				}
 
