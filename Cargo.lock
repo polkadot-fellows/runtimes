@@ -625,6 +625,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -754,6 +755,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -1753,6 +1755,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -1901,6 +1904,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -2462,6 +2466,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -2672,6 +2677,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -3466,6 +3472,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-syn-parse"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d65d7ce8132b7c0e54497a4d9a55a1c2a0912a0d786cf894472ba818fba45762"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3569,21 +3586,21 @@ dependencies = [
 
 [[package]]
 name = "docify"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cc4fd38aaa9fb98ac70794c82a00360d1e165a87fbf96a8a91f9dfc602aaee2"
+checksum = "43a2f138ad521dc4a2ced1a4576148a6a610b4c5923933b062a263130a6802ce"
 dependencies = [
  "docify_macros",
 ]
 
 [[package]]
 name = "docify_macros"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63fa215f3a0d40fb2a221b3aa90d8e1fbb8379785a990cb60d62ac71ebdc6460"
+checksum = "1a081e51fb188742f5a7a1164ad752121abcb22874b21e2c3b0dd040c515fdad"
 dependencies = [
  "common-path",
- "derive-syn-parse",
+ "derive-syn-parse 0.2.0",
  "once_cell",
  "proc-macro2",
  "quote",
@@ -3847,6 +3864,7 @@ dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -4513,6 +4531,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "frame-metadata-hash-extension"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5bb1eec9eb46d3e016c95b2fa875118c04609f2150013c56a894cae00581e265"
+dependencies = [
+ "array-bytes 6.2.2",
+ "docify",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 32.0.0",
+]
+
+[[package]]
 name = "frame-remote-externalities"
 version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4585,7 +4619,7 @@ checksum = "3bf1d648c4007d421b9677b3c893256913498fff159dc2d85022cdd9cc432f3c"
 dependencies = [
  "Inflector",
  "cfg-expr",
- "derive-syn-parse",
+ "derive-syn-parse 0.1.5",
  "expander 2.0.0",
  "frame-support-procedural-tools",
  "itertools 0.10.5",
@@ -6893,7 +6927,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "468155613a44cfd825f1fb0ffa532b018253920d404e6fca1e8d43155198a46d"
 dependencies = [
  "const-random",
- "derive-syn-parse",
+ "derive-syn-parse 0.1.5",
  "macro_magic_core_macros",
  "proc-macro2",
  "quote",
@@ -7008,6 +7042,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "808b50db46293432a45e63bc15ea51e0ab4c0a1647b8eb114e31a3e698dd6fbe"
 dependencies = [
  "hash-db",
+]
+
+[[package]]
+name = "merkleized-metadata"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f313fcff1d2a4bcaa2deeaa00bf7530d77d5f7bd0467a117dde2e29a75a7a17a"
+dependencies = [
+ "array-bytes 6.2.2",
+ "blake3",
+ "frame-metadata 16.0.0",
+ "parity-scale-codec",
+ "scale-decode 0.13.0",
+ "scale-info",
 ]
 
 [[package]]
@@ -9798,6 +9846,7 @@ dependencies = [
  "enumflags2",
  "frame-benchmarking",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -10820,6 +10869,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
@@ -13558,8 +13608,18 @@ checksum = "662d10dcd57b1c2a3c41c9cf68f71fb09747ada1ea932ad961aca7e2ca28315f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "scale-type-resolver",
+ "scale-type-resolver 0.1.1",
  "serde",
+]
+
+[[package]]
+name = "scale-bits"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e57b1e7f6b65ed1f04e79a85a57d755ad56d76fdf1e9bddcc9ae14f71fcdcf54"
+dependencies = [
+ "parity-scale-codec",
+ "scale-type-resolver 0.2.0",
 ]
 
 [[package]]
@@ -13571,9 +13631,22 @@ dependencies = [
  "derive_more",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits",
+ "scale-bits 0.5.0",
  "scale-decode-derive",
- "scale-type-resolver",
+ "scale-type-resolver 0.1.1",
+ "smallvec",
+]
+
+[[package]]
+name = "scale-decode"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b12ebca36cec2a3f983c46295b282b35e5f8496346fb859a8776dad5389e5389"
+dependencies = [
+ "derive_more",
+ "parity-scale-codec",
+ "scale-bits 0.6.0",
+ "scale-type-resolver 0.2.0",
  "smallvec",
 ]
 
@@ -13598,9 +13671,9 @@ dependencies = [
  "derive_more",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits",
+ "scale-bits 0.5.0",
  "scale-encode-derive",
- "scale-type-resolver",
+ "scale-type-resolver 0.1.1",
  "smallvec",
 ]
 
@@ -13654,6 +13727,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "scale-type-resolver"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0cded6518aa0bd6c1be2b88ac81bf7044992f0f154bfbabd5ad34f43512abcb"
+
+[[package]]
 name = "scale-typegen"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13678,11 +13757,11 @@ dependencies = [
  "either",
  "frame-metadata 15.1.0",
  "parity-scale-codec",
- "scale-bits",
- "scale-decode",
+ "scale-bits 0.5.0",
+ "scale-decode 0.11.1",
  "scale-encode",
  "scale-info",
- "scale-type-resolver",
+ "scale-type-resolver 0.1.1",
  "serde",
  "yap",
 ]
@@ -14748,9 +14827,9 @@ dependencies = [
 
 [[package]]
 name = "sp-api"
-version = "27.0.0"
+version = "27.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ef42aa652381ade883c14ffbbb5c0fec36d382d2217b5bace01b8a0e8634778"
+checksum = "2e4f8702afd77f14a32733e2b589c02694bf79d0b3a641963c508016208724d0"
 dependencies = [
  "hash-db",
  "log",
@@ -14770,9 +14849,9 @@ dependencies = [
 
 [[package]]
 name = "sp-api-proc-macro"
-version = "15.0.0"
+version = "15.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0694be2891593450916d6b53a274d234bccbc86bcbada36ba23fc356989070c7"
+checksum = "0301e2f77afb450fbf2b093f8b324c7ad88cc82e5e69bd5dc8658a1f068b2a96"
 dependencies = [
  "Inflector",
  "blake2 0.10.6",
@@ -15876,6 +15955,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
@@ -16274,16 +16354,25 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder"
-version = "18.0.0"
+version = "18.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "511bbc2df035f5fe2556d855369a1bbb45df620360391a1f6e3fa1a1d64af79a"
+checksum = "4a39a20e17c24ede36b5bd5e7543a4cef8d8a0daf6e1a046dc31832b837a54a0"
 dependencies = [
+ "array-bytes 6.2.2",
  "build-helper",
  "cargo_metadata",
  "console",
  "filetime",
+ "frame-metadata 16.0.0",
+ "merkleized-metadata",
+ "parity-scale-codec",
  "parity-wasm",
+ "sc-executor",
+ "sp-core 29.0.0",
+ "sp-io 31.0.0",
  "sp-maybe-compressed-blob",
+ "sp-tracing",
+ "sp-version",
  "strum 0.24.1",
  "tempfile",
  "toml 0.8.10",
@@ -16322,8 +16411,8 @@ dependencies = [
  "jsonrpsee 0.22.5",
  "parity-scale-codec",
  "primitive-types",
- "scale-bits",
- "scale-decode",
+ "scale-bits 0.5.0",
+ "scale-decode 0.11.1",
  "scale-encode",
  "scale-info",
  "scale-value",
