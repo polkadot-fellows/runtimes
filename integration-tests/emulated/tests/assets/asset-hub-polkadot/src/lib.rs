@@ -30,6 +30,7 @@ pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v3::{self, Error, NetworkId::Polkadot as PolkadotId},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
@@ -43,6 +44,7 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use parachains_common::{AccountId, Balance};
+pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLocation;
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
@@ -53,8 +55,8 @@ pub use polkadot_system_emulated_network::{
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
 	penpal_emulated_chain::{
-		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
-		ED as PENPAL_ED,
+		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
+		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
@@ -80,6 +82,8 @@ pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
 pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
 pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;
 pub type ParaToParaThroughRelayTest = Test<PenpalB, PenpalA, Polkadot>;
+pub type ParaToParaThroughAHTest = Test<PenpalB, PenpalA, AssetHubPolkadot>;
+pub type RelayToParaThroughAHTest = Test<Polkadot, PenpalB, AssetHubPolkadot>;
 
 #[cfg(test)]
 mod tests;

@@ -28,6 +28,7 @@ pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v3::{self, Error, NetworkId::Kusama as KusamaId},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
@@ -40,6 +41,7 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V3,
 };
+pub use kusama_runtime::xcm_config::UniversalLocation as KusamaUniversalLocation;
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::{AssetHubKusamaAssetOwner, ED as ASSET_HUB_KUSAMA_ED},
@@ -47,8 +49,8 @@ pub use kusama_system_emulated_network::{
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	penpal_emulated_chain::{
-		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
-		ED as PENPAL_ED,
+		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
+		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
@@ -71,6 +73,8 @@ pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
 pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama>;
+pub type ParaToParaThroughAHTest = Test<PenpalA, PenpalB, AssetHubKusama>;
+pub type RelayToParaThroughAHTest = Test<Kusama, PenpalA, AssetHubKusama>;
 
 #[cfg(test)]
 mod tests;

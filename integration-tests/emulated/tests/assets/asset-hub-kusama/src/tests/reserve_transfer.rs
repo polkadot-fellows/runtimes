@@ -38,7 +38,7 @@ fn relay_to_para_sender_assertions(t: RelayToParaTest) {
 	);
 }
 
-fn system_para_to_para_sender_assertions(t: SystemParaToParaTest) {
+pub fn system_para_to_para_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 	AssetHubKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
 		864_610_000,
@@ -119,7 +119,7 @@ pub fn para_to_system_para_sender_assertions(t: ParaToSystemParaTest) {
 	}
 }
 
-fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
+pub fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
@@ -198,7 +198,7 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 	);
 }
 
-fn para_to_para_through_hop_sender_assertions(t: ParaToParaThroughRelayTest) {
+pub fn para_to_para_through_hop_sender_assertions<Hop: Clone>(t: Test<PenpalA, PenpalB, Hop>) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
 
 	PenpalA::assert_xcm_pallet_attempted_complete(None);
