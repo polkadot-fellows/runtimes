@@ -1783,7 +1783,6 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	claims::PrevalidateAttests<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
 pub struct NominationPoolsMigrationV4OldPallet;
@@ -1803,9 +1802,11 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::traits::OnRuntimeUpgrade;
+	use frame_system::RawOrigin;
+	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
-
 	parameter_types! {
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
 	}
@@ -1886,6 +1887,18 @@ pub mod migrations {
 		}
 	}
 
+	/// Enable the elastic scaling node side feature.
+	///
+	/// This is required for Coretime to ensure the relay chain processes parachains that are
+	/// assigned to multiple cores.
+	pub struct EnableElasticScalingNodeFeature;
+	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
+		fn on_runtime_upgrade() -> Weight {
+			let _ = Configuration::set_node_feature(RawOrigin::Root.into(), 1, true);
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
+		}
+	}
+
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
 
@@ -1907,6 +1920,7 @@ pub mod migrations {
 			ImOnlinePalletName,
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
+		EnableElasticScalingNodeFeature,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
