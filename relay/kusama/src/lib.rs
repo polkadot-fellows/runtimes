@@ -1832,8 +1832,7 @@ pub mod migrations {
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
 			let key_ids = SessionKeys::key_ids();
 			frame_support::ensure!(
-				!key_ids
-					.iter().any(|k| *k == sp_core::crypto::key_types::IM_ONLINE),
+				!key_ids.iter().any(|k| *k == sp_core::crypto::key_types::IM_ONLINE),
 				"New session keys contain the ImOnline key that should have been removed",
 			);
 			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
@@ -1880,7 +1879,10 @@ pub mod migrations {
 					new_state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
-			frame_support::ensure!(!new_state.is_empty(), "Queued keys are not empty after upgrade");
+			frame_support::ensure!(
+				!new_state.is_empty(),
+				"Queued keys are not empty after upgrade"
+			);
 			frame_support::ensure!(
 				old_state == new_state,
 				"Pre-upgrade and post-upgrade keys do not match!"
@@ -2009,7 +2011,10 @@ pub mod migrations {
 
 					// Update the deposit only if proxies were removed and the deposit decreased.
 					if new_deposit < old_deposit && proxies_len_after < proxies_len_before {
-						expected_proxies.insert(who.clone(), (proxies, new_deposit));
+						// If there're no proxies left, they should be removed
+						if proxies.len() > 0 {
+							expected_proxies.insert(who.clone(), (proxies, new_deposit));
+						}
 						expected_reserved_amounts.insert(
 							who,
 							current_reserved.saturating_sub(old_deposit - new_deposit),
@@ -2034,9 +2039,8 @@ pub mod migrations {
 					|who: AccountId, (mut proxies, old_deposit): PrevProxiesValue<Runtime>| {
 						// Remove filter out IdentityJudgement proxies.
 						let proxies_len_before = proxies.len() as u64;
-						proxies.retain(|proxy| {
-							proxy.proxy_type != PrevProxyType::IdentityJudgement
-						});
+						proxies
+							.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
 						let proxies_len_after = proxies.len() as u64;
 
 						let deposit = if proxies_len_before - proxies_len_after > 0 {
@@ -2071,7 +2075,12 @@ pub mod migrations {
 
 						reads.saturating_accrue(proxies_len_before + 1);
 						writes.saturating_accrue(proxies_len_after + 1);
-						Some((proxies, deposit))
+
+						// No need to keep the k/v around if there're no proxies left.
+						match proxies.is_empty() {
+							true => None,
+							false => Some((proxies, deposit)),
+						}
 					},
 				);
 
