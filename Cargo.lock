@@ -552,6 +552,8 @@ dependencies = [
  "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
+ "penpal-emulated-chain",
+ "polkadot-parachain-primitives",
  "sp-core",
  "staging-xcm",
 ]
@@ -681,7 +683,9 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "parachains-common",
+ "penpal-emulated-chain",
  "polkadot-emulated-chain",
+ "polkadot-parachain-primitives",
  "sp-core",
  "staging-xcm",
 ]

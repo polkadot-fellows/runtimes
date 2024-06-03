@@ -35,15 +35,11 @@ use sp_core::H160;
 use sp_keyring::AccountKeyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
-	traits::Header,
 	AccountId32,
 };
 use xcm::latest::prelude::*;
 use xcm_builder::HandleFee;
 use xcm_executor::traits::{FeeManager, FeeReason};
-
-type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
-	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
 parameter_types! {
 		pub const DefaultBridgeHubEthereumBaseFee: Balance = 2_750_872_500_000;

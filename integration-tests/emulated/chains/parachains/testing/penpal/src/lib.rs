@@ -14,9 +14,10 @@
 // limitations under the License.
 
 mod genesis;
-pub use genesis::{genesis, ED, PARA_ID_A, PARA_ID_B};
+pub use genesis::{genesis, PenpalAssetOwner, ED, PARA_ID_A, PARA_ID_B};
 pub use penpal_runtime::xcm_config::{
-	CustomizableAssetFromSystemAssetHub, LocalTeleportableToAssetHub, XcmConfig,
+	CustomizableAssetFromSystemAssetHub, LocalReservableFromAssetHub, LocalTeleportableToAssetHub,
+	XcmConfig, ASSETS_PALLET_ID, RESERVABLE_ASSET_ID, TELEPORTABLE_ASSET_ID,
 };
 
 // Substrate
@@ -28,8 +29,6 @@ use emulated_integration_tests_common::{
 	impl_assets_helpers_for_parachain, impl_foreign_assets_helpers_for_parachain, impls::Parachain,
 	xcm_emulator::decl_test_parachains,
 };
-use kusama_emulated_chain::Kusama;
-use polkadot_emulated_chain::Polkadot;
 
 // Penpal Parachain declaration
 decl_test_parachains! {

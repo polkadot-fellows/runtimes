@@ -123,42 +123,26 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		v3::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
 			.expect("conversion works"),
 	);
-
-	let ah_as_seen_by_penpal = PenpalA::sibling_location_of(AssetHubKusama::para_id());
 	let asset_location_on_penpal =
 		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
-	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(v3::Junction::GeneralIndex(id)) => *id as u32,
-		_ => unreachable!(),
-	};
-	let asset_owner_on_penpal = PenpalASender::get();
 	let foreign_asset_at_asset_hub_kusama =
 		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
-	// 1. Create asset on penpal and, 2. Create foreign asset on asset_hub_kusama
-	/*
-	// FAIL-CI @bkontur
-	super::penpal_create_foreign_asset_on_asset_hub(
-		asset_id_on_penpal,
-		foreign_asset_at_asset_hub_kusama,
-		ah_as_seen_by_penpal,
-		true,
-		asset_owner_on_penpal,
-		ASSET_MIN_BALANCE * 1_000_000,
-	);*/
-
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_penpal_on_ahk = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![
-		(AssetHubKusamaSender::get(), 5_000_000 * ASSET_HUB_KUSAMA_ED), /* An account to swap
-		                                                                 * ksm
-		                                                                 * for something else. */
+		// An account to swap ksmfor something else.
+		(AssetHubKusamaSender::get(), 5_000_000 * ASSET_HUB_KUSAMA_ED),
+		// Penpal's sovereign account in AH should have some balance
+		(sov_penpal_on_ahk.clone().into(), 100_000_000 * ASSET_HUB_KUSAMA_ED),
 	]);
 
 	AssetHubKusama::execute_with(|| {
-		// 3: Mint foreign asset on asset_hub_kusama:
+		// 0: No need to create foreign asset as it exists in genesis.
+		//
+		// 1:: Mint foreign asset on asset_hub_kusama:
 		//
 		// (While it might be nice to use batch,
 		// currently that's disabled due to safe call filters.)
@@ -169,7 +153,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			foreign_asset_at_asset_hub_kusama,
 			sov_penpal_on_ahk.clone().into(),
-			3_000_000_000_000,
+			ASSET_HUB_KUSAMA_ED * 3_000_000_000_000,
 		));
 
 		assert_expected_events!(
@@ -221,8 +205,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::swap_exact_tokens_for_tokens(
 				<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
 				path,
-				100000,
-				1000,
+				100000 * ASSET_HUB_KUSAMA_ED,
+				1000 * ASSET_HUB_KUSAMA_ED,
 				AssetHubKusamaSender::get(),
 				true
 			)
@@ -232,8 +216,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			AssetHubKusama,
 			vec![
 				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapExecuted { amount_in, amount_out, .. },) => {
-					amount_in: *amount_in == 100000,
-					amount_out: *amount_out == 199399,
+					amount_in: *amount_in == 333333300000,
+					amount_out: *amount_out == 498874118173,
 				},
 			]
 		);
@@ -243,7 +227,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahk.clone()),
 			asset_native.clone(),
 			Box::new(foreign_asset_at_asset_hub_kusama),
-			1414213562273 - 2_000_000_000, // all but the 2 EDs can't be retrieved.
+			1414213562273 / 2, // remove only half
 			0,
 			0,
 			sov_penpal_on_ahk.clone(),
