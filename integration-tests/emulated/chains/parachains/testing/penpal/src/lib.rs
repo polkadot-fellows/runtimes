@@ -29,8 +29,6 @@ use emulated_integration_tests_common::{
 	impl_assets_helpers_for_parachain, impl_foreign_assets_helpers_for_parachain, impls::Parachain,
 	xcm_emulator::decl_test_parachains,
 };
-use kusama_emulated_chain::Kusama;
-use polkadot_emulated_chain::Polkadot;
 
 // Penpal Parachain declaration
 decl_test_parachains! {

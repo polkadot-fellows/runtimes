@@ -14,12 +14,8 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
-use kusama_runtime::xcm_config::XcmConfig as KusamaXcmConfig;
-use kusama_system_emulated_network::penpal_emulated_chain::{
-	LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
-	XcmConfig as PenpalKusamaXcmConfig,
-};
+use asset_hub_kusama_runtime::xcm_config::KsmLocation;
+use kusama_system_emulated_network::penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub;
 
 fn relay_to_para_sender_assertions(t: RelayToParaTest) {
 	type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;

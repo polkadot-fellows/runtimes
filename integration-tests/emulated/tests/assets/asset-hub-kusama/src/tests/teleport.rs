@@ -245,16 +245,6 @@ fn relay_limited_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
 	)
 }
 
-fn relay_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
-	<Kusama as KusamaPallet>::XcmPallet::teleport_assets(
-		t.signed_origin,
-		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
-		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
-	)
-}
-
 fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResult {
 	<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::limited_teleport_assets(
 		t.signed_origin,
@@ -263,16 +253,6 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 		bx!(t.args.assets.into()),
 		t.args.fee_asset_item,
 		t.args.weight_limit,
-	)
-}
-
-fn system_para_teleport_assets(t: SystemParaToRelayTest) -> DispatchResult {
-	<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::teleport_assets(
-		t.signed_origin,
-		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
-		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
 	)
 }
 
@@ -414,129 +394,6 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
 		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
 	});
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance does not change
-	assert_eq!(receiver_balance_after, receiver_balance_before);
-}
-
-/// Teleport of native asset from Relay Chain to the System Parachain should work
-#[test]
-fn teleport_native_assets_from_relay_to_system_para_works() {
-	// Init values for Relay Chain
-	let amount_to_send: Balance = KUSAMA_ED * 1000;
-	let dest = Kusama::child_location_of(AssetHubKusama::para_id());
-	let beneficiary_id = AssetHubKusamaReceiver::get();
-	let test_args = TestContext {
-		sender: KusamaSender::get(),
-		receiver: AssetHubKusamaReceiver::get(),
-		args: TestArgs::new_relay(dest, beneficiary_id, amount_to_send),
-	};
-
-	let mut test = RelayToSystemParaTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
-	test.set_assertion::<Kusama>(relay_origin_assertions);
-	test.set_assertion::<AssetHubKusama>(para_dest_assertions);
-	test.set_dispatchable::<Kusama>(relay_teleport_assets);
-	test.assert();
-
-	let delivery_fees = Kusama::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<KusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
-	});
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
-}
-
-/// Teleport of native asset from System Parachains to the Relay Chain
-/// should work when there is enough balance in Relay Chain's `CheckAccount`
-#[test]
-fn teleport_native_assets_back_from_system_para_to_relay_works() {
-	// Dependency - Relay Chain's `CheckAccount` should have enough balance
-	teleport_native_assets_from_relay_to_system_para_works();
-
-	// Init values for Relay Chain
-	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 1000;
-	let destination = AssetHubKusama::parent_location();
-	let beneficiary_id = KusamaReceiver::get();
-	let assets = (Parent, amount_to_send).into();
-
-	let test_args = TestContext {
-		sender: AssetHubKusamaSender::get(),
-		receiver: KusamaReceiver::get(),
-		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
-	};
-
-	let mut test = SystemParaToRelayTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
-	test.set_assertion::<AssetHubKusama>(para_origin_assertions);
-	test.set_assertion::<Kusama>(relay_dest_assertions);
-	test.set_dispatchable::<AssetHubKusama>(system_para_teleport_assets);
-	test.assert();
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
-	});
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
-}
-
-/// Teleport of native asset from System Parachain to Relay Chain
-/// shouldn't work when there is not enough balance in Relay Chain's `CheckAccount`
-#[test]
-fn teleport_native_assets_from_system_para_to_relay_fails() {
-	// Init values for Relay Chain
-	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 1000;
-	let destination = AssetHubKusama::parent_location();
-	let beneficiary_id = KusamaReceiver::get();
-	let assets = (Parent, amount_to_send).into();
-
-	let test_args = TestContext {
-		sender: AssetHubKusamaSender::get(),
-		receiver: KusamaReceiver::get(),
-		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
-	};
-
-	let mut test = SystemParaToRelayTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
-	test.set_assertion::<AssetHubKusama>(para_origin_assertions);
-	test.set_assertion::<Kusama>(relay_dest_assertions_fail);
-	test.set_dispatchable::<AssetHubKusama>(system_para_teleport_assets);
-	test.assert();
-
-	let delivery_fees = AssetHubKusama::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
-	});
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
 
 	// Sender's balance is reduced
 	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
