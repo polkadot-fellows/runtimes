@@ -45,7 +45,7 @@ pub use kusama_system_emulated_network::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
-	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner},
+	penpal_emulated_chain::{PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,
@@ -66,7 +66,7 @@ pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
-pub type ParaToParaTest = Test<PenpalA, PenpalB, Kusama>;
+pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama>;
 
 #[cfg(test)]
 mod tests;

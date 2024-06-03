@@ -51,7 +51,7 @@ pub use polkadot_system_emulated_network::{
 		genesis::ED as COLLECTIVES_POLKADOT_ED,
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
-	penpal_emulated_chain::{PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet},
+	penpal_emulated_chain::{PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet, PenpalAParaPallet as PenpalAPallet},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
@@ -75,7 +75,7 @@ pub type RelayToParaTest = Test<Polkadot, PenpalB>;
 pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
 pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
 pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;
-pub type ParaToParaTest = Test<PenpalB, PenpalA, Polkadot>;
+pub type ParaToParaThroughRelayTest = Test<PenpalB, PenpalA, Polkadot>;
 
 #[cfg(test)]
 mod tests;

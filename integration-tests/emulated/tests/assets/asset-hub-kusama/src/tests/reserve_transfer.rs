@@ -183,28 +183,30 @@ fn system_para_to_para_assets_receiver_assertions<Test>(_: Test) {
 	);
 }
 
-fn para_to_para_sender_assertions(t: ParaToParaTest) {
+fn para_to_para_through_hop_sender_assertions(t: ParaToParaThroughRelayTest) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
+
 	PenpalA::assert_xcm_pallet_attempted_complete(None);
-	assert_expected_events!(
-		PenpalA,
-		vec![
-			// Amount to reserve transfer is transferred to Parachain's Sovereign account
-			RuntimeEvent::Balances(
-				pallet_balances::Event::Withdraw { who, amount }
-			) => {
-				who: *who == t.sender.account_id,
-				amount: *amount == t.args.amount,
-			},
-			// XCM sent to relay reserve
-			RuntimeEvent::ParachainSystem(
-				cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
-			) => {},
-		]
-	);
+	for asset in t.args.assets.into_inner() {
+		let expected_id = asset.id.0.clone().try_into().unwrap();
+		let amount = if let Fungible(a) = asset.fun { Some(a) } else { None }.unwrap();
+		assert_expected_events!(
+			PenpalA,
+			vec![
+				// Amount to reserve transfer is transferred to Parachain's Sovereign account
+				RuntimeEvent::ForeignAssets(
+					pallet_assets::Event::Burned { asset_id, owner, balance },
+				) => {
+					asset_id: *asset_id == expected_id,
+					owner: *owner == t.sender.account_id,
+					balance: *balance == amount,
+				},
+			]
+		);
+	}
 }
 
-fn para_to_para_relay_hop_assertions(t: ParaToParaTest) {
+fn para_to_para_relay_hop_assertions(t: ParaToParaThroughRelayTest) {
 	type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
 	let sov_penpal_a_on_kusama =
 		Kusama::sovereign_account_id_of(Kusama::child_location_of(PenpalA::para_id()));
@@ -233,17 +235,22 @@ fn para_to_para_relay_hop_assertions(t: ParaToParaTest) {
 	);
 }
 
-fn para_to_para_receiver_assertions(_: ParaToParaTest) {
+pub fn para_to_para_through_hop_receiver_assertions<Hop: Clone>(t: Test<PenpalA, PenpalB, Hop>) {
 	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
-	assert_expected_events!(
-		PenpalB,
-		vec![
-			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
-			RuntimeEvent::MessageQueue(
-				pallet_message_queue::Event::Processed { success: true, .. }
-			) => {},
-		]
-	);
+
+	PenpalB::assert_xcmp_queue_success(None);
+	for asset in t.args.assets.into_inner().into_iter() {
+		let expected_id = asset.id.0.try_into().unwrap();
+		assert_expected_events!(
+			PenpalB,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+					asset_id: *asset_id == expected_id,
+					owner: *owner == t.receiver.account_id,
+				},
+			]
+		);
+	}
 }
 
 fn relay_to_para_reserve_transfer_assets(t: RelayToParaTest) -> DispatchResult {
@@ -279,7 +286,7 @@ fn para_to_system_para_reserve_transfer_assets(t: ParaToSystemParaTest) -> Dispa
 	)
 }
 
-fn para_to_para_limited_reserve_transfer_assets(t: ParaToParaTest) -> DispatchResult {
+fn para_to_para_through_relay_limited_reserve_transfer_assets(t: ParaToParaThroughRelayTest) -> DispatchResult {
 	<PenpalA as PenpalAPallet>::PolkadotXcm::limited_reserve_transfer_assets(
 		t.signed_origin,
 		bx!(t.args.dest.into()),
@@ -549,47 +556,68 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 /// Reserve Transfers of native asset from Parachain to Parachain (through Relay reserve) should
 /// work
 #[test]
-fn reserve_transfer_native_asset_from_para_to_para() {
-	// Init values for Penpal Parachain
+fn reserve_transfer_native_asset_from_para_to_para_through_relay() {
+	// Init values for Parachain Origin
 	let destination = PenpalA::sibling_location_of(PenpalB::para_id());
-	let beneficiary_id = PenpalBReceiver::get();
-	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 10000;
+	let sender = PenpalASender::get();
+	let amount_to_send: Balance = KUSAMA_ED * 10000;
+	let asset_owner = PenpalAssetOwner::get();
 	let assets = (Parent, amount_to_send).into();
-
-	let test_args = TestContext {
-		sender: PenpalASender::get(),
-		receiver: PenpalBReceiver::get(),
-		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
-	};
-
-	let mut test = ParaToParaTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
+	let relay_native_asset_location = KsmLocation::get();
 	let sender_as_seen_by_relay = Kusama::child_location_of(PenpalA::para_id());
 	let sov_of_sender_on_relay = Kusama::sovereign_account_id_of(sender_as_seen_by_relay);
 
-	// fund the PenpalA's SA on Kusama with the native tokens held in reserve
-	Kusama::fund_accounts(vec![(sov_of_sender_on_relay, amount_to_send * 2)]);
+        // fund Parachain's sender account
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(asset_owner),
+		relay_native_asset_location.clone(),
+		sender.clone(),
+		amount_to_send * 2,
+	);
 
-	test.set_assertion::<PenpalA>(para_to_para_sender_assertions);
-	test.set_assertion::<Kusama>(para_to_para_relay_hop_assertions);
-	test.set_assertion::<PenpalB>(para_to_para_receiver_assertions);
-	test.set_dispatchable::<PenpalA>(para_to_para_limited_reserve_transfer_assets);
-	test.assert();
+        // fund the Parachain Origin's SA on Relay Chain with the native tokens held in reserve
+	Kusama::fund_accounts(vec![(sov_of_sender_on_relay.into(), amount_to_send * 2)]);
 
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
+	// Init values for Parachain Destination
+	let receiver = PenpalBReceiver::get();
 
-	let delivery_fees = PenpalA::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<PenpalKusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
+        // Init Test
+	let test_args = TestContext {
+		sender: sender.clone(),
+		receiver: receiver.clone(),
+		args: TestArgs::new_para(destination, receiver.clone(), amount_to_send, assets, None, 0),
+	};
+	let mut test = ParaToParaThroughRelayTest::new(test_args);
+
+	// Query initial balances
+	let sender_assets_before = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
+	});
+	let receiver_assets_before = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &receiver)
 	});
 
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
+	// Set assertions and dispatchables
+	test.set_assertion::<PenpalA>(para_to_para_through_hop_sender_assertions);
+	test.set_assertion::<Kusama>(para_to_para_relay_hop_assertions);
+	test.set_assertion::<PenpalB>(para_to_para_through_hop_receiver_assertions);
+	test.set_dispatchable::<PenpalA>(para_to_para_through_relay_limited_reserve_transfer_assets);
+	test.assert();
+
+	// Query final balances
+	let sender_assets_after = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
+	});
+	let receiver_assets_after = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &receiver)
+	});
+
+	// Sender's balance is reduced by amount sent plus delivery fees
+	assert!(sender_assets_after < sender_assets_before - amount_to_send);
 	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
+	assert!(receiver_assets_after > receiver_assets_before);
 }
