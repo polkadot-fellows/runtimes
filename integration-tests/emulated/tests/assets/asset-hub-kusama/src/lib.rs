@@ -60,7 +60,7 @@ pub use kusama_system_emulated_network::{
 };
 pub use parachains_common::{AccountId, Balance};
 
-pub const ASSET_ID: u32 = 1;
+pub const ASSET_ID: u32 = 3;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;

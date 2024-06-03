@@ -69,7 +69,7 @@ pub use polkadot_system_emulated_network::{
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
-pub const ASSET_ID: u32 = 1;
+pub const ASSET_ID: u32 = 3;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
