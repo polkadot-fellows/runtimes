@@ -1783,6 +1783,7 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	claims::PrevalidateAttests<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
 pub struct NominationPoolsMigrationV4OldPallet;
@@ -1807,6 +1808,7 @@ pub mod migrations {
 	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
+
 	parameter_types! {
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
 	}
