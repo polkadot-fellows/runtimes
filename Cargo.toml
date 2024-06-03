@@ -135,7 +135,7 @@ pallet-offences = { version = "28.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "29.0.0", default-features = false }
 pallet-preimage = { version = "29.0.0", default-features = false }
 pallet-proxy = { version = "29.0.0", default-features = false }
-pallet-ranked-collective = { version = "29.0.0", default-features = false }
+pallet-ranked-collective = { version = "34.0.0", default-features = false }
 pallet-recovery = { version = "29.0.0", default-features = false }
 pallet-referenda = { version = "29.0.0", default-features = false }
 pallet-salary = { version = "14.0.0", default-features = false }

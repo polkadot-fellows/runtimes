@@ -120,6 +120,10 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
+	type AddOrigin = OpenGovOrFellow;
+
+	type RemoveOrigin = ApproveOrigin;
+
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
 	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;

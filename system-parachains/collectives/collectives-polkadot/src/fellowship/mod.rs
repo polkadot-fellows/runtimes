@@ -26,6 +26,7 @@ use crate::{
 	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
+use cumulus_pallet_aura_ext::pallet;
 use frame_support::{
 	parameter_types,
 	traits::{
@@ -123,6 +124,14 @@ pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime {
 	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
+
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type AddOrigin = frame_system::EnsureNever<()>;
+
+	#[cfg(feature = "runtime-benchmarks")]
+	type AddOrigin = frame_system::EnsureRoot<Self::AccountId>;
+
+	type RemoveOrigin = Self::DemoteOrigin;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.

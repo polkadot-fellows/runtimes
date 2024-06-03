@@ -122,6 +122,14 @@ pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
 impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime {
 	type WeightInfo = weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
+
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type AddOrigin = frame_system::EnsureNever<()>;
+
+	#[cfg(feature = "runtime-benchmarks")]
+	type AddOrigin = EnsureRoot<Self::AccountId>;
+
+	type RemoveOrigin = DemoteOrigin;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type PromoteOrigin = frame_support::traits::NeverEnsureOrigin<Rank>;
