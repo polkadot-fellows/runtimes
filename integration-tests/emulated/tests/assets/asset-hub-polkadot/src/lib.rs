@@ -45,13 +45,17 @@ pub use emulated_integration_tests_common::{
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
-		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
 	collectives_polkadot_emulated_chain::{
 		genesis::ED as COLLECTIVES_POLKADOT_ED,
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
-	penpal_emulated_chain::{PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet, PenpalAParaPallet as PenpalAPallet},
+	penpal_emulated_chain::{
+		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
+		ED as PENPAL_ED,
+	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,

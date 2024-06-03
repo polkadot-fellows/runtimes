@@ -18,7 +18,8 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
@@ -30,6 +31,7 @@ pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
 frame_support::parameter_types! {
+	pub AssetHubPolkadotAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
 	pub PenpalATeleportableAssetLocation: Location
 		= Location::new(1, [
 				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
@@ -98,6 +100,10 @@ pub fn genesis() -> Storage {
 		},
 		polkadot_xcm: asset_hub_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+		assets: asset_hub_polkadot_runtime::AssetsConfig {
+			assets: vec![(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), true, ED)],
 			..Default::default()
 		},
 		foreign_assets: asset_hub_polkadot_runtime::ForeignAssetsConfig {
