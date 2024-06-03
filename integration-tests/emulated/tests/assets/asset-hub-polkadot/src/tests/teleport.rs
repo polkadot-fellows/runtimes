@@ -244,16 +244,6 @@ fn relay_limited_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
 	)
 }
 
-fn relay_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
-	<Polkadot as PolkadotPallet>::XcmPallet::teleport_assets(
-		t.signed_origin,
-		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
-		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
-	)
-}
-
 fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResult {
 	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_teleport_assets(
 		t.signed_origin,

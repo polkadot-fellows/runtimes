@@ -14,13 +14,9 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
+use asset_hub_polkadot_runtime::xcm_config::DotLocation;
 use emulated_integration_tests_common::RESERVABLE_ASSET_ID;
-use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
-use polkadot_system_emulated_network::penpal_emulated_chain::{
-	LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
-	XcmConfig as PenpalPolkadotXcmConfig,
-};
+use polkadot_system_emulated_network::penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub;
 
 fn relay_to_para_sender_assertions(t: RelayToParaTest) {
 	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
