@@ -34,21 +34,19 @@ pub mod pallet_identity_ops {
 		NotFound,
 	}
 
+	pub(crate) type Identity = (
+		pallet_identity::Registration<
+			<Runtime as pallet_balances::Config>::Balance,
+			<Runtime as pallet_identity::Config>::MaxRegistrars,
+			<Runtime as pallet_identity::Config>::IdentityInformation,
+		>,
+		Option<BoundedVec<u8, <Runtime as pallet_identity::Config>::MaxUsernameLength>>,
+	);
+
+	/// Alias for `IdentityOf` from `pallet_identity`.
 	#[frame_support::storage_alias(pallet_name)]
-	pub type IdentityMap = StorageMap<
-		IdentityPallet,
-		Twox64Concat,
-		AccountId,
-		(
-			pallet_identity::Registration<
-				<Runtime as pallet_balances::Config>::Balance,
-				<Runtime as pallet_identity::Config>::MaxRegistrars,
-				<Runtime as pallet_identity::Config>::IdentityInformation,
-			>,
-			Option<Vec<u8>>,
-		),
-		OptionQuery,
-	>;
+	pub(crate) type IdentityOf =
+		StorageMap<IdentityPallet, Twox64Concat, AccountId, Identity, OptionQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -62,30 +60,30 @@ pub mod pallet_identity_ops {
 			_origin: OriginFor<T>,
 			target: AccountId,
 		) -> DispatchResultWithPostInfo {
-			let removed = Self::do_clear_judgement(&target);
+			let identity = IdentityPallet::identity(&target).ok_or(Error::<T>::NotFound)?;
+			let (removed, identity) = Self::do_clear_judgement(&target, identity);
 			ensure!(removed > 0, Error::<T>::NotFound);
+
+			IdentityOf::insert(&target, identity);
 
 			Ok(Pays::No.into())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn do_clear_judgement(target: &AccountId) -> u32 {
-			let Some((mut identity, _)) = IdentityPallet::identity(target) else {
-				return 0;
-			};
+		fn do_clear_judgement(account_id: &AccountId, mut identity: Identity) -> (u32, Identity) {
 			// `subs_of`'s query kind is value option, if non subs the deposit is zero.
-			let (subs_deposit, _) = IdentityPallet::subs_of(target);
+			let (subs_deposit, _) = IdentityPallet::subs_of(account_id);
 			// deposit without deposits for judgement request.
-			let identity_deposit = identity.deposit.saturating_add(subs_deposit);
+			let identity_deposit = identity.0.deposit.saturating_add(subs_deposit);
 			// total reserved balance.
-			let reserved = Balances::reserved_balance(target);
+			let reserved = Balances::reserved_balance(account_id);
 			// expected deposit with judgement deposits.
 			let mut expected_total_deposit = identity_deposit;
+			// count before cleaning up the judgements.
+			let judgements_count = identity.0.judgements.len();
 
-			let judgements_count = identity.judgements.len();
-
-			identity.judgements.retain(|(_, judgement)| {
+			identity.0.judgements.retain(|(_, judgement)| {
 				if let Judgement::FeePaid(deposit) = judgement {
 					expected_total_deposit = expected_total_deposit.saturating_add(*deposit);
 					reserved >= expected_total_deposit
@@ -94,17 +92,13 @@ pub mod pallet_identity_ops {
 				}
 			});
 
-			(judgements_count - identity.judgements.len()) as u32
+			((judgements_count - identity.0.judgements.len()) as u32, identity)
 		}
 
 		/// Weight calculation for the worst-case scenario of `clear_judgement`.
-		/// Equal to 20 registrars reads/writes + 1 identity read + 1 subs read + 1 reserve
-		/// balance read.
+		/// Equal to 1 identity read/write + 1 subs read + 1 reserve balance read.
 		fn weight_clear_judgement() -> Weight {
-			let max_registrars =
-				<<Runtime as pallet_identity::Config>::MaxRegistrars as Get<u32>>::get();
-			<Runtime as frame_system::Config>::DbWeight::get()
-				.reads_writes((max_registrars + 3).into(), max_registrars.into())
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(3, 1)
 		}
 	}
 
@@ -119,8 +113,8 @@ pub mod pallet_identity_ops {
 			let mut invalid_identity_count = 0;
 			let mut invalid_judgement_count = 0;
 			let mut identity_count = 0;
-			IdentityMap::iter().for_each(|(account_id, _)| {
-				let (identity, _) = IdentityPallet::identity(&account_id).unwrap();
+			IdentityOf::iter().for_each(|(account_id, _)| {
+				let (identity, username) = IdentityPallet::identity(&account_id).unwrap();
 
 				let (paid_judgement_count, judgement_deposit) = identity.judgements.iter().fold(
 					(0, Zero::zero()),
@@ -151,7 +145,10 @@ pub mod pallet_identity_ops {
 						reserved,
 					);
 
-					assert_eq!(paid_judgement_count, Self::do_clear_judgement(&account_id));
+					assert_eq!(
+						paid_judgement_count,
+						Self::do_clear_judgement(&account_id, (identity, username)).0
+					);
 
 					if deposit_wo_judgement != reserved {
 						log::warn!(
@@ -162,7 +159,7 @@ pub mod pallet_identity_ops {
 						);
 					}
 				} else {
-					assert_eq!(0, Self::do_clear_judgement(&account_id));
+					assert_eq!(0, Self::do_clear_judgement(&account_id, (identity, username)).0);
 				}
 				if deposit_wo_judgement > reserved {
 					log::warn!(
