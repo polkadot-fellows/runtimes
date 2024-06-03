@@ -364,42 +364,49 @@ fn reserve_transfer_native_asset_from_system_para_to_relay_fails() {
 fn reserve_transfer_native_asset_from_relay_to_para() {
 	// Init values for Relay
 	let destination = Kusama::child_location_of(PenpalA::para_id());
-	let beneficiary_id = PenpalAReceiver::get();
+	let sender = KusamaSender::get();
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
 
-	let test_args = TestContext {
-		sender: KusamaSender::get(),
-		receiver: PenpalAReceiver::get(),
-		args: TestArgs::new_relay(destination, beneficiary_id, amount_to_send),
-	};
+	// Init values for Parachain
+	let relay_native_asset_location = KsmLocation::get();
+	let receiver = PenpalAReceiver::get();
 
+	// Init Test
+	let test_args = TestContext {
+		sender,
+		receiver: receiver.clone(),
+		args: TestArgs::new_relay(destination.clone(), receiver.clone(), amount_to_send),
+	};
 	let mut test = RelayToParaTest::new(test_args);
 
+	// Query initial balances
 	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
+	let receiver_assets_before = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &receiver)
+	});
 
+	// Set assertions and dispatchables
 	test.set_assertion::<Kusama>(relay_to_para_sender_assertions);
 	test.set_assertion::<PenpalA>(relay_to_para_assets_receiver_assertions);
 	test.set_dispatchable::<Kusama>(relay_to_para_reserve_transfer_assets);
 	test.assert();
 
-	let delivery_fees = Kusama::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<KusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
+	// Query final balances
+	let sender_balance_after = test.sender.balance;
+	let receiver_assets_after = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &receiver)
 	});
 
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
-	// Receiver's balance increased by `amount_to_send - delivery_fees - bought_execution`;
+	// Sender's balance is reduced by amount sent plus delivery fees
+	assert!(sender_balance_after < sender_balance_before - amount_to_send);
+	// Receiver's asset balance is increased
+	assert!(receiver_assets_after > receiver_assets_before);
+	// Receiver's asset balance increased by `amount_to_send - delivery_fees - bought_execution`;
 	// `delivery_fees` might be paid from transfer or JIT, also `bought_execution` is unknown but
 	// should be non-zero
-	assert!(receiver_balance_after < receiver_balance_before + amount_to_send);
+	assert!(receiver_assets_after < receiver_assets_before + amount_to_send);
 }
 
 /// Reserve Transfers of native asset from System Parachain to Parachain should work
