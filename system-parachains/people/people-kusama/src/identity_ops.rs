@@ -20,6 +20,12 @@ pub mod pallet_identity_ops {
 	use frame_system::pallet_prelude::*;
 	use pallet_identity::Judgement;
 
+	/// Weight information for extrinsics in this pallet.
+	pub trait WeightInfo {
+		/// Weight for clearing judgement.
+		fn clear_judgement() -> Weight;
+	}
+
 	type IdentityPallet = pallet_identity::Pallet<Runtime>;
 
 	#[pallet::pallet]
@@ -65,7 +71,7 @@ pub mod pallet_identity_ops {
 		/// This is successful only if the `target` account has judgements to clear. The transaction
 		/// fee is refunded to the caller if successful.
 		#[pallet::call_index(0)]
-		#[pallet::weight({ 0 })] // TODO generate weights
+		#[pallet::weight(weights::pallet_identity_ops::WeightInfo::<Runtime>::clear_judgement())]
 		pub fn clear_judgement(
 			_origin: OriginFor<T>,
 			target: AccountId,
