@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount, PriceAdapter},
+	coretime::{BrokerPalletId, CoretimeBurnAccount},
 	*,
 };
 use frame_support::{
@@ -25,12 +25,9 @@ use frame_support::{
 		OnInitialize,
 	},
 };
-use pallet_broker::{AdaptPrice, ConfigRecordOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
-use sp_runtime::{
-	traits::{AccountIdConversion, One},
-	FixedU64,
-};
+use sp_runtime::traits::AccountIdConversion;
 
 fn advance_to(b: BlockNumber) {
 	while System::block_number() < b {
