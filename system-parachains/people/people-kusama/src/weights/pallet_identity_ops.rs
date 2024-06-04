@@ -46,7 +46,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_identity_ops`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_identity_ops::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> crate::pallet_identity_ops::WeightInfo for WeightInfo<T> {
 	/// Storage: `Identity::IdentityOf` (r:1 w:1)
 	/// Proof: `Identity::IdentityOf` (`max_values`: None, `max_size`: Some(838), added: 3313, mode: `MaxEncodedLen`)
 	/// Storage: `Identity::SubsOf` (r:1 w:0)
