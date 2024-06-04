@@ -26,12 +26,22 @@ pub mod pallet_identity_ops {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {}
+	pub trait Config: frame_system::Config {
+		/// Overarching event type.
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		/// No judgement to clear.
 		NotFound,
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// The invalid judgements have been cleared.
+		JudgementsCleared { target: AccountId },
 	}
 
 	pub(crate) type Identity = (
@@ -55,7 +65,7 @@ pub mod pallet_identity_ops {
 		/// This is successful only if the `target` account has judgements to clear. The transaction
 		/// fee is refunded to the caller if successful.
 		#[pallet::call_index(0)]
-		#[pallet::weight(Pallet::<T>::weight_clear_judgement())]
+		#[pallet::weight({ 0 })] // TODO generate weights
 		pub fn clear_judgement(
 			_origin: OriginFor<T>,
 			target: AccountId,
@@ -65,6 +75,8 @@ pub mod pallet_identity_ops {
 			ensure!(removed > 0, Error::<T>::NotFound);
 
 			IdentityOf::insert(&target, identity);
+
+			Self::deposit_event(Event::JudgementsCleared { target });
 
 			Ok(Pays::No.into())
 		}
@@ -93,12 +105,6 @@ pub mod pallet_identity_ops {
 			});
 
 			((judgements_count - identity.0.judgements.len()) as u32, identity)
-		}
-
-		/// Weight calculation for the worst-case scenario of `clear_judgement`.
-		/// Equal to 1 identity read/write + 1 subs read + 1 reserve balance read.
-		fn weight_clear_judgement() -> Weight {
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(3, 1)
 		}
 	}
 
@@ -178,5 +184,47 @@ pub mod pallet_identity_ops {
 
 			Ok(())
 		}
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+#[frame_benchmarking::v2::benchmarks(where T: pallet_identity_ops::Config)]
+mod benchmarks {
+	use crate::{people::IdentityInfo, *};
+	use frame_benchmarking::BenchmarkError;
+	use frame_system::RawOrigin;
+	use pallet_identity::{IdentityInformationProvider, Judgement};
+	use pallet_identity_ops::{Event, Identity, *};
+	use parachains_common::{AccountId, Balance};
+	use sp_core::Get;
+	use sp_runtime::traits::One;
+
+	#[benchmark]
+	fn clear_judgement() -> Result<(), BenchmarkError> {
+		let max_registrars =
+			<<Runtime as pallet_identity::Config>::MaxRegistrars as Get<u32>>::get();
+		let mut judgements = Vec::<(u32, Judgement<Balance>)>::new();
+		for i in 0..max_registrars {
+			judgements.push((i, Judgement::FeePaid(Balance::one())));
+		}
+		let identity: Identity = (
+			pallet_identity::Registration {
+				deposit: Balance::one(),
+				judgements: judgements.try_into().unwrap(),
+				info: IdentityInfo::create_identity_info(),
+			},
+			None,
+		);
+
+		let target: AccountId = [1u8; 32].into();
+
+		IdentityOf::insert(&target, identity);
+
+		#[extrinsic_call]
+		_(RawOrigin::None, target.clone());
+
+		crate::System::assert_last_event(Event::<Runtime>::JudgementsCleared { target }.into());
+
+		Ok(())
 	}
 }
