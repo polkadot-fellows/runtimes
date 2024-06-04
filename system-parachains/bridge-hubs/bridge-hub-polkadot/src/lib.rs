@@ -59,7 +59,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Everything, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
+		Everything, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -71,7 +72,9 @@ use frame_system::{
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
-use xcm_config::{FellowshipLocation, GovernanceLocation, XcmOriginToTransactDispatchOrigin};
+use xcm_config::{
+	FellowshipLocation, GovernanceLocation, StakingPot, XcmOriginToTransactDispatchOrigin,
+};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -82,9 +85,7 @@ use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
-use parachains_common::{
-	impls::DealWithFees, AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
-};
+use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature};
 pub use system_parachains_constants::SLOT_DURATION;
 
 use system_parachains_constants::{
@@ -119,6 +120,7 @@ pub type SignedExtra = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteHeadersAndMessages,
 	bridge_to_kusama_config::RefundBridgeHubKusamaMessages,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
 bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
@@ -308,7 +310,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
