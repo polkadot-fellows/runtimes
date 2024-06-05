@@ -72,14 +72,14 @@ fn bulk_revenue_is_burnt() {
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
-			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 100 * ed));
+			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * ed));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
 			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
-			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 50 * ed));
+			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 100 * ed));
 
 			// Alice decreases.
 			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
