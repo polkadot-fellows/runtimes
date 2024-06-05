@@ -17,7 +17,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Transaction payments work via new `fungible` trait implementation ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
 - Block `request_judgement` calls on the Relay Chain ([polkadot-fellows/runtimes#338](https://github.com/polkadot-fellows/runtimes/pull/338))
->>>>>>> origin/main
 
 ### Fixed
 
