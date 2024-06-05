@@ -389,7 +389,7 @@ impl xcm_executor::Config for XcmConfig {
 			DotLocation,
 			AccountId,
 			Balances,
-			ResolveTo<StakingPotAccountId<Runtime>, Balances>,
+			ResolveTo<StakingPot, Balances>,
 		>,
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].

@@ -17,7 +17,7 @@
 use super::{
 	bridge_to_ethereum_config::EthereumNetwork,
 	bridge_to_polkadot_config::ToBridgeHubPolkadotHaulBlobExporter, AccountId,
-	AllPalletsWithSystem, Balances, ParachainInfo, ParachainSystem, PolkadotXcm,
+	AllPalletsWithSystem, Balances, CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm,
 	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
 	XcmpQueue,
 };
@@ -70,6 +70,7 @@ parameter_types! {
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
@@ -194,7 +195,7 @@ impl xcm_executor::Config for XcmConfig {
 		KsmRelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
+		ResolveTo<StakingPot, Balances>,
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;

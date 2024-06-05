@@ -327,7 +327,7 @@ impl xcm_executor::Config for XcmConfig {
 			KsmLocation,
 			AccountId,
 			Balances,
-			ResolveTo<StakingPotAccountId<Runtime>, Balances>,
+			ResolveTo<StakingPot, Balances>,
 		>,
 		// This trader allows to pay with any assets exchangeable to KSM with
 		// [`AssetConversion`].
