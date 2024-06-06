@@ -2020,7 +2020,8 @@ pub mod migrations {
 							current_reserved.saturating_sub(old_deposit - new_deposit),
 						);
 					} else {
-						// Nothing should change
+						// Deposit should not change. If any proxies needed to be removed, this
+						// won't impact that.
 						expected_proxies.insert(who.clone(), (proxies, old_deposit));
 						expected_reserved_amounts.insert(who, current_reserved);
 					}
