@@ -967,7 +967,7 @@ impl claims::Config for Runtime {
 	type VestingSchedule = Vesting;
 	type Prefix = Prefix;
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1005,7 +1005,7 @@ impl identity_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reaper = EnsureSigned<AccountId>;
 	type ReapIdentityHandler = impls::ToParachainIdentityReaper<Runtime, Self::AccountId>;
-	type WeightInfo = weights::runtime_common_identity_migrator::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_identity_migrator::WeightInfo<Runtime>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1440,7 +1440,7 @@ impl paras_registrar::Config for Runtime {
 	type OnSwap = (Crowdloan, Slots);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = DataDepositPerByte;
-	type WeightInfo = weights::runtime_common_paras_registrar::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1455,7 +1455,7 @@ impl slots::Config for Runtime {
 	type LeasePeriod = LeasePeriod;
 	type LeaseOffset = ();
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, LeaseAdmin>;
-	type WeightInfo = weights::runtime_common_slots::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_slots::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1476,7 +1476,7 @@ impl crowdloan::Config for Runtime {
 	type Registrar = Registrar;
 	type Auctioneer = Auctions;
 	type MaxMemoLength = MaxMemoLength;
-	type WeightInfo = weights::runtime_common_crowdloan::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_crowdloan::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1495,7 +1495,7 @@ impl auctions::Config for Runtime {
 	type SampleLength = SampleLength;
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type InitiateOrigin = EitherOf<EnsureRoot<Self::AccountId>, AuctionAdmin>;
-	type WeightInfo = weights::runtime_common_auctions::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_auctions::WeightInfo<Runtime>;
 }
 
 type NisCounterpartInstance = pallet_balances::Instance2;
@@ -1975,7 +1975,7 @@ pub mod migrations {
 			) {
 				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
 			}
-			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+			weights::polkadot_runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
 				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
 					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
 				))
@@ -2033,8 +2033,6 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
-		// that the path resolves correctly in the generated file.
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
 		[polkadot_runtime_common::claims, Claims]
