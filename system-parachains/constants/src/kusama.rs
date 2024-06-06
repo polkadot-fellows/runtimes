@@ -105,7 +105,7 @@ pub mod fee {
 			smallvec![WeightToFeeCoefficient {
 				degree: 1,
 				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
+				coeff_frac: frame_support::sp_runtime::Perbill::from_rational(p % q, q),
 				coeff_integer: p / q,
 			}]
 		}
@@ -123,7 +123,7 @@ pub mod fee {
 			smallvec![WeightToFeeCoefficient {
 				degree: 1,
 				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
+				coeff_frac: frame_support::sp_runtime::Perbill::from_rational(p % q, q),
 				coeff_integer: p / q,
 			}]
 		}
