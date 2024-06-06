@@ -29,14 +29,7 @@
 // --chain=./kusama-chain-spec.json
 // --steps=50
 // --repeat=20
-<<<<<<<< HEAD:relay/polkadot/src/weights/runtime_common_identity_migrator.rs
-// --no-storage-info
-// --no-median-slopes
-// --no-min-squares
-// --pallet=runtime_common::identity_migrator
-========
 // --pallet=polkadot_runtime_common::identity_migrator
->>>>>>>> origin:relay/kusama/src/weights/polkadot_runtime_common_identity_migrator.rs
 // --extrinsic=*
 // --wasm-execution=compiled
 // --heap-pages=4096
