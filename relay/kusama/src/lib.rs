@@ -2044,7 +2044,7 @@ pub mod migrations {
 							.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
 						let proxies_len_after = proxies.len() as u64;
 
-						let deposit = if proxies_len_before - proxies_len_after > 0 {
+						let deposit = if proxies_len_before > proxies_len_after {
 							log::info!(
 								"Removing {} IdentityJudgement proxies for {:?}",
 								proxies_len_before - proxies_len_after,
