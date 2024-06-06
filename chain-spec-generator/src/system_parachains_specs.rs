@@ -582,7 +582,8 @@ fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		"aura": encointer_kusama_runtime::aura_config_for_chain_spec(&["Alice"]),
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
 	})
 }
 
