@@ -2058,8 +2058,7 @@ pub mod migrations {
 
 							// Be kind and don't increase the deposit in case it increased (can
 							// happen if param change).
-							let deposit =
-								if new_deposit < old_deposit { new_deposit } else { old_deposit };
+							let deposit = new_deposit.min(old_deposit);
 							if deposit < old_deposit {
 								writes.saturating_inc();
 								<Balances as ReservableCurrency<AccountId>>::unreserve(
