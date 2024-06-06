@@ -2078,7 +2078,10 @@ pub mod migrations {
 
 						// No need to keep the k/v around if there're no proxies left.
 						match proxies.is_empty() {
-							true => None,
+							true => {
+								debug_assert_eq!(deposit, 0);
+								None
+							},
 							false => Some((proxies, deposit)),
 						}
 					},
