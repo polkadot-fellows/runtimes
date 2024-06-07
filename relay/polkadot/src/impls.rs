@@ -216,3 +216,33 @@ where
 		I::ensure_successful(asset_kind)
 	}
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarks {
+	use super::{xcm_config::CheckAccount, ExistentialDeposit};
+	use crate::Balances;
+	use frame_support::{
+		dispatch::RawOrigin,
+		traits::{Currency, EnsureOrigin},
+	};
+
+	pub struct InitializeReaperForBenchmarking<A, E>(core::marker::PhantomData<(A, E)>);
+	impl<A, O: Into<Result<RawOrigin<A>, O>> + From<RawOrigin<A>>, E: EnsureOrigin<O>>
+		EnsureOrigin<O> for InitializeReaperForBenchmarking<A, E>
+	{
+		type Success = E::Success;
+
+		fn try_origin(o: O) -> Result<E::Success, O> {
+			E::try_origin(o)
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn try_successful_origin() -> Result<O, ()> {
+			// initialize the XCM Check Account with the existential deposit
+			Balances::make_free_balance_be(&CheckAccount::get(), ExistentialDeposit::get());
+
+			// call the real implementation
+			E::try_successful_origin()
+		}
+	}
+}
