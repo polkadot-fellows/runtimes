@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Transaction payments work via new `fungible` trait implementation ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
 - Block `request_judgement` calls on the Relay Chain ([polkadot-fellows/runtimes#338](https://github.com/polkadot-fellows/runtimes/pull/338))
-- Set max asset id restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
+- Set max asset ID restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
 
 ### Fixed
 
