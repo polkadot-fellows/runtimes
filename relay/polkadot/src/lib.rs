@@ -1079,7 +1079,7 @@ impl claims::Config for Runtime {
 	type Prefix = Prefix;
 	/// Only Root can move a claim.
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1467,7 +1467,7 @@ impl paras_registrar::Config for Runtime {
 	type OnSwap = (Crowdloan, Slots);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = ParaDataByteDeposit;
-	type WeightInfo = weights::runtime_common_paras_registrar::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1488,7 +1488,7 @@ impl slots::Config for Runtime {
 	type LeasePeriod = LeasePeriod;
 	type LeaseOffset = LeaseOffset;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, LeaseAdmin>;
-	type WeightInfo = weights::runtime_common_slots::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_slots::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1512,7 +1512,7 @@ impl crowdloan::Config for Runtime {
 	type Registrar = Registrar;
 	type Auctioneer = Auctions;
 	type MaxMemoLength = MaxMemoLength;
-	type WeightInfo = weights::runtime_common_crowdloan::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_crowdloan::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1531,7 +1531,7 @@ impl auctions::Config for Runtime {
 	type SampleLength = SampleLength;
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type InitiateOrigin = EitherOf<EnsureRoot<Self::AccountId>, AuctionAdmin>;
-	type WeightInfo = weights::runtime_common_auctions::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_auctions::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1953,8 +1953,6 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
-		// the that path resolves correctly in the generated file.
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
