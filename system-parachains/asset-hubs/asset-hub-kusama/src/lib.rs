@@ -301,6 +301,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, AssetIdForTrustBackedAssets>
 		}
 		<EnsureSigned<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_origin(o)
 	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_a: &AssetIdForTrustBackedAssets) -> Result<RuntimeOrigin, ()> {
+		<EnsureSigned<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_successful_origin()
+	}
 }
 
 // Called "Trust Backed" assets because these are generally registered by some account, and users of
