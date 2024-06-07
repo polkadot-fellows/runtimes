@@ -53,6 +53,7 @@ pallet-conviction-voting = { workspace = true }
 pallet-election-provider-multi-phase = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-nis = { workspace = true }
 pallet-indices = { workspace = true }
@@ -112,7 +113,7 @@ tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
 
 [build-dependencies]
-substrate-wasm-builder = { workspace = true }
+substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
@@ -127,6 +128,7 @@ std = [
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
 	"frame-executive/std",
+	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
@@ -183,6 +185,7 @@ std = [
 	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
+	"substrate-wasm-builder",
 	"sp-api/std",
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
@@ -305,10 +308,13 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
+# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
+metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
+
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging"]
+on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []
