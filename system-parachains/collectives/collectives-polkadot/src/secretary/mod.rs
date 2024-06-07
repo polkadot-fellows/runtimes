@@ -70,7 +70,7 @@ type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 type OpenGovOrFellow = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
+		Fellows,
 		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
 	>,
 >;
@@ -120,77 +120,28 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
+	// Adding a candidate is by any of:
+	// - Root;
+	// - a vote by Fellows from the Technical Fellowship program;
+	// - the FellowshipAdmin origin (i.e. token holder referendum).
 	type AddOrigin = OpenGovOrFellow;
 
+	// Removal of a member is by any of:
+	// - Root;
+	// - a vote by Fellows from the Technical Fellowship program.
 	type RemoveOrigin = ApproveOrigin;
 
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
-	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
-	#[cfg(feature = "runtime-benchmarks")]
-	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
-	// pass.
-	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
+	type PromoteOrigin = ApproveOrigin;
 
-	// Demotion is by any of:
-	// - Root can demote arbitrarily.
-	// - a vote by Fellows from the Technical Fellowship program.
 	type DemoteOrigin = ApproveOrigin;
-	// Exchange is by any of:
-	// - Root can exchange arbitrarily.
-	// - the Fellow Origin.
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
+
 	type ExchangeOrigin = OpenGovOrFellow;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
-	type MemberSwappedHandler = (crate::SecretaryCore, crate::SecretarySalary);
+	type MemberSwappedHandler = crate::SecretarySalary;
 	type VoteWeight = pallet_ranked_collective::Geometric;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = (crate::SecretaryCore, crate::SecretarySalary);
-}
-
-pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
-
-impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_core_fellowship_secretary_core::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
-	type Balance = Balance;
-	// Parameters are set by any of:
-	// - Root;
-	// - a single member of the Fellowship Program (DAN III).
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	type ParamsOrigin = OpenGovOrFellow;
-	// Induction (creating a candidate) is by any of:
-	// - Root;
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single member of the Fellowship Program (DAN III);
-	// - a single member of the Secretary Program;
-	type InductOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				FellowshipCollectiveInstance,
-				{ DAN_3 },
-			>,
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				SecretaryCollectiveInstance,
-				{ ranks::SECRETARY },
-			>,
-		>,
-	>;
-	// Approval (rank-retention) of a Member's current rank is by any of:
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote by Fellows from the Technical Fellowship program.
-	type ApproveOrigin = ApproveOrigin;
-	// Promotion is by any of:
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote by Fellows from the Technical Fellowship program.
-	type PromoteOrigin = ApproveOrigin;
-
-	type EvidenceSize = ConstU32<65536>;
+	type BenchmarkSetup = crate::SecretarySalary;
 }
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;

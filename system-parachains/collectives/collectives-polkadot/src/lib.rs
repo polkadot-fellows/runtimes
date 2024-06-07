@@ -355,7 +355,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
 					RuntimeCall::SecretaryReferenda { .. } |
-					RuntimeCall::SecretaryCore { .. } |
 					RuntimeCall::SecretarySalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
@@ -723,12 +722,10 @@ construct_runtime!(
 		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3;
 		SecretaryReferenda: pallet_referenda::<Instance3> = 81,
 		SecretaryOrigins: pallet_secretary_origins = 82,
-		// pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
-		SecretaryCore: pallet_core_fellowship::<Instance3> = 83,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
-		SecretarySalary: pallet_salary::<Instance3> = 84,
+		SecretarySalary: pallet_salary::<Instance3> = 83,
 		// pub type SecretaryTreasuryInstance = pallet_treasury::Instance3;
-		SecretaryTreasury: pallet_treasury::<Instance3> = 85,
+		SecretaryTreasury: pallet_treasury::<Instance3> = 84,
 	}
 );
 
@@ -812,7 +809,6 @@ mod benches {
 		[pallet_treasury, AmbassadorTreasury]
 	[pallet_referenda, SecretaryReferenda]
 		[pallet_ranked_cllective, SecretaryCollective]
-		[pallet_core_fellowship, SecretaryCore]
 		[pallet_salary, SecretarySalary]
 		[pallet_treasury, SecretaryTreasury]
 	);
