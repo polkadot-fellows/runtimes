@@ -860,7 +860,11 @@ impl pallet_identity::Config for Runtime {
 impl identity_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	// To be updated to `EnsureSigned` once the parachain is producing blocks.
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Reaper = EnsureRoot<AccountId>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Reaper =
+		impls::benchmarks::InitializeReaperForBenchmarking<AccountId, EnsureRoot<AccountId>>;
 	type ReapIdentityHandler = ToParachainIdentityReaper<Runtime, Self::AccountId>;
 	type WeightInfo = weights::runtime_common_identity_migrator::WeightInfo<Runtime>;
 }
