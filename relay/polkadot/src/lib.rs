@@ -1958,7 +1958,7 @@ mod benches {
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
-		[runtime_common::identity_migrator, IdentityMigrator]
+		[polkadot_runtime_common::identity_migrator, IdentityMigrator]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
