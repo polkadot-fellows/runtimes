@@ -283,8 +283,7 @@ parameter_types! {
 /// We allow root to execute privileged asset operations.
 pub type AssetsForceOrigin = EnsureRoot<AccountId>;
 
-/// Ensure that the proposed asset id is less than the [`TrustAssetIdAutoIncrement`] and origin is
-/// signed.
+/// Ensure that the proposed asset id is less than `50_000_000` and origin is signed.
 pub struct EnsureLessThanAutoIncrement;
 impl EnsureOriginWithArg<RuntimeOrigin, AssetIdForTrustBackedAssets>
 	for EnsureLessThanAutoIncrement
