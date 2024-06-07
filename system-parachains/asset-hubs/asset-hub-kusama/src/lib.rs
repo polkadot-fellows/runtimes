@@ -278,8 +278,6 @@ parameter_types! {
 	// https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
 	pub const MetadataDepositBase: Balance = system_para_deposit(1, 68);
 	pub const MetadataDepositPerByte: Balance = system_para_deposit(0, 1);
-	/// The asset ID's auto increment for trusted assets planned with the next release.
-	pub const TrustAssetIdAutoIncrement: AssetIdForTrustBackedAssets = 50_000_000;
 }
 
 /// We allow root to execute privileged asset operations.
@@ -296,7 +294,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, AssetIdForTrustBackedAssets>
 		o: RuntimeOrigin,
 		a: &AssetIdForTrustBackedAssets,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		if a >= &TrustAssetIdAutoIncrement::get() {
+		if *a >= 50_000_000 {
 			return Err(o);
 		}
 		<EnsureSigned<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_origin(o)
