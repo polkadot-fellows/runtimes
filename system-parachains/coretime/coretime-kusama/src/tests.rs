@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount, PriceAdapter},
+	coretime::{BrokerPalletId, CoretimeBurnAccount},
 	*,
 };
 use frame_support::{
@@ -25,61 +25,9 @@ use frame_support::{
 		OnInitialize,
 	},
 };
-use pallet_broker::{AdaptPrice, ConfigRecordOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
-use sp_runtime::{
-	traits::{AccountIdConversion, One},
-	FixedU64,
-};
-
-#[test]
-fn adapt_price_no_panic() {
-	for limit in 0..10 {
-		for target in 1..10 {
-			for sold in 0..=limit {
-				let price = PriceAdapter::adapt_price(sold, target, limit);
-
-				if sold > target {
-					assert!(price > FixedU64::one());
-				} else {
-					assert!(price <= FixedU64::one());
-				}
-			}
-		}
-	}
-}
-
-#[test]
-fn adapt_price_bound_check() {
-	// Using assumptions from pallet implementation i.e. `limit >= sold`.
-	// Check extremes
-	let limit = 10;
-	let target = 5;
-
-	// Maximally sold: `sold == limit`
-	assert_eq!(PriceAdapter::adapt_price(limit, target, limit), FixedU64::from_float(1.2));
-	// Ideally sold: `sold == target`
-	assert_eq!(PriceAdapter::adapt_price(target, target, limit), FixedU64::one());
-	// Minimally sold: `sold == 0`
-	assert_eq!(PriceAdapter::adapt_price(0, target, limit), FixedU64::from_float(0.5));
-	// Optimistic target: `target == limit`
-	assert_eq!(PriceAdapter::adapt_price(limit, limit, limit), FixedU64::one());
-	// Pessimistic target: `target == 0`
-	assert_eq!(PriceAdapter::adapt_price(limit, 0, limit), FixedU64::from_float(1.2));
-}
-
-#[test]
-fn leadin_price_bound_check() {
-	// Using assumptions from pallet implementation i.e. `when` in range [0, 1].
-	// Linear, therefore we need three points to fully test it
-
-	// Start of leadin: 5x
-	assert_eq!(PriceAdapter::leadin_factor_at(FixedU64::from(0)), FixedU64::from(5));
-	// Midway through leadin: 3x
-	assert_eq!(PriceAdapter::leadin_factor_at(FixedU64::from_float(0.5)), FixedU64::from(3));
-	// End of leadin: 1x
-	assert_eq!(PriceAdapter::leadin_factor_at(FixedU64::one()), FixedU64::one());
-}
+use sp_runtime::traits::AccountIdConversion;
 
 fn advance_to(b: BlockNumber) {
 	while System::block_number() < b {
@@ -124,14 +72,14 @@ fn bulk_revenue_is_burnt() {
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
-			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 10 * ed));
+			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * ed));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
 			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
-			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 5 * ed));
+			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 100 * ed));
 
 			// Alice decreases.
 			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
