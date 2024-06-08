@@ -562,10 +562,28 @@ fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_
 			parachain_id: id.into(),
 			..Default::default()
 		},
+		"collatorSelection": encointer_kusama_runtime::CollatorSelectionConfig {
+			invulnerables: invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
+			candidacy_bond: ENCOINTER_KUSAMA_ED * 16,
+			..Default::default()
+		},
+		"session": asset_hub_kusama_runtime::SessionConfig {
+			keys: invulnerables()
+				.into_iter()
+				.map(|(acc, aura)| {
+					(
+						acc.clone(),                         // account id
+						acc,                                 // validator id
+						asset_hub_kusama_session_keys(aura), // session keys
+					)
+				})
+				.collect(),
+		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		"aura": encointer_kusama_runtime::aura_config_for_chain_spec(&["Alice"]),
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
 	})
 }
 
