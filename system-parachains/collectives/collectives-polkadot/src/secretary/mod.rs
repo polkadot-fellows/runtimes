@@ -59,7 +59,10 @@ pub mod ranks {
 
 type ApproveOrigin = EitherOf<
 	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
-	MapSuccess<Fellows, Replace<ConstU16<2>>>,
+	MapSuccess<
+		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		Replace<ConstU16<2>>,
+	>,
 >;
 
 type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
@@ -69,10 +72,7 @@ type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 
 type OpenGovOrFellow = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EitherOfDiverse<
-		Fellows,
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-	>,
+	EitherOfDiverse<Fellows, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
 >;
 
 impl pallet_secretary_origins::Config for Runtime {}
