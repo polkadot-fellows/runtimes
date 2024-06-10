@@ -104,7 +104,7 @@ pub mod pallet_identity_ops {
 			identity.0.judgements.retain(|(_, judgement)| {
 				if let Judgement::FeePaid(deposit) = judgement {
 					expected_total_deposit = expected_total_deposit.saturating_add(*deposit);
-					reserved >= expected_total_deposit
+					reserved >= expected_total_deposit && *deposit > 0
 				} else {
 					true
 				}
@@ -120,52 +120,53 @@ pub mod pallet_identity_ops {
 		fn try_state(_: BlockNumberFor<T>) -> Result<(), sp_runtime::TryRuntimeError> {
 			use crate::Balance;
 			use sp_core::crypto::Ss58Codec;
-			use sp_runtime::traits::Zero;
 
-			let mut invalid_identity_count = 0;
-			let mut invalid_judgement_count = 0;
+			let mut total_invalid_identity_count = 0;
+			let mut total_invalid_judgement_count = 0;
 			let mut identity_count = 0;
-			IdentityOf::iter().for_each(|(account_id, _)| {
-				let (identity, username) = IdentityPallet::identity(&account_id).unwrap();
-
-				let (paid_judgement_count, judgement_deposit) = identity.judgements.iter().fold(
-					(0, Zero::zero()),
-					|(count, total_deposit): (u32, Balance), (_, judgement)| {
-						if let Judgement::FeePaid(deposit) = judgement {
-							(count + 1, total_deposit.saturating_add(*deposit))
-						} else {
-							(count, total_deposit)
-						}
-					},
-				);
+			IdentityOf::iter().for_each(|(account_id, registration)| {
+				let (identity, username) = registration;
 
 				let (subs_deposit, _) = IdentityPallet::subs_of(&account_id);
-
-				let deposit =
-					identity.deposit.saturating_add(judgement_deposit).saturating_add(subs_deposit);
 				let deposit_wo_judgement = identity.deposit.saturating_add(subs_deposit);
 				let reserved = Balances::reserved_balance(&account_id);
 
-				if deposit > reserved && paid_judgement_count > 0 {
-					invalid_identity_count += 1;
-					invalid_judgement_count += paid_judgement_count;
+				let (invalid_judgement_count, expected_total_deposit) =
+					identity.judgements.iter().fold(
+						(0, deposit_wo_judgement),
+						|(count, total_deposit): (u32, Balance), (_, judgement)| {
+							if let Judgement::FeePaid(deposit) = judgement {
+								if total_deposit.saturating_add(*deposit) > reserved ||
+									*deposit == 0
+								{
+									return (count + 1, total_deposit.saturating_add(*deposit))
+								}
+							}
+							(count, total_deposit)
+						},
+					);
+
+				if expected_total_deposit >= reserved && invalid_judgement_count > 0 {
+					total_invalid_identity_count += 1;
+					total_invalid_judgement_count += invalid_judgement_count;
 
 					log::info!(
-						"account with invalid state: {:?}, expected reserve at least: {:?}, actual: {:?}",
-						account_id.clone().to_ss58check(),
-						deposit,
+						"account with invalid state: {:?}, expected reserve at least: {:?}, actual: {:?}, invalid judgements: {:?}",
+						account_id.clone().to_ss58check_with_version(2u8.into()),
+						expected_total_deposit,
 						reserved,
+						invalid_judgement_count,
 					);
 
 					assert_eq!(
-						paid_judgement_count,
+						invalid_judgement_count,
 						Self::do_clear_judgement(&account_id, (identity, username)).0
 					);
 
 					if deposit_wo_judgement != reserved {
 						log::warn!(
 							"unexpected state: {:?}, deposit w/o judgement: {:?}, not equal to the total reserved: {:?}",
-							account_id.clone().to_ss58check(),
+							account_id.clone().to_ss58check_with_version(2u8.into()),
 							deposit_wo_judgement,
 							reserved,
 						);
@@ -176,7 +177,7 @@ pub mod pallet_identity_ops {
 				if deposit_wo_judgement > reserved {
 					log::warn!(
 						"unexpected state: {:?}, deposit w/o judgement: {:?}, greater than the total reserved: {:?}",
-						account_id.clone().to_ss58check(),
+						account_id.clone().to_ss58check_with_version(2u8.into()),
 						deposit_wo_judgement,
 						reserved,
 					);
@@ -185,8 +186,8 @@ pub mod pallet_identity_ops {
 			});
 
 			log::info!("total identities processed: {:?}", identity_count);
-			log::info!("invalid identities: {:?}", invalid_identity_count);
-			log::info!("invalid judgements: {:?}", invalid_judgement_count);
+			log::info!("invalid identities: {:?}", total_invalid_identity_count);
+			log::info!("invalid judgements: {:?}", total_invalid_judgement_count);
 
 			Ok(())
 		}
