@@ -26,7 +26,9 @@ use crate::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess},
+	traits::{
+		tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess, RankedMembers,
+	},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
@@ -134,8 +136,8 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type DemoteOrigin = ApproveOrigin;
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
-	// - the Fellow Origin.
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
+	// - a single member of the Fellowship Program (DAN III).
+	// - the FellowshipAdmin origin (i.e. token holder referendum).
 	type ExchangeOrigin = OpenGovOrFellow;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
@@ -155,13 +157,13 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	// Parameters are set by any of:
 	// - Root;
 	// - a single member of the Fellowship Program (DAN III).
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
+	// - the FellowshipAdmin origin (i.e. token holder referendum).
 	type ParamsOrigin = OpenGovOrFellow;
 	// Induction (creating a candidate) is by any of:
 	// - Root;
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a single member of the Fellowship Program (DAN III);
-	// - a single member of the Secretary Program;
+	// - a single member of the Secretary Program.
 	type InductOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
@@ -213,7 +215,7 @@ pub type SecretarySalaryPaymaster = PayOverXcm<
 
 pub struct SalaryForRank;
 impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
-	fn get_salary(rank: u16, _: &AccountId) -> Balance {
+	fn get_salary(rank: u16, _who: &AccountId) -> Balance {
 		if rank == 1 {
 			1000
 		} else {
@@ -221,7 +223,7 @@ impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 		}
 	}
 }
-
+/// if there were a trait named `Example` with associated type `Member` implemented for `Instance3`, you could use the fully-qualified path: `<Instance3 as Example>::Member`
 impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_salary_secretary_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
