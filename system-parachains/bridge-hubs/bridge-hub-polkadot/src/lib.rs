@@ -120,6 +120,7 @@ pub type SignedExtra = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteHeadersAndMessages,
 	bridge_to_kusama_config::RefundBridgeHubKusamaMessages,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
 bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
@@ -178,10 +179,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("bridge-hub-polkadot"),
 	impl_name: create_runtime_str!("bridge-hub-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_002_004,
+	spec_version: 1_002_005,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 3,
+	transaction_version: 4,
 	state_version: 1,
 };
 
