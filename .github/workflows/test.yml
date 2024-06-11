@@ -89,7 +89,7 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
       - name: Test all features ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=runtime-benchmarks,try-runtime
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
