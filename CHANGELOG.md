@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
+
 ## [1.2.5] 06.06.2024
 
 ### Added
@@ -22,7 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Handle extra erroneous consumer reference when a nomination pool is destroying ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
 - Introduce [Encointer](https://encointer.org) collator selection and send fees to authors instead of treasury ([polkadot-fellows/runtimes#270](https://github.com/polkadot-fellows/runtimes/pull/270))
-- Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
 
 ## [1.2.4] 20.05.2024
 
