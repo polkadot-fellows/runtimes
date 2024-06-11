@@ -16085,7 +16085,6 @@ dependencies = [
  "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
  "pallet-grandpa",
- "pallet-identity",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-mmr",
