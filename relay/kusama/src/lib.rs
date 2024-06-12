@@ -33,7 +33,7 @@ use polkadot_primitives::{
 	PARACHAIN_KEY_TYPE_ID,
 };
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, identity_migrator, impl_runtime_weights,
+	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
@@ -48,6 +48,7 @@ use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime,
 	assigner_on_demand as parachains_assigner_on_demand, configuration as parachains_configuration,
+	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
 	coretime, disputes as parachains_disputes,
 	disputes::slashing as parachains_slashing,
 	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
@@ -75,18 +76,17 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
+		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, Everything,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSigned};
+use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
-use pallet_identity::legacy::IdentityInfo;
 use pallet_session::historical as session_historical;
-use pallet_transaction_payment::{CurrencyAdapter, FeeDetails, RuntimeDispatchInfo};
+use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
 use sp_core::{ConstU128, OpaqueMetadata, H256};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -161,10 +161,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_002_004,
+	spec_version: 1_002_005,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 25,
+	transaction_version: 26,
 	state_version: 1,
 };
 
@@ -186,19 +186,8 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 2;
 }
 
-/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
-/// locking the state of the pallet and preventing further updates to identities and sub-identities.
-/// The locked state will be the genesis state of a new system chain and then removed from the Relay
-/// Chain.
-pub struct IsIdentityCall;
-impl Contains<RuntimeCall> for IsIdentityCall {
-	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::Identity(_))
-	}
-}
-
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IsIdentityCall>;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -433,7 +422,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Self>>;
+	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFees<Self>>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -930,6 +919,7 @@ where
 			frame_system::CheckNonce::<Runtime>::from(nonce),
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+			frame_metadata_hash_extension::CheckMetadataHash::new(false),
 		);
 		let raw_payload = SignedPayload::new(call, extra)
 			.map_err(|e| {
@@ -965,45 +955,7 @@ impl claims::Config for Runtime {
 	type VestingSchedule = Vesting;
 	type Prefix = Prefix;
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::runtime_common_claims::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	// Minimum 100 bytes/KSM deposited (1 CENT/byte)
-	pub const BasicDeposit: Balance = 1000 * CENTS;       // 258 bytes on-chain
-	pub const ByteDeposit: Balance = deposit(0, 1);
-	pub const SubAccountDeposit: Balance = 200 * CENTS;   // 53 bytes on-chain
-	pub const MaxSubAccounts: u32 = 100;
-	pub const MaxAdditionalFields: u32 = 100;
-	pub const MaxRegistrars: u32 = 20;
-}
-
-impl pallet_identity::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type BasicDeposit = BasicDeposit;
-	type ByteDeposit = ByteDeposit;
-	type SubAccountDeposit = SubAccountDeposit;
-	type MaxSubAccounts = MaxSubAccounts;
-	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
-	type MaxRegistrars = MaxRegistrars;
-	type Slashed = Treasury;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	type RegistrarOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	type OffchainSignature = Signature;
-	type SigningPublicKey = <Signature as Verify>::Signer;
-	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
-	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
-	type MaxSuffixLength = ConstU32<7>;
-	type MaxUsernameLength = ConstU32<32>;
-	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
-}
-
-impl identity_migrator::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Reaper = EnsureSigned<AccountId>;
-	type ReapIdentityHandler = impls::ToParachainIdentityReaper<Runtime, Self::AccountId>;
-	type WeightInfo = weights::runtime_common_identity_migrator::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1113,14 +1065,22 @@ parameter_types! {
 	TypeInfo,
 )]
 pub enum ProxyType {
+	#[codec(index = 0)]
 	Any,
+	#[codec(index = 1)]
 	NonTransfer,
+	#[codec(index = 2)]
 	Governance,
+	#[codec(index = 3)]
 	Staking,
-	IdentityJudgement,
+	// Index 4 skipped. Formerly `IdentityJudgement`.
+	#[codec(index = 5)]
 	CancelProxy,
+	#[codec(index = 6)]
 	Auction,
+	#[codec(index = 7)]
 	Society,
+	#[codec(index = 8)]
 	NominationPools,
 }
 
@@ -1157,7 +1117,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Whitelist(..) |
 				RuntimeCall::Claims(..) |
 				RuntimeCall::Utility(..) |
-				RuntimeCall::Identity(..) |
 				RuntimeCall::Society(..) |
 				RuntimeCall::Recovery(pallet_recovery::Call::as_recovered {..}) |
 				RuntimeCall::Recovery(pallet_recovery::Call::vouch_recovery {..}) |
@@ -1210,11 +1169,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
-			ProxyType::IdentityJudgement => matches!(
-				c,
-				RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::Utility(..)
-			),
 			ProxyType::CancelProxy => {
 				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
 			},
@@ -1341,11 +1295,22 @@ impl pallet_message_queue::Config for Runtime {
 
 impl parachains_dmp::Config for Runtime {}
 
+parameter_types! {
+	pub const HrmpChannelSizeAndCapacityWithSystemRatio: Percent = Percent::from_percent(100);
+}
+
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type Currency = Balances;
+	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
+	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
+	// `hrmp_channel_max_capacity`.
+	type DefaultChannelSizeAndCapacityWithSystem = ActiveConfigHrmpChannelSizeAndCapacityRatio<
+		Runtime,
+		HrmpChannelSizeAndCapacityWithSystemRatio,
+	>;
 	type WeightInfo = weights::runtime_parachains_hrmp::WeightInfo<Runtime>;
 }
 
@@ -1427,7 +1392,7 @@ impl paras_registrar::Config for Runtime {
 	type OnSwap = (Crowdloan, Slots);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = DataDepositPerByte;
-	type WeightInfo = weights::runtime_common_paras_registrar::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1442,7 +1407,7 @@ impl slots::Config for Runtime {
 	type LeasePeriod = LeasePeriod;
 	type LeaseOffset = ();
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, LeaseAdmin>;
-	type WeightInfo = weights::runtime_common_slots::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_slots::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1463,7 +1428,7 @@ impl crowdloan::Config for Runtime {
 	type Registrar = Registrar;
 	type Auctioneer = Auctions;
 	type MaxMemoLength = MaxMemoLength;
-	type WeightInfo = weights::runtime_common_crowdloan::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_crowdloan::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1482,7 +1447,7 @@ impl auctions::Config for Runtime {
 	type SampleLength = SampleLength;
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type InitiateOrigin = EitherOf<EnsureRoot<Self::AccountId>, AuctionAdmin>;
-	type WeightInfo = weights::runtime_common_auctions::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_auctions::WeightInfo<Runtime>;
 }
 
 type NisCounterpartInstance = pallet_balances::Instance2;
@@ -1672,8 +1637,7 @@ construct_runtime! {
 		// Utility module.
 		Utility: pallet_utility = 24,
 
-		// Less simple identity module.
-		Identity: pallet_identity = 25,
+		// pallet_identity = 25 (removed post 1.2.4)
 
 		// Society module.
 		Society: pallet_society = 26,
@@ -1755,9 +1719,6 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
-
-		// Pallet for migrating Identity to a parachain. To be removed post-migration.
-		IdentityMigrator: identity_migrator = 248,
 	}
 }
 
@@ -1781,6 +1742,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
 pub struct NominationPoolsMigrationV4OldPallet;
@@ -1807,9 +1769,6 @@ pub mod migrations {
 	use runtime_parachains::configuration::WeightInfo;
 	#[cfg(feature = "try-runtime")]
 	use sp_core::crypto::ByteArray;
-
-	// We don't have a limit in the Relay Chain.
-	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
 
 	pub struct GetLegacyLeaseImpl;
 	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
@@ -1855,6 +1814,8 @@ pub mod migrations {
 	parameter_types! {
 		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
+		pub const IdentityPalletName: &'static str = "Identity";
+		pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
 	}
 
 	/// Upgrade Session keys to exclude `ImOnline` key.
@@ -1873,10 +1834,7 @@ pub mod migrations {
 			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
 			let key_ids = SessionKeys::key_ids();
 			frame_support::ensure!(
-				key_ids
-					.into_iter()
-					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE)
-					.is_none(),
+				!key_ids.iter().any(|k| *k == sp_core::crypto::key_types::IM_ONLINE),
 				"New session keys contain the ImOnline key that should have been removed",
 			);
 			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
@@ -1892,7 +1850,7 @@ pub mod migrations {
 					state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
-			frame_support::ensure!(state.len() > 0, "Queued keys are not empty before upgrade");
+			frame_support::ensure!(!state.is_empty(), "Queued keys are not empty before upgrade");
 			Ok(state)
 		}
 
@@ -1923,7 +1881,10 @@ pub mod migrations {
 					new_state.extend_from_slice(keys.get_raw(*key_id));
 				}
 			});
-			frame_support::ensure!(new_state.len() > 0, "Queued keys are not empty after upgrade");
+			frame_support::ensure!(
+				!new_state.is_empty(),
+				"Queued keys are not empty after upgrade"
+			);
 			frame_support::ensure!(
 				old_state == new_state,
 				"Pre-upgrade and post-upgrade keys do not match!"
@@ -1961,10 +1922,218 @@ pub mod migrations {
 			) {
 				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
 			}
-			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+			weights::polkadot_runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
 				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
 					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
 				))
+		}
+	}
+
+	/// Migration to remove deprecated judgement proxies.
+	mod clear_judgement_proxies {
+		use super::*;
+
+		use frame_support::{
+			pallet_prelude::ValueQuery,
+			storage_alias,
+			traits::{Currency, ReservableCurrency},
+			Twox64Concat,
+		};
+		use frame_system::pallet_prelude::BlockNumberFor;
+		use pallet_proxy::ProxyDefinition;
+		use sp_runtime::{BoundedVec, Saturating};
+
+		/// ProxyType including the deprecated `IdentityJudgement`.
+		#[derive(
+			Copy,
+			Clone,
+			Eq,
+			PartialEq,
+			Ord,
+			PartialOrd,
+			Encode,
+			Decode,
+			RuntimeDebug,
+			MaxEncodedLen,
+			TypeInfo,
+		)]
+		pub enum PrevProxyType {
+			Any,
+			NonTransfer,
+			Governance,
+			Staking,
+			IdentityJudgement,
+			CancelProxy,
+			Auction,
+			Society,
+			NominationPools,
+		}
+
+		type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
+			<T as frame_system::Config>::AccountId,
+		>>::Balance;
+
+		type PrevProxiesValue<T> = (
+			BoundedVec<ProxyDefinition<AccountId, PrevProxyType, BlockNumberFor<T>>, MaxProxies>,
+			BalanceOf<T>,
+		);
+
+		/// Proxies including the deprecated `IdentityJudgement` type.
+		#[storage_alias]
+		pub type Proxies<T: pallet_proxy::Config> = StorageMap<
+			pallet_proxy::Pallet<T>,
+			Twox64Concat,
+			AccountId,
+			PrevProxiesValue<T>,
+			ValueQuery,
+		>;
+
+		pub struct Migration;
+		impl OnRuntimeUpgrade for Migration {
+			/// Compute the expected post-upgrade state for Proxies stroage, and the reserved value
+			/// for all accounts with a proxy.
+			#[cfg(feature = "try-runtime")]
+			fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+				let mut expected_proxies: BTreeMap<AccountId, PrevProxiesValue<Runtime>> =
+					BTreeMap::new();
+				let mut expected_reserved_amounts: BTreeMap<AccountId, Balance> = BTreeMap::new();
+
+				for (who, (mut proxies, old_deposit)) in
+					Proxies::<Runtime>::iter().collect::<Vec<_>>()
+				{
+					let proxies_len_before = proxies.len() as u64;
+					proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
+					let proxies_len_after = proxies.len() as u64;
+
+					let new_deposit =
+						pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
+
+					let current_reserved =
+						<Balances as ReservableCurrency<AccountId>>::reserved_balance(&who);
+
+					// Update the deposit only if proxies were removed and the deposit decreased.
+					if new_deposit < old_deposit && proxies_len_after < proxies_len_before {
+						// If there're no proxies left, they should be removed
+						if proxies.len() > 0 {
+							expected_proxies.insert(who.clone(), (proxies, new_deposit));
+						}
+						expected_reserved_amounts.insert(
+							who,
+							current_reserved.saturating_sub(old_deposit - new_deposit),
+						);
+					} else {
+						// Deposit should not change. If any proxies needed to be removed, this
+						// won't impact that.
+						expected_proxies.insert(who.clone(), (proxies, old_deposit));
+						expected_reserved_amounts.insert(who, current_reserved);
+					}
+				}
+
+				let pre_upgrade_state = (expected_proxies, expected_reserved_amounts);
+				Ok(pre_upgrade_state.encode())
+			}
+
+			fn on_runtime_upgrade() -> Weight {
+				let mut reads = 0u64;
+				let mut writes = 0u64;
+				let mut proxies_removed_total = 0u64;
+
+				Proxies::<Runtime>::translate(
+					|who: AccountId, (mut proxies, old_deposit): PrevProxiesValue<Runtime>| {
+						// Remove filter out IdentityJudgement proxies.
+						let proxies_len_before = proxies.len() as u64;
+						proxies
+							.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
+						let proxies_len_after = proxies.len() as u64;
+
+						let deposit = if proxies_len_before > proxies_len_after {
+							log::info!(
+								"Removing {} IdentityJudgement proxies for {:?}",
+								proxies_len_before - proxies_len_after,
+								&who
+							);
+							proxies_removed_total
+								.saturating_accrue(proxies_len_before - proxies_len_after);
+
+							let new_deposit =
+								pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
+
+							// Be kind and don't increase the deposit in case it increased (can
+							// happen if param change).
+							let deposit = new_deposit.min(old_deposit);
+							if deposit < old_deposit {
+								writes.saturating_inc();
+								<Balances as ReservableCurrency<AccountId>>::unreserve(
+									&who,
+									old_deposit - deposit,
+								);
+							}
+
+							deposit
+						} else {
+							// Nothing to do, use the old deposit.
+							old_deposit
+						};
+
+						reads.saturating_accrue(proxies_len_before + 1);
+						writes.saturating_accrue(proxies_len_after + 1);
+
+						// No need to keep the k/v around if there're no proxies left.
+						match proxies.is_empty() {
+							true => {
+								debug_assert_eq!(deposit, 0);
+								None
+							},
+							false => Some((proxies, deposit)),
+						}
+					},
+				);
+
+				log::info!("Removed {} IdentityJudgement proxies in total", proxies_removed_total);
+				<Runtime as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
+			}
+
+			#[cfg(feature = "try-runtime")]
+			fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+				use frame_support::ensure;
+				use sp_runtime::TryRuntimeError;
+
+				let (expected_proxies, expected_total_reserved): (
+					BTreeMap<AccountId, PrevProxiesValue<Runtime>>,
+					BTreeMap<AccountId, Balance>,
+				) = Decode::decode(&mut &state[..]).expect("Failed to decode pre-upgrade state");
+
+				// Check Proxies storage is as expected
+				for (who, (proxies, deposit)) in Proxies::<Runtime>::iter() {
+					match expected_proxies.get(&who) {
+						Some((expected_proxies, expected_deposit)) => {
+							ensure!(&proxies == expected_proxies, "Unexpected Proxy");
+							ensure!(&deposit == expected_deposit, "Unexpected deposit");
+						},
+						None => {
+							return Err(TryRuntimeError::Other("Missing Proxy"));
+						},
+					}
+				}
+
+				// Check the total reserved amounts for every account is as expected
+				for (who, expected_reserved) in expected_total_reserved.iter() {
+					let current_reserved =
+						<Balances as ReservableCurrency<AccountId>>::reserved_balance(who);
+
+					ensure!(current_reserved == *expected_reserved, "Reserved balance mismatch");
+				}
+
+				// Check there are no extra entries in the expected state that are not in the
+				// current state
+				for (who, _) in expected_proxies.iter() {
+					if !Proxies::<Runtime>::contains_key(who) {
+						return Err(TryRuntimeError::Other("Extra entry in expected state"));
+					}
+				}
+
+				Ok(())
+			}
 		}
 	}
 
@@ -1976,8 +2145,6 @@ pub mod migrations {
 		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
 		parachains_configuration::migration::v11::MigrateToV11<Runtime>,
 		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
-		// Migrate Identity pallet for Usernames
-		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
 		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
 		// Migrate from legacy lease to coretime. Needs to run after configuration v11
 		coretime::migration::MigrateToCoretime<
@@ -1994,6 +2161,16 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		CancelAuctions,
+		// Remove `identity` and `identity-migrator`.
+		frame_support::migrations::RemovePallet<
+			IdentityPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			IdentityMigratorPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		clear_judgement_proxies::Migration,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2019,12 +2196,9 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
-		// that the path resolves correctly in the generated file.
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
 		[polkadot_runtime_common::claims, Claims]
-		[polkadot_runtime_common::identity_migrator, IdentityMigrator]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
@@ -2049,7 +2223,6 @@ mod benches {
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_nis, Nis]
-		[pallet_identity, Identity]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]

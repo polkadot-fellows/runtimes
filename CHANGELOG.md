@@ -10,9 +10,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
 
+### Removed
+
+- Removed Identity-related code from Kusama Relay Chain ([polkadot-fellows/runtimes#315](https://github.com/polkadot-fellows/runtimes/pull/315))
+
+## [1.2.5] 06.06.2024
+
 ### Added
 
 - Staking runtime api to check if reward is pending for an era ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+- Allow any parachain to have bidirectional channel with any system parachains ([polkadot-fellows/runtimes#329](https://github.com/polkadot-fellows/runtimes/pull/329))
+- Update price controller of broker pallet to use higher leadin, without adjusting the minimum price too much ([polkadot-fellows/runtimes#334](https://github.com/polkadot-fellows/runtimes/pull/334)
+- Enable support for new hardware signers like the generic ledger app ([polkadot-fellows/runtimes#337](https://github.com/polkadot-fellows/runtimes/pull/337))
+
+### Changed
+
+- Transaction payments work via new `fungible` trait implementation ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+- Block `request_judgement` calls on the Relay Chain ([polkadot-fellows/runtimes#338](https://github.com/polkadot-fellows/runtimes/pull/338))
 
 ### Fixed
 
