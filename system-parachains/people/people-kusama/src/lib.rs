@@ -75,11 +75,11 @@ use xcm_config::{
 
 /// This determines the average expected block time that we are targeting. Blocks will be
 /// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-/// `pallet_timestamp` which is in turn picked up by `pallet_aura` to implement `fn
+/// `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
 /// slot_duration()`.
 ///
 /// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const MILLISECS_PER_BLOCK: u64 = 6_000;
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 // Time is measured by number of blocks.
@@ -91,7 +91,7 @@ pub const DAYS: BlockNumber = HOURS * 24;
 /// used to limit the maximal weight of a single extrinsic.
 pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
 /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
-/// Operational  extrinsics.
+/// `Operational` extrinsics.
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 /// We allow for 2 seconds of compute with a 6 second average block time.
