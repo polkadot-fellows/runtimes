@@ -71,4 +71,10 @@ impl ParachainsWeightInfoExt for pallet_bridge_parachains::WeightInfo<Runtime> {
 	fn expected_extra_storage_proof_size() -> u32 {
 		bp_bridge_hub_kusama::EXTRA_STORAGE_PROOF_SIZE
 	}
+
+	fn submit_parachain_heads_overhead_from_runtime() -> Weight {
+		// FAIL-CI @svyatonik
+		todo!()
+		//pallet_bridge_relayers::WeightInfo::<Runtime>::slash_and_deregister()
+	}
 }

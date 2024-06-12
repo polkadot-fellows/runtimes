@@ -72,10 +72,10 @@ fn main() -> Result<(), String> {
 				"glutton-kusama-local",
 				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
 			),
-			(
+			/*(
 				"encointer-kusama-local",
 				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
-			),
+			),*/ // FAIL-CI @ggwpez
 			(
 				"coretime-kusama-local",
 				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,

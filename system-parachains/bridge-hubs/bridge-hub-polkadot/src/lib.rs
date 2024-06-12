@@ -761,6 +761,13 @@ impl_runtime_apis! {
 			BridgeKusamaGrandpa::best_finalized()
 		}
 
+		fn free_headers_interval() -> Option<bp_polkadot_bulletin::BlockNumber> {
+			todo!() // FAIL-CI @svyatonik
+			/*<Runtime as pallet_bridge_grandpa::Config<
+				bridge_common_config::BridgeGrandpaRococoBulletinInstance
+			>>::FreeHeadersInterval::get()*/
+		}
+
 		fn synced_headers_grandpa_info(
 		) -> Vec<bp_header_chain::StoredHeaderGrandpaInfo<bp_kusama::Header>> {
 			BridgeKusamaGrandpa::synced_headers_grandpa_info()
@@ -772,6 +779,10 @@ impl_runtime_apis! {
 			BridgeKusamaParachains::best_parachain_head_id::<
 				bp_bridge_hub_kusama::BridgeHubKusama
 			>().unwrap_or(None)
+		}
+
+		fn free_headers_interval() -> Option<bp_bridge_hub_kusama::BlockNumber> {
+			None // FAIL-CI @svyatonik
 		}
 	}
 

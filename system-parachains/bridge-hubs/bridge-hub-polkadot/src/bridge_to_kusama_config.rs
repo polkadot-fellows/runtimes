@@ -163,9 +163,17 @@ pub type BridgeGrandpaKusamaInstance = pallet_bridge_grandpa::Instance1;
 impl pallet_bridge_grandpa::Config<BridgeGrandpaKusamaInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type BridgedChain = bp_kusama::Kusama;
-	type MaxFreeMandatoryHeadersPerBlock = ConstU32<4>;
 	type HeadersToKeep = RelayChainHeadersToKeep;
+	type MaxFreeHeadersPerBlock = ConstU32<4>; // FAIL-CI @svyatonik
+	type FreeHeadersInterval = ConstU32<5>; // FAIL-CI @svyatonik
 	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
+}
+
+// FAIL-CI @svyatonik please check this. Also how does it work for multiple instances of the pallet?
+impl pallet_bridge_grandpa::WeightInfoExt for weights::pallet_bridge_grandpa::WeightInfo<Runtime> {
+	fn submit_finality_proof_overhead_from_runtime() -> Weight {
+		todo!()
+	}
 }
 
 /// Add parachain bridge pallet to track Kusama BridgeHub parachain.
@@ -409,11 +417,8 @@ mod tests {
 			},
 		});
 
-		bridge_runtime_common::extensions::priority_calculator::ensure_priority_boost_is_sane::<
-			Runtime,
-			WithBridgeHubKusamaMessagesInstance,
-			PriorityBoostPerMessage,
-		>(FEE_BOOST_PER_MESSAGE);
+		// FAIL-CI @svyatonik please bring back the `ensure_priority_boost_is_sane` that was
+		// renamed.
 
 		assert_eq!(
 			BridgePolkadotToKusamaMessagesPalletInstance::get(),

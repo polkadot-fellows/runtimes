@@ -60,7 +60,7 @@ const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::Existential
 
 const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
-const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
+//const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
 
 const CORETIME_KUSAMA_ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
 
@@ -549,7 +549,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 }
 
 // EncointerKusama
-fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
+/*fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
 	serde_json::json!({
 		"balances": asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
@@ -584,17 +584,18 @@ fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_
 		},
 		"aura": encointer_kusama_runtime::aura_config_for_chain_spec(&["Alice"]),
 	})
-}
+}*/ // FAIL-CI @ggwpez
 
-fn encointer_kusama_local_genesis(para_id: u32) -> serde_json::Value {
+/*fn encointer_kusama_local_genesis(para_id: u32) -> serde_json::Value {
 	encointer_kusama_genesis(
 		// initial collators.
 		testnet_accounts(),
 		para_id,
 	)
-}
+}*/
+// FAIL-CI @ggwpez
 
-pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+/*pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -612,7 +613,8 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_properties(properties)
 		.build(),
 	))
-}
+}*/
+// FAIL-CI @ggwpez
 
 // CoretimeKusama
 fn coretime_kusama_genesis(

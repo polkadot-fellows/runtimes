@@ -61,6 +61,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = (); // sending XCM not supported
+	type XcmRecorder = ();
 	type AssetTransactor = (); // balances not supported
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = (); // balances not supported
