@@ -27,7 +27,7 @@ use crate::{
 use frame_support::{
 	parameter_types,
 	traits::{
-		tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess, RankedMembers,
+		tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess
 	},
 	PalletId,
 };
@@ -54,25 +54,40 @@ use self::xcm_config::AssetHubUsdt;
 pub mod ranks {
 	use pallet_ranked_collective::Rank;
 
-	#[allow(dead_code)]
 	pub const SECRETARY_CANDIDATE: Rank = 0;
 	pub const SECRETARY: Rank = 1;
 }
 
+/// Origins of:
+/// - Root;
+/// - FellowshipAdmin (i.e. token holder referendum);
+/// - Plurarity vote from Fellows can promote, demote, remove and approve rank retention
+/// of members of the Secretary Collective (rank `2`).
 type ApproveOrigin = EitherOf<
 	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	MapSuccess<Fellows, Replace<ConstU16<2>>>,
 >;
 
+/// Origins of:
+/// - Root;
+/// - FellowshipAdmin (i.e. token holder referendum);
+/// - Secretary;
+/// - Plurarity vote from Fellows can kill and cancel proposals.
+/// of members of the Secretary Collective.
 type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 	EitherOfDiverse<EnsureRoot<AccountId>, Fellows>,
 	EitherOfDiverse<Secretary, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
 >;
 
+/// Origins of:
+/// - Root;
+/// - FellowshipAdmin (i.e. token holder referendum);
+/// - Plurarity vote from Fellows can exchange origins and
+/// - configure the parameters that govern the Collective.
 type OpenGovOrFellow = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	EitherOfDiverse<
-		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, { DAN_3 }>,
+		Fellows,
 		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
 	>,
 >;
@@ -80,8 +95,6 @@ type OpenGovOrFellow = EitherOfDiverse<
 impl pallet_secretary_origins::Config for Runtime {}
 
 pub type SecretaryReferendaInstance = pallet_referenda::Instance3;
-
-pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 
 impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_referenda_secretary_referenda::WeightInfo<Runtime>;
@@ -95,17 +108,7 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 		SecretaryCollectiveInstance,
 		{ ranks::SECRETARY },
 	>;
-	// Referandum can be cancled by any of:
-	// - Root;
-	// - a member of the Secretary Program.
-	// - a vote by Fellows from the Technical Fellowship program.
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	type CancelOrigin = OpenGovOrSecretaryOrFellow;
-	// Referandum can be killed by any of:
-	// - Root;
-	// - a member of the Secretary Program.
-	// - a vote by Fellows from the Technical Fellowship program.
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	type KillOrigin = OpenGovOrSecretaryOrFellow;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = pallet_ranked_collective::Votes;
@@ -118,6 +121,8 @@ impl pallet_referenda::Config<SecretaryReferendaInstance> for Runtime {
 	type Preimages = Preimage;
 }
 
+pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
+
 impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
@@ -129,15 +134,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
 	// pass.
 	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
-
-	// Demotion is by any of:
-	// - Root can demote arbitrarily.
-	// - a vote by Fellows from the Technical Fellowship program.
 	type DemoteOrigin = ApproveOrigin;
-	// Exchange is by any of:
-	// - Root can exchange arbitrarily.
-	// - a single member of the Fellowship Program (DAN III).
-	// - the FellowshipAdmin origin (i.e. token holder referendum).
 	type ExchangeOrigin = OpenGovOrFellow;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
@@ -154,16 +151,7 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
 	type Balance = Balance;
-	// Parameters are set by any of:
-	// - Root;
-	// - a single member of the Fellowship Program (DAN III).
-	// - the FellowshipAdmin origin (i.e. token holder referendum).
 	type ParamsOrigin = OpenGovOrFellow;
-	// Induction (creating a candidate) is by any of:
-	// - Root;
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a single member of the Fellowship Program (DAN III);
-	// - a single member of the Secretary Program.
 	type InductOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
@@ -179,15 +167,8 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 			>,
 		>,
 	>;
-	// Approval (rank-retention) of a Member's current rank is by any of:
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote by Fellows from the Technical Fellowship program.
 	type ApproveOrigin = ApproveOrigin;
-	// Promotion is by any of:
-	// - the FellowshipAdmin origin (i.e. token holder referendum);
-	// - a vote by Fellows from the Technical Fellowship program.
 	type PromoteOrigin = ApproveOrigin;
-
 	type EvidenceSize = ConstU32<65536>;
 }
 
@@ -223,7 +204,7 @@ impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 		}
 	}
 }
-/// if there were a trait named `Example` with associated type `Member` implemented for `Instance3`, you could use the fully-qualified path: `<Instance3 as Example>::Member`
+
 impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_salary_secretary_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
