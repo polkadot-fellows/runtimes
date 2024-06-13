@@ -4,12 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.2.7]
+## [1.2.7] 14.06.2024
 
 Note: This release only affects the following runtimes and is not a full system release:
 
 - Polkadot Relay Chain
-- Polkadot Asset Hub
 - Polkadot People
 
 ### Changed
