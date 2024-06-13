@@ -22,7 +22,7 @@
 
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, impl_runtime_weights,
+	auctions, claims, crowdloan, identity_migrator, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
@@ -134,6 +134,8 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
+use impls::ToParachainIdentityReaper;
+
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 use polkadot_runtime_common as runtime_common;
@@ -150,7 +152,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_002_005,
+	spec_version: 1_002_006,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -175,16 +177,19 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// A type to identify `identity::request_judgement` calls.
-pub struct IsIdentityJudgementRequestCall;
-impl Contains<RuntimeCall> for IsIdentityJudgementRequestCall {
+/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
+/// locking the state of the pallet and preventing further updates to identities and sub-identities.
+/// The locked state will be the genesis state of a new system chain and then removed from the Relay
+/// Chain.
+pub struct IsIdentityCall;
+impl Contains<RuntimeCall> for IsIdentityCall {
 	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. }))
+		matches!(c, RuntimeCall::Identity(_))
 	}
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IsIdentityJudgementRequestCall>;
+	type BaseCallFilter = EverythingBut<IsIdentityCall>;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -852,6 +857,18 @@ impl pallet_identity::Config for Runtime {
 	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
+impl identity_migrator::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	// To be updated to `EnsureSigned` once the parachain is producing blocks.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Reaper = EnsureRoot<AccountId>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Reaper =
+		impls::benchmarks::InitializeReaperForBenchmarking<AccountId, EnsureRoot<AccountId>>;
+	type ReapIdentityHandler = ToParachainIdentityReaper<Runtime, Self::AccountId>;
+	type WeightInfo = weights::polkadot_runtime_common_identity_migrator::WeightInfo<Runtime>;
+}
+
 parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
@@ -1062,7 +1079,7 @@ impl claims::Config for Runtime {
 	type Prefix = Prefix;
 	/// Only Root can move a claim.
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = weights::runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1450,7 +1467,7 @@ impl paras_registrar::Config for Runtime {
 	type OnSwap = (Crowdloan, Slots);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = ParaDataByteDeposit;
-	type WeightInfo = weights::runtime_common_paras_registrar::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1471,7 +1488,7 @@ impl slots::Config for Runtime {
 	type LeasePeriod = LeasePeriod;
 	type LeaseOffset = LeaseOffset;
 	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, LeaseAdmin>;
-	type WeightInfo = weights::runtime_common_slots::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_slots::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1495,7 +1512,7 @@ impl crowdloan::Config for Runtime {
 	type Registrar = Registrar;
 	type Auctioneer = Auctions;
 	type MaxMemoLength = MaxMemoLength;
-	type WeightInfo = weights::runtime_common_crowdloan::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_crowdloan::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1514,7 +1531,7 @@ impl auctions::Config for Runtime {
 	type SampleLength = SampleLength;
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type InitiateOrigin = EitherOf<EnsureRoot<Self::AccountId>, AuctionAdmin>;
-	type WeightInfo = weights::runtime_common_auctions::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_auctions::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1759,6 +1776,9 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+
+		// Pallet for migrating Identity to a parachain. To be removed post-migration.
+		IdentityMigrator: identity_migrator = 248,
 	}
 }
 
@@ -1933,11 +1953,10 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
-		// NOTE: Make sure to prefix these with `polkadot_runtime_common::` so
-		// the that path resolves correctly in the generated file.
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
+		[polkadot_runtime_common::identity_migrator, IdentityMigrator]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]

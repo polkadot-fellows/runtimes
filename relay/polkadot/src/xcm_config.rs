@@ -139,6 +139,8 @@ parameter_types! {
 	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
 	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
+	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
@@ -147,6 +149,7 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForAssetHub>,
 	xcm_builder::Case<DotForCollectives>,
 	xcm_builder::Case<DotForBridgeHub>,
+	xcm_builder::Case<DotForPeople>,
 );
 
 pub struct CollectivesOrFellows;

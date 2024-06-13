@@ -18,7 +18,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-mod identity_ops;
 pub mod people;
 mod weights;
 pub mod xcm_config;
@@ -32,8 +31,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
-		Everything, InstanceFilter, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
+		EitherOfDiverse, EverythingBut, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -42,14 +41,13 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot,
 };
-use identity_ops::pallet_identity_ops;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::{
 	message_queue::{NarrowOriginToSibling, ParaIdToSibling},
 	AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature, AVERAGE_ON_INITIALIZE_RATIO,
 	HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{identity_migrator, BlockHashCount, SlowAdjustingFeeUpdate};
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -66,7 +64,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use system_parachains_constants::kusama::{consensus::*, currency::*, fee::WeightToFee};
+use system_parachains_constants::polkadot::{consensus::*, currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::latest::prelude::BodyId;
 use xcm_config::{
@@ -103,17 +101,8 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
-parameter_types! {
-	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
-}
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
-	// remove `identity-migrator`
-	frame_support::migrations::RemovePallet<
-		IdentityMigratorPalletName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -136,13 +125,13 @@ impl_opaque_keys! {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("people-kusama"),
-	impl_name: create_runtime_str!("people-kusama"),
+	spec_name: create_runtime_str!("people-polkadot"),
+	impl_name: create_runtime_str!("people-polkadot"),
 	authoring_version: 1,
 	spec_version: 1_002_006,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 1,
+	transaction_version: 0,
 	state_version: 1,
 };
 
@@ -174,12 +163,21 @@ parameter_types! {
 		})
 		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
 		.build_or_panic();
-	pub const SS58Prefix: u8 = 2;
+	pub const SS58Prefix: u8 = 0;
+}
+
+/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
+/// locking the state of the pallet and preventing updates to identities until the chain is stable.
+pub struct IsIdentityCall;
+impl Contains<RuntimeCall> for IsIdentityCall {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Identity(_))
+	}
 }
 
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = EverythingBut<IsIdentityCall>;
 	type AccountId = AccountId;
 	type Nonce = Nonce;
 	type Hash = Hash;
@@ -514,8 +512,12 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
-impl pallet_identity_ops::Config for Runtime {
+// To be removed after migration is complete.
+impl identity_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type Reaper = EnsureRoot<AccountId>;
+	type ReapIdentityHandler = ();
+	type WeightInfo = weights::polkadot_runtime_common_identity_migrator::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -553,8 +555,8 @@ construct_runtime!(
 		// The main stage.
 		Identity: pallet_identity = 50,
 
-		// Identity operations pallet.
-		IdentityOps: pallet_identity_ops = 247,
+		// To migrate deposits
+		IdentityMigrator: identity_migrator = 248,
 	}
 );
 
@@ -571,6 +573,8 @@ mod benches {
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
+		// Polkadot
+		[polkadot_runtime_common::identity_migrator, IdentityMigrator]
 		// Cumulus
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
@@ -579,7 +583,6 @@ mod benches {
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
-		[pallet_identity_ops, IdentityOps]
 	);
 }
 
@@ -986,7 +989,7 @@ cumulus_pallet_parachain_system::register_validate_block! {
 
 #[test]
 fn test_ed_is_one_tenth_of_relay() {
-	let relay_ed = kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
+	let relay_ed = polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT;
 	let people_ed = ExistentialDeposit::get();
 	assert_eq!(relay_ed / 10, people_ed);
 }

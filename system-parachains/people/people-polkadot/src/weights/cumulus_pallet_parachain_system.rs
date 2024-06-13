@@ -20,20 +20,20 @@
 //! DATE: 2024-05-30, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
 //! HOSTNAME: `ggwpez-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
-//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./people-kusama-chain-spec.json")`, DB CACHE: 1024
+//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./people-polkadot-chain-spec.json")`, DB CACHE: 1024
 
 // Executed Command:
 // ./target/production/polkadot
 // benchmark
 // pallet
-// --chain=./people-kusama-chain-spec.json
+// --chain=./people-polkadot-chain-spec.json
 // --steps=50
 // --repeat=20
 // --pallet=cumulus_pallet_parachain_system
 // --extrinsic=*
 // --wasm-execution=compiled
 // --heap-pages=4096
-// --output=./people-kusama-weights/
+// --output=./people-polkadot-weights/
 // --header=./file_header.txt
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
@@ -62,11 +62,11 @@ impl<T: frame_system::Config> cumulus_pallet_parachain_system::WeightInfo for We
 		// Proof Size summary in bytes:
 		//  Measured:  `12`
 		//  Estimated: `3517`
-		// Minimum execution time: 2_110_000 picoseconds.
-		Weight::from_parts(2_210_000, 0)
+		// Minimum execution time: 2_200_000 picoseconds.
+		Weight::from_parts(2_270_000, 0)
 			.saturating_add(Weight::from_parts(0, 3517))
-			// Standard Error: 53_320
-			.saturating_add(Weight::from_parts(193_333_537, 0).saturating_mul(n.into()))
+			// Standard Error: 22_140
+			.saturating_add(Weight::from_parts(182_153_021, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
