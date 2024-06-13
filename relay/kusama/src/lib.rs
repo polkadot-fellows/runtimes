@@ -1208,7 +1208,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -2169,7 +2170,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(10)]
+	#[api_version(11)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2323,6 +2324,14 @@ sp_api::impl_runtime_apis! {
 
 		fn approval_voting_params() -> ApprovalVotingParams {
 			parachains_runtime_api_impl::approval_voting_params::<Runtime>()
+		}
+
+		fn claim_queue() -> BTreeMap<CoreIndex, VecDeque<ParaId>> {
+			parachains_vstaging_api_impl::claim_queue::<Runtime>()
+		}
+
+		fn candidates_pending_availability(para_id: ParaId) -> Vec<CommittedCandidateReceipt<Hash>> {
+			parachains_vstaging_api_impl::candidates_pending_availability::<Runtime>(para_id)
 		}
 	}
 
