@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add the Polkadot People Chain ([polkadot-fellows/runtimes#319](https://github.com/polkadot-fellows/runtimes/pull/319))
 
+### Changed
+
+- Set max asset ID restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
+
 ### Fixed
 
 - Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
