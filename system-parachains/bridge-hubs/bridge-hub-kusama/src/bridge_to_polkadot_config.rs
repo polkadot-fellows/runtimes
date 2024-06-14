@@ -169,13 +169,6 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaPolkadotInstance> for Runtime {
 	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
 }
 
-// FAIL-CI @svyatonik please check this.
-impl pallet_bridge_grandpa::WeightInfoExt for weights::pallet_bridge_grandpa::WeightInfo<Runtime> {
-	fn submit_finality_proof_overhead_from_runtime() -> Weight {
-		todo!()
-	}
-}
-
 /// Add parachain bridge pallet to track Polkadot BridgeHub parachain.
 pub type BridgeParachainPolkadotInstance = pallet_bridge_parachains::Instance1;
 impl pallet_bridge_parachains::Config<BridgeParachainPolkadotInstance> for Runtime {

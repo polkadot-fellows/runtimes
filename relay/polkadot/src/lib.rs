@@ -1403,7 +1403,7 @@ impl parachains_hrmp::Config for Runtime {
 	type Currency = Balances;
 	type WeightInfo = weights::runtime_parachains_hrmp::WeightInfo<Self>;
 	type DefaultChannelSizeAndCapacityWithSystem = DefaultChannelSizeAndCapacityWithSystem;
-	type VersionWrapper = XcmPallet; // FAIL-CI @bkontur please check here and in Kusama
+	type VersionWrapper = XcmPallet;
 }
 
 impl parachains_paras_inherent::Config for Runtime {

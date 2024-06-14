@@ -169,13 +169,6 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaKusamaInstance> for Runtime {
 	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
 }
 
-// FAIL-CI @svyatonik please check this. Also how does it work for multiple instances of the pallet?
-impl pallet_bridge_grandpa::WeightInfoExt for weights::pallet_bridge_grandpa::WeightInfo<Runtime> {
-	fn submit_finality_proof_overhead_from_runtime() -> Weight {
-		todo!()
-	}
-}
-
 /// Add parachain bridge pallet to track Kusama BridgeHub parachain.
 pub type BridgeParachainKusamaInstance = pallet_bridge_parachains::Instance1;
 impl pallet_bridge_parachains::Config<BridgeParachainKusamaInstance> for Runtime {
