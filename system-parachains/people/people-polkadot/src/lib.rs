@@ -31,8 +31,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOfDiverse, EverythingBut, InstanceFilter, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
+		Everything, InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -128,7 +128,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("people-polkadot"),
 	impl_name: create_runtime_str!("people-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_002_006,
+	spec_version: 1_002_007,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
@@ -166,18 +166,9 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
-/// locking the state of the pallet and preventing updates to identities until the chain is stable.
-pub struct IsIdentityCall;
-impl Contains<RuntimeCall> for IsIdentityCall {
-	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::Identity(_))
-	}
-}
-
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IsIdentityCall>;
+	type BaseCallFilter = Everything;
 	type AccountId = AccountId;
 	type Nonce = Nonce;
 	type Hash = Hash;

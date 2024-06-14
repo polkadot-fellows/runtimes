@@ -136,6 +136,9 @@ pub mod xcm_config;
 
 use impls::ToParachainIdentityReaper;
 
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_system::EnsureSigned;
+
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 use polkadot_runtime_common as runtime_common;
@@ -152,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_002_006,
+	spec_version: 1_002_007,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -859,9 +862,8 @@ impl pallet_identity::Config for Runtime {
 
 impl identity_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// To be updated to `EnsureSigned` once the parachain is producing blocks.
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Reaper = EnsureRoot<AccountId>;
+	type Reaper = EnsureSigned<AccountId>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Reaper =
 		impls::benchmarks::InitializeReaperForBenchmarking<AccountId, EnsureRoot<AccountId>>;
