@@ -41,7 +41,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Get},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
@@ -761,11 +761,10 @@ impl_runtime_apis! {
 			BridgeKusamaGrandpa::best_finalized()
 		}
 
-		fn free_headers_interval() -> Option<bp_polkadot_bulletin::BlockNumber> {
-			todo!() // FAIL-CI @svyatonik
-			/*<Runtime as pallet_bridge_grandpa::Config<
-				bridge_common_config::BridgeGrandpaRococoBulletinInstance
-			>>::FreeHeadersInterval::get()*/
+		fn free_headers_interval() -> Option<bp_kusama::BlockNumber> {
+			<Runtime as pallet_bridge_grandpa::Config<
+				bridge_to_kusama_config::BridgeGrandpaKusamaInstance
+			>>::FreeHeadersInterval::get()
 		}
 
 		fn synced_headers_grandpa_info(
@@ -782,7 +781,8 @@ impl_runtime_apis! {
 		}
 
 		fn free_headers_interval() -> Option<bp_bridge_hub_kusama::BlockNumber> {
-			None // FAIL-CI @svyatonik
+			// "free interval" is not currently used for parachains
+			None
 		}
 	}
 
