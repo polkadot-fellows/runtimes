@@ -68,7 +68,7 @@ use frame_support::{
 	weights::{ConstantMultiplier, WeightMeter},
 	PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSigned};
+use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_identity::legacy::IdentityInfo;
 use pallet_session::historical as session_historical;
@@ -135,6 +135,9 @@ pub mod impls;
 pub mod xcm_config;
 
 use impls::ToParachainIdentityReaper;
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_system::EnsureSigned;
 
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
