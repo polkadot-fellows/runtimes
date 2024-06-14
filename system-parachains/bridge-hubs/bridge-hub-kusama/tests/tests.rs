@@ -289,19 +289,20 @@ fn relayed_incoming_message_works() {
 }
 
 #[test]
-pub fn complex_relay_extrinsic_works() {
-	from_parachain::complex_relay_extrinsic_works::<RuntimeTestsAdapter>(
+fn free_relay_extrinsic_works() {
+	// from Polkadot
+	from_parachain::free_relay_extrinsic_works::<RuntimeTestsAdapter>(
 		collator_session_keys(),
 		slot_durations(),
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		SIBLING_PARACHAIN_ID,
 		BridgeHubPolkadotChainId::get(),
+		SIBLING_PARACHAIN_ID,
 		Kusama,
 		XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT,
 		|| (),
 		construct_and_apply_extrinsic,
-	);
+	)
 }
 
 #[test]
