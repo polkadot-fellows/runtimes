@@ -26,9 +26,7 @@ use crate::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{
-		tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess
-	},
+	traits::{tokens::GetSalary, EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
@@ -86,10 +84,7 @@ type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 /// - configure the parameters that govern the Collective.
 type OpenGovOrFellow = EitherOfDiverse<
 	EnsureRoot<AccountId>,
-	EitherOfDiverse<
-		Fellows,
-		EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-	>,
+	EitherOfDiverse<Fellows, EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>>,
 >;
 
 impl pallet_secretary_origins::Config for Runtime {}
