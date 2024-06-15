@@ -84,6 +84,10 @@ fn main() -> Result<(), String> {
 				"people-kusama-local",
 				Box::new(system_parachains_specs::people_kusama_local_testnet_config) as Box<_>,
 			),
+			(
+				"people-polkadot-local",
+				Box::new(system_parachains_specs::people_polkadot_local_testnet_config) as Box<_>,
+			),
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {

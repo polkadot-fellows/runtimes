@@ -72,7 +72,7 @@ pub mod fee {
 	/// The block saturation level. Fees will be updates based on this value.
 	pub const TARGET_BLOCK_FULLNESS: Perbill = Perbill::from_percent(25);
 
-	/// Cost of every transaction byte at Kusama relay chain.
+	/// Cost of every transaction byte at Polkadot relay chain.
 	pub const TRANSACTION_BYTE_FEE: Balance = 10 * super::currency::MILLICENTS;
 
 	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
@@ -129,6 +129,8 @@ pub mod system_parachain {
 	pub const COLLECTIVES_ID: u32 = 1001;
 	/// Bridge Hub parachain ID.
 	pub const BRIDGE_HUB_ID: u32 = 1002;
+	/// People parachain ID.
+	pub const PEOPLE_ID: u32 = 1004;
 
 	// System parachains from Polkadot point of view.
 	pub type SystemParachains = IsChildSystemParachain<Id>;

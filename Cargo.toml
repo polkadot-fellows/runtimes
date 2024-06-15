@@ -77,34 +77,34 @@ kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/n
 kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
 kusama-runtime-constants = { path = "relay/kusama/constants", default-features = false }
 kusama-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-system" }
-log = { version = "0.4.20", default-features = false }
-pallet-alliance = { version = "33.0.0", default-features = false }
-pallet-asset-conversion = { version = "16.0.0", default-features = false }
-pallet-asset-conversion-tx-payment = { version = "16.0.0", default-features = false }
-pallet-asset-rate = { version = "13.0.0", default-features = false }
-pallet-asset-tx-payment = { version = "34.0.0", default-features = false }
-pallet-assets = { version = "35.0.0", default-features = false }
-pallet-aura = { version = "33.0.0", default-features = false }
-pallet-authority-discovery = { version = "34.0.0", default-features = false }
-pallet-authorship = { version = "34.0.0", default-features = false }
-pallet-babe = { version = "34.0.0", default-features = false }
-pallet-bags-list = { version = "33.0.0", default-features = false }
-pallet-balances = { version = "35.0.0", default-features = false }
-pallet-beefy = { version = "34.0.0", default-features = false }
-pallet-beefy-mmr = { version = "34.0.0", default-features = false }
-pallet-bounties = { version = "33.0.0", default-features = false }
-pallet-bridge-grandpa = { version = "0.13.0", default-features = false }
-pallet-bridge-messages = { version = "0.13.0", default-features = false }
-pallet-bridge-parachains = { version = "0.13.0", default-features = false }
-pallet-bridge-relayers = { version = "0.13.0", default-features = false }
-pallet-broker = { version = "0.13.0", default-features = false }
-pallet-child-bounties = { version = "33.0.0", default-features = false }
-pallet-collator-selection = { version = "15.0.0", default-features = false }
-pallet-collective = { version = "34.0.0", default-features = false }
-pallet-conviction-voting = { version = "34.0.0", default-features = false }
-pallet-core-fellowship = { version = "18.0.0", default-features = false }
-pallet-election-provider-multi-phase = { version = "33.0.0", default-features = false }
-pallet-election-provider-support-benchmarking = { version = "33.0.0", default-features = false }
+log = { version = "0.4.21", default-features = false }
+pallet-alliance = { version = "28.0.0", default-features = false }
+pallet-asset-conversion = { version = "11.0.0", default-features = false }
+pallet-asset-conversion-tx-payment = { version = "11.0.0", default-features = false }
+pallet-asset-rate = { version = "8.0.0", default-features = false }
+pallet-asset-tx-payment = { version = "29.0.0", default-features = false }
+pallet-assets = { version = "30.0.0", default-features = false }
+pallet-aura = { version = "28.0.0", default-features = false }
+pallet-authority-discovery = { version = "29.0.1", default-features = false }
+pallet-authorship = { version = "29.0.0", default-features = false }
+pallet-babe = { version = "29.0.0", default-features = false }
+pallet-bags-list = { version = "28.0.0", default-features = false }
+pallet-balances = { version = "29.0.1", default-features = false }
+pallet-beefy = { version = "29.0.0", default-features = false }
+pallet-beefy-mmr = { version = "29.0.0", default-features = false }
+pallet-bounties = { version = "28.0.0", default-features = false }
+pallet-bridge-grandpa = { version = "0.8.0", default-features = false }
+pallet-bridge-messages = { version = "0.8.0", default-features = false }
+pallet-bridge-parachains = { version = "0.8.0", default-features = false }
+pallet-bridge-relayers = { version = "0.8.0", default-features = false }
+pallet-broker = { version = "0.7.2", default-features = false }
+pallet-child-bounties = { version = "28.0.0", default-features = false }
+pallet-collator-selection = { version = "10.0.2", default-features = false }
+pallet-collective = { version = "29.0.0", default-features = false }
+pallet-conviction-voting = { version = "29.0.0", default-features = false }
+pallet-core-fellowship = { version = "13.0.0", default-features = false }
+pallet-election-provider-multi-phase = { version = "28.0.0", default-features = false }
+pallet-election-provider-support-benchmarking = { version = "28.0.0", default-features = false }
 pallet-encointer-balances = { version = "~6.1.0", default-features = false }
 pallet-encointer-bazaar = { version = "~6.1.0", default-features = false }
 pallet-encointer-bazaar-rpc-runtime-api = { version = "~6.1.0", default-features = false }
@@ -170,7 +170,9 @@ penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/t
 penpal-runtime = { version = "0.20.0" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
-polkadot-core-primitives = { version = "13.0.0", default-features = false }
+people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
+people-polkadot-runtime = { path = "system-parachains/people/people-polkadot" }
+polkadot-core-primitives = { version = "8.0.0", default-features = false }
 polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
 polkadot-parachain-primitives = { version = "12.0.0", default-features = false }
 polkadot-primitives = { version = "13.0.0", default-features = false }
@@ -247,6 +249,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
+	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
@@ -260,6 +263,7 @@ members = [
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
+	"integration-tests/emulated/tests/people/people-polkadot",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
@@ -279,6 +283,7 @@ members = [
 	# FAIL-CI @ggwpez "system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
+	"system-parachains/people/people-polkadot",
 	"integration-tests/zombienet",
 ]
 

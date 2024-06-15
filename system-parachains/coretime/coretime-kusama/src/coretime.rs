@@ -25,13 +25,8 @@ use frame_support::{
 		OnUnbalanced,
 	},
 };
-use pallet_broker::{
-	AdaptPrice, CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf,
-};
-use sp_runtime::{
-	traits::{AccountIdConversion, One, Saturating},
-	FixedU64,
-};
+use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
@@ -219,6 +214,5 @@ impl pallet_broker::Config for Runtime {
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>; // FAIL-CI @donal please bring back the custom PriceAdapter. I remove all the tests for the
-															   // custom PriceAdapter as well, probably needs to be reverted if you still want to use it.
+	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
 }

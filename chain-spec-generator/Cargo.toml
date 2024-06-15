@@ -39,6 +39,7 @@ bridge-hub-kusama-runtime = { workspace = true }
 glutton-kusama-runtime = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 people-kusama-runtime = { workspace = true }
+people-polkadot-runtime = { workspace = true }
 
 [features]
 fast-runtime = ["kusama-runtime/fast-runtime", "polkadot-runtime/fast-runtime"]
@@ -56,6 +57,7 @@ runtime-benchmarks = [
 	"pallet-staking/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-kusama-runtime/runtime-benchmarks",
+	"people-polkadot-runtime/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
