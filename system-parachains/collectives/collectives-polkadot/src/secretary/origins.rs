@@ -39,9 +39,9 @@ pub mod pallet_origins {
 	impl<O: Into<Result<Origin, O>> + From<Origin>> EnsureOrigin<O> for Secretary {
 		type Success = ();
 		fn try_origin(o: O) -> Result<Self::Success, O> {
-			o.into().and_then(|o| match o {
+			o.into().map(|o| match o {
 				Origin::Secretary => Ok(()),
-			})
+			})?
 		}
 
 		#[cfg(feature = "runtime-benchmarks")]

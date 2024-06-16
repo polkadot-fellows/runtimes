@@ -46,9 +46,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				max_deciding: 10,
 				decision_deposit: 5 * DOLLARS,
 				prepare_period: 24 * HOURS,
-				decision_period: 1 * DAYS,
+				decision_period: DAYS,
 				confirm_period: 24 * HOURS,
-				min_enactment_period: 1 * HOURS,
+				min_enactment_period: HOURS,
 				min_approval: pallet_referenda::Curve::LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(50),
