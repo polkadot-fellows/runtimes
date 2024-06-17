@@ -34,6 +34,7 @@ use runtime_parachains::{
 	assigner_parachains as parachains_assigner_parachains,
 	configuration as parachains_configuration, disputes as parachains_disputes,
 	disputes::slashing as parachains_slashing,
+	assigner_coretime as parachains_assigner_coretime, coretime,
 	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
@@ -1408,16 +1409,44 @@ impl parachains_paras_inherent::Config for Runtime {
 }
 
 impl parachains_scheduler::Config for Runtime {
-	type AssignmentProvider = ParaAssignmentProvider;
+	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
+	// otherwise provide a migration.
+	type AssignmentProvider = CoretimeAssignmentProvider;
 }
 
-impl parachains_assigner_parachains::Config for Runtime {}
+parameter_types! {
+	pub const BrokerId: u32 = system_parachain::BROKER_ID;
+	pub MaxXcmTransactWeight: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_MILLIS, 20 * WEIGHT_PROOF_SIZE_PER_KB); // FAIL-CI @donal need to check it this is sensible.
+}
+
+impl coretime::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BrokerId = BrokerId;
+	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
+	type SendXcm = crate::xcm_config::XcmRouter;
+	type MaxXcmTransactWeight = MaxXcmTransactWeight;
+}
+
+parameter_types! {
+	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+}
+
+impl parachains_assigner_on_demand::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
+	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+}
+
+impl parachains_assigner_coretime::Config for Runtime {}
 
 impl parachains_initializer::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::runtime_parachains_initializer::WeightInfo<Runtime>;
-	type CoretimeOnNewSession = ();
+	type CoretimeOnNewSession = Coretime;
 }
 
 impl parachains_disputes::Config for Runtime {
@@ -1742,13 +1771,15 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		ParaAssignmentProvider: parachains_assigner_parachains = 64,
+		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
+		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
 		Slots: slots = 71,
 		Auctions: auctions = 72,
 		Crowdloan: crowdloan = 73,
+		Coretime: coretime = 74,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 98,
@@ -1897,6 +1928,83 @@ pub mod migrations {
 	// We don't have a limit in the Relay Chain.
 	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
 
+	pub struct GetLegacyLeaseImpl;
+	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
+		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
+			let now = frame_system::Pallet::<Runtime>::block_number();
+			let lease = slots::Leases::<Runtime>::get(para);
+			if lease.is_empty() {
+				return None
+			}
+			// Lease not yet started/or having holes, refund (coretime can't handle this):
+			if lease.iter().any(Option::is_none) {
+				if let Err(err) = slots::Pallet::<Runtime>::clear_all_leases(
+					frame_system::RawOrigin::Root.into(),
+					para,
+				) {
+					log::error!(
+						target: "runtime",
+						"Clearing lease for para: {:?} failed, with error: {:?}",
+						para,
+						err
+					);
+				};
+				return None
+			}
+			let (index, _) =
+				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
+			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
+		}
+	}
+
+	/// Enable the elastic scaling node side feature.
+	///
+	/// This is required for Coretime to ensure the relay chain processes parachains that are
+	/// assigned to multiple cores.
+	pub struct EnableElasticScalingNodeFeature;
+	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
+		fn on_runtime_upgrade() -> Weight {
+			let _ = Configuration::set_node_feature(RawOrigin::Root.into(), 1, true);
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
+		}
+	}
+
+	/// Cancel all ongoing auctions.
+	///
+	/// Any leases that come into existence after coretime was launched will not be served. Yet,
+	/// any ongoing auctions must be cancelled.
+	///
+	/// Safety:
+	///
+	/// - After coretime is launched, there are no auctions anymore. So if this forgotten to
+	/// be removed after the runtime upgrade, running this again on the next one is harmless.
+	/// - I am assuming scheduler `TaskName`s are unique, so removal of the scheduled entry
+	/// multiple times should also be fine.
+	pub struct CancelAuctions;
+	impl OnRuntimeUpgrade for CancelAuctions {
+		fn on_runtime_upgrade() -> Weight {
+			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
+				log::debug!(target: "runtime", "Cancelling auctions failed: {:?}", err);
+			}
+			// Cancel scheduled auction as well:
+			if let Err(err) = Scheduler::cancel_named(
+                // TODO: Fix this key for Polkadot!
+				pallet_custom_origins::Origin::AuctionAdmin.into(),
+				[
+					0x5c, 0x68, 0xbf, 0x0c, 0x2d, 0x11, 0x04, 0x91, 0x6b, 0xa5, 0xa4, 0xde, 0xe6,
+					0xb8, 0x14, 0xe8, 0x2b, 0x27, 0x93, 0x78, 0x4c, 0xb6, 0xe7, 0x69, 0x04, 0x00,
+					0x1a, 0x59, 0x49, 0xc1, 0x63, 0xb1,
+				],
+			) {
+				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
+			}
+			weights::runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
+					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
+				))
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		init_state_migration::InitMigrate,
@@ -1910,11 +2018,19 @@ pub mod migrations {
 		// Migrate Identity pallet for Usernames
 		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
 		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
+		// Migrate from legacy lease to coretime. Needs to run after configuration v11
+		coretime::migration::MigrateToCoretime<
+			Runtime,
+			crate::xcm_config::XcmRouter,
+			GetLegacyLeaseImpl,
+		>,
+		EnableElasticScalingNodeFeature,
 		// Remove `im-online` pallet on-chain storage
 		frame_support::migrations::RemovePallet<
 			ImOnlinePalletName,
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
+		CancelAuctions,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -1956,6 +2072,8 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras, Paras]
 		[runtime_parachains::paras_inherent, ParaInherent]
+		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
