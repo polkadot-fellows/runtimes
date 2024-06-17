@@ -1307,8 +1307,8 @@ impl parachains_dmp::Config for Runtime {}
 
 parameter_types! {
 	pub const DefaultChannelSizeAndCapacityWithSystem: (u32, u32) = (
-		// Prepare for 128KiB pages and leave space for a header:
-		1 << 17 - 16,
+		// Prepare for 64KiB pages and leave space for a header:
+		(1 << 16) - 16,
 		10 * 1024,
 	);
 	pub const HrmpChannelSizeAndCapacityWithSystemRatio: Percent = Percent::from_percent(100);
