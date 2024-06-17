@@ -170,6 +170,8 @@ penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/t
 penpal-runtime = { version = "0.15.1" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
+people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
+people-polkadot-runtime = { path = "system-parachains/people/people-polkadot" }
 polkadot-core-primitives = { version = "8.0.0", default-features = false }
 polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
 polkadot-parachain-primitives = { version = "7.0.0", default-features = false }
@@ -246,6 +248,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
+	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
@@ -259,6 +262,7 @@ members = [
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
+	"integration-tests/emulated/tests/people/people-polkadot",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
@@ -278,6 +282,7 @@ members = [
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
+	"system-parachains/people/people-polkadot",
 	"integration-tests/zombienet",
 ]
 
