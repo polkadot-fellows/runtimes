@@ -27,10 +27,6 @@ use frame_support::{
 };
 use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
-use sp_runtime::{
-	traits::{AccountIdConversion, One},
-	FixedU64,
-};
 use sp_runtime::traits::AccountIdConversion;
 
 fn advance_to(b: BlockNumber) {
