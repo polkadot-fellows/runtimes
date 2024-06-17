@@ -18,3 +18,4 @@ bridge-hub-polkadot-emulated-chain = { workspace = true }
 collectives-polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
+people-polkadot-emulated-chain = { workspace = true }
