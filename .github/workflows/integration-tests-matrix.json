@@ -20,6 +20,10 @@
     "package": "people-kusama-integration-tests"
   },
   {
+    "name": "people-polkadot",
+    "package": "people-polkadot-integration-tests"
+  },
+  {
     "name": "collectives-polkadot",
     "package": "collectives-polkadot-integration-tests"
   }

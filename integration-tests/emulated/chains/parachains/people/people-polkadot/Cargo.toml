@@ -1,0 +1,23 @@
+[package]
+name = "people-polkadot-emulated-chain"
+authors.workspace = true
+edition.workspace = true
+version.workspace = true
+license = "Apache-2.0"
+description = "People Polkadot emulated chain used for integration tests"
+publish = false
+
+[dependencies]
+
+# Substrate
+sp-core = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+
+# Cumulus
+parachains-common = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
+
+# Local
+people-polkadot-runtime = { workspace = true }
+polkadot-emulated-chain = { workspace = true }
