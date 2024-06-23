@@ -62,8 +62,14 @@ pub mod ranks {
 /// - Plurarity vote from Fellows can promote, demote, remove and approve rank retention
 /// of members of the Secretary Collective (rank `2`).
 type ApproveOrigin = EitherOf<
-	frame_system::EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
-	MapSuccess<Fellows, Replace<ConstU16<2>>>,
+	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
+	EitherOf<
+		MapSuccess<
+			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+			Replace<ConstU16<2>>,
+		>,
+		MapSuccess<Fellows, Replace<ConstU16<2>>>,
+	>,
 >;
 
 /// Origins of:
@@ -147,8 +153,16 @@ impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
 	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
 	type Balance = Balance;
 	type ParamsOrigin = OpenGovOrFellow;
+	// Induction is by any of:
+	// - Root;
+	// - FellowshipAdmin (i.e. token holder referendum);
+	// - A single Member of the Technical Fellowship, rank 3 and above;
+	// - A single member of the Secretary Collective.
 	type InductOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
+		EitherOfDiverse<
+			EnsureRoot<AccountId>,
+			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+		>,
 		EitherOfDiverse<
 			pallet_ranked_collective::EnsureMember<
 				Runtime,
