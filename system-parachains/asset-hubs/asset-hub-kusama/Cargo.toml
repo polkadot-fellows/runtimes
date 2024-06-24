@@ -84,7 +84,7 @@ xcm-executor = { workspace = true }
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-dmp-queue = { workspace = true }
-cumulus-pallet-parachain-system = {  workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
