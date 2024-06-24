@@ -55,6 +55,7 @@ pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-nis = { workspace = true }
+pallet-delegated-staking = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-mmr = { workspace = true }
@@ -205,6 +206,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"pallet-delegated-staking/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -255,6 +257,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"pallet-delegated-staking/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -303,6 +306,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-delegated-staking/try-runtime"
 ]
 
 # A feature that should be enabled when the runtime should be built for on-chain

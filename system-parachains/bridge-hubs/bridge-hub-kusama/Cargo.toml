@@ -216,7 +216,8 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"bp-polkadot-bulletin/std"
+	"bp-polkadot-bulletin/std",
+	"tuplex/std"
 ]
 
 runtime-benchmarks = [

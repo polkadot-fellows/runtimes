@@ -212,6 +212,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type ApproveOrigin = PromoteOrigin;
 	type PromoteOrigin = PromoteOrigin;
 	type EvidenceSize = ConstU32<65536>;
+	type MaxRank = ConstU32<3>;
 }
 
 parameter_types! {
