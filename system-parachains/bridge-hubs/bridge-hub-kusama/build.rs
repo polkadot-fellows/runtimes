@@ -13,12 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", not(feature = "metadata-hash")))]
 fn main() {
-	substrate_wasm_builder::WasmBuilder::new()
-		.with_current_project()
-		.export_heap_base()
-		.import_memory()
+	substrate_wasm_builder::WasmBuilder::build_using_defaults()
+}
+
+#[cfg(all(feature = "std", feature = "metadata-hash"))]
+fn main() {
+	substrate_wasm_builder::WasmBuilder::init_with_defaults()
+		.enable_metadata_hash("KSM", 12)
 		.build()
 }
 
