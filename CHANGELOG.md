@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Added
+
+- Fast promotion tracks and origins for the Fellowship ranks I-III [TODO]
+
 ## [1.2.7] 14.06.2024
 
 Note: This release only affects the following runtimes and is not a full system release:
