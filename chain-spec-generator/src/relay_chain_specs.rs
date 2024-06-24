@@ -28,9 +28,9 @@ use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{traits::IdentifyAccount, Perbill};
 
-pub type PolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), NoExtension>;
+pub type PolkadotChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
-pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<(), NoExtension>;
+pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
 const DEFAULT_PROTOCOL_ID: &str = "dot";
 

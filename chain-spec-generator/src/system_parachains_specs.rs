@@ -32,25 +32,25 @@ pub struct Extensions {
 	pub para_id: u32,
 }
 
-pub type AssetHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type AssetHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type AssetHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type AssetHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type CollectivesPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type CollectivesPolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type BridgeHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type BridgeHubPolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), Extensions>;
+pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 const ASSET_HUB_POLKADOT_ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 
