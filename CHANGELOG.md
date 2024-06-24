@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Fast promotion tracks and origins for the Fellowship ranks I-III [TODO]
+- Fast promotion tracks and origins for the Fellowship ranks I-III ([polkadot-fellows/runtimes#356](https://github.com/polkadot-fellows/runtimes/pull/356)).
 
 ## [1.2.7] 14.06.2024
 
