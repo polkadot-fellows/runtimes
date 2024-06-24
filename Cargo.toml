@@ -182,6 +182,7 @@ polkadot-runtime-common = { version = "14.0.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
 primitive-types = { version = "0.12.2", default-features = false }
+frame-metadata-hash-extension = { version = "0.3.0", default-features = false }
 remote-externalities = { version = "0.42.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "14.0.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "34.0.0" }
