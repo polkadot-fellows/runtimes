@@ -141,7 +141,6 @@ use frame_system::EnsureSigned;
 
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
-use polkadot_runtime_common as runtime_common;
 impl_runtime_weights!(polkadot_runtime_constants);
 
 // Make the WASM binary available.

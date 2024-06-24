@@ -150,7 +150,6 @@ pub mod impls;
 #[cfg(test)]
 mod tests;
 
-use polkadot_runtime_common as runtime_common;
 impl_runtime_weights!(kusama_runtime_constants);
 
 // Make the WASM binary available.

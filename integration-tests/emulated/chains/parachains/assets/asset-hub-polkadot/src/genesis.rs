@@ -111,13 +111,13 @@ pub fn genesis() -> Storage {
 				// Penpal's teleportable asset representation
 				(
 					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
-					PenpalASiblingSovereignAccount::get().try_into().unwrap(),
+					PenpalASiblingSovereignAccount::get(),
 					true,
 					ED,
 				),
 				(
 					PenpalBTeleportableAssetLocation::get().try_into().unwrap(),
-					PenpalBSiblingSovereignAccount::get().try_into().unwrap(),
+					PenpalBSiblingSovereignAccount::get(),
 					true,
 					ED,
 				),
