@@ -68,7 +68,7 @@ pub fn system_para_to_para_receiver_assertions(t: SystemParaToParaTest) {
 
 	PenpalB::assert_xcmp_queue_success(None);
 	for asset in t.args.assets.into_inner().into_iter() {
-		let expected_id = asset.id.0.try_into().unwrap();
+		let expected_id = asset.id.0;
 		assert_expected_events!(
 			PenpalB,
 			vec![
@@ -195,7 +195,7 @@ pub fn para_to_para_through_hop_sender_assertions<Hop: Clone>(t: Test<PenpalB, P
 
 	PenpalB::assert_xcm_pallet_attempted_complete(None);
 	for asset in t.args.assets.into_inner() {
-		let expected_id = asset.id.0.clone().try_into().unwrap();
+		let expected_id = asset.id.0.clone();
 		let amount = if let Fungible(a) = asset.fun { Some(a) } else { None }.unwrap();
 		assert_expected_events!(
 			PenpalB,
@@ -247,7 +247,7 @@ pub fn para_to_para_through_hop_receiver_assertions<Hop: Clone>(t: Test<PenpalB,
 
 	PenpalA::assert_xcmp_queue_success(None);
 	for asset in t.args.assets.into_inner().into_iter() {
-		let expected_id = asset.id.0.try_into().unwrap();
+		let expected_id = asset.id.0;
 		assert_expected_events!(
 			PenpalA,
 			vec![
@@ -510,7 +510,7 @@ fn reserve_transfer_native_asset_from_para_to_system_para() {
 		AssetHubPolkadot::sovereign_account_id_of(penpal_location_as_seen_by_ahr);
 
 	// fund Parachain's SA on System Parachain with the native tokens held in reserve
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahr.into(), amount_to_send * 2)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahr, amount_to_send * 2)]);
 
 	// Init Test
 	let test_args = TestContext {
@@ -592,7 +592,7 @@ fn reserve_transfer_assets_from_system_para_to_para() {
 	);
 
 	// Create SA-of-Penpal-on-AHR with ED.
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahr.into(), ASSET_HUB_POLKADOT_ED)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahr, ASSET_HUB_POLKADOT_ED)]);
 
 	// Init values for Parachain
 	let receiver = PenpalBReceiver::get();
@@ -696,7 +696,7 @@ fn reserve_transfer_native_asset_from_para_to_para_through_relay() {
 	);
 
 	// fund the Parachain Origin's SA on Relay Chain with the native tokens held in reserve
-	Polkadot::fund_accounts(vec![(sov_of_sender_on_relay.into(), amount_to_send * 2)]);
+	Polkadot::fund_accounts(vec![(sov_of_sender_on_relay, amount_to_send * 2)]);
 
 	// Init values for Parachain Destination
 	let receiver = PenpalAReceiver::get();

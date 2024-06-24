@@ -145,7 +145,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// An account to swap dot for something else.
 		(AssetHubPolkadotSender::get(), 5_000_000 * ASSET_HUB_POLKADOT_ED),
 		// Penpal's sovereign account in AH should have some balance
-		(sov_penpal_on_ahp.clone().into(), 100_000_000 * ASSET_HUB_POLKADOT_ED),
+		(sov_penpal_on_ahp.clone(), 100_000_000 * ASSET_HUB_POLKADOT_ED),
 	]);
 
 	AssetHubPolkadot::execute_with(|| {

@@ -341,10 +341,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	let sov_penpal_on_ahr = AssetHubKusama::sovereign_account_id_of(penpal_location_as_seen_by_ahr);
 
 	// fund Parachain's SA on AssetHub with the assets held in reserve
-	AssetHubKusama::fund_accounts(vec![(
-		sov_penpal_on_ahr.clone().into(),
-		native_amount_to_send * 2,
-	)]);
+	AssetHubKusama::fund_accounts(vec![(sov_penpal_on_ahr.clone(), native_amount_to_send * 2)]);
 	AssetHubKusama::mint_foreign_asset(
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(assets_owner),
 		wnd_at_rococo_parachains.clone().try_into().unwrap(),
@@ -500,7 +497,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		wnd_to_send * 2,
 	);
 	// fund the Parachain Origin's SA on Asset Hub with the assets held in reserve
-	AssetHubKusama::fund_accounts(vec![(sov_of_sender_on_ah.clone().into(), roc_to_send * 2)]);
+	AssetHubKusama::fund_accounts(vec![(sov_of_sender_on_ah.clone(), roc_to_send * 2)]);
 	AssetHubKusama::mint_foreign_asset(
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(assets_owner),
 		wnd_at_rococo_parachains.clone().try_into().unwrap(),
@@ -727,8 +724,7 @@ fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
 	}
 	fn penpal_assertions(t: RelayToParaThroughAHTest) {
 		type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
-		let expected_id =
-			t.args.assets.into_inner().first().unwrap().id.0.clone().try_into().unwrap();
+		let expected_id = t.args.assets.into_inner().first().unwrap().id.0.clone();
 		assert_expected_events!(
 			PenpalA,
 			vec![
@@ -749,7 +745,7 @@ fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
 		let mut remote_fees = fee.clone().reanchored(&t.args.dest, &context).unwrap();
 		if let Fungible(ref mut amount) = remote_fees.fun {
 			// we already spent some fees along the way, just use half of what we started with
-			*amount = *amount / 2;
+			*amount /= 2;
 		}
 		let xcm_on_final_dest = Xcm::<()>(vec![
 			BuyExecution { fees: remote_fees, weight_limit: t.args.weight_limit.clone() },

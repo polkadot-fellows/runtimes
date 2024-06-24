@@ -459,13 +459,13 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		asset_amount_to_send,
 	);
 	// fund Parachain's check account to be able to teleport
-	PenpalA::fund_accounts(vec![(penpal_check_account.clone().into(), ASSET_HUB_KUSAMA_ED * 1000)]);
+	PenpalA::fund_accounts(vec![(penpal_check_account.clone(), ASSET_HUB_KUSAMA_ED * 1000)]);
 
 	// prefund SA of Penpal on AssetHub with enough native tokens to pay for fees
 	let penpal_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_penpal_on_ah = AssetHubKusama::sovereign_account_id_of(penpal_as_seen_by_ah);
 	AssetHubKusama::fund_accounts(vec![(
-		sov_penpal_on_ah.clone().into(),
+		sov_penpal_on_ah.clone(),
 		ASSET_HUB_KUSAMA_ED * 100_000_000_000,
 	)]);
 

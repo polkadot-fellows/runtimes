@@ -136,7 +136,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// An account to swap ksmfor something else.
 		(AssetHubKusamaSender::get(), 5_000_000 * ASSET_HUB_KUSAMA_ED),
 		// Penpal's sovereign account in AH should have some balance
-		(sov_penpal_on_ahk.clone().into(), 100_000_000 * ASSET_HUB_KUSAMA_ED),
+		(sov_penpal_on_ahk.clone(), 100_000_000 * ASSET_HUB_KUSAMA_ED),
 	]);
 
 	AssetHubKusama::execute_with(|| {
