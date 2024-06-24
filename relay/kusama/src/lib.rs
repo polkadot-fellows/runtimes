@@ -774,7 +774,8 @@ parameter_types! {
 	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
 }
 
-impl pallet_delegated_staking::Config for Runtime { // FAIL-CI @ankan
+impl pallet_delegated_staking::Config for Runtime {
+	// FAIL-CI @ankan
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
@@ -1548,7 +1549,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
-	type StakeAdapter = // FAIL-CI @ankan
+	type StakeAdapter =
 		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
