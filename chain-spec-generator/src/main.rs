@@ -17,7 +17,7 @@
 
 use clap::Parser;
 use sc_chain_spec::ChainSpec;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 mod common;
 mod relay_chain_specs;
@@ -33,56 +33,95 @@ struct Cli {
 	raw: bool,
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct EmptyChainSpecWithId {
+	id: String,
+}
+
+macro_rules! chainspec {
+	($chain:expr, $csty:ty, $defcon:expr $(,)?) => {
+		(
+			$chain,
+			Box::new(|p| {
+				if let Some(p) = p {
+					<Result<Box<dyn ChainSpec>, String>>::Ok(Box::new(<$csty>::from_json_file(p)?))
+				} else {
+					$defcon()
+				}
+			}) as Box<_>,
+		)
+	};
+}
+
 fn main() -> Result<(), String> {
 	let cli = Cli::parse();
 
 	let supported_chains =
-		HashMap::<_, Box<dyn Fn() -> Result<Box<dyn ChainSpec>, String>>>::from([
-			("polkadot-dev", Box::new(relay_chain_specs::polkadot_development_config) as Box<_>),
-			(
+		HashMap::<_, Box<dyn Fn(Option<PathBuf>) -> Result<Box<dyn ChainSpec>, String>>>::from([
+			chainspec!(
+				"polkadot-dev",
+				relay_chain_specs::PolkadotChainSpec,
+				relay_chain_specs::polkadot_development_config,
+			),
+			chainspec!(
 				"polkadot-local",
-				Box::new(relay_chain_specs::polkadot_local_testnet_config) as Box<_>,
+				relay_chain_specs::PolkadotChainSpec,
+				relay_chain_specs::polkadot_local_testnet_config,
 			),
-			("kusama-dev", Box::new(relay_chain_specs::kusama_development_config) as Box<_>),
-			("kusama-local", Box::new(relay_chain_specs::kusama_local_testnet_config) as Box<_>),
-			(
+			chainspec!(
+				"kusama-dev",
+				relay_chain_specs::KusamaChainSpec,
+				relay_chain_specs::kusama_development_config,
+			),
+			chainspec!(
+				"kusama-local",
+				relay_chain_specs::KusamaChainSpec,
+				relay_chain_specs::kusama_local_testnet_config,
+			),
+			chainspec!(
 				"asset-hub-kusama-local",
-				Box::new(system_parachains_specs::asset_hub_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::AssetHubKusamaChainSpec,
+				system_parachains_specs::asset_hub_kusama_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"asset-hub-polkadot-local",
-				Box::new(system_parachains_specs::asset_hub_polkadot_local_testnet_config)
-					as Box<_>,
+				system_parachains_specs::AssetHubPolkadotChainSpec,
+				system_parachains_specs::asset_hub_polkadot_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"collectives-polkadot-local",
-				Box::new(system_parachains_specs::collectives_polkadot_local_testnet_config)
-					as Box<_>,
+				system_parachains_specs::CollectivesPolkadotChainSpec,
+				system_parachains_specs::collectives_polkadot_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"bridge-hub-polkadot-local",
-				Box::new(system_parachains_specs::bridge_hub_polkadot_local_testnet_config)
-					as Box<_>,
+				system_parachains_specs::BridgeHubPolkadotChainSpec,
+				system_parachains_specs::bridge_hub_polkadot_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"bridge-hub-kusama-local",
-				Box::new(system_parachains_specs::bridge_hub_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::BridgeHubKusamaChainSpec,
+				system_parachains_specs::bridge_hub_kusama_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"glutton-kusama-local",
-				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::GluttonKusamaChainSpec,
+				system_parachains_specs::glutton_kusama_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"encointer-kusama-local",
-				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::EncointerKusamaChainSpec,
+				system_parachains_specs::encointer_kusama_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"coretime-kusama-local",
-				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::CoretimeKusamaChainSpec,
+				system_parachains_specs::coretime_kusama_local_testnet_config,
 			),
-			(
+			chainspec!(
 				"people-kusama-local",
-				Box::new(system_parachains_specs::people_kusama_local_testnet_config) as Box<_>,
+				system_parachains_specs::PeopleKusamaChainSpec,
+				system_parachains_specs::people_kusama_local_testnet_config,
 			),
 			(
 				"people-polkadot-local",
@@ -91,20 +130,24 @@ fn main() -> Result<(), String> {
 		]);
 
 	if let Some(function) = supported_chains.get(&*cli.chain) {
-		let chain_spec = (*function)()?.as_json(cli.raw)?;
+		let chain_spec = (*function)(None)?.as_json(cli.raw)?;
 		print!("{chain_spec}");
-		Ok(())
-	} else {
-		let supported = supported_chains.keys().enumerate().fold(String::new(), |c, (n, k)| {
-			let extra = if n + 1 < supported_chains.len() { ", " } else { "" };
-			format!("{c}{k}{extra}")
-		});
-		if cli.chain.ends_with(".json") {
-			let chain_spec = common::from_json_file(&cli.chain, supported)?.as_json(cli.raw)?;
+		return Ok(())
+	} else if cli.chain.ends_with(".json") {
+		let file = std::fs::File::open(&cli.chain).expect("Failed to open file");
+		let reader = std::io::BufReader::new(file);
+		let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
+			.expect("Failed to read 'json' file with ChainSpec configuration");
+
+		if let Some(function) = supported_chains.get(&*chain_spec.id) {
+			let path = std::path::PathBuf::from(&cli.chain);
+			let chain_spec = (*function)(Some(path))?.as_json(cli.raw)?;
 			print!("{chain_spec}");
-			Ok(())
-		} else {
-			Err(format!("Unknown chain, only supported: {supported} or a json file"))
+			return Ok(())
 		}
 	}
+
+	let supported = supported_chains.keys().copied().collect::<Vec<_>>().join(", ");
+
+	Err(format!("Unknown chain, only supported: {supported} or a json file"))
 }
