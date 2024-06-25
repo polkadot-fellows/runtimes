@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Delegated nomination pool staking ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
-FAIL-CI @ggwpez
+FAIL-CI @ggwpez (should skip mentioning this)
 
 ## [1.2.7] 14.06.2024
 

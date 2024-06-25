@@ -753,7 +753,7 @@ impl pallet_staking::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
-	type EventListeners = (NominationPools, DelegatedStaking);
+	type EventListeners = NominationPools;
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
@@ -767,22 +767,6 @@ impl pallet_fast_unstake::Config for Runtime {
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
 	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
-	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
-}
-
-impl pallet_delegated_staking::Config for Runtime {
-	// FAIL-CI @ankan
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = DelegatedStakingPalletId;
-	type Currency = Balances;
-	type OnSlash = ();
-	type SlashRewardFraction = SlashRewardFraction;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type CoreStaking = Staking;
 }
 
 parameter_types! {
@@ -1550,7 +1534,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
 	type StakeAdapter =
-		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+		pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1711,8 +1695,6 @@ construct_runtime! {
 
 		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 42,
-
-		DelegatedStaking: pallet_delegated_staking = 46,
 
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
@@ -2253,7 +2235,6 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_conviction_voting, ConvictionVoting]
-		[pallet_delegated_staking, DelegatedStaking]
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
@@ -2773,7 +2754,6 @@ sp_api::impl_runtime_apis! {
 			NominationPools::api_balance_to_points(pool_id, new_funds)
 		}
 
-		// FAIL-CI @ankan this is copy&pasted from Westend
 		fn pool_pending_slash(pool_id: pallet_nomination_pools::PoolId) -> Balance {
 			NominationPools::api_pool_pending_slash(pool_id)
 		}
