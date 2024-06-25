@@ -281,7 +281,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
-	# FAIL-CI @ggwpez "system-parachains/encointer",
+	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
