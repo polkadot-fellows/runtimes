@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
+- All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#359](https://github.com/polkadot-fellows/runtimes/pull/359))
 
 ## [1.2.7] 14.06.2024
 
