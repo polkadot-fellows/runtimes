@@ -35,7 +35,9 @@ use frame_support::{
 		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
 		Everything, InstanceFilter, TransformOrigin,
 	},
-	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFee as _},
+	weights::{
+		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFee as _,
+	},
 	PalletId,
 };
 use frame_system::{
@@ -69,15 +71,17 @@ use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::*, fee::WeightToFee,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::latest::prelude::{AssetId, BodyId};
-use xcm::{VersionedXcm, VersionedLocation, VersionedAssets, VersionedAssetId};
-use xcm_fee_payment_runtime_api::{
-	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
-	fees::Error as XcmPaymentApiError,
+use xcm::{
+	latest::prelude::{AssetId, BodyId},
+	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
 	FellowshipLocation, GovernanceLocation, PriceForSiblingParachainDelivery, StakingPot,
 	XcmConfig, XcmOriginToTransactDispatchOrigin,
+};
+use xcm_fee_payment_runtime_api::{
+	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
+	fees::Error as XcmPaymentApiError,
 };
 
 /// This determines the average expected block time that we are targeting. Blocks will be
