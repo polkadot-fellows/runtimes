@@ -663,6 +663,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -794,6 +795,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1772,6 +1774,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1923,6 +1926,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -2432,6 +2436,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9363,6 +9368,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9465,6 +9471,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9784,6 +9791,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -14023,6 +14031,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
