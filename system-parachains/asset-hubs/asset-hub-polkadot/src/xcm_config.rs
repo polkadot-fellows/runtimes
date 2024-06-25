@@ -105,12 +105,6 @@ pub type LocationToAccountId = (
 	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
-#[test]
-fn convert_hydradx_location_to_account_id() {
-	let location = Location::new(1, [Parachain(2034)]);
-	dbg!(&LocationToAccountId::convert_location(&location));
-}
-
 /// Means for transacting the native currency on this chain.
 pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:

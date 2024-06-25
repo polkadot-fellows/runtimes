@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - New call `hrmp.establish_channel_with_system` to allow parachains to establish a channel with a system parachain ([SDK v1.11 #3721](https://github.com/paritytech/polkadot-sdk/pull/3721)).
 - New runtime api to check if a validator has pending pages of rewards for an era ([SDK v1.12 #4301](https://github.com/paritytech/polkadot-sdk/pull/4301)).
 - Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
+- All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#359](https://github.com/polkadot-fellows/runtimes/pull/359))
 - Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
 - Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
 - Kusama system chains: enable PoV-reclaim.
