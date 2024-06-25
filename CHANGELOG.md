@@ -4,7 +4,9 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## [Unreleased]
+
+### Added
 
 ### Changed
 
@@ -114,6 +116,10 @@ Note: This release only affects the following runtimes and is not a full system 
 
 - Polkadot Bridge Hub: Unstuck bridge with Kusama ([polkadot-fellows/runtimes#277](https://github.com/polkadot-fellows/runtimes/pull/277)).
 - Fix Kusama Coretime launch issues: import leases and fix renewals for short leases ([polkadot-fellows/runtimes#276](https://github.com/polkadot-fellows/runtimes/pull/276))
+
+### Changed
+
+- Enable async backing for system parachains ([polkadot-fellows/runtimes#266](https://github.com/polkadot-fellows/runtimes/pull/266))
 
 ## [1.2.1] 09.04.2024
 
