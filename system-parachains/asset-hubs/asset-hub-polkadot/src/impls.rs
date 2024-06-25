@@ -17,6 +17,7 @@ use crate::*;
 
 // TODO: the types in the module copied from the PR: https://github.com/paritytech/polkadot-sdk/pull/3250
 // and should be removed when changes from the PR will get released.
+// FAIL-CI @muharem please delete
 pub(crate) mod pool {
 	use super::*;
 	use core::marker::PhantomData;

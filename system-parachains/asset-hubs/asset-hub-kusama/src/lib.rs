@@ -415,7 +415,7 @@ impl pallet_asset_conversion::Config for Runtime {
 		AccountId,
 		Self::AssetKind,
 		PoolIdToAccountId,
-	>; // FAIL-CI @muharem does this make sense or do we need the AccountIdConverter?
+	>; // FAIL-CI @muharem please fix
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
