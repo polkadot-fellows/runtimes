@@ -103,8 +103,10 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::latest::prelude::{AssetId as XcmAssetId, BodyId};
-use xcm::{VersionedXcm, VersionedLocation, VersionedAssets, VersionedAssetId};
+use xcm::{
+	latest::prelude::{AssetId as XcmAssetId, BodyId,
+	VersionedXcm, VersionedLocation, VersionedAssets, VersionedAssetId,
+};
 use xcm_fee_payment_runtime_api::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
