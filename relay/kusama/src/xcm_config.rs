@@ -300,7 +300,7 @@ impl pallet_xcm::Config for Runtime {
 }
 
 #[test]
-fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
+fn karura_liquid_staking_xcm_has_sane_weight_upper_limit() {
 	use codec::Decode;
 	use frame_support::dispatch::GetDispatchInfo;
 	use xcm::VersionedXcm;
@@ -308,9 +308,8 @@ fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 
 	// should be [WithdrawAsset, BuyExecution, Transact, RefundSurplus, DepositAsset]
 	let blob = hex_literal::hex!("02140004000000000700e40b540213000000000700e40b54020006010700c817a804341801000006010b00c490bf4302140d010003ffffffff000100411f");
-	let Ok(VersionedXcm::V2(old_xcm_v2)) =
-		VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..])
-	else {
+	#[allow(deprecated)] // `xcm::v2` is deprecated
+	let Ok(VersionedXcm::V2(old_xcm_v2)) = VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..]) else {
 		panic!("can't decode XCM blob")
 	};
 	let old_xcm_v3: xcm::v3::Xcm<super::RuntimeCall> =
