@@ -1738,6 +1738,7 @@ dependencies = [
  "polkadot-runtime-constants",
  "scale-info",
  "serde",
+ "serde_json",
  "snowbridge-beacon-primitives",
  "snowbridge-core",
  "snowbridge-outbound-queue-runtime-api",
@@ -14527,7 +14528,10 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-constants",
  "smallvec",
+ "sp-core 34.0.0",
  "sp-runtime 38.0.0",
+ "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]
