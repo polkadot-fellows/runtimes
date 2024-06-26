@@ -59,7 +59,6 @@ fn send_xcm_from_kusama_relay_to_polkadot_asset_hub_should_fail_on_not_applicabl
 }
 
 #[test]
-#[allow(deprecated)] // `xcm::v2` is deprecated
 fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	// Initially set only default version on all runtimes
 	let newer_xcm_version = xcm::prelude::XCM_VERSION;
