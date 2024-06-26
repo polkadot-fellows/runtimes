@@ -62,10 +62,13 @@ fn send_xcm_from_kusama_relay_to_polkadot_asset_hub_should_fail_on_not_applicabl
 #[allow(deprecated)] // `xcm::v2` is deprecated
 fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	// Initially set only default version on all runtimes
-	AssetHubKusama::force_default_xcm_version(Some(xcm::v2::prelude::XCM_VERSION));
-	BridgeHubKusama::force_default_xcm_version(Some(xcm::v2::prelude::XCM_VERSION));
-	BridgeHubPolkadot::force_default_xcm_version(Some(xcm::v2::prelude::XCM_VERSION));
-	AssetHubPolkadot::force_default_xcm_version(Some(xcm::v2::prelude::XCM_VERSION));
+	let newer_xcm_version = xcm::prelude::XCM_VERSION;
+	let older_xcm_version = newer_xcm_version - 1;
+
+	AssetHubKusama::force_default_xcm_version(Some(older_xcm_version));
+	BridgeHubKusama::force_default_xcm_version(Some(older_xcm_version));
+	BridgeHubPolkadot::force_default_xcm_version(Some(older_xcm_version));
+	AssetHubPolkadot::force_default_xcm_version(Some(older_xcm_version));
 
 	// prepare data
 	let destination = asset_hub_polkadot_location();
@@ -88,42 +91,12 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	);
 
 	// set destination version
-	AssetHubKusama::force_xcm_version(destination.clone(), xcm::v3::prelude::XCM_VERSION);
-
-	// TODO: remove this block, when removing `xcm:v2`
-	{
-		// send XCM from AssetHubKusama - fails - AssetHubKusama is set to the default/safe `2`
-		// version, which does not have the `ExportMessage` instruction. If the default `2` is
-		// changed to `3`, then this assert can go away"
-		assert_err!(
-			send_asset_from_asset_hub_kusama(destination.clone(), (native_token.clone(), amount)),
-			DispatchError::Module(sp_runtime::ModuleError {
-				index: 31,
-				error: [1, 0, 0, 0],
-				message: Some("SendFailure")
-			})
-		);
-
-		// set exact version for BridgeHubPolkadot to `2` without `ExportMessage` instruction
-		AssetHubKusama::force_xcm_version(
-			ParentThen(Parachain(BridgeHubKusama::para_id().into()).into()).into(),
-			xcm::v2::prelude::XCM_VERSION,
-		);
-		// send XCM from AssetHubKusama - fails - `ExportMessage` is not in `2`
-		assert_err!(
-			send_asset_from_asset_hub_kusama(destination.clone(), (native_token.clone(), amount)),
-			DispatchError::Module(sp_runtime::ModuleError {
-				index: 31,
-				error: [1, 0, 0, 0],
-				message: Some("SendFailure")
-			})
-		);
-	}
+	AssetHubKusama::force_xcm_version(destination.clone(), newer_xcm_version);
 
 	// set version with `ExportMessage` for BridgeHubKusama
 	AssetHubKusama::force_xcm_version(
 		ParentThen(Parachain(BridgeHubKusama::para_id().into()).into()).into(),
-		xcm::v3::prelude::XCM_VERSION,
+		newer_xcm_version,
 	);
 	// send XCM from AssetHubKusama - ok
 	assert_ok!(send_asset_from_asset_hub_kusama(
@@ -135,14 +108,11 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 	assert_bridge_hub_kusama_message_accepted(false);
 
 	// set version for remote BridgeHub on BridgeHubKusama
-	BridgeHubKusama::force_xcm_version(
-		bridge_hub_polkadot_location(),
-		xcm::v3::prelude::XCM_VERSION,
-	);
+	BridgeHubKusama::force_xcm_version(bridge_hub_polkadot_location(), newer_xcm_version);
 	// set version for AssetHubPolkadot on BridgeHubPolkadot
 	BridgeHubPolkadot::force_xcm_version(
 		ParentThen(Parachain(AssetHubPolkadot::para_id().into()).into()).into(),
-		xcm::v3::prelude::XCM_VERSION,
+		newer_xcm_version,
 	);
 
 	// send XCM from AssetHubKusama - ok
@@ -165,20 +135,4 @@ fn send_xcm_through_opened_lane_with_different_xcm_version_on_hops_works() {
 			]
 		);
 	});
-
-	// TODO: remove this block, when removing `xcm:v2`
-	{
-		// set `2` version for remote BridgeHub on BridgeHubKusama, which does not have
-		// `UniversalOrigin` and `DescendOrigin`
-		BridgeHubKusama::force_xcm_version(
-			bridge_hub_polkadot_location(),
-			xcm::v2::prelude::XCM_VERSION,
-		);
-
-		// send XCM from AssetHubKusama - ok
-		assert_ok!(send_asset_from_asset_hub_kusama(destination, (native_token, amount)));
-		// message is not accepted on the local BridgeHub (`DestinationUnsupported`) because we
-		// cannot add `UniversalOrigin` and `DescendOrigin`
-		assert_bridge_hub_kusama_message_accepted(false);
-	}
 }
