@@ -92,6 +92,7 @@ std = [
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
+	"cumulus-primitives-storage-weight-reclaim/std",
 	"enumflags2/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
