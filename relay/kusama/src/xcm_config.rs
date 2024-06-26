@@ -216,7 +216,7 @@ impl xcm_executor::Config for XcmConfig {
 		WaivedLocations,
 		XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
 	>;
-	// No bridges yet...
+	// No bridges on the Relay Chain
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
