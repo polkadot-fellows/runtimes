@@ -189,7 +189,7 @@ sc-chain-spec = { version = "34.0.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
-serde_json = { version = "1.0.113" }
+serde_json = { version = "1.0.113", default-features = false }
 smallvec = { version = "1.13.1" }
 snowbridge-beacon-primitives = { version = "0.7.0", default-features = false }
 snowbridge-core = { version = "0.7.0", default-features = false }
