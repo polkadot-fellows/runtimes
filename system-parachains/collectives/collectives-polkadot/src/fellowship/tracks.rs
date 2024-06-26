@@ -57,7 +57,7 @@ pub mod constants {
 	pub const PROMOTE_TO_5DAN: TrackId = 25;
 	pub const PROMOTE_TO_6DAN: TrackId = 26;
 
-	// Fast track promotions (7 days) used to fast-track promotions. This works out as the track ID
+	// Fast track promotions (30 days) used to fast-track promotions. This works out as the track ID
 	// minus 28.
 	pub const FAST_PROMOTE_TO_1DAN: TrackId = 31;
 	pub const FAST_PROMOTE_TO_2DAN: TrackId = 32;
@@ -122,7 +122,7 @@ const PROMOTE_MIN_SUPPORT: pallet_referenda::Curve = pallet_referenda::Curve::Li
 const FAST_PROMOTE_MAX_DECIDING: u32 = 10;
 const FAST_PROMOTE_DECISION_DEPOSIT: Balance = 5 * DOLLARS;
 const FAST_PROMOTE_PREPARE_PERIOD: BlockNumber = 0;
-const FAST_PROMOTE_DECISION_PERIOD: BlockNumber = 7 * DAYS;
+const FAST_PROMOTE_DECISION_PERIOD: BlockNumber = 30 * DAYS;
 const FAST_PROMOTE_CONFIRM_PERIOD: BlockNumber = HOURS;
 const FAST_PROMOTE_MIN_ENACTMENT_PERIOD: BlockNumber = 0;
 const FAST_PROMOTE_MIN_APPROVAL: pallet_referenda::Curve =

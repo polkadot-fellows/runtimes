@@ -101,13 +101,13 @@ pub mod pallet_origins {
 		PromoteTo6Dan,
 
 		/// Origin aggregated through weighted votes of those with rank 3 or above when voting on
-		/// a 7 day long track; `Success` is 1.
+		/// a 30 day long track; `Success` is 1.
 		FastPromoteTo1Dan,
 		/// Origin aggregated through weighted votes of those with rank 4 or above when voting on
-		/// a 7 day long track; `Success` is 2.
+		/// a 30 day long track; `Success` is 2.
 		FastPromoteTo2Dan,
 		/// Origin aggregated through weighted votes of those with rank 5 or above when voting on
-		/// a 7 day long track; `Success` is 3.
+		/// a 30 day long track; `Success` is 3.
 		FastPromoteTo3Dan,
 	}
 
@@ -256,7 +256,7 @@ pub mod pallet_origins {
 	}
 
 	// Fellowship origin indicating weighted voting from at least the rank of `Success + 2` on
-	// a 7 day long track; needed for fast Fellowship promotion voting.
+	// a 30 day long track; needed for fast Fellowship promotion voting.
 	decl_ensure! {
 		pub type EnsureCanFastPromoteTo: EnsureOrigin<Success = Rank> {
 			FastPromoteTo1Dan = ranks::DAN_1,
