@@ -46,7 +46,6 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
-use xcm::v3::MultiLocation;
 use system_parachains_constants::kusama::currency::UNITS;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * KUSAMA_ED;

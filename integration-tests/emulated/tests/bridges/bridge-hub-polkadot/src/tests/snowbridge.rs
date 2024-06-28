@@ -46,7 +46,6 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
-use xcm::v3::MultiLocation;
 use system_parachains_constants::polkadot::currency::UNITS;
 
 const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
@@ -78,7 +77,7 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 		fixture.finalized_header,
 		fixture.block_roots_root,
 	)
-		.unwrap();
+	.unwrap();
 
 	EthereumInboundQueue::submit(
 		RuntimeOrigin::signed(BridgeHubPolkadotSender::get()),
@@ -738,7 +737,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
-			.encode();
+		.encode();
 
 	let bridge_hub_inbound_queue_assets_pallet_call_index = CreateAssetCall::get();
 

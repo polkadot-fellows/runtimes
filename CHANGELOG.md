@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
+- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/365))
 
 ## [1.2.7] 14.06.2024
 
