@@ -21,7 +21,9 @@ use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa::AuthorityId as GrandpaId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::Forcing;
-use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, AsyncBackingParams, ValidatorId};
+use polkadot_primitives::{
+	AccountId, AccountPublic, AssignmentId, AsyncBackingParams, ValidatorId,
+};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
