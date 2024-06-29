@@ -16,8 +16,14 @@
 
 #![no_std]
 
-/// Polkadot Collectives Salary pallet instance.
+/// Polkadot Fellowship Salary pallet instance.
 pub const FELLOWSHIP_SALARY_PALLET_INDEX: u8 = 64;
 
-/// Polkadot Collectives Treasury pallet instance.
+/// Polkadot Fellowship Treasury pallet instance.
 pub const FELLOWSHIP_TREASURY_PALLET_INDEX: u8 = 65;
+
+/// Polkadot Ambassador Salary pallet instance.
+pub const AMBASSADOR_SALARY_PALLET_INDEX: u8 = 74;
+
+/// Polkadot Ambassador Treasury pallet instance.
+pub const AMBASSADOR_TREASURY_PALLET_INDEX: u8 = 75;

@@ -9,25 +9,26 @@ license.workspace = true
 build = "build.rs"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
+codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
-serde = { optional = true, features = ["derive"] , workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+serde = { optional = true, features = ["derive"], workspace = true }
 
 # Local
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
-system-parachains-constants = { path = "../../constants", default-features = false }
+kusama-runtime-constants = { workspace = true }
+system-parachains-constants = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-frame-system-benchmarking = { optional = true , workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
-frame-try-runtime = { optional = true , workspace = true }
-pallet-aura = { features = ["experimental"] , workspace = true }
+frame-try-runtime = { optional = true, workspace = true }
+pallet-aura = { features = ["experimental"], workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
@@ -55,17 +56,19 @@ sp-version = { workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }
-pallet-xcm-benchmarks = { optional = true , workspace = true }
+pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true }
@@ -73,14 +76,14 @@ cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 
 [dev-dependencies]
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]
-substrate-wasm-builder = { optional = true , workspace = true }
+substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
@@ -96,11 +99,13 @@ std = [
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
+	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -122,7 +127,6 @@ std = [
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
-	"kusama-runtime-constants/std",
 	"scale-info/std",
 	"serde",
 	"sp-api/std",
@@ -139,10 +143,10 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"system-parachains-constants/std"
 ]
 
 runtime-benchmarks = [
@@ -204,7 +208,10 @@ experimental = ["pallet-aura/experimental"]
 
 fast-runtime = []
 
+# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
+metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
+
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
