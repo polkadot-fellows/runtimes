@@ -8,8 +8,8 @@ description = "Bridge Hub Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9" }
-scale-info = { features = ["derive"] , workspace = true }
+codec = { workspace = true, default-features = true }
+scale-info = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
 
 # Substrate
@@ -22,9 +22,9 @@ pallet-assets = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
-xcm-executor = { package = "staging-xcm-executor", version = "8.0.1" }
+xcm-executor = { workspace = true, default-features = true }
 
 # Cumulus
 emulated-integration-tests-common = { workspace = true }
@@ -36,13 +36,13 @@ bp-messages = { workspace = true, default-features = true }
 pallet-bridge-messages = { workspace = true, default-features = true }
 
 # Local
-bp-bridge-hub-kusama = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama/primitives"}
-bridge-hub-kusama-runtime = { path = "../../../../../system-parachains/bridge-hubs/bridge-hub-kusama" }
-asset-hub-kusama-runtime = { path = "../../../../../system-parachains/asset-hubs/asset-hub-kusama" }
-integration-tests-helpers = { path = "../../../helpers" }
-kusama-polkadot-system-emulated-network = { path = "../../../networks/kusama-polkadot-system" }
-kusama-system-emulated-network = { path = "../../../networks/kusama-system" }
-system-parachains-constants = { path = "../../../../../system-parachains/constants" }
+bp-bridge-hub-kusama = { workspace = true, default-features = true }
+bridge-hub-kusama-runtime = { workspace = true }
+asset-hub-kusama-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+kusama-polkadot-system-emulated-network = { workspace = true }
+kusama-system-emulated-network = { workspace = true }
+system-parachains-constants = { workspace = true, default-features = true }
 
 # Snowbridge
 snowbridge-beacon-primitives = { workspace = true, default-features = true }

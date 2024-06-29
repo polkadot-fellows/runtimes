@@ -17,12 +17,14 @@ pub use asset_hub_polkadot_emulated_chain;
 pub use bridge_hub_polkadot_emulated_chain;
 pub use collectives_polkadot_emulated_chain;
 pub use penpal_emulated_chain;
+pub use people_polkadot_emulated_chain;
 pub use polkadot_emulated_chain;
 
 use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
 use collectives_polkadot_emulated_chain::CollectivesPolkadot;
 use penpal_emulated_chain::{PenpalA, PenpalB};
+use people_polkadot_emulated_chain::PeoplePolkadot;
 use polkadot_emulated_chain::Polkadot;
 
 // Cumulus
@@ -40,6 +42,7 @@ decl_test_networks! {
 			CollectivesPolkadot,
 			PenpalA,
 			PenpalB,
+			PeoplePolkadot,
 		],
 		bridge = ()
 	},
@@ -51,5 +54,6 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	BridgeHubPolkadotPara { sender: ALICE, receiver: BOB },
 	CollectivesPolkadotPara { sender: ALICE, receiver: BOB },
 	PenpalAPara { sender: ALICE, receiver: BOB },
-	PenpalBPara { sender: ALICE, receiver: BOB }
+	PenpalBPara { sender: ALICE, receiver: BOB },
+	PeoplePolkadotPara { sender: ALICE, receiver: BOB }
 }

@@ -1,5 +1,8 @@
 name: Check Migrations
 
+# If you modify more jobs, ensure that you add them as required to the job "confirmMigrationsPassed"
+# which is located at the end of this file (more info in the job)
+
 on:
   push:
     branches: ["main", "release-*"]
@@ -16,6 +19,7 @@ concurrency:
 permissions: {}
 
 jobs:
+  # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -36,6 +40,8 @@ jobs:
           TASKS=$(echo $TASKS | jq -c .)
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
+  # This runs all the jobs in the matrix. It is required by the "confirmMigrationsPassed" job, so
+  # if they all pass, that job will pass too.
   check-migrations:
     needs: [runtime-matrix]
     continue-on-error: true
@@ -77,3 +83,15 @@ jobs:
           node-uri: ${{ matrix.runtime.uri }}
           checks: "pre-and-post"
           extra-args: ${{ env.EXTRA_ARGS }}
+
+  # This will only run if all the tests in its "needs" array passed.
+  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # it will still require all the steps to succeed.
+  # If you add more jobs, remember to add them to the "needs" array.
+  confirmMigrationsPassed:
+    runs-on: ubuntu-latest
+    name: All migrations passed
+    # If any new job gets added, be sure to add it to this array
+    needs: [check-migrations]
+    steps:
+      - run: echo '### Good job! All the migrations passed 🚀' >> $GITHUB_STEP_SUMMARY

@@ -9,22 +9,23 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive", "max-encoded-len"] }
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 
 # Local
-bp-asset-hub-kusama = { path = "./primitives", default-features = false}
-bp-asset-hub-polkadot = { path = "../asset-hub-polkadot/primitives", default-features = false}
-bp-bridge-hub-kusama = { path = "../../bridge-hubs/bridge-hub-kusama/primitives", default-features = false}
-bp-bridge-hub-polkadot = { path = "../../bridge-hubs/bridge-hub-polkadot/primitives", default-features = false}
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
+bp-asset-hub-kusama = { workspace = true }
+bp-asset-hub-polkadot = { workspace = true }
+bp-bridge-hub-kusama = { workspace = true }
+bp-bridge-hub-polkadot = { workspace = true }
+kusama-runtime-constants = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
@@ -33,7 +34,7 @@ frame-try-runtime = { optional = true, workspace = true }
 pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
-pallet-aura = { features = ["experimental"] , workspace = true }
+pallet-aura = { features = ["experimental"], workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
@@ -43,12 +44,13 @@ pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
-pallet-state-trie-migration = { optional = true , workspace = true }
+pallet-state-trie-migration = { optional = true, workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-uniques = { workspace = true }
 pallet-utility = { workspace = true }
+pallet-vesting = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus-aura = { workspace = true }
@@ -64,32 +66,38 @@ sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
 sp-weights = { workspace = true }
 # num-traits feature needed for dex integer sq root:
-primitive-types = { features = ["codec", "scale-info", "num-traits"] , workspace = true }
+primitive-types = { features = [
+	"codec",
+	"num-traits",
+	"scale-info",
+], workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }
-pallet-xcm-benchmarks = { optional = true , workspace = true }
+pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-dmp-queue = { workspace = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
-cumulus-pallet-xcmp-queue = { features = ["bridging"] , workspace = true }
+cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
 cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-constants = { path = "../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 assets-common = { workspace = true }
 
 # Bridges
@@ -102,10 +110,10 @@ parachains-runtimes-test-utils = { workspace = true }
 sp-io = { workspace = true, default-features = true }
 
 [build-dependencies]
-substrate-wasm-builder = { optional = true , workspace = true }
+substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 # When enabled the `state_version` is set to `1`.
 # This means that the chain will start using the new state format. The migration is lazy, so
 # it requires to write a storage value to use the new state format. To migrate all the other
@@ -113,13 +121,14 @@ default = [ "std" ]
 # This pallet will migrate the entire state, controlled through some account.
 #
 # This feature should be removed when the main-net will be migrated.
-state-trie-version-1 = [ "pallet-state-trie-migration" ]
+state-trie-version-1 = ["pallet-state-trie-migration"]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
 	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -138,17 +147,17 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
+	"pallet-vesting/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -178,6 +187,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-vesting/try-runtime",
 	"pallet-xcm-bridge-hub-router/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
@@ -187,8 +197,8 @@ try-runtime = [
 std = [
 	"assets-common/std",
 	"bp-asset-hub-kusama/std",
-	"bp-bridge-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
+	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
@@ -202,6 +212,7 @@ std = [
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
+	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
@@ -229,6 +240,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
+	"pallet-vesting/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm-bridge-hub-router/std",
 	"pallet-xcm/std",
@@ -238,6 +250,7 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	"primitive-types/std",
 	"scale-info/std",
 	"snowbridge-router-primitives/std",
 	"sp-api/std",
@@ -259,10 +272,12 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"primitive-types/std"
 ]
+
+# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
+metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]

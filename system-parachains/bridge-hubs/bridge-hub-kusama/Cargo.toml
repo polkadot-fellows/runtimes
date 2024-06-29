@@ -9,32 +9,33 @@ repository.workspace = true
 version.workspace = true
 
 [build-dependencies]
-substrate-wasm-builder = { optional = true , workspace = true }
+substrate-wasm-builder = { optional = true, workspace = true }
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
+codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
-serde = { optional = true, features = ["derive"] , workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+serde = { optional = true, features = ["derive"], workspace = true }
 
 # Local
-bp-asset-hub-kusama = { path = "../../asset-hubs/asset-hub-kusama/primitives", default-features = false}
-bp-asset-hub-polkadot = { path = "../../asset-hubs/asset-hub-polkadot/primitives", default-features = false}
-bp-bridge-hub-kusama = { path = "./primitives", default-features = false}
-bp-bridge-hub-polkadot = { path = "../bridge-hub-polkadot/primitives", default-features = false}
-kusama-runtime-constants = { path = "../../../relay/kusama/constants", default-features = false}
-polkadot-runtime-constants = { path = "../../../relay/polkadot/constants", default-features = false}
+bp-asset-hub-kusama = { workspace = true }
+bp-asset-hub-polkadot = { workspace = true }
+bp-bridge-hub-kusama = { workspace = true }
+bp-bridge-hub-polkadot = { workspace = true }
+kusama-runtime-constants = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
-pallet-aura = { features = ["experimental"] , workspace = true }
+pallet-aura = { features = ["experimental"], workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
@@ -61,28 +62,30 @@ sp-version = { workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }
-pallet-xcm-benchmarks = { optional = true , workspace = true }
+pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-dmp-queue = { workspace = true }
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
-cumulus-pallet-xcmp-queue = { features = ["bridging"] , workspace = true }
+cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
 cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-constants = { path = "../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 
 # Bridges
 bp-header-chain = { workspace = true }
@@ -99,7 +102,7 @@ pallet-bridge-grandpa = { workspace = true }
 pallet-bridge-messages = { workspace = true }
 pallet-bridge-parachains = { workspace = true }
 pallet-bridge-relayers = { workspace = true }
-pallet-xcm-bridge-hub =  { workspace = true }
+pallet-xcm-bridge-hub = { workspace = true }
 
 # Ethereum Bridge (Snowbridge)
 snowbridge-beacon-primitives = { workspace = true }
@@ -115,27 +118,29 @@ snowbridge-runtime-common = { workspace = true }
 
 [dev-dependencies]
 bridge-hub-test-utils = { workspace = true }
-bridge-runtime-common = { features = ["integrity-test"] , workspace = true, default-features = true }
+bridge-runtime-common = { features = [
+	"integrity-test",
+], workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 static_assertions = { workspace = true }
 snowbridge-runtime-test-common = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"bp-asset-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"bp-header-chain/std",
+	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
 	"bp-polkadot-core/std",
+	"bp-polkadot/std",
 	"bp-relayers/std",
 	"bp-runtime/std",
-	"bp-kusama/std",
-	"bp-polkadot/std",
 	"bridge-hub-common/std",
 	"bridge-runtime-common/std",
 	"codec/std",
@@ -150,6 +155,7 @@ std = [
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
+	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
@@ -185,14 +191,14 @@ std = [
 	"serde",
 	"snowbridge-beacon-primitives/std",
 	"snowbridge-core/std",
+	"snowbridge-outbound-queue-runtime-api/std",
 	"snowbridge-pallet-ethereum-client/std",
 	"snowbridge-pallet-inbound-queue/std",
-	"snowbridge-outbound-queue-runtime-api/std",
 	"snowbridge-pallet-outbound-queue/std",
+	"snowbridge-pallet-system/std",
 	"snowbridge-router-primitives/std",
 	"snowbridge-runtime-common/std",
 	"snowbridge-system-runtime-api/std",
-	"snowbridge-pallet-system/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
@@ -221,6 +227,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -246,14 +253,13 @@ runtime-benchmarks = [
 	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
 	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
 	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
+	"snowbridge-pallet-system/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"snowbridge-runtime-common/runtime-benchmarks",
 	"snowbridge-runtime-test-common/runtime-benchmarks",
-	"snowbridge-pallet-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -291,7 +297,10 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
+# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
+metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
+
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]

@@ -36,11 +36,13 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+pub mod ambassador;
 pub mod impls;
 mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub use ambassador::pallet_ambassador_origins;
 
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -68,8 +70,8 @@ use frame_support::{
 	genesis_builder_helper::{build_config, create_default_config},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstBool, ConstU16, ConstU32, ConstU64, ConstU8,
-		EitherOfDiverse, InstanceFilter, LinearStoragePrice, TransformOrigin,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstBool, ConstU16, ConstU32,
+		ConstU64, ConstU8, EitherOfDiverse, InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -79,8 +81,7 @@ use frame_system::{
 	EnsureRoot,
 };
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header,
-	Nonce, Signature,
+	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
 use system_parachains_constants::{
@@ -89,7 +90,8 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, LocationToAccountId, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
+	GovernanceLocation, LocationToAccountId, StakingPot, TreasurerBodyId,
+	XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -113,10 +115,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_006,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 6,
+	transaction_version: 7,
 	state_version: 0,
 };
 
@@ -227,7 +229,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -295,6 +297,8 @@ pub enum ProxyType {
 	Alliance,
 	/// Fellowship proxy. Allows calls related to the Fellowship.
 	Fellowship,
+	/// Ambassador proxy. Allows calls related to the Ambassador Program.
+	Ambassador,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -329,6 +333,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
+			),
+			ProxyType::Ambassador => matches!(
+				c,
+				RuntimeCall::AmbassadorCollective { .. } |
+					RuntimeCall::AmbassadorReferenda { .. } |
+					RuntimeCall::AmbassadorCore { .. } |
+					RuntimeCall::AmbassadorSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -450,13 +463,6 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 	type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
-}
-
-// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
-impl cumulus_pallet_dmp_queue::Config for Runtime {
-	type WeightInfo = weights::cumulus_pallet_dmp_queue::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-	type DmpSink = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 }
 
 pub const PERIOD: u32 = 6 * HOURS;
@@ -658,9 +664,7 @@ construct_runtime!(
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
 		PolkadotXcm: pallet_xcm = 31,
 		CumulusXcm: cumulus_pallet_xcm = 32,
-		// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
-		// Temporary to migrate the remaining DMP messages:
-		DmpQueue: cumulus_pallet_dmp_queue = 33,
+		// DmpQueue: cumulus_pallet_dmp_queue = 33, removed
 		MessageQueue: pallet_message_queue = 34,
 
 		// Handy utilities.
@@ -689,6 +693,14 @@ construct_runtime!(
 		FellowshipSalary: pallet_salary::<Instance1> = 64,
 		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
+
+		// Ambassador Program.
+		AmbassadorCollective: pallet_ranked_collective::<Instance2> = 70,
+		AmbassadorReferenda: pallet_referenda::<Instance2> = 71,
+		AmbassadorOrigins: pallet_ambassador_origins = 72,
+		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
+		AmbassadorSalary: pallet_salary::<Instance2> = 74,
+		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
 	}
 );
 
@@ -709,15 +721,23 @@ pub type SignedExtra = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
+parameter_types! {
+	pub DmpQueueName: &'static str = "DmpQueue";
+}
+
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
 type Migrations = (
 	// unreleased
+	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -746,7 +766,6 @@ mod benches {
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
-		[cumulus_pallet_dmp_queue, DmpQueue]
 		[pallet_alliance, Alliance]
 		[pallet_collective, AllianceMotion]
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
@@ -758,6 +777,11 @@ mod benches {
 		[pallet_salary, FellowshipSalary]
 		[pallet_treasury, FellowshipTreasury]
 		[pallet_asset_rate, AssetRate]
+		[pallet_referenda, AmbassadorReferenda]
+		[pallet_ranked_collective, AmbassadorCollective]
+		[pallet_core_fellowship, AmbassadorCore]
+		[pallet_salary, AmbassadorSalary]
+		[pallet_treasury, AmbassadorTreasury]
 	);
 }
 

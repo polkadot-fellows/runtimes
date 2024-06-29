@@ -36,4 +36,5 @@ jobs:
       - name: Clippy
         run: cargo +nightly-$RUST_NIGHTLY_VERSION clippy --all-targets --locked -q
         env:
+          RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1

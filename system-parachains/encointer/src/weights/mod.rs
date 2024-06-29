@@ -20,12 +20,12 @@
 #![allow(clippy::all)]
 
 pub mod block_weights;
-pub mod cumulus_pallet_dmp_queue;
 pub mod cumulus_pallet_parachain_system;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod extrinsic_weights;
 pub mod frame_system;
 pub mod pallet_balances;
+pub mod pallet_collator_selection;
 pub mod pallet_collective;
 pub mod pallet_encointer_balances;
 pub mod pallet_encointer_bazaar;
@@ -37,8 +37,8 @@ pub mod pallet_encointer_scheduler;
 pub mod pallet_membership;
 pub mod pallet_message_queue;
 pub mod pallet_proxy;
+pub mod pallet_session;
 pub mod pallet_timestamp;
-pub mod pallet_treasury;
 pub mod pallet_utility;
 pub mod paritydb_weights;
 pub mod rocksdb_weights;

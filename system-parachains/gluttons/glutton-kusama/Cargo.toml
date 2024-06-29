@@ -9,8 +9,8 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
-scale-info = { features = ["derive"] , workspace = true }
+codec = { features = ["derive"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
@@ -37,25 +37,28 @@ sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", default-features = false, version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false, version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false, version = "8.0.1" }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 # Cumulus
-cumulus-pallet-parachain-system = { features = ["parameterized-consensus-hook",] , workspace = true }
+cumulus-pallet-parachain-system = { features = [
+	"parameterized-consensus-hook",
+], workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-primitives-core = { workspace = true }
-parachain-info = { package = "staging-parachain-info", default-features = false , version = "0.8.0" }
+parachain-info = { workspace = true }
 parachains-common = { workspace = true }
-system-parachains-constants = { path = "../../constants", default-features = false }
+system-parachains-constants = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
@@ -67,7 +70,6 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks"
 ]
 std = [
 	"codec/std",
@@ -121,4 +123,4 @@ try-runtime = [
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging"]

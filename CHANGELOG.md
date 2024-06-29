@@ -4,14 +4,130 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
+
+## [1.2.7] 14.06.2024
+
+Note: This release only affects the following runtimes and is not a full system release:
+
+- Polkadot Relay Chain
+- Polkadot People
+
+### Changed
+
+- Updated Relay and People configurations to complete launch ([polkadot-fellows/runtimes#350](https://github.com/polkadot-fellows/runtimes/pull/350))
+
+## [1.2.6] 13.06.2024
+
+Note: This release only affects the following runtimes and is not a full system release:
+
+- Polkadot Relay Chain
+- Polkadot Asset Hub
+- Polkadot People
+- Kusama Relay Chain
+- Kusama Asset Hub
+- Kusama People
+
+### Added
+
+- Add the Polkadot People Chain ([polkadot-fellows/runtimes#319](https://github.com/polkadot-fellows/runtimes/pull/319))
+
+### Changed
+
+- Set max asset ID restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
+
+### Fixed
+
+- Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
+
+### Changed
+
+- People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
+
+### Removed
+
+- Removed Identity-related code from Kusama Relay Chain ([polkadot-fellows/runtimes#315](https://github.com/polkadot-fellows/runtimes/pull/315))
+
+## [1.2.5] 06.06.2024
+
+### Added
+
+- Staking runtime api to check if reward is pending for an era ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+- Allow any parachain to have bidirectional channel with any system parachains ([polkadot-fellows/runtimes#329](https://github.com/polkadot-fellows/runtimes/pull/329))
+- Update price controller of broker pallet to use higher leadin, without adjusting the minimum price too much ([polkadot-fellows/runtimes#334](https://github.com/polkadot-fellows/runtimes/pull/334))
+- Enable support for new hardware signers like the generic ledger app ([polkadot-fellows/runtimes#337](https://github.com/polkadot-fellows/runtimes/pull/337))
+
+### Changed
+
+- Transaction payments work via new `fungible` trait implementation ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+- Block `request_judgement` calls on the Relay Chain ([polkadot-fellows/runtimes#338](https://github.com/polkadot-fellows/runtimes/pull/338))
+
+### Fixed
+
+- Handle extra erroneous consumer reference when a nomination pool is destroying ([polkadot-fellows/runtimes#318](https://github.com/polkadot-fellows/runtimes/pull/318))
+- Introduce [Encointer](https://encointer.org) collator selection and send fees to authors instead of treasury ([polkadot-fellows/runtimes#270](https://github.com/polkadot-fellows/runtimes/pull/270))
+
+## [1.2.4] 20.05.2024
+
+### Changed
+
+- Kusama chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#261](https://github.com/polkadot-fellows/runtimes/pull/261))
+- Allow everything through XCM SafeCallFilter ([polkadot-fellows/runtimes#285](https://github.com/polkadot-fellows/runtimes/pull/285))
+- Disable Coretime credit purchasing until we have the credit system implemented ([polkadot-fellows/runtimes#312](https://github.com/polkadot-fellows/runtimes/pull/312))
+
+### Added
+
+- Add `pallet-vesting` to Asset Hubs ([polkadot-fellows/runtimes#269](https://github.com/polkadot-fellows/runtimes/pull/269))
+- Add Pay Salary Collectives test ([polkadot-fellows/runtimes#260](https://github.com/polkadot-fellows/runtimes/pull/260))
+- Add `pallet-xcm::transfer_assets_using_type_and_then()` for complex asset transfers ([polkadot-fellows/runtimes#311](https://github.com/polkadot-fellows/runtimes/pull/311))
+- The Ambassador Program ([polkadot-fellows/runtimes#291](https://github.com/polkadot-fellows/runtimes/pull/291))
+
+### Removed
+
+- Remove one-shot migrations from Kusama Coretime ([polkadot-fellows/runtimes#300](https://github.com/polkadot-fellows/runtimes/pull/300))
+- Remove DMP queue and allow `system::authorize_upgrade` in XCM's call filter ([polkadot-fellows/runtimes#280](https://github.com/polkadot-fellows/runtimes/pull/280))
+- Allow Sending XCM messages using a Signed origin on Kusama ([polkadot-fellows/runtimes#290](https://github.com/polkadot-fellows/runtimes/pull/290))
+
+### Fixed
+
+- Include patch to release stuck collator bonds ([polkadot-fellows/runtimes#289](https://github.com/polkadot-fellows/runtimes/pull/289))
+- Safeguard pallet-balances against consumer ref underflow ([polkadot-fellows/runtimes#309](https://github.com/polkadot-fellows/runtimes/pull/309))
+- Polkadot Bridge Hub: Unstuck Snowbridge ([polkadot-fellows/runtimes#313](https://github.com/polkadot-fellows/runtimes/pull/313))
+
+## [1.2.3] 29.04.2024
+
+### Added
+
+- Add migration to Kusama Coretime to onboard People Chain without long delay ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
+
+### Fixed
+
+- Clean up outdated assignment in Kusama Coretime Chain state ([polkadot-fellows/runtimes#286](https://github.com/polkadot-fellows/runtimes/pull/286))
+
+## [1.2.2] 20.04.2024
+
+### Fixed
+
+- Polkadot Bridge Hub: Unstuck bridge with Kusama ([polkadot-fellows/runtimes#277](https://github.com/polkadot-fellows/runtimes/pull/277)).
+- Fix Kusama Coretime launch issues: import leases and fix renewals for short leases ([polkadot-fellows/runtimes#276](https://github.com/polkadot-fellows/runtimes/pull/276))
+
+## [1.2.1] 09.04.2024
+
+### Changed
+
+- Modify runtimes for phase two of People Chain launch (Kusama) ([polkadot-fellows/runtimes#246](https://github.com/polkadot-fellows/runtimes/pull/246))
+
 ## [1.2.0] 28.03.2024
 
 ### Added
 
 - Remove state-trie-migration pallet from kusama, add state trie migration to V1 on polkadot ([polkadot-fellows/runtimes#170](https://github.com/polkadot-fellows/runtimes/pull/170))
 - Introduce chain spec generator ([polkadot-fellows/runtimes#127](https://github.com/polkadot-fellows/runtimes/pull/127))
-- Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/
-0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
+- Add [Encointer](https://encointer.org) system parachain runtime, completing [RFC22](https://github.com/polkadot-fellows/RFCs/blob/main/text/0022-adopt-encointer-runtime.md) ([polkadot-fellows/runtimes#80](https://github.com/polkadot-fellows/runtimes/pull/80))
 - Feature for enabling debug prints in the Polkadot and Kusama runtime ([polkadot-fellows/runtimes#85](https://github.com/polkadot-fellows/runtimes/pull/85))
 - Added new "Wish for Change" track ([polkadot-fellows/runtimes#184](https://github.com/polkadot-fellows/runtimes/pull/184))
 - Enable Coretime and on-demand on Kusama ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
@@ -75,6 +191,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update the fellowship salary budget amount in alignment with the Fellowship Salary [RFC](https://github.com/polkadot-fellows/RFCs/pull/50) ([polkadot-fellows/runtimes#121](https://github.com/polkadot-fellows/runtimes/pull/121))
 - Set up an account ID for the local root location on Polkadot Collectives ([polkadot-fellows/runtimes#125](https://github.com/polkadot-fellows/runtimes/pull/125))
 - Increase confirmation period for treasury spend tracks on Polkadot & Kusama ([polkadot-fellows/runtimes#119](https://github.com/polkadot-fellows/runtimes/pull/119))
+- Drop ED requirement for transaction payments with an exchangeable asset ([polkadot-fellows/runtimes#310](https://github.com/polkadot-fellows/runtimes/pull/310))
 
 ### Added
 

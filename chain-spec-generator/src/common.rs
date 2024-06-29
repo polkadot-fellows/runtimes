@@ -20,7 +20,7 @@ use crate::{
 	system_parachains_specs::{
 		AssetHubKusamaChainSpec, AssetHubPolkadotChainSpec, BridgeHubKusamaChainSpec,
 		BridgeHubPolkadotChainSpec, CollectivesPolkadotChainSpec, EncointerKusamaChainSpec,
-		GluttonKusamaChainSpec,
+		GluttonKusamaChainSpec, PeopleKusamaChainSpec, PeoplePolkadotChainSpec,
 	},
 	ChainSpec,
 };
@@ -67,7 +67,7 @@ struct EmptyChainSpecWithId {
 
 pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn ChainSpec>, String> {
 	let path = std::path::PathBuf::from(&filepath);
-	let file = std::fs::File::open(&filepath).expect("Failed to open file");
+	let file = std::fs::File::open(filepath).expect("Failed to open file");
 	let reader = std::io::BufReader::new(file);
 	let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
 		.expect("Failed to read 'json' file with ChainSpec configuration");
@@ -90,6 +90,10 @@ pub fn from_json_file(filepath: &str, supported: String) -> Result<Box<dyn Chain
 			Ok(Box::new(GluttonKusamaChainSpec::from_json_file(path)?)),
 		x if x.starts_with("encointer-kusama") =>
 			Ok(Box::new(EncointerKusamaChainSpec::from_json_file(path)?)),
+		x if x.starts_with("people-kusama") =>
+			Ok(Box::new(PeopleKusamaChainSpec::from_json_file(path)?)),
+		x if x.starts_with("people-polkadot") =>
+			Ok(Box::new(PeoplePolkadotChainSpec::from_json_file(path)?)),
 		_ => Err(format!("Unknown chain 'id' in json file. Only supported: {supported}'")),
 	}
 }

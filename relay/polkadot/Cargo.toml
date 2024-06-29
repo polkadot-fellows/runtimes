@@ -8,18 +8,18 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-parity-scale-codec = { features = ["derive", "max-encoded-len"] , workspace = true }
-scale-info = { features = ["derive"] , workspace = true }
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
 log = { workspace = true }
 
-authority-discovery-primitives = { package = "sp-authority-discovery", default-features = false , version = "27.0.0" }
-babe-primitives = { package = "sp-consensus-babe", default-features = false , version = "0.33.0" }
-beefy-primitives = { package = "sp-consensus-beefy", default-features = false , version = "14.0.0" }
+authority-discovery-primitives = { workspace = true }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
 binary-merkle-tree = { workspace = true }
-block-builder-api = { package = "sp-block-builder", default-features = false , version = "27.0.0" }
-inherents = { package = "sp-inherents", default-features = false , version = "27.0.0" }
-offchain-primitives = { package = "sp-offchain", default-features = false , version = "27.0.0" }
-tx-pool-api = { package = "sp-transaction-pool", default-features = false , version = "27.0.0" }
+sp-block-builder = { workspace = true }
+sp-inherents = { workspace = true }
+sp-offchain = { workspace = true }
+sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -50,6 +50,7 @@ pallet-conviction-voting = { workspace = true }
 pallet-election-provider-multi-phase = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-indices = { workspace = true }
@@ -72,7 +73,7 @@ pallet-staking-runtime-api = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
-polkadot-runtime-constants = { package = "polkadot-runtime-constants", path = "constants", default-features = false }
+polkadot-runtime-constants = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-whitelist = { workspace = true }
@@ -80,40 +81,40 @@ pallet-vesting = { workspace = true }
 pallet-utility = { workspace = true }
 frame-election-provider-support = { workspace = true }
 pallet-xcm = { workspace = true }
-pallet-xcm-benchmarks = { optional = true , workspace = true }
+pallet-xcm-benchmarks = { optional = true, workspace = true }
 
-frame-benchmarking = { optional = true , workspace = true }
-frame-try-runtime = { optional = true , workspace = true }
-frame-system-benchmarking = { optional = true , workspace = true }
-pallet-election-provider-support-benchmarking = { optional = true , workspace = true }
-pallet-offences-benchmarking = { optional = true , workspace = true }
-pallet-session-benchmarking = { optional = true , workspace = true }
-pallet-nomination-pools-benchmarking = { optional = true , workspace = true }
+frame-benchmarking = { optional = true, workspace = true }
+frame-try-runtime = { optional = true, workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+pallet-election-provider-support-benchmarking = { optional = true, workspace = true }
+pallet-offences-benchmarking = { optional = true, workspace = true }
+pallet-session-benchmarking = { optional = true, workspace = true }
+pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 
-runtime-common = { package = "polkadot-runtime-common", default-features = false, version = "8.0.1" }
-runtime-parachains = { package = "polkadot-runtime-parachains", default-features = false , version = "8.0.1" }
-primitives = { package = "polkadot-primitives", default-features = false , version = "8.0.1" }
+polkadot-runtime-common = { workspace = true }
+runtime-parachains = { workspace = true }
+polkadot-primitives = { workspace = true }
 
-xcm = { package = "staging-xcm", default-features = false , version = "8.0.1" }
-xcm-executor = { package = "staging-xcm-executor", default-features = false , version = "8.0.1" }
-xcm-builder = { package = "staging-xcm-builder", default-features = false , version = "8.0.1" }
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
+xcm-builder = { workspace = true }
 
 sp-debug-derive = { workspace = true }
 
 [dev-dependencies]
-keyring = { package = "sp-keyring", version = "32.0.0" }
+sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 serde_json = { workspace = true }
 separator = { workspace = true }
-remote-externalities = { package = "frame-remote-externalities", version = "0.36.0" }
-tokio = { features = ["macros"] , workspace = true }
+remote-externalities = { workspace = true }
+tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
 
 [build-dependencies]
-substrate-wasm-builder = { workspace = true }
+substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 no_std = []
 only-staking = []
 std = [
@@ -121,26 +122,25 @@ std = [
 	"babe-primitives/std",
 	"beefy-primitives/std",
 	"binary-merkle-tree/std",
-	"block-builder-api/std",
+	"codec/std",
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
 	"frame-executive/std",
+	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime/std",
-	"inherents/std",
 	"log/std",
-	"offchain-primitives/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
 	"pallet-babe/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
-	"pallet-beefy/std",
 	"pallet-beefy-mmr/std",
+	"pallet-beefy/std",
 	"pallet-bounties/std",
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
@@ -177,28 +177,31 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
-	"parity-scale-codec/std",
+	"polkadot-primitives/std",
+	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
-	"primitives/std",
-	"runtime-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
+	"substrate-wasm-builder",
 	"sp-api/std",
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
+	"sp-block-builder/std",
 	"sp-core/std",
 	"sp-debug-derive/std",
 	"sp-genesis-builder/std",
+	"sp-inherents/std",
 	"sp-io/std",
 	"sp-npos-elections/std",
+	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
 	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
+	"sp-transaction-pool/std",
 	"sp-version/std",
-	"tx-pool-api/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
@@ -243,8 +246,8 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
-	"primitives/runtime-benchmarks",
-	"runtime-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -293,19 +296,22 @@ try-runtime = [
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm/try-runtime",
-	"runtime-common/try-runtime",
+	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
 
+# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
+metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
+
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = [ "sp-api/disable-logging" ]
+on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []
 
-runtime-metrics = [ "runtime-parachains/runtime-metrics", "sp-io/with-tracing" ]
+runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
-force-debug = [ "sp-debug-derive/force-debug" ]
+force-debug = ["sp-debug-derive/force-debug"]
