@@ -21,7 +21,7 @@ use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa::AuthorityId as GrandpaId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::Forcing;
-use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
+use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, AsyncBackingParams, ValidatorId};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
@@ -51,11 +51,19 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		validation_upgrade_cooldown: 2u32,
 		validation_upgrade_delay: 2,
 		code_retention_period: 1200,
+		coretime_cores: Default::default(),
+		on_demand_retries: Default::default(),
+		on_demand_queue_max_size: Default::default(),
+		on_demand_target_queue_utilization: Default::default(),
+		on_demand_fee_variability: Default::default(),
+		on_demand_base_fee: 0,
 		max_code_size: MAX_CODE_SIZE,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,
 		group_rotation_frequency: 20,
 		paras_availability_period: 4,
+		scheduling_lookahead: Default::default(),
+		max_validators_per_core: None,
 		max_upward_queue_count: 8,
 		max_upward_queue_size: 1024 * 1024,
 		max_downward_message_size: 1024 * 1024,
@@ -70,13 +78,24 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		hrmp_max_parachain_outbound_channels: 4,
 		hrmp_max_message_num_per_candidate: 5,
 		dispute_period: 6,
+		dispute_post_conclusion_acceptance_period: Default::default(),
 		no_show_slots: 2,
 		n_delay_tranches: 25,
 		needed_approvals: 2,
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
 		minimum_validation_upgrade_delay: 5,
-		..Default::default()
+		minimum_backing_votes: 0,
+		node_features: Default::default(),
+		async_backing_params: AsyncBackingParams {
+			max_candidate_depth: Default::default(),
+			allowed_ancestry_len: Default::default(),
+		},
+		executor_params: Default::default(),
+		on_demand_ttl: Default::default(),
+		max_validators: None,
+		pvf_voting_ttl: 0,
+		approval_voting_params: Default::default(),
 	}
 }
 
