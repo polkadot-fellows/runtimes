@@ -96,9 +96,9 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 			allowed_ancestry_len: 0,
 		},
 		executor_params: Default::default(),
-		on_demand_ttl: 5u32.into(),
+		on_demand_ttl: 5,
 		max_validators: None,
-		pvf_voting_ttl: 2u32.into(),
+		pvf_voting_ttl: 2,
 		approval_voting_params: ApprovalVotingParams { max_approval_coalesce_count: 1 },
 	}
 }
