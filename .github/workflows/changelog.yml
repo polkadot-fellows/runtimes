@@ -1,10 +1,18 @@
 name: Verify Changelog
 
+# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# which is located at the end of this file (more info in the job)
+
 on:
   push:
     branches: ["main", "release-*"]
   pull_request:
   workflow_dispatch:
+
+# cancel previous runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -31,3 +39,17 @@ jobs:
     steps:
       - name: Verify
         run: .github/changelog-processor.py CHANGELOG.md --validate-changelog
+
+  # This will only run if all the tests in its "needs" array passed.
+  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # it will still require all the steps to succeed.
+  # If you add more jobs, remember to add them to the "needs" array.
+  confirmTestPassed:
+    runs-on: ubuntu-latest
+    name: All tests passed
+    # If any new job gets added, be sure to add it to this list
+    needs:
+      - verify-changelog-updated
+      - verify-changelog-valid
+    steps:
+      - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
