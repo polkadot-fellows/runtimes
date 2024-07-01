@@ -47,7 +47,7 @@ jobs:
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
-  confirmTestPassed:
+  confirmChangelogChecksPassed:
     runs-on: ubuntu-latest
     name: All tests passed
     # If any new job gets added, be sure to add it to this list
