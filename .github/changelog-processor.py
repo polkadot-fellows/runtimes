@@ -70,6 +70,7 @@ with open(args.changelog, "r") as changelog:
 
     # Find the latest version
     for line in lines:
+        print(line)
         if not line.startswith("## ["):
             changelog_last_release += line
             continue
