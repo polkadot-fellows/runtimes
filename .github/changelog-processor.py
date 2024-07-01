@@ -87,6 +87,8 @@ with open(args.changelog, "r") as changelog:
         print(version, end = "")
         sys.exit(0)
     elif args.should_release:
+        print(version)
+            
         if version.lower() == "unreleased":
             print("0", end = "")
             sys.exit(0)
