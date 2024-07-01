@@ -53,6 +53,10 @@ with open(args.changelog, "r") as changelog:
                     print("Line starting with `##` needs to be followed by ` [`, e.g.: `## [Unreleased]`, `## [400.2.1]`")
                     print(line)
                     sys.exit(-1)
+                elif line.count(".") != 2:
+                    print("Only Major.Minor.Patch are supported as versioning")
+                    print(line)
+                    sys.exit(-1)
             elif line.startswith("#"):
                 if line.strip() != "# Changelog":
                     print("Line starting with `#` is only allowed for `# Changelog`")
@@ -85,7 +89,7 @@ with open(args.changelog, "r") as changelog:
     elif args.should_release:
         if version.lower() == "unreleased":
             print("0", end = "")
-            sys.exit(-1)
+            sys.exit(0)
         elif version.count(".") != 2:
             print("0", end = "")
             sys.exit(-1)
