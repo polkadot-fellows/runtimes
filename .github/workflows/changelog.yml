@@ -1,10 +1,10 @@
 name: Verify Changelog
 
 on:
-  pull_request_target:
-    types:
-      - synchronize
-      - edited
+  push:
+    branches: ["main", "release-*"]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
 
