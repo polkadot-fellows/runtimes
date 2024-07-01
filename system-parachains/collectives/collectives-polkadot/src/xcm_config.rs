@@ -14,25 +14,24 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, Fellows, ParachainInfo, ParachainSystem,
-	PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Balances, CollatorSelection, Fellows, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
-	traits::{ConstU32, Contains, Equals, Everything, Nothing},
-	weights::Weight,
+	traits::{tokens::imbalance::ResolveTo, ConstU32, Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
-use parachains_common::{
-	impls::ToStakingPot,
-	xcm_config::{
-		AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
-		RelayOrOtherSystemParachains,
-	},
+use parachains_common::xcm_config::{
+	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
+	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
+use polkadot_runtime_constants::{
+	system_parachain::ASSET_HUB_ID, xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
 use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -41,16 +40,13 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FixedWeightBounds, FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
-	UsingComponents, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
-	XcmFeeToAccount,
+	LocatableAssetId, OriginToPluralityVoice, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	TrailingSetTopicAsId, UsingComponents, WithComputedOrigin, WithUniqueTopic,
+	XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
-use xcm_executor::{
-	traits::{ConvertLocation, WithOriginFilter},
-	XcmExecutor,
-};
+use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
@@ -69,6 +65,13 @@ parameter_types! {
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
+	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
+	pub AssetHub: Location = (Parent, Parachain(ASSET_HUB_ID)).into();
+	pub AssetHubUsdt: LocatableAssetId = LocatableAssetId {
+		location: AssetHub::get(),
+		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
+	};
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
@@ -151,88 +154,6 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
-/// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
-/// account for proof size weights.
-///
-/// Calls that are allowed through this filter must:
-/// 1. Have a fixed weight;
-/// 2. Cannot lead to another call being made;
-/// 3. Have a defined proof size weight, e.g. no unbounded vecs in call parameters.
-pub struct SafeCallFilter;
-impl Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		#[cfg(feature = "runtime-benchmarks")]
-		{
-			if matches!(call, RuntimeCall::System(frame_system::Call::remark_with_event { .. })) {
-				return true
-			}
-		}
-
-		matches!(
-			call,
-			RuntimeCall::System(
-				frame_system::Call::set_heap_pages { .. } |
-					frame_system::Call::set_code { .. } |
-					frame_system::Call::set_code_without_checks { .. } |
-					frame_system::Call::kill_prefix { .. },
-			) | RuntimeCall::ParachainSystem(..) |
-				RuntimeCall::Timestamp(..) |
-				RuntimeCall::Balances(..) |
-				RuntimeCall::CollatorSelection(
-					pallet_collator_selection::Call::set_desired_candidates { .. } |
-						pallet_collator_selection::Call::set_candidacy_bond { .. } |
-						pallet_collator_selection::Call::register_as_candidate { .. } |
-						pallet_collator_selection::Call::leave_intent { .. } |
-						pallet_collator_selection::Call::set_invulnerables { .. } |
-						pallet_collator_selection::Call::add_invulnerable { .. } |
-						pallet_collator_selection::Call::remove_invulnerable { .. },
-				) | RuntimeCall::Session(pallet_session::Call::purge_keys { .. }) |
-				RuntimeCall::PolkadotXcm(
-					pallet_xcm::Call::force_xcm_version { .. } |
-						pallet_xcm::Call::force_default_xcm_version { .. }
-				) | RuntimeCall::XcmpQueue(..) |
-				RuntimeCall::DmpQueue(..) |
-				RuntimeCall::Alliance(
-					// `init_members` accepts unbounded vecs as arguments,
-					// but the call can be initiated only by root origin.
-					pallet_alliance::Call::init_members { .. } |
-						pallet_alliance::Call::vote { .. } |
-						pallet_alliance::Call::disband { .. } |
-						pallet_alliance::Call::set_rule { .. } |
-						pallet_alliance::Call::announce { .. } |
-						pallet_alliance::Call::remove_announcement { .. } |
-						pallet_alliance::Call::join_alliance { .. } |
-						pallet_alliance::Call::nominate_ally { .. } |
-						pallet_alliance::Call::elevate_ally { .. } |
-						pallet_alliance::Call::give_retirement_notice { .. } |
-						pallet_alliance::Call::retire { .. } |
-						pallet_alliance::Call::kick_member { .. } |
-						pallet_alliance::Call::close { .. } |
-						pallet_alliance::Call::abdicate_fellow_status { .. },
-				) | RuntimeCall::AllianceMotion(
-				pallet_collective::Call::vote { .. } |
-					pallet_collective::Call::disapprove_proposal { .. } |
-					pallet_collective::Call::close { .. },
-			) | RuntimeCall::FellowshipCollective(
-				pallet_ranked_collective::Call::add_member { .. } |
-					pallet_ranked_collective::Call::promote_member { .. } |
-					pallet_ranked_collective::Call::demote_member { .. } |
-					pallet_ranked_collective::Call::remove_member { .. },
-			) | RuntimeCall::FellowshipCore(
-				pallet_core_fellowship::Call::bump { .. } |
-					pallet_core_fellowship::Call::set_params { .. } |
-					pallet_core_fellowship::Call::set_active { .. } |
-					pallet_core_fellowship::Call::approve { .. } |
-					pallet_core_fellowship::Call::induct { .. } |
-					pallet_core_fellowship::Call::promote { .. } |
-					pallet_core_fellowship::Call::offboard { .. } |
-					pallet_core_fellowship::Call::submit_evidence { .. } |
-					pallet_core_fellowship::Call::import { .. },
-			)
-		)
-	}
-}
-
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -290,8 +211,13 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<TempFixedXcmWeight, RuntimeCall, MaxInstructions>;
-	type Trader =
-		UsingComponents<WeightToFee, DotLocation, AccountId, Balances, ToStakingPot<Runtime>>;
+	type Trader = UsingComponents<
+		WeightToFee,
+		DotLocation,
+		AccountId,
+		Balances,
+		ResolveTo<StakingPot, Balances>,
+	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
@@ -306,8 +232,8 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
-	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
-	type SafeCallFilter = SafeCallFilter;
+	type CallDispatcher = RuntimeCall;
+	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
@@ -333,10 +259,9 @@ impl pallet_xcm::Config for Runtime {
 	// We only allow the Fellows to send messages.
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, FellowsToPlurality>;
 	type XcmRouter = XcmRouter;
-	// We support local origins dispatching XCM executions in principle...
+	// Anyone can execute XCM messages locally.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
-	// ... but disallow generic XCM execution. As a result only teleports are allowed.
-	type XcmExecuteFilter = Nothing;
+	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Everything;
 	type XcmReserveTransferFilter = Nothing; // This parachain is not meant as a reserve location.

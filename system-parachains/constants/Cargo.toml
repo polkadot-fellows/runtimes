@@ -11,15 +11,15 @@ license.workspace = true
 smallvec = { workspace = true }
 
 frame-support = { workspace = true }
-kusama-runtime-constants = { path = "../../relay/kusama/constants", default-features = false}
+kusama-runtime-constants = { workspace = true }
 parachains-common = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
-polkadot-runtime-constants = { path = "../../relay/polkadot/constants", default-features = false}
+polkadot-runtime-constants = { workspace = true }
 sp-runtime = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"frame-support/std",
 	"kusama-runtime-constants/std",

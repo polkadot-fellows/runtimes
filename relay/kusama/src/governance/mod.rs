@@ -51,12 +51,12 @@ impl pallet_conviction_voting::Config for Runtime {
 
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
-	pub const SubmissionDeposit: Balance = 1 * QUID;
+	pub const SubmissionDeposit: Balance = QUID;
 	pub const UndecidingTimeout: BlockNumber = 14 * DAYS;
 }
 
 parameter_types! {
-	pub const MaxBalance: Balance = Balance::max_value();
+	pub const MaxBalance: Balance = Balance::MAX;
 }
 pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>, Spender>;
 

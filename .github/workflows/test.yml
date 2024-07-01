@@ -1,5 +1,8 @@
 name: "Test all features"
 
+# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# which is located at the end of this file (more info in the job)
+
 on:
   push:
     branches: ["main", "release-*"]
@@ -12,6 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -38,6 +42,7 @@ jobs:
           echo $TASKS
           echo "itest=$TASKS" >> $GITHUB_OUTPUT
 
+  # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
     continue-on-error: true
@@ -84,16 +89,17 @@ jobs:
           shared-key: "fellowship-cache-tests"
 
       - name: Test ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=try-runtime
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
       - name: Test all features ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features=runtime-benchmarks,try-runtime
+        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+  # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
     continue-on-error: true
@@ -144,6 +150,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 
+  # Job required by "confirmTestPassed"
   build-chain-spec-generator:
     runs-on: ubuntu-latest
     steps:
@@ -189,3 +196,71 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+
+  # Job required by "confirmTestPassed"
+  zombienet-smoke:
+    needs: [build-chain-spec-generator]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
+
+      - name: Free space on the runner
+        run: |
+          df -h
+          sudo apt -y autoremove --purge
+          sudo apt -y autoclean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        run: |
+          rustup install $RUST_STABLE_VERSION
+          rustup default $RUST_STABLE_VERSION
+          rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-integration-tests"
+
+      - name: Build
+        run: |
+          cargo build -p chain-spec-generator --features fast-runtime --release --locked
+
+      - name: Zombienet smoke test
+        timeout-minutes: 20
+        run: |
+          export PATH=$(pwd)/target/release:$PATH
+          cargo test --manifest-path integration-tests/zombienet/Cargo.toml
+
+  # This will only run if all the tests in its "needs" array passed.
+  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # it will still require all the steps to succeed.
+  # If you add more jobs, remember to add them to the "needs" array.
+  confirmTestPassed:
+    runs-on: ubuntu-latest
+    name: All tests passed
+    # If any new job gets added, be sure to add it to this list
+    needs:
+      - runtime-test
+      - integration-test
+      - build-chain-spec-generator
+      - zombienet-smoke
+    steps:
+      - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

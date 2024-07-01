@@ -16,13 +16,12 @@
 //! Almost identical to ../asset-hubs/asset-hub-kusama
 
 use super::{
-	AccountId, Balances, FeesToTreasury, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
+	AccountId, Balances, CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
 	RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Everything, Nothing},
-	weights::Weight,
+	traits::{tokens::imbalance::ResolveTo, Contains, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -51,6 +50,7 @@ parameter_types! {
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub UniversalLocation: InteriorLocation =
 	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
@@ -112,6 +112,7 @@ parameter_types! {
 }
 
 pub struct ParentOrParentsPlurality;
+
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
 		matches!(location.unpack(), (1, []) | (1, [Plurality { .. }]))
@@ -144,15 +145,6 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
-pub struct SafeCallFilter;
-impl frame_support::traits::Contains<RuntimeCall> for SafeCallFilter {
-	fn contains(_call: &RuntimeCall) -> bool {
-		// This is safe, as we prevent arbitrary xcm-transact executions.
-		// For rationale, see:https://github.com/paritytech/polkadot/blob/19fdd197aff085f7f66e54942999fd536e7df475/runtime/kusama/src/xcm_config.rs#L171
-		true
-	}
-}
-
 parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub const KsmRelayLocation: Location = Location::parent();
@@ -163,6 +155,7 @@ parameter_types! {
 pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
 
 pub struct XcmConfig;
+
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
@@ -173,9 +166,13 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	// `FeesToTreasury` is an encointer adaptation
-	type Trader =
-		UsingComponents<WeightToFee, KsmLocation, AccountId, Balances, FeesToTreasury<Runtime>>;
+	type Trader = UsingComponents<
+		WeightToFee,
+		KsmLocation,
+		AccountId,
+		Balances,
+		ResolveTo<StakingPot, Balances>,
+	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
@@ -188,7 +185,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = SafeCallFilter;
+	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 }
@@ -216,11 +213,9 @@ impl pallet_xcm::Config for Runtime {
 	// We want to disallow users sending (arbitrary) XCMs from this chain.
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, ()>;
 	type XcmRouter = XcmRouter;
-	// We support local origins dispatching XCM executions in principle...
+	// Anyone can execute XCM messages locally.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
-	// ... but disallow generic XCM execution. As a result only teleports and reserve transfers are
-	// allowed.
-	type XcmExecuteFilter = Nothing;
+	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Everything;
 	type XcmReserveTransferFilter = Everything;

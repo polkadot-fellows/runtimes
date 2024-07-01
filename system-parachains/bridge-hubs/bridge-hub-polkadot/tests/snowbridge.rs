@@ -249,7 +249,7 @@ pub fn send_transfer_token_message_failure<Runtime, XcmConfig>(
 						exchange_rate: FixedU128::from_rational(1, 75),
 						fee_per_gas: gwei(20),
 						rewards: Rewards {
-							local: (1 * UNITS / 100).into(), // 0.01 DOT
+							local: (UNITS / 100).into(), // 0.01 DOT
 							remote: meth(1),
 						},
 						multiplier: FixedU128::from_rational(1, 1),
@@ -328,6 +328,7 @@ fn construct_extrinsic(
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
 		(RefundBridgeHubKusamaMessages::default()),
+		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
 	let signature = payload.using_encoded(|e| sender.sign(e));

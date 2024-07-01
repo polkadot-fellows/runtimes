@@ -24,6 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod impls;
 mod weights;
 pub mod xcm_config;
 
@@ -59,8 +60,8 @@ use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
-		ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter,
-		TransformOrigin, WithdrawReasons,
+		ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg,
+		Equals, InstanceFilter, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -69,11 +70,10 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use pallet_asset_conversion_tx_payment::AssetConversionAdapter;
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance,
-	BlockNumber, Hash, Header, Nonce, Signature,
+	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
+	Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
@@ -112,10 +112,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_006,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 14,
+	transaction_version: 15,
 	state_version: 1,
 };
 
@@ -128,10 +128,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_006,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 14,
+	transaction_version: 15,
 	state_version: 0,
 };
 
@@ -254,12 +254,16 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
 	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
+		NativeAndAssets,
+		KsmLocationV3,
+		ResolveAssetTo<StakingPot, NativeAndAssets>,
+	>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -279,6 +283,27 @@ parameter_types! {
 /// We allow root to execute privileged asset operations.
 pub type AssetsForceOrigin = EnsureRoot<AccountId>;
 
+/// Ensure that the proposed asset id is less than `50_000_000` and origin is signed.
+pub struct EnsureLessThanAutoIncrement;
+impl EnsureOriginWithArg<RuntimeOrigin, AssetIdForTrustBackedAssets>
+	for EnsureLessThanAutoIncrement
+{
+	type Success = AccountId;
+	fn try_origin(
+		o: RuntimeOrigin,
+		a: &AssetIdForTrustBackedAssets,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		if *a >= 50_000_000 {
+			return Err(o);
+		}
+		<EnsureSigned<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_origin(o)
+	}
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_a: &AssetIdForTrustBackedAssets) -> Result<RuntimeOrigin, ()> {
+		<EnsureSigned<AccountId> as EnsureOrigin<RuntimeOrigin>>::try_successful_origin()
+	}
+}
+
 // Called "Trust Backed" assets because these are generally registered by some account, and users of
 // the asset assume it has some claimed backing. The pallet is called `Assets` in
 // `construct_runtime` to avoid breaking changes on storage reads.
@@ -290,7 +315,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type AssetId = AssetIdForTrustBackedAssets;
 	type AssetIdParameter = codec::Compact<AssetIdForTrustBackedAssets>;
 	type Currency = Balances;
-	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
+	type CreateOrigin = EnsureLessThanAutoIncrement;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = AssetDeposit;
 	type MetadataDepositBase = MetadataDepositBase;
@@ -807,7 +832,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = LocalAndForeignAssets;
 	type OnChargeAssetTransaction =
-		AssetConversionAdapter<Balances, AssetConversion, KsmLocationV3>;
+		impls::tx_payment::SwapCreditAdapter<KsmLocationV3, AssetConversion>;
 }
 
 parameter_types! {
@@ -859,7 +884,7 @@ impl pallet_nft_fractionalization::Config for Runtime {
 	type Assets = Assets;
 	type Nfts = Nfts;
 	type PalletId = NftFractionalizationPalletId;
-	type WeightInfo = pallet_nft_fractionalization::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::pallet_nft_fractionalization::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -1007,6 +1032,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -1019,6 +1045,7 @@ parameter_types! {
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
+	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -1722,7 +1749,6 @@ fn ensure_key_ss58() {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{CENTS, MILLICENTS};
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
 	use system_parachains_constants::kusama::fee;

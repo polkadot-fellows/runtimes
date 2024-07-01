@@ -17,7 +17,6 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::{xcm_config::MaxAssetsIntoHolding, Runtime};
-use frame_support::weights::Weight;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmFungibleWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
 use sp_std::prelude::*;
@@ -60,10 +59,8 @@ impl<Call> XcmWeightInfo<Call> for PeopleKusamaXcmWeight<Call> {
 	fn withdraw_asset(assets: &Assets) -> Weight {
 		assets.weigh_assets(XcmFungibleWeight::<Runtime>::withdraw_asset())
 	}
-	// Currently there is no trusted reserve
-	fn reserve_asset_deposited(_assets: &Assets) -> Weight {
-		// TODO: hardcoded - fix https://github.com/paritytech/cumulus/issues/1974
-		Weight::from_parts(1_000_000_000_u64, 0)
+	fn reserve_asset_deposited(assets: &Assets) -> Weight {
+		assets.weigh_assets(XcmFungibleWeight::<Runtime>::reserve_asset_deposited())
 	}
 	fn receive_teleported_asset(assets: &Assets) -> Weight {
 		assets.weigh_assets(XcmFungibleWeight::<Runtime>::receive_teleported_asset())
