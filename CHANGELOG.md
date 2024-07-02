@@ -47,7 +47,6 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Fixed
 
 - Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
-- Kusama People: adds the calculation of the MetadataHash upon build to be used on CheckMetadata SignedExtension ([polkadot-fellows/runtimes#371](https://github.com/polkadot-fellows/runtimes/pull/371))
 
 ### Changed
 
