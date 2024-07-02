@@ -754,8 +754,8 @@ type Migrations = (
 	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
 	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, AmbassadorCoreInstance>,
-	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, FellowshipCoreInstance>,
+	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, ambassador::AmbassadorCoreInstance>,
+	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, fellowship::FellowshipCoreInstance>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
