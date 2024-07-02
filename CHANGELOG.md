@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
 
+### Fixed
+
+- Kusama People: Build the metadata hash at build time, so that `CheckMetadata` can use it at runtime ([polkadot-fellows/runtimes#371](https://github.com/polkadot-fellows/runtimes/pull/371))
+
 ## [1.2.7] 14.06.2024
 
 Note: This release only affects the following runtimes and is not a full system release:
