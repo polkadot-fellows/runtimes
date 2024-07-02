@@ -45,7 +45,18 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_staking`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {	
+	fn restore_ledger() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1014`
+		//  Estimated: `4764`
+		// Minimum execution time: 40_258_000 picoseconds.
+		Weight::from_parts(41_210_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
+
 	/// Storage: `Staking::Bonded` (r:1 w:1)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Locks` (r:1 w:1)
@@ -793,25 +804,5 @@ impl<T: frame_system::Config> pallet_staking::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(2_079_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: `Balances::Locks` (r:1 w:1)
-	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
-	/// Storage: `System::Account` (r:1 w:1)
-	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Bonded` (r:1 w:1)
-	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Ledger` (r:1 w:1)
-	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
-	/// Storage: `Balances::Freezes` (r:1 w:0)
-	/// Proof: `Balances::Freezes` (`max_values`: None, `max_size`: Some(67), added: 2542, mode: `MaxEncodedLen`)
-	fn restore_ledger() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `1014`
-		//  Estimated: `4764`
-		// Minimum execution time: 40_258_000 picoseconds.
-		Weight::from_parts(41_210_000, 0)
-			.saturating_add(Weight::from_parts(0, 4764))
-			.saturating_add(T::DbWeight::get().reads(5))
-			.saturating_add(T::DbWeight::get().writes(4))
 	}
 }

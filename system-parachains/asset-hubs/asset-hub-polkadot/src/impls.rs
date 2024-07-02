@@ -17,12 +17,13 @@ use crate::*;
 
 // TODO: the types in the module copied from the PR: https://github.com/paritytech/polkadot-sdk/pull/3250
 // and should be removed when changes from the PR will get released.
+// FAIL-CI @muharem please delete
 pub(crate) mod pool {
 	use super::*;
 	use core::marker::PhantomData;
 	use pallet_asset_conversion::PoolLocator;
 	use sp_core::Get;
-	use sp_runtime::traits::{TrailingZeroInput, TryConvert};
+	use sp_runtime::traits::TryConvert;
 
 	/// Pool locator that mandates the inclusion of the specified `FirstAsset` in every asset pair.
 	///
@@ -55,20 +56,6 @@ pub(crate) mod pool {
 		}
 		fn address(id: &(AssetKind, AssetKind)) -> Result<AccountId, ()> {
 			AccountIdConverter::try_convert(id).map_err(|_| ())
-		}
-	}
-
-	/// `PoolId` to `AccountId` conversion.
-	pub struct AccountIdConverter<Seed, PoolId>(PhantomData<(Seed, PoolId)>);
-	impl<Seed, PoolId, AccountId> TryConvert<&PoolId, AccountId> for AccountIdConverter<Seed, PoolId>
-	where
-		PoolId: Encode,
-		AccountId: Decode,
-		Seed: Get<PalletId>,
-	{
-		fn try_convert(id: &PoolId) -> Result<AccountId, &PoolId> {
-			sp_io::hashing::blake2_256(&Encode::encode(&(Seed::get(), id))[..])
-				.using_encoded(|e| Decode::decode(&mut TrailingZeroInput::new(e)).map_err(|_| id))
 		}
 	}
 }

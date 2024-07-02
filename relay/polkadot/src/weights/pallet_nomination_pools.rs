@@ -88,6 +88,45 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 			.saturating_add(T::DbWeight::get().reads(20))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
+	fn apply_slash() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3328`
+		//  Estimated: `4556`
+		// Minimum execution time: 99_605_000 picoseconds.
+		Weight::from_parts(101_986_000, 0)
+			.saturating_add(Weight::from_parts(0, 4556))
+			.saturating_add(T::DbWeight::get().reads(9))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
+	fn apply_slash_fail() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3070`
+		//  Estimated: `4556`
+		// Minimum execution time: 58_103_000 picoseconds.
+		Weight::from_parts(59_680_000, 0)
+			.saturating_add(Weight::from_parts(0, 4556))
+			.saturating_add(T::DbWeight::get().reads(7))
+	}
+	fn pool_migrate() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1359`
+		//  Estimated: `6196`
+		// Minimum execution time: 144_098_000 picoseconds.
+		Weight::from_parts(146_590_000, 0)
+			.saturating_add(Weight::from_parts(0, 6196))
+			.saturating_add(T::DbWeight::get().reads(16))
+			.saturating_add(T::DbWeight::get().writes(11))
+	}
+	fn migrate_delegation() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `2275`
+		//  Estimated: `6180`
+		// Minimum execution time: 148_594_000 picoseconds.
+		Weight::from_parts(152_119_000, 0)
+			.saturating_add(Weight::from_parts(0, 6180))
+			.saturating_add(T::DbWeight::get().reads(15))
+			.saturating_add(T::DbWeight::get().writes(6))
+	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
 	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::BondedPools` (r:1 w:1)

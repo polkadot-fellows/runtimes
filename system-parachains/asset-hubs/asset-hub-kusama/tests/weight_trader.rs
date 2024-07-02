@@ -54,7 +54,7 @@ const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
 type AssetIdForTrustBackedAssetsConvertLatest =
-	assets_common::AssetIdForTrustBackedAssetsConvertLatest<TrustBackedAssetsPalletLocation>;
+	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
 
 #[test]
 fn test_asset_xcm_trader() {
@@ -469,6 +469,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let native_location = KsmLocationV3::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
 				TrustBackedAssetsPalletLocationV3,
+				xcm::v3::Location,
 			>::convert_back(&asset_1)
 			.unwrap();
 			// bob's initial balance for native and `asset1` assets.

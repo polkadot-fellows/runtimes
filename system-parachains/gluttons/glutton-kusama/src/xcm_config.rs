@@ -61,6 +61,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = (); // sending XCM not supported
+	type XcmRecorder = ();
 	type AssetTransactor = (); // balances not supported
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = (); // balances not supported
@@ -84,6 +85,9 @@ impl xcm_executor::Config for XcmConfig {
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
+	type HrmpNewChannelOpenRequestHandler = ();
+	type HrmpChannelAcceptedHandler = ();
+	type HrmpChannelClosingHandler = ();
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {

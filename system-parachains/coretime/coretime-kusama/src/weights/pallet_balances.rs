@@ -149,6 +149,23 @@ impl<T: frame_system::Config> pallet_balances::WeightInfo for WeightInfo<T> {
 	}
 	/// Storage: `Balances::InactiveIssuance` (r:1 w:0)
 	/// Proof: `Balances::InactiveIssuance` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
+	fn burn_allow_death() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 27_491_000 picoseconds.
+		Weight::from_parts(28_444_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+	fn burn_keep_alive() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 18_290_000 picoseconds.
+		Weight::from_parts(19_227_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+
 	fn force_adjust_total_issuance() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`

@@ -43,14 +43,14 @@ use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
 };
 use xcm::latest::prelude::{Assets as XcmAssets, *};
-use xcm_builder::V4V3LocationConverter;
+use xcm_builder::WithLatestLocationConverter;
 use xcm_executor::traits::{ConvertLocation, JustTry};
 
 const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 type AssetIdForTrustBackedAssetsConvertLatest =
-	assets_common::AssetIdForTrustBackedAssetsConvertLatest<TrustBackedAssetsPalletLocation>;
+	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
@@ -241,7 +241,7 @@ fn test_assets_balances_api_works() {
 				.into())));
 			// check foreign asset
 			assert!(result.inner().iter().any(|asset| asset.eq(&(
-				V4V3LocationConverter::convert_back(&foreign_asset_id_location).unwrap(),
+				WithLatestLocationConverter::convert_back(&foreign_asset_id_location).unwrap(),
 				6 * foreign_asset_minimum_asset_balance
 			)
 				.into())));
@@ -354,7 +354,7 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
 	xcm::v3::Location,
-	V4V3LocationConverter,
+	WithLatestLocationConverter<xcm::v3::Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	AssetDeposit::get(),
