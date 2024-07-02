@@ -38,6 +38,8 @@ jobs:
           github.event.sender.login == github.event.pull_request.user.login && 
           !contains(steps.fellows.outputs.github-handles, github.event.pull_request.user.login)
         run: |
+          echo ${{github.event.pull_request.user.login}}
+          echo ${{steps.fellows.outputs.github-handles}}
           # We get the list of reviewers who approved the PR
           REVIEWERS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
           --jq '{reviewers: [.[] | select(.state == "APPROVED") | .user.login]}')
