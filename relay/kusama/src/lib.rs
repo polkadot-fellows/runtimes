@@ -1341,7 +1341,7 @@ parameter_types! {
 	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
 		250 * WEIGHT_REF_TIME_PER_MICROS,
 		20 * WEIGHT_PROOF_SIZE_PER_KB
-	); // FAIL-CI @donal need to check it this is sensible.
+	);
 }
 
 impl coretime::Config for Runtime {

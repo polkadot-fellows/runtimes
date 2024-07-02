@@ -9,10 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Updated SDK from 1.8 to to 1.13 ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
+- Updated runtime APIs `Core`, `NominationPoolsApi`, `ParachainHost`, `BeefyApi`, `GenesisBuilder` ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
 
 ### Added
 
-- Kusama system chains: enable PoV-reclaim 
+- Support for HRMP channel requested/accepted/closed hooks in the XCM Executor ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
+- Support for Multi-Block-Migrations ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
+- Kusama system chains: enable PoV-reclaim ([polkadot-fellows/runtimes#322](https://github.com/polkadot-fellows/runtimes/pull/322)).
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
 
 ## [1.2.7] 14.06.2024
