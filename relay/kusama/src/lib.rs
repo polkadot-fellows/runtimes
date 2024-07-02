@@ -2193,6 +2193,7 @@ pub mod migrations {
 		clear_judgement_proxies::Migration,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
+		parachains_inclusion::migration::MigrateToV1<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
