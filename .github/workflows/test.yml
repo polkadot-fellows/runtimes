@@ -51,11 +51,6 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
