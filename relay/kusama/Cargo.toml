@@ -72,6 +72,7 @@ pallet-session = { workspace = true }
 pallet-society = { workspace = true }
 frame-support = { features = ["tuples-96"], workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-reward-fn = { workspace = true }
 pallet-staking-runtime-api = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
@@ -171,6 +172,7 @@ std = [
 	"pallet-session/std",
 	"pallet-society/std",
 	"pallet-staking-runtime-api/std",
+	"pallet-staking-reward-fn/std",
 	"pallet-staking/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",

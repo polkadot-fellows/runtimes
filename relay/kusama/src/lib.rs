@@ -22,6 +22,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use pallet_nis::WithMaximumOf;
+use pallet_staking_reward_fn::compute_inflation;
 use polkadot_primitives::{
 	slashing,
 	vstaging::{ApprovalVotingParams, NodeFeatures},
@@ -43,6 +44,7 @@ use polkadot_runtime_common::{
 	U256ToBalance,
 };
 use scale_info::TypeInfo;
+use sp_runtime::traits::Saturating;
 use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
 
 use runtime_parachains::{
@@ -682,14 +684,72 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		polkadot_runtime_common::impls::era_payout(
+		let use_auctioned_slots = todo!("should come from pallet parameters as well");
+		let params = EraPayoutParams {
 			total_staked,
-			Nis::issuance().other,
-			MAX_ANNUAL_INFLATION,
-			Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
-			auctioned_slots,
-		)
+			total_stakable: Nis::issuance().other,
+			ideal_stake: todo!("must come from pallet parameters, and default set to 75%"),
+			max_annual_inflation: todo!("must come from pallet parameters, and default set to 10%"),
+			min_annual_inflation: todo!(
+				"must come from pallet parameters, and default set to 2.5%"
+			),
+			falloff: todo!("must come from pallet parameters, and default set to 5%"),
+			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
+			legacy_auction_proportion: if use_auctioned_slots {
+				Some(Perquintill::from_rational(auctioned_slots.min(60), 200))
+			} else {
+				None
+			},
+		};
+		relay_era_payout(params)
+		// TODO: remove pub fn era_payout from polkadot-sdk.
 	}
+}
+
+pub(crate) struct EraPayoutParams {
+	total_staked: Balance,
+	total_stakable: Balance,
+	ideal_stake: Perquintill,
+	max_annual_inflation: Perquintill,
+	min_annual_inflation: Perquintill,
+	falloff: Perquintill,
+	period_fraction: Perquintill,
+	legacy_auction_proportion: Option<Perquintill>,
+}
+
+// TODO: move this to a shared create between both relays.
+pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
+	let EraPayoutParams {
+		total_staked,
+		total_stakable,
+		ideal_stake,
+		max_annual_inflation,
+		min_annual_inflation,
+		falloff,
+		period_fraction,
+		legacy_auction_proportion,
+	} = params;
+
+	let delta_annual_inflation = max_annual_inflation.saturating_sub(min_annual_inflation);
+
+	let ideal_stake = ideal_stake.saturating_sub(legacy_auction_proportion.unwrap_or_default());
+
+	let stake = Perquintill::from_rational(total_staked, total_stakable);
+	let adjustment = compute_inflation(stake, ideal_stake, falloff);
+	let staking_inflation =
+		min_annual_inflation.saturating_add(delta_annual_inflation * adjustment);
+
+	let max_payout = period_fraction * max_annual_inflation * total_stakable;
+	let staking_payout = (period_fraction * staking_inflation) * total_stakable;
+	let rest = max_payout.saturating_sub(staking_payout);
+
+	let other_issuance = total_stakable.saturating_sub(total_staked);
+	if total_staked > other_issuance {
+		let _cap_rest = Perquintill::from_rational(other_issuance, total_staked) * staking_payout;
+		// We don't do anything with this, but if we wanted to, we could introduce a cap on the
+		// treasury amount with: `rest = rest.min(cap_rest);`
+	}
+	(staking_payout, rest)
 }
 
 parameter_types! {
