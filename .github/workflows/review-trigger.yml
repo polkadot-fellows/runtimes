@@ -10,6 +10,8 @@ on:
       - review_request_removed
       - ready_for_review
   pull_request_review:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   trigger-review-bot:
