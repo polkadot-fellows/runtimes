@@ -2191,6 +2191,7 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		clear_judgement_proxies::Migration,
+		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
