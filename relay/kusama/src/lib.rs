@@ -2159,37 +2159,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		frame_support::migrations::RemovePallet<StateTrieMigrationName, RocksDbWeight>,
-		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
-		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
-		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
-		parachains_configuration::migration::v11::MigrateToV11<Runtime>,
-		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
-		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
-		// Migrate from legacy lease to coretime. Needs to run after configuration v11
-		coretime::migration::MigrateToCoretime<
-			Runtime,
-			crate::xcm_config::XcmRouter,
-			GetLegacyLeaseImpl,
-		>,
-		EnableElasticScalingNodeFeature,
-		// Upgrade `SessionKeys` to exclude `ImOnline`
-		UpgradeSessionKeys,
-		// Remove `im-online` pallet on-chain storage
-		frame_support::migrations::RemovePallet<
-			ImOnlinePalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		CancelAuctions,
-		// Remove `identity` and `identity-migrator`.
-		frame_support::migrations::RemovePallet<
-			IdentityPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		frame_support::migrations::RemovePallet<
-			IdentityMigratorPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
 		clear_judgement_proxies::Migration,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
