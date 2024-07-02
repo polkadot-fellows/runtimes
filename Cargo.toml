@@ -234,6 +234,7 @@ xcm = { version = "14.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "14.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.12.0" }
 xcm-executor = { version = "14.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-fee-payment-runtime-api = { version = "0.4.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }

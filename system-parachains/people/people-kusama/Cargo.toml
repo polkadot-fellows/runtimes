@@ -61,6 +61,7 @@ kusama-runtime-constants = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 # Cumulus
 cumulus-primitives-aura = { workspace = true }
@@ -143,7 +144,8 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"polkadot-primitives/std"
+	"polkadot-primitives/std",
+	"xcm-fee-payment-runtime-api/std",
 ]
 
 runtime-benchmarks = [
@@ -172,7 +174,8 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks"
+	"polkadot-primitives/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 
 try-runtime = [
