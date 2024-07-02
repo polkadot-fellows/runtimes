@@ -1,0 +1,140 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 3873911e9..69bcc63be 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -10914,6 +10914,7 @@ dependencies = [
+  "pallet-staking-reward-fn",
+  "pallet-staking-runtime-api",
+  "pallet-state-trie-migration",
++ "pallet-sudo",
+  "pallet-timestamp",
+  "pallet-transaction-payment",
+  "pallet-transaction-payment-rpc-runtime-api",
+@@ -16003,6 +16004,7 @@ dependencies = [
+  "pallet-society",
+  "pallet-staking",
+  "pallet-staking-runtime-api",
++ "pallet-sudo",
+  "pallet-timestamp",
+  "pallet-transaction-payment",
+  "pallet-transaction-payment-rpc-runtime-api",
+diff --git a/chain-spec-generator/src/relay_chain_specs.rs b/chain-spec-generator/src/relay_chain_specs.rs
+index e8c2fa3c8..3b90f7a54 100644
+--- a/chain-spec-generator/src/relay_chain_specs.rs
++++ b/chain-spec-generator/src/relay_chain_specs.rs
+@@ -223,6 +223,9 @@ pub fn polkadot_testnet_genesis(
+ 				})
+ 				.collect::<Vec<_>>(),
+ 		},
++		"sudo": {
++			"key": Some(_root_key),
++		},
+ 		"staking": {
+ 			"minimumValidatorCount": 1,
+ 			"validatorCount": initial_authorities.len() as u32,
+@@ -286,6 +289,9 @@ pub fn kusama_testnet_genesis(
+ 				})
+ 				.collect::<Vec<_>>(),
+ 		},
++		"sudo": {
++			"key": Some(_root_key),
++		},
+ 		"staking": {
+ 			"minimumValidatorCount": 1,
+ 			"validatorCount": initial_authorities.len() as u32,
+diff --git a/relay/kusama/Cargo.toml b/relay/kusama/Cargo.toml
+index 9f4601f92..9785cb124 100644
+--- a/relay/kusama/Cargo.toml
++++ b/relay/kusama/Cargo.toml
+@@ -104,6 +104,8 @@ xcm-builder = { workspace = true }
+ 
+ sp-debug-derive = { workspace = true }
+ 
++pallet-sudo = { workspace = true }
++
+ [dev-dependencies]
+ sp-keyring = { workspace = true }
+ sp-trie = { workspace = true }
+@@ -174,6 +176,7 @@ std = [
+ 	"pallet-society/std",
+ 	"pallet-staking-runtime-api/std",
+ 	"pallet-staking/std",
++	"pallet-sudo/std",
+ 	"pallet-timestamp/std",
+ 	"pallet-transaction-payment-rpc-runtime-api/std",
+ 	"pallet-transaction-payment/std",
+diff --git a/relay/kusama/src/lib.rs b/relay/kusama/src/lib.rs
+index 05724aee5..7d8f60205 100644
+--- a/relay/kusama/src/lib.rs
++++ b/relay/kusama/src/lib.rs
+@@ -1641,6 +1641,12 @@ impl pallet_im_online::Config for Runtime {
+ 	type ValidatorSet = Historical;
+ }
+ 
++impl pallet_sudo::Config for Runtime {
++	type RuntimeEvent = RuntimeEvent;
++	type RuntimeCall = RuntimeCall;
++	type WeightInfo = ();
++}
++
+ construct_runtime! {
+ 	pub enum Runtime
+ 	{
+@@ -1771,6 +1777,9 @@ construct_runtime! {
+ 
+ 		// Pallet for migrating Identity to a parachain. To be removed post-migration.
+ 		IdentityMigrator: identity_migrator = 248,
++
++		// Sudo.
++		Sudo: pallet_sudo = 255,
+ 	}
+ }
+ 
+diff --git a/relay/polkadot/Cargo.toml b/relay/polkadot/Cargo.toml
+index c7f8c92b6..53c87f0e8 100644
+--- a/relay/polkadot/Cargo.toml
++++ b/relay/polkadot/Cargo.toml
+@@ -101,6 +101,8 @@ xcm-builder = { workspace = true }
+ 
+ sp-debug-derive = { workspace = true }
+ 
++pallet-sudo = { workspace = true }
++
+ [dev-dependencies]
+ sp-keyring = { workspace = true }
+ sp-trie = { workspace = true }
+@@ -168,6 +170,7 @@ std = [
+ 	"pallet-staking-runtime-api/std",
+ 	"pallet-staking/std",
+ 	"pallet-state-trie-migration/std",
++	"pallet-sudo/std",
+ 	"pallet-timestamp/std",
+ 	"pallet-transaction-payment-rpc-runtime-api/std",
+ 	"pallet-transaction-payment/std",
+diff --git a/relay/polkadot/src/lib.rs b/relay/polkadot/src/lib.rs
+index b31948725..39d62fe20 100644
+--- a/relay/polkadot/src/lib.rs
++++ b/relay/polkadot/src/lib.rs
+@@ -1650,6 +1650,12 @@ impl pallet_im_online::Config for Runtime {
+ 	type ValidatorSet = Historical;
+ }
+ 
++impl pallet_sudo::Config for Runtime {
++	type RuntimeEvent = RuntimeEvent;
++	type RuntimeCall = RuntimeCall;
++	type WeightInfo = ();
++}
++
+ construct_runtime! {
+ 	pub enum Runtime
+ 	{
+@@ -1759,6 +1765,9 @@ construct_runtime! {
+ 		// refer to block<N>. See issue #160 for details.
+ 		Mmr: pallet_mmr = 201,
+ 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
++
++		// Sudo.
++		Sudo: pallet_sudo = 255,
+ 	}
+ }
+ 
