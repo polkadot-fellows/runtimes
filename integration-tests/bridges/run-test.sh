@@ -25,8 +25,8 @@ export FRAMEWORK_PATH=$framework_repo_path/bridges/testing/framework
 echo
 
 export ZOMBIENET_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/zombienet
-export POLKADOT_BINARY=/home/serban/workplace/sources/polkadot-sdk/target/release/polkadot
-export POLKADOT_PARACHAIN_BINARY=/home/serban/workplace/sources/polkadot-sdk/target/release/polkadot-parachain
+export POLKADOT_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot
+export POLKADOT_PARACHAIN_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot-parachain
 export CHAIN_SPEC_GEN_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator
 export SUBSTRATE_RELAY_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/substrate-relay
 
