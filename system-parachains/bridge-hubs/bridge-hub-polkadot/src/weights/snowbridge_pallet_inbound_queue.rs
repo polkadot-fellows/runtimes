@@ -19,7 +19,7 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 32.0.0
 //! DATE: 2024-07-01, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `bkontur-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
+//! HOSTNAME: `ggwpez-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
 //! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./bridge-hub-polkadot-chain-spec.json")`, DB CACHE: 1024
 
 // Executed Command:
@@ -67,8 +67,8 @@ impl<T: frame_system::Config> snowbridge_pallet_inbound_queue::WeightInfo for We
 		// Proof Size summary in bytes:
 		//  Measured:  `768`
 		//  Estimated: `4233`
-		// Minimum execution time: 182_992_000 picoseconds.
-		Weight::from_parts(185_132_000, 0)
+		// Minimum execution time: 175_861_000 picoseconds.
+		Weight::from_parts(178_291_000, 0)
 			.saturating_add(Weight::from_parts(0, 4233))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(2))

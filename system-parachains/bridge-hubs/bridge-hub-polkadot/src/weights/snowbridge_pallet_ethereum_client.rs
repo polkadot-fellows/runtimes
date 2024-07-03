@@ -19,7 +19,7 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 32.0.0
 //! DATE: 2024-07-01, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `bkontur-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
+//! HOSTNAME: `ggwpez-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
 //! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./bridge-hub-polkadot-chain-spec.json")`, DB CACHE: 1024
 
 // Executed Command:
@@ -67,8 +67,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `114`
 		//  Estimated: `3501`
-		// Minimum execution time: 132_551_148_000 picoseconds.
-		Weight::from_parts(132_946_741_000, 0)
+		// Minimum execution time: 121_085_131_000 picoseconds.
+		Weight::from_parts(121_259_783_000, 0)
 			.saturating_add(Weight::from_parts(0, 3501))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -89,8 +89,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `92787`
 		//  Estimated: `93857`
-		// Minimum execution time: 34_127_194_000 picoseconds.
-		Weight::from_parts(34_174_254_000, 0)
+		// Minimum execution time: 31_330_152_000 picoseconds.
+		Weight::from_parts(31_359_573_000, 0)
 			.saturating_add(Weight::from_parts(0, 93857))
 			.saturating_add(T::DbWeight::get().reads(6))
 	}
@@ -110,8 +110,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `92787`
 		//  Estimated: `93857`
-		// Minimum execution time: 166_618_111_000 picoseconds.
-		Weight::from_parts(167_329_606_000, 0)
+		// Minimum execution time: 152_429_993_000 picoseconds.
+		Weight::from_parts(152_677_694_000, 0)
 			.saturating_add(Weight::from_parts(0, 93857))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(1))
