@@ -10,6 +10,8 @@ on:
       - review_request_removed
       - ready_for_review
   pull_request_review:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   trigger-review-bot:
@@ -36,7 +38,7 @@ jobs:
           github.event_name == 'pull_request_target' &&
           github.event.action == 'synchronize' && 
           github.event.sender.login == github.event.pull_request.user.login && 
-          contains(steps.fellows.outputs.github-handles, github.event.pull_request.user.login)
+          !contains(steps.fellows.outputs.github-handles, github.event.pull_request.user.login)
         run: |
           # We get the list of reviewers who approved the PR
           REVIEWERS=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
