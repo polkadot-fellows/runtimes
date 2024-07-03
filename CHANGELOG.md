@@ -4,12 +4,22 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.2.8] 03.07.2024
 
 ### Changed
 
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345))
 - Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/365))
+
+Note: This release only affects the following runtimes and is not a full system release:
+
+- Polkadot Relay Chain
+- Polkadot Asset Hub
+- Polkadot Bridge Hub
+- Polkadot Collectives
+- Kusama Relay Chain
+- Kusama Asset Hub
+- Kusama Bridge Hub
 
 ## [1.2.7] 14.06.2024
 
