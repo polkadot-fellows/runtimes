@@ -24,7 +24,7 @@ use pallet_staking::Forcing;
 use polkadot_primitives::{
 	vstaging::{ApprovalVotingParams, NodeFeatures},
 	AccountId, AccountPublic, AssignmentId, AsyncBackingParams, ValidatorId,
-	LEGACY_MIN_BACKING_VOTES, ON_DEMAND_DEFAULT_QUEUE_MAX_SIZE,
+	ON_DEMAND_DEFAULT_QUEUE_MAX_SIZE,
 };
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
@@ -80,7 +80,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
 		minimum_validation_upgrade_delay: 5,
-		dispute_post_conclusion_acceptance_period: 100u32.into(),
+		dispute_post_conclusion_acceptance_period: 100u32,
 		scheduling_lookahead: 1,
 		max_validators_per_core: Default::default(),
 		coretime_cores: Default::default(),
