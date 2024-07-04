@@ -8,87 +8,95 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add `claim_assets` extrinsic to `pallet-xcm` ([SDK v1.9 #3403](https://github.com/paritytech/polkadot-sdk/pull/3403)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add `Deposited`/`Withdrawn` events for `pallet-assets` ([SDK v1.12 #4312](https://github.com/paritytech/polkadot-sdk/pull/4312)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add `MaxRank` Config to `pallet-core-fellowship` ([SDK v1.13 #3393](https://github.com/paritytech/polkadot-sdk/pull/3393)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add Extra Check in Primary Username Setter ([SDK v1.13 #4534](https://github.com/paritytech/polkadot-sdk/pull/4534)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add HRMP notification handlers to the xcm-executor ([SDK v1.10 #3696](https://github.com/paritytech/polkadot-sdk/pull/3696)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add retry mechanics to `pallet-scheduler` ([SDK v1.8 #3060](https://github.com/paritytech/polkadot-sdk/pull/3060)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Add support for versioned notification for HRMP pallet ([SDK v1.12 #4281](https://github.com/paritytech/polkadot-sdk/pull/4281)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Adds ability to trigger tasks via unsigned transactions ([SDK v1.11 #4075](https://github.com/paritytech/polkadot-sdk/pull/4075)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Asset Conversion: Pool Account ID derivation with additional Pallet ID seed ([SDK v1.11 #3250](https://github.com/paritytech/polkadot-sdk/pull/3250)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Asset Conversion: Pool Touch Call ([SDK v1.11 #3251](https://github.com/paritytech/polkadot-sdk/pull/3251)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Balances: add failsafe for consumer ref underflow ([SDK v1.12 #3865](https://github.com/paritytech/polkadot-sdk/pull/3865)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Bridge: added force_set_pallet-state call to pallet-bridge-grandpa ([SDK v1.13 #4465](https://github.com/paritytech/polkadot-sdk/pull/4465)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Burn extrinsic call and `fn burn_from` `Preservation` argument ([SDK v1.12 #3964](https://github.com/paritytech/polkadot-sdk/pull/3964)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] GenesisConfig presets for runtime ([SDK v1.11 #2714](https://github.com/paritytech/polkadot-sdk/pull/2714)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Im-online pallet offchain storage cleanup ([SDK v1.8 #2290](https://github.com/paritytech/polkadot-sdk/pull/2290)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Implements a percentage cap on staking rewards from era inflation ([SDK v1.8 #1660](https://github.com/paritytech/polkadot-sdk/pull/1660)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Introduce submit_finality_proof_ex call to bridges GRANDPA pallet ([SDK v1.8 #3225](https://github.com/paritytech/polkadot-sdk/pull/3225)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] New call `hrmp.establish_channel_with_system` to allow parachains to establish a channel with a system parachain ([SDK v1.11 #3721](https://github.com/paritytech/polkadot-sdk/pull/3721)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] New runtime api to check if a validator has pending pages of rewards for an era ([SDK v1.12 #4301](https://github.com/paritytech/polkadot-sdk/pull/4301)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Kusama system chains: enable PoV-reclaim.
+
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+
+- Add `claim_assets` extrinsic to `pallet-xcm` ([SDK v1.9 #3403](https://github.com/paritytech/polkadot-sdk/pull/3403)).
+- Add `Deposited`/`Withdrawn` events for `pallet-assets` ([SDK v1.12 #4312](https://github.com/paritytech/polkadot-sdk/pull/4312)).
+- Add `MaxRank` Config to `pallet-core-fellowship` ([SDK v1.13 #3393](https://github.com/paritytech/polkadot-sdk/pull/3393)).
+- Add Extra Check in Primary Username Setter ([SDK v1.13 #4534](https://github.com/paritytech/polkadot-sdk/pull/4534)).
+- Add HRMP notification handlers to the xcm-executor ([SDK v1.10 #3696](https://github.com/paritytech/polkadot-sdk/pull/3696)).
+- Add retry mechanics to `pallet-scheduler` ([SDK v1.8 #3060](https://github.com/paritytech/polkadot-sdk/pull/3060)).
+- Add support for versioned notification for HRMP pallet ([SDK v1.12 #4281](https://github.com/paritytech/polkadot-sdk/pull/4281)).
+- Adds ability to trigger tasks via unsigned transactions ([SDK v1.11 #4075](https://github.com/paritytech/polkadot-sdk/pull/4075)).
+- Asset Conversion: Pool Account ID derivation with additional Pallet ID seed ([SDK v1.11 #3250](https://github.com/paritytech/polkadot-sdk/pull/3250)).
+- Asset Conversion: Pool Touch Call ([SDK v1.11 #3251](https://github.com/paritytech/polkadot-sdk/pull/3251)).
+- Balances: add failsafe for consumer ref underflow ([SDK v1.12 #3865](https://github.com/paritytech/polkadot-sdk/pull/3865)).
+- Bridge: added force_set_pallet-state call to pallet-bridge-grandpa ([SDK v1.13 #4465](https://github.com/paritytech/polkadot-sdk/pull/4465)).
+- Burn extrinsic call and `fn burn_from` `Preservation` argument ([SDK v1.12 #3964](https://github.com/paritytech/polkadot-sdk/pull/3964)).
+- GenesisConfig presets for runtime ([SDK v1.11 #2714](https://github.com/paritytech/polkadot-sdk/pull/2714)).
+- Im-online pallet offchain storage cleanup ([SDK v1.8 #2290](https://github.com/paritytech/polkadot-sdk/pull/2290)).
+- Implements a percentage cap on staking rewards from era inflation ([SDK v1.8 #1660](https://github.com/paritytech/polkadot-sdk/pull/1660)).
+- Introduce submit_finality_proof_ex call to bridges GRANDPA pallet ([SDK v1.8 #3225](https://github.com/paritytech/polkadot-sdk/pull/3225)).
+- New call `hrmp.establish_channel_with_system` to allow parachains to establish a channel with a system parachain ([SDK v1.11 #3721](https://github.com/paritytech/polkadot-sdk/pull/3721)).
+- New runtime api to check if a validator has pending pages of rewards for an era ([SDK v1.12 #4301](https://github.com/paritytech/polkadot-sdk/pull/4301)).
+- Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
+- Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
+- Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
+- Kusama system chains: enable PoV-reclaim.
 - [[#345](https://github.com/polkadot-fellows/runtimes/pull/345)] Polkadot chains: allow arbitrary XCM execution.
 
 ### Changed
 
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Allow StakingAdmin to manage nomination pool configurations ([SDK v1.11 #3959](https://github.com/paritytech/polkadot-sdk/pull/3959)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Bridge: make some headers submissions free ([SDK v1.12 #4102](https://github.com/paritytech/polkadot-sdk/pull/4102)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Improving on_demand_assigner emitted events ([SDK v1.13 #4339](https://github.com/paritytech/polkadot-sdk/pull/4339)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] `pallet-broker::start_sales`: Take `extra_cores` and not total cores ([SDK v1.11 #4221](https://github.com/paritytech/polkadot-sdk/pull/4221)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-nomination-pools: `chill` is permissionless if depositor's stake is less than `min_nominator_bond` ([SDK v1.9 #3453](https://github.com/paritytech/polkadot-sdk/pull/3453)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] `polkadot_runtime_parachains::coretime`: Expose `MaxXcmTransactWeight` ([SDK v1.11 #4189](https://github.com/paritytech/polkadot-sdk/pull/4189)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pools: Make PermissionlessWithdraw the default claim permission ([SDK v1.10 #3438](https://github.com/paritytech/polkadot-sdk/pull/3438)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Prevents staking controllers from becoming stashes of different ledgers; Ensures that no ledger in bad state is mutated ([SDK v1.9 #3639](https://github.com/paritytech/polkadot-sdk/pull/3639)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Snowbridge: deposit extra fee to beneficiary on Asset Hub ([SDK v1.12 #4175](https://github.com/paritytech/polkadot-sdk/pull/4175)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Storage bound the XCMP queue pallet ([SDK v1.13 #3952](https://github.com/paritytech/polkadot-sdk/pull/3952)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Validator disabling strategy in runtime ([SDK v1.12 #2226](https://github.com/paritytech/polkadot-sdk/pull/2226)).
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+
+- AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
+- Allow StakingAdmin to manage nomination pool configurations ([SDK v1.11 #3959](https://github.com/paritytech/polkadot-sdk/pull/3959)).
+- Bridge: make some headers submissions free ([SDK v1.12 #4102](https://github.com/paritytech/polkadot-sdk/pull/4102)).
+- Improving on_demand_assigner emitted events ([SDK v1.13 #4339](https://github.com/paritytech/polkadot-sdk/pull/4339)).
+- `pallet-broker::start_sales`: Take `extra_cores` and not total cores ([SDK v1.11 #4221](https://github.com/paritytech/polkadot-sdk/pull/4221)).
+- Pallet-nomination-pools: `chill` is permissionless if depositor's stake is less than `min_nominator_bond` ([SDK v1.9 #3453](https://github.com/paritytech/polkadot-sdk/pull/3453)).
+- `polkadot_runtime_parachains::coretime`: Expose `MaxXcmTransactWeight` ([SDK v1.11 #4189](https://github.com/paritytech/polkadot-sdk/pull/4189)).
+- Pools: Make PermissionlessWithdraw the default claim permission ([SDK v1.10 #3438](https://github.com/paritytech/polkadot-sdk/pull/3438)).
+- Prevents staking controllers from becoming stashes of different ledgers; Ensures that no ledger in bad state is mutated ([SDK v1.9 #3639](https://github.com/paritytech/polkadot-sdk/pull/3639)).
+- Snowbridge: deposit extra fee to beneficiary on Asset Hub ([SDK v1.12 #4175](https://github.com/paritytech/polkadot-sdk/pull/4175)).
+- Storage bound the XCMP queue pallet ([SDK v1.13 #3952](https://github.com/paritytech/polkadot-sdk/pull/3952)).
+- Validator disabling strategy in runtime ([SDK v1.12 #2226](https://github.com/paritytech/polkadot-sdk/pull/2226)).
 
 ### Fixed
 
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] CheckWeight checks for combined extrinsic length and proof size ([SDK v1.12 #4326](https://github.com/paritytech/polkadot-sdk/pull/4326)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Decrement total_deposit when clearing collection metadata ([SDK v1.11 #3976](https://github.com/paritytech/polkadot-sdk/pull/3976)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Detect incorrect pre-image length when submitting a referenda ([SDK v1.10 #3850](https://github.com/paritytech/polkadot-sdk/pull/3850)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Ensure `TracksInfo` tracks are sorted by ID ([SDK v1.8 #3325](https://github.com/paritytech/polkadot-sdk/pull/3325)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix `schedule_code_upgrade` when called by the owner/root ([SDK v1.10 #3341](https://github.com/paritytech/polkadot-sdk/pull/3341)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix algorithmic complexity of the on-demand scheduler ([SDK v1.10 #3190](https://github.com/paritytech/polkadot-sdk/pull/3190)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix call enum's metadata regression ([SDK v1.9 #3513](https://github.com/paritytech/polkadot-sdk/pull/3513)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix dust unbonded for zero existential deposit ([SDK v1.12 #4364](https://github.com/paritytech/polkadot-sdk/pull/4364)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix extrinsics count logging in frame-system ([SDK v1.12 #4461](https://github.com/paritytech/polkadot-sdk/pull/4461)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix kusama 0 backing rewards when entering active set ([SDK v1.10 #3722](https://github.com/paritytech/polkadot-sdk/pull/3722)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix Stuck Collator Funds ([SDK v1.11 #4229](https://github.com/paritytech/polkadot-sdk/pull/4229)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix weight calculation and event emission in pallet-membership ([SDK v1.9 #3324](https://github.com/paritytech/polkadot-sdk/pull/3324)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fix weight refund for `pallet-collator-selection::set_candidacy_bond` ([SDK v1.9 #3643](https://github.com/paritytech/polkadot-sdk/pull/3643)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fixed `GrandpaConsensusLogReader::find_scheduled_change` ([SDK v1.11 #4208](https://github.com/paritytech/polkadot-sdk/pull/4208)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Fixes a scenario where a nomination pool's `TotalValueLocked` is out of sync due to staking's implicit withdraw ([SDK v1.8 #3052](https://github.com/paritytech/polkadot-sdk/pull/3052)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Handle legacy lease swaps on coretime ([SDK v1.10 #3714](https://github.com/paritytech/polkadot-sdk/pull/3714)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Ignore mandatory extrinsics in total PoV size check ([SDK v1.13 #4571](https://github.com/paritytech/polkadot-sdk/pull/4571)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet assets: minor improvement on errors returned for some calls ([SDK v1.11 #4118](https://github.com/paritytech/polkadot-sdk/pull/4118)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-broker: Fix `Linear::adapt_price` behavior at zero ([SDK v1.9 #3636](https://github.com/paritytech/polkadot-sdk/pull/3636)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-broker: Fix claim revenue behaviour for zero timeslices ([SDK v1.11 #3997](https://github.com/paritytech/polkadot-sdk/pull/3997)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-broker: Support renewing leases expired in a previous period ([SDK v1.11 #4089](https://github.com/paritytech/polkadot-sdk/pull/4089)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-broker: Use saturating math in input validation ([SDK v1.11 #4151](https://github.com/paritytech/polkadot-sdk/pull/4151)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: fix transport fees for remote reserve transfers ([SDK v1.10 #3792](https://github.com/paritytech/polkadot-sdk/pull/3792)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Patch pool to handle extra consumer ref when destroying ([SDK v1.13 #4503](https://github.com/paritytech/polkadot-sdk/pull/4503)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Region reserve transfers fix ([SDK v1.11 #3455](https://github.com/paritytech/polkadot-sdk/pull/3455)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Snowbridge - Ethereum Client - Reject finalized updates without a sync committee in next store period ([SDK v1.13 #4478](https://github.com/paritytech/polkadot-sdk/pull/4478)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Treat XCM ExceedsStackLimit errors as transient in the MQ pallet ([SDK v1.12 #4202](https://github.com/paritytech/polkadot-sdk/pull/4202)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Unrequest a pre-image when it failed to execute ([SDK v1.10 #3849](https://github.com/paritytech/polkadot-sdk/pull/3849)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Validate code when scheduling uprades ([SDK v1.8 #3232](https://github.com/paritytech/polkadot-sdk/pull/3232)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] XCMP: Use the number of 'ready' pages in XCMP suspend logic ([SDK v1.9 #2393](https://github.com/paritytech/polkadot-sdk/pull/2393)).
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+
+- CheckWeight checks for combined extrinsic length and proof size ([SDK v1.12 #4326](https://github.com/paritytech/polkadot-sdk/pull/4326)).
+- Decrement total_deposit when clearing collection metadata ([SDK v1.11 #3976](https://github.com/paritytech/polkadot-sdk/pull/3976)).
+- Detect incorrect pre-image length when submitting a referenda ([SDK v1.10 #3850](https://github.com/paritytech/polkadot-sdk/pull/3850)).
+- Fix `schedule_code_upgrade` when called by the owner/root ([SDK v1.10 #3341](https://github.com/paritytech/polkadot-sdk/pull/3341)).
+- Fix algorithmic complexity of the on-demand scheduler ([SDK v1.10 #3190](https://github.com/paritytech/polkadot-sdk/pull/3190)).
+- Fix call enum's metadata regression ([SDK v1.9 #3513](https://github.com/paritytech/polkadot-sdk/pull/3513)).
+- Fix dust unbonded for zero existential deposit ([SDK v1.12 #4364](https://github.com/paritytech/polkadot-sdk/pull/4364)).
+- Fix extrinsics count logging in frame-system ([SDK v1.12 #4461](https://github.com/paritytech/polkadot-sdk/pull/4461)).
+- Fix kusama 0 backing rewards when entering active set ([SDK v1.10 #3722](https://github.com/paritytech/polkadot-sdk/pull/3722)).
+- Fix Stuck Collator Funds ([SDK v1.11 #4229](https://github.com/paritytech/polkadot-sdk/pull/4229)).
+- Fix weight calculation and event emission in pallet-membership ([SDK v1.9 #3324](https://github.com/paritytech/polkadot-sdk/pull/3324)).
+- Fix weight refund for `pallet-collator-selection::set_candidacy_bond` ([SDK v1.9 #3643](https://github.com/paritytech/polkadot-sdk/pull/3643)).
+- Fixed `GrandpaConsensusLogReader::find_scheduled_change` ([SDK v1.11 #4208](https://github.com/paritytech/polkadot-sdk/pull/4208)).
+- Fixes a scenario where a nomination pool's `TotalValueLocked` is out of sync due to staking's implicit withdraw ([SDK v1.8 #3052](https://github.com/paritytech/polkadot-sdk/pull/3052)).
+- Handle legacy lease swaps on coretime ([SDK v1.10 #3714](https://github.com/paritytech/polkadot-sdk/pull/3714)).
+- Ignore mandatory extrinsics in total PoV size check ([SDK v1.13 #4571](https://github.com/paritytech/polkadot-sdk/pull/4571)).
+- Pallet assets: minor improvement on errors returned for some calls ([SDK v1.11 #4118](https://github.com/paritytech/polkadot-sdk/pull/4118)).
+- Pallet-broker: Fix `Linear::adapt_price` behavior at zero ([SDK v1.9 #3636](https://github.com/paritytech/polkadot-sdk/pull/3636)).
+- Pallet-broker: Fix claim revenue behaviour for zero timeslices ([SDK v1.11 #3997](https://github.com/paritytech/polkadot-sdk/pull/3997)).
+- Pallet-broker: Support renewing leases expired in a previous period ([SDK v1.11 #4089](https://github.com/paritytech/polkadot-sdk/pull/4089)).
+- Pallet-broker: Use saturating math in input validation ([SDK v1.11 #4151](https://github.com/paritytech/polkadot-sdk/pull/4151)).
+- Pallet-xcm: fix transport fees for remote reserve transfers ([SDK v1.10 #3792](https://github.com/paritytech/polkadot-sdk/pull/3792)).
+- Patch pool to handle extra consumer ref when destroying ([SDK v1.13 #4503](https://github.com/paritytech/polkadot-sdk/pull/4503)).
+- Region reserve transfers fix ([SDK v1.11 #3455](https://github.com/paritytech/polkadot-sdk/pull/3455)).
+- Snowbridge - Ethereum Client - Reject finalized updates without a sync committee in next store period ([SDK v1.13 #4478](https://github.com/paritytech/polkadot-sdk/pull/4478)).
+- Treat XCM ExceedsStackLimit errors as transient in the MQ pallet ([SDK v1.12 #4202](https://github.com/paritytech/polkadot-sdk/pull/4202)).
+- Unrequest a pre-image when it failed to execute ([SDK v1.10 #3849](https://github.com/paritytech/polkadot-sdk/pull/3849)).
+- Validate code when scheduling uprades ([SDK v1.8 #3232](https://github.com/paritytech/polkadot-sdk/pull/3232)).
+- XCMP: Use the number of 'ready' pages in XCMP suspend logic ([SDK v1.9 #2393](https://github.com/paritytech/polkadot-sdk/pull/2393)).
 
 ### Removed
 
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Deprecate dmp-queue pallet ([SDK v1.13 #4475](https://github.com/paritytech/polkadot-sdk/pull/4475)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Deprecate XCMv2 ([SDK v1.13 #4131](https://github.com/paritytech/polkadot-sdk/pull/4131)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Identity: Remove double encoding username signature payload ([SDK v1.13 #4646](https://github.com/paritytech/polkadot-sdk/pull/4646)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: deprecate execute and send in favor of execute_blob and send_blob ([SDK v1.10 #3749](https://github.com/paritytech/polkadot-sdk/pull/3749)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: deprecate transfer extrinsics without weight limit ([SDK v1.10 #3927](https://github.com/paritytech/polkadot-sdk/pull/3927)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Remove `parametrized-consensus-hook` feature ([SDK v1.13 #4380](https://github.com/paritytech/polkadot-sdk/pull/4380)).
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+
+- Deprecate dmp-queue pallet ([SDK v1.13 #4475](https://github.com/paritytech/polkadot-sdk/pull/4475)).
+- Deprecate XCMv2 ([SDK v1.13 #4131](https://github.com/paritytech/polkadot-sdk/pull/4131)).
+- Identity: Remove double encoding username signature payload ([SDK v1.13 #4646](https://github.com/paritytech/polkadot-sdk/pull/4646)).
+- Pallet-xcm: deprecate execute and send in favor of execute_blob and send_blob ([SDK v1.10 #3749](https://github.com/paritytech/polkadot-sdk/pull/3749)).
+- Pallet-xcm: deprecate transfer extrinsics without weight limit ([SDK v1.10 #3927](https://github.com/paritytech/polkadot-sdk/pull/3927)).
+- Remove `parametrized-consensus-hook` feature ([SDK v1.13 #4380](https://github.com/paritytech/polkadot-sdk/pull/4380)).
 
 ### Based on Polkadot-SDK
 
