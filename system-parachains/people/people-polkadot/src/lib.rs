@@ -260,8 +260,8 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 >;
 
 parameter_types! {
-	pub MessageQueueServiceWeight: Weight =
-		Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_message_queue::Config for Runtime {
@@ -283,7 +283,7 @@ impl pallet_message_queue::Config for Runtime {
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
 	type ServiceWeight = MessageQueueServiceWeight;
-	type IdleMaxServiceWeight = ();
+	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
 }
 

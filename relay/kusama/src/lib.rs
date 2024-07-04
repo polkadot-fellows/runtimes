@@ -1261,6 +1261,7 @@ parameter_types! {
 	///
 	/// This is not a good value for para-chains since the `Scheduler` already uses up to 80% block weight.
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(20) * BlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * BlockWeights::get().max_block;
 	pub const MessageQueueHeapSize: u32 = 65_536;
 	pub const MessageQueueMaxStale: u32 = 16;
 }
@@ -1301,7 +1302,7 @@ impl pallet_message_queue::Config for Runtime {
 	type QueueChangeHandler = ParaInclusion;
 	type QueuePausedQuery = ();
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
-	type IdleMaxServiceWeight = ();
+	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
 
 impl parachains_dmp::Config for Runtime {}
