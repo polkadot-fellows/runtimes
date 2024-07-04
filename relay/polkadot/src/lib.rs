@@ -91,8 +91,7 @@ use sp_runtime::{
 		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, BoundToRuntimeAppPublic, FixedU128, KeyTypeId, Perbill, Percent, Permill,
-	RuntimeAppPublic, RuntimeDebug,
+	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
 };
 use sp_staking::SessionIndex;
 use sp_std::{
@@ -459,46 +458,6 @@ impl pallet_authorship::Config for Runtime {
 	type EventHandler = Staking;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-pub struct OldSessionKeys {
-	pub grandpa: <Grandpa as BoundToRuntimeAppPublic>::Public,
-	pub babe: <Babe as BoundToRuntimeAppPublic>::Public,
-	pub im_online: pallet_im_online::sr25519::AuthorityId,
-	pub para_validator: <Initializer as BoundToRuntimeAppPublic>::Public,
-	pub para_assignment: <ParaSessionInfo as BoundToRuntimeAppPublic>::Public,
-	pub authority_discovery: <AuthorityDiscovery as BoundToRuntimeAppPublic>::Public,
-	pub beefy: <Beefy as BoundToRuntimeAppPublic>::Public,
-}
-
-impl OpaqueKeys for OldSessionKeys {
-	type KeyTypeIdProviders = ();
-	fn key_ids() -> &'static [KeyTypeId] {
-		&[
-			<<Grandpa as BoundToRuntimeAppPublic>::Public>::ID,
-			<<Babe as BoundToRuntimeAppPublic>::Public>::ID,
-			sp_core::crypto::key_types::IM_ONLINE,
-			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID,
-			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID,
-			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID,
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID,
-		]
-	}
-	fn get_raw(&self, i: KeyTypeId) -> &[u8] {
-		match i {
-			<<Grandpa as BoundToRuntimeAppPublic>::Public>::ID => self.grandpa.as_ref(),
-			<<Babe as BoundToRuntimeAppPublic>::Public>::ID => self.babe.as_ref(),
-			sp_core::crypto::key_types::IM_ONLINE => self.im_online.as_ref(),
-			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID => self.para_validator.as_ref(),
-			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.para_assignment.as_ref(),
-			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.authority_discovery.as_ref(),
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID => self.beefy.as_ref(),
-			_ => &[],
-		}
-	}
-}
-
 impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub grandpa: Grandpa,
@@ -507,18 +466,6 @@ impl_opaque_keys! {
 		pub para_assignment: ParaSessionInfo,
 		pub authority_discovery: AuthorityDiscovery,
 		pub beefy: Beefy,
-	}
-}
-
-// remove this when removing `OldSessionKeys`
-fn transform_session_keys(_v: AccountId, old: OldSessionKeys) -> SessionKeys {
-	SessionKeys {
-		grandpa: old.grandpa,
-		babe: old.babe,
-		para_validator: old.para_validator,
-		para_assignment: old.para_assignment,
-		authority_discovery: old.authority_discovery,
-		beefy: old.beefy,
 	}
 }
 
@@ -1845,98 +1792,8 @@ pub mod migrations {
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
 	}
 
-	/// Upgrade Session keys to exclude `ImOnline` key.
-	/// When this is removed, should also remove `OldSessionKeys`.
-	pub struct UpgradeSessionKeys;
-	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001003;
-
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::warn!(target: "runtime::session_keys", "Skipping session keys migration pre-upgrade check due to spec version (already applied?)");
-				return Ok(Vec::new())
-			}
-
-			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids();
-			frame_support::ensure!(
-				key_ids
-					.into_iter()
-					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE)
-					.is_none(),
-				"New session keys contain the ImOnline key that should have been removed",
-			);
-			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
-			let mut state: Vec<u8> = Vec::new();
-			frame_support::storage::unhashed::get::<Vec<(ValidatorId, OldSessionKeys)>>(
-				&storage_key,
-			)
-			.ok_or::<sp_runtime::TryRuntimeError>("Queued keys are not available".into())?
-			.into_iter()
-			.for_each(|(id, keys)| {
-				state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
-					state.extend_from_slice(keys.get_raw(*key_id));
-				}
-			});
-			frame_support::ensure!(state.len() > 0, "Queued keys are not empty before upgrade");
-			Ok(state)
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::info!("Skipping session keys upgrade: already applied");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
-			}
-			log::trace!("Upgrading session keys");
-			Session::upgrade_keys::<OldSessionKeys, _>(transform_session_keys);
-			Perbill::from_percent(50) * BlockWeights::get().max_block
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(
-			old_state: sp_std::vec::Vec<u8>,
-		) -> Result<(), sp_runtime::TryRuntimeError> {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::warn!(target: "runtime::session_keys", "Skipping session keys migration post-upgrade check due to spec version (already applied?)");
-				return Ok(())
-			}
-
-			let key_ids = SessionKeys::key_ids();
-			let mut new_state: Vec<u8> = Vec::new();
-			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
-				new_state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
-					new_state.extend_from_slice(keys.get_raw(*key_id));
-				}
-			});
-			frame_support::ensure!(new_state.len() > 0, "Queued keys are not empty after upgrade");
-			frame_support::ensure!(
-				old_state == new_state,
-				"Pre-upgrade and post-upgrade keys do not match!"
-			);
-			log::info!(target: "runtime::session_keys", "Session keys migrated successfully");
-			Ok(())
-		}
-	}
-
-	// We don't have a limit in the Relay Chain.
-	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		init_state_migration::InitMigrate,
-		// Upgrade SessionKeys to exclude ImOnline key
-		UpgradeSessionKeys,
-		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
-		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
-		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
-		parachains_configuration::migration::v11::MigrateToV11<Runtime>,
-		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
-		// Migrate Identity pallet for Usernames
-		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
-		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
 		// Remove `im-online` pallet on-chain storage
 		frame_support::migrations::RemovePallet<
 			ImOnlinePalletName,
@@ -3270,67 +3127,5 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
-	}
-}
-
-mod init_state_migration {
-	use super::Runtime;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
-	#[cfg(not(feature = "std"))]
-	use sp_std::prelude::*;
-
-	/// Initialize an automatic migration process.
-	pub struct InitMigrate;
-	impl OnRuntimeUpgrade for InitMigrate {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
-			use codec::Encode;
-			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
-				MigrationProcess::<Runtime>::get() == Default::default();
-			Ok(migration_should_start.encode())
-		}
-
-		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			if AutoLimits::<Runtime>::get().is_some() {
-				log::warn!("Automatic trie migration already started, not proceeding.");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
-			};
-
-			if MigrationProcess::<Runtime>::get() != Default::default() {
-				log::warn!("MigrationProcess is not Default. Not proceeding.");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
-			};
-
-			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
-			// migrations.
-			//
-			// We use limits to target 600ko proofs per block and
-			// avg 800_000_000_000 of weight per block.
-			// See spreadsheet 4800_400 in
-			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
-			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
-			log::info!("Automatic trie migration started.");
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(
-			migration_should_start_bytes: Vec<u8>,
-		) -> Result<(), sp_runtime::DispatchError> {
-			use codec::Decode;
-			let migration_should_start: bool =
-				Decode::decode(&mut migration_should_start_bytes.as_slice())
-					.expect("failed to decode migration should start");
-
-			if migration_should_start {
-				frame_support::ensure!(
-					AutoLimits::<Runtime>::get().is_some(),
-					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
-				);
-			}
-
-			Ok(())
-		}
 	}
 }
