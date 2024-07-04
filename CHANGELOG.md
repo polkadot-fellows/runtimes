@@ -90,6 +90,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: deprecate transfer extrinsics without weight limit ([SDK v1.10 #3927](https://github.com/paritytech/polkadot-sdk/pull/3927)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Remove `parametrized-consensus-hook` feature ([SDK v1.13 #4380](https://github.com/paritytech/polkadot-sdk/pull/4380)).
 
+### Based on Polkadot-SDK
+
+- Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+
 ## [1.2.7] 14.06.2024
 
 Note: This release only affects the following runtimes and is not a full system release:
