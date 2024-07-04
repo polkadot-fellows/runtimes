@@ -25,7 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Im-online pallet offchain storage cleanup ([SDK v1.8 #2290](https://github.com/paritytech/polkadot-sdk/pull/2290)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Implements a percentage cap on staking rewards from era inflation ([SDK v1.8 #1660](https://github.com/paritytech/polkadot-sdk/pull/1660)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Introduce submit_finality_proof_ex call to bridges GRANDPA pallet ([SDK v1.8 #3225](https://github.com/paritytech/polkadot-sdk/pull/3225)).
-- [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Multi-Block-Migrations, `poll` hook and new System Callbacks ([SDK v1.9 #1781](https://github.com/paritytech/polkadot-sdk/pull/1781)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] New call `hrmp.establish_channel_with_system` to allow parachains to establish a channel with a system parachain ([SDK v1.11 #3721](https://github.com/paritytech/polkadot-sdk/pull/3721)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] New runtime api to check if a validator has pending pages of rewards for an era ([SDK v1.12 #4301](https://github.com/paritytech/polkadot-sdk/pull/4301)).
 - [[#322](https://github.com/polkadot-fellows/runtimes/pull/322)] Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
