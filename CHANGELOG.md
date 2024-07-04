@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
 - Add `claim_assets` extrinsic to `pallet-xcm` ([SDK v1.9 #3403](https://github.com/paritytech/polkadot-sdk/pull/3403)).
@@ -34,9 +33,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
 - Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
 - Kusama system chains: enable PoV-reclaim.
-- [[#345](https://github.com/polkadot-fellows/runtimes/pull/345)] Polkadot chains: allow arbitrary XCM execution.
 
 ### Changed
+
+- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/365))
+- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
