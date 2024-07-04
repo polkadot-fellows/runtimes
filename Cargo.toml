@@ -191,17 +191,17 @@ separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
 serde_json = { version = "1.0.113" }
 smallvec = { version = "1.13.1" }
-snowbridge-beacon-primitives = { version = "0.1.2", default-features = false }
-snowbridge-core = { version = "0.1.3", default-features = false }
+snowbridge-beacon-primitives = { version = "0.7.0", default-features = false }
+snowbridge-core = { version = "0.7.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.7.0", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.1.3", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.1.3", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.9.1" }
+snowbridge-pallet-ethereum-client = { version = "0.7.0", default-features = false }
+snowbridge-pallet-inbound-queue = { version = "0.7.0", default-features = false }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.15.0" }
 snowbridge-pallet-outbound-queue = { version = "0.7.0", default-features = false }
 snowbridge-pallet-system = { version = "0.7.0", default-features = false }
 snowbridge-router-primitives = { version = "0.13.0", default-features = false }
 snowbridge-runtime-common = { version = "0.7.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.1.2" }
+snowbridge-runtime-test-common = { version = "0.7.0" }
 snowbridge-system-runtime-api = { version = "0.7.0", default-features = false }
 sp-api = { version = "33.0.0", default-features = false }
 sp-application-crypto = { version = "37.0.0", default-features = false }
