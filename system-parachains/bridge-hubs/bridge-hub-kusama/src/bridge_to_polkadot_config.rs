@@ -165,8 +165,8 @@ impl pallet_bridge_grandpa::Config<BridgeGrandpaPolkadotInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type BridgedChain = bp_polkadot::Polkadot;
 	type HeadersToKeep = RelayChainHeadersToKeep;
-	type MaxFreeHeadersPerBlock = ConstU32<4>; // FAIL-CI @svyatonik
-	type FreeHeadersInterval = ConstU32<5>; // FAIL-CI @svyatonik
+	type MaxFreeHeadersPerBlock = ConstU32<4>;
+	type FreeHeadersInterval = ConstU32<5>;
 	type WeightInfo = weights::pallet_bridge_grandpa::WeightInfo<Runtime>;
 }
 
