@@ -17,6 +17,7 @@ Note: This release only affects the following runtimes and is not a full system 
 - Polkadot Asset Hub
 - Polkadot Bridge Hub
 - Polkadot Collectives
+- Kusama Relay Chain
 - Kusama Bridge Hub
 
 ## [1.2.7] 14.06.2024
