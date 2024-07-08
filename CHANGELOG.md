@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.2.8] 03.07.2024
 
 ### Added
 
@@ -102,6 +102,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Based on Polkadot-SDK
 
 - Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+
+Note: This release only affects the following runtimes and is not a full system release:
+
+- Polkadot Relay Chain
+- Polkadot Asset Hub
+- Polkadot Bridge Hub
+- Polkadot Collectives
+- Kusama Relay Chain
+- Kusama Bridge Hub
 
 ## [1.2.7] 14.06.2024
 
