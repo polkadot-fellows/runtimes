@@ -15,51 +15,6 @@
 
 use crate::*;
 
-// TODO: the types in the module copied from the PR: https://github.com/paritytech/polkadot-sdk/pull/3250
-// and should be removed when changes from the PR will get released.
-// FAIL-CI @muharem please delete
-pub(crate) mod pool {
-	use super::*;
-	use core::marker::PhantomData;
-	use pallet_asset_conversion::PoolLocator;
-	use sp_core::Get;
-	use sp_runtime::traits::TryConvert;
-
-	/// Pool locator that mandates the inclusion of the specified `FirstAsset` in every asset pair.
-	///
-	/// The `PoolId` is represented as a tuple of `AssetKind`s with `FirstAsset` always positioned
-	/// as the first element.
-	pub struct WithFirstAsset<FirstAsset, AccountId, AssetKind, AccountIdConverter>(
-		PhantomData<(FirstAsset, AccountId, AssetKind, AccountIdConverter)>,
-	);
-	impl<FirstAsset, AccountId, AssetKind, AccountIdConverter>
-		PoolLocator<AccountId, AssetKind, (AssetKind, AssetKind)>
-		for WithFirstAsset<FirstAsset, AccountId, AssetKind, AccountIdConverter>
-	where
-		AssetKind: Eq + Clone + Encode,
-		AccountId: Decode,
-		FirstAsset: Get<AssetKind>,
-		AccountIdConverter: for<'a> TryConvert<&'a (AssetKind, AssetKind), AccountId>,
-	{
-		fn pool_id(asset1: &AssetKind, asset2: &AssetKind) -> Result<(AssetKind, AssetKind), ()> {
-			if asset1 == asset2 {
-				return Err(());
-			}
-			let first = FirstAsset::get();
-			if first == *asset1 {
-				Ok((first, asset2.clone()))
-			} else if first == *asset2 {
-				Ok((first, asset1.clone()))
-			} else {
-				Err(())
-			}
-		}
-		fn address(id: &(AssetKind, AssetKind)) -> Result<AccountId, ()> {
-			AccountIdConverter::try_convert(id).map_err(|_| ())
-		}
-	}
-}
-
 // TODO: move implementations to the polkadot-sdk.
 pub mod tx_payment {
 	use super::*;

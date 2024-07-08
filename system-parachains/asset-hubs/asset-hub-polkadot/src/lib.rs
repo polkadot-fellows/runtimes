@@ -944,8 +944,12 @@ impl pallet_asset_conversion::Config for Runtime {
 	type AssetKind = xcm::v3::Location;
 	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
-	type PoolLocator =
-		impls::pool::WithFirstAsset<DotLocationV3, AccountId, Self::AssetKind, PoolIdToAccountId>;
+	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
+		DotLocationV3,
+		AccountId,
+		Self::AssetKind,
+		PoolIdToAccountId,
+	>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
