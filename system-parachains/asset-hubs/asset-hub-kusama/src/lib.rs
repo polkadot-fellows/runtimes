@@ -398,10 +398,8 @@ pub type NativeAndAssets = fungible::UnionOf<
 	AccountId,
 >;
 
-pub type PoolIdToAccountId = pallet_asset_conversion::AccountIdConverter<
-	AssetConversionPalletId,
-	(xcm::v3::Location, xcm::v3::Location),
->;
+pub type PoolIdToAccountId =
+	pallet_asset_conversion::AccountIdConverterNoSeed<(xcm::v3::Location, xcm::v3::Location)>;
 
 impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -415,7 +413,7 @@ impl pallet_asset_conversion::Config for Runtime {
 		AccountId,
 		Self::AssetKind,
 		PoolIdToAccountId,
-	>; // FAIL-CI @muharem please fix
+	>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
