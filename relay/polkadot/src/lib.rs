@@ -1785,8 +1785,6 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	#[cfg(feature = "try-runtime")]
-	use sp_core::crypto::ByteArray;
 
 	parameter_types! {
 		pub const ImOnlinePalletName: &'static str = "ImOnline";
