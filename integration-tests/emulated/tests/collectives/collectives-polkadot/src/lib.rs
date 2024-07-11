@@ -19,6 +19,7 @@ pub use xcm::{prelude::*, v3};
 // Cumulus
 pub use emulated_integration_tests_common::{
 	accounts::ALICE,
+	test_parachain_is_trusted_teleporter,
 	xcm_emulator::{assert_expected_events, bx, Chain, Parachain, RelayChain as Relay, TestExt},
 };
 pub use polkadot_system_emulated_network::{

@@ -42,9 +42,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # Cumulus
-cumulus-pallet-parachain-system = { features = [
-	"parameterized-consensus-hook",
-], workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 parachain-info = { workspace = true }
