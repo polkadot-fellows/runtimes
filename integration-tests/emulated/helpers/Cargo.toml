@@ -15,7 +15,7 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
-xcm = { package = "staging-xcm", version = "8.0.1" }
+xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 
 # Cumulus

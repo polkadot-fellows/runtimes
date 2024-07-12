@@ -83,15 +83,11 @@ fn construct_extrinsic(
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
 		(RefundBridgeHubKusamaMessages::default()),
+		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
 	let signature = payload.using_encoded(|e| sender.sign(e));
-	UncheckedExtrinsic::new_signed(
-		call,
-		account_id.into(),
-		Signature::Sr25519(signature.clone()),
-		extra,
-	)
+	UncheckedExtrinsic::new_signed(call, account_id.into(), Signature::Sr25519(signature), extra)
 }
 
 fn construct_and_apply_extrinsic(
@@ -103,11 +99,10 @@ fn construct_and_apply_extrinsic(
 	r.unwrap()
 }
 
-fn construct_and_estimate_extrinsic_fee(batch: pallet_utility::Call<Runtime>) -> Balance {
-	let batch_call = RuntimeCall::Utility(batch);
-	let batch_info = batch_call.get_dispatch_info();
-	let xt = construct_extrinsic(Alice, batch_call);
-	TransactionPayment::compute_fee(xt.encoded_size() as _, &batch_info, 0)
+fn construct_and_estimate_extrinsic_fee(call: RuntimeCall) -> Balance {
+	let info = call.get_dispatch_info();
+	let xt = construct_extrinsic(Alice, call);
+	TransactionPayment::compute_fee(xt.encoded_size() as _, &info, 0)
 }
 
 fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
@@ -291,24 +286,25 @@ fn relayed_incoming_message_works() {
 }
 
 #[test]
-pub fn complex_relay_extrinsic_works() {
-	from_parachain::complex_relay_extrinsic_works::<RuntimeTestsAdapter>(
+fn free_relay_extrinsic_works() {
+	// from Polkadot
+	from_parachain::free_relay_extrinsic_works::<RuntimeTestsAdapter>(
 		collator_session_keys(),
 		slot_durations(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
 		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
-		SIBLING_PARACHAIN_ID,
 		BridgeHubKusamaChainId::get(),
+		SIBLING_PARACHAIN_ID,
 		Polkadot,
 		XCM_LANE_FOR_ASSET_HUB_POLKADOT_TO_ASSET_HUB_KUSAMA,
 		|| (),
 		construct_and_apply_extrinsic,
-	);
+	)
 }
 
 #[test]
 pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
-	check_sane_fees_values(
+	bridge_hub_test_utils::check_sane_fees_values(
 		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots",
 		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseXcmFeeInDots::get(),
 		|| {
@@ -328,12 +324,12 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 }
 
 #[test]
-pub fn can_calculate_fee_for_complex_message_delivery_transaction() {
-	check_sane_fees_values(
+pub fn can_calculate_fee_for_standalone_message_delivery_transaction() {
+	bridge_hub_test_utils::check_sane_fees_values(
 		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots",
 		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseDeliveryFeeInDots::get(),
 		|| {
-			from_parachain::can_calculate_fee_for_complex_message_delivery_transaction::<
+			from_parachain::can_calculate_fee_for_standalone_message_delivery_transaction::<
 				RuntimeTestsAdapter,
 			>(collator_session_keys(), construct_and_estimate_extrinsic_fee)
 		},
@@ -347,12 +343,12 @@ pub fn can_calculate_fee_for_complex_message_delivery_transaction() {
 }
 
 #[test]
-pub fn can_calculate_fee_for_complex_message_confirmation_transaction() {
-	check_sane_fees_values(
+pub fn can_calculate_fee_for_standalone_message_confirmation_transaction() {
+	bridge_hub_test_utils::check_sane_fees_values(
 		"bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots",
 		bp_bridge_hub_polkadot::BridgeHubPolkadotBaseConfirmationFeeInDots::get(),
 		|| {
-			from_parachain::can_calculate_fee_for_complex_message_confirmation_transaction::<
+			from_parachain::can_calculate_fee_for_standalone_message_confirmation_transaction::<
 				RuntimeTestsAdapter,
 			>(collator_session_keys(), construct_and_estimate_extrinsic_fee)
 		},
@@ -371,54 +367,4 @@ fn treasury_pallet_account_not_none() {
 		RelayTreasuryPalletAccount::get(),
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
 	)
-}
-
-// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
-/// A helper function for comparing the actual value of a fee constant with its estimated value. The
-/// estimated value can be overestimated (`overestimate_in_percent`), and if the difference to the
-/// actual value is below `margin_overestimate_diff_in_percent_for_lowering`, we should lower the
-/// actual value.
-pub fn check_sane_fees_values(
-	const_name: &str,
-	actual: u128,
-	calculate_estimated_fee: fn() -> u128,
-	overestimate_in_percent: Perbill,
-	margin_overestimate_diff_in_percent_for_lowering: Option<i16>,
-	label: &str,
-) {
-	let estimated = calculate_estimated_fee();
-	let estimated_plus_overestimate = estimated + (overestimate_in_percent * estimated);
-	let diff_to_estimated = diff_as_percent(actual, estimated);
-	let diff_to_estimated_plus_overestimate = diff_as_percent(actual, estimated_plus_overestimate);
-
-	log::error!(
-		target: "bridges::estimate",
-		"{label}:\nconstant: {const_name}\n[+] actual: {actual}\n[+] estimated: {estimated} ({diff_to_estimated:.2?})\n[+] estimated(+33%): {estimated_plus_overestimate} ({diff_to_estimated_plus_overestimate:.2?})",
-	);
-
-	// check if estimated value is sane
-	assert!(
-		estimated <= actual,
-		"estimated: {estimated}, actual: {actual}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
-	);
-	assert!(
-		estimated_plus_overestimate <= actual,
-		"estimated_plus_overestimate: {estimated_plus_overestimate}, actual: {actual}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
-	);
-
-	if let Some(margin_overestimate_diff_in_percent_for_lowering) =
-		margin_overestimate_diff_in_percent_for_lowering
-	{
-		assert!(
-			diff_to_estimated_plus_overestimate > margin_overestimate_diff_in_percent_for_lowering as f64,
-			"diff_to_estimated_plus_overestimate: {diff_to_estimated_plus_overestimate:.2}, overestimate_diff_in_percent_for_lowering: {margin_overestimate_diff_in_percent_for_lowering}, please adjust `{const_name}` to the value: {estimated_plus_overestimate}",
-		);
-	}
-}
-
-// TODO:(PR#159): remove when `polkadot-sdk@1.8.0` bump (https://github.com/polkadot-fellows/runtimes/issues/186)
-pub fn diff_as_percent(left: u128, right: u128) -> f64 {
-	let left = left as f64;
-	let right = right as f64;
-	((left - right).abs() / left) * 100f64 * (if left >= right { -1 } else { 1 }) as f64
 }

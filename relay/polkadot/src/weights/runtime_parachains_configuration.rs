@@ -168,4 +168,15 @@ impl<T: frame_system::Config> runtime_parachains::configuration::WeightInfo for 
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn set_config_with_scheduler_params() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `151`
+		//  Estimated: `1636`
+		// Minimum execution time: 7_913_000 picoseconds.
+		Weight::from_parts(8_338_000, 0)
+			.saturating_add(Weight::from_parts(0, 1636))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

@@ -30,10 +30,12 @@ pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v3::{self, Error, NetworkId::Polkadot as PolkadotId},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
+	test_parachain_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -41,17 +43,21 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
-pub use integration_tests_helpers::test_parachain_is_trusted_teleporter;
 pub use parachains_common::{AccountId, Balance};
+pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLocation;
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
-		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
 	collectives_polkadot_emulated_chain::{
 		genesis::ED as COLLECTIVES_POLKADOT_ED,
 		CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	},
-	penpal_emulated_chain::PenpalBParaPallet as PenpalBPallet,
+	penpal_emulated_chain::{
+		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
+		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
+	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
@@ -65,7 +71,7 @@ pub use polkadot_system_emulated_network::{
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 
-pub const ASSET_ID: u32 = 1;
+pub const ASSET_ID: u32 = 3;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
@@ -75,7 +81,9 @@ pub type RelayToParaTest = Test<Polkadot, PenpalB>;
 pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
 pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
 pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;
-pub type ParaToParaTest = Test<PenpalB, PenpalA, Polkadot>;
+pub type ParaToParaThroughRelayTest = Test<PenpalB, PenpalA, Polkadot>;
+pub type ParaToParaThroughAHTest = Test<PenpalB, PenpalA, AssetHubPolkadot>;
+pub type RelayToParaThroughAHTest = Test<Polkadot, PenpalB, AssetHubPolkadot>;
 
 #[cfg(test)]
 mod tests;

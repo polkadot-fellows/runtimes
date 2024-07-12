@@ -39,6 +39,7 @@ mod validators {
 	use super::*;
 	use parachains_common::AccountId;
 
+	#[allow(clippy::type_complexity)]
 	pub fn initial_authorities() -> Vec<(
 		AccountId,
 		AccountId,
@@ -122,7 +123,7 @@ pub fn genesis() -> Storage {
 		},
 		babe: polkadot_runtime::BabeConfig {
 			authorities: Default::default(),
-			epoch_config: Some(polkadot_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			epoch_config: polkadot_runtime::BABE_GENESIS_EPOCH_CONFIG,
 			..Default::default()
 		},
 		configuration: polkadot_runtime::ConfigurationConfig { config: get_host_config() },

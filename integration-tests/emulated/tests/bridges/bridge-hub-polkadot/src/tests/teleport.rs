@@ -23,8 +23,8 @@ fn teleport_to_other_system_parachains_works() {
 
 	test_parachain_is_trusted_teleporter!(
 		BridgeHubPolkadot,      // Origin
-		XcmConfig,              // XCM configuration
-		vec![AssetHubPolkadot], // Destinations
+		XcmConfig,              // XCM Configuration
+		vec![AssetHubPolkadot], // Destination
 		(native_asset, amount)
 	);
 }

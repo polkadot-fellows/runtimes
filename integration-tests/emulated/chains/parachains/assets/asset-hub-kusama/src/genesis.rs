@@ -14,16 +14,32 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::storage::Storage;
+use sp_core::{sr25519, storage::Storage};
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, get_account_id_from_seed, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
-use parachains_common::Balance;
+use frame_support::sp_runtime::traits::AccountIdConversion;
+use parachains_common::{AccountId, Balance};
+use polkadot_parachain_primitives::primitives::Sibling;
+use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
+
+frame_support::parameter_types! {
+	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
+	pub PenpalATeleportableAssetLocation: Location
+		= Location::new(1, [
+				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+			]
+		);
+	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+}
 
 pub fn genesis() -> Storage {
 	let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
@@ -58,6 +74,22 @@ pub fn genesis() -> Storage {
 		},
 		polkadot_xcm: asset_hub_kusama_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
+			..Default::default()
+		},
+		assets: asset_hub_kusama_runtime::AssetsConfig {
+			assets: vec![(RESERVABLE_ASSET_ID, AssetHubKusamaAssetOwner::get(), true, ED)],
+			..Default::default()
+		},
+		foreign_assets: asset_hub_kusama_runtime::ForeignAssetsConfig {
+			assets: vec![
+				// Penpal's teleportable asset representation
+				(
+					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
+					PenpalASiblingSovereignAccount::get(),
+					true,
+					ED,
+				),
+			],
 			..Default::default()
 		},
 		..Default::default()

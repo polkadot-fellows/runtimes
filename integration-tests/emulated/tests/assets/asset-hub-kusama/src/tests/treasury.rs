@@ -27,7 +27,7 @@ use frame_support::{
 };
 use kusama_runtime::OriginCaller;
 use kusama_runtime_constants::currency::GRAND;
-use runtime_common::impls::VersionedLocatableAsset;
+use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 
 // Fund Treasury account on Asset Hub from Treasury account on Relay Chain with KSMs.

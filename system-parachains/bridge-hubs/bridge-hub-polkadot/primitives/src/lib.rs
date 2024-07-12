@@ -58,6 +58,7 @@ impl Chain for BridgeHubPolkadot {
 
 impl Parachain for BridgeHubPolkadot {
 	const PARACHAIN_ID: u32 = BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
+	const MAX_HEADER_SIZE: u32 = MAX_BRIDGE_HUB_HEADER_SIZE;
 }
 
 impl ChainWithMessages for BridgeHubPolkadot {
@@ -92,12 +93,12 @@ frame_support::parameter_types! {
 	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 177_594_900;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
-	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 16_912_512_364;
+	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_delivery_transaction` + `33%`)
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 942_248_365;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
-	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 16_142_641_864;
+	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_confirmation_transaction` + `33%`)
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 172_377_865;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending

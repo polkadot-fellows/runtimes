@@ -28,24 +28,30 @@ pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
 	v3::{self, Error, NetworkId::Kusama as KusamaId},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Cumulus
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
+	test_parachain_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
-	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V3,
 };
-pub use integration_tests_helpers::test_parachain_is_trusted_teleporter;
+pub use kusama_runtime::xcm_config::UniversalLocation as KusamaUniversalLocation;
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
-		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
+		genesis::{AssetHubKusamaAssetOwner, ED as ASSET_HUB_KUSAMA_ED},
+		AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
-	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
+	penpal_emulated_chain::{
+		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
+		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
+	},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, KusamaRelay as Kusama,
@@ -56,7 +62,7 @@ pub use kusama_system_emulated_network::{
 };
 pub use parachains_common::{AccountId, Balance};
 
-pub const ASSET_ID: u32 = 1;
+pub const ASSET_ID: u32 = 3;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
@@ -66,7 +72,9 @@ pub type RelayToParaTest = Test<Kusama, PenpalA>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
-pub type ParaToParaTest = Test<PenpalA, PenpalB, Kusama>;
+pub type ParaToParaThroughRelayTest = Test<PenpalA, PenpalB, Kusama>;
+pub type ParaToParaThroughAHTest = Test<PenpalA, PenpalB, AssetHubKusama>;
+pub type RelayToParaThroughAHTest = Test<Kusama, PenpalA, AssetHubKusama>;
 
 #[cfg(test)]
 mod tests;

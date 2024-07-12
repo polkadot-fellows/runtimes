@@ -37,6 +37,7 @@ mod validators {
 	use super::*;
 	use parachains_common::AccountId;
 
+	#[allow(clippy::type_complexity)]
 	pub fn initial_authorities() -> Vec<(
 		AccountId,
 		AccountId,
@@ -106,7 +107,7 @@ pub fn genesis() -> Storage {
 		},
 		babe: kusama_runtime::BabeConfig {
 			authorities: Default::default(),
-			epoch_config: Some(kusama_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			epoch_config: kusama_runtime::BABE_GENESIS_EPOCH_CONFIG,
 			..Default::default()
 		},
 		configuration: kusama_runtime::ConfigurationConfig { config: get_host_config() },

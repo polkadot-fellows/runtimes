@@ -24,7 +24,7 @@ use emulated_integration_tests_common::{
 
 // Kusama declaration
 decl_test_relay_chains! {
-	#[api_version(10)]
+	#[api_version(11)]
 	pub struct Kusama {
 		genesis = genesis::genesis(),
 		on_init = (),
@@ -36,8 +36,6 @@ decl_test_relay_chains! {
 			XcmPallet: kusama_runtime::XcmPallet,
 			Balances: kusama_runtime::Balances,
 			Hrmp: kusama_runtime::Hrmp,
-			Identity: kusama_runtime::Identity,
-			IdentityMigrator: kusama_runtime::IdentityMigrator,
 			Treasury: kusama_runtime::Treasury,
 			AssetRate: kusama_runtime::AssetRate,
 		}
