@@ -79,11 +79,11 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
+use xcm_config::TrustBackedAssetsPalletLocationV3;
 use xcm_fee_payment_runtime_api::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
-use xcm_config::TrustBackedAssetsPalletLocationV3;
 
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -120,8 +120,10 @@ use system_parachains_constants::{
 	polkadot::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
-use xcm::latest::prelude::{AssetId, BodyId};
-use xcm::{VersionedLocation, VersionedAssets, VersionedAssetId, VersionedXcm};
+use xcm::{
+	latest::prelude::{AssetId, BodyId},
+	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
+};
 use xcm_config::{
 	DotLocation, DotLocationV3, FellowshipLocation, ForeignAssetsConvertedConcreteId,
 	ForeignCreatorsSovereignAccountOf, GovernanceLocation, PoolAssetsConvertedConcreteId,

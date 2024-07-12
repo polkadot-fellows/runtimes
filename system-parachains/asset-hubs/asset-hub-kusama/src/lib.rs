@@ -81,16 +81,18 @@ use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
-use xcm::latest::prelude::{AssetId, BodyId};
-use xcm::{VersionedXcm, VersionedLocation, VersionedAssetId, VersionedAssets};
-use xcm_fee_payment_runtime_api::{
-	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
-	fees::Error as XcmPaymentApiError,
+use xcm::{
+	latest::prelude::{AssetId, BodyId},
+	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
 	FellowshipLocation, ForeignAssetsConvertedConcreteId, ForeignCreatorsSovereignAccountOf,
 	GovernanceLocation, KsmLocation, KsmLocationV3, PoolAssetsConvertedConcreteId,
 	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV3,
+};
+use xcm_fee_payment_runtime_api::{
+	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
+	fees::Error as XcmPaymentApiError,
 };
 
 #[cfg(any(feature = "std", test))]
