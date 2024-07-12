@@ -925,12 +925,12 @@ impl_runtime_apis! {
 
 	impl xcm_fee_payment_runtime_api::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::KsmLocation::get())];
+			let acceptable_assets = vec![XcmAssetId(xcm_config::KsmLocation::get())];
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			match asset.try_as::<XcmAssetId>() {
 				Ok(asset_id) if asset_id.0 == xcm_config::KsmLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))
