@@ -69,7 +69,7 @@ fn bridge_hub_kusama_genesis(
 	})
 }
 
-fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
+pub fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
 	bridge_hub_kusama_genesis(invulnerables(), testnet_accounts(), para_id)
 }
 
