@@ -3832,6 +3832,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
