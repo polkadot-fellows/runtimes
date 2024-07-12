@@ -19,6 +19,7 @@ mod hybrid_transfers;
 mod reserve_transfer;
 mod send;
 mod set_xcm_versions;
+mod xcm_fee_estimation;
 mod swap;
 mod teleport;
 mod treasury;
