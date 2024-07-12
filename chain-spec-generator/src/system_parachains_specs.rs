@@ -58,8 +58,6 @@ const ASSET_HUB_KUSAMA_ED: Balance = asset_hub_kusama_runtime::ExistentialDeposi
 
 const COLLECTIVES_POLKADOT_ED: Balance = collectives_polkadot_runtime::ExistentialDeposit::get();
 
-const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::ExistentialDeposit::get();
-
 const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
 const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
@@ -125,13 +123,6 @@ pub fn collectives_polkadot_session_keys(
 	keys: AuraId,
 ) -> collectives_polkadot_runtime::SessionKeys {
 	collectives_polkadot_runtime::SessionKeys { aura: keys }
-}
-
-/// Generate the session keys from individual elements.
-///
-/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn bridge_hub_polkadot_session_keys(keys: AuraId) -> bridge_hub_polkadot_runtime::SessionKeys {
-	bridge_hub_polkadot_runtime::SessionKeys { aura: keys }
 }
 
 /// Generate the session keys from individual elements.
@@ -372,63 +363,6 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 	))
 }
 
-// BridgeHubPolkadot
-fn bridge_hub_polkadot_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> serde_json::Value {
-	serde_json::json!({
-		"balances": bridge_hub_polkadot_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096 * 4096))
-				.collect(),
-		},
-		"parachainInfo": bridge_hub_polkadot_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": bridge_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: BRIDGE_HUB_POLKADOT_ED * 16,
-			..Default::default()
-		},
-		"session": bridge_hub_polkadot_runtime::SessionConfig {
-			keys: invulnerables
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                            // account id
-						acc,                                    // validator id
-						bridge_hub_polkadot_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		"ethereumSystem": bridge_hub_polkadot_runtime::EthereumSystemConfig {
-			para_id: id,
-			asset_hub_para_id: polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
-			..Default::default()
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
-}
-
-fn bridge_hub_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
-	bridge_hub_polkadot_genesis(
-		// initial collators.
-		invulnerables(),
-		testnet_accounts(),
-		para_id,
-	)
-}
-
 pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -444,7 +378,7 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 		.with_name("Polkadot Bridge Hub Local")
 		.with_id("bridge-hub-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(bridge_hub_polkadot_local_genesis(1002.into()))
+		.with_genesis_config_patch(bridge_hub_polkadot_runtime::genesis_config_presets::bridge_hub_polkadot_local_testnet_genesis(1002.into()))
 		.with_properties(properties)
 		.build(),
 	))
