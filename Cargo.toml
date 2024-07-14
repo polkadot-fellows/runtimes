@@ -56,10 +56,10 @@ cumulus-primitives-core = { version = "0.14.0", default-features = false }
 cumulus-primitives-utility = { version = "0.15.0", default-features = false }
 cumulus-primitives-storage-weight-reclaim = { version = "6.0.0", default-features = false }
 emulated-integration-tests-common = { version = "11.0.0" }
-encointer-balances-tx-payment = { version = "~12.1.0", default-features = false }
-encointer-balances-tx-payment-rpc-runtime-api = { version = "~12.1.0", default-features = false }
-encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~12.2.0", default-features = false }
+#encointer-balances-tx-payment = { version = "~12.1.0", default-features = false }
+#encointer-balances-tx-payment-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+#encointer-kusama-runtime = { path = "system-parachains/encointer" }
+#encointer-primitives = { version = "~12.2.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "36.0.0", default-features = false }
 frame-election-provider-support = { version = "36.0.0", default-features = false }
@@ -106,16 +106,16 @@ pallet-conviction-voting = { version = "36.0.0", default-features = false }
 pallet-core-fellowship = { version = "20.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "35.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "35.0.0", default-features = false }
-pallet-encointer-balances = { version = "~12.1.0", default-features = false }
-pallet-encointer-bazaar = { version = "~12.1.0", default-features = false }
-pallet-encointer-bazaar-rpc-runtime-api = { version = "~12.1.0", default-features = false }
-pallet-encointer-ceremonies = { version = "~12.1.0", default-features = false }
-pallet-encointer-ceremonies-rpc-runtime-api = { version = "~12.1.0", default-features = false }
-pallet-encointer-communities = { version = "~12.1.0", default-features = false }
-pallet-encointer-communities-rpc-runtime-api = { version = "~12.1.0", default-features = false }
-pallet-encointer-faucet = { version = "~12.2.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~12.1.0", default-features = false }
-pallet-encointer-scheduler = { version = "~12.1.0", default-features = false }
+#pallet-encointer-balances = { version = "~12.1.0", default-features = false }
+#pallet-encointer-bazaar = { version = "~12.1.0", default-features = false }
+#pallet-encointer-bazaar-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+#pallet-encointer-ceremonies = { version = "~12.1.0", default-features = false }
+#pallet-encointer-ceremonies-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+#pallet-encointer-communities = { version = "~12.1.0", default-features = false }
+#pallet-encointer-communities-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+#pallet-encointer-faucet = { version = "~12.2.0", default-features = false }
+#pallet-encointer-reputation-commitments = { version = "~12.1.0", default-features = false }
+#pallet-encointer-scheduler = { version = "~12.1.0", default-features = false }
 pallet-fast-unstake = { version = "35.0.0", default-features = false }
 pallet-glutton = { version = "22.0.0", default-features = false }
 pallet-grandpa = { version = "36.0.0", default-features = false }
@@ -282,7 +282,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
-	"system-parachains/encointer",
+	#"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",

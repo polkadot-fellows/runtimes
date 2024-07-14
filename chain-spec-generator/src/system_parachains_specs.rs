@@ -44,7 +44,7 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+//pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -62,7 +62,7 @@ const BRIDGE_HUB_POLKADOT_ED: Balance = bridge_hub_polkadot_runtime::Existential
 
 const BRIDGE_HUB_KUSAMA_ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
-const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
+//const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
 
 const CORETIME_KUSAMA_ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
 
@@ -560,7 +560,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 }
 
 // EncointerKusama
-fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
+/*fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
 	serde_json::json!({
 		"balances": asset_hub_kusama_runtime::BalancesConfig {
 			balances: endowed_accounts
@@ -624,7 +624,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_properties(properties)
 		.build(),
 	))
-}
+}*/
 
 // CoretimeKusama
 fn coretime_kusama_genesis(

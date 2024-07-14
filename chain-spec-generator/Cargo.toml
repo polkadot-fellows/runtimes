@@ -35,7 +35,7 @@ asset-hub-kusama-runtime = { workspace = true }
 collectives-polkadot-runtime = { workspace = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 bridge-hub-kusama-runtime = { workspace = true }
-encointer-kusama-runtime = { workspace = true }
+#encointer-kusama-runtime = { workspace = true }
 glutton-kusama-runtime = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 people-kusama-runtime = { workspace = true }
@@ -51,7 +51,7 @@ runtime-benchmarks = [
 	"collectives-polkadot-runtime/runtime-benchmarks",
 	"coretime-kusama-runtime/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
-	"encointer-kusama-runtime/runtime-benchmarks",
+	#"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -62,5 +62,5 @@ runtime-benchmarks = [
 	"polkadot-runtime/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"encointer-kusama-runtime/runtime-benchmarks"
+	#"encointer-kusama-runtime/runtime-benchmarks"
 ]
