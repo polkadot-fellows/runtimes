@@ -306,29 +306,6 @@ pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 pub type AmbassadorTreasuryInstance = pallet_treasury::Instance2;
 
 impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
-	// The creation of proposals via the treasury pallet is deprecated and should not be utilized.
-	// Instead, public or fellowship referenda should be used to propose and command the treasury
-	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
-	// discourage its use.
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ApproveOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ApproveOrigin = EnsureRoot<AccountId>;
-	type OnSlash = ();
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBond = ProposalBond;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBond = ProposalBondForBenchmark;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMinimum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMinimum = ConstU128<{ ExistentialDeposit::get() * 100 }>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMaximum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
-	// end.
-
 	type WeightInfo = weights::pallet_treasury_ambassador_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = AmbassadorTreasuryPalletId;
