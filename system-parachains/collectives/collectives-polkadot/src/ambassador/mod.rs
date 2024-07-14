@@ -141,6 +141,14 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
 }
 
+/// Limits the maximal number of Head Ambassadors to 21.
+pub struct AmbassadorMemberCount;
+impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
+	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
+		(rank == 3).then(|| 21)
+	}
+}
+
 parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
 	pub const SubmissionDeposit: Balance = 0;
