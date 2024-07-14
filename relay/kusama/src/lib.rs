@@ -22,6 +22,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS};
+use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
@@ -1284,10 +1285,20 @@ impl parachains_scheduler::Config for Runtime {
 
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
+	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
 	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
 		250 * WEIGHT_REF_TIME_PER_MICROS,
 		20 * WEIGHT_PROOF_SIZE_PER_KB
 	);
+}
+
+// FAIL-CI @donal please check/fix
+pub struct BrokerPot;
+impl Get<InteriorLocation> for BrokerPot {
+	fn get() -> InteriorLocation {
+		Junction::AccountId32 { network: None, id: BrokerPalletId::get().into_account_truncating() }
+			.into()
+	}
 }
 
 impl coretime::Config for Runtime {
@@ -1298,10 +1309,20 @@ impl coretime::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
 	type MaxXcmTransactWeight = MaxXcmTransactWeight;
+	// FAIL-CI @donal please check these three:
+	type BrokerPotLocation = BrokerPot;
+	type AssetTransactor = crate::xcm_config::LocalAssetTransactor;
+	type AccountToLocation = xcm_builder::AliasesIntoAccountId32<
+		xcm_config::ThisNetwork,
+		<Runtime as frame_system::Config>::AccountId,
+	>;
 }
 
 parameter_types! {
 	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+	// FAIL-CI @donal please check/fix
+	pub const MaxHistoricalRevenue: BlockNumber = 2 * TIMESLICE_PERIOD;
+	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
 }
 
 impl parachains_assigner_on_demand::Config for Runtime {
@@ -1309,6 +1330,8 @@ impl parachains_assigner_on_demand::Config for Runtime {
 	type Currency = Balances;
 	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
 	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+	type MaxHistoricalRevenue = MaxHistoricalRevenue;
+	type PalletId = OnDemandPalletId;
 }
 
 impl parachains_assigner_coretime::Config for Runtime {}

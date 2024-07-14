@@ -25,6 +25,7 @@ use frame_support::{
 		OnUnbalanced,
 	},
 };
+use kusama_runtime_constants::system_parachain::coretime;
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
@@ -183,12 +184,6 @@ impl CoretimeInterface for CoretimeAllocator {
 		}
 	}
 
-	fn check_notify_revenue_info() -> Option<(RCBlockNumberOf<Self>, Self::Balance)> {
-		let revenue = CoretimeRevenue::get();
-		CoretimeRevenue::set(&None);
-		revenue
-	}
-
 	#[cfg(feature = "runtime-benchmarks")]
 	fn ensure_notify_revenue_info(when: RCBlockNumberOf<Self>, revenue: Self::Balance) {
 		CoretimeRevenue::set(&Some((when, revenue)));
@@ -203,10 +198,7 @@ impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type OnRevenue = BurnRevenue;
-	#[cfg(feature = "fast-runtime")]
-	type TimeslicePeriod = ConstU32<10>;
-	#[cfg(not(feature = "fast-runtime"))]
-	type TimeslicePeriod = ConstU32<80>;
+	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<50>;
 	type MaxReservedCores = ConstU32<10>;
 	type Coretime = CoretimeAllocator;
