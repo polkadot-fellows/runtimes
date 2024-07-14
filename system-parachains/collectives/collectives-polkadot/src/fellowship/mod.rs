@@ -209,6 +209,8 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 		>,
 		EnsureCanPromoteTo,
 	>;
+	// FAIL-CI @ggwpez use `EnsureCanFastPromoteTo` from https://github.com/polkadot-fellows/runtimes/pull/356/files
+	type FastPromoteOrigin = Self::PromoteOrigin;
 	type EvidenceSize = ConstU32<65536>;
 	type MaxRank = ConstU32<9>;
 }

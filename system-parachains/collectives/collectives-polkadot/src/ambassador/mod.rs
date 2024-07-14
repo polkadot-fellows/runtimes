@@ -43,12 +43,13 @@ use frame_support::{
 };
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
-use pallet_ranked_collective::{Rank, Votes};
+use pallet_ranked_collective::{MemberIndex, Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
 	traits::{
-		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
+		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, MaybeConvert, Replace,
+		ReplaceWithDefault,
 	},
 	Permill,
 };
@@ -137,11 +138,14 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type VoteWeight = VoteWeight;
 	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
 	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	type MaxMemberCount = AmbassadorMemberCount;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
 }
 
-/// Limits the maximal number of Head Ambassadors to 21.
+/// Limits the number of Head Ambassadors to 21.
+///
+/// The value of 21 comes from the initial OpenGov proposal: <https://github.com/polkadot-fellows/runtimes/issues/264>
 pub struct AmbassadorMemberCount;
 impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
 	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
@@ -219,6 +223,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	>;
 	type ApproveOrigin = PromoteOrigin;
 	type PromoteOrigin = PromoteOrigin;
+	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
 	type MaxRank = ConstU32<9>;
@@ -346,4 +351,21 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	type Limit =
+		<Runtime as pallet_ranked_collective::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
+
+	#[test]
+	fn ambassador_rank_limit_works() {
+		assert_eq!(Limit::maybe_convert(0), None);
+		assert_eq!(Limit::maybe_convert(1), None);
+		assert_eq!(Limit::maybe_convert(2), None);
+		assert_eq!(Limit::maybe_convert(3), Some(21));
+		assert_eq!(Limit::maybe_convert(4), None);
+	}
 }
