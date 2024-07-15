@@ -39,7 +39,7 @@ use xcm_fee_payment_runtime_api::{
 fn multi_hop_works() {
 	let destination = PenpalA::sibling_location_of(PenpalB::para_id());
 	let sender = PenpalASender::get();
-	let amount_to_send = 1_000_000_000_000; // One DOT is 10 decimals but it's configured in Penpal as 12.
+	let amount_to_send = 1_000_000_000_000;
 	let asset_owner = PenpalAssetOwner::get();
 	let assets: Assets = (Parent, amount_to_send).into();
 	let relay_native_asset_location = Location::parent();
@@ -100,7 +100,7 @@ fn multi_hop_works() {
 		delivery_fees_amount = get_amount_from_versioned_assets(delivery_fees);
 	});
 
-	// // This is set in the AssetHubKusama closure.
+	// These are set in the AssetHub closure.
 	let mut intermediate_execution_fees = 0;
 	let mut intermediate_delivery_fees_amount = 0;
 	let mut intermediate_remote_message = VersionedXcm::V4(Xcm::<()>(Vec::new()));
@@ -144,7 +144,7 @@ fn multi_hop_works() {
 		intermediate_delivery_fees_amount = get_amount_from_versioned_assets(delivery_fees);
 	});
 
-	// // Get the final execution fees in the destination.
+	// Get the final execution fees in the destination.
 	let mut final_execution_fees = 0;
 	<PenpalB as TestExt>::execute_with(|| {
 		type Runtime = <PenpalA as Chain>::Runtime;
