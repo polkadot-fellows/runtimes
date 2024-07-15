@@ -16,7 +16,7 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
 use collectives_polkadot_runtime::xcm_config::XcmConfig as CollectivesPolkadotXcmConfig;
-use frame_support::{assert_ok, dispatch::RawOrigin, sp_runtime::traits::Dispatchable};
+use frame_support::{assert_ok, dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate};
 use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };

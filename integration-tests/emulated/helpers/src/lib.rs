@@ -90,7 +90,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 						delivery_fees_amount = inner_delivery_fees_amount;
 					});
 
-					// Reset and send actual message.
+					// Reset to send actual message.
 					<$sender_relay>::reset_ext();
 					<$receiver_para>::reset_ext();
 
@@ -172,16 +172,63 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 			let beneficiary: Location =
 				$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
 
-			// Send XCM message from Parachain
+			// Dry-run first.
+			let call = <$sender_para as Chain>::RuntimeCall::PolkadotXcm(pallet_xcm::Call::limited_teleport_assets {
+				dest: bx!(relay_destination.clone().into()),
+				beneficiary: bx!(beneficiary.clone().into()),
+				assets: bx!(assets.clone().into()),
+				fee_asset_item: fee_asset_item,
+				weight_limit: weight_limit.clone(),
+			});
+			// These will be filled in the closure.
+			let mut delivery_fees_amount = 0;
+			let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
 			<$sender_para>::execute_with(|| {
-				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::limited_teleport_assets(
-					origin.clone(),
-					bx!(relay_destination.clone().into()),
-					bx!(beneficiary.clone().into()),
-					bx!(assets.clone().into()),
-					fee_asset_item,
-					weight_limit.clone(),
+				type Runtime = <$sender_para as Chain>::Runtime;
+				type OriginCaller = <$sender_para as Chain>::OriginCaller;
+
+				let origin = OriginCaller::system(RawOrigin::Signed(sender.clone()));
+				let result = Runtime::dry_run_call(origin, call.clone()).unwrap();
+				// We filter the result to get only the messages we are interested in.
+				let (destination_to_query, messages_to_query) = &result
+					.forwarded_xcms
+					.iter()
+					.find(|(destination, _)| {
+						*destination == VersionedLocation::V4(Location::new(1, []))
+					})
+					.unwrap();
+				assert_eq!(messages_to_query.len(), 1);
+				remote_message = messages_to_query[0].clone();
+				let delivery_fees =
+					Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+						.unwrap();
+				let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
+				let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
+					unreachable!("asset is fungible");
+				};
+				delivery_fees_amount = inner_delivery_fees_amount;
+			});
+
+			// Reset to send actual message.
+			<$sender_para>::reset_ext();
+			<$receiver_relay>::reset_ext();
+
+			// Since we reset everything, we need to mint funds into the checking account of `$receiver_relay`
+			// for it to accept a teleport from `$sender_para`.
+			// Else we'd get a `NotWithdrawable` error since it tries to reduce the check account balance, which
+			// would be 0.
+			<$receiver_relay>::execute_with(|| {
+				let check_account = <$receiver_relay as [<$receiver_relay Pallet>]>::XcmPallet::check_account();
+				assert_ok!(<$receiver_relay as [<$receiver_relay Pallet>]>::Balances::mint_into(
+					&check_account,
+					$amount,
 				));
+			});
+
+			// Send XCM message from Parachain.
+			<$sender_para>::execute_with(|| {
+				let origin = <$sender_para as Chain>::RuntimeOrigin::signed(sender.clone());
+				assert_ok!(call.dispatch(origin));
 
 				type RuntimeEvent = <$sender_para as $crate::Chain>::RuntimeEvent;
 
