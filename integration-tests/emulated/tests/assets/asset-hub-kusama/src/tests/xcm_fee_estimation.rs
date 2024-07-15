@@ -16,8 +16,8 @@
 //! Tests for XCM fee estimation in the runtime.
 
 use crate::{
-	assert_expected_events, bx, AssetHubPolkadot, Chain, ParaToParaThroughAHTest, PenpalA,
-	PenpalAPallet, PenpalAReceiver, PenpalAssetOwner, PenpalB, PenpalBPallet, PenpalBSender,
+	assert_expected_events, bx, AssetHubKusama, Chain, ParaToParaThroughAHTest, PenpalA,
+	PenpalAPallet, PenpalASender, PenpalAssetOwner, PenpalB, PenpalBPallet, PenpalBReceiver,
 	TestArgs, TestContext, TransferType,
 };
 use emulated_integration_tests_common::impls::{Parachain, TestExt};
@@ -33,37 +33,36 @@ use xcm_fee_payment_runtime_api::{
 };
 
 /// We are able to dry-run and estimate the fees for a multi-hop XCM journey.
-/// Scenario: Alice on PenpalB has some DOTs and wants to send them to PenpalA.
+/// Scenario: Alice on PenpalA has some DOTs and wants to send them to PenpalB.
 /// We want to know the fees using the `DryRunApi` and `XcmPaymentApi`.
 #[test]
 fn multi_hop_works() {
-	let destination = PenpalB::sibling_location_of(PenpalA::para_id());
-	let sender = PenpalBSender::get();
+	let destination = PenpalA::sibling_location_of(PenpalB::para_id());
+	let sender = PenpalASender::get();
 	let amount_to_send = 1_000_000_000_000; // One DOT is 10 decimals but it's configured in Penpal as 12.
 	let asset_owner = PenpalAssetOwner::get();
 	let assets: Assets = (Parent, amount_to_send).into();
 	let relay_native_asset_location = Location::parent();
-	let sender_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
-	let sov_of_sender_on_ah =
-		AssetHubPolkadot::sovereign_account_id_of(sender_as_seen_by_ah.clone());
+	let sender_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
+	let sov_of_sender_on_ah = AssetHubKusama::sovereign_account_id_of(sender_as_seen_by_ah.clone());
 
 	// fund Parachain's sender account
-	PenpalB::mint_foreign_asset(
-		<PenpalB as Chain>::RuntimeOrigin::signed(asset_owner.clone()),
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(asset_owner.clone()),
 		relay_native_asset_location.clone(),
 		sender.clone(),
 		amount_to_send * 2,
 	);
 
 	// fund the Parachain Origin's SA on AssetHub with the native tokens held in reserve.
-	AssetHubPolkadot::fund_accounts(vec![(sov_of_sender_on_ah.clone(), amount_to_send * 2)]);
+	AssetHubKusama::fund_accounts(vec![(sov_of_sender_on_ah.clone(), amount_to_send * 2)]);
 
 	// Init values for Parachain Destination
-	let beneficiary_id = PenpalAReceiver::get();
+	let beneficiary_id = PenpalBReceiver::get();
 
 	let test_args = TestContext {
-		sender: PenpalBSender::get(),     // Bob in PenpalB.
-		receiver: PenpalAReceiver::get(), // Alice.
+		sender: PenpalASender::get(),     // Bob in PenpalB.
+		receiver: PenpalBReceiver::get(), // Alice.
 		args: TestArgs::new_para(
 			destination,
 			beneficiary_id.clone(),
@@ -75,12 +74,12 @@ fn multi_hop_works() {
 	};
 	let mut test = ParaToParaThroughAHTest::new(test_args);
 
-	// We get them from the PenpalB closure.
+	// We get them from the PenpalA closure.
 	let mut delivery_fees_amount = 0;
 	let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
-	<PenpalB as TestExt>::execute_with(|| {
-		type Runtime = <PenpalB as Chain>::Runtime;
-		type OriginCaller = <PenpalB as Chain>::OriginCaller;
+	<PenpalA as TestExt>::execute_with(|| {
+		type Runtime = <PenpalA as Chain>::Runtime;
+		type OriginCaller = <PenpalA as Chain>::OriginCaller;
 
 		let call = transfer_assets_para_to_para_through_ah_call(test.clone());
 		let origin = OriginCaller::system(RawOrigin::Signed(sender.clone()));
@@ -101,13 +100,13 @@ fn multi_hop_works() {
 		delivery_fees_amount = get_amount_from_versioned_assets(delivery_fees);
 	});
 
-	// // This is set in the Polkadot closure.
+	// // This is set in the AssetHubKusama closure.
 	let mut intermediate_execution_fees = 0;
 	let mut intermediate_delivery_fees_amount = 0;
 	let mut intermediate_remote_message = VersionedXcm::V4(Xcm::<()>(Vec::new()));
-	<AssetHubPolkadot as TestExt>::execute_with(|| {
-		type Runtime = <AssetHubPolkadot as Chain>::Runtime;
-		type RuntimeCall = <AssetHubPolkadot as Chain>::RuntimeCall;
+	<AssetHubKusama as TestExt>::execute_with(|| {
+		type Runtime = <AssetHubKusama as Chain>::Runtime;
+		type RuntimeCall = <AssetHubKusama as Chain>::RuntimeCall;
 
 		// First we get the execution fees.
 		let weight = Runtime::query_xcm_weight(remote_message.clone()).unwrap();
@@ -128,7 +127,7 @@ fn multi_hop_works() {
 			.forwarded_xcms
 			.iter()
 			.find(|(destination, _)| {
-				*destination == VersionedLocation::V4(Location::new(1, [Parachain(2000)]))
+				*destination == VersionedLocation::V4(Location::new(1, [Parachain(2001)]))
 			})
 			.unwrap();
 		// There's actually two messages here.
@@ -147,7 +146,7 @@ fn multi_hop_works() {
 
 	// // Get the final execution fees in the destination.
 	let mut final_execution_fees = 0;
-	<PenpalA as TestExt>::execute_with(|| {
+	<PenpalB as TestExt>::execute_with(|| {
 		type Runtime = <PenpalA as Chain>::Runtime;
 
 		let weight = Runtime::query_xcm_weight(intermediate_remote_message.clone()).unwrap();
@@ -157,41 +156,41 @@ fn multi_hop_works() {
 	});
 
 	// Dry-running is done.
-	PenpalB::reset_ext();
-	AssetHubPolkadot::reset_ext();
 	PenpalA::reset_ext();
+	AssetHubKusama::reset_ext();
+	PenpalB::reset_ext();
 
 	// Fund accounts again.
-	PenpalB::mint_foreign_asset(
-		<PenpalB as Chain>::RuntimeOrigin::signed(asset_owner),
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(asset_owner),
 		relay_native_asset_location.clone(),
 		sender.clone(),
 		amount_to_send * 2,
 	);
-	AssetHubPolkadot::fund_accounts(vec![(sov_of_sender_on_ah, amount_to_send * 2)]);
+	AssetHubKusama::fund_accounts(vec![(sov_of_sender_on_ah, amount_to_send * 2)]);
 
 	// Actually run the extrinsic.
-	let sender_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+	let sender_assets_before = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
 	});
-	let receiver_assets_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+	let receiver_assets_before = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &beneficiary_id)
 	});
 
-	test.set_assertion::<PenpalB>(sender_assertions);
-	test.set_assertion::<AssetHubPolkadot>(hop_assertions);
-	test.set_assertion::<PenpalA>(receiver_assertions);
-	test.set_dispatchable::<PenpalB>(transfer_assets_para_to_para_through_ah_dispatchable);
+	test.set_assertion::<PenpalA>(sender_assertions);
+	test.set_assertion::<AssetHubKusama>(hop_assertions);
+	test.set_assertion::<PenpalB>(receiver_assertions);
+	test.set_dispatchable::<PenpalA>(transfer_assets_para_to_para_through_ah_dispatchable);
 	test.assert();
 
-	let sender_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+	let sender_assets_after = PenpalA::execute_with(|| {
+		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
 	});
-	let receiver_assets_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
+	let receiver_assets_after = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &beneficiary_id)
 	});
 
@@ -212,11 +211,11 @@ fn multi_hop_works() {
 }
 
 fn sender_assertions(test: ParaToParaThroughAHTest) {
-	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
-	PenpalB::assert_xcm_pallet_attempted_complete(None);
+	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
+	PenpalA::assert_xcm_pallet_attempted_complete(None);
 
 	assert_expected_events!(
-		PenpalB,
+		PenpalA,
 		vec![
 			RuntimeEvent::ForeignAssets(
 				pallet_assets::Event::Burned { asset_id, owner, balance }
@@ -230,11 +229,11 @@ fn sender_assertions(test: ParaToParaThroughAHTest) {
 }
 
 fn hop_assertions(test: ParaToParaThroughAHTest) {
-	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	AssetHubPolkadot::assert_xcmp_queue_success(None);
+	type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	AssetHubKusama::assert_xcmp_queue_success(None);
 
 	assert_expected_events!(
-		AssetHubPolkadot,
+		AssetHubKusama,
 		vec![
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Burned { amount, .. }
@@ -246,11 +245,11 @@ fn hop_assertions(test: ParaToParaThroughAHTest) {
 }
 
 fn receiver_assertions(test: ParaToParaThroughAHTest) {
-	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
-	PenpalA::assert_xcmp_queue_success(None);
+	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+	PenpalB::assert_xcmp_queue_success(None);
 
 	assert_expected_events!(
-		PenpalA,
+		PenpalB,
 		vec![
 			RuntimeEvent::ForeignAssets(
 				pallet_assets::Event::Issued { asset_id, owner, .. }
@@ -282,10 +281,10 @@ fn transfer_assets_para_to_para_through_ah_dispatchable(
 
 fn transfer_assets_para_to_para_through_ah_call(
 	test: ParaToParaThroughAHTest,
-) -> <PenpalB as Chain>::RuntimeCall {
-	type RuntimeCall = <PenpalB as Chain>::RuntimeCall;
+) -> <PenpalA as Chain>::RuntimeCall {
+	type RuntimeCall = <PenpalA as Chain>::RuntimeCall;
 
-	let asset_hub_location: Location = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
+	let asset_hub_location: Location = PenpalB::sibling_location_of(AssetHubKusama::para_id());
 	let custom_xcm_on_dest = Xcm::<()>(vec![DepositAsset {
 		assets: Wild(AllCounted(test.args.assets.len() as u32)),
 		beneficiary: test.args.beneficiary,
