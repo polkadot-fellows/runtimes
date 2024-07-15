@@ -14,16 +14,15 @@
 // limitations under the License.
 
 use crate::{
-    AssetHubPolkadot, PenpalA, PenpalB, PenpalAPallet, PenpalAssetOwner,
-    ParaToParaThroughAHTest, PenpalBPallet, TransferType,
-    TestArgs, PenpalBSender, TestContext, PenpalAReceiver, Chain, bx,
-	assert_expected_events,
+	assert_expected_events, bx, AssetHubPolkadot, Chain, ParaToParaThroughAHTest, PenpalA,
+	PenpalAPallet, PenpalAReceiver, PenpalAssetOwner, PenpalB, PenpalBPallet, PenpalBSender,
+	TestArgs, TestContext, TransferType,
 };
-use emulated_integration_tests_common::impls::{TestExt, Parachain};
+use emulated_integration_tests_common::impls::{Parachain, TestExt};
 use frame_support::{
-	sp_runtime::{DispatchResult, traits::Dispatchable},
+	dispatch::RawOrigin,
+	sp_runtime::{traits::Dispatchable, DispatchResult},
 	traits::fungibles::Inspect,
-    dispatch::RawOrigin,
 };
 use xcm::prelude::*;
 use xcm_fee_payment_runtime_api::{
@@ -43,7 +42,8 @@ fn multi_hop_works() {
 	let assets: Assets = (Parent, amount_to_send).into();
 	let relay_native_asset_location = Location::parent();
 	let sender_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
-	let sov_of_sender_on_ah = AssetHubPolkadot::sovereign_account_id_of(sender_as_seen_by_ah.clone());
+	let sov_of_sender_on_ah =
+		AssetHubPolkadot::sovereign_account_id_of(sender_as_seen_by_ah.clone());
 
 	// fund Parachain's sender account
 	PenpalB::mint_foreign_asset(
@@ -84,8 +84,13 @@ fn multi_hop_works() {
 		let origin = OriginCaller::system(RawOrigin::Signed(sender.clone()));
 		let result = Runtime::dry_run_call(origin, call).unwrap();
 		// We filter the result to get only the messages we are interested in.
-		let (destination_to_query, messages_to_query) = &result.forwarded_xcms.iter()
-			.find(|(destination, _)| *destination == VersionedLocation::V4(Location::new(1, [Parachain(1000)]))).unwrap();
+		let (destination_to_query, messages_to_query) = &result
+			.forwarded_xcms
+			.iter()
+			.find(|(destination, _)| {
+				*destination == VersionedLocation::V4(Location::new(1, [Parachain(1000)]))
+			})
+			.unwrap();
 		assert_eq!(messages_to_query.len(), 1);
 		remote_message = messages_to_query[0].clone();
 		let delivery_fees =
@@ -104,8 +109,11 @@ fn multi_hop_works() {
 
 		// First we get the execution fees.
 		let weight = Runtime::query_xcm_weight(remote_message.clone()).unwrap();
-		intermediate_execution_fees =
-			Runtime::query_weight_to_asset_fee(weight, VersionedAssetId::V4(Location::new(1, []).into())).unwrap();
+		intermediate_execution_fees = Runtime::query_weight_to_asset_fee(
+			weight,
+			VersionedAssetId::V4(Location::new(1, []).into()),
+		)
+		.unwrap();
 
 		// We have to do this to turn `VersionedXcm<()>` into `VersionedXcm<RuntimeCall>`.
 		let xcm_program =
@@ -114,8 +122,13 @@ fn multi_hop_works() {
 		// Now we get the delivery fees to the final destination.
 		let result =
 			Runtime::dry_run_xcm(sender_as_seen_by_ah.clone().into(), xcm_program).unwrap();
-		let (destination_to_query, messages_to_query) = &result.forwarded_xcms.iter()
-			.find(|(destination, _)| *destination == VersionedLocation::V4(Location::new(1, [Parachain(2000)]))).unwrap();
+		let (destination_to_query, messages_to_query) = &result
+			.forwarded_xcms
+			.iter()
+			.find(|(destination, _)| {
+				*destination == VersionedLocation::V4(Location::new(1, [Parachain(2000)]))
+			})
+			.unwrap();
 		// There's actually two messages here.
 		// One created when the message we sent from PenpalA arrived and was executed.
 		// The second one when we dry-run the xcm.
@@ -255,7 +268,9 @@ fn get_amount_from_versioned_assets(assets: VersionedAssets) -> u128 {
 	amount
 }
 
-fn transfer_assets_para_to_para_through_ah_dispatchable(test: ParaToParaThroughAHTest) -> DispatchResult {
+fn transfer_assets_para_to_para_through_ah_dispatchable(
+	test: ParaToParaThroughAHTest,
+) -> DispatchResult {
 	let call = transfer_assets_para_to_para_through_ah_call(test.clone());
 	match call.dispatch(test.signed_origin.into()) {
 		Ok(_) => Ok(()),
@@ -263,7 +278,9 @@ fn transfer_assets_para_to_para_through_ah_dispatchable(test: ParaToParaThroughA
 	}
 }
 
-fn transfer_assets_para_to_para_through_ah_call(test: ParaToParaThroughAHTest) -> <PenpalB as Chain>::RuntimeCall {
+fn transfer_assets_para_to_para_through_ah_call(
+	test: ParaToParaThroughAHTest,
+) -> <PenpalB as Chain>::RuntimeCall {
 	type RuntimeCall = <PenpalB as Chain>::RuntimeCall;
 
 	let asset_hub_location: Location = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
@@ -271,15 +288,13 @@ fn transfer_assets_para_to_para_through_ah_call(test: ParaToParaThroughAHTest) -
 		assets: Wild(AllCounted(test.args.assets.len() as u32)),
 		beneficiary: test.args.beneficiary,
 	}]);
-	RuntimeCall::PolkadotXcm(
-		pallet_xcm::Call::transfer_assets_using_type_and_then {
-			dest: bx!(test.args.dest.into()),
-			assets: bx!(test.args.assets.clone().into()),
-	        assets_transfer_type: bx!(TransferType::RemoteReserve(asset_hub_location.clone().into())),
-	        remote_fees_id: bx!(VersionedAssetId::V4(AssetId(Location::new(1, [])))),
-	        fees_transfer_type: bx!(TransferType::RemoteReserve(asset_hub_location.into())),
-	        custom_xcm_on_dest: bx!(VersionedXcm::from(custom_xcm_on_dest)),
-			weight_limit: test.args.weight_limit,
-		}
-	)
+	RuntimeCall::PolkadotXcm(pallet_xcm::Call::transfer_assets_using_type_and_then {
+		dest: bx!(test.args.dest.into()),
+		assets: bx!(test.args.assets.clone().into()),
+		assets_transfer_type: bx!(TransferType::RemoteReserve(asset_hub_location.clone().into())),
+		remote_fees_id: bx!(VersionedAssetId::V4(AssetId(Location::new(1, [])))),
+		fees_transfer_type: bx!(TransferType::RemoteReserve(asset_hub_location.into())),
+		custom_xcm_on_dest: bx!(VersionedXcm::from(custom_xcm_on_dest)),
+		weight_limit: test.args.weight_limit,
+	})
 }
