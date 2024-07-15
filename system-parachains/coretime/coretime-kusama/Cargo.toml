@@ -204,7 +204,7 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-fast-runtime = []
+fast-runtime = ["kusama-runtime-constants/fast-runtime"]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
 metadata-hash = ["substrate-wasm-builder?/metadata-hash"]

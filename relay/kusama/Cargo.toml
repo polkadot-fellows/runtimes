@@ -317,7 +317,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
-fast-runtime = []
+fast-runtime = ["kusama-runtime-constants/fast-runtime"]
 
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
