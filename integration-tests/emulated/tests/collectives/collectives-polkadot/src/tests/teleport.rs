@@ -16,11 +16,12 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
 use collectives_polkadot_runtime::xcm_config::XcmConfig as CollectivesPolkadotXcmConfig;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, dispatch::RawOrigin, sp_runtime::traits::Dispatchable};
 use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
-use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
+use xcm_fee_payment_runtime_api::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
+use xcm_fee_payment_runtime_api::dry_run::runtime_decl_for_dry_run_api::DryRunApiV1;
 
 #[test]
 fn teleport_from_and_to_relay() {

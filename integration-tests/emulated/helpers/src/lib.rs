@@ -40,7 +40,6 @@ macro_rules! test_relay_is_trusted_teleporter {
 			let sender = [<$sender_relay Sender>]::get();
 			let mut relay_sender_balance_before =
 				<$sender_relay as $crate::Chain>::account_data_of(sender.clone()).free;
-			let origin = <$sender_relay as $crate::Chain>::RuntimeOrigin::signed(sender.clone());
 			let fee_asset_item = 0;
 			let weight_limit = $crate::WeightLimit::Unlimited;
 
@@ -55,16 +54,50 @@ macro_rules! test_relay_is_trusted_teleporter {
 					let beneficiary: Location =
 						$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
 
-					// Send XCM message from Relay
+					// Dry-run first.
+					let call = <$sender_relay as Chain>::RuntimeCall::XcmPallet(pallet_xcm::Call::limited_teleport_assets {
+						dest: bx!(para_destination.clone().into()),
+						beneficiary: bx!(beneficiary.clone().into()),
+						assets: bx!($assets.clone().into()),
+						fee_asset_item: fee_asset_item,
+						weight_limit: weight_limit.clone(),
+					});
+					let mut delivery_fees_amount = 0;
+					let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
 					<$sender_relay>::execute_with(|| {
-						assert_ok!(<$sender_relay as [<$sender_relay Pallet>]>::XcmPallet::limited_teleport_assets(
-							origin.clone(),
-							bx!(para_destination.clone().into()),
-							bx!(beneficiary.clone().into()),
-							bx!($assets.clone().into()),
-							fee_asset_item,
-							weight_limit.clone(),
-						));
+						type Runtime = <$sender_relay as Chain>::Runtime;
+						type OriginCaller = <$sender_relay as Chain>::OriginCaller;
+
+						let origin = OriginCaller::system(RawOrigin::Signed(sender.clone()));
+						let result = Runtime::dry_run_call(origin, call.clone()).unwrap();
+						// We filter the result to get only the messages we are interested in.
+						let (destination_to_query, messages_to_query) = &result
+							.forwarded_xcms
+							.iter()
+							.find(|(destination, _)| {
+								*destination == VersionedLocation::V4(Location::new(0, [Parachain(<$receiver_para>::para_id().into())]))
+							})
+							.unwrap();
+						assert_eq!(messages_to_query.len(), 1);
+						remote_message = messages_to_query[0].clone();
+						let delivery_fees =
+							Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+								.unwrap();
+						let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
+						let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
+							unreachable!("asset is fungible");
+						};
+						delivery_fees_amount = inner_delivery_fees_amount;
+					});
+
+					// Reset and send actual message.
+					<$sender_relay>::reset_ext();
+					<$receiver_para>::reset_ext();
+
+					// Send XCM message from Relay.
+					<$sender_relay>::execute_with(|| {
+						let origin = <$sender_relay as Chain>::RuntimeOrigin::signed(sender.clone());
+						assert_ok!(call.dispatch(origin));
 
 						type RuntimeEvent = <$sender_relay as $crate::Chain>::RuntimeEvent;
 
@@ -106,13 +139,8 @@ macro_rules! test_relay_is_trusted_teleporter {
 						<$sender_relay as $crate::Chain>::account_data_of(sender.clone()).free;
 					let para_receiver_balance_after =
 						<$receiver_para as $crate::Chain>::account_data_of(receiver.clone()).free;
-					let delivery_fees = <$sender_relay>::execute_with(|| {
-						$crate::asset_test_utils::xcm_helpers::teleport_assets_delivery_fees::<
-							<$sender_xcm_config as xcm_executor::Config>::XcmSender,
-						>($assets.clone(), fee_asset_item, weight_limit.clone(), beneficiary, para_destination)
-					});
 
-					assert_eq!(relay_sender_balance_before - $amount - delivery_fees, relay_sender_balance_after);
+					assert_eq!(relay_sender_balance_before - $amount - delivery_fees_amount, relay_sender_balance_after);
 					assert!(para_receiver_balance_after > para_receiver_balance_before);
 
 					// Update sender balance
