@@ -46,6 +46,17 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_asset_conversion`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo<T> {
+	fn touch(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1571`
+		//  Estimated: `6360`
+		// Minimum execution time: 381_000_000 picoseconds.
+		Weight::from_parts(398_540_909, 6360)
+			// Standard Error: 1_330_283
+			.saturating_add(Weight::from_parts(209_463_636, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(7_u64))
+			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(n.into())))
+	}
 	/// Storage: `AssetConversion::Pools` (r:1 w:1)
 	/// Proof: `AssetConversion::Pools` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)

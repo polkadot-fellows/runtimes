@@ -46,7 +46,9 @@ use polkadot_runtime_common::impls::{
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, TakeFirst};
+use sp_runtime::traits::{
+	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst,
+};
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 use crate::secretary::SecretaryCollectiveInstance;
@@ -214,6 +216,7 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 		EnsureCanPromoteTo,
 	>;
 	type EvidenceSize = ConstU32<65536>;
+	type MaxRank = ConstU32<9>;
 }
 
 pub type FellowshipSalaryInstance = pallet_salary::Instance1;

@@ -47,7 +47,9 @@ use pallet_ranked_collective::{Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
-	traits::{CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace},
+	traits::{
+		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
+	},
 	Permill,
 };
 use xcm::prelude::*;
@@ -210,6 +212,8 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type ApproveOrigin = PromoteOrigin;
 	type PromoteOrigin = PromoteOrigin;
 	type EvidenceSize = ConstU32<65536>;
+	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
+	type MaxRank = ConstU32<9>;
 }
 
 parameter_types! {

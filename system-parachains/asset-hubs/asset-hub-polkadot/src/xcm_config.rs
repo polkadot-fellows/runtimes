@@ -153,6 +153,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
+	xcm::v3::Location,
 >;
 
 /// Means for transacting foreign assets from different global consensus.
@@ -391,6 +392,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
+	type XcmRecorder = ();
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
@@ -425,7 +427,11 @@ impl xcm_executor::Config for XcmConfig {
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance>,
+				TrustBackedAssetsAsLocation<
+					TrustBackedAssetsPalletLocation,
+					Balance,
+					xcm::v3::Location,
+				>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -477,6 +483,9 @@ impl xcm_executor::Config for XcmConfig {
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
+	type HrmpNewChannelOpenRequestHandler = ();
+	type HrmpChannelAcceptedHandler = ();
+	type HrmpChannelClosingHandler = ();
 }
 
 /// Converts a local signed origin into an XCM location.
