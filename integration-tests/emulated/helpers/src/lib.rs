@@ -157,6 +157,13 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_para Sender>]::get();
+			// Mint assets to `$sender_para` to succeed with teleport.
+			<$sender_para>::execute_with(|| {
+				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::Balances::mint_into(
+					&sender,
+					$amount + 10_000_000_000, // Some extra for delivery fees.
+				));
+			});
 			let mut para_sender_balance_before =
 				<$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
 			let origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed(sender.clone());
@@ -164,7 +171,19 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 			let fee_asset_item = 0;
 			let weight_limit = $crate::WeightLimit::Unlimited;
 
-			// init Destination variables
+			// We need to mint funds into the checking account of `$receiver_relay`
+			// for it to accept a teleport from `$sender_para`.
+			// Else we'd get a `NotWithdrawable` error since it tries to reduce the check account balance, which
+			// would be 0.
+			<$receiver_relay>::execute_with(|| {
+				let check_account = <$receiver_relay as [<$receiver_relay Pallet>]>::XcmPallet::check_account();
+				assert_ok!(<$receiver_relay as [<$receiver_relay Pallet>]>::Balances::mint_into(
+					&check_account,
+					$amount,
+				));
+			});
+
+			// Init destination variables.
 			let receiver = [<$receiver_relay Receiver>]::get();
 			let relay_receiver_balance_before =
 				<$receiver_relay as $crate::Chain>::account_data_of(receiver.clone()).free;
@@ -213,10 +232,15 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 			<$sender_para>::reset_ext();
 			<$receiver_relay>::reset_ext();
 
-			// Since we reset everything, we need to mint funds into the checking account of `$receiver_relay`
-			// for it to accept a teleport from `$sender_para`.
-			// Else we'd get a `NotWithdrawable` error since it tries to reduce the check account balance, which
-			// would be 0.
+			// Mint assets to `$sender_para` to succeed with teleport.
+			<$sender_para>::execute_with(|| {
+				assert_ok!(<$sender_para as [<$sender_para Pallet>]>::Balances::mint_into(
+					&sender,
+					$amount + 10_000_000_000, // Some extra for delivery fees.
+				));
+			});
+
+			// Since we reset everything, we need to mint funds into the checking account again.
 			<$receiver_relay>::execute_with(|| {
 				let check_account = <$receiver_relay as [<$receiver_relay Pallet>]>::XcmPallet::check_account();
 				assert_ok!(<$receiver_relay as [<$receiver_relay Pallet>]>::Balances::mint_into(
@@ -270,13 +294,8 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 				<$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
 			let relay_receiver_balance_after =
 				<$receiver_relay as $crate::Chain>::account_data_of(receiver.clone()).free;
-			let delivery_fees = <$sender_para>::execute_with(|| {
-				$crate::asset_test_utils::xcm_helpers::teleport_assets_delivery_fees::<
-					<$sender_xcm_config as xcm_executor::Config>::XcmSender,
-				>(assets, fee_asset_item, weight_limit.clone(), beneficiary, relay_destination)
-			});
 
-			assert_eq!(para_sender_balance_before - $amount - delivery_fees, para_sender_balance_after);
+			assert_eq!(para_sender_balance_before - $amount - delivery_fees_amount, para_sender_balance_after);
 			assert!(relay_receiver_balance_after > relay_receiver_balance_before);
 
 			// Update sender balance

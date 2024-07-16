@@ -9292,11 +9292,13 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-kusama-runtime",
@@ -9305,6 +9307,7 @@ dependencies = [
  "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-executor",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
