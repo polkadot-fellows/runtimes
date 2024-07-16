@@ -26,6 +26,26 @@ use xcm_fee_payment_runtime_api::{
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
+#[test]
+fn teleport_from_and_to_relay() {
+	let amount = KUSAMA_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Kusama,
+		KusamaXcmConfig,
+		vec![PeopleKusama],
+		(native_asset, amount)
+	);
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		PeopleKusama,
+		PeopleKusamaXcmConfig,
+		Kusama,
+		amount
+	);
+}
+
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(
 		false,
@@ -65,26 +85,6 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 		t.args.fee_asset_item,
 		t.args.weight_limit,
 	)
-}
-
-#[test]
-fn teleport_from_and_to_relay() {
-	let amount = KUSAMA_ED * 1000;
-	let native_asset: Assets = (Here, amount).into();
-
-	test_relay_is_trusted_teleporter!(
-		Kusama,
-		KusamaXcmConfig,
-		vec![PeopleKusama],
-		(native_asset, amount)
-	);
-
-	test_parachain_is_trusted_teleporter_for_relay!(
-		PeopleKusama,
-		PeopleKusamaXcmConfig,
-		Kusama,
-		amount
-	);
 }
 
 /// Limited Teleport of native asset from System Parachain to Relay Chain

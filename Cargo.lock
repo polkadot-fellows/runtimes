@@ -9400,9 +9400,11 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "integration-tests-helpers",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-polkadot-runtime",
@@ -9413,6 +9415,7 @@ dependencies = [
  "sp-runtime 38.0.0",
  "staging-xcm",
  "staging-xcm-executor",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
