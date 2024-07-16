@@ -14,13 +14,17 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::{dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate};
-use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
+use frame_support::{
+	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+};
 use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
-use xcm_fee_payment_runtime_api::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
-use xcm_fee_payment_runtime_api::dry_run::runtime_decl_for_dry_run_api::DryRunApiV1;
+use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
+use xcm_fee_payment_runtime_api::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Kusama::assert_ump_queue_processed(
