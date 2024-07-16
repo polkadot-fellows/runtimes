@@ -266,6 +266,7 @@ members = [
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
+	"integration-tests/zombienet",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
@@ -286,7 +287,6 @@ members = [
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
-	"integration-tests/zombienet",
 ]
 
 [profile.release]
