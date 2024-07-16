@@ -1672,6 +1672,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
