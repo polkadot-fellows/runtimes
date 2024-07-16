@@ -227,7 +227,12 @@ impl CoretimeInterface for CoretimeAllocator {
 		}
 	}
 
-	fn on_new_timeslice(_t: pallet_broker::Timeslice) {
+	fn on_new_timeslice(t: pallet_broker::Timeslice) {
+		// Burn roughly once per day. Unchecked math: RHS hardcoded as non-zero.
+		if t % 180 != 0 {
+			return
+		}
+
 		let stash = CoretimeBurnAccount::get();
 		let value =
 			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
