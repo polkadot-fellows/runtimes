@@ -27,6 +27,7 @@ bp-kusama = { version = "0.12.0", default-features = false }
 bp-messages = { version = "0.14.0", default-features = false }
 bp-parachains = { version = "0.14.0", default-features = false }
 bp-polkadot = { version = "0.12.0", default-features = false }
+bp-polkadot-bulletin = { version = "0.11.0", default-features = false }
 bp-polkadot-core = { version = "0.14.0", default-features = false }
 bp-relayers = { version = "0.14.0", default-features = false }
 bp-runtime = { version = "0.14.0", default-features = false }
@@ -53,6 +54,7 @@ cumulus-pallet-xcmp-queue = { version = "0.14.0", default-features = false }
 cumulus-primitives-aura = { version = "0.14.0", default-features = false }
 cumulus-primitives-core = { version = "0.14.0", default-features = false }
 cumulus-primitives-utility = { version = "0.14.0", default-features = false }
+cumulus-primitives-storage-weight-reclaim = { version = "5.0.0", default-features = false }
 emulated-integration-tests-common = { version = "10.0.0" }
 encointer-balances-tx-payment = { version = "~12.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~12.1.0", default-features = false }
@@ -62,7 +64,6 @@ enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "35.0.0", default-features = false }
 frame-election-provider-support = { version = "35.0.0", default-features = false }
 frame-executive = { version = "35.0.0", default-features = false }
-frame-metadata-hash-extension = { version = "0.3.0", default-features = false }
 frame-support = { version = "35.0.0", default-features = false }
 frame-system = { version = "35.0.0", default-features = false }
 frame-system-benchmarking = { version = "35.0.0", default-features = false }
@@ -105,16 +106,16 @@ pallet-conviction-voting = { version = "35.0.0", default-features = false }
 pallet-core-fellowship = { version = "19.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "34.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "34.0.0", default-features = false }
-pallet-encointer-balances = { version = "~7.0.0", default-features = false }
-pallet-encointer-bazaar = { version = "~7.0.0", default-features = false }
-pallet-encointer-bazaar-rpc-runtime-api = { version = "~7.0.0", default-features = false }
-pallet-encointer-ceremonies = { version = "~7.0.0", default-features = false }
-pallet-encointer-ceremonies-rpc-runtime-api = { version = "~7.0.0", default-features = false }
-pallet-encointer-communities = { version = "~7.0.0", default-features = false }
-pallet-encointer-communities-rpc-runtime-api = { version = "~7.0.0", default-features = false }
-pallet-encointer-faucet = { version = "~7.0.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~7.0.0", default-features = false }
-pallet-encointer-scheduler = { version = "~7.0.0", default-features = false }
+pallet-encointer-balances = { version = "~12.1.0", default-features = false }
+pallet-encointer-bazaar = { version = "~12.1.0", default-features = false }
+pallet-encointer-bazaar-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+pallet-encointer-ceremonies = { version = "~12.1.0", default-features = false }
+pallet-encointer-ceremonies-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+pallet-encointer-communities = { version = "~12.1.0", default-features = false }
+pallet-encointer-communities-rpc-runtime-api = { version = "~12.1.0", default-features = false }
+pallet-encointer-faucet = { version = "~12.2.0", default-features = false }
+pallet-encointer-reputation-commitments = { version = "~12.1.0", default-features = false }
+pallet-encointer-scheduler = { version = "~12.1.0", default-features = false }
 pallet-fast-unstake = { version = "34.0.0", default-features = false }
 pallet-glutton = { version = "21.0.0", default-features = false }
 pallet-grandpa = { version = "35.0.0", default-features = false }
@@ -181,6 +182,7 @@ polkadot-runtime-common = { version = "14.0.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
 primitive-types = { version = "0.12.2", default-features = false }
+frame-metadata-hash-extension = { version = "0.3.0", default-features = false }
 remote-externalities = { version = "0.42.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "14.0.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "34.0.0" }
@@ -233,11 +235,10 @@ xcm-builder = { version = "14.0.0", default-features = false, package = "staging
 xcm-emulator = { version = "0.12.0" }
 xcm-executor = { version = "14.0.0", default-features = false, package = "staging-xcm-executor" }
 anyhow = { version = "1.0.82" }
-subxt = { version = "0.37.0", default-features = false }
+subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
-zombienet-sdk = { version = "0.2" }
-
-impl-trait-for-tuples = "0.2.2"
+zombienet-sdk = { version = "0.2.4" }
+tuplex = { version = "0.1.0", default-features = false }
 
 [workspace]
 resolver = "2"
