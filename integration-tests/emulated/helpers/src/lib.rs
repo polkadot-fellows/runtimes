@@ -222,10 +222,14 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 					Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
 						.unwrap();
 				let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
-				let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
-					unreachable!("asset is fungible");
-				};
-				delivery_fees_amount = inner_delivery_fees_amount;
+				delivery_fees_amount = if let Some(first_asset) = latest_delivery_fees.inner().first() {
+					let Fungible(inner_delivery_fees_amount) = first_asset.fun else {
+						unreachable!("asset is fungible");
+					};
+					inner_delivery_fees_amount
+				} else {
+					0
+				}
 			});
 
 			// Reset to send actual message.
