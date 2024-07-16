@@ -15,17 +15,17 @@
 
 pub use asset_hub_kusama_emulated_chain;
 pub use bridge_hub_kusama_emulated_chain;
+pub use coretime_kusama_emulated_chain;
 pub use kusama_emulated_chain;
 pub use penpal_emulated_chain;
 pub use people_kusama_emulated_chain;
-pub use coretime_kusama_emulated_chain;
 
 use asset_hub_kusama_emulated_chain::AssetHubKusama;
 use bridge_hub_kusama_emulated_chain::BridgeHubKusama;
+use coretime_kusama_emulated_chain::CoretimeKusama;
 use kusama_emulated_chain::Kusama;
 use penpal_emulated_chain::{PenpalA, PenpalB};
 use people_kusama_emulated_chain::PeopleKusama;
-use coretime_kusama_emulated_chain::CoretimeKusama;
 
 // Cumulus
 use emulated_integration_tests_common::{

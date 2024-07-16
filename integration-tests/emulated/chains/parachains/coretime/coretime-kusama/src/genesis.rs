@@ -45,8 +45,8 @@ pub fn genesis() -> Storage {
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                                        // account id
-						acc,                                                // validator id
+						acc.clone(),                                   // account id
+						acc,                                           // validator id
 						coretime_kusama_runtime::SessionKeys { aura }, // session keys
 					)
 				})
@@ -61,7 +61,6 @@ pub fn genesis() -> Storage {
 
 	build_genesis_storage(
 		&genesis_config,
-		coretime_kusama_runtime::WASM_BINARY
-			.expect("WASM binary was not built, please build it!"),
+		coretime_kusama_runtime::WASM_BINARY.expect("WASM binary was not built, please build it!"),
 	)
 }
