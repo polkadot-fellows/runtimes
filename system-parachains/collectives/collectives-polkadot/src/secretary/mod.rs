@@ -19,7 +19,7 @@
 mod origins;
 mod tracks;
 use crate::{
-	fellowship::{ranks::DAN_3, FellowshipAdminBodyId, FellowshipCollectiveInstance},
+	fellowship::FellowshipAdminBodyId,
 	impls::ToParentTreasury,
 	xcm_config::{LocationToAccountId, TreasurerBodyId},
 	*,
@@ -127,58 +127,17 @@ pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	// Promotions and the induction of new members are serviced by `FellowshipCore` pallet instance.
-	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
-	#[cfg(feature = "runtime-benchmarks")]
-	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
-	// pass.
-	type PromoteOrigin = EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>;
+	type AddOrigin = OpenGovOrFellow;
+	type RemoveOrigin = ApproveOrigin;
+	type PromoteOrigin = ApproveOrigin;
 	type DemoteOrigin = ApproveOrigin;
 	type ExchangeOrigin = OpenGovOrFellow;
 	type Polls = SecretaryReferenda;
 	type MinRankOfClass = Identity;
-	type MemberSwappedHandler = (crate::SecretaryCore, crate::SecretarySalary);
+	type MemberSwappedHandler = crate::SecretarySalary;
 	type VoteWeight = pallet_ranked_collective::Geometric;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = (crate::SecretaryCore, crate::SecretarySalary);
-}
-
-pub type SecretaryCoreInstance = pallet_core_fellowship::Instance3;
-
-impl pallet_core_fellowship::Config<SecretaryCoreInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_core_fellowship_secretary_core::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-	type Members = pallet_ranked_collective::Pallet<Runtime, SecretaryCollectiveInstance>;
-	type Balance = Balance;
-	type ParamsOrigin = OpenGovOrFellow;
-	// Induction is by any of:
-	// - Root;
-	// - FellowshipAdmin (i.e. token holder referendum);
-	// - A single Member of the Technical Fellowship, rank 3 and above;
-	// - A single member of the Secretary Collective.
-	type InductOrigin = EitherOfDiverse<
-		EitherOfDiverse<
-			EnsureRoot<AccountId>,
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-		>,
-		EitherOfDiverse<
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				FellowshipCollectiveInstance,
-				{ DAN_3 },
-			>,
-			pallet_ranked_collective::EnsureMember<
-				Runtime,
-				SecretaryCollectiveInstance,
-				{ ranks::SECRETARY },
-			>,
-		>,
-	>;
-	type ApproveOrigin = ApproveOrigin;
-	type PromoteOrigin = ApproveOrigin;
-	type EvidenceSize = ConstU32<65536>;
+	type BenchmarkSetup = crate::SecretarySalary;
 }
 
 pub type SecretarySalaryInstance = pallet_salary::Instance3;
@@ -234,9 +193,9 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 		crate::impls::benchmarks::RankToSalary<Balances>,
 	>;
 	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
+	type RegistrationPeriod = ConstU32<{ 5 * MINUTES }>;
 	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 5 * MINUTES }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 10_000 * USDT_UNITS }>;
 }
