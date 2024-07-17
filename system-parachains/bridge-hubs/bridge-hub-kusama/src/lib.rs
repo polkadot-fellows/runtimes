@@ -24,6 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod bridge_to_ethereum_config;
 pub mod bridge_to_polkadot_config;
+// Genesis preset configurations.
 pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;

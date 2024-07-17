@@ -37,6 +37,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod ambassador;
+// Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod impls;
 mod weights;

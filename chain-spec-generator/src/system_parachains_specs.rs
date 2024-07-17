@@ -17,7 +17,7 @@
 
 use crate::common::{get_account_id_from_seed, get_from_seed, testnet_accounts};
 use cumulus_primitives_core::ParaId;
-use parachains_common::{AccountId, AssetHubPolkadotAuraId, AuraId, Balance};
+use parachains_common::{AccountId, AuraId, Balance};
 use sc_chain_spec::{ChainSpec, ChainSpecExtension, ChainSpecGroup, ChainType};
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
@@ -52,10 +52,6 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-const ASSET_HUB_POLKADOT_ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
-
-const ASSET_HUB_KUSAMA_ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
-
 const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
 
 const CORETIME_KUSAMA_ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
@@ -67,49 +63,11 @@ const PEOPLE_POLKADOT_ED: Balance = people_polkadot_runtime::ExistentialDeposit:
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-/// Invulnerable Collators
-pub fn invulnerables() -> Vec<(AccountId, AuraId)> {
-	vec![
-		(get_account_id_from_seed::<sr25519::Public>("Alice"), get_from_seed::<AuraId>("Alice")),
-		(get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
-	]
-}
-
-/// Invulnerable Collators for the particular case of AssetHubPolkadot
-pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
-	vec![
-		(
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-			get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
-		),
-		(
-			get_account_id_from_seed::<sr25519::Public>("Bob"),
-			get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
-		),
-	]
-}
-
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
 pub fn coretime_kusama_session_keys(keys: AuraId) -> coretime_kusama_runtime::SessionKeys {
 	coretime_kusama_runtime::SessionKeys { aura: keys }
-}
-
-/// Generate the session keys from individual elements.
-///
-/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn asset_hub_polkadot_session_keys(
-	keys: AssetHubPolkadotAuraId,
-) -> asset_hub_polkadot_runtime::SessionKeys {
-	asset_hub_polkadot_runtime::SessionKeys { aura: keys }
-}
-
-/// Generate the session keys from individual elements.
-///
-/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn asset_hub_kusama_session_keys(keys: AuraId) -> asset_hub_kusama_runtime::SessionKeys {
-	asset_hub_kusama_runtime::SessionKeys { aura: keys }
 }
 
 /// Generate the session keys from individual elements.
@@ -124,49 +82,6 @@ pub fn people_kusama_session_keys(keys: AuraId) -> people_kusama_runtime::Sessio
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
 pub fn people_polkadot_session_keys(keys: AuraId) -> people_polkadot_runtime::SessionKeys {
 	people_polkadot_runtime::SessionKeys { aura: keys }
-}
-
-// AssetHubPolkadot
-fn asset_hub_polkadot_genesis(
-	invulnerables: Vec<(AccountId, AssetHubPolkadotAuraId)>,
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> serde_json::Value {
-	serde_json::json!({
-		"balances": asset_hub_polkadot_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
-				.collect(),
-		},
-		"parachainInfo": asset_hub_polkadot_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": asset_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: ASSET_HUB_POLKADOT_ED * 16,
-			..Default::default()
-		},
-		"session": asset_hub_polkadot_runtime::SessionConfig {
-			keys: invulnerables
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                           // account id
-						acc,                                   // validator id
-						asset_hub_polkadot_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
 }
 
 fn asset_hub_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
@@ -192,62 +107,10 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 		.with_name("Polkadot Asset Hub Local")
 		.with_id("asset-hub-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(asset_hub_polkadot_local_genesis(1000.into()))
+		.with_genesis_config_patch(asset_hub_polkadot_runtime::genesis_config_presets::asset_hub_polkadot_local_testnet_genesis(1000.into()))
 		.with_properties(properties)
 		.build(),
 	))
-}
-
-// AssetHubKusama
-fn asset_hub_kusama_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> serde_json::Value {
-	serde_json::json!({
-		"balances": asset_hub_kusama_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
-				.collect(),
-		},
-		"parachainInfo": asset_hub_kusama_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": asset_hub_kusama_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: ASSET_HUB_KUSAMA_ED * 16,
-			..Default::default()
-		},
-		"session": asset_hub_kusama_runtime::SessionConfig {
-			keys: invulnerables
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						asset_hub_kusama_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
-}
-
-fn asset_hub_kusama_local_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_genesis(
-		// initial collators.
-		invulnerables(),
-		testnet_accounts(),
-		para_id,
-	)
 }
 
 pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
@@ -264,7 +127,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_name("Kusama Asset Hub Local")
 		.with_id("asset-hub-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(asset_hub_kusama_local_genesis(1000.into()))
+		.with_genesis_config_patch(asset_hub_kusama_runtime::genesis_config_presets::asset_hub_kusama_local_testnet_genesis(1000.into()))
 		.with_properties(properties)
 		.build(),
 	))
