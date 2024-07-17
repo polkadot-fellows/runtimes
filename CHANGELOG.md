@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
+- Encointer, PeopleKusama, PeoplePolkadot: Configure delivery fees for UMP ([polkadot-fellows/runtimes#390](https://github.com/polkadot-fellows/runtimes/pull/390))
 
 ### Changed
 
