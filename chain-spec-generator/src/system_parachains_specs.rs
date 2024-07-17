@@ -52,8 +52,6 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-const ENCOINTER_KUSAMA_ED: Balance = encointer_kusama_runtime::ExistentialDeposit::get();
-
 const PEOPLE_KUSAMA_ED: Balance = people_kusama_runtime::ExistentialDeposit::get();
 
 const PEOPLE_POLKADOT_ED: Balance = people_polkadot_runtime::ExistentialDeposit::get();
@@ -195,53 +193,6 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 	))
 }
 
-// EncointerKusama
-fn encointer_kusama_genesis(endowed_accounts: Vec<AccountId>, id: u32) -> serde_json::Value {
-	serde_json::json!({
-		"balances": asset_hub_kusama_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
-				.collect(),
-		},
-		"parachainInfo": encointer_kusama_runtime::ParachainInfoConfig {
-			parachain_id: id.into(),
-			..Default::default()
-		},
-		"collatorSelection": encointer_kusama_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: ENCOINTER_KUSAMA_ED * 16,
-			..Default::default()
-		},
-		"session": asset_hub_kusama_runtime::SessionConfig {
-			keys: invulnerables()
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						asset_hub_kusama_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
-}
-
-fn encointer_kusama_local_genesis(para_id: u32) -> serde_json::Value {
-	encointer_kusama_genesis(
-		// initial collators.
-		testnet_accounts(),
-		para_id,
-	)
-}
-
 pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -256,7 +207,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_name("Kusama Encointer Local")
 		.with_id("encointer-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(encointer_kusama_local_genesis(1001))
+		.with_genesis_config_patch(encointer_kusama_runtime::genesis_config_presets::encointer_kusama_local_testnet_genesis(1001))
 		.with_properties(properties)
 		.build(),
 	))
