@@ -52,10 +52,6 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-const PEOPLE_KUSAMA_ED: Balance = people_kusama_runtime::ExistentialDeposit::get();
-
-const PEOPLE_POLKADOT_ED: Balance = people_polkadot_runtime::ExistentialDeposit::get();
-
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
@@ -227,58 +223,6 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 	))
 }
 
-// PeopleKusama
-fn people_kusama_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> serde_json::Value {
-	serde_json::json!({
-		"balances": people_kusama_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, PEOPLE_KUSAMA_ED * 4096 * 4096))
-				.collect(),
-		},
-		"parachainInfo": people_kusama_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": people_kusama_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: PEOPLE_KUSAMA_ED * 16,
-			..Default::default()
-		},
-		"session": people_kusama_runtime::SessionConfig {
-			keys: invulnerables
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						people_kusama_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
-}
-
-fn people_kusama_local_genesis(para_id: ParaId) -> serde_json::Value {
-	people_kusama_genesis(
-		// initial collators.
-		invulnerables(),
-		testnet_accounts(),
-		para_id,
-	)
-}
-
 pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -293,62 +237,14 @@ pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String
 		.with_name("Kusama People Local")
 		.with_id("people-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(people_kusama_local_genesis(1004.into()))
+		.with_genesis_config_patch(
+			people_kusama_runtime::genesis_config_presets::people_kusama_local_testnet_genesis(
+				1004.into(),
+			),
+		)
 		.with_properties(properties)
 		.build(),
 	))
-}
-
-// PeoplePolkadot
-fn people_polkadot_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
-	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
-) -> serde_json::Value {
-	serde_json::json!({
-		"balances": people_polkadot_runtime::BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, PEOPLE_POLKADOT_ED * 4096 * 4096))
-				.collect(),
-		},
-		"parachainInfo": people_polkadot_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": people_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: PEOPLE_POLKADOT_ED * 16,
-			..Default::default()
-		},
-		"session": people_polkadot_runtime::SessionConfig {
-			keys: invulnerables
-				.into_iter()
-				.map(|(acc, aura)| {
-					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						people_polkadot_session_keys(aura), // session keys
-					)
-				})
-				.collect(),
-		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
-}
-
-fn people_polkadot_local_genesis(para_id: ParaId) -> serde_json::Value {
-	crate::system_parachains_specs::people_polkadot_genesis(
-		// initial collators.
-		invulnerables(),
-		testnet_accounts(),
-		para_id,
-	)
 }
 
 pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
@@ -365,9 +261,11 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 		.with_name("Polkadot People Local")
 		.with_id("people-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(crate::system_parachains_specs::people_polkadot_local_genesis(
-			1004.into(),
-		))
+		.with_genesis_config_patch(
+			people_polkadot_runtime::genesis_config_presets::people_polkadot_local_testnet_genesis(
+				1004.into(),
+			),
+		)
 		.with_properties(properties)
 		.build(),
 	))

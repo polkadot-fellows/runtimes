@@ -20,7 +20,7 @@ use crate::*;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
-const BRIDGE_HUB_KUSAMA_ED: Balance = crate::ExistentialDeposit::get();
+const BRIDGE_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
 fn bridge_hub_kusama_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,

@@ -22,7 +22,7 @@ use sp_core::sr25519;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
-const ASSET_HUB_POLKADOT_ED: Balance = crate::ExistentialDeposit::get();
+const ASSET_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
 
 /// Invulnerable Collators for the particular case of AssetHubPolkadot
 pub fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {

@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Genesis configs presets for the AssetHubKusama runtime
+//! Genesis configs presets for the PeopleKusama runtime
 
 use crate::*;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
-const ASSET_HUB_KUSAMA_ED: Balance = ExistentialDeposit::get();
+const PEOPLE_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
-fn asset_hub_kusama_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
+fn people_kusama_genesis(
+	invulnerables: Vec<(AccountId, parachains_common::AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> serde_json::Value {
@@ -32,7 +32,7 @@ fn asset_hub_kusama_genesis(
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
+				.map(|k| (k, PEOPLE_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
 		"parachainInfo": ParachainInfoConfig {
@@ -41,7 +41,7 @@ fn asset_hub_kusama_genesis(
 		},
 		"collatorSelection": CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: ASSET_HUB_KUSAMA_ED * 16,
+			candidacy_bond: PEOPLE_KUSAMA_ED * 16,
 			..Default::default()
 		},
 		"session": SessionConfig {
@@ -51,7 +51,7 @@ fn asset_hub_kusama_genesis(
 					(
 						acc.clone(),                         // account id
 						acc,                                 // validator id
-						SessionKeys { aura }, 	// session keys
+						SessionKeys { aura }, 		// session keys
 					)
 				})
 				.collect(),
@@ -64,19 +64,19 @@ fn asset_hub_kusama_genesis(
 	})
 }
 
-pub fn asset_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_genesis(invulnerables(), testnet_accounts(), para_id)
+pub fn people_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
+	people_kusama_genesis(invulnerables(), testnet_accounts(), para_id)
 }
 
-fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_local_testnet_genesis(para_id)
+fn people_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
+	people_kusama_local_testnet_genesis(para_id)
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
 	let patch = match id.try_into() {
-		Ok("development") => asset_hub_kusama_development_genesis(1000.into()),
-		Ok("local_testnet") => asset_hub_kusama_local_testnet_genesis(1000.into()),
+		Ok("development") => people_kusama_development_genesis(1004.into()),
+		Ok("local_testnet") => people_kusama_local_testnet_genesis(1004.into()),
 		_ => return None,
 	};
 	Some(

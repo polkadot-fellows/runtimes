@@ -20,7 +20,7 @@ use crate::*;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
-const ENCOINTER_KUSAMA_ED: Balance = crate::ExistentialDeposit::get();
+const ENCOINTER_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
 fn encointer_kusama_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
