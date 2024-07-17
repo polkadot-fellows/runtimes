@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Genesis configs presets for the EincointerKusama runtime
+//! Genesis configs presets for the EncointerKusama runtime
 
 use crate::*;
 use sp_std::vec::Vec;

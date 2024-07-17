@@ -161,20 +161,6 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 	))
 }
 
-// GluttonKusama
-fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
-	serde_json::json!({
-		"parachainInfo": glutton_kusama_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-	})
-}
-
-fn glutton_kusama_local_genesis(id: ParaId) -> serde_json::Value {
-	glutton_kusama_genesis(id)
-}
-
 pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -187,7 +173,11 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 		.with_name("Kusama Glutton Local")
 		.with_id("glutton-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(glutton_kusama_local_genesis(1300.into()))
+		.with_genesis_config_patch(
+			glutton_kusama_runtime::genesis_config_presets::glutton_kusama_local_testnet_genesis(
+				1300.into(),
+			),
+		)
 		.with_properties(properties)
 		.build(),
 	))
