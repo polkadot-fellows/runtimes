@@ -42,9 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/365))
-- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
-
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
 - AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
@@ -108,6 +105,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Based on Polkadot-SDK
 
 - Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+
+## [1.2.8] 03.07.2024
+
+### Changed
+
+- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#365](https://github.com/polkadot-fellows/runtimes/pull/365))
+- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 
 Note: This release only affects the following runtimes and is not a full system release:
 
