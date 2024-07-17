@@ -33,7 +33,7 @@ use frame_support::{
 	},
 	PalletId,
 };
-use frame_system::{EnsureRoot, EnsureRootWithSuccess};
+use frame_system::{EnsureNever, EnsureRoot, EnsureRootWithSuccess, EnsureWithSuccess};
 pub use origins::{
 	pallet_origins as pallet_fellowship_origins, Architects, EnsureCanPromoteTo, EnsureCanRetainAt,
 	EnsureFellowship, Fellows, Masters, Members, ToVoice,
@@ -206,8 +206,8 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 		>,
 		EnsureCanPromoteTo,
 	>;
-	// FAIL-CI @ggwpez use `EnsureCanFastPromoteTo` from https://github.com/polkadot-fellows/runtimes/pull/356/files
-	type FastPromoteOrigin = Self::PromoteOrigin;
+	// TODO until https://github.com/polkadot-fellows/runtimes/pull/356/files
+	type FastPromoteOrigin = EnsureWithSuccess<EnsureNever<u16>, AccountId, ConstU16<0>>;
 	type EvidenceSize = ConstU32<65536>;
 	type MaxRank = ConstU32<9>;
 }
@@ -331,4 +331,21 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use sp_runtime::traits::MaybeConvert;
+
+	type MaxMemberCount =
+		<Runtime as pallet_ranked_collective::Config<FellowshipCollectiveInstance>>::MaxMemberCount;
+
+	#[test]
+	fn max_member_count_correct() {
+		for i in 0..10 {
+			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
+			assert!(limit.is_none(), "Fellowship has no member limit");
+		}
+	}
 }

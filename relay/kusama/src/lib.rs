@@ -1289,7 +1289,6 @@ parameter_types! {
 	);
 }
 
-// FAIL-CI @donal please check/fix
 pub struct BrokerPot;
 impl Get<InteriorLocation> for BrokerPot {
 	fn get() -> InteriorLocation {
@@ -1306,7 +1305,6 @@ impl coretime::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
 	type MaxXcmTransactWeight = MaxXcmTransactWeight;
-	// FAIL-CI @donal please check these three:
 	type BrokerPotLocation = BrokerPot;
 	type AssetTransactor = crate::xcm_config::LocalAssetTransactor;
 	type AccountToLocation = xcm_builder::AliasesIntoAccountId32<
@@ -1317,7 +1315,6 @@ impl coretime::Config for Runtime {
 
 parameter_types! {
 	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
-	// FAIL-CI @donal please check/fix
 	pub const MaxHistoricalRevenue: BlockNumber = 2 * TIMESLICE_PERIOD;
 	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
 }

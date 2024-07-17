@@ -120,7 +120,6 @@ pub mod system_parachain {
 	pub type SystemParachains = IsChildSystemParachain<Id>;
 
 	/// Coretime constants
-	// FAIL-CI @donal please check/fix
 	pub mod coretime {
 		/// Coretime timeslice period in blocks
 		/// WARNING: This constant is used accross chains, so additional care should be taken
