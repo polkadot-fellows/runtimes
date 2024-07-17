@@ -36,7 +36,7 @@ fn encointer_kusama_genesis(
 				.collect(),
 		},
 		"parachainInfo": ParachainInfoConfig {
-			parachain_id: id.into(),
+			parachain_id: id,
 			..Default::default()
 		},
 		"collatorSelection": CollatorSelectionConfig {
