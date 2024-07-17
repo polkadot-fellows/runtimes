@@ -163,6 +163,7 @@ pallet-xcm = { version = "14.0.0", default-features = false }
 pallet-xcm-benchmarks = { version = "14.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.9.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.12.0", default-features = false }
+pallet-parameters = { version = "0.7.0", default-features = false }
 parachain-info = { version = "0.14.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "14.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "14.0.0" }

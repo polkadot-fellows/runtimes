@@ -23,7 +23,6 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS};
 use pallet_nis::WithMaximumOf;
-use pallet_staking_reward_fn::compute_inflation;
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
 	CandidateHash, CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState, ExecutorParams,
@@ -621,6 +620,59 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
+use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used to calculate era payouts, see
+	/// [`polkadot_runtime_common::impls::EraPayoutParams`].
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
+		#[codec(index = 0)]
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000u64);
+
+		/// Maximum inflation rate used to calculate era payouts.
+		#[codec(index = 1)]
+		pub static MaxInflation: Perquintill = Perquintill::from_rational(100u64, 1000u64);
+
+		/// Ideal stake ratio used to calculate era payouts.
+		#[codec(index = 2)]
+		pub static IdealStake: Perquintill = Perquintill::from_rational(500u64, 1000u64);
+
+		/// Falloff used to calculate era payouts.
+		#[codec(index = 3)]
+		pub static Falloff: Perquintill = Perquintill::from_rational(50u64, 1000u64);
+
+		/// Whether to use auction slots or not in the calculation of era payouts. If set to true,
+		/// the `legacy_auction_proportion` of 60% will be used in the calculation of era payouts.
+		#[codec(index = 4)]
+		pub static UseAuctionSlots: bool = false;
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
+			dynamic_params::inflation::MinInflation,
+			Some(Perquintill::from_rational(25u64, 1000u64)),
+		))
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	// TODO: add benchmarking and update weight info
+	type WeightInfo = ();
+	// type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
 pub struct EraPayout;
 impl pallet_staking::EraPayout<Balance> for EraPayout {
 	fn era_payout(
@@ -628,51 +680,59 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		_total_issuance: Balance,
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
-		// all para-ids that are currently active.
-		let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
-			// all active para-ids that do not belong to a system chain is the number
-			// of parachains that we should take into account for inflation.
-			.filter(|i| *i >= LOWEST_PUBLIC_ID)
-			.count() as u64;
-
-		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		let use_auctioned_slots = todo!("should come from pallet parameters as well");
 		let params = EraPayoutParams {
 			total_staked,
-			total_stakable: Nis::issuance().other,
-			ideal_stake: todo!("must come from pallet parameters, and default set to 75%"),
-			max_annual_inflation: todo!("must come from pallet parameters, and default set to 10%"),
-			min_annual_inflation: todo!(
-				"must come from pallet parameters, and default set to 2.5%"
-			),
-			falloff: todo!("must come from pallet parameters, and default set to 5%"),
+			total_stakable: Balances::total_issuance(),
+			ideal_stake: dynamic_params::inflation::IdealStake::get(),
+			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
+			falloff: dynamic_params::inflation::Falloff::get(),
 			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
-			legacy_auction_proportion: if use_auctioned_slots {
-				Some(Perquintill::from_rational(auctioned_slots.min(60), 200))
+			legacy_auction_proportion: if dynamic_params::inflation::UseAuctionSlots::get() {
+				let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+					.into_iter()
+					// all active para-ids that do not belong to a system chain is the number of
+					// parachains that we should take into account for inflation.
+					.filter(|i| *i >= 2000.into())
+					.count() as u64;
+				Some(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
 			} else {
 				None
 			},
 		};
 		relay_era_payout(params)
-		// TODO: remove pub fn era_payout from polkadot-sdk.
 	}
 }
 
-pub(crate) struct EraPayoutParams {
-	total_staked: Balance,
-	total_stakable: Balance,
-	ideal_stake: Perquintill,
-	max_annual_inflation: Perquintill,
-	min_annual_inflation: Perquintill,
-	falloff: Perquintill,
-	period_fraction: Perquintill,
-	legacy_auction_proportion: Option<Perquintill>,
+// ---- TODO: Below is copy pasted from sdk, remove once we pull 1.15
+
+/// Parameters passed into [`relay_era_payout`] function.
+pub struct EraPayoutParams {
+	/// Total staked amount.
+	pub total_staked: Balance,
+	/// Total stakable amount.
+	///
+	/// Usually, this is equal to the total issuance, except if a large part of the issuance is
+	/// locked in another sub-system.
+	pub total_stakable: Balance,
+	/// Ideal stake ratio, which is deducted by `legacy_auction_proportion` if not `None`.
+	pub ideal_stake: Perquintill,
+	/// Maximum inflation rate.
+	pub max_annual_inflation: Perquintill,
+	/// Minimum inflation rate.
+	pub min_annual_inflation: Perquintill,
+	/// Falloff used to calculate era payouts.
+	pub falloff: Perquintill,
+	/// Fraction of the era period used to calculate era payouts.
+	pub period_fraction: Perquintill,
+	/// Legacy auction proportion, which substracts from `ideal_stake` if not `None`.
+	pub legacy_auction_proportion: Option<Perquintill>,
 }
 
-// TODO: move this to a shared create between both relays.
+/// A specialized function to compute the inflation of the staking system, tailored for polkadot
+/// relay chains, such as Polkadot, Kusama and Westend.
 pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 	let EraPayoutParams {
 		total_staked,
@@ -690,7 +750,7 @@ pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 	let ideal_stake = ideal_stake.saturating_sub(legacy_auction_proportion.unwrap_or_default());
 
 	let stake = Perquintill::from_rational(total_staked, total_stakable);
-	let adjustment = compute_inflation(stake, ideal_stake, falloff);
+	let adjustment = pallet_staking_reward_fn::compute_inflation(stake, ideal_stake, falloff);
 	let staking_inflation =
 		min_annual_inflation.saturating_add(delta_annual_inflation * adjustment);
 
@@ -706,6 +766,8 @@ pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 	}
 	(staking_payout, rest)
 }
+
+// ---- TODO: Above is copy pasted from sdk, remove once we pull 1.15
 
 parameter_types! {
 	// Six sessions in an era (6 hours).
@@ -1657,6 +1719,7 @@ construct_runtime! {
 		FellowshipReferenda: pallet_referenda::<Instance2> = 23,
 		Origins: pallet_custom_origins = 43,
 		Whitelist: pallet_whitelist = 44,
+		Parameters: pallet_parameters = 46,
 
 		// Claims. Usable initially.
 		Claims: claims = 19,
@@ -1870,6 +1933,7 @@ mod benches {
 		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
+		[pallet_parameters, Parameters]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

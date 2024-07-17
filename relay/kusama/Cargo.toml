@@ -84,6 +84,7 @@ pallet-whitelist = { workspace = true }
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
+pallet-parameters = { workspace = true }
 
 frame-benchmarking = { optional = true, workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
@@ -164,6 +165,7 @@ std = [
 	"pallet-offences/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
+	"pallet-parameters/std",
 	"pallet-ranked-collective/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
@@ -260,6 +262,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -308,6 +311,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-parameters/try-runtime",
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
