@@ -111,8 +111,6 @@ use xcm_builder::PayOverXcm;
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
-#[cfg(feature = "std")]
-pub use pallet_staking::StakerStatus;
 use pallet_staking::UseValidatorsMap;
 use sp_runtime::traits::Get;
 #[cfg(any(feature = "std", test))]
@@ -122,6 +120,9 @@ pub use sp_runtime::BuildStorage;
 use kusama_runtime_constants::{
 	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
 };
+
+// Genesis preset configurations.
+pub mod genesis_config_presets;
 
 // Weights used in the runtime.
 mod weights;
@@ -2339,11 +2340,14 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-			get_preset::<RuntimeGenesisConfig>(id, |_| None)
+			get_preset::<RuntimeGenesisConfig>(id, &genesis_config_presets::get_preset)
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![]
+			vec![
+				sp_genesis_builder::PresetId::from("local_testnet"),
+				sp_genesis_builder::PresetId::from("development"),
+			]
 		}
 	}
 

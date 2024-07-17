@@ -35,6 +35,7 @@ default = ["std"]
 std = [
 	"bp-bridge-hub-cumulus/std",
 	"bp-messages/std",
+	"bp-polkadot-bulletin/std",
 	"bp-runtime/std",
 	"frame-support/std",
 	"kusama-runtime-constants/std",
@@ -45,5 +46,4 @@ std = [
 	"sp-std/std",
 	"system-parachains-constants/std",
 	"xcm/std",
-	"bp-polkadot-bulletin/std"
 ]

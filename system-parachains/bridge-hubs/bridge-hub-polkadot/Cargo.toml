@@ -137,6 +137,7 @@ std = [
 	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
+	"bp-polkadot-bulletin/std",
 	"bp-polkadot-core/std",
 	"bp-polkadot/std",
 	"bp-relayers/std",
@@ -215,11 +216,10 @@ std = [
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"tuplex/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"bp-polkadot-bulletin/std",
-	"tuplex/std"
 ]
 
 runtime-benchmarks = [
