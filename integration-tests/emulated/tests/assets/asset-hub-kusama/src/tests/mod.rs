@@ -14,17 +14,10 @@
 // limitations under the License.
 
 mod claim_assets;
+mod hybrid_transfers;
 mod reserve_transfer;
 mod send;
 mod set_xcm_versions;
 mod swap;
 mod teleport;
 mod treasury;
-
-use crate::*;
-emulated_integration_tests_common::include_penpal_create_foreign_asset_on_asset_hub!(
-	PenpalA,
-	AssetHubKusama,
-	KUSAMA_ED,
-	system_parachains_constants::kusama::fee::WeightToFee
-);
