@@ -149,7 +149,7 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 pub struct AmbassadorMemberCount;
 impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
 	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
-		(rank == 3).then(|| 21)
+		(rank == 3).then_some(21)
 	}
 }
 
