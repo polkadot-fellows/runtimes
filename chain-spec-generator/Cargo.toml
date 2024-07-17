@@ -26,7 +26,6 @@ pallet-staking = { workspace = true, default-features = true }
 grandpa = { workspace = true }
 sp-runtime = { workspace = true, default-features = true }
 beefy-primitives = { workspace = true, default-features = true }
-xcm = { workspace = true, default-features = true }
 
 asset-hub-polkadot-runtime = { workspace = true }
 asset-hub-kusama-runtime = { workspace = true }
