@@ -52,10 +52,7 @@ use sp_runtime::traits::{
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
-use crate::{
-	impls::benchmarks::{OpenHrmpChannel, PayWithEnsure},
-	ExistentialDeposit,
-};
+use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
 
 /// The Fellowship members' ranks.
 pub mod ranks {
