@@ -189,7 +189,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_name("Kusama Encointer Local")
 		.with_id("encointer-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(encointer_kusama_runtime::genesis_config_presets::encointer_kusama_local_testnet_genesis(1001))
+		.with_genesis_config_patch(encointer_kusama_runtime::genesis_config_presets::encointer_kusama_local_testnet_genesis(1001.into()))
 		.with_properties(properties)
 		.build(),
 	))
