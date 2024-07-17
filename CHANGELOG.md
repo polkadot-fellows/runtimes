@@ -9,8 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
-- Introduce a new dispatchable function `set_partial_params` in `pallet-core-fellowship` ([SDK v1.14 #3843](https://github.com/paritytech/polkadot-sdk/pull/3843) from [#381](https://github.com/polkadot-fellows/runtimes/pull/381)).
-- RFC-5: Add request revenue info ([SDK v1.14 #3940](https://github.com/paritytech/polkadot-sdk/pull/3940) from [#381](https://github.com/polkadot-fellows/runtimes/pull/381)).
 - Introduce a new dispatchable function `set_partial_params` in `pallet-core-fellowship` ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3843](https://github.com/paritytech/polkadot-sdk/pull/3843)).
 - RFC-5: Add request revenue info ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3940](https://github.com/paritytech/polkadot-sdk/pull/3940)).
 - Core-Fellowship: new `promote_fast` call ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4877](https://github.com/paritytech/polkadot-sdk/pull/4877)).
