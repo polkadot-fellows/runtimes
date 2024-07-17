@@ -20,6 +20,7 @@ pallet-identity = { workspace = true, default-features = true }
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
+pallet-xcm = { workspace = true, default-features = true }
 xcm-executor = { workspace = true }
 
 # Cumulus
