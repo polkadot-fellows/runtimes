@@ -193,9 +193,9 @@ impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
 		crate::impls::benchmarks::RankToSalary<Balances>,
 	>;
 	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 5 * MINUTES }>;
+	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
 	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 5 * MINUTES }>;
+	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
 	// Total monthly salary budget.
 	type Budget = ConstU128<{ 10_000 * USDT_UNITS }>;
 }
