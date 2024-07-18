@@ -288,6 +288,7 @@ impl pallet_broker::Config for Runtime {
 	type Currency = Balances;
 	type OnRevenue = BurnCoretimeRevenue;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
+	// TODO project worst case from planned auctions - currently 47
 	type MaxLeasedCores = ConstU32<50>;
 	type MaxReservedCores = ConstU32<10>;
 	type Coretime = CoretimeAllocator;
