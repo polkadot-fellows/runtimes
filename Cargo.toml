@@ -46,6 +46,7 @@ collectives-polkadot-runtime = { path = "system-parachains/collectives/collectiv
 collectives-polkadot-runtime-constants = { path = "system-parachains/collectives/collectives-polkadot/constants" }
 coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
 coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
+coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
 cumulus-pallet-aura-ext = { version = "0.15.0", default-features = false }
 cumulus-pallet-dmp-queue = { version = "0.15.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.15.0", default-features = false }
@@ -288,6 +289,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
+	"system-parachains/coretime/coretime-polkadot",
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
