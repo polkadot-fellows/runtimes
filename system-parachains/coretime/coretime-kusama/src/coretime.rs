@@ -167,13 +167,41 @@ impl CoretimeInterface for CoretimeAllocator {
 
 	fn request_revenue_info_at(when: RCBlockNumberOf<Self>) {
 		use crate::coretime::CoretimeProviderCalls::RequestRevenueInfoAt;
-		let _request_revenue_info_at_call =
+		let request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		log::debug!(
-			target: "runtime::coretime",
-			"`request_revenue` is unmiplemented on the relay."
-		);
+		// Weight for `request_revenue_at` from Kusama runtime benchmarks:
+		// `ref_time` = 37_637_000 + (3 * 25000000) + (6 * 100000000) = 712637000
+		// `proof_size` = 6428
+		// Add 5% to each component and round to 2 significant figures.
+		//
+		// This benchmark has been transplanted from a testnet and not rerun, so adding a healthy
+		// buffer. TODO refine when benchmarks are run.
+		let call_weight = Weight::from_parts(1_000_000_000, 20_000);
+
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Native,
+				require_weight_at_most: call_weight,
+				call: request_revenue_info_at_call.encode().into(),
+			},
+		]);
+
+		match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
+			Ok(_) => log::debug!(
+				target: "runtime::coretime",
+				"Revenue info request sent successfully."
+			),
+			Err(e) => log::error!(
+				target: "runtime::coretime",
+				"Request for revenue info failed to send: {:?}",
+				e
+			),
+		}
 	}
 
 	fn credit_account(who: Self::AccountId, amount: Self::Balance) {
@@ -182,7 +210,7 @@ impl CoretimeInterface for CoretimeAllocator {
 
 		log::debug!(
 			target: "runtime::coretime",
-			"`credit_account` is unmiplemented on the relay."
+			"`credit_account` is unimplemented on the relay."
 		);
 	}
 
