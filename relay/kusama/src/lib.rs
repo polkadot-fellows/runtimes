@@ -684,7 +684,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 
 		let params = EraPayoutParams {
 			total_staked,
-			total_stakable: Balances::total_issuance(),
+			total_stakable: Balances::total_issuance(), // CI_FAIL TODO: swap with nis
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
 			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
