@@ -889,7 +889,7 @@ impl pallet_treasury::Config for Runtime {
 
 parameter_types! {
 	pub const BountyDepositBase: Balance = DOLLARS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 8 * DAYS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 0;
 	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);

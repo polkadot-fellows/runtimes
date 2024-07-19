@@ -4,6 +4,17 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
+- Encointer, PeopleKusama, PeoplePolkadot: Configure delivery fees for UMP ([polkadot-fellows/runtimes#390](https://github.com/polkadot-fellows/runtimes/pull/390))
+
+### Changed
+
+- Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386))
+
 ## [1.2.8] 03.07.2024
 
 ### Added
@@ -35,9 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama system chains: enable PoV-reclaim.
 
 ### Changed
-
-- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/365))
-- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -102,6 +110,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Based on Polkadot-SDK
 
 - Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332))
+
+## [1.2.8] 03.07.2024
+
+### Changed
+
+- Snowbridge: Sync headers on demand ([polkadot-fellows/runtimes#365](https://github.com/polkadot-fellows/runtimes/pull/365))
+- Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 
 Note: This release only affects the following runtimes and is not a full system release:
 
