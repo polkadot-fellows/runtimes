@@ -54,6 +54,7 @@ frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
+pallet-im-online = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-mmr = { workspace = true }
@@ -149,6 +150,7 @@ std = [
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
+	"pallet-im-online/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-mmr/std",
@@ -225,6 +227,7 @@ runtime-benchmarks = [
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
+	"pallet-im-online/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
@@ -277,6 +280,7 @@ try-runtime = [
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
+	"pallet-im-online/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-mmr/try-runtime",
