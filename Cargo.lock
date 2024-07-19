@@ -14418,6 +14418,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie 36.0.0",
  "sp-version",
+ "ss58-registry",
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",

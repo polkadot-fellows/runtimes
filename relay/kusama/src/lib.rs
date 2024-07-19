@@ -731,6 +731,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 				None
 			},
 		};
+		log::debug!(target: "runtime::kusama", "params: {:?}", params);
 		relay_era_payout(params)
 	}
 }
@@ -738,6 +739,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 // ---- TODO: Below is copy pasted from sdk, remove once we pull the version containing
 // https://github.com/paritytech/polkadot-sdk/pull/4938
 
+#[derive(Debug, Clone)]
 /// Parameters passed into [`relay_era_payout`] function.
 pub struct EraPayoutParams {
 	/// Total staked amount.
@@ -2981,7 +2983,6 @@ mod remote_tests {
 	}
 
 	#[tokio::test]
-	#[ignore = "this test is meant to be executed manually"]
 	async fn next_inflation() {
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
@@ -2993,6 +2994,9 @@ mod remote_tests {
 				hashed_prefixes: vec![
 					// entire nis pallet
 					hex!("928fa8b8d92aa31f47ed74f188a43f70").to_vec(),
+					// staking eras total stake
+					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")
+						.to_vec(),
 				],
 				hashed_keys: vec![
 					// staking active era
@@ -3000,6 +3004,9 @@ mod remote_tests {
 						.to_vec(),
 					// balances ti
 					hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80")
+						.to_vec(),
+					// timestamp now
+					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
 						.to_vec(),
 				],
 				..Default::default()
@@ -3022,12 +3029,20 @@ mod remote_tests {
 				total_issuance,
 				era_duration_millis,
 			);
+			use ss58_registry::TokenRegistry;
+			let token: ss58_registry::Token = TokenRegistry::Ksm.into();
+
+			log::info!(target: "runtime::kusama", "total-staked = {:?}", token.amount(total_staked));
+			log::info!(target: "runtime::kusama", "total-issuance = {:?}", token.amount(total_issuance));
+			log::info!(target: "runtime::kusama", "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
+			log::info!(target: "runtime::kusama", "era-duration = {:?}", era_duration_millis);
 			log::info!(target: "runtime::kusama", "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
 			log::info!(target: "runtime::kusama", "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
 			log::info!(target: "runtime::kusama", "falloff = {:?}", dynamic_params::inflation::Falloff::get());
 			log::info!(target: "runtime::kusama", "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
 			log::info!(target: "runtime::kusama", "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
-			log::info!(target: "runtime::kusama", "💰 Inflation ==> staking = {:?} / leftover = {:?}", staking, leftover);
+			log::info!(target: "runtime::kusama", "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
+			log::info!(target: "runtime::kusama", "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 		});
 	}
 
