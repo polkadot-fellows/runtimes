@@ -633,19 +633,19 @@ pub mod dynamic_params {
 	pub mod inflation {
 		/// Minimum inflation rate used to calculate era payouts.
 		#[codec(index = 0)]
-		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000u64);
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25, 1000);
 
 		/// Maximum inflation rate used to calculate era payouts.
 		#[codec(index = 1)]
-		pub static MaxInflation: Perquintill = Perquintill::from_rational(100u64, 1000u64);
+		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
 
 		/// Ideal stake ratio used to calculate era payouts.
 		#[codec(index = 2)]
-		pub static IdealStake: Perquintill = Perquintill::from_rational(500u64, 1000u64);
+		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
 
 		/// Falloff used to calculate era payouts.
 		#[codec(index = 3)]
-		pub static Falloff: Perquintill = Perquintill::from_rational(50u64, 1000u64);
+		pub static Falloff: Perquintill = Perquintill::from_percent(5);
 
 		/// Whether to use auction slots or not in the calculation of era payouts. If set to true,
 		/// the `legacy_auction_proportion` of 60% will be used in the calculation of era payouts.
@@ -684,7 +684,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 
 		let params = EraPayoutParams {
 			total_staked,
-			total_stakable: Balances::total_issuance(), // CI_FAIL TODO: swap with nis
+			total_stakable: Nis::issuance().other,
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
 			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
 			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
@@ -695,7 +695,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 					.into_iter()
 					// all active para-ids that do not belong to a system chain is the number of
 					// parachains that we should take into account for inflation.
-					.filter(|i| *i >= 2000.into())
+					.filter(|i| *i >= LOWEST_PUBLIC_ID)
 					.count() as u64;
 				Some(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
 			} else {
@@ -706,7 +706,8 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 	}
 }
 
-// ---- TODO: Below is copy pasted from sdk, remove once we pull 1.15
+// ---- TODO: Below is copy pasted from sdk, remove once we pull the version containing
+// https://github.com/paritytech/polkadot-sdk/pull/4938
 
 /// Parameters passed into [`relay_era_payout`] function.
 pub struct EraPayoutParams {
@@ -767,7 +768,8 @@ pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 	(staking_payout, rest)
 }
 
-// ---- TODO: Above is copy pasted from sdk, remove once we pull 1.15
+// ---- TODO: Above is copy pasted from sdk, remove once we pull the version containing
+// https://github.com/paritytech/polkadot-sdk/pull/4938
 
 parameter_types! {
 	// Six sessions in an era (6 hours).
