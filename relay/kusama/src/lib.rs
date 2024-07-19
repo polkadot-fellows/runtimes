@@ -22,6 +22,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS};
+use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
@@ -93,8 +94,9 @@ use sp_core::{ConstU128, OpaqueMetadata, H256};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Extrinsic as ExtrinsicT,
-		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
+		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
+		Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -620,7 +622,10 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
-use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
+use frame_support::{
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
+	traits::EnsureOriginWithArg,
+};
 /// Dynamic params that can be adjusted at runtime.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
@@ -633,7 +638,7 @@ pub mod dynamic_params {
 	pub mod inflation {
 		/// Minimum inflation rate used to calculate era payouts.
 		#[codec(index = 0)]
-		pub static MinInflation: Perquintill = Perquintill::from_rational(25, 1000);
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
 
 		/// Maximum inflation rate used to calculate era payouts.
 		#[codec(index = 1)]
@@ -661,6 +666,30 @@ impl Default for RuntimeParameters {
 			dynamic_params::inflation::MinInflation,
 			Some(Perquintill::from_rational(25u64, 1000u64)),
 		))
+	}
+}
+
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			Inflation(_) => frame_system::ensure_root(origin.clone()),
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
 	}
 }
 
@@ -864,13 +893,8 @@ parameter_types! {
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
-	type ApproveOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type OnSlash = Treasury;
-	type ProposalBond = ProposalBond;
-	type ProposalBondMinimum = ProposalBondMinimum;
-	type ProposalBondMaximum = ProposalBondMaximum;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = Society;
@@ -920,6 +944,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type RuntimeEvent = RuntimeEvent;
 	type MaximumReasonLength = MaximumReasonLength;
+	type OnSlash = Treasury;
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
@@ -1409,10 +1434,19 @@ impl parachains_scheduler::Config for Runtime {
 
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
+	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
 	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
 		250 * WEIGHT_REF_TIME_PER_MICROS,
 		20 * WEIGHT_PROOF_SIZE_PER_KB
 	);
+}
+
+pub struct BrokerPot;
+impl Get<InteriorLocation> for BrokerPot {
+	fn get() -> InteriorLocation {
+		Junction::AccountId32 { network: None, id: BrokerPalletId::get().into_account_truncating() }
+			.into()
+	}
 }
 
 impl coretime::Config for Runtime {
@@ -1423,10 +1457,18 @@ impl coretime::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
 	type MaxXcmTransactWeight = MaxXcmTransactWeight;
+	type BrokerPotLocation = BrokerPot;
+	type AssetTransactor = crate::xcm_config::LocalAssetTransactor;
+	type AccountToLocation = xcm_builder::AliasesIntoAccountId32<
+		xcm_config::ThisNetwork,
+		<Runtime as frame_system::Config>::AccountId,
+	>;
 }
 
 parameter_types! {
 	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+	pub const MaxHistoricalRevenue: BlockNumber = 2 * TIMESLICE_PERIOD;
+	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
 }
 
 impl parachains_assigner_on_demand::Config for Runtime {
@@ -1434,6 +1476,8 @@ impl parachains_assigner_on_demand::Config for Runtime {
 	type Currency = Balances;
 	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
 	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+	type MaxHistoricalRevenue = MaxHistoricalRevenue;
+	type PalletId = OnDemandPalletId;
 }
 
 impl parachains_assigner_coretime::Config for Runtime {}
@@ -2934,6 +2978,57 @@ mod remote_tests {
 			.await
 			.unwrap();
 		ext.execute_with(|| Runtime::on_runtime_upgrade(UpgradeCheckSelect::PreAndPost));
+	}
+
+	#[tokio::test]
+	#[ignore = "this test is meant to be executed manually"]
+	async fn next_inflation() {
+		use hex_literal::hex;
+		sp_tracing::try_init_simple();
+		let transport: Transport =
+			var("WS").unwrap_or("wss://rpc.dotters.network/kusama".to_string()).into();
+		let mut ext = Builder::<Block>::default()
+			.mode(Mode::Online(OnlineConfig {
+				transport,
+				hashed_prefixes: vec![
+					// entire nis pallet
+					hex!("928fa8b8d92aa31f47ed74f188a43f70").to_vec(),
+				],
+				hashed_keys: vec![
+					// staking active era
+					hex!("5f3e4907f716ac89b6347d15ececedca487df464e44a534ba6b0cbb32407b587")
+						.to_vec(),
+					// balances ti
+					hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80")
+						.to_vec(),
+				],
+				..Default::default()
+			}))
+			.build()
+			.await
+			.unwrap();
+		ext.execute_with(|| {
+			use pallet_staking::EraPayout;
+			let (total_staked, started) = pallet_staking::ActiveEra::<Runtime>::get()
+				.map(|ae| {
+					(pallet_staking::ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap())
+				})
+				.unwrap();
+			let total_issuance = Nis::issuance().other;
+			let era_duration_millis =
+				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
+			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+				total_staked,
+				total_issuance,
+				era_duration_millis,
+			);
+			log::info!(target: "runtime::kusama", "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
+			log::info!(target: "runtime::kusama", "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
+			log::info!(target: "runtime::kusama", "falloff = {:?}", dynamic_params::inflation::Falloff::get());
+			log::info!(target: "runtime::kusama", "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
+			log::info!(target: "runtime::kusama", "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
+			log::info!(target: "runtime::kusama", "💰 Inflation ==> staking = {:?} / leftover = {:?}", staking, leftover);
+		});
 	}
 
 	#[tokio::test]
