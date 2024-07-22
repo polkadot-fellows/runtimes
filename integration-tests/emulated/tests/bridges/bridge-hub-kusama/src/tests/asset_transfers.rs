@@ -36,7 +36,10 @@ fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: 
 	assert_bridge_hub_polkadot_message_received();
 }
 
-fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: u128) -> u128 {
+fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(
+	id: Location,
+	amount: u128,
+) -> u128 {
 	let destination = asset_hub_polkadot_location();
 
 	// fund the AHK's SA on BHK for paying bridge transport fees
@@ -50,7 +53,8 @@ fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, 
 		AccountId32Junction { id: AssetHubPolkadotReceiver::get().into(), network: None }.into();
 	let assets: Assets = (id, amount).into();
 	let fee_asset_item = 0;
-	let call = send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
+	let call =
+		send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
 	let mut delivery_fees_amount = 0;
 	let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
 	AssetHubKusama::execute_with(|| {
@@ -90,7 +94,8 @@ fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, 
 		// First we get the execution fees.
 		let weight = Runtime::query_xcm_weight(remote_message.clone()).unwrap();
 		intermediate_execution_fees =
-			Runtime::query_weight_to_asset_fee(weight, VersionedAssetId::V4(Parent.into())).unwrap();
+			Runtime::query_weight_to_asset_fee(weight, VersionedAssetId::V4(Parent.into()))
+				.unwrap();
 
 		// We have to do this to turn `VersionedXcm<()>` into `VersionedXcm<RuntimeCall>`.
 		let xcm_program =
@@ -99,7 +104,8 @@ fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, 
 		// Now we get the delivery fees to the final destination.
 		let asset_hub_as_seen_by_bridge_hub: Location = Location::new(1, [Parachain(1000)]);
 		let result =
-			Runtime::dry_run_xcm(asset_hub_as_seen_by_bridge_hub.clone().into(), xcm_program).unwrap();
+			Runtime::dry_run_xcm(asset_hub_as_seen_by_bridge_hub.clone().into(), xcm_program)
+				.unwrap();
 
 		// We filter the result to get only the messages we are interested in.
 		// dbg!(&result.forwarded_xcms);
@@ -167,7 +173,10 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let ksm_at_asset_hub_kusama_latest: Location = ksm_at_asset_hub_kusama.try_into().unwrap();
 	let amount = ASSET_HUB_KUSAMA_ED * 1_000;
 	// First dry-run.
-	let delivery_fees = dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(ksm_at_asset_hub_kusama_latest.clone(), amount);
+	let delivery_fees = dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(
+		ksm_at_asset_hub_kusama_latest.clone(),
+		amount,
+	);
 	// Then send.
 	send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(ksm_at_asset_hub_kusama_latest, amount);
 	AssetHubPolkadot::execute_with(|| {
