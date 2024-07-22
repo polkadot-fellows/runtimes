@@ -227,6 +227,8 @@ parameter_types! {
 	pub XcmAssetFeesReceiver: Option<AccountId> = Authorship::author();
 }
 
+/// Location type to determine the Technical Fellowship related 
+/// pallets for use in XCM.
 pub struct FellowshipEntities;
 impl Contains<Location> for FellowshipEntities {
 	fn contains(location: &Location) -> bool {
@@ -259,6 +261,8 @@ impl Contains<Location> for FellowshipEntities {
 	}
 }
 
+/// Location type to determine the Ambassador Collective 
+/// pallets for use in XCM.
 pub struct AmbassadorEntities;
 impl Contains<Location> for AmbassadorEntities {
 	fn contains(location: &Location) -> bool {
@@ -285,6 +289,8 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
+/// Location type to determine the Secretary Collective related 
+/// pallets for use in XCM.
 pub struct SecretaryEntities;
 impl Contains<Location> for SecretaryEntities {
 	fn contains(location: &Location) -> bool {

@@ -59,7 +59,7 @@ pub mod ranks {
 /// Origins of:
 /// - Root;
 /// - FellowshipAdmin (i.e. token holder referendum);
-/// - Plurarity vote from Fellows can promote, demote, remove and approve rank retention
+/// - Plurality vote from Fellows can promote, demote, remove and approve rank retention
 /// of members of the Secretary Collective (rank `2`).
 type ApproveOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
@@ -76,7 +76,7 @@ type ApproveOrigin = EitherOf<
 /// - Root;
 /// - FellowshipAdmin (i.e. token holder referendum);
 /// - Secretary;
-/// - Plurarity vote from Fellows can kill and cancel proposals.
+/// - Plurality vote from Fellows can kill and cancel proposals.
 /// of members of the Secretary Collective.
 type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 	EitherOfDiverse<EnsureRoot<AccountId>, Fellows>,
@@ -86,7 +86,7 @@ type OpenGovOrSecretaryOrFellow = EitherOfDiverse<
 /// Origins of:
 /// - Root;
 /// - FellowshipAdmin (i.e. token holder referendum);
-/// - Plurarity vote from Fellows can exchange origins and
+/// - Plurality vote from Fellows can exchange origins and
 /// - configure the parameters that govern the Collective.
 type OpenGovOrFellow = EitherOfDiverse<
 	EnsureRoot<AccountId>,
