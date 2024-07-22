@@ -1,10 +1,10 @@
 [package]
-name = "people-kusama-integration-tests"
+name = "coretime-kusama-integration-tests"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
-description = "People Kusama runtime integration tests with xcm-emulator"
+description = "Coretime Kusama runtime integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
@@ -34,5 +34,5 @@ cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 kusama-runtime-constants = { workspace = true, default-features = true }
 kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
-people-kusama-runtime = { workspace = true }
+coretime-kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
