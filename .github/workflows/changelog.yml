@@ -57,4 +57,4 @@ jobs:
       - verify-changelog-updated
       - verify-changelog-valid
     steps:
-      - run: echo '### Good job! All the checks passed 🚀' >> $GITHUB_STEP_SUMMARY
+      - run: echo '### Good job! All the changelog checks passed 🚀' >> $GITHUB_STEP_SUMMARY
