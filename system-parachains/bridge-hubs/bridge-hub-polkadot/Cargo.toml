@@ -71,6 +71,7 @@ polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
@@ -95,7 +96,6 @@ bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
 bp-kusama = { workspace = true }
 bp-polkadot = { workspace = true }
-bp-polkadot-bulletin = { workspace = true }
 bridge-hub-common = { workspace = true }
 bridge-runtime-common = { workspace = true }
 pallet-bridge-grandpa = { workspace = true }
@@ -137,7 +137,6 @@ std = [
 	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
-	"bp-polkadot-bulletin/std",
 	"bp-polkadot-core/std",
 	"bp-polkadot/std",
 	"bp-relayers/std",
@@ -219,6 +218,7 @@ std = [
 	"tuplex/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"xcm-fee-payment-runtime-api/std",
 	"xcm/std",
 ]
 
@@ -261,6 +261,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 
 try-runtime = [

@@ -44,6 +44,7 @@ codec = { package = "parity-scale-codec", version = "3.6.9", default-features = 
 collectives-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot" }
 collectives-polkadot-runtime = { path = "system-parachains/collectives/collectives-polkadot" }
 collectives-polkadot-runtime-constants = { path = "system-parachains/collectives/collectives-polkadot/constants" }
+coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
 coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
 cumulus-pallet-aura-ext = { version = "0.14.0", default-features = false }
 cumulus-pallet-dmp-queue = { version = "0.14.0", default-features = false }
@@ -235,6 +236,7 @@ xcm = { version = "14.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "14.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.12.0" }
 xcm-executor = { version = "14.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-fee-payment-runtime-api = { version = "0.4.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
@@ -251,6 +253,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
+	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
@@ -265,6 +268,7 @@ members = [
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
+	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",

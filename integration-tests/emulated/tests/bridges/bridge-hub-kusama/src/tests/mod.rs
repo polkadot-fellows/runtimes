@@ -49,15 +49,30 @@ pub(crate) fn send_asset_from_asset_hub_kusama(
 	let fee_asset_item = 0;
 
 	AssetHubKusama::execute_with(|| {
-		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::limited_reserve_transfer_assets(
-			signed_origin,
-			bx!(destination.into()),
-			bx!(beneficiary.into()),
-			bx!(assets.into()),
-			fee_asset_item,
-			WeightLimit::Unlimited,
-		)
+		let call =
+			send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
+		match call.dispatch(signed_origin) {
+			Ok(_) => Ok(()),
+			Err(error_with_post_info) => Err(error_with_post_info.error),
+		}
 	})
+}
+
+pub(crate) fn send_asset_from_asset_hub_kusama_call(
+	destination: Location,
+	beneficiary: Location,
+	assets: Assets,
+	fee_asset_item: u32,
+) -> <AssetHubKusama as Chain>::RuntimeCall {
+	<AssetHubKusama as Chain>::RuntimeCall::PolkadotXcm(
+		pallet_xcm::Call::limited_reserve_transfer_assets {
+			dest: bx!(destination.into()),
+			beneficiary: bx!(beneficiary.into()),
+			assets: bx!(assets.into()),
+			fee_asset_item,
+			weight_limit: WeightLimit::Unlimited,
+		},
+	)
 }
 
 pub(crate) fn assert_bridge_hub_kusama_message_accepted(expected_processed: bool) {

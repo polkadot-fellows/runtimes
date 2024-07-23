@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use bridge_hub_polkadot_runtime::xcm_config::XcmConfig;
 use frame_support::{
 	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
 };
@@ -27,34 +26,21 @@ use xcm_fee_payment_runtime_api::{
 };
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = BRIDGE_HUB_POLKADOT_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		BridgeHubPolkadot,      // Origin
-		XcmConfig,              // XCM Configuration
-		vec![AssetHubPolkadot], // Destination
-		(native_asset, amount)
-	);
-}
-
-#[test]
 fn teleport_from_and_to_relay() {
-	let amount = BRIDGE_HUB_POLKADOT_ED * 1000;
+	let amount = KUSAMA_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
-		Polkadot,
-		PolkadotXcmConfig,
-		vec![BridgeHubPolkadot],
+		Kusama,
+		KusamaXcmConfig,
+		vec![CoretimeKusama],
 		(native_asset, amount)
 	);
 
 	test_parachain_is_trusted_teleporter_for_relay!(
-		BridgeHubPolkadot,
-		BridgeHubPolkadotXcmConfig,
-		Polkadot,
+		CoretimeKusama,
+		CoretimeKusamaXcmConfig,
+		Kusama,
 		amount
 	);
 }
