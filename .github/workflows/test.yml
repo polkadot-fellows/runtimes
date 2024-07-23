@@ -112,7 +112,6 @@ jobs:
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
-          ls -lrt $RUNTIME_BLOB_PATH
           # run benchmarking
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
