@@ -115,7 +115,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_002_008,
+	spec_version: 1_002_009,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -1143,8 +1143,8 @@ fn test_ed_is_one_tenth_of_relay() {
 }
 
 #[test]
-fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 	let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 	let parachain_tbf = TransactionByteFee::get();
-	assert_eq!(relay_tbf / 10, parachain_tbf);
+	assert_eq!(relay_tbf / 20, parachain_tbf);
 }
