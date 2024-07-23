@@ -250,7 +250,7 @@ pub mod benchmarks {
 
 			// set XCM version for sibling parachain
 			let sibling_parachain = Location::new(1, [Parachain(para_id)]);
-			if let None = PolkadotXcm::get_version_for(&sibling_parachain) {
+			if PolkadotXcm::get_version_for(&sibling_parachain).is_none() {
 				if let Err(e) = PolkadotXcm::force_xcm_version(
 					RuntimeOrigin::root(),
 					sibling_parachain.into(),
