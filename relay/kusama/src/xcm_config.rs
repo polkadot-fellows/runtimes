@@ -17,9 +17,9 @@
 //! XCM configurations for the Kusama runtime.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, ParaId, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee, Treasury,
-	WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, GeneralAdmin,
+	ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee,
+	Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -234,6 +234,8 @@ parameter_types! {
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
+	// `GeneralAdmin` pluralistic body.
+	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
 }
 
 /// Type to convert an `Origin` type value into a `Location` value which represents an interior
@@ -250,9 +252,15 @@ pub type StakingAdminToPlurality =
 /// Type to convert the Fellows origin to a Plurality `Location` value.
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
+/// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
+pub type GeneralAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
+
 /// Type to convert a pallet `Origin` type value into a `Location` value which represents an
 /// interior location of this chain for a destination chain.
 pub type LocalPalletOrSignedOriginToLocation = (
+	// GeneralAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	GeneralAdminToPlurality,
 	// StakingAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `Location` value.

@@ -575,6 +575,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -663,6 +664,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -709,6 +711,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -794,6 +797,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1668,6 +1672,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1772,6 +1777,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1821,6 +1827,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -1923,6 +1930,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -2357,6 +2365,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -2432,6 +2441,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -2571,6 +2581,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "coretime-kusama-emulated-chain"
+version = "0.0.0"
+dependencies = [
+ "coretime-kusama-runtime",
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "parachains-common",
+ "sp-core 34.0.0",
+]
+
+[[package]]
+name = "coretime-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-test-utils",
+ "coretime-kusama-runtime",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-runtime-constants",
+ "kusama-system-emulated-network",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-message-queue",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "sp-runtime 38.0.0",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "xcm-fee-payment-runtime-api",
+]
+
+[[package]]
 name = "coretime-kusama-runtime"
 version = "1.0.0"
 dependencies = [
@@ -2636,6 +2684,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -3826,6 +3875,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -5744,6 +5794,7 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-kusama-emulated-chain",
  "bridge-hub-kusama-emulated-chain",
+ "coretime-kusama-emulated-chain",
  "emulated-integration-tests-common",
  "kusama-emulated-chain",
  "penpal-emulated-chain",
@@ -9282,11 +9333,13 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-kusama-runtime",
@@ -9295,6 +9348,7 @@ dependencies = [
  "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-executor",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9363,6 +9417,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9386,9 +9441,11 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
+ "integration-tests-helpers",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "people-polkadot-runtime",
@@ -9399,6 +9456,7 @@ dependencies = [
  "sp-runtime 38.0.0",
  "staging-xcm",
  "staging-xcm-executor",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9465,6 +9523,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -9718,6 +9777,7 @@ dependencies = [
  "pallet-fast-unstake",
  "pallet-grandpa",
  "pallet-identity",
+ "pallet-im-online",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-mmr",
@@ -9784,6 +9844,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]
@@ -13957,6 +14018,7 @@ dependencies = [
  "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
  "pallet-grandpa",
+ "pallet-im-online",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-mmr",
@@ -14023,6 +14085,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
+ "xcm-fee-payment-runtime-api",
 ]
 
 [[package]]

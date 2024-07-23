@@ -70,6 +70,7 @@ polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
@@ -221,7 +222,8 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 	"bp-polkadot-bulletin/std",
-	"tuplex/std"
+	"tuplex/std",
+	"xcm-fee-payment-runtime-api/std",
 ]
 
 runtime-benchmarks = [
@@ -264,6 +266,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 
 try-runtime = [

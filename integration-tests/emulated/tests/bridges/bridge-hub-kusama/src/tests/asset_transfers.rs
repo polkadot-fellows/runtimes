@@ -14,7 +14,11 @@
 // limitations under the License.
 
 use crate::tests::*;
-use frame_support::traits::fungible::Mutate;
+use frame_support::{dispatch::RawOrigin, traits::fungible::Mutate};
+use xcm_fee_payment_runtime_api::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
 
 fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: u128) {
 	let destination = asset_hub_polkadot_location();
@@ -30,6 +34,113 @@ fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: 
 	assert_ok!(send_asset_from_asset_hub_kusama(destination, (id, amount)));
 	assert_bridge_hub_kusama_message_accepted(true);
 	assert_bridge_hub_polkadot_message_received();
+}
+
+fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(
+	id: Location,
+	amount: u128,
+) -> u128 {
+	let destination = asset_hub_polkadot_location();
+
+	// fund the AHK's SA on BHK for paying bridge transport fees
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
+
+	// set XCM versions
+	AssetHubKusama::force_xcm_version(destination.clone(), XCM_VERSION);
+	BridgeHubKusama::force_xcm_version(bridge_hub_polkadot_location(), XCM_VERSION);
+
+	let beneficiary: Location =
+		AccountId32Junction { id: AssetHubPolkadotReceiver::get().into(), network: None }.into();
+	let assets: Assets = (id, amount).into();
+	let fee_asset_item = 0;
+	let call =
+		send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
+	let mut delivery_fees_amount = 0;
+	let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
+	AssetHubKusama::execute_with(|| {
+		type Runtime = <AssetHubKusama as Chain>::Runtime;
+		type OriginCaller = <AssetHubKusama as Chain>::OriginCaller;
+
+		let origin = OriginCaller::system(RawOrigin::Signed(AssetHubKusamaSender::get()));
+		let result = Runtime::dry_run_call(origin, call).unwrap();
+		// We filter the result to get only the messages we are interested in.
+		let (destination_to_query, messages_to_query) = &result
+			.forwarded_xcms
+			.iter()
+			.find(|(destination, _)| {
+				*destination == VersionedLocation::V4(Location::new(1, [Parachain(1002)]))
+			})
+			.unwrap();
+		dbg!(&result.forwarded_xcms);
+		assert_eq!(messages_to_query.len(), 1);
+		remote_message = messages_to_query[0].clone();
+		let delivery_fees =
+			Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+				.unwrap();
+		let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
+		let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
+			unreachable!("asset is fungible");
+		};
+		delivery_fees_amount = inner_delivery_fees_amount;
+	});
+
+	let mut intermediate_execution_fees = 0;
+	let mut intermediate_delivery_fees_amount = 0;
+	let mut intermediate_remote_message = VersionedXcm::V4(Xcm(Vec::new()));
+	BridgeHubKusama::execute_with(|| {
+		type Runtime = <BridgeHubKusama as Chain>::Runtime;
+		type RuntimeCall = <BridgeHubKusama as Chain>::RuntimeCall;
+
+		// First we get the execution fees.
+		let weight = Runtime::query_xcm_weight(remote_message.clone()).unwrap();
+		intermediate_execution_fees =
+			Runtime::query_weight_to_asset_fee(weight, VersionedAssetId::V4(Parent.into()))
+				.unwrap();
+
+		// We have to do this to turn `VersionedXcm<()>` into `VersionedXcm<RuntimeCall>`.
+		let xcm_program =
+			VersionedXcm::V4(Xcm::<RuntimeCall>::from(remote_message.clone().try_into().unwrap()));
+
+		// Now we get the delivery fees to the final destination.
+		let asset_hub_as_seen_by_bridge_hub: Location = Location::new(1, [Parachain(1000)]);
+		let result =
+			Runtime::dry_run_xcm(asset_hub_as_seen_by_bridge_hub.clone().into(), xcm_program)
+				.unwrap();
+
+		// We filter the result to get only the messages we are interested in.
+		// dbg!(&result.forwarded_xcms);
+		let (destination_to_query, messages_to_query) = &result
+			.forwarded_xcms
+			.iter()
+			.find(|(destination, _)| {
+				*destination == VersionedLocation::V4(Location::new(1, [Parachain(1002)]))
+			})
+			.unwrap();
+		// There's actually two messages here.
+		// One created when the message we sent from PenpalA arrived and was executed.
+		// The second one when we dry-run the xcm.
+		// We could've gotten the message from the queue without having to dry-run, but
+		// offchain applications would have to dry-run, so we do it here as well.
+		intermediate_remote_message = messages_to_query[0].clone();
+		let delivery_fees =
+			Runtime::query_delivery_fees(destination_to_query.clone(), remote_message.clone())
+				.unwrap();
+		let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
+		let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
+			unreachable!("asset is fungible");
+		};
+		intermediate_delivery_fees_amount = inner_delivery_fees_amount;
+	});
+
+	dbg!(&delivery_fees_amount);
+	dbg!(&intermediate_execution_fees);
+	dbg!(&intermediate_delivery_fees_amount);
+
+	// After dry-running we reset.
+	AssetHubKusama::reset_ext();
+	BridgeHubKusama::reset_ext();
+
+	delivery_fees_amount
 }
 
 #[test]
@@ -61,6 +172,12 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 
 	let ksm_at_asset_hub_kusama_latest: Location = ksm_at_asset_hub_kusama.try_into().unwrap();
 	let amount = ASSET_HUB_KUSAMA_ED * 1_000;
+	// First dry-run.
+	let delivery_fees = dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(
+		ksm_at_asset_hub_kusama_latest.clone(),
+		amount,
+	);
+	// Then send.
 	send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(ksm_at_asset_hub_kusama_latest, amount);
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -89,8 +206,15 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let ksms_in_reserve_on_ahk_after =
 		<AssetHubKusama as Chain>::account_data_of(sov_ahp_on_ahk.clone()).free;
 
+	dbg!(&sender_ksms_after);
+	dbg!(&sender_ksms_before);
+	dbg!(&amount);
+	dbg!(&delivery_fees);
+	dbg!(&receiver_ksms_after);
+	dbg!(&receiver_ksms_before);
+
 	// Sender's balance is reduced
-	assert!(sender_ksms_before > sender_ksms_after);
+	assert_eq!(sender_ksms_after, sender_ksms_before - amount - delivery_fees);
 	// Receiver's balance is increased
 	assert!(receiver_ksms_after > receiver_ksms_before);
 	// Reserve balance is reduced by sent amount
