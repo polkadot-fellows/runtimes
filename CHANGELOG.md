@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386))
-- Polkadot System Chains: Reduce transaction fees by half
+- Polkadot System Chains: Reduce the base transaction fee by half
 
 ## [1.2.8] 03.07.2024
 
