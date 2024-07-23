@@ -51,7 +51,7 @@ jobs:
   # If you add more jobs, remember to add them to the "needs" array.
   confirmChangelogChecksPassed:
     runs-on: ubuntu-latest
-    name: All checks passed
+    name: All changelog checks passed
     # If any new job gets added, be sure to add it to this list
     needs:
       - verify-changelog-updated
