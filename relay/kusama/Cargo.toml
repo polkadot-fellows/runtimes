@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 scale-info = { features = ["derive"], workspace = true }
+serde_json = { features = ["alloc"], workspace = true }
 log = { workspace = true }
 
 authority-discovery-primitives = { workspace = true }
@@ -109,7 +110,6 @@ sp-debug-derive = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }
-serde_json = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
@@ -188,7 +188,7 @@ std = [
 	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
-	"substrate-wasm-builder",
+	"serde_json/std",
 	"sp-api/std",
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
@@ -208,10 +208,11 @@ std = [
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
+	"substrate-wasm-builder",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"xcm-fee-payment-runtime-api/std",
 	"xcm/std",
-	"xcm-fee-payment-runtime-api/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -263,7 +264,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"xcm-fee-payment-runtime-api/runtime-benchmarks"
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -321,7 +322,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []
