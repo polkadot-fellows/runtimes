@@ -56,14 +56,6 @@ fn get_authority_keys_from_seed(
 	AuthorityDiscoveryId,
 	BeefyId,
 ) {
-	let keys = get_authority_keys_from_seed_no_beefy(seed);
-	(keys.0, keys.1, keys.2, keys.3, keys.4, keys.5, keys.6, get_from_seed::<BeefyId>(seed))
-}
-
-/// Helper function to generate stash, controller and session key from seed
-fn get_authority_keys_from_seed_no_beefy(
-	seed: &str,
-) -> (AccountId, AccountId, BabeId, GrandpaId, ValidatorId, AssignmentId, AuthorityDiscoveryId) {
 	(
 		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
 		get_account_id_from_seed::<sr25519::Public>(seed),
@@ -72,6 +64,7 @@ fn get_authority_keys_from_seed_no_beefy(
 		get_from_seed::<ValidatorId>(seed),
 		get_from_seed::<AssignmentId>(seed),
 		get_from_seed::<AuthorityDiscoveryId>(seed),
+		get_from_seed::<BeefyId>(seed),
 	)
 }
 
