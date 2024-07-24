@@ -22,7 +22,7 @@ jobs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: runtime
         run: |
           TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
@@ -35,7 +35,7 @@ jobs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: itest
         run: |
           TASKS=$(echo $(cat .github/workflows/integration-tests-matrix.json) | sed 's/ //g' )
@@ -65,7 +65,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -121,7 +121,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -167,7 +167,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -215,7 +215,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV

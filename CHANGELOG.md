@@ -130,6 +130,10 @@ Note: This release only affects the following runtimes and is not a full system 
 - Kusama Relay Chain
 - Kusama Bridge Hub
 
+### Fixed
+
+- Kusama People: Build the metadata hash at build time, so that `CheckMetadata` can use it at runtime ([polkadot-fellows/runtimes#371](https://github.com/polkadot-fellows/runtimes/pull/371))
+
 ## [1.2.7] 14.06.2024
 
 Note: This release only affects the following runtimes and is not a full system release:
