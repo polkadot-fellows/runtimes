@@ -67,11 +67,12 @@ fn fellowship_treasury_spend() {
 		let teleport_call = RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
 			as_origin: bx!(OriginCaller::system(RawOrigin::Signed(treasury_account))),
 			call: bx!(RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::teleport_assets {
-				dest: bx!(VersionedLocation::V4(asset_hub_location.clone())),
-				beneficiary: bx!(VersionedLocation::V4(treasury_location)),
-				assets: bx!(VersionedAssets::V4(
-					Asset { id: native_asset.clone().into(), fun: treasury_balance.into() }.into()
-				)),
+				dest: bx!(VersionedLocation::from(asset_hub_location.clone())),
+				beneficiary: bx!(VersionedLocation::from(treasury_location)),
+				assets: bx!(VersionedAssets::from(Assets::from(Asset {
+					id: native_asset.clone().into(),
+					fun: treasury_balance.into()
+				}))),
 				fee_asset_item: 0,
 			})),
 		});
@@ -109,7 +110,7 @@ fn fellowship_treasury_spend() {
 				asset_id: native_asset_on_asset_hub.into(),
 			}),
 			amount: fellowship_treasury_balance,
-			beneficiary: bx!(VersionedLocation::V4(fellowship_treasury_location)),
+			beneficiary: bx!(VersionedLocation::from(fellowship_treasury_location)),
 			valid_from: None,
 		});
 
@@ -186,7 +187,7 @@ fn fellowship_treasury_spend() {
 					asset_id: native_asset_on_asset_hub.into(),
 				}),
 				amount: fellowship_spend_balance,
-				beneficiary: bx!(VersionedLocation::V4(alice_location)),
+				beneficiary: bx!(VersionedLocation::from(alice_location)),
 				valid_from: None,
 			});
 
