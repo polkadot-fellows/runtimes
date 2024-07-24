@@ -225,8 +225,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapExecuted { amount_in, amount_out, .. },) => {
-					amount_in: *amount_in == 10000000000000,
-					amount_out: *amount_out == 1817684594348,
+					amount_in: *amount_in == 5000000000000,
+					amount_out: *amount_out == 1665831244778,
 				},
 			]
 		);

@@ -56,7 +56,7 @@ pub mod currency {
 	/// The default existential deposit for system chains. 1/10th of the Relay Chain's existential
 	/// deposit. Individual system parachains may modify this in special cases.
 	pub const SYSTEM_PARA_EXISTENTIAL_DEPOSIT: Balance =
-		polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT / 10;
+		polkadot_runtime_constants::currency::EXISTENTIAL_DEPOSIT / 20;
 
 	/// One "DOT" that a UI would show a user.
 	pub const UNITS: Balance = 10_000_000_000;
