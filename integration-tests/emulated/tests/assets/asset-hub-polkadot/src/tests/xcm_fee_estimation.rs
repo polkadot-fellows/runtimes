@@ -265,7 +265,7 @@ fn receiver_assertions(test: ParaToParaThroughAHTest) {
 fn get_amount_from_versioned_assets(assets: VersionedAssets) -> u128 {
 	let latest_assets: Assets = assets.try_into().unwrap();
 	let Fungible(amount) = latest_assets.inner()[0].fun else {
-		unreachable!("asset is fungible");
+		unreachable!("asset is non-fungible");
 	};
 	amount
 }

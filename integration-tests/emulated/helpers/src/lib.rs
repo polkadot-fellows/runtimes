@@ -85,7 +85,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 								.unwrap();
 						let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
 						let Fungible(inner_delivery_fees_amount) = latest_delivery_fees.inner()[0].fun else {
-							unreachable!("asset is fungible");
+							unreachable!("asset is non-fungible");
 						};
 						delivery_fees_amount = inner_delivery_fees_amount;
 					});
@@ -224,7 +224,7 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 				let latest_delivery_fees: Assets = delivery_fees.clone().try_into().unwrap();
 				delivery_fees_amount = if let Some(first_asset) = latest_delivery_fees.inner().first() {
 					let Fungible(inner_delivery_fees_amount) = first_asset.fun else {
-						unreachable!("asset is fungible");
+						unreachable!("asset is non-fungible");
 					};
 					inner_delivery_fees_amount
 				} else {
