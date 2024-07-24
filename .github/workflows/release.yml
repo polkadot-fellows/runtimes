@@ -150,6 +150,7 @@ jobs:
 
       - name: Create release
         id: create-release
+        # TODO: Replace as it has been deprecated
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -183,6 +184,7 @@ jobs:
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
 
       - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
+        # TODO: Replace as it has been deprecated
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
