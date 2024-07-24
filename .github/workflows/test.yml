@@ -48,7 +48,6 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
-    continue-on-error: true
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -121,7 +120,6 @@ jobs:
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
-    continue-on-error: true
     runs-on: ubuntu-22.04
     strategy:
       matrix:

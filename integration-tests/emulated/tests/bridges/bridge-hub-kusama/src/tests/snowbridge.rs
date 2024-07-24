@@ -584,14 +584,14 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			)),
 			fun: Fungible(WETH_AMOUNT),
 		}];
-		let multi_assets = VersionedAssets::V4(Assets::from(assets));
+		let multi_assets = VersionedAssets::from(Assets::from(assets));
 
-		let destination = VersionedLocation::V4(Location::new(
+		let destination = VersionedLocation::from(Location::new(
 			2,
 			[GlobalConsensus(Ethereum { chain_id: CHAIN_ID })],
 		));
 
-		let beneficiary = VersionedLocation::V4(Location::new(
+		let beneficiary = VersionedLocation::from(Location::new(
 			0,
 			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
 		));
