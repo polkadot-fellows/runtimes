@@ -1,6 +1,6 @@
 name: Verify Changelog
 
-# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# If you modify more test jobs, ensure that you add them as required to the job "confirmChangelogChecksPassed"
 # which is located at the end of this file (more info in the job)
 
 on:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
+  # Job required by "confirmChangelogChecksPassed"
   verify-changelog-updated:
     name: Verify that Changelog is Updated
     runs-on: ubuntu-latest
@@ -32,6 +32,7 @@ jobs:
         if: steps.changed.outputs.matched != 'true' && !contains(github.event.pull_request.body, '[x] Does not require a CHANGELOG entry')
         run: echo "::error::CHANGELOG.md has not been modified. Either modify the file or check the checkbox in the body" && exit 1
 
+  # Job required by "confirmChangelogChecksPassed"
   verify-changelog-valid:
     name: Verify that Changelog is valid
     runs-on: ubuntu-latest
@@ -50,10 +51,10 @@ jobs:
   # If you add more jobs, remember to add them to the "needs" array.
   confirmChangelogChecksPassed:
     runs-on: ubuntu-latest
-    name: All tests passed
+    name: All changelog checks passed
     # If any new job gets added, be sure to add it to this list
     needs:
       - verify-changelog-updated
       - verify-changelog-valid
     steps:
-      - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
+      - run: echo '### Good job! All the changelog checks passed 🚀' >> $GITHUB_STEP_SUMMARY

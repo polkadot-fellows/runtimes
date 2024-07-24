@@ -1,5 +1,5 @@
 # Various checks to verify the cargo workspace and its crates are correctly configured.
-name: "Workspace"
+name: "Workspace features"
 
 on:
   push:
@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  name: Check workspace features
   check:
     runs-on: ubuntu-22.04
 
