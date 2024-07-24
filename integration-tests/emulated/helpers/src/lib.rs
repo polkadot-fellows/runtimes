@@ -63,7 +63,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 						weight_limit: weight_limit.clone(),
 					});
 					let mut delivery_fees_amount = 0;
-					let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
+					let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
 					<$sender_relay>::execute_with(|| {
 						type Runtime = <$sender_relay as Chain>::Runtime;
 						type OriginCaller = <$sender_relay as Chain>::OriginCaller;
@@ -75,7 +75,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 							.forwarded_xcms
 							.iter()
 							.find(|(destination, _)| {
-								*destination == VersionedLocation::V4(Location::new(0, [Parachain(<$receiver_para>::para_id().into())]))
+								*destination == VersionedLocation::from(Location::new(0, [Parachain(<$receiver_para>::para_id().into())]))
 							})
 							.unwrap();
 						assert_eq!(messages_to_query.len(), 1);
@@ -201,7 +201,7 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 			});
 			// These will be filled in the closure.
 			let mut delivery_fees_amount = 0;
-			let mut remote_message = VersionedXcm::V4(Xcm(Vec::new()));
+			let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
 			<$sender_para>::execute_with(|| {
 				type Runtime = <$sender_para as Chain>::Runtime;
 				type OriginCaller = <$sender_para as Chain>::OriginCaller;
@@ -213,7 +213,7 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 					.forwarded_xcms
 					.iter()
 					.find(|(destination, _)| {
-						*destination == VersionedLocation::V4(Location::new(1, []))
+						*destination == VersionedLocation::from(Location::parent())
 					})
 					.unwrap();
 				assert_eq!(messages_to_query.len(), 1);

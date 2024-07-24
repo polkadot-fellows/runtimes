@@ -38,8 +38,8 @@ fn relay_commands_add_registrar() {
 				});
 
 			let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::V4(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::V4(Xcm(vec![
+				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+				message: bx!(VersionedXcm::from(Xcm(vec![
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,

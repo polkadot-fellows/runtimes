@@ -64,7 +64,7 @@ fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, 
 			.forwarded_xcms
 			.into_iter()
 			.find(|(destination, _)| {
-				*destination == VersionedLocation::V4(Location::new(1, [Parachain(1002)]))
+				*destination == VersionedLocation::from(Location::new(1, [Parachain(1002)]))
 			})
 			.unwrap();
 		assert_eq!(messages_to_query.len(), 1);
