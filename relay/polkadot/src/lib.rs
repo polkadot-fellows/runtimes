@@ -41,7 +41,7 @@ use runtime_parachains::{
 	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
 	runtime_api_impl::{
-		v7 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
+		v10 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
 	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
@@ -58,14 +58,14 @@ use frame_election_provider_support::{
 };
 use frame_support::{
 	construct_runtime,
-	genesis_builder_helper::{build_config, create_default_config},
+	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
 		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
-	weights::{ConstantMultiplier, WeightMeter},
+	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
 	PalletId,
 };
 use frame_system::EnsureRoot;
@@ -74,14 +74,12 @@ use pallet_identity::legacy::IdentityInfo;
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use polkadot_primitives::{
-	slashing,
-	vstaging::{ApprovalVotingParams, NodeFeatures},
-	AccountId, AccountIndex, Balance, BlockNumber, CandidateEvent, CandidateHash,
-	CommittedCandidateReceipt, CoreState, DisputeState, ExecutorParams, GroupRotationInfo, Hash,
-	Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment, Nonce,
-	OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature,
-	ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex, LOWEST_PUBLIC_ID,
-	PARACHAIN_KEY_TYPE_ID,
+	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
+	CandidateHash, CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState, ExecutorParams,
+	GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment,
+	NodeFeatures, Nonce, OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes,
+	SessionInfo, Signature, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
+	LOWEST_PUBLIC_ID, PARACHAIN_KEY_TYPE_ID,
 };
 use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
@@ -93,19 +91,23 @@ use sp_runtime::{
 		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, BoundToRuntimeAppPublic, FixedU128, KeyTypeId, Perbill, Percent, Permill,
-	RuntimeAppPublic, RuntimeDebug,
+	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
 };
 use sp_staking::SessionIndex;
-use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, prelude::*};
+use sp_std::{
+	cmp::Ordering,
+	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
+	prelude::*,
+};
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::{
-	latest::{InteriorLocation, Junction, Junction::PalletInstance},
-	VersionedLocation,
-};
+use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
+use xcm_fee_payment_runtime_api::{
+	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
+	fees::Error as XcmPaymentApiError,
+};
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -141,7 +143,6 @@ use frame_system::EnsureSigned;
 
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
-use polkadot_runtime_common as runtime_common;
 impl_runtime_weights!(polkadot_runtime_constants);
 
 // Make the WASM binary available.
@@ -155,7 +156,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_002_007,
+	spec_version: 1_002_008,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -216,6 +217,11 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type SingleBlockMigrations = ();
+	type MultiBlockMigrator = ();
+	type PreInherents = ();
+	type PostInherents = ();
+	type PostTransactions = ();
 }
 
 parameter_types! {
@@ -367,6 +373,7 @@ impl pallet_mmr::Config for Runtime {
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
+	type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
 }
 
 /// MMR helper types.
@@ -401,9 +408,11 @@ parameter_types! {
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		let mut para_heads: Vec<(u32, Vec<u8>)> = Paras::parachains()
+		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains_paras::Parachains::<Runtime>::get()
 			.into_iter()
-			.filter_map(|id| Paras::para_head(id).map(|head| (id.into(), head.0)))
+			.filter_map(|id| {
+				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
+			})
 			.collect();
 		para_heads.sort_by_key(|k| k.0);
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
@@ -450,46 +459,6 @@ impl pallet_authorship::Config for Runtime {
 	type EventHandler = Staking;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-pub struct OldSessionKeys {
-	pub grandpa: <Grandpa as BoundToRuntimeAppPublic>::Public,
-	pub babe: <Babe as BoundToRuntimeAppPublic>::Public,
-	pub im_online: pallet_im_online::sr25519::AuthorityId,
-	pub para_validator: <Initializer as BoundToRuntimeAppPublic>::Public,
-	pub para_assignment: <ParaSessionInfo as BoundToRuntimeAppPublic>::Public,
-	pub authority_discovery: <AuthorityDiscovery as BoundToRuntimeAppPublic>::Public,
-	pub beefy: <Beefy as BoundToRuntimeAppPublic>::Public,
-}
-
-impl OpaqueKeys for OldSessionKeys {
-	type KeyTypeIdProviders = ();
-	fn key_ids() -> &'static [KeyTypeId] {
-		&[
-			<<Grandpa as BoundToRuntimeAppPublic>::Public>::ID,
-			<<Babe as BoundToRuntimeAppPublic>::Public>::ID,
-			sp_core::crypto::key_types::IM_ONLINE,
-			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID,
-			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID,
-			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID,
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID,
-		]
-	}
-	fn get_raw(&self, i: KeyTypeId) -> &[u8] {
-		match i {
-			<<Grandpa as BoundToRuntimeAppPublic>::Public>::ID => self.grandpa.as_ref(),
-			<<Babe as BoundToRuntimeAppPublic>::Public>::ID => self.babe.as_ref(),
-			sp_core::crypto::key_types::IM_ONLINE => self.im_online.as_ref(),
-			<<Initializer as BoundToRuntimeAppPublic>::Public>::ID => self.para_validator.as_ref(),
-			<<ParaSessionInfo as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.para_assignment.as_ref(),
-			<<AuthorityDiscovery as BoundToRuntimeAppPublic>::Public>::ID =>
-				self.authority_discovery.as_ref(),
-			<<Beefy as BoundToRuntimeAppPublic>::Public>::ID => self.beefy.as_ref(),
-			_ => &[],
-		}
-	}
-}
-
 impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub grandpa: Grandpa,
@@ -498,18 +467,6 @@ impl_opaque_keys! {
 		pub para_assignment: ParaSessionInfo,
 		pub authority_discovery: AuthorityDiscovery,
 		pub beefy: Beefy,
-	}
-}
-
-// remove this when removing `OldSessionKeys`
-fn transform_session_keys(_v: AccountId, old: OldSessionKeys) -> SessionKeys {
-	SessionKeys {
-		grandpa: old.grandpa,
-		babe: old.babe,
-		para_validator: old.para_validator,
-		para_assignment: old.para_assignment,
-		authority_discovery: old.authority_discovery,
-		beefy: old.beefy,
 	}
 }
 
@@ -767,7 +724,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		// all para-ids that are not active.
-		let auctioned_slots = Paras::parachains()
+		let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
 			.into_iter()
 			// all active para-ids that do not belong to a system chain is the number
 			// of parachains that we should take into account for inflation.
@@ -803,7 +760,6 @@ impl pallet_staking::Config for Runtime {
 	type SessionInterface = Self;
 	type EraPayout = EraPayout;
 	type MaxExposurePageSize = MaxExposurePageSize;
-	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
 	type NextNewSession = Session;
 	type ElectionProvider = ElectionProviderMultiPhase;
 	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
@@ -815,6 +771,7 @@ impl pallet_staking::Config for Runtime {
 	type MaxControllersInDeprecationBatch = ConstU32<5314>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = NominationPools;
+	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
 
@@ -853,7 +810,7 @@ impl pallet_identity::Config for Runtime {
 	type RegistrarOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type OffchainSignature = Signature;
 	type SigningPublicKey = <Signature as Verify>::Signer;
-	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
+	type UsernameAuthorityOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
 	type MaxSuffixLength = ConstU32<7>;
 	type MaxUsernameLength = ConstU32<32>;
@@ -933,7 +890,7 @@ impl pallet_treasury::Config for Runtime {
 
 parameter_types! {
 	pub const BountyDepositBase: Balance = DOLLARS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 8 * DAYS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 0;
 	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
@@ -1351,6 +1308,7 @@ parameter_types! {
 	///
 	/// This is not a good value for para-chains since the `Scheduler` already uses up to 80% block weight.
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(20) * BlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * BlockWeights::get().max_block;
 	pub const MessageQueueHeapSize: u32 = 65_536;
 	pub const MessageQueueMaxStale: u32 = 8;
 }
@@ -1391,6 +1349,7 @@ impl pallet_message_queue::Config for Runtime {
 	type QueueChangeHandler = ParaInclusion;
 	type QueuePausedQuery = ();
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
+	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
 
 impl parachains_dmp::Config for Runtime {}
@@ -1412,6 +1371,7 @@ impl parachains_hrmp::Config for Runtime {
 		HrmpChannelSizeAndCapacityWithSystemRatio,
 	>;
 	type WeightInfo = weights::runtime_parachains_hrmp::WeightInfo<Self>;
+	type VersionWrapper = XcmPallet;
 }
 
 impl parachains_paras_inherent::Config for Runtime {
@@ -1549,7 +1509,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = polkadot_runtime_common::BalanceToU256;
 	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
-	type Staking = Staking;
+	type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
 	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1557,6 +1517,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
+	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 }
 
 pub struct InitiateNominationPools;
@@ -1616,59 +1577,6 @@ impl pallet_asset_rate::Config for Runtime {
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
-// A mock pallet to keep `ImOnline` events decodable after pallet removal
-pub mod pallet_im_online {
-	use frame_support::pallet_prelude::*;
-	pub use pallet::*;
-
-	pub mod sr25519 {
-		mod app_sr25519 {
-			use sp_application_crypto::{app_crypto, key_types::IM_ONLINE, sr25519};
-			app_crypto!(sr25519, IM_ONLINE);
-		}
-		pub type AuthorityId = app_sr25519::Public;
-	}
-
-	#[frame_support::pallet]
-	pub mod pallet {
-		use super::*;
-		use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};
-
-		#[pallet::pallet]
-		pub struct Pallet<T>(_);
-
-		#[pallet::config]
-		pub trait Config: frame_system::Config {
-			type RuntimeEvent: From<Event<Self>>
-				+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
-			type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
-		}
-
-		pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
-			<T as frame_system::Config>::AccountId,
-		>>::ValidatorId;
-
-		pub type IdentificationTuple<T> = (
-			ValidatorId<T>,
-			<<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
-				<T as frame_system::Config>::AccountId,
-			>>::Identification,
-		);
-
-		#[pallet::event]
-		pub enum Event<T: Config> {
-			HeartbeatReceived { authority_id: super::sr25519::AuthorityId },
-			AllGood,
-			SomeOffline { offline: sp_std::vec::Vec<IdentificationTuple<T>> },
-		}
-	}
-}
-
-impl pallet_im_online::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type ValidatorSet = Historical;
-}
-
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1695,7 +1603,6 @@ construct_runtime! {
 
 		Session: pallet_session = 9,
 		Grandpa: pallet_grandpa = 11,
-		ImOnline: pallet_im_online::{Event<T>} = 12,
 		AuthorityDiscovery: pallet_authority_discovery = 13,
 
 		// OpenGov stuff.
@@ -1825,110 +1732,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	#[cfg(feature = "try-runtime")]
-	use sp_core::crypto::ByteArray;
-
-	parameter_types! {
-		pub const ImOnlinePalletName: &'static str = "ImOnline";
-	}
-
-	/// Upgrade Session keys to exclude `ImOnline` key.
-	/// When this is removed, should also remove `OldSessionKeys`.
-	pub struct UpgradeSessionKeys;
-	const UPGRADE_SESSION_KEYS_FROM_SPEC: u32 = 1001003;
-
-	impl frame_support::traits::OnRuntimeUpgrade for UpgradeSessionKeys {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::warn!(target: "runtime::session_keys", "Skipping session keys migration pre-upgrade check due to spec version (already applied?)");
-				return Ok(Vec::new())
-			}
-
-			log::info!(target: "runtime::session_keys", "Collecting pre-upgrade session keys state");
-			let key_ids = SessionKeys::key_ids();
-			frame_support::ensure!(
-				key_ids
-					.into_iter()
-					.find(|&k| *k == sp_core::crypto::key_types::IM_ONLINE)
-					.is_none(),
-				"New session keys contain the ImOnline key that should have been removed",
-			);
-			let storage_key = pallet_session::QueuedKeys::<Runtime>::hashed_key();
-			let mut state: Vec<u8> = Vec::new();
-			frame_support::storage::unhashed::get::<Vec<(ValidatorId, OldSessionKeys)>>(
-				&storage_key,
-			)
-			.ok_or::<sp_runtime::TryRuntimeError>("Queued keys are not available".into())?
-			.into_iter()
-			.for_each(|(id, keys)| {
-				state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
-					state.extend_from_slice(keys.get_raw(*key_id));
-				}
-			});
-			frame_support::ensure!(state.len() > 0, "Queued keys are not empty before upgrade");
-			Ok(state)
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::info!("Skipping session keys upgrade: already applied");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
-			}
-			log::trace!("Upgrading session keys");
-			Session::upgrade_keys::<OldSessionKeys, _>(transform_session_keys);
-			Perbill::from_percent(50) * BlockWeights::get().max_block
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(
-			old_state: sp_std::vec::Vec<u8>,
-		) -> Result<(), sp_runtime::TryRuntimeError> {
-			if System::last_runtime_upgrade_spec_version() > UPGRADE_SESSION_KEYS_FROM_SPEC {
-				log::warn!(target: "runtime::session_keys", "Skipping session keys migration post-upgrade check due to spec version (already applied?)");
-				return Ok(())
-			}
-
-			let key_ids = SessionKeys::key_ids();
-			let mut new_state: Vec<u8> = Vec::new();
-			pallet_session::QueuedKeys::<Runtime>::get().into_iter().for_each(|(id, keys)| {
-				new_state.extend_from_slice(id.as_slice());
-				for key_id in key_ids {
-					new_state.extend_from_slice(keys.get_raw(*key_id));
-				}
-			});
-			frame_support::ensure!(new_state.len() > 0, "Queued keys are not empty after upgrade");
-			frame_support::ensure!(
-				old_state == new_state,
-				"Pre-upgrade and post-upgrade keys do not match!"
-			);
-			log::info!(target: "runtime::session_keys", "Session keys migrated successfully");
-			Ok(())
-		}
-	}
-
-	// We don't have a limit in the Relay Chain.
-	const IDENTITY_MIGRATION_KEY_LIMIT: u64 = u64::MAX;
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		init_state_migration::InitMigrate,
-		// Upgrade SessionKeys to exclude ImOnline key
-		UpgradeSessionKeys,
-		pallet_nomination_pools::migration::versioned::V7ToV8<Runtime>,
-		pallet_staking::migrations::v14::MigrateToV14<Runtime>,
-		parachains_configuration::migration::v10::MigrateToV10<Runtime>,
-		parachains_configuration::migration::v11::MigrateToV11<Runtime>,
-		pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
-		// Migrate Identity pallet for Usernames
-		pallet_identity::migration::versioned::V0ToV1<Runtime, IDENTITY_MIGRATION_KEY_LIMIT>,
-		parachains_scheduler::migration::MigrateV1ToV2<Runtime>,
-		// Remove `im-online` pallet on-chain storage
-		frame_support::migrations::RemovePallet<
-			ImOnlinePalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
+		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
+		parachains_inclusion::migration::MigrateToV1<Runtime>,
+		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2015,7 +1824,7 @@ sp_api::impl_runtime_apis! {
 			Executive::execute_block(block);
 		}
 
-		fn initialize_block(header: &<Block as BlockT>::Header) {
+		fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
 			Executive::initialize_block(header)
 		}
 	}
@@ -2071,6 +1880,22 @@ sp_api::impl_runtime_apis! {
 		fn balance_to_points(pool_id: pallet_nomination_pools::PoolId, new_funds: Balance) -> Balance {
 			NominationPools::api_balance_to_points(pool_id, new_funds)
 		}
+
+		fn pool_pending_slash(pool_id: pallet_nomination_pools::PoolId) -> Balance {
+			NominationPools::api_pool_pending_slash(pool_id)
+		}
+
+		fn member_pending_slash(member: AccountId) -> Balance {
+			NominationPools::api_member_pending_slash(member)
+		}
+
+		fn pool_needs_delegate_migration(pool_id: pallet_nomination_pools::PoolId) -> bool {
+			NominationPools::api_pool_needs_delegate_migration(pool_id)
+		}
+
+		fn member_needs_delegate_migration(member: AccountId) -> bool {
+			NominationPools::api_member_needs_delegate_migration(member)
+		}
 	}
 
 	impl pallet_staking_runtime_api::StakingApi<Block, Balance, AccountId> for Runtime {
@@ -2099,11 +1924,17 @@ sp_api::impl_runtime_apis! {
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
+			use sp_runtime::{traits::Header, DigestItem};
+
+			if header.digest().logs().iter().any(|di| di == &DigestItem::RuntimeEnvironmentUpdated) {
+				pallet_im_online::migration::clear_offchain_storage(Session::validators().len() as u32);
+			}
+
 			Executive::offchain_worker(header)
 		}
 	}
 
-	#[api_version(10)]
+	#[api_version(11)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2149,6 +1980,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn candidate_pending_availability(para_id: ParaId) -> Option<CommittedCandidateReceipt<Hash>> {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::candidate_pending_availability::<Runtime>(para_id)
 		}
 
@@ -2248,21 +2080,29 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn disabled_validators() -> Vec<ValidatorIndex> {
-			parachains_vstaging_api_impl::disabled_validators::<Runtime>()
+			parachains_runtime_api_impl::disabled_validators::<Runtime>()
 		}
 
 		fn node_features() -> NodeFeatures {
-			parachains_vstaging_api_impl::node_features::<Runtime>()
+			parachains_runtime_api_impl::node_features::<Runtime>()
 		}
 
 		fn approval_voting_params() -> ApprovalVotingParams {
-			parachains_vstaging_api_impl::approval_voting_params::<Runtime>()
+			parachains_runtime_api_impl::approval_voting_params::<Runtime>()
+		}
+
+		fn claim_queue() -> BTreeMap<CoreIndex, VecDeque<ParaId>> {
+			parachains_vstaging_api_impl::claim_queue::<Runtime>()
+		}
+
+		fn candidates_pending_availability(para_id: ParaId) -> Vec<CommittedCandidateReceipt<Hash>> {
+			parachains_vstaging_api_impl::candidates_pending_availability::<Runtime>(para_id)
 		}
 	}
 
 	impl beefy_primitives::BeefyApi<Block, BeefyId> for Runtime {
 		fn beefy_genesis() -> Option<BlockNumber> {
-			Beefy::genesis_block()
+			pallet_beefy::GenesisBlock::<Runtime>::get()
 		}
 
 		fn validator_set() -> Option<beefy_primitives::ValidatorSet<BeefyId>> {
@@ -2270,7 +2110,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn submit_report_equivocation_unsigned_extrinsic(
-			equivocation_proof: beefy_primitives::EquivocationProof<
+			equivocation_proof: beefy_primitives::DoubleVotingProof<
 				BlockNumber,
 				BeefyId,
 				BeefySignature,
@@ -2309,7 +2149,7 @@ sp_api::impl_runtime_apis! {
 		fn generate_proof(
 			block_numbers: Vec<BlockNumber>,
 			best_known_block_number: Option<BlockNumber>,
-		) -> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::Proof<mmr::Hash>), mmr::Error> {
+		) -> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::LeafProof<mmr::Hash>), mmr::Error> {
 			Mmr::generate_proof(block_numbers, best_known_block_number).map(
 				|(leaves, proof)| {
 					(
@@ -2323,7 +2163,7 @@ sp_api::impl_runtime_apis! {
 			)
 		}
 
-		fn verify_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::Proof<mmr::Hash>)
+		fn verify_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::LeafProof<mmr::Hash>)
 			-> Result<(), mmr::Error>
 		{
 			let leaves = leaves.into_iter().map(|leaf|
@@ -2336,7 +2176,7 @@ sp_api::impl_runtime_apis! {
 		fn verify_proof_stateless(
 			root: mmr::Hash,
 			leaves: Vec<mmr::EncodableOpaqueLeaf>,
-			proof: mmr::Proof<mmr::Hash>
+			proof: mmr::LeafProof<mmr::Hash>
 		) -> Result<(), mmr::Error> {
 			let nodes = leaves.into_iter().map(|leaf|mmr::DataOrHash::Data(leaf.into_opaque_leaf())).collect();
 			pallet_mmr::verify_leaves_proof::<mmr::Hashing, _>(root, nodes, proof)
@@ -2497,13 +2337,59 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-		fn create_default_config() -> Vec<u8> {
-			create_default_config::<RuntimeGenesisConfig>()
+	impl xcm_fee_payment_runtime_api::fees::XcmPaymentApi<Block> for Runtime {
+		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
+			let acceptable_assets = vec![AssetId(xcm_config::TokenLocation::get())];
+			XcmPallet::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
-		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
-			build_config::<RuntimeGenesisConfig>(config)
+		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
+			match asset.try_as::<AssetId>() {
+				Ok(asset_id) if asset_id.0 == xcm_config::TokenLocation::get() => {
+					// for native token
+					Ok(WeightToFee::weight_to_fee(&weight))
+				},
+				Ok(asset_id) => {
+					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
+					Err(XcmPaymentApiError::AssetNotFound)
+				},
+				Err(_) => {
+					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
+					Err(XcmPaymentApiError::VersionedConversionFailed)
+				}
+			}
+		}
+
+		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
+			XcmPallet::query_xcm_weight(message)
+		}
+
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
+			XcmPallet::query_delivery_fees(destination, message)
+		}
+	}
+
+	impl xcm_fee_payment_runtime_api::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		}
+
+		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+		}
+	}
+
+	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+			build_state::<RuntimeGenesisConfig>(config)
+		}
+
+		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
+			get_preset::<RuntimeGenesisConfig>(id, |_| None)
+		}
+
+		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+			vec![]
 		}
 	}
 
@@ -3225,67 +3111,5 @@ mod remote_tests {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
 		});
-	}
-}
-
-mod init_state_migration {
-	use super::Runtime;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_state_trie_migration::{AutoLimits, MigrationLimits, MigrationProcess};
-	#[cfg(not(feature = "std"))]
-	use sp_std::prelude::*;
-
-	/// Initialize an automatic migration process.
-	pub struct InitMigrate;
-	impl OnRuntimeUpgrade for InitMigrate {
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
-			use codec::Encode;
-			let migration_should_start = AutoLimits::<Runtime>::get().is_none() &&
-				MigrationProcess::<Runtime>::get() == Default::default();
-			Ok(migration_should_start.encode())
-		}
-
-		fn on_runtime_upgrade() -> frame_support::weights::Weight {
-			if AutoLimits::<Runtime>::get().is_some() {
-				log::warn!("Automatic trie migration already started, not proceeding.");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(1)
-			};
-
-			if MigrationProcess::<Runtime>::get() != Default::default() {
-				log::warn!("MigrationProcess is not Default. Not proceeding.");
-				return <Runtime as frame_system::Config>::DbWeight::get().reads(2)
-			};
-
-			// Migration is not already running and `MigraitonProcess` is Default. Ready to run
-			// migrations.
-			//
-			// We use limits to target 600ko proofs per block and
-			// avg 800_000_000_000 of weight per block.
-			// See spreadsheet 4800_400 in
-			// https://raw.githubusercontent.com/cheme/substrate/try-runtime-mig/ksm.ods
-			AutoLimits::<Runtime>::put(Some(MigrationLimits { item: 4_800, size: 204800 * 2 }));
-			log::info!("Automatic trie migration started.");
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(2, 1)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(
-			migration_should_start_bytes: Vec<u8>,
-		) -> Result<(), sp_runtime::DispatchError> {
-			use codec::Decode;
-			let migration_should_start: bool =
-				Decode::decode(&mut migration_should_start_bytes.as_slice())
-					.expect("failed to decode migration should start");
-
-			if migration_should_start {
-				frame_support::ensure!(
-					AutoLimits::<Runtime>::get().is_some(),
-					sp_runtime::DispatchError::Other("Automigration did not start as expected.")
-				);
-			}
-
-			Ok(())
-		}
 	}
 }

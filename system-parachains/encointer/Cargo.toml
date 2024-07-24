@@ -50,7 +50,7 @@ frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 pallet-asset-tx-payment = { workspace = true }
-pallet-aura = { features = ["experimental"], workspace = true }
+pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-collective = { workspace = true }
@@ -84,12 +84,11 @@ polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-parachain-system = { features = [
-	"parameterized-consensus-hook",
-], workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { optional = true, workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true }
@@ -152,6 +151,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 std = [
 	"codec/std",
@@ -226,6 +226,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"xcm-fee-payment-runtime-api/std",
 ]
 
 

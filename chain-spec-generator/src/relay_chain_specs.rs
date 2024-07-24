@@ -21,16 +21,19 @@ use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa::AuthorityId as GrandpaId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::Forcing;
-use polkadot_primitives::{AccountId, AccountPublic, AssignmentId, ValidatorId};
+use polkadot_primitives::{
+	AccountId, AccountPublic, ApprovalVotingParams, AssignmentId, AsyncBackingParams, NodeFeatures,
+	ValidatorId,
+};
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use runtime_parachains::configuration::HostConfiguration;
 use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{traits::IdentifyAccount, Perbill};
 
-pub type PolkadotChainSpec = sc_chain_spec::GenericChainSpec<(), NoExtension>;
+pub type PolkadotChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
-pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<(), NoExtension>;
+pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
 const DEFAULT_PROTOCOL_ID: &str = "dot";
 
@@ -54,8 +57,6 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		max_code_size: MAX_CODE_SIZE,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,
-		group_rotation_frequency: 20,
-		paras_availability_period: 4,
 		max_upward_queue_count: 8,
 		max_upward_queue_size: 1024 * 1024,
 		max_downward_message_size: 1024 * 1024,
@@ -76,7 +77,22 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
 		minimum_validation_upgrade_delay: 5,
-		..Default::default()
+		scheduler_params: polkadot_primitives::vstaging::SchedulerParams {
+			group_rotation_frequency: 20,
+			paras_availability_period: 4,
+			..Default::default()
+		},
+		dispute_post_conclusion_acceptance_period: 100u32,
+		minimum_backing_votes: 1,
+		node_features: NodeFeatures::EMPTY,
+		async_backing_params: AsyncBackingParams {
+			max_candidate_depth: 2,
+			allowed_ancestry_len: 2,
+		},
+		executor_params: Default::default(),
+		max_validators: None,
+		pvf_voting_ttl: 2,
+		approval_voting_params: ApprovalVotingParams { max_approval_coalesce_count: 1 },
 	}
 }
 

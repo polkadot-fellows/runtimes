@@ -25,7 +25,7 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
-pallet-aura = { features = ["experimental"], workspace = true }
+pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-identity = { workspace = true }
@@ -61,17 +61,17 @@ kusama-runtime-constants = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 # Cumulus
 cumulus-primitives-aura = { workspace = true }
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-parachain-system = { features = [
-	"parameterized-consensus-hook",
-], workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true }
 cumulus-primitives-core = { workspace = true }
+cumulus-primitives-storage-weight-reclaim = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
@@ -93,6 +93,7 @@ std = [
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
 	"cumulus-primitives-utility/std",
+	"cumulus-primitives-storage-weight-reclaim/std",
 	"enumflags2/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
@@ -143,7 +144,8 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"polkadot-primitives/std"
+	"polkadot-primitives/std",
+	"xcm-fee-payment-runtime-api/std",
 ]
 
 runtime-benchmarks = [
@@ -172,7 +174,8 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks"
+	"polkadot-primitives/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 
 try-runtime = [

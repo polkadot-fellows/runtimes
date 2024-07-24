@@ -21,8 +21,9 @@ use frame_support::traits::OnInitialize;
 // Cumulus
 use emulated_integration_tests_common::{
 	impl_accounts_helpers_for_parachain, impl_assert_events_helpers_for_parachain,
-	impl_assets_helpers_for_parachain, impl_foreign_assets_helpers_for_parachain,
-	impl_xcm_helpers_for_parachain, impls::Parachain, xcm_emulator::decl_test_parachains,
+	impl_assets_helpers_for_parachain, impl_assets_helpers_for_system_parachain,
+	impl_foreign_assets_helpers_for_parachain, impl_xcm_helpers_for_parachain, impls::Parachain,
+	xcm_emulator::decl_test_parachains,
 };
 use kusama_emulated_chain::Kusama;
 
@@ -54,6 +55,7 @@ decl_test_parachains! {
 // AssetHubKusama implementation
 impl_accounts_helpers_for_parachain!(AssetHubKusama);
 impl_assert_events_helpers_for_parachain!(AssetHubKusama);
-impl_assets_helpers_for_parachain!(AssetHubKusama, Kusama);
-impl_foreign_assets_helpers_for_parachain!(AssetHubKusama, Kusama);
+impl_assets_helpers_for_system_parachain!(AssetHubKusama, Kusama);
+impl_assets_helpers_for_parachain!(AssetHubKusama);
+impl_foreign_assets_helpers_for_parachain!(AssetHubKusama, xcm::v3::Location);
 impl_xcm_helpers_for_parachain!(AssetHubKusama);

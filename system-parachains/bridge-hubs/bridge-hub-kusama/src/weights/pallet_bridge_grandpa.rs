@@ -72,4 +72,15 @@ impl<T: frame_system::Config> pallet_bridge_grandpa::WeightInfo for WeightInfo<T
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
+
+	fn force_set_pallet_state() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `452`
+		//  Estimated: `51735`
+		// Minimum execution time: 62_232_000 picoseconds.
+		Weight::from_parts(78_755_000, 0)
+			.saturating_add(Weight::from_parts(0, 51735))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(6))
+	}
 }

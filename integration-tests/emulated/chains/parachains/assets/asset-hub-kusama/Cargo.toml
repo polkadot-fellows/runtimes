@@ -17,7 +17,10 @@ frame-support = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
+xcm = { workspace = true, default-features = true }
+polkadot-parachain-primitives = { workspace = true }
 
 # Runtimes
 asset-hub-kusama-runtime = { workspace = true }
 kusama-emulated-chain = { workspace = true }
+penpal-emulated-chain = { workspace = true }

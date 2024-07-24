@@ -16,12 +16,16 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
 use collectives_polkadot_runtime::xcm_config::XcmConfig as CollectivesPolkadotXcmConfig;
-use frame_support::assert_ok;
-use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter, test_relay_is_trusted_teleporter,
-	test_sibling_is_trusted_teleporter,
+use frame_support::{
+	assert_ok, dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
 };
-use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
+use integration_tests_helpers::{
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+};
+use xcm_fee_payment_runtime_api::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
 
 #[test]
 fn teleport_from_and_to_relay() {
@@ -35,7 +39,7 @@ fn teleport_from_and_to_relay() {
 		(native_asset, amount)
 	);
 
-	test_parachain_is_trusted_teleporter!(
+	test_parachain_is_trusted_teleporter_for_relay!(
 		CollectivesPolkadot,          // Origin
 		CollectivesPolkadotXcmConfig, // XCM Configuration
 		Polkadot,                     // Destination
@@ -48,7 +52,7 @@ fn teleport_from_collectives_to_asset_hub() {
 	let amount = ASSET_HUB_POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_sibling_is_trusted_teleporter!(
+	test_parachain_is_trusted_teleporter!(
 		CollectivesPolkadot,          // Origin
 		CollectivesPolkadotXcmConfig, // XCM Configuration
 		vec![AssetHubPolkadot],       // Destinations
@@ -61,7 +65,7 @@ fn teleport_from_asset_hub_to_collectives() {
 	let amount = COLLECTIVES_POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
-	test_sibling_is_trusted_teleporter!(
+	test_parachain_is_trusted_teleporter!(
 		AssetHubPolkadot,          // Origin
 		AssetHubPolkadotXcmConfig, // XCM Configuration
 		vec![CollectivesPolkadot], // Destinations
