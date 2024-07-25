@@ -131,9 +131,22 @@ pub mod system_parachain {
 	pub const BRIDGE_HUB_ID: u32 = 1002;
 	/// People parachain ID.
 	pub const PEOPLE_ID: u32 = 1004;
+	/// Brokerage parachain ID.
+	pub const BROKER_ID: u32 = 1005;
 
 	// System parachains from Polkadot point of view.
 	pub type SystemParachains = IsChildSystemParachain<Id>;
+
+	/// Coretime constants
+	pub mod coretime {
+		/// Coretime timeslice period in blocks
+		/// WARNING: This constant is used across chains, so additional care should be taken
+		/// when changing it.
+		#[cfg(feature = "fast-runtime")]
+		pub const TIMESLICE_PERIOD: u32 = 20;
+		#[cfg(not(feature = "fast-runtime"))]
+		pub const TIMESLICE_PERIOD: u32 = 80;
+	}
 }
 
 /// Polkadot Treasury pallet instance.
