@@ -90,15 +90,15 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 177_594_900;
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 88_797_450;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_delivery_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 942_248_365;
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 471_124_182;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 172_377_865;
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 86_188_932;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending

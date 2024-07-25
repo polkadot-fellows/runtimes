@@ -1194,8 +1194,8 @@ fn test_ed_is_one_tenth_of_relay() {
 }
 
 #[test]
-fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 	let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 	let parachain_tbf = TransactionByteFee::get();
-	assert_eq!(relay_tbf / 10, parachain_tbf);
+	assert_eq!(relay_tbf / 20, parachain_tbf);
 }

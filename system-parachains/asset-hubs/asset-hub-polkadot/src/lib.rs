@@ -1811,11 +1811,11 @@ mod tests {
 	/// Weight is being charged for both dimensions.
 	#[test]
 	fn weight_charged_for_both_components() {
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(10_000, 0));
+		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(20_000, 0));
 		assert!(!fee.is_zero(), "Charges for ref time");
 
-		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, 10_000));
-		assert_eq!(fee, CENTS, "10kb maps to CENT");
+		let fee: Balance = fee::WeightToFee::weight_to_fee(&Weight::from_parts(0, 20_000));
+		assert_eq!(fee, CENTS, "20kb maps to CENT");
 	}
 
 	/// Filling up a block by proof size is at most 30 times more expensive than ref time.
@@ -1836,10 +1836,10 @@ mod tests {
 	}
 
 	#[test]
-	fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+	fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
-		assert_eq!(relay_tbf / 10, parachain_tbf);
+		assert_eq!(relay_tbf / 20, parachain_tbf);
 	}
 
 	#[test]
