@@ -1861,7 +1861,6 @@ pub mod migrations {
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
 		>,
-		EnableElasticScalingNodeFeature,
 		CancelAuctions,
 	);
 
