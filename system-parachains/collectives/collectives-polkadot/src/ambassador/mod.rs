@@ -138,6 +138,9 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type VoteWeight = VoteWeight;
 	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
 	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxMemberCount = ();
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxMemberCount = AmbassadorMemberCount;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
