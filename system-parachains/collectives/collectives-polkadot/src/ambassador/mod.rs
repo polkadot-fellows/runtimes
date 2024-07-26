@@ -356,7 +356,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	>;
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "runtime-benchmarks")))]
 mod tests {
 	use super::*;
 
