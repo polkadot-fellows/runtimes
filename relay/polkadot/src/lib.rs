@@ -1297,7 +1297,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = ();
+	type AssignCoretime = CoretimeAssignmentProvider;
 }
 
 parameter_types! {
@@ -1705,7 +1705,7 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
+		OnDemand: parachains_assigner_on_demand = 64,
 		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
@@ -1834,9 +1834,9 @@ pub mod migrations {
 				// TODO: Fix this key for Polkadot!
 				pallet_custom_origins::Origin::AuctionAdmin.into(),
 				[
-					0x5c, 0x68, 0xbf, 0x0c, 0x2d, 0x11, 0x04, 0x91, 0x6b, 0xa5, 0xa4, 0xde, 0xe6,
-					0xb8, 0x14, 0xe8, 0x2b, 0x27, 0x93, 0x78, 0x4c, 0xb6, 0xe7, 0x69, 0x04, 0x00,
-					0x1a, 0x59, 0x49, 0xc1, 0x63, 0xb1,
+					0x87, 0xa8, 0x71, 0xb4, 0xd6, 0x21, 0xf0, 0xb9, 0x73, 0x47, 0x5a, 0xaf, 0xcc,
+					0x32, 0x61, 0x0b, 0xd7, 0x68, 0x8f, 0x15, 0x02, 0x33, 0x8a, 0xcd, 0x00, 0xee,
+					0x48, 0x8a, 0xc3, 0x62, 0x0f, 0x4c,
 				],
 			) {
 				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
@@ -1902,7 +1902,7 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras, Paras]
 		[runtime_parachains::paras_inherent, ParaInherent]
-		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::assigner_on_demand, OnDemand]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_bags_list, VoterList]
