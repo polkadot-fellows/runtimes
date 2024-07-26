@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Core-Fellowship: new `promote_fast` call ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4877](https://github.com/paritytech/polkadot-sdk/pull/4877)).
 - Pallet ranked collective: max member count per rank ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4807](https://github.com/paritytech/polkadot-sdk/pull/4807)).
 
+- All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
+
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
 - Add `claim_assets` extrinsic to `pallet-xcm` ([SDK v1.9 #3403](https://github.com/paritytech/polkadot-sdk/pull/3403)).
@@ -44,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
+- Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -131,6 +134,10 @@ Note: This release only affects the following runtimes and is not a full system 
 - Polkadot Collectives
 - Kusama Relay Chain
 - Kusama Bridge Hub
+
+### Fixed
+
+- Kusama People: Build the metadata hash at build time, so that `CheckMetadata` can use it at runtime ([polkadot-fellows/runtimes#371](https://github.com/polkadot-fellows/runtimes/pull/371))
 
 ## [1.2.7] 14.06.2024
 

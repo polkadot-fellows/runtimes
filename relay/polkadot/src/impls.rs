@@ -26,7 +26,6 @@ use frame_system::RawOrigin;
 use polkadot_primitives::Id as ParaId;
 use polkadot_runtime_common::identity_migrator::{OnReapIdentity, WeightInfo};
 use polkadot_runtime_constants::system_parachain::PEOPLE_ID;
-use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::TransactAsset;
 
@@ -173,8 +172,8 @@ where
 		// send
 		<pallet_xcm::Pallet<Runtime>>::send(
 			RawOrigin::Root.into(),
-			Box::new(VersionedLocation::V4(destination)),
-			Box::new(VersionedXcm::V4(program)),
+			Box::new(VersionedLocation::from(destination)),
+			Box::new(VersionedXcm::from(program)),
 		)?;
 		Ok(())
 	}

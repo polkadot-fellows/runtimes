@@ -31,8 +31,8 @@ fn fellows_whitelist_call() {
 		let call_hash = [1u8; 32].into();
 
 		let whitelist_call = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
-			dest: bx!(VersionedLocation::V4(Parent.into())),
-			message: bx!(VersionedXcm::V4(Xcm(vec![
+			dest: bx!(VersionedLocation::from(Location::parent())),
+			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::Xcm,

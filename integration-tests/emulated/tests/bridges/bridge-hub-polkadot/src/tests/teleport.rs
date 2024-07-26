@@ -15,6 +15,16 @@
 
 use crate::*;
 use bridge_hub_polkadot_runtime::xcm_config::XcmConfig;
+use frame_support::{
+	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+};
+use integration_tests_helpers::{
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+};
+use xcm_fee_payment_runtime_api::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
 
 #[test]
 fn teleport_to_other_system_parachains_works() {
@@ -26,5 +36,25 @@ fn teleport_to_other_system_parachains_works() {
 		XcmConfig,              // XCM Configuration
 		vec![AssetHubPolkadot], // Destination
 		(native_asset, amount)
+	);
+}
+
+#[test]
+fn teleport_from_and_to_relay() {
+	let amount = BRIDGE_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		PolkadotXcmConfig,
+		vec![BridgeHubPolkadot],
+		(native_asset, amount)
+	);
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		BridgeHubPolkadot,
+		BridgeHubPolkadotXcmConfig,
+		Polkadot,
+		amount
 	);
 }
