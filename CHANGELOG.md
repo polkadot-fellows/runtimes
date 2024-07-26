@@ -14,7 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - RFC-5: Add request revenue info ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3940](https://github.com/paritytech/polkadot-sdk/pull/3940)).
 - Core-Fellowship: new `promote_fast` call ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4877](https://github.com/paritytech/polkadot-sdk/pull/4877)).
 - Pallet ranked collective: max member count per rank ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4807](https://github.com/paritytech/polkadot-sdk/pull/4807)).
-- Pallet assets: optional auto-increment for the asset ID ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4757](https://github.com/paritytech/polkadot-sdk/pull/4757)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
