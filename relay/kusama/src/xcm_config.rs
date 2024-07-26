@@ -271,8 +271,8 @@ pub type LocalPalletOrSignedOriginToLocation = (
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// This is basically safe to enable for everyone (safe the possibility of someone spamming the
-	// parachain if they're willing to pay the KSM to send from the Relay-chain).
+	// This is safe to enable for everyone (save the possibility of someone spamming a parachain
+	// if they're willing to pay the KSM to send from the Relay-chain).
 	type SendXcmOrigin =
 		xcm_builder::EnsureXcmOrigin<RuntimeOrigin, LocalPalletOrSignedOriginToLocation>;
 	type XcmRouter = XcmRouter;
