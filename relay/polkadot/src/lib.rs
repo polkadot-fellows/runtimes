@@ -1212,7 +1212,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1786,6 +1787,7 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
+	use frame_support::migration::move_storage_from_pallet;
 	use polkadot_runtime_common::traits::Leaser;
 
 	use super::*;
@@ -1841,8 +1843,27 @@ pub mod migrations {
 		}
 	}
 
+	// Migrate storage for pallet rename `OnDemandAssignmentProvider` -> `OnDemand`
+	pub struct OnDemandRename;
+	impl OnRuntimeUpgrade for OnDemandRename {
+		fn on_runtime_upgrade() -> Weight {
+			move_storage_from_pallet(b"Pallet", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"ParaIdAffinity", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"QueueStatus", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"FreeEntries", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(
+				b"AffinityEntries",
+				b"OnDemandAssignmentProvider",
+				b"OnDemand",
+			);
+			move_storage_from_pallet(b"Revenue", b"OnDemandAssignmentProvider", b"OnDemand");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(0, 0) //todo
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		OnDemandRename,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
