@@ -1812,19 +1812,6 @@ pub mod migrations {
 		}
 	}
 
-	/// Enable the elastic scaling node side feature.
-	///
-	/// This is required for Coretime to ensure the relay chain processes parachains that are
-	/// assigned to multiple cores.
-	pub struct EnableElasticScalingNodeFeature;
-	impl OnRuntimeUpgrade for EnableElasticScalingNodeFeature {
-		fn on_runtime_upgrade() -> Weight {
-			use runtime_parachains::configuration::WeightInfo as _;
-			let _ = Configuration::set_node_feature(frame_system::RawOrigin::Root.into(), 1, true);
-			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
-		}
-	}
-
 	/// Cancel all ongoing auctions.
 	///
 	/// Any leases that come into existence after coretime was launched will not be served. Yet,
