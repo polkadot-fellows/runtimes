@@ -577,7 +577,7 @@ dependencies = [
  "asset-hub-kusama-runtime",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
  "penpal-emulated-chain",
@@ -595,7 +595,7 @@ dependencies = [
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
@@ -614,7 +614,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -640,7 +640,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -704,7 +704,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -714,7 +714,7 @@ dependencies = [
  "asset-hub-polkadot-runtime",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "penpal-emulated-chain",
  "polkadot-emulated-chain",
@@ -734,7 +734,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "pallet-asset-conversion",
  "pallet-assets",
@@ -751,7 +751,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -776,7 +776,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -838,7 +838,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -850,7 +850,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-assets",
  "pallet-balances",
@@ -879,7 +879,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4e2360c96927aa33b3fef7190eabf2aa4129fe3505c11dfa860ada0f27fd1b1"
 dependencies = [
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "impl-trait-for-tuples",
  "log",
  "pallet-asset-conversion",
@@ -1386,7 +1386,7 @@ name = "bp-asset-hub-kusama"
 version = "1.0.0"
 dependencies = [
  "bp-xcm-bridge-hub-router",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-std",
@@ -1399,7 +1399,7 @@ name = "bp-asset-hub-polkadot"
 version = "1.0.0"
 dependencies = [
  "bp-xcm-bridge-hub-router",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-std",
@@ -1416,7 +1416,7 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "polkadot-primitives",
  "sp-api",
@@ -1430,7 +1430,7 @@ dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
  "snowbridge-core",
@@ -1449,7 +1449,7 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-bulletin",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-runtime-constants",
  "polkadot-runtime-constants",
  "snowbridge-core",
@@ -1468,7 +1468,7 @@ checksum = "57cac4b71008e46d43e346476ed1be85cf7b505efacee17dad84d687344bf1b1"
 dependencies = [
  "bp-runtime",
  "finality-grandpa",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -1487,7 +1487,7 @@ dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "sp-api",
  "sp-std",
 ]
@@ -1500,7 +1500,7 @@ checksum = "f97eec00a98efeb052ac9fc9676d9fccf5acd19e3b18530f3d72af1a1faf21ec"
 dependencies = [
  "bp-header-chain",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -1517,7 +1517,7 @@ dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
@@ -1535,7 +1535,7 @@ dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "sp-api",
  "sp-std",
 ]
@@ -1550,7 +1550,7 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -1567,7 +1567,7 @@ checksum = "6ef2272823ecfee580c00f6542dfcab3ec7abdb00857af853429736847c3a2d9"
 dependencies = [
  "bp-messages",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "parity-util-mem",
@@ -1586,7 +1586,7 @@ checksum = "5a589f5bb70baa4377a798823be752042aa6c220d51afc559716667e29b0203d"
 dependencies = [
  "bp-messages",
  "bp-runtime",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime 38.0.0",
@@ -1599,7 +1599,7 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904644c23b437dde65741f3148067624ed0b4d8360f68adf9e92273aeb970814"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "hash-db",
  "impl-trait-for-tuples",
@@ -1666,7 +1666,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd1e0c182cdd2ce204425d011965d2c6344360b48dd9aa3f4c470713cfaae9ba"
 dependencies = [
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
@@ -1684,7 +1684,7 @@ dependencies = [
  "bridge-hub-common",
  "bridge-hub-kusama-runtime",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
 ]
@@ -1699,7 +1699,7 @@ dependencies = [
  "bridge-hub-kusama-runtime",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "hex-literal",
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
@@ -1724,7 +1724,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -1759,7 +1759,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -1829,7 +1829,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -1839,7 +1839,7 @@ dependencies = [
  "bridge-hub-common",
  "bridge-hub-polkadot-runtime",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
 ]
@@ -1854,7 +1854,7 @@ dependencies = [
  "bridge-hub-polkadot-runtime",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "hex-literal",
  "integration-tests-helpers",
  "kusama-polkadot-system-emulated-network",
@@ -1879,7 +1879,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -1912,7 +1912,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -1982,7 +1982,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -2001,7 +2001,7 @@ dependencies = [
  "bridge-runtime-common",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -2040,7 +2040,7 @@ dependencies = [
  "bp-runtime",
  "bp-xcm-bridge-hub",
  "bp-xcm-bridge-hub-router",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "hash-db",
  "log",
@@ -2371,7 +2371,7 @@ dependencies = [
  "collectives-polkadot-runtime",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
 ]
@@ -2388,7 +2388,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "pallet-asset-rate",
  "pallet-assets",
@@ -2409,7 +2409,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -2428,7 +2428,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -2486,7 +2486,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -2632,7 +2632,7 @@ dependencies = [
  "coretime-kusama-runtime",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
 ]
@@ -2645,7 +2645,7 @@ dependencies = [
  "coretime-kusama-runtime",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
@@ -2660,7 +2660,7 @@ dependencies = [
  "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-executor",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -2679,7 +2679,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -2730,7 +2730,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -2972,7 +2972,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c5e8af48090936c45483d489ee681acb54277763586b53fa3dbd17173aa474fc"
 dependencies = [
  "cumulus-pallet-parachain-system",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-aura",
  "pallet-timestamp",
@@ -2992,7 +2992,7 @@ checksum = "7926abe4b165565b8c86a3525ac98e3a962761d05c201c53012460b237ad5887"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -3016,7 +3016,7 @@ dependencies = [
  "cumulus-primitives-proof-size-hostfunction",
  "environmental",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -3059,7 +3059,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "506daacefa861aa2909b64f26e76495ce029227fd8355b97e074cc1d5dc54ab2"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-session",
  "parity-scale-codec",
@@ -3074,7 +3074,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d5224285f60e5159bab549f458079d606a7f95ef779def8b89f1a244dc7cf81"
 dependencies = [
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -3094,7 +3094,7 @@ dependencies = [
  "bp-xcm-bridge-hub-router",
  "cumulus-primitives-core",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-message-queue",
@@ -3182,7 +3182,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-proof-size-hostfunction",
  "docify",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -3198,7 +3198,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05742c520065e3870d419683113ed7f6d35de66f0c80af6828e7878d1bb0ea94"
 dependencies = [
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "log",
  "pallet-asset-conversion",
  "parity-scale-codec",
@@ -3754,7 +3754,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "pallet-assets",
  "pallet-balances",
  "pallet-bridge-messages",
@@ -3798,7 +3798,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e0a21785d37fcc1d2bc52c4b962ed0ecc1ea0ad7b1421c84c57edb9e11a3d34"
 dependencies = [
  "encointer-primitives",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-asset-tx-payment",
@@ -3815,7 +3815,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "449bca6d70a53456d223f2da58189e56a69eff96249b3d660d7d6123d0c824e9"
 dependencies = [
  "encointer-primitives",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
@@ -3851,7 +3851,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -3913,7 +3913,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -3939,7 +3939,7 @@ dependencies = [
  "bs58 0.5.0",
  "crc",
  "ep-core",
- "frame-support 36.0.0",
+ "frame-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -4332,7 +4332,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "709b26657ebbba53dc7bb616577375ca462b20fef1b00e8d9b20d2435e87f7bc"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-support-procedural",
  "frame-system",
  "linregress",
@@ -4371,7 +4371,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1ec289ebad5e601bb165cf7eb6ec2179ae34280ee310d0710a3111d4f8f8f94"
 dependencies = [
  "frame-election-provider-solution-type",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -4389,7 +4389,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d878830330eaa9e8b886279c338556b05702d0059989cb51cfb226b70bf3fa4"
 dependencies = [
  "aquamarine",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-try-runtime",
  "log",
@@ -4433,7 +4433,7 @@ checksum = "cf37fc730bf4b51e82a34c6357eebe32c04dbacf6525e0a7b9726f6a17ec9427"
 dependencies = [
  "array-bytes",
  "docify",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -4462,48 +4462,6 @@ dependencies = [
  "substrate-rpc-client",
  "tokio",
  "tokio-retry",
-]
-
-[[package]]
-name = "frame-support"
-version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab6d7780b7f337c8a072f0a7480cbc7b580f9bf871c434fae65e8935053ee5ef"
-dependencies = [
- "aquamarine",
- "array-bytes",
- "bitflags 1.3.2",
- "docify",
- "environmental",
- "frame-metadata 16.0.0",
- "frame-support-procedural",
- "impl-trait-for-tuples",
- "k256",
- "log",
- "macro_magic",
- "parity-scale-codec",
- "paste",
- "scale-info",
- "serde",
- "serde_json",
- "smallvec",
- "sp-api",
- "sp-arithmetic 26.0.0",
- "sp-core 34.0.0",
- "sp-crypto-hashing-proc-macro",
- "sp-debug-derive",
- "sp-genesis-builder",
- "sp-inherents",
- "sp-io 37.0.0",
- "sp-metadata-ir",
- "sp-runtime 38.0.0",
- "sp-staking",
- "sp-state-machine 0.42.0",
- "sp-std",
- "sp-tracing 17.0.0",
- "sp-weights 31.0.0",
- "static_assertions",
- "tt-call",
 ]
 
 [[package]]
@@ -4600,7 +4558,7 @@ checksum = "2c2f10b6943da5d00f45b1b07b101bea49647d0e6c7e755b2852fd947072d7ee"
 dependencies = [
  "cfg-if",
  "docify",
- "frame-support 36.0.0",
+ "frame-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -4620,7 +4578,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "15afc91c7780e18274dcea58ed1edb700c48d10e086a9785e3f6708099cd3250"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -4645,7 +4603,7 @@ version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae6ba8b36a52775ad39ccfb45ff4ad814c3cb45ec74d0a4271889e00bd791c6c"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "sp-api",
  "sp-runtime 38.0.0",
@@ -4886,7 +4844,7 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-executive",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -6104,7 +6062,7 @@ dependencies = [
 name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "polkadot-primitives",
  "polkadot-runtime-common",
  "smallvec",
@@ -7602,7 +7560,7 @@ checksum = "a6c2c92855904f34ce42de688cc9411ffcb4c3f13751af2dafd52474d540b158"
 dependencies = [
  "array-bytes",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-collective",
@@ -7623,7 +7581,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f726ebb59401c1844a4a8703047bdafcd99a1827cd5d8b2c82abeb8948a7f25b"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -7642,7 +7600,7 @@ version = "18.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0fde03a96382f4dbe37ef95cb4ef7aade7c0be410cb6c888eda911c94af3eaf"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-asset-conversion",
  "pallet-transaction-payment",
@@ -7659,7 +7617,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e806842bec955190ec64f8b2179f74f5355137c4cadf04f3269e6196cd19caf9"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -7675,7 +7633,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "100a180dfbf30a1c872100ec2dae8a61c0f5e8b3f2d3a5cbb34093826293e2ab"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-transaction-payment",
  "parity-scale-codec",
@@ -7694,7 +7652,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f79ef6a7763fc08177f014052469ee12aefcdad0d99a747372360c2f648d2cc4"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -7711,7 +7669,7 @@ version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0861b2a1ad6526948567bb59a3fdc4c7f02ee79b07be8b931a544350ec35ab0c"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-timestamp",
@@ -7729,7 +7687,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2c3666a476132f5846fe4d5e1961a923a58a0f54d873d84566f24ffaa3684f"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-session",
  "parity-scale-codec",
@@ -7746,7 +7704,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38885846dbcf03b025fdbd7edb3649046dbc68fa0b419ffe8837ef853a10d31f"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -7762,7 +7720,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b23d2d814e3cb793659fcf84533f66fdf0ed9cccb66cb2225851f482843ed096"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -7790,7 +7748,7 @@ dependencies = [
  "docify",
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-balances",
@@ -7811,7 +7769,7 @@ checksum = "6878e240962d3887f0e0654ac343a18845adb95ad493c9d4d5e803c015d4a4c3"
 dependencies = [
  "docify",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -7826,7 +7784,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "715dfcd1bf3f1f37af6335d4eb3cef921e746ac54721e2258c4fd968b61eb009"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -7849,7 +7807,7 @@ checksum = "01d70c6f872eb3f2635355ccbea944a4f9ea411c0aa25f6f1a15219e8da11ad2"
 dependencies = [
  "array-bytes",
  "binary-merkle-tree",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-beefy",
@@ -7874,7 +7832,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0566499e74ba4b7ccbd1b667eef0dab76ca28402a8d501e22b73a363717b05a9"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-treasury",
@@ -7897,7 +7855,7 @@ dependencies = [
  "bp-test-utils",
  "finality-grandpa",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -7917,7 +7875,7 @@ dependencies = [
  "bp-messages",
  "bp-runtime",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "num-traits",
@@ -7938,7 +7896,7 @@ dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-bridge-grandpa",
@@ -7959,7 +7917,7 @@ dependencies = [
  "bp-relayers",
  "bp-runtime",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-bridge-messages",
@@ -7978,7 +7936,7 @@ checksum = "cd0d652c399b6ed776ee3322e60f40e323f86b413719d7696eddb8f64c368ac0"
 dependencies = [
  "bitvec",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -7997,7 +7955,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38e351f103ebbdd1eb095da8c2379caccc82ebc59a740c2731693d2204286b83"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-bounties",
@@ -8017,7 +7975,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f660cc09f2f277a3976da2eef856b5c725ab7ad1192902ef7f4e4bafd992f04f"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -8038,7 +7996,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "771bf7f6c76c3ea5e965fee0bf1d8a8c79c8c52d75ead65ed3c4d385f333756f"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8057,7 +8015,7 @@ checksum = "9033f0d23500bbc39298fd50c07b89a2f2d9f07300139b4df8005995ef683875"
 dependencies = [
  "assert_matches",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8074,7 +8032,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99f3caf5d750236fce5f59fa464a9ca5bbefedd97f2570caa96cf7bdd2ec5261"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-ranked-collective",
@@ -8093,7 +8051,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0596ec5ab55e02b1b5637b3ec2b99027d036fe97a1ab4733ae105474dfa727cf"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8110,7 +8068,7 @@ checksum = "bd1090fdc6ccdd8ff08c60000c970428baaaf0b33e7a6b01a91ec8b697a650a3"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-election-provider-support-benchmarking",
@@ -8150,7 +8108,7 @@ dependencies = [
  "approx",
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-asset-tx-payment",
@@ -8169,7 +8127,7 @@ checksum = "10d38c490fdd90b649b3ec68a8bb25d3cdfaa11223122482737114e00e29f8a5"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-encointer-communities",
@@ -8186,7 +8144,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bdfc381df1d6346e244994d4a5729b79b60f964ba4c13e29ea2f057627e1db25"
 dependencies = [
  "encointer-primitives",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "sp-api",
  "sp-std",
@@ -8202,7 +8160,7 @@ dependencies = [
  "encointer-meetup-validation",
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-encointer-balances",
@@ -8225,7 +8183,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c186e855a19f98ba75ef8d674e71533584620a3d7a8ff653631c391f7a4a9b79"
 dependencies = [
  "encointer-primitives",
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "sp-api",
  "sp-std",
@@ -8239,7 +8197,7 @@ checksum = "ffbd4cb15599fc47c662234cfdb2c1c63f39106c4099383d84c981fe5c40af0e"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-encointer-balances",
@@ -8272,7 +8230,7 @@ dependencies = [
  "approx",
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-encointer-communities",
@@ -8293,7 +8251,7 @@ dependencies = [
  "approx",
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-encointer-ceremonies",
@@ -8315,7 +8273,7 @@ checksum = "cc3be9d4a09bd65fad4968354b320cd3cd1913950891293e00fbc879fc09b5d6"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -8335,7 +8293,7 @@ dependencies = [
  "docify",
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8354,7 +8312,7 @@ checksum = "9947ef904cd7662b80f8dee58e03431ee409dacada26d394c34a7bb642d3eeea"
 dependencies = [
  "blake2 0.10.6",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8373,7 +8331,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8244b686d5cae6a8af1557ed0f49db08f812f0e7942a8d2da554b4da8a69daf0"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -8398,7 +8356,7 @@ checksum = "4555795a3e0e3aa49ea432b7afecb9c71a7db8793a99c68bd8dd3a52a12571f3"
 dependencies = [
  "enumflags2",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8415,7 +8373,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa761292e95020304b58b50e5187f8bb82f557c8c2d013e3c96ab41d611873b0"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -8436,7 +8394,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b183880ad5efae06afe6066e76f2bac5acf67f34b3cfab7352ceec46accf4b45"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8453,7 +8411,7 @@ version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30555c1b6d76cca7266b639f127a055a4974f5a0796859933cbfebc9a75753a2"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "safe-mix",
@@ -8469,7 +8427,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34006cf047f47edbef33874cc64895918e2c5d7562795209068d5fb388c53a30"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8488,7 +8446,7 @@ checksum = "20e65a37881d1998546254a5e50a1f768b3f82deabe774e750f4ea95aba8030c"
 dependencies = [
  "environmental",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8508,7 +8466,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8ccec82827413f031689fef4c714fdb0213d58c7a6e208d33f5eab80483770"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8527,7 +8485,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be58483d827602eb8353ecf36aed65c857f0974db5d27981831e5ebf853040bd"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8544,7 +8502,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dcaa330221f60feaf3b23d495cccc3bf2a3d6254c596b3c032273c2b46d4078"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-assets",
@@ -8563,7 +8521,7 @@ checksum = "3e1cd476809de3840e19091a083d5a79178af1f108ad489706e1f9e04c8836a4"
 dependencies = [
  "enumflags2",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8593,7 +8551,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e77cba0e15749c8de2be65efffa51e02bd051b4e6fcf23360d43c3b6a859187c"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8609,7 +8567,7 @@ version = "33.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36f8c994eb7298a394b58f98afd520b521b5d46f6f39eade4657eeaac9962471"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-balances",
@@ -8631,7 +8589,7 @@ checksum = "39ee599f2861e55fc6113c01e9b14d6e85fda46bac36a906b5dd5a951fa0455c"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-bags-list",
  "pallet-delegated-staking",
@@ -8663,7 +8621,7 @@ version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4859e7bb2af46d2e0f137c2f777adf39f0e5d4d188226158d599f1cfcfb76b9e"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-balances",
@@ -8683,7 +8641,7 @@ checksum = "4351b0edafcdf3240f0471c638b39d2c981bde9d17c0172536a0aa3b7c3097ef"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-babe",
@@ -8707,7 +8665,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ac726abc5b1bcd6c8f783514b8e1a48be32c7d15e0b263e4bc28cc1e4e7763"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8725,7 +8683,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4e12680e176607815a78a0cd10a52af50790292cb950404f30a885e2a7229e9"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8741,7 +8699,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "862ea8d386ed5737e859470c43cbfd9652c81398cad29e03ae7846c21aaee4c6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -8761,7 +8719,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b24d4131bc79fee0b07550136ca6329faa84c1c3e76ae62a74aef6b1da0b95b4"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8778,7 +8736,7 @@ checksum = "b2c906a9c4573eb58de4134ec7180bf12c6769df2b9859dae8adcbc5fce78add"
 dependencies = [
  "assert_matches",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8797,7 +8755,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6246871441f85b32d67f70ef13726ac195b05f8e9297df7c46a95a397b8df42"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-ranked-collective",
@@ -8818,7 +8776,7 @@ checksum = "b170d6aa191197d3f50b1193925546972ffc394376ead4d2739eb40909b73c85"
 dependencies = [
  "docify",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8835,7 +8793,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c92b24c911c2cfa5351616edc7f2f93427ea6f4f95efdb13f0f5d51997939c3"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -8859,7 +8817,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd02aaf5f10734670346677042ece94fae20dcd5436eafeb9b429d8d6d5b6385"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-session",
  "pallet-staking",
@@ -8877,7 +8835,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b60b1d726532317f9965bab4995aa49b73f9b7ca3b9a0f75d158bd84686c5f"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8897,7 +8855,7 @@ checksum = "fbebdb060417654f215fc6f03675e5f44cfc83837d9e523e1b8fd9a4a2e1bdc2"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-authorship",
@@ -8953,7 +8911,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e07f8626f4ff62ac79d6ad0bd01fab7645897ce35706ddb95fa084e75be9306d"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -8972,7 +8930,7 @@ checksum = "1bd2a8797c1bb3d3897b4f87a7716111da5eeb8561345277b6e6d70349ec8b35"
 dependencies = [
  "docify",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -8989,7 +8947,7 @@ checksum = "ae789d344be857679b0b98b28a67c747119724847f81d704d3fd03ee13fb6841"
 dependencies = [
  "docify",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -9008,7 +8966,7 @@ version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74fb6114223c8d967c3c2f21cbc845e8ea604ff7e21a8e59d119d5a9257ba886"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -9040,7 +8998,7 @@ checksum = "9c502615bb4fdd02856a131cb2a612ad40c26435ec938f65f11cae4ff230812b"
 dependencies = [
  "docify",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "pallet-balances",
@@ -9059,7 +9017,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a59e8599a8c19908e934645f845b5cb546cef1f08745319db7e5b9c24f9e0e4"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -9075,7 +9033,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3238fe6ad00da6a137be115904c39cab97eb5c7f03da0bb1a20de1bef03f0c71"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -9092,7 +9050,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78f7f0f4fe5e1d851e85d81e5e73b6f929f0c35af786ce8be9c9e3363717c136"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -9108,7 +9066,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e4f27640279229eb73fde0cb06e98b799305e6b0bc724f4dfbef2001ab4ad00"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -9125,7 +9083,7 @@ checksum = "fe7409458b7fedc5c7d46459da154ccc2dc22a843ce08e8ab6c1743ef5cf972c"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-balances",
@@ -9149,7 +9107,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f177a171203cc0bec3cff1bdd5d3b926abfbd0ecf347e044b147194e664f717"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -9172,7 +9130,7 @@ dependencies = [
  "bp-runtime",
  "bp-xcm-bridge-hub",
  "bridge-runtime-common",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-bridge-messages",
@@ -9194,7 +9152,7 @@ checksum = "f48bd38d4061a51f263f4c08021e66100e16cbda9978fba163d2544637b31dab"
 dependencies = [
  "bp-xcm-bridge-hub-router",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -9214,7 +9172,7 @@ checksum = "9319e656eebdf161666e54a4d8e24f73137f702f01600247f7be650bc4d46167"
 dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-utility",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "pallet-asset-tx-payment",
@@ -9249,7 +9207,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
  "cumulus-test-relay-sproof-builder",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-balances",
  "pallet-collator-selection",
@@ -9463,7 +9421,7 @@ version = "1.0.0"
 dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
  "penpal-runtime",
@@ -9488,7 +9446,7 @@ dependencies = [
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -9541,7 +9499,7 @@ version = "1.0.0"
 dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-emulated-chain",
  "parachains-common",
  "people-kusama-runtime",
@@ -9555,7 +9513,7 @@ dependencies = [
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
@@ -9571,7 +9529,7 @@ dependencies = [
  "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-executor",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -9591,7 +9549,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -9641,7 +9599,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -9650,7 +9608,7 @@ version = "1.0.0"
 dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "parachains-common",
  "people-polkadot-runtime",
  "polkadot-emulated-chain",
@@ -9664,7 +9622,7 @@ dependencies = [
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
- "frame-support 36.0.0",
+ "frame-support",
  "integration-tests-helpers",
  "pallet-balances",
  "pallet-identity",
@@ -9680,7 +9638,7 @@ dependencies = [
  "sp-runtime 38.0.0",
  "staging-xcm",
  "staging-xcm-executor",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -9699,7 +9657,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -9748,7 +9706,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -9980,7 +9938,7 @@ dependencies = [
  "frame-executive",
  "frame-metadata-hash-extension",
  "frame-remote-externalities",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -10069,7 +10027,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -10081,7 +10039,7 @@ dependencies = [
  "bitvec",
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "libsecp256k1",
@@ -10128,7 +10086,7 @@ dependencies = [
 name = "polkadot-runtime-constants"
 version = "1.0.0"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "polkadot-primitives",
  "polkadot-runtime-common",
  "smallvec",
@@ -10162,7 +10120,7 @@ dependencies = [
  "bitvec",
  "derive_more",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -12801,7 +12759,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0ad61e3ab1c48d4c8060c7ef8571c5b6007df26687e8dbfdb6c857d840cfd2c"
 dependencies = [
  "byte-slice-cast",
- "frame-support 36.0.0",
+ "frame-support",
  "hex",
  "parity-scale-codec",
  "rlp",
@@ -12824,7 +12782,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "668cd71582305168ed51cb0357a4b4ea814c68c7db3898a9ba4d492f712c54e1"
 dependencies = [
  "ethabi-decode",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "hex-literal",
  "parity-scale-codec",
@@ -12895,7 +12853,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab6b34950a2abce198fe008ac6a199598053fedcbde2c40fedf981bc55f85dc7"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "snowbridge-core",
  "snowbridge-outbound-queue-merkle-tree",
@@ -12910,7 +12868,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0040c2f5a66bcef85e125968af172200cd01d8558c8b3cb9c2e3f1b72abf7dc1"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "hex-literal",
  "log",
@@ -12951,7 +12909,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "hex-literal",
  "log",
@@ -12993,7 +12951,7 @@ dependencies = [
  "bridge-hub-common",
  "ethabi-decode",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -13014,7 +12972,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f726d9d2bc15b2683995e6f6ae707d2db20085742860acd32d8fb246251681f2"
 dependencies = [
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
@@ -13034,7 +12992,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e8e6707ced1308d763117bfe68f85e3f22fcdca7987b32e438c0485570f6ac7"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "hex-literal",
  "log",
  "parity-scale-codec",
@@ -13054,7 +13012,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c033e7905056434638a068dca713ec9d15708af6c7590396fc95a216ec64b40b"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "log",
  "parity-scale-codec",
  "snowbridge-core",
@@ -13072,7 +13030,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bbae06a0abb1ba5ffad59b929263c68cc47b8a286794a7389e781eba20f3481"
 dependencies = [
  "cumulus-pallet-parachain-system",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "pallet-balances",
  "pallet-collator-selection",
@@ -14287,7 +14245,7 @@ dependencies = [
  "frame-executive",
  "frame-metadata-hash-extension",
  "frame-remote-externalities",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
@@ -14377,7 +14335,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "tokio",
- "xcm-fee-payment-runtime-api",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -14387,7 +14345,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd00d586b0dac4f42736bdd0ad52213a891b240e011ea82b38938263dd821c25"
 dependencies = [
  "cumulus-primitives-core",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
@@ -14420,7 +14378,7 @@ version = "15.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "847fa2afe1bed2751eaabf7b91fa4043037947f17653d7cc59ea202cc44c6bb8"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "log",
@@ -14445,7 +14403,7 @@ checksum = "26b98d8219449eaf02e71a7edf1a14b14d4c713dd01d9df66fde1ce30dba4d6d"
 dependencies = [
  "environmental",
  "frame-benchmarking",
- "frame-support 36.0.0",
+ "frame-support",
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
@@ -14884,7 +14842,7 @@ dependencies = [
 name = "system-parachains-constants"
 version = "1.0.0"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "kusama-runtime-constants",
  "parachains-common",
  "polkadot-core-primitives",
@@ -16585,7 +16543,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
  "cumulus-test-relay-sproof-builder",
- "frame-support 36.0.0",
+ "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
  "lazy_static",
@@ -16610,22 +16568,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xcm-fee-payment-runtime-api"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d4261279994b1cb0d16a77cc12734fca18b88b56b65b8740de543af6d6a17dc"
-dependencies = [
- "frame-support 35.0.0",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime 38.0.0",
- "sp-std",
- "sp-weights 31.0.0",
- "staging-xcm",
-]
-
-[[package]]
 name = "xcm-procedural"
 version = "10.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -16643,7 +16585,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30fffcd9128a46abd836c37dd001c2cbe122aeb8904cd7b9bac8358564fb7b56"
 dependencies = [
- "frame-support 36.0.0",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
