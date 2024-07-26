@@ -1472,7 +1472,7 @@ impl paras_registrar::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type OnSwap = (Crowdloan, Slots);
+	type OnSwap = (Crowdloan, Slots, SwapLeases);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = ParaDataByteDeposit;
 	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
@@ -1621,6 +1621,13 @@ impl pallet_asset_rate::Config for Runtime {
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
+}
+// Notify `coretime` Pallet when a lease swap occurs
+pub struct SwapLeases;
+impl OnSwap for SwapLeases {
+	fn on_swap(one: ParaId, other: ParaId) {
+		coretime::Pallet::<Runtime>::on_legacy_lease_swap(one, other);
+	}
 }
 
 construct_runtime! {
@@ -1831,7 +1838,6 @@ pub mod migrations {
 			}
 			// Cancel scheduled auction as well:
 			if let Err(err) = Scheduler::cancel_named(
-				// TODO: Fix this key for Polkadot!
 				pallet_custom_origins::Origin::AuctionAdmin.into(),
 				[
 					0x87, 0xa8, 0x71, 0xb4, 0xd6, 0x21, 0xf0, 0xb9, 0x73, 0x47, 0x5a, 0xaf, 0xcc,
