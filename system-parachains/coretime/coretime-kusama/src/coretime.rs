@@ -74,6 +74,7 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
 	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
 		let acc = CoretimeBurnAccount::get();
 		if !System::<Runtime>::account_exists(&acc) {
+			// The account doesn't require ED to survive.
 			System::<Runtime>::inc_providers(&acc);
 		}
 		Balances::resolve(&acc, amount).defensive_ok();
