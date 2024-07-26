@@ -92,6 +92,7 @@ fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
 
 	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
 
+	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
 	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
 
 	let parent_assets = Into::<Assets>::into(withdrawn)
@@ -177,7 +178,7 @@ impl CoretimeInterface for CoretimeAllocator {
 		// Add 5% to each component and round to 2 significant figures.
 		//
 		// This benchmark has been transplanted from a testnet and not rerun, so adding a healthy
-		// buffer. TODO refine when benchmarks are run.
+		// buffer. TODO refine when benchmarks are run: https://github.com/polkadot-fellows/runtimes/issues/404
 		let call_weight = Weight::from_parts(1_000_000_000, 20_000);
 
 		let message = Xcm(vec![
