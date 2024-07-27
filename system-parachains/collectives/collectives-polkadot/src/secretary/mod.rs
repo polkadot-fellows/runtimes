@@ -124,7 +124,7 @@ impl<T: pallet_ranked_collective::Config<I>, I: 'static, M: GetMaxVoters> Pollin
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn max_ongoing() -> (Self::Class, u32) {
-		(0, u32::max_value())
+		(0, 0)
 	}
 }
 
