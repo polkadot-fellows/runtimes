@@ -24,6 +24,8 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod bridge_to_ethereum_config;
 pub mod bridge_to_kusama_config;
+// Genesis preset configurations.
+pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;
 
@@ -806,11 +808,14 @@ impl_runtime_apis! {
 		}
 
 		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-			get_preset::<RuntimeGenesisConfig>(id, |_| None)
+			get_preset::<RuntimeGenesisConfig>(id, &genesis_config_presets::get_preset)
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![]
+			vec![
+				sp_genesis_builder::PresetId::from("local_testnet"),
+				sp_genesis_builder::PresetId::from("development"),
+			]
 		}
 	}
 
@@ -1276,9 +1281,9 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_transasction_byte_fee_is_one_tenth_of_relay() {
+	fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 		let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
-		assert_eq!(relay_tbf / 10, parachain_tbf);
+		assert_eq!(relay_tbf / 20, parachain_tbf);
 	}
 }

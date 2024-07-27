@@ -26,7 +26,7 @@ jobs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract tasks from matrix
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: runtime
         run: |
           # Filter out runtimes that don't have a URI
@@ -51,7 +51,7 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build EXTRA_ARGS
         run: |

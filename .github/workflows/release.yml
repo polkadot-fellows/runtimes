@@ -13,7 +13,7 @@ jobs:
       should-release: ${{ steps.run.outputs.should-release }}
       version: ${{ steps.run.outputs.version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: run
         run: |
           echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
@@ -26,7 +26,7 @@ jobs:
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: runtime
         run: |
           TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
@@ -41,10 +41,10 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cache target dir
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: "${{ github.workspace }}/${{ matrix.runtime.path }}/target"
           key: srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-${{ github.sha }}
@@ -68,13 +68,13 @@ jobs:
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime.name }}_srtool_output.json
 
       - name: Upload ${{ matrix.runtime.name }} srtool json
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.runtime.name }}-srtool-json
           path: ${{ matrix.runtime.name }}_srtool_output.json
 
       - name: Upload  ${{ matrix.runtime.name }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.runtime.name }}
           path: |
@@ -88,13 +88,13 @@ jobs:
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download srtool json output
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Archive context output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-notes-context
           path: |
@@ -150,6 +150,7 @@ jobs:
 
       - name: Create release
         id: create-release
+        # TODO: Replace as it has been deprecated
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -170,10 +171,10 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Get runtime info
         env:
@@ -183,6 +184,7 @@ jobs:
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
 
       - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
+        # TODO: Replace as it has been deprecated
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

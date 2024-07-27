@@ -92,8 +92,8 @@ pub mod fee {
 
 	/// Cost of every transaction byte at Polkadot system parachains.
 	///
-	/// It is the Relay Chain (Polkadot) `TransactionByteFee` / 10.
-	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
+	/// It is the Relay Chain (Polkadot) `TransactionByteFee` / 20.
+	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS / 2;
 
 	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 	/// node's balance type.
@@ -124,9 +124,9 @@ pub mod fee {
 		type Balance = Balance;
 		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
 			// In Polkadot, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-			// The standard system parachain configuration is 1/10 of that, as in 1/100 CENT.
+			// The standard system parachain configuration is 1/20 of that, as in 1/200 CENT.
 			let p = super::currency::CENTS;
-			let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+			let q = 200 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
 
 			smallvec![WeightToFeeCoefficient {
 				degree: 1,
@@ -142,9 +142,9 @@ pub mod fee {
 	impl WeightToFeePolynomial for ProofSizeToFee {
 		type Balance = Balance;
 		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// Map 10kb proof to 1 CENT.
+			// Map 20kb proof to 1 CENT.
 			let p = super::currency::CENTS;
-			let q = 10_000;
+			let q = 20_000;
 
 			smallvec![WeightToFeeCoefficient {
 				degree: 1,

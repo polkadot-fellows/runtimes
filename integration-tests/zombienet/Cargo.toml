@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-subxt = { features = ["native"] , workspace = true }
+subxt = { features = ["native"], workspace = true }
 tokio = { workspace = true }
 tracing-subscriber = { workspace = true }
 zombienet-sdk = { workspace = true }
