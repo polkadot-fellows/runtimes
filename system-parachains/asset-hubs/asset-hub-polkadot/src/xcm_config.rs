@@ -227,7 +227,7 @@ parameter_types! {
 	pub XcmAssetFeesReceiver: Option<AccountId> = Authorship::author();
 }
 
-/// Location type to determine the Technical Fellowship related 
+/// Location type to determine the Technical Fellowship related
 /// pallets for use in XCM.
 pub struct FellowshipEntities;
 impl Contains<Location> for FellowshipEntities {
@@ -261,7 +261,7 @@ impl Contains<Location> for FellowshipEntities {
 	}
 }
 
-/// Location type to determine the Ambassador Collective 
+/// Location type to determine the Ambassador Collective
 /// pallets for use in XCM.
 pub struct AmbassadorEntities;
 impl Contains<Location> for AmbassadorEntities {
@@ -289,7 +289,7 @@ impl Contains<Location> for AmbassadorEntities {
 	}
 }
 
-/// Location type to determine the Secretary Collective related 
+/// Location type to determine the Secretary Collective related
 /// pallets for use in XCM.
 pub struct SecretaryEntities;
 impl Contains<Location> for SecretaryEntities {
@@ -302,14 +302,6 @@ impl Contains<Location> for SecretaryEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
-					)
-				]
-			) | (
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					PalletInstance(
-						collectives_polkadot_runtime_constants::SECRETARY_TREASURY_PALLET_INDEX
 					)
 				]
 			)

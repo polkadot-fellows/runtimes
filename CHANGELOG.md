@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
 - Encointer, PeopleKusama, PeoplePolkadot: Configure delivery fees for UMP ([polkadot-fellows/runtimes#390](https://github.com/polkadot-fellows/runtimes/pull/390))
+- The Secretary Program ([polkadot-fellows/runtimes#306](https://github.com/polkadot-fellows/runtimes/pull/306))
 
 ### Changed
 
@@ -322,7 +323,6 @@ Note: This release only affects the following runtimes and is not a full system 
 - Add BEEFY to Polkadot ([polkadot-fellows/runtimes#65](https://github.com/polkadot-fellows/runtimes/pull/65))
 - Fellowship Treasury pallet on Polkadot Collectives ([polkadot-fellows/runtimes#109](https://github.com/polkadot-fellows/runtimes/pull/109))
 - Added Polkadot <> Kusama bridge to support asset transfers between Asset Hubs ([polkadot-fellows/runtimes#108](https://github.com/polkadot-fellows/runtimes/pull/108))
-- The Secretary Program ([polkadot-fellows/runtimes#306](https://github.com/polkadot-fellows/runtimes/pull/306))
 
 ### Fixed
 

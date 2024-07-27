@@ -363,7 +363,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
-					RuntimeCall::SecretaryReferenda { .. } |
 					RuntimeCall::SecretarySalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
@@ -736,16 +735,12 @@ construct_runtime!(
 		AmbassadorSalary: pallet_salary::<Instance2> = 74,
 		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
 
-	// The Secretary Collective
+		// The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
-		//pub type SecretaryReferandaInstance = pallet_referanda::Instance3;
-		SecretaryReferenda: pallet_referenda::<Instance3> = 81,
-		SecretaryOrigins: pallet_secretary_origins = 82,
+		SecretaryOrigins: pallet_secretary_origins = 81,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
-		SecretarySalary: pallet_salary::<Instance3> = 83,
-		// pub type SecretaryTreasuryInstance = pallet_treasury::Instance3;
-		SecretaryTreasury: pallet_treasury::<Instance3> = 84,
+		SecretarySalary: pallet_salary::<Instance3> = 82,
 	}
 );
 
@@ -830,10 +825,8 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
-	[pallet_referenda, SecretaryReferenda]
 		[pallet_ranked_cllective, SecretaryCollective]
 		[pallet_salary, SecretarySalary]
-		[pallet_treasury, SecretaryTreasury]
 	);
 }
 
