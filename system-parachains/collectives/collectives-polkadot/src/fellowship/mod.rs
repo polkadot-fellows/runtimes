@@ -51,10 +51,6 @@ use sp_runtime::traits::{
 };
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
-use crate::secretary::SecretaryCollectiveInstance;
-
-use crate::secretary::ranks::SECRETARY;
-
 #[cfg(feature = "runtime-benchmarks")]
 use crate::{
 	impls::benchmarks::{OpenHrmpChannel, PayWithEnsure},
@@ -90,22 +86,19 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
 	type Currency = Balances;
-	// Fellows & Secretary can submit proposals.
+	// Fellows can submit proposals.
 	type SubmitOrigin = EitherOf<
-		EitherOf<
-			pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
-			MapSuccess<
-				TryWithMorphedArg<
-					RuntimeOrigin,
-					<RuntimeOrigin as OriginTrait>::PalletsOrigin,
-					ToVoice,
-					EnsureOfRank<Runtime, FellowshipCollectiveInstance>,
-					(AccountId, u16),
-				>,
-				TakeFirst,
+		pallet_ranked_collective::EnsureMember<Runtime, FellowshipCollectiveInstance, 3>,
+		MapSuccess<
+			TryWithMorphedArg<
+				RuntimeOrigin,
+				<RuntimeOrigin as OriginTrait>::PalletsOrigin,
+				ToVoice,
+				EnsureOfRank<Runtime, FellowshipCollectiveInstance>,
+				(AccountId, u16),
 			>,
+			TakeFirst,
 		>,
-		pallet_ranked_collective::EnsureMember<Runtime, SecretaryCollectiveInstance, { SECRETARY }>,
 	>;
 	type CancelOrigin = Architects;
 	type KillOrigin = Masters;
