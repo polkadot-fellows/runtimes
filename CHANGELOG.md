@@ -90,6 +90,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Remove the identity ops pallet after the invalid judgments have been cleared ([polkadot-fellows/runtimes#408](https://github.com/polkadot-fellows/runtimes/pull/408)).
+
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
 - Deprecate dmp-queue pallet ([SDK v1.13 #4475](https://github.com/paritytech/polkadot-sdk/pull/4475)).
