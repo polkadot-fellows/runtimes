@@ -44,6 +44,7 @@ codec = { package = "parity-scale-codec", version = "3.6.9", default-features = 
 collectives-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot" }
 collectives-polkadot-runtime = { path = "system-parachains/collectives/collectives-polkadot" }
 collectives-polkadot-runtime-constants = { path = "system-parachains/collectives/collectives-polkadot/constants" }
+coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
 coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
 cumulus-pallet-aura-ext = { version = "0.14.0", default-features = false }
 cumulus-pallet-dmp-queue = { version = "0.14.0", default-features = false }
@@ -120,6 +121,7 @@ pallet-fast-unstake = { version = "34.0.0", default-features = false }
 pallet-glutton = { version = "21.0.0", default-features = false }
 pallet-grandpa = { version = "35.0.0", default-features = false }
 pallet-identity = { version = "35.0.0", default-features = false }
+pallet-im-online = { version = "34.0.0", default-features = false }
 pallet-indices = { version = "35.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "23.0.0", default-features = false }
 pallet-membership = { version = "35.0.0", default-features = false }
@@ -189,7 +191,7 @@ sc-chain-spec = { version = "34.0.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
-serde_json = { version = "1.0.113" }
+serde_json = { version = "1.0.113", default-features = false }
 smallvec = { version = "1.13.1" }
 snowbridge-beacon-primitives = { version = "0.7.0", default-features = false }
 snowbridge-core = { version = "0.7.0", default-features = false }
@@ -234,6 +236,7 @@ xcm = { version = "14.0.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "14.0.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.12.0" }
 xcm-executor = { version = "14.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-fee-payment-runtime-api = { version = "0.4.0", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
@@ -250,6 +253,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
+	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
@@ -264,8 +268,10 @@ members = [
 	"integration-tests/emulated/tests/bridges/bridge-hub-kusama",
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
+	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
+	"integration-tests/zombienet",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
@@ -286,7 +292,6 @@ members = [
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
 	"system-parachains/people/people-polkadot",
-	"integration-tests/zombienet",
 ]
 
 [profile.release]

@@ -15,7 +15,7 @@
 
 // Substrate
 pub use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResult};
-pub use sp_runtime::DispatchError;
+pub use sp_runtime::{traits::Dispatchable, DispatchError};
 
 // Polkadot
 pub use xcm::{

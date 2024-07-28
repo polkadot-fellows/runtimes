@@ -10,6 +10,7 @@ license.workspace = true
 [dependencies]
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 scale-info = { features = ["derive"], workspace = true }
+serde_json = { features = ["alloc"], workspace = true }
 log = { workspace = true }
 
 authority-discovery-primitives = { workspace = true }
@@ -53,6 +54,7 @@ frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
+pallet-im-online = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-mmr = { workspace = true }
@@ -98,13 +100,13 @@ polkadot-primitives = { workspace = true }
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-builder = { workspace = true }
+xcm-fee-payment-runtime-api = { workspace = true }
 
 sp-debug-derive = { workspace = true }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
-serde_json = { workspace = true }
 separator = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
@@ -149,6 +151,7 @@ std = [
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-identity/std",
+	"pallet-im-online/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-mmr/std",
@@ -182,7 +185,7 @@ std = [
 	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
-	"substrate-wasm-builder",
+	"serde_json/std",
 	"sp-api/std",
 	"sp-application-crypto/std",
 	"sp-arithmetic/std",
@@ -202,8 +205,10 @@ std = [
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
+	"substrate-wasm-builder",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"xcm-fee-payment-runtime-api/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
@@ -224,6 +229,7 @@ runtime-benchmarks = [
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
+	"pallet-im-online/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
@@ -253,6 +259,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm-fee-payment-runtime-api/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -276,6 +283,7 @@ try-runtime = [
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-identity/try-runtime",
+	"pallet-im-online/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-mmr/try-runtime",
@@ -307,7 +315,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []

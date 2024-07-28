@@ -16,6 +16,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod genesis_presets;
 pub mod kusama;
 pub mod polkadot;
 

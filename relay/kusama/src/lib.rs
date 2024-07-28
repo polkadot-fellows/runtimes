@@ -81,7 +81,7 @@ use frame_support::{
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
-	weights::{ConstantMultiplier, WeightMeter},
+	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
 	PalletId,
 };
 use frame_system::EnsureRoot;
@@ -102,17 +102,16 @@ use sp_staking::SessionIndex;
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::{
-	latest::{InteriorLocation, Junction, Junction::PalletInstance},
-	VersionedLocation,
-};
+use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
+use xcm_fee_payment_runtime_api::{
+	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
+	fees::Error as XcmPaymentApiError,
+};
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
-#[cfg(feature = "std")]
-pub use pallet_staking::StakerStatus;
 use pallet_staking::UseValidatorsMap;
 use sp_runtime::traits::Get;
 #[cfg(any(feature = "std", test))]
@@ -122,6 +121,9 @@ pub use sp_runtime::BuildStorage;
 use kusama_runtime_constants::{
 	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
 };
+
+// Genesis preset configurations.
+pub mod genesis_config_presets;
 
 // Weights used in the runtime.
 mod weights;
@@ -775,7 +777,7 @@ impl pallet_treasury::Config for Runtime {
 
 parameter_types! {
 	pub const BountyDepositBase: Balance = 100 * CENTS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 4 * DAYS;
+	pub const BountyDepositPayoutDelay: BlockNumber = 0;
 	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
@@ -1506,59 +1508,6 @@ impl pallet_asset_rate::Config for Runtime {
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
-// A mock pallet to keep `ImOnline` events decodable after pallet removal
-pub mod pallet_im_online {
-	use frame_support::pallet_prelude::*;
-	pub use pallet::*;
-
-	pub mod sr25519 {
-		mod app_sr25519 {
-			use sp_application_crypto::{app_crypto, key_types::IM_ONLINE, sr25519};
-			app_crypto!(sr25519, IM_ONLINE);
-		}
-		pub type AuthorityId = app_sr25519::Public;
-	}
-
-	#[frame_support::pallet]
-	pub mod pallet {
-		use super::*;
-		use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};
-
-		#[pallet::pallet]
-		pub struct Pallet<T>(_);
-
-		#[pallet::config]
-		pub trait Config: frame_system::Config {
-			type RuntimeEvent: From<Event<Self>>
-				+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
-			type ValidatorSet: ValidatorSetWithIdentification<Self::AccountId>;
-		}
-
-		pub type ValidatorId<T> = <<T as Config>::ValidatorSet as ValidatorSet<
-			<T as frame_system::Config>::AccountId,
-		>>::ValidatorId;
-
-		pub type IdentificationTuple<T> = (
-			ValidatorId<T>,
-			<<T as Config>::ValidatorSet as ValidatorSetWithIdentification<
-				<T as frame_system::Config>::AccountId,
-			>>::Identification,
-		);
-
-		#[pallet::event]
-		pub enum Event<T: Config> {
-			HeartbeatReceived { authority_id: super::sr25519::AuthorityId },
-			AllGood,
-			SomeOffline { offline: sp_std::vec::Vec<IdentificationTuple<T>> },
-		}
-	}
-}
-
-impl pallet_im_online::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type ValidatorSet = Historical;
-}
-
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1583,7 +1532,6 @@ construct_runtime! {
 
 		Session: pallet_session = 8,
 		Grandpa: pallet_grandpa = 10,
-		ImOnline: pallet_im_online::{Event<T>} = 11,
 		AuthorityDiscovery: pallet_authority_discovery = 12,
 
 		// Governance stuff.
@@ -1878,6 +1826,12 @@ sp_api::impl_runtime_apis! {
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
+			use sp_runtime::{traits::Header, DigestItem};
+
+			if header.digest().logs().iter().any(|di| di == &DigestItem::RuntimeEnvironmentUpdated) {
+				pallet_im_online::migration::clear_offchain_storage(Session::validators().len() as u32);
+			}
+
 			Executive::offchain_worker(header)
 		}
 	}
@@ -2285,6 +2239,48 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
+	impl xcm_fee_payment_runtime_api::fees::XcmPaymentApi<Block> for Runtime {
+		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
+			let acceptable_assets = vec![AssetId(xcm_config::TokenLocation::get())];
+			XcmPallet::query_acceptable_payment_assets(xcm_version, acceptable_assets)
+		}
+
+		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
+			match asset.try_as::<AssetId>() {
+				Ok(asset_id) if asset_id.0 == xcm_config::TokenLocation::get() => {
+					// for native token
+					Ok(WeightToFee::weight_to_fee(&weight))
+				},
+				Ok(asset_id) => {
+					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
+					Err(XcmPaymentApiError::AssetNotFound)
+				},
+				Err(_) => {
+					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
+					Err(XcmPaymentApiError::VersionedConversionFailed)
+				}
+			}
+		}
+
+		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
+			XcmPallet::query_xcm_weight(message)
+		}
+
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
+			XcmPallet::query_delivery_fees(destination, message)
+		}
+	}
+
+	impl xcm_fee_payment_runtime_api::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		}
+
+		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+		}
+	}
+
 	impl pallet_nomination_pools_runtime_api::NominationPoolsApi<
 		Block,
 		AccountId,
@@ -2339,11 +2335,14 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-			get_preset::<RuntimeGenesisConfig>(id, |_| None)
+			get_preset::<RuntimeGenesisConfig>(id, &genesis_config_presets::get_preset)
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![]
+			vec![
+				sp_genesis_builder::PresetId::from("local_testnet"),
+				sp_genesis_builder::PresetId::from("development"),
+			]
 		}
 	}
 
