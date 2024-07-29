@@ -26,7 +26,7 @@ use frame_support::{
 };
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
 pub use origins::{pallet_origins as pallet_secretary_origins, Secretary};
-use pallet_ranked_collective::{GetMaxVoters, MemberIndex, TallyOf, Votes};
+use pallet_ranked_collective::{MemberIndex, TallyOf, Votes};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_constants::time::HOURS;
 use sp_core::{ConstU128, ConstU32};
@@ -66,22 +66,12 @@ type ApproveOrigin = EitherOf<
 
 impl pallet_secretary_origins::Config for Runtime {}
 
-pub struct NoopGetMaxVoters;
-
-impl GetMaxVoters for NoopGetMaxVoters {
-	type Class = u16;
-
-	fn get_max_voters(_c: Self::Class) -> MemberIndex {
-		0 // No-op implementation always returns 0
-	}
-}
-
-pub struct SecretaryPolling<T: pallet_ranked_collective::Config<I>, I: 'static, M: GetMaxVoters>(
-	PhantomData<(T, I, M)>,
+pub struct SecretaryPolling<T: pallet_ranked_collective::Config<I>, I: 'static>(
+	PhantomData<(T, I)>,
 );
 
-impl<T: pallet_ranked_collective::Config<I>, I: 'static, M: GetMaxVoters> Polling<TallyOf<T, I>>
-	for SecretaryPolling<T, I, M>
+impl<T: pallet_ranked_collective::Config<I>, I: 'static> Polling<TallyOf<T, I>>
+	for SecretaryPolling<T, I>
 {
 	type Index = MemberIndex;
 	type Votes = Votes;
@@ -138,7 +128,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type PromoteOrigin = ApproveOrigin;
 	type DemoteOrigin = ApproveOrigin;
 	type ExchangeOrigin = ApproveOrigin;
-	type Polls = SecretaryPolling<Runtime, SecretaryCollectiveInstance, NoopGetMaxVoters>;
+	type Polls = SecretaryPolling<Runtime, SecretaryCollectiveInstance>;
 	type MinRankOfClass = Identity;
 	type MemberSwappedHandler = crate::SecretarySalary;
 	type VoteWeight = pallet_ranked_collective::Geometric;
