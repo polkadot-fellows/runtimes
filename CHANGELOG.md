@@ -10,16 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
 - Encointer, PeopleKusama, PeoplePolkadot: Configure delivery fees for UMP ([polkadot-fellows/runtimes#390](https://github.com/polkadot-fellows/runtimes/pull/390))
-
-### Changed
-
-- Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386))
-- Polkadot System Chains: Reduce the base transaction fee by half
-
-## [1.2.8] 03.07.2024
-
-### Added
-
 - All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
@@ -49,6 +39,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama system chains: enable PoV-reclaim.
 
 ### Changed
+
+- Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386))
+- Polkadot System Chains: Reduce the base transaction fee by half
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
