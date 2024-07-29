@@ -22,7 +22,7 @@ polkadot-runtime-common = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 xcm-executor = { workspace = true }
-xcm-fee-payment-runtime-api = { workspace = true, default-features = true }
+xcm-runtime-apis = { workspace = true, default-features = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }

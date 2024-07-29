@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Kusama: Relay General Admin Origin mapping to xcm Location ([polkadot-fellows/runtimes#383](https://github.com/polkadot-fellows/runtimes/pull/383))
 - Encointer, PeopleKusama, PeoplePolkadot: Configure delivery fees for UMP ([polkadot-fellows/runtimes#390](https://github.com/polkadot-fellows/runtimes/pull/390))
+- Introduce a new dispatchable function `set_partial_params` in `pallet-core-fellowship` ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3843](https://github.com/paritytech/polkadot-sdk/pull/3843)).
+- RFC-5: Add request revenue info ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3940](https://github.com/paritytech/polkadot-sdk/pull/3940)).
+- Core-Fellowship: new `promote_fast` call ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4877](https://github.com/paritytech/polkadot-sdk/pull/4877)).
+- Pallet ranked collective: max member count per rank ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4807](https://github.com/paritytech/polkadot-sdk/pull/4807)).
 - All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
@@ -40,8 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386))
-- Polkadot System Chains: Reduce the base transaction fee by half
+- Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
+- Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -59,6 +63,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Validator disabling strategy in runtime ([SDK v1.12 #2226](https://github.com/paritytech/polkadot-sdk/pull/2226)).
 
 ### Fixed
+
+- Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
+- `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
+- Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -93,6 +101,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - XCMP: Use the number of 'ready' pages in XCMP suspend logic ([SDK v1.9 #2393](https://github.com/paritytech/polkadot-sdk/pull/2393)).
 
 ### Removed
+
+- Remove deprecated calls from treasury pallet ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3820](https://github.com/paritytech/polkadot-sdk/pull/3820)).
+- Treasury pallet: - remove unused config parameters ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4831](https://github.com/paritytech/polkadot-sdk/pull/4831)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 

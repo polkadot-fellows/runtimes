@@ -102,7 +102,7 @@ polkadot-primitives = { workspace = true }
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-builder = { workspace = true }
-xcm-fee-payment-runtime-api = { workspace = true }
+xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
 
@@ -211,7 +211,7 @@ std = [
 	"substrate-wasm-builder",
 	"xcm-builder/std",
 	"xcm-executor/std",
-	"xcm-fee-payment-runtime-api/std",
+	"xcm-runtime-apis/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
@@ -264,7 +264,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"xcm-fee-payment-runtime-api/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -325,7 +325,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
-fast-runtime = []
+fast-runtime = ["kusama-runtime-constants/fast-runtime"]
 
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 

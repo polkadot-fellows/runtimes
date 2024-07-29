@@ -21,7 +21,7 @@ use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
-use xcm_fee_payment_runtime_api::{
+use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
