@@ -2628,7 +2628,7 @@ dependencies = [
 
 [[package]]
 name = "coretime-kusama-emulated-chain"
-version = "0.0.0"
+version = "1.0.0"
 dependencies = [
  "coretime-kusama-runtime",
  "cumulus-primitives-core",
@@ -2731,6 +2731,44 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-runtime-apis",
+]
+
+[[package]]
+name = "coretime-polkadot-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "coretime-polkadot-runtime",
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "parachains-common",
+ "sp-core 34.0.0",
+]
+
+[[package]]
+name = "coretime-polkadot-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-test-utils",
+ "coretime-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "integration-tests-helpers",
+ "pallet-balances",
+ "pallet-identity",
+ "pallet-message-queue",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-runtime-common",
+ "polkadot-runtime-constants",
+ "polkadot-system-emulated-network",
+ "sp-runtime 38.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
  "xcm-runtime-apis",
 ]
 
@@ -10238,6 +10276,7 @@ dependencies = [
  "asset-hub-polkadot-emulated-chain",
  "bridge-hub-polkadot-emulated-chain",
  "collectives-polkadot-emulated-chain",
+ "coretime-polkadot-emulated-chain",
  "emulated-integration-tests-common",
  "penpal-emulated-chain",
  "people-polkadot-emulated-chain",
