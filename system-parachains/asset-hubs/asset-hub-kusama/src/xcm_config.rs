@@ -25,10 +25,11 @@ use assets_common::{
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
+	pallet_prelude::Get,
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, Nothing, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -302,8 +303,9 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
 	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). Kusama Asset Hub accepts PolkadotAssetHub as a reserve location for DOT.
-	type IsReserve = (bridging::to_polkadot::IsTrustedBridgedReserveLocationForConcreteAsset,);
+	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset native
+	// to the Rococo or Ethereum ecosystems.
+	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -507,18 +509,15 @@ pub mod bridging {
 			);
 
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
+			pub const EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+			pub PolkadotEcosystem: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
+			pub EthereumEcosystem: Location = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
 			pub AssetHubPolkadot: Location = Location::new(
 				2,
 				[
 					GlobalConsensus(PolkadotNetwork::get()),
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				],
-			);
-			pub DotLocation: Location = Location::new(2, GlobalConsensus(PolkadotNetwork::get()));
-
-			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: AssetId(DotLocation::get()) }),
-				AssetHubPolkadot::get()
 			);
 
 			/// Set up exporters configuration.
@@ -552,17 +551,43 @@ pub mod bridging {
 			}
 		}
 
-		/// Reserve locations filter for `xcm_executor::Config::IsReserve`.
-		/// Locations from which the runtime accepts reserved assets.
-		pub type IsTrustedBridgedReserveLocationForConcreteAsset =
-			matching::IsTrustedBridgedReserveLocationForConcreteAsset<
-				UniversalLocation,
-				(
-					// allow receive DOT from AssetHubPolkadot
-					xcm_builder::Case<DotFromAssetHubPolkadot>,
-					// and nothing else
-				),
-			>;
+		/// Allow any asset native to the Polkadot or Ethereum ecosystems if it comes from Polkadot
+		/// Asset Hub.
+		pub type PolkadotOrEthereumAssetFromAssetHubPolkadot = RemoteAssetFromLocation<
+			(StartsWith<PolkadotEcosystem>, StartsWith<EthereumEcosystem>),
+			AssetHubPolkadot,
+		>;
+
+		// TODO: get this from `assets_common v0.17.0` when SDK deps are upgraded
+		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
+		/// `OriginLocation`.
+		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
+			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
+		);
+		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
+			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &Asset, origin: &Location) -> bool {
+				let expected_origin = OriginLocation::get();
+				// ensure `origin` is expected `OriginLocation`
+				if !expected_origin.eq(origin) {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {:?}, origin: {:?} is not from expected {:?}",
+						asset, origin, expected_origin,
+					);
+					return false;
+				} else {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
+					);
+				}
+
+				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
+				AssetsAllowedNetworks::contains(&asset.id.0)
+			}
+		}
 	}
 
 	/// Benchmarks helper for bridging configuration.

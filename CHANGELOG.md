@@ -52,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
 - Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
 - Kusama: Remove unused Snowbridge code and configs ([polkadot-fellows/runtimes#411](https://github.com/polkadot-fellows/runtimes/pull/411).
+- Asset Hubs: allow Polkadot, Kusama and Ethereum assets across P<>K bridge ([polkadot-fellows/runtimes#421](https://github.com/polkadot-fellows/runtimes/pull/421)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
