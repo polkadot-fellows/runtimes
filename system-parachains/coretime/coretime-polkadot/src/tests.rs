@@ -92,6 +92,6 @@ fn bulk_revenue_is_burnt() {
 
 			// They're burnt at the end of the sale. TODO
 			// advance_to(sale_start + timeslice_period * config.region_length + 1);
-			// assert_eq!(Balances::balance(coretime_burn_account), ed);
+			// assert_eq!(Balances::balance(coretime_burn_account), 0);
 		});
 }

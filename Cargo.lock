@@ -2781,6 +2781,7 @@ dependencies = [
  "polkadot-runtime-constants",
  "scale-info",
  "serde",
+ "serde_json",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -2800,6 +2801,7 @@ dependencies = [
  "staging-xcm-executor",
  "substrate-wasm-builder",
  "system-parachains-constants",
+ "xcm-runtime-apis",
 ]
 
 [[package]]

@@ -74,6 +74,7 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
 	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
 		let acc = CoretimeBurnAccount::get();
 		if !System::<Runtime>::account_exists(&acc) {
+			// The account doesn't require ED to survive.
 			System::<Runtime>::inc_providers(&acc);
 		}
 		Balances::resolve(&acc, amount).defensive_ok();
@@ -91,10 +92,11 @@ fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
 
 	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
 
+	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
 	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
 
 	let parent_assets = Into::<Assets>::into(withdrawn)
-		.reanchored(&dest, &Here.into())
+		.reanchored(&dest, &Here)
 		.defensive_map_err(|_| XcmError::ReanchorFailed)?;
 
 	PolkadotXcm::send_xcm(
@@ -138,6 +140,7 @@ impl CoretimeInterface for CoretimeAllocator {
 		// `ref_time` = 7889000 + (3 * 25000000) + (1 * 100000000) = 182889000
 		// `proof_size` = 1636
 		// Add 5% to each component and round to 2 significant figures.
+		// TODO check when benchmarks are rerun
 		let call_weight = Weight::from_parts(190_000_000, 1700);
 
 		let message = Xcm(vec![
@@ -228,6 +231,7 @@ impl CoretimeInterface for CoretimeAllocator {
 		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
 		// `proof_size` = 3612
 		// Add 5% to each component and round to 2 significant figures.
+		// TODO check when benchmarks are rerun
 		let call_weight = Weight::from_parts(248_000_000, 3800);
 
 		let message = Xcm(vec![
