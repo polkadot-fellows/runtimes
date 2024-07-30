@@ -65,7 +65,6 @@
     "name": "coretime-polkadot",
     "package": "coretime-polkadot-runtime",
     "path": "system-parachains/coretime/coretime-polkadot",
-    "uri": "wss://polkadot-coretime-rpc.polkadot.io:443",
     "is_relay": false
   },
   {
