@@ -22,7 +22,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-pub mod bridge_to_ethereum_config;
 pub mod bridge_to_polkadot_config;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
@@ -34,10 +33,6 @@ use bridge_hub_common::message_queue::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_core::{
-	outbound::{Command, Fee},
-	AgentId, PricingParameters,
-};
 
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -141,14 +136,32 @@ pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 parameter_types! {
-	pub DmpQueueName: &'static str = "DmpQueue";
+	pub EthereumInboundQueueName: &'static str = "EthereumInboundQueue";
+	pub EthereumOutboundQueueName: &'static str = "EthereumOutboundQueue";
+	pub EthereumBeaconClientName: &'static str = "EthereumBeaconClient";
+	pub EthereumSystemName: &'static str = "EthereumSystem";
 }
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
 	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
+	frame_support::migrations::RemovePallet<
+		EthereumInboundQueueName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>,
+	frame_support::migrations::RemovePallet<
+		EthereumOutboundQueueName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>,
+	frame_support::migrations::RemovePallet<
+		EthereumBeaconClientName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>,
+	frame_support::migrations::RemovePallet<
+		EthereumSystemName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -347,10 +360,9 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 impl parachain_info::Config for Runtime {}
 
 parameter_types! {
-	/// Amount of weight that can be spent per block to service messages. This was increased
-	/// from 35% to 60% of the max block weight to accommodate the Ethereum beacon light client
-	/// extrinsics. The `force_checkpoint` and `submit` extrinsics (for submit, optionally) includes
-	/// the sync committee's pubkeys (512 x 48 bytes).
+	/// Amount of weight that can be spent per block to service messages. Bridge Hub is a
+	/// specialized chain for moving messages between sibling parachains and external ecosystems.
+	/// As such, most of the block weight is expected to be consumed by the Message Queue.
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(60) * RuntimeBlockWeights::get().max_block;
 	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
 }
@@ -366,13 +378,10 @@ impl pallet_message_queue::Config for Runtime {
 	type MessageProcessor =
 		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	#[cfg(not(all(not(feature = "std"), feature = "runtime-benchmarks")))]
-	type MessageProcessor = bridge_hub_common::BridgeHubMessageRouter<
-		xcm_builder::ProcessXcmMessage<
-			AggregateMessageOrigin,
-			xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
-			RuntimeCall,
-		>,
-		EthereumOutboundQueue,
+	type MessageProcessor = xcm_builder::ProcessXcmMessage<
+		AggregateMessageOrigin,
+		xcm_executor::XcmExecutor<xcm_config::XcmConfig>,
+		RuntimeCall,
 	>;
 	type Size = u32;
 	// The XCMP queue pallet is only ever able to handle the `Sibling(ParaId)` origin:
@@ -554,13 +563,7 @@ construct_runtime!(
 		BridgePolkadotMessages: pallet_bridge_messages::<Instance1> = 53,
 		XcmOverBridgeHubPolkadot: pallet_xcm_bridge_hub::<Instance1> = 54,
 
-		// Ethereum bridge pallets.
-		EthereumInboundQueue: snowbridge_pallet_inbound_queue = 80,
-		EthereumOutboundQueue: snowbridge_pallet_outbound_queue = 81,
-		EthereumBeaconClient: snowbridge_pallet_ethereum_client = 82,
-		EthereumSystem: snowbridge_pallet_system = 83,
-
-		// Message Queue. Importantly, it is registered after Snowbridge pallets
+		// Message Queue. Importantly, it is registered after bridge pallets
 		// so that messages are processed after the `on_initialize` hooks of bridging pallets.
 		MessageQueue: pallet_message_queue = 175,
 	}
@@ -590,11 +593,6 @@ mod benches {
 		[pallet_bridge_grandpa, PolkadotFinality]
 		[pallet_bridge_parachains, PolkadotParachains]
 		[pallet_bridge_messages, PolkadotMessages]
-		// Ethereum Bridge
-		[snowbridge_pallet_inbound_queue, EthereumInboundQueue]
-		[snowbridge_pallet_outbound_queue, EthereumOutboundQueue]
-		[snowbridge_pallet_system, EthereumSystem]
-		[snowbridge_pallet_ethereum_client, EthereumBeaconClient]
 	);
 }
 
@@ -862,22 +860,6 @@ impl_runtime_apis! {
 				Runtime,
 				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
 			>(lane, begin, end)
-		}
-	}
-
-	impl snowbridge_outbound_queue_runtime_api::OutboundQueueApi<Block, Balance> for Runtime {
-		fn prove_message(leaf_index: u64) -> Option<snowbridge_pallet_outbound_queue::MerkleProof> {
-			snowbridge_pallet_outbound_queue::api::prove_message::<Runtime>(leaf_index)
-		}
-
-		fn calculate_fee(command: Command, parameters: Option<PricingParameters<Balance>>) -> Fee<Balance> {
-			snowbridge_pallet_outbound_queue::api::calculate_fee::<Runtime>(command, parameters)
-		}
-	}
-
-	impl snowbridge_system_runtime_api::ControlApi<Block> for Runtime {
-		fn agent_id(location: VersionedLocation) -> Option<AgentId> {
-			snowbridge_pallet_system::api::agent_id::<Runtime>(location)
 		}
 	}
 

@@ -359,6 +359,9 @@ parameter_types! {
 	/// from 35% to 60% of the max block weight to accommodate the Ethereum beacon light client
 	/// extrinsics. The `force_checkpoint` and `submit` extrinsics (for submit, optionally) includes
 	/// the sync committee's pubkeys (512 x 48 bytes).
+	/// Furthermore, Bridge Hub is a specialized chain for moving messages between sibling
+	/// parachains and external ecosystems. As such, most of the block weight is expected to be
+	/// consumed by the Message Queue.
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(60) * RuntimeBlockWeights::get().max_block;
 	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
 }
