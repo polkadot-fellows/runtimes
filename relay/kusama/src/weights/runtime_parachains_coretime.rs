@@ -46,6 +46,16 @@ use core::marker::PhantomData;
 /// Weight functions for `runtime_parachains::coretime`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> runtime_parachains::coretime::WeightInfo for WeightInfo<T> {
+	fn request_revenue_at() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `2963`
+		//  Estimated: `6428`
+		// Minimum execution time: 36_613_000 picoseconds.
+		Weight::from_parts(37_637_000, 0)
+			.saturating_add(Weight::from_parts(0, 6428))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
 	/// Storage: `Configuration::PendingConfigs` (r:1 w:1)
 	/// Proof: `Configuration::PendingConfigs` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `Configuration::BypassConsistencyCheck` (r:1 w:0)

@@ -57,6 +57,14 @@ impl<T: frame_system::Config> pallet_broker::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+
+	fn notify_revenue() -> Weight {
+		Weight::from_parts(7_000_000, 7000)
+	}
+
+	fn on_new_timeslice() -> Weight {
+		Weight::from_parts(7_000_000, 7000)
+	}
 	
 	/// Storage: `Broker::Configuration` (r:0 w:1)
 	/// Proof: `Broker::Configuration` (`max_values`: Some(1), `max_size`: Some(31), added: 526, mode: `MaxEncodedLen`)

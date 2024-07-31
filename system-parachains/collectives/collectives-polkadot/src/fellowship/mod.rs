@@ -33,7 +33,7 @@ use frame_support::{
 	},
 	PalletId,
 };
-use frame_system::{EnsureRoot, EnsureRootWithSuccess};
+use frame_system::{EnsureNever, EnsureRoot, EnsureRootWithSuccess, EnsureWithSuccess};
 pub use origins::{
 	pallet_origins as pallet_fellowship_origins, Architects, EnsureCanPromoteTo, EnsureCanRetainAt,
 	EnsureFellowship, Fellows, Masters, Members, ToVoice,
@@ -52,10 +52,7 @@ use sp_runtime::traits::{
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
-use crate::{
-	impls::benchmarks::{OpenHrmpChannel, PayWithEnsure},
-	ExistentialDeposit,
-};
+use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
 
 /// The Fellowship members' ranks.
 pub mod ranks {
@@ -151,6 +148,7 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	type MinRankOfClass = tracks::MinRankOfClass;
 	type MemberSwappedHandler = (crate::FellowshipCore, crate::FellowshipSalary);
 	type VoteWeight = pallet_ranked_collective::Geometric;
+	type MaxMemberCount = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::FellowshipCore, crate::FellowshipSalary);
 }
@@ -208,6 +206,8 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 		>,
 		EnsureCanPromoteTo,
 	>;
+	// TODO until https://github.com/polkadot-fellows/runtimes/pull/356/files
+	type FastPromoteOrigin = EnsureWithSuccess<EnsureNever<u16>, AccountId, ConstU16<0>>;
 	type EvidenceSize = ConstU32<65536>;
 	type MaxRank = ConstU32<9>;
 }
@@ -291,29 +291,6 @@ pub type FellowshipTreasuryPaymaster = PayOverXcm<
 pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 
 impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
-	// The creation of proposals via the treasury pallet is deprecated and should not be utilized.
-	// Instead, public or fellowship referenda should be used to propose and command the treasury
-	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
-	// discourage its use.
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ApproveOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ApproveOrigin = EnsureRoot<AccountId>;
-	type OnSlash = ();
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBond = ProposalBond;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBond = ProposalBondForBenchmark;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMinimum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMinimum = ConstU128<{ ExistentialDeposit::get() * 100 }>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMaximum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
-	// end.
-
 	type WeightInfo = weights::pallet_treasury_fellowship_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = FellowshipTreasuryPalletId;
@@ -354,4 +331,21 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use sp_runtime::traits::MaybeConvert;
+
+	type MaxMemberCount =
+		<Runtime as pallet_ranked_collective::Config<FellowshipCollectiveInstance>>::MaxMemberCount;
+
+	#[test]
+	fn max_member_count_correct() {
+		for i in 0..10 {
+			let limit: Option<u16> = MaxMemberCount::maybe_convert(i);
+			assert!(limit.is_none(), "Fellowship has no member limit");
+		}
+	}
 }

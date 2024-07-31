@@ -45,6 +45,8 @@ with open(args.changelog, "r") as changelog:
     lines = changelog.readlines()
 
     if args.validate_changelog:
+        versions = set()
+            
         for line in lines:
             if line.startswith("##"):
                 if line.startswith("###"):
@@ -57,6 +59,13 @@ with open(args.changelog, "r") as changelog:
                     print("Only Major.Minor.Patch are supported as versioning")
                     print(line)
                     sys.exit(-1)
+                else:
+                    version = line.strip().removeprefix("## [").split("]")[0]
+                    if version in versions:
+                        print("Found version '" + version + "' more than once")
+                        sys.exit(-1)
+                    else:
+                        versions.add(version)
             elif line.startswith("#"):
                 if line.strip() != "# Changelog":
                     print("Line starting with `#` is only allowed for `# Changelog`")
