@@ -18,14 +18,16 @@ use crate::{
 	coretime::{BrokerPalletId, CoretimeBurnAccount},
 	*,
 };
+use coretime::CoretimeAllocator;
 use frame_support::{
 	assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		OnInitialize,
+		Get, OnInitialize,
 	},
 };
-use pallet_broker::{ConfigRecordOf, SaleInfo};
+use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
 use sp_runtime::traits::AccountIdConversion;
 
@@ -94,4 +96,21 @@ fn bulk_revenue_is_burnt() {
 			// advance_to(sale_start + timeslice_period * config.region_length + 1);
 			// assert_eq!(Balances::balance(coretime_burn_account), 0);
 		});
+}
+
+#[test]
+fn timeslice_period_is_sane() {
+	// Config TimeslicePeriod is set to this constant - assumption in burning logic.
+	let timeslice_period_config: RCBlockNumberOf<CoretimeAllocator> =
+		<Runtime as pallet_broker::Config>::TimeslicePeriod::get();
+	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
+
+	// Timeslice period constant non-zero - assumption in burning logic.
+	assert!(TIMESLICE_PERIOD > 0);
+
+	// Timeslice period constant should never be changed by mistake.
+	#[cfg(feature = "fast-runtime")]
+	assert_eq!(TIMESLICE_PERIOD, 20);
+	#[cfg(not(feature = "fast-runtime"))]
+	assert_eq!(TIMESLICE_PERIOD, 80);
 }
