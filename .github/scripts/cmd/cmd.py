@@ -99,7 +99,7 @@ if args.command == 'bench':
         all_pallets = set()
         for pallet in raw_pallets:
             if pallet:
-                all_pallets.add(pallet.split(',')[0])
+                all_pallets.add(pallet.split(',')[0].trim())
 
         pallets = list(all_pallets)
         print(f'Pallets in {runtime}: {pallets}')
