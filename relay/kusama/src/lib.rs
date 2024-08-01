@@ -656,10 +656,16 @@ pub mod dynamic_params {
 		#[codec(index = 3)]
 		pub static Falloff: Perquintill = Perquintill::from_percent(5);
 
-		/// Whether to use auction slots or not in the calculation of era payouts. If set to true,
-		/// the `legacy_auction_proportion` of 60% will be used in the calculation of era payouts.
+		/// Whether to use auction slots or not in the calculation of era payouts, then we subtract
+		/// `num_auctioned_slots.min(60) / 200` from `ideal_stake`.
+		///
+		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
+		/// maximum of 30%.
+		///
+		/// With the move to agile-coretime, this parameter does not make much sense and should
+		/// generally be set to false.
 		#[codec(index = 4)]
-		pub static UseAuctionSlots: bool = true;
+		pub static UseAuctionSlots: bool = false;
 	}
 }
 
@@ -1270,8 +1276,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
