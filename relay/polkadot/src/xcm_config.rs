@@ -40,10 +40,11 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
-	FungibleAdapter, HashedDescription, IsConcrete, MintLocation, OriginToPluralityVoice,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeManagerFromComponents, XcmFeeToAccount,
+	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
+	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
+	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
+	XcmFeeToAccount,
 };
 
 parameter_types! {
@@ -152,13 +153,12 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForPeople>,
 );
 
-pub struct CollectivesOrFellows;
-impl Contains<Location> for CollectivesOrFellows {
+pub struct Fellows;
+impl Contains<Location> for Fellows {
 	fn contains(loc: &Location) -> bool {
 		matches!(
 			loc.unpack(),
-			(0, [Parachain(COLLECTIVES_ID)]) |
-				(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
+			(0, [Parachain(COLLECTIVES_ID), Plurality { id: BodyId::Technical, .. }])
 		)
 	}
 }
@@ -189,8 +189,8 @@ pub type Barrier = TrailingSetTopicAsId<(
 			AllowTopLevelPaidExecutionFrom<Everything>,
 			// Subscriptions for version tracking are OK.
 			AllowSubscriptionsFrom<OnlyParachains>,
-			// Collectives and Fellows plurality get free execution.
-			AllowExplicitUnpaidExecutionFrom<CollectivesOrFellows>,
+			// Messages from system parachains or the Fellows plurality need not pay for execution.
+			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, Fellows)>,
 		),
 		UniversalLocation,
 		ConstU32<8>,
