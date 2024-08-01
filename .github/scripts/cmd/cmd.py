@@ -99,7 +99,7 @@ if args.command == 'bench':
         all_pallets = set()
         for pallet in raw_pallets:
             if pallet:
-                all_pallets.add(pallet.split(',')[0])
+                all_pallets.add(pallet.split(',')[0].strip())
 
         pallets = list(all_pallets)
         print(f'Pallets in {runtime}: {pallets}')
@@ -176,7 +176,7 @@ if args.command == 'bench':
 
 elif args.command == 'fmt':
     nightly_version = os.getenv('RUST_NIGHTLY_VERSION')
-    command = f"cargo +nightly-{nightly_version} fmt";
+    command = f"cargo +nightly-{nightly_version} fmt"
     print('Formatting with `{command}`')
     nightly_status = os.system(f'{command}')
     taplo_status = os.system('taplo format --config .config/taplo.toml')
