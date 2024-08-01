@@ -655,7 +655,7 @@ pub mod dynamic_params {
 		/// Whether to use auction slots or not in the calculation of era payouts. If set to true,
 		/// the `legacy_auction_proportion` of 60% will be used in the calculation of era payouts.
 		#[codec(index = 4)]
-		pub static UseAuctionSlots: bool = false;
+		pub static UseAuctionSlots: bool = true;
 	}
 }
 
@@ -3007,6 +3007,9 @@ mod remote_tests {
 						.to_vec(),
 					// timestamp now
 					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+						.to_vec(),
+					// para-ids
+					hex!("cd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee")
 						.to_vec(),
 				],
 				..Default::default()
