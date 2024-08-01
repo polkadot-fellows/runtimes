@@ -1077,13 +1077,13 @@ mod proxy_type_tests {
 			(OldProxyType::NonTransfer, ProxyType::NonTransfer),
 			(OldProxyType::Governance, ProxyType::Governance),
 			(OldProxyType::Staking, ProxyType::Staking),
-			(OldProxyType::IdentityJudgement, ProxyType::IdentityJudgement),
 		]
 		.into_iter()
 		{
 			assert_eq!(i.encode(), j.encode());
 		}
 		assert!(ProxyType::decode(&mut &OldProxyType::SudoBalances.encode()[..]).is_err());
+		assert!(ProxyType::decode(&mut &OldProxyType::IdentityJudgement.encode()[..]).is_err());
 	}
 }
 
