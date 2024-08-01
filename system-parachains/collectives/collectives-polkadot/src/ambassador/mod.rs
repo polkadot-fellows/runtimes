@@ -140,6 +140,10 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
 	type MaxMemberCount = AmbassadorMemberCount;
 	#[cfg(feature = "runtime-benchmarks")]
+	type MaxMemberCount = ();
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxMemberCount = AmbassadorMemberCount;
+	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
 }
 
@@ -353,7 +357,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	>;
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "runtime-benchmarks")))]
 mod tests {
 	use super::*;
 

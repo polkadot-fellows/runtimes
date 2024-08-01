@@ -165,7 +165,7 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 				owner: *owner == t.receiver.account_id,
 				amount: *amount == expected_foreign_asset_amount,
 			},
-			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
+			RuntimeEvent::Balances(pallet_balances::Event::Issued { .. }) => {},
 		]
 	);
 }

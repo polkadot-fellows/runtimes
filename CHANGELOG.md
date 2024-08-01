@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - RFC-5: Add request revenue info ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3940](https://github.com/paritytech/polkadot-sdk/pull/3940)).
 - Core-Fellowship: new `promote_fast` call ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4877](https://github.com/paritytech/polkadot-sdk/pull/4877)).
 - Pallet ranked collective: max member count per rank ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4807](https://github.com/paritytech/polkadot-sdk/pull/4807)).
-- Pallet assets: optional auto-increment for the asset ID ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4757](https://github.com/paritytech/polkadot-sdk/pull/4757)).
+- All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
+- Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -64,7 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
-- `pallet-referenda`: Ensure to schedule referendas earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
+- `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
 - Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
@@ -132,6 +133,10 @@ Note: This release only affects the following runtimes and is not a full system 
 - Polkadot Collectives
 - Kusama Relay Chain
 - Kusama Bridge Hub
+
+### Fixed
+
+- Kusama People: Build the metadata hash at build time, so that `CheckMetadata` can use it at runtime ([polkadot-fellows/runtimes#371](https://github.com/polkadot-fellows/runtimes/pull/371))
 
 ## [1.2.7] 14.06.2024
 

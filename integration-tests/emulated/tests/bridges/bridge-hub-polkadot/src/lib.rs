@@ -60,6 +60,7 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PolkadotRelay as Polkadot,
+	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{

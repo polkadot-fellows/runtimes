@@ -17,6 +17,7 @@ hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde = { optional = true, features = ["derive"], workspace = true }
+serde_json = { features = ["alloc"], workspace = true }
 tuplex = { workspace = true }
 
 # Local
@@ -70,6 +71,7 @@ polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+xcm-runtime-apis = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
@@ -94,7 +96,6 @@ bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
 bp-kusama = { workspace = true }
 bp-polkadot = { workspace = true }
-bp-polkadot-bulletin = { workspace = true }
 bridge-hub-common = { workspace = true }
 bridge-runtime-common = { workspace = true }
 pallet-bridge-grandpa = { workspace = true }
@@ -187,6 +188,7 @@ std = [
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
 	"serde",
+	"serde_json/std",
 	"snowbridge-beacon-primitives/std",
 	"snowbridge-core/std",
 	"snowbridge-outbound-queue-runtime-api/std",
@@ -213,11 +215,11 @@ std = [
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"tuplex/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"xcm-runtime-apis/std",
 	"xcm/std",
-	"bp-polkadot-bulletin/std",
-	"tuplex/std"
 ]
 
 runtime-benchmarks = [
@@ -259,6 +261,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -301,4 +304,4 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
