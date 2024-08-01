@@ -70,6 +70,7 @@ pallet-session = { workspace = true }
 frame-support = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-staking-reward-fn = { workspace = true }
+pallet-staking-reward-curve = { workspace = true }
 pallet-staking-runtime-api = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 frame-system = { workspace = true }

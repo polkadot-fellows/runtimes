@@ -20,6 +20,8 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
+extern crate alloc;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
