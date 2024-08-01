@@ -22,7 +22,7 @@
 
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, identity_migrator, impl_runtime_weights,
+	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
@@ -61,8 +61,8 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, Everything,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
@@ -133,9 +133,6 @@ use governance::{
 };
 pub mod impls;
 pub mod xcm_config;
-
-#[cfg(not(feature = "runtime-benchmarks"))]
-use frame_system::EnsureSigned;
 
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
