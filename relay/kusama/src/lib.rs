@@ -1270,7 +1270,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1938,7 +1939,78 @@ mod benches {
 	);
 }
 
+/// Extra runtime APIs for kusama runtime.
+pub mod apis {
+
+	/// Information about the current inflation rate of the system.
+	///
+	/// Both fields should be treated as best-effort, given that the inflation rate might not be
+	/// fully predict-able.
+	#[derive(scale_info::TypeInfo, codec::Encode, codec::Decode)]
+	pub struct InflationInfo {
+		/// The rate of inflation estimated per annum.
+		pub inflation: sp_runtime::Perquintill,
+		/// Next amount that we anticipate to mint.
+		///
+		/// First item is the amount that goes to stakers, second is the leftover that is usually
+		/// forwarded to the treasury.
+		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
+	}
+
+	sp_api::decl_runtime_apis! {
+		pub trait Inflation {
+			/// Return the current estimates of the inflation amount.
+			///
+			/// This is marked as experimental in light of RFC#89. Nonetheless, its usage is highly
+			/// recommended over trying to read-storage, or re-create the onchain logic.
+			fn experimental_inflation_info() -> InflationInfo;
+		}
+	}
+}
+
+use apis::*;
+
+impl Runtime {
+	fn impl_experimental_inflation_info() -> InflationInfo {
+		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
+		let (staked, _start) = ActiveEra::<Runtime>::get()
+			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
+			.unwrap_or((0, 0));
+		let stake_able_issuance = Balances::total_issuance();
+
+		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
+		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
+			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+				.into_iter()
+				// all active para-ids that do not belong to a system chain is the number of
+				// parachains that we should take into account for inflation.
+				.filter(|i| *i >= 2000.into())
+				.count() as u64;
+			ideal_staking_rate
+				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
+		} else {
+			ideal_staking_rate
+		};
+
+		// we assume un-delayed 6h eras.
+		let era_duration = 6 * HOURS;
+		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
+			staked,
+			stake_able_issuance,
+			era_duration.into(),
+		);
+
+		InflationInfo { inflation, next_mint }
+	}
+}
+
 sp_api::impl_runtime_apis! {
+	impl apis::Inflation<Block> for Runtime {
+		fn experimental_inflation_info() -> InflationInfo {
+			Runtime::impl_experimental_inflation_info()
+		}
+	}
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
