@@ -106,9 +106,6 @@ fn timeslice_period_is_sane() {
 	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
 
 	// Timeslice period constant non-zero - assumption in burning logic.
-	assert!(TIMESLICE_PERIOD > 0);
-
-	// Timeslice period constant should never be changed by mistake.
 	#[cfg(feature = "fast-runtime")]
 	assert_eq!(TIMESLICE_PERIOD, 20);
 	#[cfg(not(feature = "fast-runtime"))]
