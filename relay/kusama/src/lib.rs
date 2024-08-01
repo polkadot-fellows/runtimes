@@ -1270,8 +1270,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -3026,12 +3025,14 @@ mod remote_tests {
 				})
 				.unwrap();
 			let total_issuance = Nis::issuance().other;
-			let era_duration_millis =
+			let _real_era_duration_millis =
 				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
+			// 6h in milliseconds
+			let average_era_duration_millis = 6 * 60 * 60 * 1000;
 			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
 				total_staked,
 				total_issuance,
-				era_duration_millis,
+				average_era_duration_millis,
 			);
 			use ss58_registry::TokenRegistry;
 			let token: ss58_registry::Token = TokenRegistry::Ksm.into();
@@ -3039,7 +3040,7 @@ mod remote_tests {
 			log::info!(target: "runtime::kusama", "total-staked = {:?}", token.amount(total_staked));
 			log::info!(target: "runtime::kusama", "total-issuance = {:?}", token.amount(total_issuance));
 			log::info!(target: "runtime::kusama", "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
-			log::info!(target: "runtime::kusama", "era-duration = {:?}", era_duration_millis);
+			log::info!(target: "runtime::kusama", "era-duration = {:?}", average_era_duration_millis);
 			log::info!(target: "runtime::kusama", "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
 			log::info!(target: "runtime::kusama", "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
 			log::info!(target: "runtime::kusama", "falloff = {:?}", dynamic_params::inflation::Falloff::get());
