@@ -46,7 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
-- Kusama, pallet OnDemandAssignmentProvider: renamed to Ondemand.
 - Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):

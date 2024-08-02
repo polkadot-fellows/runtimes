@@ -1625,7 +1625,7 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		OnDemand: parachains_assigner_on_demand = 64,
+		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
 		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
