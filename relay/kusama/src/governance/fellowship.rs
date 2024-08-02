@@ -23,7 +23,7 @@ use frame_support::traits::{MapSuccess, TryMapSuccess};
 use sp_arithmetic::traits::CheckedSub;
 use sp_runtime::{
 	morph_types,
-	traits::{Replace, TypedGet},
+	traits::{Replace, ReplaceWithDefault, TypedGet},
 };
 
 use super::*;
@@ -356,10 +356,13 @@ impl pallet_ranked_collective::Config<FellowshipCollectiveInstance> for Runtime 
 	// - the Fellows origin
 	type ExchangeOrigin =
 		EitherOf<frame_system::EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
+	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
+	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = FellowshipReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type MemberSwappedHandler = ();
 	type VoteWeight = pallet_ranked_collective::Geometric;
+	type MaxMemberCount = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = ();
 }

@@ -17,9 +17,9 @@
 //! XCM configurations for the Kusama runtime.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, ParaId, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee, Treasury,
-	WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, GeneralAdmin,
+	ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee,
+	Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -190,6 +190,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
+	type XcmRecorder = ();
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
@@ -223,6 +224,9 @@ impl xcm_executor::Config for XcmConfig {
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
+	type HrmpNewChannelOpenRequestHandler = ();
+	type HrmpChannelAcceptedHandler = ();
+	type HrmpChannelClosingHandler = ();
 }
 
 parameter_types! {
@@ -230,6 +234,8 @@ parameter_types! {
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
+	// `GeneralAdmin` pluralistic body.
+	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
 }
 
 /// Type to convert an `Origin` type value into a `Location` value which represents an interior
@@ -246,9 +252,15 @@ pub type StakingAdminToPlurality =
 /// Type to convert the Fellows origin to a Plurality `Location` value.
 pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
 
+/// Type to convert the `GeneralAdmin` origin to a Plurality `Location` value.
+pub type GeneralAdminToPlurality =
+	OriginToPluralityVoice<RuntimeOrigin, GeneralAdmin, GeneralAdminBodyId>;
+
 /// Type to convert a pallet `Origin` type value into a `Location` value which represents an
 /// interior location of this chain for a destination chain.
 pub type LocalPalletOrSignedOriginToLocation = (
+	// GeneralAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
+	GeneralAdminToPlurality,
 	// StakingAdmin origin to be used in XCM as a corresponding Plurality `Location` value.
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `Location` value.
@@ -296,7 +308,7 @@ impl pallet_xcm::Config for Runtime {
 }
 
 #[test]
-fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
+fn karura_liquid_staking_xcm_has_sane_weight_upper_limit() {
 	use codec::Decode;
 	use frame_support::dispatch::GetDispatchInfo;
 	use xcm::VersionedXcm;
@@ -304,9 +316,8 @@ fn karura_liquid_staking_xcm_has_sane_weight_upper_limt() {
 
 	// should be [WithdrawAsset, BuyExecution, Transact, RefundSurplus, DepositAsset]
 	let blob = hex_literal::hex!("02140004000000000700e40b540213000000000700e40b54020006010700c817a804341801000006010b00c490bf4302140d010003ffffffff000100411f");
-	let Ok(VersionedXcm::V2(old_xcm_v2)) =
-		VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..])
-	else {
+	#[allow(deprecated)] // `xcm::v2` is deprecated
+	let Ok(VersionedXcm::V2(old_xcm_v2)) = VersionedXcm::<super::RuntimeCall>::decode(&mut &blob[..]) else {
 		panic!("can't decode XCM blob")
 	};
 	let old_xcm_v3: xcm::v3::Xcm<super::RuntimeCall> =

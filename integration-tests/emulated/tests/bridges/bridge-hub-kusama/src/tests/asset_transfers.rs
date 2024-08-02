@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use crate::tests::*;
-use frame_support::traits::fungible::Mutate;
+use bridge_hub_kusama_runtime::RuntimeEvent;
+use frame_support::{dispatch::RawOrigin, traits::fungible::Mutate};
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV1;
 
 fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: u128) {
 	let destination = asset_hub_polkadot_location();
@@ -30,6 +32,74 @@ fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: 
 	assert_ok!(send_asset_from_asset_hub_kusama(destination, (id, amount)));
 	assert_bridge_hub_kusama_message_accepted(true);
 	assert_bridge_hub_polkadot_message_received();
+}
+
+fn dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: u128) {
+	let destination = asset_hub_polkadot_location();
+
+	// fund the AHK's SA on BHK for paying bridge transport fees
+	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
+
+	// set XCM versions
+	AssetHubKusama::force_xcm_version(destination.clone(), XCM_VERSION);
+	BridgeHubKusama::force_xcm_version(bridge_hub_polkadot_location(), XCM_VERSION);
+
+	let beneficiary: Location =
+		AccountId32Junction { id: AssetHubPolkadotReceiver::get().into(), network: None }.into();
+	let assets: Assets = (id, amount).into();
+	let fee_asset_item = 0;
+	let call =
+		send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
+
+	// `remote_message` should contain `ExportMessage`
+	let remote_message = AssetHubKusama::execute_with(|| {
+		type Runtime = <AssetHubKusama as Chain>::Runtime;
+		type OriginCaller = <AssetHubKusama as Chain>::OriginCaller;
+
+		let origin = OriginCaller::system(RawOrigin::Signed(AssetHubKusamaSender::get()));
+		let result = Runtime::dry_run_call(origin, call).unwrap();
+
+		// We filter the result to get only the messages we are interested in.
+		let (_, messages_to_query) = result
+			.forwarded_xcms
+			.into_iter()
+			.find(|(destination, _)| {
+				*destination == VersionedLocation::from(Location::new(1, [Parachain(1002)]))
+			})
+			.unwrap();
+		assert_eq!(messages_to_query.len(), 1);
+
+		messages_to_query[0].clone()
+	});
+
+	// dry run extracted `remote_message` on local BridgeHub
+	BridgeHubKusama::execute_with(|| {
+		type Runtime = <BridgeHubKusama as Chain>::Runtime;
+		type RuntimeCall = <BridgeHubKusama as Chain>::RuntimeCall;
+
+		// We have to do this to turn `VersionedXcm<()>` into `VersionedXcm<RuntimeCall>`.
+		let xcm_program = VersionedXcm::from(Xcm::<RuntimeCall>::from(
+			remote_message.clone().try_into().unwrap(),
+		));
+
+		// dry run program
+		let asset_hub_as_seen_by_bridge_hub: Location = Location::new(1, [Parachain(1000)]);
+		let result =
+			Runtime::dry_run_xcm(asset_hub_as_seen_by_bridge_hub.into(), xcm_program).unwrap();
+
+		// check dry run result
+		assert_ok!(result.execution_result.ensure_complete());
+		assert!(result.emitted_events.iter().any(|event| matches!(
+			event,
+			RuntimeEvent::BridgePolkadotMessages(
+				pallet_bridge_messages::Event::MessageAccepted { .. }
+			)
+		)));
+	});
+
+	// After dry-running we reset.
+	AssetHubKusama::reset_ext();
+	BridgeHubKusama::reset_ext();
 }
 
 #[test]
@@ -61,6 +131,12 @@ fn send_ksms_from_asset_hub_kusama_to_asset_hub_polkadot() {
 
 	let ksm_at_asset_hub_kusama_latest: Location = ksm_at_asset_hub_kusama.try_into().unwrap();
 	let amount = ASSET_HUB_KUSAMA_ED * 1_000;
+	// First dry-run.
+	dry_run_send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(
+		ksm_at_asset_hub_kusama_latest.clone(),
+		amount,
+	);
+	// Then send.
 	send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(ksm_at_asset_hub_kusama_latest, amount);
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;

@@ -47,6 +47,25 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_broker`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_broker::WeightInfo for WeightInfo<T> {
+	fn swap_leases() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `470`
+		//  Estimated: `1886`
+		// Minimum execution time: 6_597_000 picoseconds.
+		Weight::from_parts(6_969_000, 0)
+			.saturating_add(Weight::from_parts(0, 1886))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+
+	fn notify_revenue() -> Weight {
+		Weight::from_parts(7_000_000, 7000)
+	}
+
+	fn on_new_timeslice() -> Weight {
+		Weight::from_parts(7_000_000, 7000)
+	}
+	
 	/// Storage: `Broker::Configuration` (r:0 w:1)
 	/// Proof: `Broker::Configuration` (`max_values`: Some(1), `max_size`: Some(31), added: 526, mode: `MaxEncodedLen`)
 	fn configure() -> Weight {

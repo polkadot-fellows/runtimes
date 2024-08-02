@@ -28,6 +28,8 @@ use sp_runtime::{
 	RuntimeDebug,
 };
 use sp_std::prelude::*;
+use xcm::latest::prelude::BodyId;
+use xcm_config::GovernanceLocation;
 
 parameter_types! {
 	//   27 | Min encoded size of `Registration`
@@ -39,7 +41,13 @@ parameter_types! {
 	pub const SubAccountDeposit: Balance = system_para_deposit(1, 53);
 	pub RelayTreasuryAccount: AccountId =
 		parachains_common::TREASURY_PALLET_ID.into_account_truncating();
+	pub const GeneralAdminBodyId: BodyId = BodyId::Administration;
 }
+
+pub type IdentityAdminOrigin = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureXcm<IsVoiceOfBody<GovernanceLocation, GeneralAdminBodyId>>,
+>;
 
 impl pallet_identity::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -52,10 +60,10 @@ impl pallet_identity::Config for Runtime {
 	type MaxRegistrars = ConstU32<20>;
 	type Slashed = ToParentTreasury<RelayTreasuryAccount, LocationToAccountId, Runtime>;
 	type ForceOrigin = EnsureRoot<Self::AccountId>;
-	type RegistrarOrigin = EnsureRoot<Self::AccountId>;
+	type RegistrarOrigin = IdentityAdminOrigin;
 	type OffchainSignature = Signature;
 	type SigningPublicKey = <Signature as Verify>::Signer;
-	type UsernameAuthorityOrigin = EnsureRoot<Self::AccountId>;
+	type UsernameAuthorityOrigin = IdentityAdminOrigin;
 	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
 	type MaxSuffixLength = ConstU32<7>;
 	type MaxUsernameLength = ConstU32<32>;

@@ -9,6 +9,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-v1.13.0
+
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -22,7 +25,7 @@ jobs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: runtime
         run: |
           TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
@@ -35,7 +38,7 @@ jobs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: itest
         run: |
           TASKS=$(echo $(cat .github/workflows/integration-tests-matrix.json) | sed 's/ //g' )
@@ -45,17 +48,11 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix]
-    continue-on-error: true
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
@@ -71,7 +68,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -88,6 +85,13 @@ jobs:
         with:
           shared-key: "fellowship-cache-tests"
 
+      - name: Download frame-omni-bencher
+        run: |
+          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
+          chmod +x ./frame-omni-bencher
+          ./frame-omni-bencher --version
+        shell: bash
+
       - name: Test ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
@@ -99,10 +103,23 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+      - name: Test benchmarks ${{ matrix.runtime.name }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          # build wasm
+          echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+          # run benchmarking
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+        env:
+          RUSTFLAGS: "-C debug-assertions -D warnings"
+
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix]
-    continue-on-error: true
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -128,7 +145,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -174,7 +191,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -222,7 +239,7 @@ jobs:
           df -h
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV

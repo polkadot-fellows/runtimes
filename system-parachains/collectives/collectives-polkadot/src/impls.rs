@@ -140,7 +140,7 @@ where
 	}
 
 	fn proposal_of(proposal_hash: HashOf<T>) -> Option<ProposalOf<T, I>> {
-		pallet_collective::Pallet::<T, I>::proposal_of(proposal_hash)
+		pallet_collective::ProposalOf::<T, I>::get(proposal_hash)
 	}
 }
 
@@ -241,8 +241,25 @@ pub mod benchmarks {
 	pub struct OpenHrmpChannel<I>(PhantomData<I>);
 	impl<I: Get<u32>> EnsureSuccessful for OpenHrmpChannel<I> {
 		fn ensure_successful() {
-			if let ChannelStatus::Closed = ParachainSystem::get_channel_status(I::get().into()) {
-				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(I::get().into())
+			let para_id = I::get();
+
+			// open HRMP channel
+			if let ChannelStatus::Closed = ParachainSystem::get_channel_status(para_id.into()) {
+				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(para_id.into())
+			}
+
+			// set XCM version for sibling parachain
+			let sibling_parachain = Location::new(1, [Parachain(para_id)]);
+			if PolkadotXcm::get_version_for(&sibling_parachain).is_none() {
+				if let Err(e) = PolkadotXcm::force_xcm_version(
+					RuntimeOrigin::root(),
+					sibling_parachain.into(),
+					system_parachains_constants::genesis_presets::SAFE_XCM_VERSION,
+				) {
+					log::error!(
+						"Failed to `force_xcm_version` for para_id: {para_id:?}, error: {e:?}"
+					);
+				}
 			}
 		}
 	}

@@ -31,6 +31,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+// Genesis preset configurations.
+pub mod genesis_config_presets;
 mod migrations_fix;
 mod weights;
 pub mod xcm_config;
@@ -53,7 +55,7 @@ pub use encointer_primitives::{
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
-	genesis_builder_helper::{build_config, create_default_config},
+	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungibles::{Balanced, Credit},
@@ -61,7 +63,7 @@ use frame_support::{
 		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
 		TransformOrigin,
 	},
-	weights::{ConstantMultiplier, Weight},
+	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
 };
 use frame_system::{
@@ -103,7 +105,14 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::latest::prelude::{AssetId as XcmAssetId, BodyId};
+use xcm::{
+	latest::prelude::{AssetId as XcmAssetId, BodyId},
+	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
+};
+use xcm_runtime_apis::{
+	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
+	fees::Error as XcmPaymentApiError,
+};
 
 use xcm_config::{KsmLocation, StakingPot, XcmOriginToTransactDispatchOrigin};
 
@@ -277,6 +286,11 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type SingleBlockMigrations = ();
+	type MultiBlockMigrator = ();
+	type PreInherents = ();
+	type PostInherents = ();
+	type PostTransactions = ();
 }
 
 parameter_types! {
@@ -411,6 +425,10 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ChannelInfo = ParachainSystem;
 	type VersionWrapper = PolkadotXcm;
 	type XcmpQueue = TransformOrigin<MessageQueue, AggregateMessageOrigin, ParaId, ParaIdToSibling>;
+	type MaxActiveOutboundChannels = ConstU32<128>;
+	// Most on-chain HRMP channels are configured to use 102400 bytes of max message size, so we
+	// need to set the page size larger than that until we reduce the channel size on-chain.
+	type MaxPageSize = ConstU32<{ 103 * 1024 }>;
 	type MaxInboundSuspended = sp_core::ConstU32<1_000>;
 	type ControllerOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
@@ -421,8 +439,14 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
 
+impl cumulus_pallet_xcmp_queue::migration::v5::V5Config for Runtime {
+	// This must be the same as the `ChannelInfo` from the `Config`:
+	type ChannelList = ParachainSystem;
+}
+
 parameter_types! {
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_message_queue::Config for Runtime {
@@ -445,6 +469,7 @@ impl pallet_message_queue::Config for Runtime {
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
 	type ServiceWeight = MessageQueueServiceWeight;
+	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
 
 parameter_types! {
@@ -737,6 +762,7 @@ parameter_types! {
 pub type Migrations = (
 	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
 	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
+	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -783,7 +809,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			Aura::authorities().into_inner()
+			pallet_aura::Authorities::<Runtime>::get().into_inner()
 		}
 	}
 
@@ -805,7 +831,7 @@ impl_runtime_apis! {
 			Executive::execute_block(block)
 		}
 
-		fn initialize_block(header: &<Block as BlockT>::Header) {
+		fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
 			Executive::initialize_block(header)
 		}
 	}
@@ -899,6 +925,48 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
+		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
+			let acceptable_assets = vec![XcmAssetId(xcm_config::KsmLocation::get())];
+			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
+		}
+
+		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
+			match asset.try_as::<XcmAssetId>() {
+				Ok(asset_id) if asset_id.0 == xcm_config::KsmLocation::get() => {
+					// for native token
+					Ok(WeightToFee::weight_to_fee(&weight))
+				},
+				Ok(asset_id) => {
+					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
+					Err(XcmPaymentApiError::AssetNotFound)
+				},
+				Err(_) => {
+					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
+					Err(XcmPaymentApiError::VersionedConversionFailed)
+				}
+			}
+		}
+
+		fn query_xcm_weight(message: VersionedXcm<()>) -> Result<Weight, XcmPaymentApiError> {
+			PolkadotXcm::query_xcm_weight(message)
+		}
+
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
+			PolkadotXcm::query_delivery_fees(destination, message)
+		}
+	}
+
+	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		}
+
+		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			PolkadotXcm::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+		}
+	}
+
 	impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
 		fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
 			ParachainSystem::collect_collation_info(header)
@@ -954,12 +1022,19 @@ impl_runtime_apis! {
 	}
 
 	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-		fn create_default_config() -> Vec<u8> {
-			create_default_config::<RuntimeGenesisConfig>()
+		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+			build_state::<RuntimeGenesisConfig>(config)
 		}
 
-		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
-			build_config::<RuntimeGenesisConfig>(config)
+		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
+			get_preset::<RuntimeGenesisConfig>(id, &genesis_config_presets::get_preset)
+		}
+
+		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+			vec![
+				sp_genesis_builder::PresetId::from("local_testnet"),
+				sp_genesis_builder::PresetId::from("development"),
+			]
 		}
 	}
 
@@ -1077,250 +1152,8 @@ fn test_ed_is_one_tenth_of_relay() {
 }
 
 #[test]
-fn test_constants_compatiblity() {
-	assert_eq!(
-		::kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT,
-		system_parachains_constants::kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT
-	);
-	assert_eq!(
-		::kusama_runtime_constants::currency::deposit(5, 3),
-		system_parachains_constants::kusama_runtime_constants::currency::deposit(5, 3)
-	);
-	assert_eq!(
-		::system_parachains_constants::AVERAGE_ON_INITIALIZE_RATIO * 1u32,
-		system_parachains_constants::AVERAGE_ON_INITIALIZE_RATIO * 1u32
-	);
-	assert_eq!(
-		::system_parachains_constants::NORMAL_DISPATCH_RATIO * 1u32,
-		system_parachains_constants::NORMAL_DISPATCH_RATIO * 1u32
-	);
-	assert_eq!(
-		::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT.encode(),
-		system_parachains_constants::MAXIMUM_BLOCK_WEIGHT.encode()
-	);
-	assert_eq!(::system_parachains_constants::MINUTES, system_parachains_constants::MINUTES);
-	assert_eq!(::system_parachains_constants::HOURS, system_parachains_constants::HOURS);
-	assert_eq!(::system_parachains_constants::DAYS, system_parachains_constants::DAYS);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT,
-		system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::UNITS,
-		system_parachains_constants::kusama::currency::UNITS
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::QUID,
-		system_parachains_constants::kusama::currency::QUID
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::CENTS,
-		system_parachains_constants::kusama::currency::CENTS
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::MILLICENTS,
-		system_parachains_constants::kusama::currency::MILLICENTS
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::currency::system_para_deposit(5, 3),
-		system_parachains_constants::kusama::currency::system_para_deposit(5, 3)
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE,
-		system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE
-	);
-	assert_eq!(
-		::system_parachains_constants::kusama::fee::calculate_weight_to_fee(
-			&::system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
-		),
-		system_parachains_constants::kusama::fee::calculate_weight_to_fee(
-			&system_parachains_constants::MAXIMUM_BLOCK_WEIGHT
-		)
-	);
-}
-
-#[test]
 fn test_transasction_byte_fee_is_one_tenth_of_relay() {
 	let relay_tbf = ::kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 	let parachain_tbf = TransactionByteFee::get();
 	assert_eq!(relay_tbf / 10, parachain_tbf);
-}
-
-// The Encointer pallets do not have compatible versions with `polkadot-sdk`, making it difficult
-// for us to reuse the `system-parachains-constants` module. Therefore, we have copies of it here
-// with `test_constants_compatiblity`.
-mod system_parachains_constants {
-	use super::*;
-	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
-
-	/// This determines the average expected block time that we are targeting. Blocks will be
-	/// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-	/// `pallet_timestamp` which is in turn picked up by `pallet_aura` to implement `fn
-	/// slot_duration()`.
-	///
-	/// Change this to adjust the block time.
-	pub const MILLISECS_PER_BLOCK: u64 = 12000;
-	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-	// Time is measured by number of blocks.
-	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
-
-	/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-	/// used to limit the maximal weight of a single extrinsic.
-	pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
-	/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
-	/// Operational  extrinsics.
-	pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-
-	/// We allow for 0.5 seconds of compute with a 6 second average block time.
-	pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-		WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-		polkadot_primitives::MAX_POV_SIZE as u64,
-	);
-
-	pub(crate) mod kusama {
-		/// Consensus-related.
-		pub mod consensus {
-			/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
-			/// into the relay chain.
-			pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 1;
-			/// How many parachain blocks are processed by the relay chain per parent. Limits the
-			/// number of blocks authored per slot.
-			pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
-			/// Relay chain slot duration, in milliseconds.
-			pub const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
-		}
-
-		/// Constants relating to KSM.
-		pub mod currency {
-			use super::super::kusama_runtime_constants;
-			use polkadot_core_primitives::Balance;
-
-			/// The default existential deposit for system chains. 1/10th of the Relay Chain's
-			/// existential deposit. Individual system parachains may modify this in special cases.
-			pub const SYSTEM_PARA_EXISTENTIAL_DEPOSIT: Balance =
-				kusama_runtime_constants::currency::EXISTENTIAL_DEPOSIT / 10;
-
-			/// One "KSM" that a UI would show a user.
-			pub const UNITS: Balance = 1_000_000_000_000;
-			pub const QUID: Balance = UNITS / 30;
-			pub const CENTS: Balance = QUID / 100;
-			pub const MILLICENTS: Balance = CENTS / 1_000;
-
-			/// Deposit rate for stored data. 1/100th of the Relay Chain's deposit rate. `items` is
-			/// the number of keys in storage and `bytes` is the size of the value.
-			pub const fn system_para_deposit(items: u32, bytes: u32) -> Balance {
-				kusama_runtime_constants::currency::deposit(items, bytes) / 100
-			}
-		}
-
-		/// Constants related to Kusama fee payment.
-		pub mod fee {
-			use frame_support::{
-				pallet_prelude::Weight,
-				weights::{
-					constants::ExtrinsicBaseWeight, FeePolynomial, WeightToFeeCoefficient,
-					WeightToFeeCoefficients, WeightToFeePolynomial,
-				},
-			};
-			use polkadot_core_primitives::Balance;
-			use smallvec::smallvec;
-			pub use sp_runtime::Perbill;
-
-			/// Cost of every transaction byte at Kusama system parachains.
-			///
-			/// It is the Relay Chain (Kusama) `TransactionByteFee` / 10.
-			pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS;
-
-			/// Handles converting a weight scalar to a fee value, based on the scale and
-			/// granularity of the node's balance type.
-			///
-			/// This should typically create a mapping between the following ranges:
-			///   - [0, MAXIMUM_BLOCK_WEIGHT]
-			///   - [Balance::min, Balance::max]
-			///
-			/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
-			///   - Setting it to `0` will essentially disable the weight fee.
-			///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
-			pub struct WeightToFee;
-
-			impl frame_support::weights::WeightToFee for WeightToFee {
-				type Balance = Balance;
-
-				fn weight_to_fee(weight: &Weight) -> Self::Balance {
-					let time_poly: FeePolynomial<Balance> = RefTimeToFee::polynomial().into();
-					let proof_poly: FeePolynomial<Balance> = ProofSizeToFee::polynomial().into();
-
-					// Take the maximum instead of the sum to charge by the more scarce resource.
-					time_poly.eval(weight.ref_time()).max(proof_poly.eval(weight.proof_size()))
-				}
-			}
-
-			/// Maps the reference time component of `Weight` to a fee.
-			pub struct RefTimeToFee;
-
-			impl WeightToFeePolynomial for RefTimeToFee {
-				type Balance = Balance;
-				fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-					// In Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10
-					// CENT: The standard system parachain configuration is 1/10 of that, as in
-					// 1/100 CENT.
-					let p = super::currency::CENTS;
-					let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-
-					smallvec![WeightToFeeCoefficient {
-						degree: 1,
-						negative: false,
-						coeff_frac: Perbill::from_rational(p % q, q),
-						coeff_integer: p / q,
-					}]
-				}
-			}
-
-			/// Maps the proof size component of `Weight` to a fee.
-			pub struct ProofSizeToFee;
-
-			impl WeightToFeePolynomial for ProofSizeToFee {
-				type Balance = Balance;
-				fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-					// Map 10kb proof to 1 CENT.
-					let p = super::currency::CENTS;
-					let q = 10_000;
-
-					smallvec![WeightToFeeCoefficient {
-						degree: 1,
-						negative: false,
-						coeff_frac: Perbill::from_rational(p % q, q),
-						coeff_integer: p / q,
-					}]
-				}
-			}
-
-			#[cfg(test)]
-			pub fn calculate_weight_to_fee(weight: &Weight) -> Balance {
-				<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
-			}
-		}
-	}
-
-	pub(crate) mod kusama_runtime_constants {
-		/// Money matters.
-		pub mod currency {
-			use polkadot_primitives::Balance;
-
-			/// The existential deposit.
-			pub const EXISTENTIAL_DEPOSIT: Balance = CENTS;
-
-			pub const UNITS: Balance = 1_000_000_000_000;
-			pub const QUID: Balance = UNITS / 30;
-			pub const CENTS: Balance = QUID / 100;
-			pub const MILLICENTS: Balance = CENTS / 1_000;
-
-			pub const fn deposit(items: u32, bytes: u32) -> Balance {
-				items as Balance * 2_000 * CENTS + (bytes as Balance) * 100 * MILLICENTS
-			}
-		}
-	}
 }
