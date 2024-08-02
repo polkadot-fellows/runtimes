@@ -1115,7 +1115,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1625,7 +1626,7 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
+		OnDemand: parachains_assigner_on_demand = 64,
 		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
@@ -1693,9 +1694,29 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use frame_support::{migration::move_storage_from_pallet, traits::OnRuntimeUpgrade};
+
+	// Migrate storage for pallet rename `OnDemandAssignmentProvider` -> `OnDemand`
+	pub struct OnDemandRename;
+	impl OnRuntimeUpgrade for OnDemandRename {
+		fn on_runtime_upgrade() -> Weight {
+			move_storage_from_pallet(b"Pallet", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"ParaIdAffinity", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"QueueStatus", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(b"FreeEntries", b"OnDemandAssignmentProvider", b"OnDemand");
+			move_storage_from_pallet(
+				b"AffinityEntries",
+				b"OnDemandAssignmentProvider",
+				b"OnDemand",
+			);
+			move_storage_from_pallet(b"Revenue", b"OnDemandAssignmentProvider", b"OnDemand");
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(0, 0) //todo
+		}
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		OnDemandRename,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
@@ -1738,7 +1759,7 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
-		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::assigner_on_demand, OnDemand]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
