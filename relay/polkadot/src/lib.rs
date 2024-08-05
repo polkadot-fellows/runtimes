@@ -1796,7 +1796,7 @@ pub mod migrations {
 			let now = frame_system::Pallet::<Runtime>::block_number();
 			let lease = slots::Leases::<Runtime>::get(para);
 			if lease.is_empty() {
-				return None
+				return None;
 			}
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
