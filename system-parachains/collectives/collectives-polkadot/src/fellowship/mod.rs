@@ -19,6 +19,7 @@
 mod origins;
 mod tracks;
 use crate::{
+	fellowship::origins::EnsureCanFastPromoteTo,
 	impls::ToParentTreasury,
 	weights,
 	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
@@ -33,7 +34,7 @@ use frame_support::{
 	},
 	PalletId,
 };
-use frame_system::{EnsureNever, EnsureRoot, EnsureRootWithSuccess, EnsureWithSuccess};
+use frame_system::{EnsureRoot, EnsureRootWithSuccess};
 pub use origins::{
 	pallet_origins as pallet_fellowship_origins, Architects, EnsureCanPromoteTo, EnsureCanRetainAt,
 	EnsureFellowship, Fellows, Masters, Members, ToVoice,
@@ -206,8 +207,7 @@ impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 		>,
 		EnsureCanPromoteTo,
 	>;
-	// TODO until https://github.com/polkadot-fellows/runtimes/pull/356/files
-	type FastPromoteOrigin = EnsureWithSuccess<EnsureNever<u16>, AccountId, ConstU16<0>>;
+	type FastPromoteOrigin = EnsureCanFastPromoteTo;
 	type EvidenceSize = ConstU32<65536>;
 	type MaxRank = ConstU32<9>;
 }
