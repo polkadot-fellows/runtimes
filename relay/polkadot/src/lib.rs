@@ -66,7 +66,10 @@ use frame_support::{
 		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade,
 		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
-	weights::{constants, ConstantMultiplier, WeightMeter, WeightToFee as _},
+	weights::{
+		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
+		ConstantMultiplier, WeightMeter, WeightToFee as _,
+	},
 	PalletId,
 };
 use frame_system::EnsureRoot;
@@ -1386,7 +1389,10 @@ impl parachains_scheduler::Config for Runtime {
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
-	pub MaxXcmTransactWeight: Weight = Weight::from_parts(constants::WEIGHT_REF_TIME_PER_MILLIS, 20 * constants::WEIGHT_PROOF_SIZE_PER_KB);
+	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
+		250 * WEIGHT_REF_TIME_PER_MICROS,
+		20 * WEIGHT_PROOF_SIZE_PER_KB
+	);
 }
 
 pub struct BrokerPot;
