@@ -1709,7 +1709,7 @@ mod clear_judgement_proxies {
 
 	pub struct Migration;
 	impl OnRuntimeUpgrade for Migration {
-		/// Compute the expected post-upgrade state for Proxies stroage, and the reserved value
+		/// Compute the expected post-upgrade state for Proxies storage, and the reserved value
 		/// for all accounts with a proxy.
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
