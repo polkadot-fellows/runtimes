@@ -765,6 +765,7 @@ type Migrations = (
 	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, ambassador::AmbassadorCoreInstance>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+	ambassador::migrations::TruncateHeadAmbassadorsTo21,
 );
 
 /// Executive: handles dispatch to the various modules.
