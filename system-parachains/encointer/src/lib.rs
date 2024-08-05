@@ -754,14 +754,9 @@ pub type UncheckedExtrinsic =
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
-parameter_types! {
-	pub DmpQueueName: &'static str = "DmpQueue";
-}
-
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
-	migrations_fix::collator_selection_init::v0::InitInvulnerables<Runtime>,
+	// unreleased and/or un-applied
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
