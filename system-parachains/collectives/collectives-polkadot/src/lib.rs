@@ -46,11 +46,15 @@ pub mod xcm_config;
 pub mod fellowship;
 pub use ambassador::pallet_ambassador_origins;
 
+// Secretary Configuration
+pub mod secretary;
+
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use secretary::pallet_secretary_origins;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -310,6 +314,8 @@ pub enum ProxyType {
 	Fellowship,
 	/// Ambassador proxy. Allows calls related to the Ambassador Program.
 	Ambassador,
+	/// Secretary proxy. Allows calls related to the Secretary collective
+	Secretary,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -353,6 +359,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::AmbassadorReferenda { .. } |
 					RuntimeCall::AmbassadorCore { .. } |
 					RuntimeCall::AmbassadorSalary { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
+			),
+			ProxyType::Secretary => matches!(
+				c,
+				RuntimeCall::SecretaryCollective { .. } |
+					RuntimeCall::SecretarySalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -723,6 +736,13 @@ construct_runtime!(
 		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
 		AmbassadorSalary: pallet_salary::<Instance2> = 74,
 		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
+
+		// The Secretary Collective
+		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
+		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
+		SecretaryOrigins: pallet_secretary_origins = 81,
+		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
+		SecretarySalary: pallet_salary::<Instance3> = 82,
 	}
 );
 
@@ -807,6 +827,8 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
+		[pallet_ranked_cllective, SecretaryCollective]
+		[pallet_salary, SecretarySalary]
 	);
 }
 
