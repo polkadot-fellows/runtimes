@@ -78,11 +78,11 @@ jobs:
           echo "EXTRA_ARGS=$EXTRA_FLAGS" >> $GITHUB_ENV
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
-        uses: "paritytech/try-runtime-gha@v0.1.0"
+        uses: "paritytech/try-runtime-gha@oty-update"
         with:
           runtime-package: ${{ matrix.runtime.package }}
           node-uri: ${{ matrix.runtime.uri }}
-          checks: "pre-and-post"
+          checks: "all"
           extra-args: ${{ env.EXTRA_ARGS }}
 
   # This will only run if all the tests in its "needs" array passed.
