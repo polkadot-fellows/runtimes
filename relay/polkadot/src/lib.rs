@@ -22,7 +22,7 @@
 
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
-	auctions, claims, crowdloan, identity_migrator, impl_runtime_weights,
+	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
@@ -62,9 +62,9 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, EverythingBut,
-		Get, InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade,
-		PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
+		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -74,7 +74,6 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
-use pallet_identity::legacy::IdentityInfo;
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use polkadot_primitives::{
@@ -142,11 +141,6 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
-use impls::ToParachainIdentityReaper;
-
-#[cfg(not(feature = "runtime-benchmarks"))]
-use frame_system::EnsureSigned;
-
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 impl_runtime_weights!(polkadot_runtime_constants);
@@ -187,19 +181,8 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// A type to identify calls to the Identity pallet. These will be filtered to prevent invocation,
-/// locking the state of the pallet and preventing further updates to identities and sub-identities.
-/// The locked state will be the genesis state of a new system chain and then removed from the Relay
-/// Chain.
-pub struct IsIdentityCall;
-impl Contains<RuntimeCall> for IsIdentityCall {
-	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::Identity(_))
-	}
-}
-
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IsIdentityCall>;
+	type BaseCallFilter = Everything;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -793,48 +776,6 @@ impl pallet_fast_unstake::Config for Runtime {
 }
 
 parameter_types! {
-	// Minimum 4 CENTS/byte
-	pub const BasicDeposit: Balance = deposit(1, 258);
-	pub const ByteDeposit: Balance = deposit(0, 1);
-	pub const SubAccountDeposit: Balance = deposit(1, 53);
-	pub const MaxSubAccounts: u32 = 100;
-	pub const MaxAdditionalFields: u32 = 100;
-	pub const MaxRegistrars: u32 = 20;
-}
-
-impl pallet_identity::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type BasicDeposit = BasicDeposit;
-	type ByteDeposit = ByteDeposit;
-	type SubAccountDeposit = SubAccountDeposit;
-	type MaxSubAccounts = MaxSubAccounts;
-	type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
-	type MaxRegistrars = MaxRegistrars;
-	type Slashed = Treasury;
-	type ForceOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	type RegistrarOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	type OffchainSignature = Signature;
-	type SigningPublicKey = <Signature as Verify>::Signer;
-	type UsernameAuthorityOrigin = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
-	type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
-	type MaxSuffixLength = ConstU32<7>;
-	type MaxUsernameLength = ConstU32<32>;
-	type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
-}
-
-impl identity_migrator::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Reaper = EnsureSigned<AccountId>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Reaper =
-		impls::benchmarks::InitializeReaperForBenchmarking<AccountId, EnsureRoot<AccountId>>;
-	type ReapIdentityHandler = ToParachainIdentityReaper<Runtime, Self::AccountId>;
-	type WeightInfo = weights::polkadot_runtime_common_identity_migrator::WeightInfo<Runtime>;
-}
-
-parameter_types! {
 	pub const ProposalBond: Permill = Permill::from_percent(5);
 	pub const ProposalBondMinimum: Balance = 100 * DOLLARS;
 	pub const ProposalBondMaximum: Balance = 500 * DOLLARS;
@@ -1116,7 +1057,7 @@ pub enum ProxyType {
 	Governance = 2,
 	Staking = 3,
 	// Skip 4 as it is now removed (was SudoBalances)
-	IdentityJudgement = 5,
+	// Skip 5 as it was IdentityJudgement
 	CancelProxy = 6,
 	Auction = 7,
 	NominationPools = 8,
@@ -1143,13 +1084,13 @@ mod proxy_type_tests {
 			(OldProxyType::NonTransfer, ProxyType::NonTransfer),
 			(OldProxyType::Governance, ProxyType::Governance),
 			(OldProxyType::Staking, ProxyType::Staking),
-			(OldProxyType::IdentityJudgement, ProxyType::IdentityJudgement),
 		]
 		.into_iter()
 		{
 			assert_eq!(i.encode(), j.encode());
 		}
 		assert!(ProxyType::decode(&mut &OldProxyType::SudoBalances.encode()[..]).is_err());
+		assert!(ProxyType::decode(&mut &OldProxyType::IdentityJudgement.encode()[..]).is_err());
 	}
 }
 
@@ -1187,7 +1128,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Vesting(pallet_vesting::Call::vest_other{..}) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
 				RuntimeCall::Utility(..) |
-				RuntimeCall::Identity(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
 				RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
@@ -1224,11 +1164,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
-			ProxyType::IdentityJudgement => matches!(
-				c,
-				RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::Utility(..)
-			),
 			ProxyType::CancelProxy => {
 				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
 			},
@@ -1678,8 +1613,7 @@ construct_runtime! {
 		// Cunning utilities. Usable initially.
 		Utility: pallet_utility = 26,
 
-		// Identity. Late addition.
-		Identity: pallet_identity = 28,
+		// Identity: pallet_identity = 28, (removed post 1.2.8)
 
 		// Proxy module. Late addition.
 		Proxy: pallet_proxy = 29,
@@ -1746,9 +1680,6 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
-
-		// Pallet for migrating Identity to a parachain. To be removed post-migration.
-		IdentityMigrator: identity_migrator = 248,
 	}
 }
 
@@ -1781,6 +1712,214 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 	fn get() -> Perbill {
 		Perbill::zero()
 	}
+}
+
+/// Migration to remove deprecated judgement proxies.
+mod clear_judgement_proxies {
+	use super::*;
+
+	use frame_support::{
+		pallet_prelude::{TypeInfo, ValueQuery},
+		storage_alias,
+		traits::{Currency, OnRuntimeUpgrade, ReservableCurrency},
+		Twox64Concat,
+	};
+	use frame_system::pallet_prelude::BlockNumberFor;
+	use pallet_proxy::ProxyDefinition;
+	use sp_runtime::{BoundedVec, Saturating};
+
+	/// ProxyType including the deprecated `IdentityJudgement`.
+	#[derive(
+		Copy,
+		Clone,
+		Eq,
+		PartialEq,
+		Ord,
+		PartialOrd,
+		Encode,
+		Decode,
+		RuntimeDebug,
+		MaxEncodedLen,
+		TypeInfo,
+	)]
+	pub enum PrevProxyType {
+		Any = 0,
+		NonTransfer = 1,
+		Governance = 2,
+		Staking = 3,
+		// Skip 4 as it is now removed (was SudoBalances)
+		IdentityJudgement = 5,
+		CancelProxy = 6,
+		Auction = 7,
+		NominationPools = 8,
+	}
+
+	type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance;
+
+	type PrevProxiesValue<T> = (
+		BoundedVec<ProxyDefinition<AccountId, PrevProxyType, BlockNumberFor<T>>, MaxProxies>,
+		BalanceOf<T>,
+	);
+
+	/// Proxies including the deprecated `IdentityJudgement` type.
+	#[storage_alias]
+	pub type Proxies<T: pallet_proxy::Config> = StorageMap<
+		pallet_proxy::Pallet<T>,
+		Twox64Concat,
+		AccountId,
+		PrevProxiesValue<T>,
+		ValueQuery,
+	>;
+
+	pub struct Migration;
+	impl OnRuntimeUpgrade for Migration {
+		/// Compute the expected post-upgrade state for Proxies storage, and the reserved value
+		/// for all accounts with a proxy.
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			let mut expected_proxies: BTreeMap<AccountId, PrevProxiesValue<Runtime>> =
+				BTreeMap::new();
+			let mut expected_reserved_amounts: BTreeMap<AccountId, Balance> = BTreeMap::new();
+
+			for (who, (mut proxies, old_deposit)) in Proxies::<Runtime>::iter().collect::<Vec<_>>()
+			{
+				let proxies_len_before = proxies.len() as u64;
+				proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
+				let proxies_len_after = proxies.len() as u64;
+
+				let new_deposit = pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
+
+				let current_reserved =
+					<Balances as ReservableCurrency<AccountId>>::reserved_balance(&who);
+
+				// Update the deposit only if proxies were removed and the deposit decreased.
+				if new_deposit < old_deposit && proxies_len_after < proxies_len_before {
+					// If there're no proxies left, they should be removed
+					if proxies.len() > 0 {
+						expected_proxies.insert(who.clone(), (proxies, new_deposit));
+					}
+					expected_reserved_amounts
+						.insert(who, current_reserved.saturating_sub(old_deposit - new_deposit));
+				} else {
+					// Deposit should not change. If any proxies needed to be removed, this
+					// won't impact that.
+					expected_proxies.insert(who.clone(), (proxies, old_deposit));
+					expected_reserved_amounts.insert(who, current_reserved);
+				}
+			}
+
+			let pre_upgrade_state = (expected_proxies, expected_reserved_amounts);
+			Ok(pre_upgrade_state.encode())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			let mut reads = 0u64;
+			let mut writes = 0u64;
+			let mut proxies_removed_total = 0u64;
+
+			Proxies::<Runtime>::translate(
+				|who: AccountId, (mut proxies, old_deposit): PrevProxiesValue<Runtime>| {
+					// Remove filter out IdentityJudgement proxies.
+					let proxies_len_before = proxies.len() as u64;
+					proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
+					let proxies_len_after = proxies.len() as u64;
+
+					let deposit = if proxies_len_before > proxies_len_after {
+						log::info!(
+							"Removing {} IdentityJudgement proxies for {:?}",
+							proxies_len_before - proxies_len_after,
+							&who
+						);
+						proxies_removed_total
+							.saturating_accrue(proxies_len_before - proxies_len_after);
+
+						let new_deposit =
+							pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
+
+						// Be kind and don't increase the deposit in case it increased (can
+						// happen if param change).
+						let deposit = new_deposit.min(old_deposit);
+						if deposit < old_deposit {
+							writes.saturating_inc();
+							<Balances as ReservableCurrency<AccountId>>::unreserve(
+								&who,
+								old_deposit - deposit,
+							);
+						}
+
+						deposit
+					} else {
+						// Nothing to do, use the old deposit.
+						old_deposit
+					};
+
+					reads.saturating_accrue(proxies_len_before + 1);
+					writes.saturating_accrue(proxies_len_after + 1);
+
+					// No need to keep the k/v around if there're no proxies left.
+					match proxies.is_empty() {
+						true => {
+							debug_assert_eq!(deposit, 0);
+							None
+						},
+						false => Some((proxies, deposit)),
+					}
+				},
+			);
+
+			log::info!("Removed {} IdentityJudgement proxies in total", proxies_removed_total);
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			use frame_support::ensure;
+			use sp_runtime::TryRuntimeError;
+
+			let (expected_proxies, expected_total_reserved): (
+				BTreeMap<AccountId, PrevProxiesValue<Runtime>>,
+				BTreeMap<AccountId, Balance>,
+			) = Decode::decode(&mut &state[..]).expect("Failed to decode pre-upgrade state");
+
+			// Check Proxies storage is as expected
+			for (who, (proxies, deposit)) in Proxies::<Runtime>::iter() {
+				match expected_proxies.get(&who) {
+					Some((expected_proxies, expected_deposit)) => {
+						ensure!(&proxies == expected_proxies, "Unexpected Proxy");
+						ensure!(&deposit == expected_deposit, "Unexpected deposit");
+					},
+					None => {
+						return Err(TryRuntimeError::Other("Missing Proxy"));
+					},
+				}
+			}
+
+			// Check the total reserved amounts for every account is as expected
+			for (who, expected_reserved) in expected_total_reserved.iter() {
+				let current_reserved =
+					<Balances as ReservableCurrency<AccountId>>::reserved_balance(who);
+
+				ensure!(current_reserved == *expected_reserved, "Reserved balance mismatch");
+			}
+
+			// Check there are no extra entries in the expected state that are not in the
+			// current state
+			for (who, _) in expected_proxies.iter() {
+				if !Proxies::<Runtime>::contains_key(who) {
+					return Err(TryRuntimeError::Other("Extra entry in expected state"));
+				}
+			}
+
+			Ok(())
+		}
+	}
+}
+
+parameter_types! {
+	pub const IdentityPalletName: &'static str = "Identity";
+	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
 }
 
 /// All migrations that will run on the next runtime upgrade.
@@ -1852,6 +1991,15 @@ pub mod migrations {
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
+		frame_support::migrations::RemovePallet<
+			IdentityPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		frame_support::migrations::RemovePallet<
+			IdentityMigratorPalletName,
+			<Runtime as frame_system::Config>::DbWeight,
+		>,
+		clear_judgement_proxies::Migration,
 		// Migrate from legacy lease to coretime. Needs to run after configuration v11
 		coretime::migration::MigrateToCoretime<
 			Runtime,
@@ -1888,7 +2036,6 @@ mod benches {
 		[polkadot_runtime_common::auctions, Auctions]
 		[polkadot_runtime_common::claims, Claims]
 		[polkadot_runtime_common::crowdloan, Crowdloan]
-		[polkadot_runtime_common::identity_migrator, IdentityMigrator]
 		[polkadot_runtime_common::slots, Slots]
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
@@ -1910,7 +2057,6 @@ mod benches {
 		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
-		[pallet_identity, Identity]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
