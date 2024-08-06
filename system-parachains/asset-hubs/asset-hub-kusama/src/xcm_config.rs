@@ -303,8 +303,8 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
 	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset native
-	// to the Rococo or Ethereum ecosystems.
+	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
+	// native to the Rococo or Ethereum ecosystems.
 	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
@@ -468,7 +468,6 @@ impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
-	use assets_common::matching;
 	use sp_std::collections::btree_set::BTreeSet;
 	use xcm_builder::NetworkExportTableItem;
 
