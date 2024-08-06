@@ -50,6 +50,26 @@ This will enable [`auto-merge`](https://docs.github.com/en/pull-requests/collabo
 
 The automation can be triggered by the author of the PR or any fellow whose GitHub handle is part of their identity.
 
+## Release guidelines
+
+Here are the recommended steps for both major and minor runtime releases.
+
+|Steps |Description |Major |Minor |
+|------|------------|------|------|
+|0 |Open an issue for the release in the [runtimes repo](https://github.com/polkadot-fellows/runtimes/issues) with the **version number**. | ✔️ | ✔️ |
+|1 |Identify **released crates**. | ✔️ | ❌ |
+|2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). | ✔️ | ✔️ |
+|3 |Identify and include **priority PRs (fixes and patches)** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
+|4 |Identify and include **recommended PRs** (enhancements, backports, migrations) with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
+|5 |Propose or include **additional PRs** (small configurations, simple migrations, general cleanup). | ✔️ | ✔️ |
+|6 |Identify and communicate **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @bkchr, @SBalaguer, and @anaelleltd** in your comment. | ✔️ | ✔️ |
+|7 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
+|8 |Trigger the release for **final reviews**, including granular information about all breaking changes in the **CHANGELOG entry**. | ✔️ | ✔️ |
+|9 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.| ✔️ | ✔️ |
+|10 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. | ✔️ | ✔️ |
+|11 |Close the issue for the release once the referendum is **approved and executed**. | ✔️ | ✔️ |
+|12 |Open an issue for **the next release** in the runtimes repo, if applicable.| ❌ | ✔️ |
+
 ## Release process
 
 Releases are automatically pushed on commits merged to master that fulfill the following requirements:
