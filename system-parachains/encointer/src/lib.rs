@@ -33,7 +33,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
-mod migrations_fix;
 mod weights;
 pub mod xcm_config;
 
