@@ -137,6 +137,7 @@ pallet-nomination-pools-benchmarking = { version = "34.0.0", default-features = 
 pallet-nomination-pools-runtime-api = { version = "31.0.0", default-features = false }
 pallet-offences = { version = "35.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "36.0.0", default-features = false }
+pallet-parameters = { version = "0.7.0", default-features = false }
 pallet-preimage = { version = "36.0.0", default-features = false }
 pallet-proxy = { version = "36.0.0", default-features = false }
 pallet-ranked-collective = { version = "36.0.0", default-features = false }
