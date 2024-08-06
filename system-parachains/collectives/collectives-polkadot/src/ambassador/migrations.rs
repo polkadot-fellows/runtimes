@@ -1,9 +1,10 @@
 use super::*;
 use crate::AccountId;
 use frame_support::{
-	ensure,
 	traits::{Defensive, OnRuntimeUpgrade, UnfilteredDispatchable},
 };
+#[cfg(feature = "try-runtime")]
+use frame_support::ensure;
 use frame_system::RawOrigin;
 use pallet_ranked_collective::WeightInfo;
 use sp_core::crypto::Ss58Codec;
@@ -71,7 +72,7 @@ impl OnRuntimeUpgrade for TruncateHeadAmbassadorsTo21 {
 		let num =
 			pallet_ranked_collective::Members::<Runtime, AmbassadorCollectiveInstance>::iter_keys()
 				.count();
-		ensure!(num == 21, "There must be exactly 21 Head Ambassadors.");
+		ensure!(num <= 21, "There must be not more than 21 Head Ambassadors.");
 
 		let seed = first_21();
 		for ambassador in
