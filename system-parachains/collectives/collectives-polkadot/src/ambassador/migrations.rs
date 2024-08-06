@@ -54,7 +54,7 @@ fn first_21() -> [AccountId; 21] {
 	]
 }
 
-/// Removes everyone from the Ambassadors collective besides the first 21 HAs that were registered.
+/// Removes everyone from the Ambassador collective besides the first 21 HAs that were registered.
 pub struct TruncateHeadAmbassadors;
 
 impl OnRuntimeUpgrade for TruncateHeadAmbassadors {
