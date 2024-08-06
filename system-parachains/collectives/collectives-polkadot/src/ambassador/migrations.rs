@@ -1,10 +1,8 @@
 use super::*;
 use crate::AccountId;
-use frame_support::{
-	traits::{Defensive, OnRuntimeUpgrade, UnfilteredDispatchable},
-};
 #[cfg(feature = "try-runtime")]
 use frame_support::ensure;
+use frame_support::traits::{Defensive, OnRuntimeUpgrade, UnfilteredDispatchable};
 use frame_system::RawOrigin;
 use pallet_ranked_collective::WeightInfo;
 use sp_core::crypto::Ss58Codec;
