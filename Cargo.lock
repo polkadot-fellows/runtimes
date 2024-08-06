@@ -9959,7 +9959,6 @@ dependencies = [
  "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
  "pallet-grandpa",
- "pallet-identity",
  "pallet-im-online",
  "pallet-indices",
  "pallet-message-queue",
@@ -10112,9 +10111,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-parachains"
-version = "15.0.0"
+version = "15.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc9527e255412d9944a68a13161c0b2eb9cfa8011fab2cb4c5857f2ab80e80cc"
+checksum = "3df740bff0b29ba4cd8c8874d7f8fb90e5722c24a7354d2e96d15e7121c1525e"
 dependencies = [
  "bitflags 1.3.2",
  "bitvec",

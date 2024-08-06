@@ -14,5 +14,4 @@
 // limitations under the License.
 
 mod governance;
-mod reap_identity;
 mod teleport;
