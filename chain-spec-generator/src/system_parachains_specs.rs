@@ -227,10 +227,10 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 	properties.insert("tokenDecimals".into(), 12.into());
 
 	let boot_nodes = vec![
-		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
-		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
-		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
-		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
+		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
+		"/dns/kusama-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWAGFiMZDF9RxdacrkenzGdo8nhfSe9EXofHc5mHeJ9vGX",
+		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
+		"/dns/kusama-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWAGFiMZDF9RxdacrkenzGdo8nhfSe9EXofHc5mHeJ9vGX",
 	];
 
 	Ok(Box::new(
@@ -289,9 +289,16 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
+	let boot_nodes = vec![
+		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
+		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
+		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
+		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
+	];
+
 	Ok(Box::new(
 		CoretimePolkadotChainSpec::builder(
-			coretime_polkadot_runtime::WASM_BINARY.expect("CoretimePolkadot wasm not available!"),
+			coretime_polkadot_runtime::WASM_BINARY.expect("Polkadot Coretime wasm not available!"),
 			Extensions { relay_chain: "polkadot".into(), para_id: 1005 },
 		)
 		.with_name("Polkadot Coretime")
@@ -303,6 +310,14 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 			),
 		)
 		.with_properties(properties)
+		.with_boot_nodes(
+			boot_nodes
+				.iter()
+				.map(|addr| {
+					MultiaddrWithPeerId::from_str(addr).expect("Boot node address is incorrect.")
+				})
+				.collect(),
+		)
 		.build(),
 	))
 }
