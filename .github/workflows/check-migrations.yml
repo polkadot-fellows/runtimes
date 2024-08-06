@@ -86,7 +86,7 @@ jobs:
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
-        uses: "paritytech/try-runtime-gha@oty-update"
+        uses: "paritytech/try-runtime-gha@v0.2.0"
         with:
           runtime-package: ${{ matrix.runtime.package }}
           node-uri: ${{ matrix.runtime.uri }}
