@@ -56,7 +56,7 @@ Here are the recommended steps for both major and minor runtime releases.
 
 |Steps |Description |Major |Minor |
 |------|------------|------|------|
-|0 |Open an issue for the release in the [runtimes repo](https://github.com/polkadot-fellows/runtimes/issues) with the **version number**. | ✔️ | ✔️ |
+|0 |Open an [issue](https://github.com/polkadot-fellows/runtimes/issues) for the release in the runtimes repo with the **version number**. | ✔️ | ✔️ |
 |1 |Identify **released crates**. | ✔️ | ❌ |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). | ✔️ | ✔️ |
 |3 |Identify and include **priority PRs (fixes and patches)** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
