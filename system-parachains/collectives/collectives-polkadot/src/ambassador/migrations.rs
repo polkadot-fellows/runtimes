@@ -38,9 +38,9 @@ fn first_21() -> [AccountId; 21] {
 }
 
 /// Removes everyone from the Ambassadors collective minus the first 21 HAs that were registered.
-pub struct TruncateHeadAmbassadorsTo21;
+pub struct TruncateHeadAmbassadors;
 
-impl OnRuntimeUpgrade for TruncateHeadAmbassadorsTo21 {
+impl OnRuntimeUpgrade for TruncateHeadAmbassadors {
 	fn on_runtime_upgrade() -> Weight {
 		let mut to_be_removed =
 			pallet_ranked_collective::Members::<Runtime, AmbassadorCollectiveInstance>::iter_keys()
