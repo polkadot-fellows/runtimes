@@ -1981,7 +1981,7 @@ impl Runtime {
 		let (staked, _start) = ActiveEra::<Runtime>::get()
 			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
 			.unwrap_or((0, 0));
-		let stake_able_issuance = Balances::total_issuance();
+		let stake_able_issuance = Nis::issuance().other;
 
 		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
 		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
