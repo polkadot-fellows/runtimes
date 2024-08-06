@@ -17,6 +17,7 @@
 //! Genesis configs presets for the Polkadot Coretime runtime
 
 use crate::*;
+use sp_core::sr25519;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -72,9 +73,21 @@ fn coretime_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_local_testnet_genesis(para_id)
 }
 
+fn coretime_polkadot_live_invulnerables() -> Vec<(parachains_common::AccountId, AuraId)> {
+	Vec::from([
+		(get_account_id_from_seed::<sr25519::Public>("Alice"), get_from_seed::<AuraId>("Alice")),
+		(get_account_id_from_seed::<sr25519::Public>("Bob"), get_from_seed::<AuraId>("Bob")),
+	])
+}
+
+pub fn coretime_polkadot_live_genesis(para_id: ParaId) -> serde_json::Value {
+	coretime_polkadot_genesis(coretime_polkadot_live_invulnerables(), Vec::new(), para_id)
+}
+
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
 	let patch = match id.try_into() {
+		Ok("live") => coretime_polkadot_live_genesis(1005.into()),
 		Ok("development") => coretime_polkadot_development_genesis(1005.into()),
 		Ok("local_testnet") => coretime_polkadot_local_testnet_genesis(1005.into()),
 		_ => return None,

@@ -2249,8 +2249,10 @@ dependencies = [
  "people-polkadot-runtime",
  "polkadot-runtime",
  "sc-chain-spec",
+ "sc-network",
  "serde",
  "serde_json",
+ "sp-runtime 38.0.0",
  "staging-kusama-runtime",
 ]
 
