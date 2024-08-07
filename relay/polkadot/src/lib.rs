@@ -1563,7 +1563,7 @@ impl pallet_asset_rate::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
-// Notify `coretime` Pallet when a lease swap occurs
+/// Notify the `coretime` pallet when a lease swap occurs.
 pub struct SwapLeases;
 impl OnSwap for SwapLeases {
 	fn on_swap(one: ParaId, other: ParaId) {
