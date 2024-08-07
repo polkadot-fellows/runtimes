@@ -50,6 +50,17 @@ This will enable [`auto-merge`](https://docs.github.com/en/pull-requests/collabo
 
 The automation can be triggered by the author of the PR or any fellow whose GitHub handle is part of their identity.
 
+## Release process
+
+Releases are automatically pushed on commits merged to master that fulfill the following requirements:
+
+- The [`CHANGELOG.md`](CHANGELOG.md) file was modified.
+- The latest version (the version at the top of the file) in [`CHANGELOG.md`](CHANGELOG.md) has no tag in the repository.
+
+The release process is building all runtimes and then puts them into a release in this github repository.
+
+The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
 ## Release guidelines
 
 Here are the recommended steps for both major and minor runtime releases.
@@ -70,16 +81,6 @@ Here are the recommended steps for both major and minor runtime releases.
 |11 |Close the issue for the release once the referendum is **approved and executed**. | ✔️ | ✔️ |
 |12 |Open an issue for **the next release** in the runtimes repo, if applicable.| ❌ | ✔️ |
 
-## Release process
-
-Releases are automatically pushed on commits merged to master that fulfill the following requirements:
-
-- The [`CHANGELOG.md`](CHANGELOG.md) file was modified.
-- The latest version (the version at the top of the file) in [`CHANGELOG.md`](CHANGELOG.md) has no tag in the repository.
-
-The release process is building all runtimes and then puts them into a release in this github repository.
-
-The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Communication channels
 
