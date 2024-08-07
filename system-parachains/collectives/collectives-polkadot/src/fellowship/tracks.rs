@@ -56,6 +56,12 @@ pub mod constants {
 	pub const PROMOTE_TO_4DAN: TrackId = 24;
 	pub const PROMOTE_TO_5DAN: TrackId = 25;
 	pub const PROMOTE_TO_6DAN: TrackId = 26;
+
+	// Fast track promotions (30 days) used to fast-track promotions. This works out as the track ID
+	// minus 28.
+	pub const FAST_PROMOTE_TO_1DAN: TrackId = 31;
+	pub const FAST_PROMOTE_TO_2DAN: TrackId = 32;
+	pub const FAST_PROMOTE_TO_3DAN: TrackId = 33;
 }
 
 /// Convert the track ID (defined above) into the minimum rank (i.e. fellowship Dan grade) required
@@ -71,6 +77,9 @@ impl Convert<TrackId, Rank> for MinRankOfClass {
 			// A promotion vote; the track ID turns out to be 18 more than the minimum required
 			// rank.
 			promotion @ 21..=26 => promotion - 18,
+			// A fast promotion vote; the track ID turns out to be 28 more than the minimum required
+			// rank.
+			fast_promote @ 31..=33 => fast_promote - 28,
 			_ => Rank::MAX,
 		}
 	}
@@ -110,13 +119,32 @@ const PROMOTE_MIN_SUPPORT: pallet_referenda::Curve = pallet_referenda::Curve::Li
 	ceil: Perbill::from_percent(100),
 };
 
+const FAST_PROMOTE_MAX_DECIDING: u32 = 10;
+const FAST_PROMOTE_DECISION_DEPOSIT: Balance = 5 * DOLLARS;
+const FAST_PROMOTE_PREPARE_PERIOD: BlockNumber = 0;
+const FAST_PROMOTE_DECISION_PERIOD: BlockNumber = 30 * DAYS;
+const FAST_PROMOTE_CONFIRM_PERIOD: BlockNumber = HOURS;
+const FAST_PROMOTE_MIN_ENACTMENT_PERIOD: BlockNumber = 0;
+const FAST_PROMOTE_MIN_APPROVAL: pallet_referenda::Curve =
+	pallet_referenda::Curve::LinearDecreasing {
+		length: Perbill::from_percent(100),
+		floor: Perbill::from_percent(66),
+		ceil: Perbill::from_percent(100),
+	};
+const FAST_PROMOTE_MIN_SUPPORT: pallet_referenda::Curve =
+	pallet_referenda::Curve::LinearDecreasing {
+		length: Perbill::from_percent(100),
+		floor: Perbill::from_percent(50),
+		ceil: Perbill::from_percent(100),
+	};
+
 pub struct TracksInfo;
 impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type Id = TrackId;
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
 	fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
 		use constants as tracks;
-		static DATA: [(TrackId, pallet_referenda::TrackInfo<Balance, BlockNumber>); 21] = [
+		static DATA: [(TrackId, pallet_referenda::TrackInfo<Balance, BlockNumber>); 24] = [
 			(
 				tracks::MEMBERS,
 				pallet_referenda::TrackInfo {
@@ -483,6 +511,48 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 					min_support: PROMOTE_MIN_SUPPORT,
 				},
 			),
+			(
+				tracks::FAST_PROMOTE_TO_1DAN,
+				pallet_referenda::TrackInfo {
+					name: "fast promote to I Dan",
+					max_deciding: FAST_PROMOTE_MAX_DECIDING,
+					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
+					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
+					decision_period: FAST_PROMOTE_DECISION_PERIOD,
+					confirm_period: FAST_PROMOTE_CONFIRM_PERIOD,
+					min_enactment_period: FAST_PROMOTE_MIN_ENACTMENT_PERIOD,
+					min_approval: FAST_PROMOTE_MIN_APPROVAL,
+					min_support: FAST_PROMOTE_MIN_SUPPORT,
+				},
+			),
+			(
+				tracks::FAST_PROMOTE_TO_2DAN,
+				pallet_referenda::TrackInfo {
+					name: "fast promote to II Dan",
+					max_deciding: FAST_PROMOTE_MAX_DECIDING,
+					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
+					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
+					decision_period: FAST_PROMOTE_DECISION_PERIOD,
+					confirm_period: FAST_PROMOTE_CONFIRM_PERIOD,
+					min_enactment_period: FAST_PROMOTE_MIN_ENACTMENT_PERIOD,
+					min_approval: FAST_PROMOTE_MIN_APPROVAL,
+					min_support: FAST_PROMOTE_MIN_SUPPORT,
+				},
+			),
+			(
+				tracks::FAST_PROMOTE_TO_3DAN,
+				pallet_referenda::TrackInfo {
+					name: "fast promote to III Dan",
+					max_deciding: FAST_PROMOTE_MAX_DECIDING,
+					decision_deposit: FAST_PROMOTE_DECISION_DEPOSIT,
+					prepare_period: FAST_PROMOTE_PREPARE_PERIOD,
+					decision_period: FAST_PROMOTE_DECISION_PERIOD,
+					confirm_period: FAST_PROMOTE_CONFIRM_PERIOD,
+					min_enactment_period: FAST_PROMOTE_MIN_ENACTMENT_PERIOD,
+					min_approval: FAST_PROMOTE_MIN_APPROVAL,
+					min_support: FAST_PROMOTE_MIN_SUPPORT,
+				},
+			),
 		];
 		&DATA[..]
 	}
@@ -525,7 +595,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 			Ok(Origin::PromoteTo5Dan) => Ok(tracks::PROMOTE_TO_5DAN),
 			Ok(Origin::PromoteTo6Dan) => Ok(tracks::PROMOTE_TO_6DAN),
 
-			_ => Err(()),
+			Ok(Origin::FastPromoteTo1Dan) => Ok(tracks::FAST_PROMOTE_TO_1DAN),
+			Ok(Origin::FastPromoteTo2Dan) => Ok(tracks::FAST_PROMOTE_TO_2DAN),
+			Ok(Origin::FastPromoteTo3Dan) => Ok(tracks::FAST_PROMOTE_TO_3DAN),
+
+			Err(_) => Err(()),
 		}
 	}
 }

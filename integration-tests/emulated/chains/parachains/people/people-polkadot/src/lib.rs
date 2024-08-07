@@ -42,7 +42,6 @@ decl_test_parachains! {
 			PolkadotXcm: people_polkadot_runtime::PolkadotXcm,
 			Balances: people_polkadot_runtime::Balances,
 			Identity: people_polkadot_runtime::Identity,
-			IdentityMigrator: people_polkadot_runtime::IdentityMigrator,
 		}
 	},
 }

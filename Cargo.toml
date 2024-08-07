@@ -186,7 +186,7 @@ polkadot-system-emulated-network = { path = "integration-tests/emulated/networks
 primitive-types = { version = "0.12.2", default-features = false }
 frame-metadata-hash-extension = { version = "0.4.0", default-features = false }
 remote-externalities = { version = "0.43.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "15.0.0", default-features = false, package = "polkadot-runtime-parachains" }
+runtime-parachains = { version = "15.0.1", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "35.0.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
