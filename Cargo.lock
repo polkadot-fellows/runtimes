@@ -2252,7 +2252,6 @@ dependencies = [
  "sc-network",
  "serde",
  "serde_json",
- "sp-runtime 38.0.0",
  "staging-kusama-runtime",
 ]
 
