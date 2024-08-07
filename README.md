@@ -73,7 +73,7 @@ Here are the recommended steps for both major and minor runtime releases.
 |3 |Identify and include **priority PRs (fixes and patches)** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
 |4 |Identify and include **recommended PRs** (enhancements, backports, migrations) with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
 |5 |Propose or include **additional PRs** (small configurations, simple migrations, general cleanup). | ✔️ | ✔️ |
-|6 |Identify and communicate **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @bkchr, @SBalaguer, and @anaelleltd** in your comment. | ✔️ | ✔️ |
+|6 |Identify and communicate **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to ping **@bkchr, @SBalaguer, and @anaelleltd** in your comment. | ✔️ | ✔️ |
 |7 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
 |8 |Trigger the release for **final reviews**, including granular information about all breaking changes in the **CHANGELOG entry**. | ✔️ | ✔️ |
 |9 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.| ✔️ | ✔️ |
