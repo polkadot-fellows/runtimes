@@ -74,7 +74,7 @@ fn coretime_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_local_testnet_genesis(para_id)
 }
 
-pub fn coretime_polkadot_live_genesis(para_id: ParaId) -> serde_json::Value {
+fn coretime_polkadot_live_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_genesis(
 		vec![
 			// Parity polkadot-coretime-collator-a-0

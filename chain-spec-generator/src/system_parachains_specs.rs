@@ -241,11 +241,7 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 		.with_name("Kusama Coretime")
 		.with_id("coretime-kusama")
 		.with_chain_type(ChainType::Live)
-		.with_genesis_config_patch(
-			coretime_kusama_runtime::genesis_config_presets::coretime_kusama_live_genesis(
-				1005.into(),
-			),
-		)
+		.with_genesis_config_preset_name("live")
 		.with_properties(properties)
 		.with_boot_nodes(
 			boot_nodes
@@ -304,11 +300,7 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 		.with_name("Polkadot Coretime")
 		.with_id("coretime-polkadot")
 		.with_chain_type(ChainType::Live)
-		.with_genesis_config_patch(
-			coretime_polkadot_runtime::genesis_config_presets::coretime_polkadot_live_genesis(
-				1005.into(),
-			),
-		)
+		.with_genesis_config_preset_name("live")
 		.with_properties(properties)
 		.with_boot_nodes(
 			boot_nodes

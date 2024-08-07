@@ -24,7 +24,7 @@ use system_parachains_constants::genesis_presets::*;
 
 const CORETIME_KUSAMA_ED: Balance = ExistentialDeposit::get();
 
-pub fn coretime_kusama_genesis(
+fn coretime_kusama_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
@@ -74,7 +74,7 @@ fn coretime_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_kusama_local_testnet_genesis(para_id)
 }
 
-pub fn coretime_kusama_live_genesis(para_id: ParaId) -> serde_json::Value {
+fn coretime_kusama_live_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_kusama_genesis(
 		vec![
 			// HRn3a4qLmv1ejBHvEbnjaiEWjt154iFi2Wde7bXKGUwGvtL
