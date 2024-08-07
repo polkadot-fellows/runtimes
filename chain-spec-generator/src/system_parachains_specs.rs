@@ -226,7 +226,7 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 	properties.insert("tokenSymbol".into(), "KSM".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 
-	let boot_nodes = vec![
+	let boot_nodes = [
 		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
 		"/dns/kusama-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWAGFiMZDF9RxdacrkenzGdo8nhfSe9EXofHc5mHeJ9vGX",
 		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
@@ -289,7 +289,7 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 	properties.insert("tokenSymbol".into(), "DOT".into());
 	properties.insert("tokenDecimals".into(), 10.into());
 
-	let boot_nodes = vec![
+	let boot_nodes = [
 		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
 		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
 		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
