@@ -25,10 +25,11 @@ use assets_common::{
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
+	pallet_prelude::Get,
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, Nothing, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -372,7 +373,7 @@ impl xcm_executor::Config for XcmConfig {
 	// held). Asset Hub may _act_ as a reserve location for DOT and assets created
 	// under `pallet-assets`. Users must use teleport where allowed (e.g. DOT with the Relay Chain).
 	type IsReserve = (
-		bridging::to_kusama::IsTrustedBridgedReserveLocationForConcreteAsset,
+		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		bridging::to_ethereum::IsTrustedBridgedReserveLocationForForeignAsset,
 	);
 	type IsTeleporter = TrustedTeleporters;
@@ -546,7 +547,6 @@ impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
-	use assets_common::matching;
 	use sp_std::collections::btree_set::BTreeSet;
 	use xcm_builder::NetworkExportTableItem;
 
@@ -587,6 +587,7 @@ pub mod bridging {
 			);
 
 			pub const KusamaNetwork: NetworkId = NetworkId::Kusama;
+			pub KusamaEcosystem: Location = Location::new(2, [GlobalConsensus(KusamaNetwork::get())]);
 			pub AssetHubKusama: Location = Location::new(
 				2,
 				[
@@ -595,11 +596,6 @@ pub mod bridging {
 				],
 			);
 			pub KsmLocation: Location = Location::new(2, GlobalConsensus(KusamaNetwork::get()));
-
-			pub KsmFromAssetHubKusama: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: AssetId(KsmLocation::get()) }),
-				AssetHubKusama::get()
-			);
 
 			/// Set up exporters configuration.
 			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
@@ -631,18 +627,40 @@ pub mod bridging {
 				UniversalAliases::get().contains(alias)
 			}
 		}
+		/// Allow any asset native to the Kusama ecosystem if it comes from Kusama Asset Hub.
+		pub type KusamaAssetFromAssetHubKusama =
+			RemoteAssetFromLocation<StartsWith<KusamaEcosystem>, AssetHubKusama>;
 
-		/// Reserve locations filter for `xcm_executor::Config::IsReserve`.
-		/// Locations from which the runtime accepts reserved assets.
-		pub type IsTrustedBridgedReserveLocationForConcreteAsset =
-			matching::IsTrustedBridgedReserveLocationForConcreteAsset<
-				UniversalLocation,
-				(
-					// allow receive KSM from AssetHubKusama
-					xcm_builder::Case<KsmFromAssetHubKusama>,
-					// and nothing else
-				),
-			>;
+		// TODO: get this from `assets_common v0.17.0` when SDK deps are upgraded
+		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
+		/// `OriginLocation`.
+		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
+			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
+		);
+		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
+			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &Asset, origin: &Location) -> bool {
+				let expected_origin = OriginLocation::get();
+				// ensure `origin` is expected `OriginLocation`
+				if !expected_origin.eq(origin) {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {:?}, origin: {:?} is not from expected {:?}",
+						asset, origin, expected_origin,
+					);
+					return false;
+				} else {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
+					);
+				}
+
+				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
+				AssetsAllowedNetworks::contains(&asset.id.0)
+			}
+		}
 	}
 
 	pub mod to_ethereum {
@@ -687,7 +705,7 @@ pub mod bridging {
 		}
 
 		pub type IsTrustedBridgedReserveLocationForForeignAsset =
-			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
+			IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
 		impl Contains<(Location, Junction)> for UniversalAliases {
 			fn contains(alias: &(Location, Junction)) -> bool {
