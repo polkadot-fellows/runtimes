@@ -26,15 +26,16 @@ use polkadot_runtime_common::{
 	impls::{
 		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 	},
-	paras_registrar, prod_or_fast, slots, BlockHashCount, BlockLength, CurrencyToVote,
-	SlowAdjustingFeeUpdate,
+	paras_registrar, prod_or_fast, slots,
+	traits::OnSwap,
+	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
 
 use runtime_parachains::{
-	assigner_parachains as parachains_assigner_parachains,
-	configuration as parachains_configuration,
+	assigner_coretime as parachains_assigner_coretime,
+	assigner_on_demand as parachains_assigner_on_demand, configuration as parachains_configuration,
 	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
-	disputes as parachains_disputes,
+	coretime, disputes as parachains_disputes,
 	disputes::slashing as parachains_slashing,
 	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
@@ -62,10 +63,13 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
+		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
-	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
+	weights::{
+		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
+		ConstantMultiplier, WeightMeter, WeightToFee as _,
+	},
 	PalletId,
 };
 use frame_system::EnsureRoot;
@@ -86,8 +90,9 @@ use sp_runtime::{
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Extrinsic as ExtrinsicT,
-		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
+		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
+		Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -117,7 +122,9 @@ pub use pallet_timestamp::Call as TimestampCall;
 pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
-use polkadot_runtime_constants::{currency::*, fee::*, time::*, TREASURY_PALLET_ID};
+use polkadot_runtime_constants::{
+	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
+};
 
 // Weights used in the runtime.
 mod weights;
@@ -1228,7 +1235,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = ();
+	type AssignCoretime = CoretimeAssignmentProvider;
 }
 
 parameter_types! {
@@ -1309,16 +1316,66 @@ impl parachains_paras_inherent::Config for Runtime {
 }
 
 impl parachains_scheduler::Config for Runtime {
-	type AssignmentProvider = ParaAssignmentProvider;
+	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
+	// otherwise provide a migration.
+	type AssignmentProvider = CoretimeAssignmentProvider;
 }
 
-impl parachains_assigner_parachains::Config for Runtime {}
+parameter_types! {
+	pub const BrokerId: u32 = system_parachain::BROKER_ID;
+	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
+	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
+		250 * WEIGHT_REF_TIME_PER_MICROS,
+		20 * WEIGHT_PROOF_SIZE_PER_KB
+	);
+}
+
+pub struct BrokerPot;
+impl Get<InteriorLocation> for BrokerPot {
+	fn get() -> InteriorLocation {
+		Junction::AccountId32 { network: None, id: BrokerPalletId::get().into_account_truncating() }
+			.into()
+	}
+}
+
+impl coretime::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BrokerId = BrokerId;
+	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
+	type SendXcm = crate::xcm_config::XcmRouter;
+	type MaxXcmTransactWeight = MaxXcmTransactWeight;
+	type BrokerPotLocation = BrokerPot;
+	type AssetTransactor = crate::xcm_config::LocalAssetTransactor;
+	type AccountToLocation = xcm_builder::AliasesIntoAccountId32<
+		xcm_config::ThisNetwork,
+		<Runtime as frame_system::Config>::AccountId,
+	>;
+}
+
+parameter_types! {
+	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+	pub const MaxHistoricalRevenue: BlockNumber = 2 * system_parachain::coretime::TIMESLICE_PERIOD;
+	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
+}
+
+impl parachains_assigner_on_demand::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
+	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+	type MaxHistoricalRevenue = MaxHistoricalRevenue;
+	type PalletId = OnDemandPalletId;
+}
+
+impl parachains_assigner_coretime::Config for Runtime {}
 
 impl parachains_initializer::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::runtime_parachains_initializer::WeightInfo<Runtime>;
-	type CoretimeOnNewSession = ();
+	type CoretimeOnNewSession = Coretime;
 }
 
 impl parachains_disputes::Config for Runtime {
@@ -1356,7 +1413,7 @@ impl paras_registrar::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type OnSwap = (Crowdloan, Slots);
+	type OnSwap = (Crowdloan, Slots, SwapLeases);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = ParaDataByteDeposit;
 	type WeightInfo = weights::polkadot_runtime_common_paras_registrar::WeightInfo<Runtime>;
@@ -1506,6 +1563,13 @@ impl pallet_asset_rate::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
+/// Notify the `coretime` pallet when a lease swap occurs.
+pub struct SwapLeases;
+impl OnSwap for SwapLeases {
+	fn on_swap(one: ParaId, other: ParaId) {
+		coretime::Pallet::<Runtime>::on_legacy_lease_swap(one, other);
+	}
+}
 
 construct_runtime! {
 	pub enum Runtime
@@ -1588,13 +1652,15 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		ParaAssignmentProvider: parachains_assigner_parachains = 64,
+		OnDemand: parachains_assigner_on_demand = 64,
+		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
 		Slots: slots = 71,
 		Auctions: auctions = 72,
 		Crowdloan: crowdloan = 73,
+		Coretime: coretime = 74,
 
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 98,
@@ -1865,7 +1931,60 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
+	use polkadot_runtime_common::traits::Leaser;
+
 	use super::*;
+
+	pub struct GetLegacyLeaseImpl;
+	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
+		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
+			let now = frame_system::Pallet::<Runtime>::block_number();
+			let lease = slots::Leases::<Runtime>::get(para);
+			if lease.is_empty() {
+				return None;
+			}
+			let (index, _) =
+				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
+			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
+		}
+	}
+
+	/// Cancel all ongoing auctions.
+	///
+	/// Any leases that come into existence after coretime was launched will not be served. Yet,
+	/// any ongoing auctions must be cancelled.
+	///
+	/// Safety:
+	///
+	/// - After coretime is launched, there are no auctions anymore. So if this forgotten to
+	/// be removed after the runtime upgrade, running this again on the next one is harmless.
+	/// - I am assuming scheduler `TaskName`s are unique, so removal of the scheduled entry
+	/// multiple times should also be fine.
+	pub struct CancelAuctions;
+	impl OnRuntimeUpgrade for CancelAuctions {
+		fn on_runtime_upgrade() -> Weight {
+			if let Err(err) = Auctions::cancel_auction(frame_system::RawOrigin::Root.into()) {
+				log::debug!(target: "runtime", "Cancelling auctions failed: {:?}", err);
+			}
+			// Cancel scheduled auction as well:
+			if let Err(err) = Scheduler::cancel_named(
+				pallet_custom_origins::Origin::AuctionAdmin.into(),
+				[
+					0x87, 0xa8, 0x71, 0xb4, 0xd6, 0x21, 0xf0, 0xb9, 0x73, 0x47, 0x5a, 0xaf, 0xcc,
+					0x32, 0x61, 0x0b, 0xd7, 0x68, 0x8f, 0x15, 0x02, 0x33, 0x8a, 0xcd, 0x00, 0xee,
+					0x48, 0x8a, 0xc3, 0x62, 0x0f, 0x4c,
+				],
+			) {
+				log::debug!(target: "runtime", "Cancelling scheduled auctions failed: {:?}", err);
+			}
+			use pallet_scheduler::WeightInfo as _;
+			use polkadot_runtime_common::auctions::WeightInfo as _;
+			weights::polkadot_runtime_common_auctions::WeightInfo::<Runtime>::cancel_auction()
+				.saturating_add(weights::pallet_scheduler::WeightInfo::<Runtime>::cancel_named(
+					<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
+				))
+		}
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
@@ -1881,6 +2000,13 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		clear_judgement_proxies::Migration,
+		// Migrate from legacy lease to coretime. Needs to run after configuration v11
+		coretime::migration::MigrateToCoretime<
+			Runtime,
+			crate::xcm_config::XcmRouter,
+			GetLegacyLeaseImpl,
+		>,
+		CancelAuctions,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -1920,6 +2046,8 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras, Paras]
 		[runtime_parachains::paras_inherent, ParaInherent]
+		[runtime_parachains::assigner_on_demand, OnDemand]
+		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
