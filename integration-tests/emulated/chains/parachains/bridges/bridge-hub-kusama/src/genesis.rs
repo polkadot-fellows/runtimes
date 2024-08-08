@@ -65,11 +65,6 @@ pub fn genesis() -> Storage {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(accounts::BOB)),
 			..Default::default()
 		},
-		ethereum_system: bridge_hub_kusama_runtime::EthereumSystemConfig {
-			para_id: PARA_ID.into(),
-			asset_hub_para_id: ASSET_HUB_PARA_ID.into(),
-			..Default::default()
-		},
 		..Default::default()
 	};
 

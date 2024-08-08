@@ -21,7 +21,7 @@ use super::{
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
 use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
+	matching::{FromSiblingParachain, IsForeignConcreteAsset},
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
@@ -38,7 +38,6 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -49,10 +48,9 @@ use xcm_builder::{
 	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
 	IsConcrete, LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignPaidRemoteExporter, SovereignSignedViaLocation, StartsWith,
-	StartsWithExplicitGlobalConsensus, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
-	XcmFeeToAccount,
+	SignedToAccountId32, SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus,
+	TakeWeightCredit, TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	WithUniqueTopic, XcmFeeManagerFromComponents, XcmFeeToAccount,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
@@ -101,9 +99,6 @@ pub type LocationToAccountId = (
 	// Different global consensus parachain sovereign account.
 	// (Used for over-bridge transfers and reserve processing)
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
-	// Ethereum contract sovereign account.
-	// (Used to get convert ethereum contract locations to sovereign account)
-	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -307,12 +302,8 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
 	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). Asset Hub may _act_ as a reserve location for KSM and assets created
-	// under `pallet-assets`. Users must use teleport where allowed (e.g. KSM with the Relay Chain).
-	type IsReserve = (
-		bridging::to_polkadot::IsTrustedBridgedReserveLocationForConcreteAsset,
-		bridging::to_ethereum::IsTrustedBridgedReserveLocationForForeignAsset,
-	);
+	// held). Kusama Asset Hub accepts PolkadotAssetHub as a reserve location for DOT.
+	type IsReserve = (bridging::to_polkadot::IsTrustedBridgedReserveLocationForConcreteAsset,);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -387,8 +378,7 @@ impl xcm_executor::Config for XcmConfig {
 		XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
-	type UniversalAliases =
-		(bridging::to_polkadot::UniversalAliases, bridging::to_ethereum::UniversalAliases);
+	type UniversalAliases = (bridging::to_polkadot::UniversalAliases,);
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
 	type Aliasers = Nothing;
@@ -419,13 +409,6 @@ pub type XcmRouter = WithUniqueTopic<(
 	// Router which wraps and sends xcm to BridgeHub to be delivered to the Polkadot
 	// GlobalConsensus
 	ToPolkadotXcmRouter,
-	// Router which wraps and sends xcm to BridgeHub to be delivered to the Ethereum
-	// GlobalConsensus
-	SovereignPaidRemoteExporter<
-		xcm_builder::NetworkExportTable<bridging::to_ethereum::BridgeTable>,
-		XcmpQueue,
-		UniversalLocation,
-	>,
 )>;
 
 impl pallet_xcm::Config for Runtime {
@@ -469,7 +452,6 @@ pub type ForeignCreatorsSovereignAccountOf = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	ParentIsPreset<AccountId>,
-	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
@@ -581,57 +563,6 @@ pub mod bridging {
 					// and nothing else
 				),
 			>;
-	}
-
-	pub mod to_ethereum {
-		use super::*;
-		pub use bp_bridge_hub_kusama::snowbridge::EthereumNetwork;
-		use bp_bridge_hub_kusama::snowbridge::InboundQueuePalletInstance;
-
-		parameter_types! {
-			/// User fee for transfers from Kusama to Ethereum.
-			/// The fee is set to max Balance to disable the bridge until a fee is set by
-			/// governance.
-			pub const DefaultBridgeHubEthereumBaseFee: Balance = Balance::MAX;
-			pub storage BridgeHubEthereumBaseFee: Balance = DefaultBridgeHubEthereumBaseFee::get();
-			pub SiblingBridgeHubWithEthereumInboundQueueInstance: Location = Location::new(
-				1,
-				[
-					Parachain(SiblingBridgeHubParaId::get()),
-					PalletInstance(InboundQueuePalletInstance::get()),
-				]
-			);
-
-			/// Set up exporters configuration.
-			/// `Option<MultiAsset>` represents static "base fee" which is used for total delivery fee calculation.
-			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = sp_std::vec![
-				NetworkExportTableItem::new(
-					EthereumNetwork::get(),
-					Some(sp_std::vec![Junctions::Here]),
-					SiblingBridgeHub::get(),
-					Some((
-						XcmBridgeHubRouterFeeAssetId::get(),
-						BridgeHubEthereumBaseFee::get(),
-					).into())
-				),
-			];
-
-			/// Universal aliases
-			pub UniversalAliases: BTreeSet<(Location, Junction)> = BTreeSet::from_iter(
-				sp_std::vec![
-					(SiblingBridgeHubWithEthereumInboundQueueInstance::get(), GlobalConsensus(EthereumNetwork::get())),
-				]
-			);
-		}
-
-		pub type IsTrustedBridgedReserveLocationForForeignAsset =
-			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
-
-		impl Contains<(Location, Junction)> for UniversalAliases {
-			fn contains(alias: &(Location, Junction)) -> bool {
-				UniversalAliases::get().contains(alias)
-			}
-		}
 	}
 
 	/// Benchmarks helper for bridging configuration.
