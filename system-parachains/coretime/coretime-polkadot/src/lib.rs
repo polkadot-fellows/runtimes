@@ -1078,6 +1078,18 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl xcm_runtime_apis::conversions::LocationToAccountApi<Block, AccountId> for Runtime {
+		fn convert_location(location: VersionedLocation) -> Result<
+			AccountId,
+			xcm_runtime_apis::conversions::Error
+		> {
+			xcm_runtime_apis::conversions::LocationToAccountHelper::<
+				AccountId,
+				xcm_config::LocationToAccountId,
+			>::convert_location(location)
+		}
+	}
+
 	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
 		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
 			build_state::<RuntimeGenesisConfig>(config)
