@@ -42,7 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
 - Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
 - Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
-- Kusama system chains: enable PoV-reclaim.
 
 ### Added
 
