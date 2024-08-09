@@ -103,7 +103,7 @@ pub fn genesis() -> Storage {
 			..Default::default()
 		},
 		assets: asset_hub_polkadot_runtime::AssetsConfig {
-			assets: vec![(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), true, ED)],
+			assets: vec![(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), false, ED)],
 			..Default::default()
 		},
 		foreign_assets: asset_hub_polkadot_runtime::ForeignAssetsConfig {
@@ -112,13 +112,13 @@ pub fn genesis() -> Storage {
 				(
 					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
 					PenpalASiblingSovereignAccount::get(),
-					true,
+					false,
 					ED,
 				),
 				(
 					PenpalBTeleportableAssetLocation::get().try_into().unwrap(),
 					PenpalBSiblingSovereignAccount::get(),
-					true,
+					false,
 					ED,
 				),
 			],

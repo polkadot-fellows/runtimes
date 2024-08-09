@@ -77,7 +77,7 @@ pub fn genesis() -> Storage {
 			..Default::default()
 		},
 		assets: asset_hub_kusama_runtime::AssetsConfig {
-			assets: vec![(RESERVABLE_ASSET_ID, AssetHubKusamaAssetOwner::get(), true, ED)],
+			assets: vec![(RESERVABLE_ASSET_ID, AssetHubKusamaAssetOwner::get(), false, ED)],
 			..Default::default()
 		},
 		foreign_assets: asset_hub_kusama_runtime::ForeignAssetsConfig {
@@ -86,7 +86,7 @@ pub fn genesis() -> Storage {
 				(
 					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
 					PenpalASiblingSovereignAccount::get(),
-					true,
+					false,
 					ED,
 				),
 			],
