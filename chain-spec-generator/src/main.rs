@@ -81,6 +81,10 @@ fn main() -> Result<(), String> {
 				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
 			),
 			(
+				"coretime-polkadot-local",
+				Box::new(system_parachains_specs::coretime_polkadot_local_testnet_config) as Box<_>,
+			),
+			(
 				"people-kusama-local",
 				Box::new(system_parachains_specs::people_kusama_local_testnet_config) as Box<_>,
 			),

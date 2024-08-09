@@ -16,6 +16,7 @@
 pub use asset_hub_polkadot_emulated_chain;
 pub use bridge_hub_polkadot_emulated_chain;
 pub use collectives_polkadot_emulated_chain;
+pub use coretime_polkadot_emulated_chain;
 pub use penpal_emulated_chain;
 pub use people_polkadot_emulated_chain;
 pub use polkadot_emulated_chain;
@@ -23,6 +24,7 @@ pub use polkadot_emulated_chain;
 use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
 use collectives_polkadot_emulated_chain::CollectivesPolkadot;
+use coretime_polkadot_emulated_chain::CoretimePolkadot;
 use penpal_emulated_chain::{PenpalA, PenpalB};
 use people_polkadot_emulated_chain::PeoplePolkadot;
 use polkadot_emulated_chain::Polkadot;
@@ -40,6 +42,7 @@ decl_test_networks! {
 			AssetHubPolkadot,
 			BridgeHubPolkadot,
 			CollectivesPolkadot,
+			CoretimePolkadot,
 			PenpalA,
 			PenpalB,
 			PeoplePolkadot,
@@ -53,6 +56,7 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	AssetHubPolkadotPara { sender: ALICE, receiver: BOB },
 	BridgeHubPolkadotPara { sender: ALICE, receiver: BOB },
 	CollectivesPolkadotPara { sender: ALICE, receiver: BOB },
+	CoretimePolkadotPara { sender: ALICE, receiver: BOB },
 	PenpalAPara { sender: ALICE, receiver: BOB },
 	PenpalBPara { sender: ALICE, receiver: BOB },
 	PeoplePolkadotPara { sender: ALICE, receiver: BOB }

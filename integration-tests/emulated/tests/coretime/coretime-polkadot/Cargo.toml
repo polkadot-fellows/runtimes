@@ -1,0 +1,39 @@
+[package]
+name = "coretime-polkadot-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Coretime Polkadot runtime integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+
+# Substrate
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-broker = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
+
+# Polkadot
+polkadot-runtime-common = { workspace = true, default-features = true }
+pallet-xcm = { workspace = true, default-features = true }
+runtime-parachains = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true }
+xcm-runtime-apis = { workspace = true, default-features = true }
+
+# Cumulus
+parachains-common = { workspace = true, default-features = true }
+emulated-integration-tests-common = { workspace = true }
+asset-test-utils = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
+
+# Local
+polkadot-runtime-constants = { workspace = true, default-features = true }
+polkadot-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+coretime-polkadot-runtime = { workspace = true }
+polkadot-system-emulated-network = { workspace = true }
