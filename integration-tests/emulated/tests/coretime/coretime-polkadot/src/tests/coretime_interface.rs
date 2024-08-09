@@ -15,9 +15,9 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
-use pallet_broker::{Configuration, ConfigRecord, CoreAssignment, CoreMask, ScheduleItem};
-use sp_runtime::Perbill;
+use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use sp_runtime::Perbill;
 
 #[test]
 fn transact_hardcoded_weights_are_sane() {
@@ -114,17 +114,16 @@ fn transact_hardcoded_weights_are_sane() {
 				) => {},
 			]
 		);
-
 	});
 
 	// Keep track of the relay chain block number so we can fast forward while still checking the
 	// right block.
-	let mut block_number_cursor = Polkadot::ext_wrapper(|| {
-		<Polkadot as Chain>::System::block_number()
-	});
+	let mut block_number_cursor =
+		Polkadot::ext_wrapper(|| <Polkadot as Chain>::System::block_number());
 
 	let config = CoretimePolkadot::ext_wrapper(|| {
-		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get().expect("Pallet was configured earlier.")
+		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get()
+			.expect("Pallet was configured earlier.")
 	});
 
 	// Now run up to the block before the sale is rotated.
