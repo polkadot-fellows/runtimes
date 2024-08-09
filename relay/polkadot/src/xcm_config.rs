@@ -138,6 +138,8 @@ parameter_types! {
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
 	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
 	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub CoretimeLocation: Location = Parachain(BROKER_ID).into_location();
+	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
 	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
 	pub People: Location = Parachain(PEOPLE_ID).into_location();
@@ -145,11 +147,12 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
-/// Polkadot Relay recognizes/respects AssetHub, Collectives, and BridgeHub chains as teleporters.
+/// Polkadot Relay recognizes/respects System Parachains as teleporters.
 pub type TrustedTeleporters = (
 	xcm_builder::Case<DotForAssetHub>,
 	xcm_builder::Case<DotForCollectives>,
 	xcm_builder::Case<DotForBridgeHub>,
+	xcm_builder::Case<DotForCoretime>,
 	xcm_builder::Case<DotForPeople>,
 );
 
