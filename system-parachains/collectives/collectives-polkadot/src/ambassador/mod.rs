@@ -34,17 +34,22 @@ mod tracks;
 pub use origins::pallet_origins as pallet_ambassador_origins;
 
 use crate::{
-	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId},
+	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId, SelfParaId},
 	*,
 };
+use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::PalletInfoAccess,
-	traits::{EitherOf, MapSuccess, TryMapSuccess},
+	traits::{
+		tokens::UnityOrOuterConversion, ConstU8, EitherOf, FromContains, MapSuccess, TryMapSuccess,
+	},
 };
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
 use pallet_ranked_collective::{MemberIndex, Rank, Votes};
-use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
+use polkadot_runtime_common::impls::{
+	ContainsParts as ContainsLocationParts, LocatableAssetConverter, VersionedLocationConverter,
+};
 use sp_core::ConstU128;
 use sp_runtime::{
 	traits::{
@@ -347,7 +352,15 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		AmbassadorTreasuryPaymaster,
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
-	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
+	type BalanceConverter = UnityOrOuterConversion<
+		ContainsLocationParts<
+			FromContains<
+				xcm_builder::IsSiblingSystemParachain<ParaId, SelfParaId>,
+				xcm_builder::IsParentsOnly<ConstU8<1>>,
+			>,
+		>,
+		AssetRate,
+	>;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<

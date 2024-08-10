@@ -22,15 +22,17 @@ use crate::{
 	fellowship::origins::EnsureCanFastPromoteTo,
 	impls::ToParentTreasury,
 	weights,
-	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
+	xcm_config::{AssetHubUsdt, LocationToAccountId, SelfParaId, TreasurerBodyId},
 	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
-	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
+	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
+use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		tokens::UnityOrOuterConversion, ConstU8, EitherOf, EitherOfDiverse, FromContains,
+		MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
 	},
 	PalletId,
 };
@@ -42,7 +44,8 @@ pub use origins::{
 use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
-	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
+	ContainsParts as ContainsLocationParts, LocatableAssetConverter, VersionedLocatableAsset,
+	VersionedLocationConverter,
 };
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
 use sp_arithmetic::Permill;
@@ -324,7 +327,15 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type Paymaster = FellowshipTreasuryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
-	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
+	type BalanceConverter = UnityOrOuterConversion<
+		ContainsLocationParts<
+			FromContains<
+				xcm_builder::IsSiblingSystemParachain<ParaId, SelfParaId>,
+				xcm_builder::IsParentsOnly<ConstU8<1>>,
+			>,
+		>,
+		AssetRate,
+	>;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
