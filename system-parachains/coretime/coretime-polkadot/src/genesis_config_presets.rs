@@ -134,7 +134,7 @@ fn coretime_polkadot_live_genesis(para_id: ParaId) -> serde_json::Value {
 }
 
 pub(super) fn preset_names() -> Vec<PresetId> {
-	vec![PresetId::from("development"), PresetId::from("local_testnet")]
+	vec![PresetId::from("live"), PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
