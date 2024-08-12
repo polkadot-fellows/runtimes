@@ -65,7 +65,7 @@ fn coretime_polkadot_genesis(
 	})
 }
 
-pub fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
+fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_genesis(invulnerables(), testnet_accounts(), para_id)
 }
 
