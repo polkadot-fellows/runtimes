@@ -73,6 +73,7 @@ pub const ASSET_MIN_BALANCE: u128 = 1000;
 pub const ASSETS_PALLET_ID: u8 = 50;
 
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
+pub type ParaToRelayTest = Test<PenpalA, Kusama>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;
