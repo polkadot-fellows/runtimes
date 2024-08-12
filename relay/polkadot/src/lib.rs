@@ -1997,11 +1997,12 @@ pub mod migrations {
 		OnRuntimeUpgrade for FixGapLeases<T, SendXcm, LegacyLease>
 	{
 		fn on_runtime_upgrade() -> Weight {
+			// Under the assumption that this migration will be run just before `MigrateToCoretime`
+			// migration we use the same code to check if the migration has already been executed.
 			if Self::already_migrated() {
 				return Weight::zero()
 			}
 
-			// todo: idempotency
 			Self::migrate_leases_with_gaps()
 		}
 	}
@@ -2131,13 +2132,15 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		clear_judgement_proxies::Migration,
+		// Handle leases with gaps - needs to run before `MigrateToCoretime` because it uses the
+		// same 'already applied' check
+		FixGapLeases<Runtime, crate::xcm_config::XcmRouter, GetLegacyLeaseImpl>,
 		// Migrate from legacy lease to coretime. Needs to run after configuration v11
 		coretime::migration::MigrateToCoretime<
 			Runtime,
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
 		>,
-		FixGapLeases<Runtime, crate::xcm_config::XcmRouter, GetLegacyLeaseImpl>,
 		CancelAuctions,
 	);
 
