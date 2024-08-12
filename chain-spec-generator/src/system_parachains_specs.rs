@@ -269,11 +269,7 @@ pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		.with_name("Polkadot Coretime Local")
 		.with_id("coretime-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(
-			coretime_polkadot_runtime::genesis_config_presets::coretime_polkadot_local_testnet_genesis(
-				1005.into(),
-			),
-		)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))

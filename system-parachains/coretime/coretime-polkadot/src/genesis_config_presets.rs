@@ -19,6 +19,7 @@
 use crate::*;
 use hex_literal::hex;
 use sp_core::crypto::UncheckedInto;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -66,7 +67,7 @@ fn coretime_polkadot_genesis(
 	})
 }
 
-pub fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
+fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_genesis(invulnerables(), testnet_accounts(), para_id)
 }
 
@@ -130,6 +131,10 @@ fn coretime_polkadot_live_genesis(para_id: ParaId) -> serde_json::Value {
 		Vec::new(),
 		para_id,
 	)
+}
+
+pub(super) fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
