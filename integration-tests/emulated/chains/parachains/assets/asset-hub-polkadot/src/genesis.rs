@@ -29,6 +29,7 @@ use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
+pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
@@ -103,7 +104,10 @@ pub fn genesis() -> Storage {
 			..Default::default()
 		},
 		assets: asset_hub_polkadot_runtime::AssetsConfig {
-			assets: vec![(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), false, ED)],
+			assets: vec![
+				(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), false, ED),
+				(USDT_ID, AssetHubPolkadotAssetOwner::get(), true, ED),
+			],
 			..Default::default()
 		},
 		foreign_assets: asset_hub_polkadot_runtime::ForeignAssetsConfig {
