@@ -118,8 +118,7 @@ fn transact_hardcoded_weights_are_sane() {
 
 	// Keep track of the relay chain block number so we can fast forward while still checking the
 	// right block.
-	let mut block_number_cursor =
-		Polkadot::ext_wrapper(|| <Polkadot as Chain>::System::block_number());
+	let mut block_number_cursor = Polkadot::ext_wrapper(<Polkadot as Chain>::System::block_number);
 
 	let config = CoretimePolkadot::ext_wrapper(|| {
 		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get()
