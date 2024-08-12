@@ -17,6 +17,7 @@
 //! Genesis configs presets for the Polkadot Coretime runtime
 
 use crate::*;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -70,6 +71,10 @@ pub fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::V
 
 fn coretime_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_local_testnet_genesis(para_id)
+}
+
+pub(super) fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
