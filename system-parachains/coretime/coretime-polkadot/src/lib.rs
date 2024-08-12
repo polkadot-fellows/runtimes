@@ -387,8 +387,10 @@ impl pallet_session::Config for Runtime {
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// We don't have stash and controller, thus we don't need the convert as well.
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
-	type ShouldEndSession = pallet_session::PeriodicSessions<ConstU32<SESSION_LENGTH>, ConstU32<OFFSET>>;
-	type NextSessionRotation = pallet_session::PeriodicSessions<ConstU32<SESSION_LENGTH>, ConstU32<OFFSET>>;
+	type ShouldEndSession =
+		pallet_session::PeriodicSessions<ConstU32<SESSION_LENGTH>, ConstU32<OFFSET>>;
+	type NextSessionRotation =
+		pallet_session::PeriodicSessions<ConstU32<SESSION_LENGTH>, ConstU32<OFFSET>>;
 	type SessionManager = CollatorSelection;
 	// Essentially just Aura, but let's be pedantic.
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
@@ -466,7 +468,7 @@ impl pallet_multisig::Config for Runtime {
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
-	#[default]j
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
