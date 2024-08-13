@@ -47,7 +47,6 @@ collectives-polkadot-runtime-constants = { path = "system-parachains/collectives
 coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
 coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
 cumulus-pallet-aura-ext = { version = "0.15.0", default-features = false }
-cumulus-pallet-dmp-queue = { version = "0.15.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.15.0", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "17.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.15.0", default-features = false }
