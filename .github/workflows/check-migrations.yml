@@ -60,8 +60,14 @@ jobs:
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             EXTRA_FLAGS+="--no-weight-warnings"
             echo "Disabling weight checks since we are on a relay"
+
+            echo "Disabling try-state checks on the relay"
+            CHECKS="pre-and-post"
           else
             echo "Enabling weight checks since we are not on a relay"
+            
+            echo "Enabling try-state checks on the non-relay"
+            CHECKS="all"
           fi
 
           # Disable the spec version check when we dont want to release.
@@ -74,15 +80,17 @@ jobs:
           fi
 
           echo "Flags: $EXTRA_FLAGS"
+          echo "Checks: $CHECKS"
 
           echo "EXTRA_ARGS=$EXTRA_FLAGS" >> $GITHUB_ENV
+          echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
-        uses: "paritytech/try-runtime-gha@v0.1.0"
+        uses: "paritytech/try-runtime-gha@v0.2.0"
         with:
           runtime-package: ${{ matrix.runtime.package }}
           node-uri: ${{ matrix.runtime.uri }}
-          checks: "pre-and-post"
+          checks: ${{ env.CHECKS }}
           extra-args: ${{ env.EXTRA_ARGS }}
 
   # This will only run if all the tests in its "needs" array passed.

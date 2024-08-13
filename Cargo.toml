@@ -46,6 +46,8 @@ collectives-polkadot-runtime = { path = "system-parachains/collectives/collectiv
 collectives-polkadot-runtime-constants = { path = "system-parachains/collectives/collectives-polkadot/constants" }
 coretime-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-kusama" }
 coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" }
+coretime-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot" }
+coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
 cumulus-pallet-aura-ext = { version = "0.15.0", default-features = false }
 cumulus-pallet-dmp-queue = { version = "0.15.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.15.0", default-features = false }
@@ -55,7 +57,6 @@ cumulus-pallet-xcmp-queue = { version = "0.15.0", default-features = false }
 cumulus-primitives-aura = { version = "0.14.0", default-features = false }
 cumulus-primitives-core = { version = "0.14.0", default-features = false }
 cumulus-primitives-utility = { version = "0.15.0", default-features = false }
-cumulus-primitives-storage-weight-reclaim = { version = "6.0.0", default-features = false }
 emulated-integration-tests-common = { version = "11.0.0" }
 encointer-balances-tx-payment = { version = "~13.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~13.1.0", default-features = false }
@@ -254,6 +255,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
+	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",
@@ -269,6 +271,7 @@ members = [
 	"integration-tests/emulated/tests/bridges/bridge-hub-polkadot",
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
+	"integration-tests/emulated/tests/coretime/coretime-polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
@@ -288,6 +291,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
+	"system-parachains/coretime/coretime-polkadot",
 	"system-parachains/encointer",
 	"system-parachains/gluttons/glutton-kusama",
 	"system-parachains/people/people-kusama",
