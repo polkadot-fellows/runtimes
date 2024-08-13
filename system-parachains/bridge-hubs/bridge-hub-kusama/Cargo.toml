@@ -113,7 +113,6 @@ bridge-runtime-common = { features = [
 ], workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 static_assertions = { workspace = true }
-snowbridge-runtime-test-common = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
