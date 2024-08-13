@@ -118,7 +118,6 @@ pub type SignedExtra = (
 	BridgeRejectObsoleteHeadersAndMessages,
 	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-	cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim<Runtime>,
 );
 
 bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
