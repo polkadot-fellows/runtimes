@@ -35,8 +35,6 @@ pub mod account {
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
-	/// Secretary treasury pallet ID
-	pub const SECRETARY_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/secrt");
 }
 
 /// Consensus-related.

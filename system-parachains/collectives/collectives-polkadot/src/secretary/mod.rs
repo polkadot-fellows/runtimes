@@ -16,7 +16,6 @@
 
 //! The Polkadot Secretary Collective.
 
-mod origins;
 use core::marker::PhantomData;
 
 use crate::{fellowship::FellowshipAdminBodyId, *};
@@ -25,7 +24,6 @@ use frame_support::{
 	traits::{tokens::GetSalary, EitherOf, MapSuccess, PalletInfoAccess, PollStatus, Polling},
 };
 use frame_system::{pallet_prelude::BlockNumberFor, EnsureRootWithSuccess};
-pub use origins::{pallet_origins as pallet_secretary_origins, Secretary};
 use pallet_ranked_collective::{MemberIndex, TallyOf, Votes};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_constants::time::HOURS;
@@ -64,12 +62,11 @@ type ApproveOrigin = EitherOf<
 	>,
 >;
 
-impl pallet_secretary_origins::Config for Runtime {}
-
 pub struct SecretaryPolling<T: pallet_ranked_collective::Config<I>, I: 'static>(
 	PhantomData<(T, I)>,
 );
 
+// TODO: Include no-op impl in the Polkadot-SDK(https://github.com/paritytech/polkadot-sdk/pull/5311)
 impl<T: pallet_ranked_collective::Config<I>, I: 'static> Polling<TallyOf<T, I>>
 	for SecretaryPolling<T, I>
 {
@@ -132,6 +129,7 @@ impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
 	type MinRankOfClass = Identity;
 	type MemberSwappedHandler = crate::SecretarySalary;
 	type VoteWeight = pallet_ranked_collective::Geometric;
+	type MaxMemberCount = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = crate::SecretarySalary;
 }

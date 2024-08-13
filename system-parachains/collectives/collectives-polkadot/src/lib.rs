@@ -54,7 +54,6 @@ use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
-use secretary::pallet_secretary_origins;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -740,9 +739,8 @@ construct_runtime!(
 		// The Secretary Collective
 		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
-		SecretaryOrigins: pallet_secretary_origins = 81,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
-		SecretarySalary: pallet_salary::<Instance3> = 82,
+		SecretarySalary: pallet_salary::<Instance3> = 81,
 	}
 );
 
