@@ -57,7 +57,6 @@ cumulus-pallet-xcmp-queue = { version = "0.15.0", default-features = false }
 cumulus-primitives-aura = { version = "0.14.0", default-features = false }
 cumulus-primitives-core = { version = "0.14.0", default-features = false }
 cumulus-primitives-utility = { version = "0.15.0", default-features = false }
-cumulus-primitives-storage-weight-reclaim = { version = "6.0.0", default-features = false }
 emulated-integration-tests-common = { version = "11.0.0" }
 encointer-balances-tx-payment = { version = "~13.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~13.1.0", default-features = false }
