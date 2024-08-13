@@ -1790,7 +1790,6 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "snowbridge-runtime-test-common",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
