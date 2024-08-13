@@ -27,9 +27,9 @@ use frame_support::{
 	},
 };
 use frame_system::Pallet as System;
-use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
 use parachains_common::{AccountId, Balance};
+use polkadot_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_executor::traits::TransactAsset;
@@ -136,10 +136,11 @@ impl CoretimeInterface for CoretimeAllocator {
 		use crate::coretime::CoretimeProviderCalls::RequestCoreCount;
 		let request_core_count_call = RelayRuntimePallets::Coretime(RequestCoreCount(count));
 
-		// Weight for `request_core_count` from Kusama runtime benchmarks:
+		// Weight for `request_core_count` from Polkadot runtime benchmarks:
 		// `ref_time` = 7889000 + (3 * 25000000) + (1 * 100000000) = 182889000
 		// `proof_size` = 1636
 		// Add 5% to each component and round to 2 significant figures.
+		// TODO check when benchmarks are rerun
 		let call_weight = Weight::from_parts(190_000_000, 1700);
 
 		let message = Xcm(vec![
@@ -172,13 +173,13 @@ impl CoretimeInterface for CoretimeAllocator {
 		let request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		// Weight for `request_revenue_at` from Kusama runtime benchmarks:
+		// Weight for `request_revenue_at` from Polkadot runtime benchmarks:
 		// `ref_time` = 37_637_000 + (3 * 25000000) + (6 * 100000000) = 712637000
 		// `proof_size` = 6428
 		// Add 5% to each component and round to 2 significant figures.
 		//
-		// This benchmark has been transplanted from a testnet and not rerun, so adding a healthy
-		// buffer. TODO refine when benchmarks are run: https://github.com/polkadot-fellows/runtimes/issues/404
+		// These weights have been transplanted from another network and not rerun, so a healthy
+		// buffer is included. TODO refine when benchmarks are run.
 		let call_weight = Weight::from_parts(1_000_000_000, 20_000);
 
 		let message = Xcm(vec![
@@ -226,10 +227,11 @@ impl CoretimeInterface for CoretimeAllocator {
 		let assign_core_call =
 			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
-		// Weight for `assign_core` from Kusama runtime benchmarks:
+		// Weight for `assign_core` from Polkadot runtime benchmarks:
 		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
 		// `proof_size` = 3612
 		// Add 5% to each component and round to 2 significant figures.
+		// TODO check when benchmarks are rerun
 		let call_weight = Weight::from_parts(248_000_000, 3800);
 
 		let message = Xcm(vec![
@@ -294,7 +296,7 @@ impl pallet_broker::Config for Runtime {
 	type Currency = Balances;
 	type OnRevenue = BurnCoretimeRevenue;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
-	type MaxLeasedCores = ConstU32<50>;
+	type MaxLeasedCores = ConstU32<55>;
 	type MaxReservedCores = ConstU32<10>;
 	type Coretime = CoretimeAllocator;
 	type ConvertBalance = sp_runtime::traits::Identity;

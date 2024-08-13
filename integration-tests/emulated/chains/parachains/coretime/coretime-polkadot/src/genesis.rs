@@ -1,11 +1,12 @@
-// Copyright (C) Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies and the various Polkadot contributors, see Contributions.md
+// for a list of specific contributors.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+// http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,36 +24,36 @@ use emulated_integration_tests_common::{
 use parachains_common::Balance;
 
 pub const PARA_ID: u32 = 1005;
-pub const ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
+pub const ED: Balance = coretime_polkadot_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
-	let genesis_config = coretime_kusama_runtime::RuntimeGenesisConfig {
-		system: coretime_kusama_runtime::SystemConfig::default(),
-		balances: coretime_kusama_runtime::BalancesConfig {
+	let genesis_config = coretime_polkadot_runtime::RuntimeGenesisConfig {
+		system: coretime_polkadot_runtime::SystemConfig::default(),
+		balances: coretime_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
 		},
-		parachain_info: coretime_kusama_runtime::ParachainInfoConfig {
+		parachain_info: coretime_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
 			..Default::default()
 		},
-		collator_selection: coretime_kusama_runtime::CollatorSelectionConfig {
+		collator_selection: coretime_polkadot_runtime::CollatorSelectionConfig {
 			invulnerables: collators::invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ED * 16,
 			..Default::default()
 		},
-		session: coretime_kusama_runtime::SessionConfig {
+		session: coretime_polkadot_runtime::SessionConfig {
 			keys: collators::invulnerables()
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                                   // account id
-						acc,                                           // validator id
-						coretime_kusama_runtime::SessionKeys { aura }, // session keys
+						acc.clone(),                                     // account id
+						acc,                                             // validator id
+						coretime_polkadot_runtime::SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),
 		},
-		polkadot_xcm: coretime_kusama_runtime::PolkadotXcmConfig {
+		polkadot_xcm: coretime_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 			..Default::default()
 		},
@@ -61,6 +62,7 @@ pub fn genesis() -> Storage {
 
 	build_genesis_storage(
 		&genesis_config,
-		coretime_kusama_runtime::WASM_BINARY.expect("WASM binary was not built, please build it!"),
+		coretime_polkadot_runtime::WASM_BINARY
+			.expect("WASM binary was not built, please build it!"),
 	)
 }
