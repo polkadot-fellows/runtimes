@@ -278,6 +278,7 @@ try-runtime = [
 	"pallet-beefy-mmr/try-runtime",
 	"pallet-beefy/try-runtime",
 	"pallet-bounties/try-runtime",
+	"pallet-broker/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
