@@ -94,7 +94,7 @@ impl<T: Config, SendXcm: xcm::v4::SendXcm, LegacyLease: GetLegacyLease<BlockNumb
 		loop {
 			match sp_io::storage::next_key(&next_key) {
 				// StorageVersion is initialized before, so we need to ignore it.
-				Some(key) if &key == &storage_version_key => {
+				Some(key) if key == storage_version_key => {
 					next_key = key;
 				},
 				// If there is any other key with the prefix of the pallet,
