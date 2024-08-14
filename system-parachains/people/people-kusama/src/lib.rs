@@ -150,17 +150,9 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
-parameter_types! {
-	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
-}
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
-	// remove `identity-migrator`
-	frame_support::migrations::RemovePallet<
-		IdentityMigratorPalletName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
+	// unreleased and/or un-applied
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
