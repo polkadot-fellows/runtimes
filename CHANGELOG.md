@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
 - All runtimes: add `LocationToAccountApi` ([polkadot-fellows/runtimes#413](https://github.com/polkadot-fellows/runtimes/pull/413))
 - Enable Agile Coretime on Polkadot ([polkadot-fellows/runtimes#401](https://github.com/polkadot-fellows/runtimes/pull/401))
+- Add the Polkadot Coretime Chain runtime ([polkadot-fellows/runtimes#410](https://github.com/polkadot-fellows/runtimes/pull/410))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -42,7 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pallet-xcm: add new extrinsic for asset transfers using explicit reserve ([SDK v1.11 #3695](https://github.com/paritytech/polkadot-sdk/pull/3695)).
 - Ranked collective introduce `Add` and `Remove` origins ([SDK v1.8 #3212](https://github.com/paritytech/polkadot-sdk/pull/3212)).
 - Runtime apis to help with delegate-stake based Nomination Pools ([SDK v1.13 #4537](https://github.com/paritytech/polkadot-sdk/pull/4537)).
-- Kusama system chains: enable PoV-reclaim.
 
 ### Added
 
@@ -53,6 +53,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
 - Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
+- Asset Hubs: setup auto incremented asset id to 50_000_000 for trust backed assets ([polkadot-fellows/runtimes#414](https://github.com/polkadot-fellows/runtimes/pull/414)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
