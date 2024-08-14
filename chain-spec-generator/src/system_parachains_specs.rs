@@ -44,6 +44,8 @@ pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
+pub type CoretimePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+
 pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
@@ -211,6 +213,26 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 				1005.into(),
 			),
 		)
+		.with_properties(properties)
+		.build(),
+	))
+}
+
+pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+
+	Ok(Box::new(
+		CoretimePolkadotChainSpec::builder(
+			coretime_polkadot_runtime::WASM_BINARY.expect("CoretimePolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1005 },
+		)
+		.with_name("Polkadot Coretime Local")
+		.with_id("coretime-polkadot-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))

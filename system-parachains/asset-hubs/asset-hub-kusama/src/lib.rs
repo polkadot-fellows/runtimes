@@ -1041,14 +1041,9 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
-parameter_types! {
-	pub DmpQueueName: &'static str = "DmpQueue";
-}
-
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
-	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
+	// unreleased and/or un-applied
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
 	pallet_assets::migration::next_asset_id::SetNextAssetId<
 		ConstU32<50_000_000>,
