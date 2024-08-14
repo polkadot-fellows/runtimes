@@ -171,8 +171,7 @@ jobs:
     env:
       JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
-    # TODO: replace runner for bench, when it's ready
-    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'ubuntu-22.04' || 'ubuntu-22.04' }}
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'gitrun-001' || 'ubuntu-22.04' }}
     steps:
       - name: Install updates and protobuf-compiler
         if: startsWith(github.event.comment.body, '/cmd bench')
