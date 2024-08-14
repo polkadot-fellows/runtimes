@@ -44,9 +44,9 @@ fn transact_hardcoded_weights_are_sane() {
 
 		let coretime_root_origin = <CoretimePolkadot as Chain>::RuntimeOrigin::root();
 
-		// Create and populate schedule with some assignments on this core.
+		// Create and populate schedule with the worst case assignment on this core.
 		let mut schedule = Vec::new();
-		for i in 0..10 {
+		for i in 0..80 {
 			schedule.push(ScheduleItem {
 				mask: CoreMask::void().set(i),
 				assignment: CoreAssignment::Task(2000 + i),
