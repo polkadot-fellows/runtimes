@@ -245,6 +245,15 @@ fn migrate_send_assignments_to_coretime_chain<
 				log::error!("Lease holding chain with no lease information?!");
 				return None
 			};
+
+			let valid_until: u32 = match valid_until.try_into() {
+				Ok(val) => val,
+				Err(_) => {
+					log::error!("Converting block number to u32 failed!");
+					return None
+				},
+			};
+
 			// We assume the coretime chain set this parameter to the recommended value in RFC-1:
 			const TIME_SLICE_PERIOD: u32 = 80;
 			let round_up = if valid_until % TIME_SLICE_PERIOD > 0 { 1 } else { 0 };
