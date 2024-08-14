@@ -15,6 +15,7 @@ polkadot-runtime = { workspace = true }
 kusama-runtime = { workspace = true }
 
 sc-chain-spec = { workspace = true }
+sc-network = { workspace = true }
 
 asset-hub-polkadot-runtime = { workspace = true }
 asset-hub-kusama-runtime = { workspace = true }
