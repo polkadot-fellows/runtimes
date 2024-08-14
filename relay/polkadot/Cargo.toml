@@ -104,6 +104,9 @@ xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
 
+# just for the coretime migration
+polkadot-parachain-primitives = { workspace = true }
+
 [dev-dependencies]
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }

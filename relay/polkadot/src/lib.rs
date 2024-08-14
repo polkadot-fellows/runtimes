@@ -141,6 +141,8 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
+mod coretime_migration;
+
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 impl_runtime_weights!(polkadot_runtime_constants);
@@ -1931,16 +1933,12 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 /// The runtime migrations per release.
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
-	use self::coretime::{migration::GetLegacyLease, Config, WeightInfo};
-	use frame_support::traits::{PalletInfoAccess, StorageVersion};
-	use frame_system::pallet_prelude::BlockNumberFor;
 	use polkadot_runtime_common::traits::Leaser;
-	use sp_std::iter;
 
 	use super::*;
 
 	pub struct GetLegacyLeaseImpl;
-	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
+	impl coretime_migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
 		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
 			let now = frame_system::Pallet::<Runtime>::block_number();
 			let lease = slots::Leases::<Runtime>::get(para);
@@ -1950,6 +1948,15 @@ pub mod migrations {
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
 			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
+		}
+
+		fn get_all_parachains_with_leases() -> Vec<ParaId> {
+			let mut leases = slots::Leases::<Runtime>::iter()
+				.filter(|(_, lease)| !lease.is_empty())
+				.map(|(para, _)| para)
+				.collect::<Vec<_>>();
+			leases.sort();
+			leases
 		}
 	}
 
@@ -1990,134 +1997,6 @@ pub mod migrations {
 		}
 	}
 
-	pub struct FixGapLeases<T, SendXcm, LegacyLease>(
-		sp_std::marker::PhantomData<(T, SendXcm, LegacyLease)>,
-	);
-	impl<T: Config, SendXcm: xcm::v4::SendXcm, LegacyLease: GetLegacyLease<BlockNumberFor<T>>>
-		OnRuntimeUpgrade for FixGapLeases<T, SendXcm, LegacyLease>
-	{
-		fn on_runtime_upgrade() -> Weight {
-			// Under the assumption that this migration will be run just before `MigrateToCoretime`
-			// migration we use the same code to check if the migration has already been executed.
-			if Self::already_migrated() {
-				return Weight::zero()
-			}
-
-			Self::migrate_leases_with_gaps()
-		}
-	}
-
-	impl<T: Config, SendXcm: xcm::v4::SendXcm, LegacyLease: GetLegacyLease<BlockNumberFor<T>>>
-		FixGapLeases<T, SendXcm, LegacyLease>
-	{
-		fn already_migrated() -> bool {
-			// We are using the assigner coretime because the coretime pallet doesn't has any
-			// storage data. But both pallets are introduced at the same time, so this is fine.
-			let name_hash = parachains_assigner_coretime::Pallet::<T>::name_hash();
-			let mut next_key = name_hash.to_vec();
-			let storage_version_key =
-				StorageVersion::storage_key::<parachains_assigner_coretime::Pallet<T>>();
-
-			loop {
-				match sp_io::storage::next_key(&next_key) {
-					// StorageVersion is initialized before, so we need to ignore it.
-					Some(key) if &key == &storage_version_key => {
-						next_key = key;
-					},
-					// If there is any other key with the prefix of the pallet,
-					// we already have executed the migration.
-					Some(key) if key.starts_with(&name_hash) => {
-						log::info!("`MigrateToCoretime` already executed!");
-						return true
-					},
-					// Any other key/no key means that we did not yet have migrated.
-					None | Some(_) => return false,
-				}
-			}
-		}
-
-		fn migrate_leases_with_gaps() -> Weight {
-			let paras_with_gaps = slots::Leases::<Runtime>::iter()
-				.filter_map(|(para_id, leases)| {
-					for l in &leases {
-						if l.is_none() {
-							return Some(para_id)
-						}
-					}
-
-					return None;
-				})
-				.collect::<Vec<_>>();
-
-			let mut leases_with_gaps_len = 0;
-			let leases = paras_with_gaps.into_iter().filter_map(|p| {
-			log::trace!(target: "coretime-migration", "Preparing sending of lease holding para {:?}", p);
-			let Some(valid_until) = LegacyLease::get_parachain_lease_in_blocks(p) else {
-				log::error!("Lease holding chain with no lease information?!");
-				return None
-			};
-			let valid_until: u32 = match valid_until.try_into() {
-				Ok(val) => val,
-				Err(_) => {
-					log::error!("Converting block number to u32 failed!");
-					return None
-				},
-			};
-
-			// We need the actual count after any filtering
-			leases_with_gaps_len += 1;
-
-			// We assume the coretime chain set this parameter to the recommended value in RFC-1:
-			const TIME_SLICE_PERIOD: u32 = 80;
-			let round_up = if valid_until % TIME_SLICE_PERIOD > 0 { 1 } else { 0 };
-			let time_slice = valid_until / TIME_SLICE_PERIOD + TIME_SLICE_PERIOD * round_up;
-			log::trace!(target: "coretime-migration", "Sending of lease holding para {:?}, valid_until: {:?}, time_slice: {:?}", p, valid_until, time_slice);
-			Some(Self::mk_coretime_call(CoretimeCalls::SetLease(p.into(), time_slice)))
-		});
-
-			let message_content = iter::once(Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			});
-			let leases_content = message_content.clone().chain(leases).collect();
-			let message = Xcm(leases_content);
-			let _ = send_xcm::<SendXcm>(
-				Location::new(0, Junction::Parachain(T::BrokerId::get())),
-				message,
-			);
-
-			<T as Config>::WeightInfo::assign_core(1).saturating_mul(leases_with_gaps_len)
-		}
-
-		fn mk_coretime_call(call: CoretimeCalls) -> Instruction<()> {
-			Instruction::Transact {
-				origin_kind: OriginKind::Superuser,
-				require_weight_at_most: T::MaxXcmTransactWeight::get(),
-				call: BrokerRuntimePallets::Broker(call).encode().into(),
-			}
-		}
-	}
-
-	#[derive(Encode, Decode)]
-	enum CoretimeCalls {
-		#[codec(index = 1)]
-		Reserve(pallet_broker::Schedule),
-		#[codec(index = 3)]
-		SetLease(pallet_broker::TaskId, pallet_broker::Timeslice),
-		#[codec(index = 19)]
-		NotifyCoreCount(u16),
-		#[codec(index = 20)]
-		NotifyRevenue((BlockNumber, Balance)),
-		#[codec(index = 99)]
-		SwapLeases(ParaId, ParaId),
-	}
-
-	#[derive(Encode, Decode)]
-	enum BrokerRuntimePallets {
-		#[codec(index = 50)]
-		Broker(CoretimeCalls),
-	}
-
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
@@ -2132,11 +2011,8 @@ pub mod migrations {
 			<Runtime as frame_system::Config>::DbWeight,
 		>,
 		clear_judgement_proxies::Migration,
-		// Handle leases with gaps - needs to run before `MigrateToCoretime` because it uses the
-		// same 'already applied' check
-		FixGapLeases<Runtime, crate::xcm_config::XcmRouter, GetLegacyLeaseImpl>,
 		// Migrate from legacy lease to coretime. Needs to run after configuration v11
-		coretime::migration::MigrateToCoretime<
+		coretime_migration::MigrateToCoretime<
 			Runtime,
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,
