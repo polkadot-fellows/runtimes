@@ -138,8 +138,6 @@ impl<
 		let dmp_queue_size =
 			crate::dmp::Pallet::<T>::dmq_contents(T::BrokerId::get().into()).len() as u32;
 
-		let total_core_count = total_core_count as u32;
-
 		Ok((total_core_count, dmp_queue_size).encode())
 	}
 
@@ -174,7 +172,6 @@ fn migrate_to_coretime<
 	SendXcm: xcm::v4::SendXcm,
 	LegacyLease: GetLegacyLease<BlockNumberFor<T>>,
 >() -> Weight {
-	// let legacy_paras = paras::Parachains::<T>::get();
 	let legacy_paras = LegacyLease::get_all_parachains_with_leases();
 	let legacy_count = legacy_paras.len() as u32;
 	let now = frame_system::Pallet::<T>::block_number();
@@ -248,13 +245,6 @@ fn migrate_send_assignments_to_coretime_chain<
 				log::error!("Lease holding chain with no lease information?!");
 				return None
 			};
-			let valid_until: u32 = match valid_until.try_into() {
-				Ok(val) => val,
-				Err(_) => {
-					log::error!("Converting block number to u32 failed!");
-					return None
-				},
-			};
 			// We assume the coretime chain set this parameter to the recommended value in RFC-1:
 			const TIME_SLICE_PERIOD: u32 = 80;
 			let round_up = if valid_until % TIME_SLICE_PERIOD > 0 { 1 } else { 0 };
@@ -295,7 +285,7 @@ fn migrate_send_assignments_to_coretime_chain<
 	let leases_content_2 = message_content.clone().chain(leases).collect();
 	let set_core_count_content = message_content.clone().chain(set_core_count).collect();
 
-	let messages = vec![
+	let messages = [
 		Xcm(reservation_content),
 		Xcm(pool_content),
 		Xcm(leases_content_1),
