@@ -1951,12 +1951,10 @@ pub mod migrations {
 		}
 
 		fn get_all_parachains_with_leases() -> Vec<ParaId> {
-			let mut leases = slots::Leases::<Runtime>::iter()
+			slots::Leases::<Runtime>::iter()
 				.filter(|(_, lease)| !lease.is_empty())
 				.map(|(para, _)| para)
-				.collect::<Vec<_>>();
-			leases.sort();
-			leases
+				.collect::<Vec<_>>()
 		}
 	}
 
