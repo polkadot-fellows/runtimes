@@ -244,6 +244,8 @@ subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.2.4" }
 tuplex = { version = "0.1.0", default-features = false }
+relay-common = { path = "relay/common", default-features = false }
+ss58-registry = { version = "1.47.0" }
 
 [workspace]
 resolver = "2"

@@ -106,7 +106,7 @@ xcm-builder = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
-relay-common = { path = "../common", default-features = false }
+relay-common = { workspace = true }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
@@ -115,7 +115,7 @@ separator = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
-ss58-registry = "1.47.0"
+ss58-registry = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
