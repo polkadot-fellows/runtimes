@@ -36,6 +36,7 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_broker::{CoreAssignment, CoreMask, ScheduleItem};
 use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_primitives::{Balance, BlockNumber, CoreIndex, Id as ParaId};
+use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use runtime_parachains::configuration;
 
 use sp_arithmetic::traits::SaturatedConversion;
@@ -255,8 +256,7 @@ fn migrate_send_assignments_to_coretime_chain<
 			};
 
 			// We assume the coretime chain set this parameter to the recommended value in RFC-1:
-			const TIME_SLICE_PERIOD: u32 = 80;
-			let time_slice = (valid_until + TIME_SLICE_PERIOD - 1) / TIME_SLICE_PERIOD;
+			let time_slice = (valid_until + TIMESLICE_PERIOD - 1) / TIMESLICE_PERIOD;
 			log::trace!(target: "coretime-migration", "Sending of lease holding para {:?}, valid_until: {:?}, time_slice: {:?}", p, valid_until, time_slice);
 			Some(mk_coretime_call::<T>(CoretimeCalls::SetLease(p.into(), time_slice)))
 		});
