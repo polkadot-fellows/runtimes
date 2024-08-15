@@ -17,7 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All runtimes: XcmPaymentApi and DryRunApi ([polkadot-fellows/runtimes#380](https://github.com/polkadot-fellows/runtimes/pull/380))
 - All runtimes: add `LocationToAccountApi` ([polkadot-fellows/runtimes#413](https://github.com/polkadot-fellows/runtimes/pull/413))
 - Enable Agile Coretime on Polkadot ([polkadot-fellows/runtimes#401](https://github.com/polkadot-fellows/runtimes/pull/401))
+- Add the Polkadot Coretime Chain runtime ([polkadot-fellows/runtimes#410](https://github.com/polkadot-fellows/runtimes/pull/410))
+- Add the Polkadot and Kusama Coretime Chain specs ([polkadot-fellows/runtimes#432](https://github.com/polkadot-fellows/runtimes/pull/432))
 - The Secretary Program ([polkadot-fellows/runtimes#306](https://github.com/polkadot-fellows/runtimes/pull/306))
+
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -53,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot chains: allow arbitrary XCM execution ([polkadot-fellows/runtimes#345](https://github.com/polkadot-fellows/runtimes/pull/345)).
 - Bounties: Remove payout delay ([polkadot-fellows/runtimes#386](https://github.com/polkadot-fellows/runtimes/pull/386)).
 - Polkadot System Chains: Reduce the base transaction fee by half ([polkadot-fellows/runtimes#398](https://github.com/polkadot-fellows/runtimes/pull/398)).
+- Asset Hubs: setup auto incremented asset id to 50_000_000 for trust backed assets ([polkadot-fellows/runtimes#414](https://github.com/polkadot-fellows/runtimes/pull/414)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -112,6 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove deprecated calls from treasury pallet ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3820](https://github.com/paritytech/polkadot-sdk/pull/3820)).
 - Treasury pallet: - remove unused config parameters ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4831](https://github.com/paritytech/polkadot-sdk/pull/4831)).
 - Remove Identity from Polkadot Relay Chain ([runtimes#415](https://github.com/polkadot-fellows/runtimes/pull/415))
+- Kusama: Remove unused Snowbridge code and configs ([polkadot-fellows/runtimes#411](https://github.com/polkadot-fellows/runtimes/pull/411)
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
