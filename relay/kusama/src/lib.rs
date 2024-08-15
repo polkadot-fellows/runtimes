@@ -46,6 +46,7 @@ use polkadot_runtime_common::{
 	paras_registrar, prod_or_fast, slots, BalanceToU256, BlockHashCount, BlockLength,
 	CurrencyToVote, SlowAdjustingFeeUpdate, U256ToBalance,
 };
+use relay_common::apis::*;
 use scale_info::TypeInfo;
 use sp_runtime::traits::Saturating;
 use sp_std::{
@@ -719,7 +720,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		let params = EraPayoutParams {
+		let params = relay_common::EraPayoutParams {
 			total_staked,
 			total_stakable: Nis::issuance().other,
 			ideal_stake: dynamic_params::inflation::IdealStake::get(),
@@ -740,75 +741,9 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 			},
 		};
 		log::debug!(target: "runtime::kusama", "params: {:?}", params);
-		relay_era_payout(params)
+		relay_common::relay_era_payout(params)
 	}
 }
-
-// ---- TODO: Below is copy pasted from sdk, remove once we pull the version containing
-// https://github.com/paritytech/polkadot-sdk/pull/4938
-
-#[derive(Debug, Clone)]
-/// Parameters passed into [`relay_era_payout`] function.
-pub struct EraPayoutParams {
-	/// Total staked amount.
-	pub total_staked: Balance,
-	/// Total stakable amount.
-	///
-	/// Usually, this is equal to the total issuance, except if a large part of the issuance is
-	/// locked in another sub-system.
-	pub total_stakable: Balance,
-	/// Ideal stake ratio, which is deducted by `legacy_auction_proportion` if not `None`.
-	pub ideal_stake: Perquintill,
-	/// Maximum inflation rate.
-	pub max_annual_inflation: Perquintill,
-	/// Minimum inflation rate.
-	pub min_annual_inflation: Perquintill,
-	/// Falloff used to calculate era payouts.
-	pub falloff: Perquintill,
-	/// Fraction of the era period used to calculate era payouts.
-	pub period_fraction: Perquintill,
-	/// Legacy auction proportion, which substracts from `ideal_stake` if not `None`.
-	pub legacy_auction_proportion: Option<Perquintill>,
-}
-
-/// A specialized function to compute the inflation of the staking system, tailored for polkadot
-/// relay chains, such as Polkadot, Kusama and Westend.
-pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
-	let EraPayoutParams {
-		total_staked,
-		total_stakable,
-		ideal_stake,
-		max_annual_inflation,
-		min_annual_inflation,
-		falloff,
-		period_fraction,
-		legacy_auction_proportion,
-	} = params;
-
-	let delta_annual_inflation = max_annual_inflation.saturating_sub(min_annual_inflation);
-
-	let ideal_stake = ideal_stake.saturating_sub(legacy_auction_proportion.unwrap_or_default());
-
-	let stake = Perquintill::from_rational(total_staked, total_stakable);
-	let adjustment = pallet_staking_reward_fn::compute_inflation(stake, ideal_stake, falloff);
-	let staking_inflation =
-		min_annual_inflation.saturating_add(delta_annual_inflation * adjustment);
-
-	let max_payout = period_fraction * max_annual_inflation * total_stakable;
-	let staking_payout = (period_fraction * staking_inflation) * total_stakable;
-	let rest = max_payout.saturating_sub(staking_payout);
-
-	let other_issuance = total_stakable.saturating_sub(total_staked);
-	if total_staked > other_issuance {
-		let _cap_rest = Perquintill::from_rational(other_issuance, total_staked) * staking_payout;
-		// We don't do anything with this, but if we wanted to, we could introduce a cap on the
-		// treasury amount with: `rest = rest.min(cap_rest);`
-	}
-	(staking_payout, rest)
-}
-
-// ---- TODO: Above is copy pasted from sdk, remove once we pull the version containing
-// https://github.com/paritytech/polkadot-sdk/pull/4938
 
 parameter_types! {
 	// Six sessions in an era (6 hours).
@@ -1943,44 +1878,13 @@ mod benches {
 	);
 }
 
-/// Extra runtime APIs for kusama runtime.
-pub mod apis {
-
-	/// Information about the current inflation rate of the system.
-	///
-	/// Both fields should be treated as best-effort, given that the inflation rate might not be
-	/// fully predict-able.
-	#[derive(scale_info::TypeInfo, codec::Encode, codec::Decode)]
-	pub struct InflationInfo {
-		/// The rate of inflation estimated per annum.
-		pub inflation: sp_runtime::Perquintill,
-		/// Next amount that we anticipate to mint.
-		///
-		/// First item is the amount that goes to stakers, second is the leftover that is usually
-		/// forwarded to the treasury.
-		pub next_mint: (polkadot_primitives::Balance, polkadot_primitives::Balance),
-	}
-
-	sp_api::decl_runtime_apis! {
-		pub trait Inflation {
-			/// Return the current estimates of the inflation amount.
-			///
-			/// This is marked as experimental in light of RFC#89. Nonetheless, its usage is highly
-			/// recommended over trying to read-storage, or re-create the onchain logic.
-			fn experimental_inflation_prediction_info() -> InflationInfo;
-		}
-	}
-}
-
-use apis::*;
-
 impl Runtime {
 	fn impl_experimental_inflation_info() -> InflationInfo {
 		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
 		let (staked, _start) = ActiveEra::<Runtime>::get()
 			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
 			.unwrap_or((0, 0));
-		let stakable_issuance = Nis::issuance().other;
+		let stake_able_issuance = Nis::issuance().other;
 
 		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
 		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
@@ -2009,7 +1913,7 @@ impl Runtime {
 }
 
 sp_api::impl_runtime_apis! {
-	impl apis::Inflation<Block> for Runtime {
+	impl relay_common::apis::Inflation<Block> for Runtime {
 		fn experimental_inflation_prediction_info() -> InflationInfo {
 			Runtime::impl_experimental_inflation_info()
 		}

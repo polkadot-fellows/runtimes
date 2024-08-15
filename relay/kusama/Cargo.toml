@@ -107,6 +107,7 @@ xcm-builder = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
+relay-common = { path = "../common", default-features = false }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
@@ -191,6 +192,7 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
+	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
