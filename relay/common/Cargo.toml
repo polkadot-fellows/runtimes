@@ -17,8 +17,6 @@ polkadot-primitives = { workspace = true }
 pallet-staking-reward-fn ={ workspace = true }
 
 
-[dev-dependencies]
-
 [features]
 default = ["std"]
 std = [

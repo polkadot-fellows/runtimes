@@ -14363,7 +14363,6 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-society",
  "pallet-staking",
- "pallet-staking-reward-fn",
  "pallet-staking-runtime-api",
  "pallet-timestamp",
  "pallet-transaction-payment",
