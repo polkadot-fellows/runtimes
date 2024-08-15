@@ -81,7 +81,6 @@ pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -141,21 +140,9 @@ bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
-parameter_types! {
-	pub DmpQueueName: &'static str = "DmpQueue";
-}
-
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased
-	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
-	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
-	snowbridge_pallet_system::migration::v0::InitializeOnUpgrade<
-		Runtime,
-		ConstU32<BRIDGE_HUB_ID>,
-		ConstU32<ASSET_HUB_ID>,
-	>,
-	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
+	// unreleased and/or un-applied
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
@@ -359,6 +346,9 @@ parameter_types! {
 	/// from 35% to 60% of the max block weight to accommodate the Ethereum beacon light client
 	/// extrinsics. The `force_checkpoint` and `submit` extrinsics (for submit, optionally) includes
 	/// the sync committee's pubkeys (512 x 48 bytes).
+	/// Furthermore, Bridge Hub is a specialized chain for moving messages between sibling
+	/// parachains and external ecosystems. As such, most of the block weight is expected to be
+	/// consumed by the Message Queue.
 	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(60) * RuntimeBlockWeights::get().max_block;
 	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
 }

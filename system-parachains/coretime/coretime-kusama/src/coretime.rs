@@ -27,7 +27,7 @@ use frame_support::{
 	},
 };
 use frame_system::Pallet as System;
-use kusama_runtime_constants::system_parachain::coretime;
+use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
 use parachains_common::{AccountId, Balance};
 use sp_runtime::traits::AccountIdConversion;
@@ -258,9 +258,13 @@ impl CoretimeInterface for CoretimeAllocator {
 	}
 
 	fn on_new_timeslice(t: pallet_broker::Timeslice) {
-		// Burn roughly once per day. Unchecked math: RHS hardcoded as non-zero.
-		if t % 180 != 0 {
-			return
+		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
+		const BURN_PERIOD: pallet_broker::Timeslice =
+			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
+		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
+		// have bigger issues with the chain, but we still want to burn.
+		if t.checked_rem(BURN_PERIOD).map_or(false, |r| r != 0) {
+			return;
 		}
 
 		let stash = CoretimeBurnAccount::get();
