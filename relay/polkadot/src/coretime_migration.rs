@@ -16,8 +16,6 @@
 
 //! Coretime migration for Polkadot runtime
 
-#[cfg(feature = "try-runtime")]
-use crate::scheduler::common::AssignmentProvider;
 use crate::{
 	coretime::{Config, WeightInfo},
 	parachains_assigner_coretime,
@@ -38,6 +36,8 @@ use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_primitives::{Balance, BlockNumber, CoreIndex, Id as ParaId};
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use runtime_parachains::configuration;
+#[cfg(feature = "try-runtime")]
+use runtime_parachains::scheduler::common::AssignmentProvider;
 
 use sp_arithmetic::traits::SaturatedConversion;
 use sp_core::Get;
@@ -132,14 +132,11 @@ impl<
 			return Ok(Vec::new())
 		}
 
-		let legacy_paras = paras::Parachains::<T>::get();
+		let legacy_paras = LegacyLease::get_all_parachains_with_leases();
 		let config = configuration::ActiveConfig::<T>::get();
 		let total_core_count = config.scheduler_params.num_cores + legacy_paras.len() as u32;
 
-		let dmp_queue_size =
-			crate::dmp::Pallet::<T>::dmq_contents(T::BrokerId::get().into()).len() as u32;
-
-		Ok((total_core_count, dmp_queue_size).encode())
+		Ok(total_core_count.encode())
 	}
 
 	#[cfg(feature = "try-runtime")]
@@ -150,16 +147,9 @@ impl<
 
 		log::trace!("Running post_upgrade()");
 
-		let (prev_core_count, prev_dmp_queue_size) = <(u32, u32)>::decode(&mut &state[..]).unwrap();
-
-		let dmp_queue_size =
-			crate::dmp::Pallet::<T>::dmq_contents(T::BrokerId::get().into()).len() as u32;
+		let prev_core_count = <u32>::decode(&mut &state[..]).unwrap();
 		let new_core_count = parachains_assigner_coretime::Pallet::<T>::session_core_count();
 		ensure!(new_core_count == prev_core_count, "Total number of cores need to not change.");
-		ensure!(
-			dmp_queue_size > prev_dmp_queue_size,
-			"There should have been enqueued at least one DMP messages."
-		);
 
 		Ok(())
 	}
