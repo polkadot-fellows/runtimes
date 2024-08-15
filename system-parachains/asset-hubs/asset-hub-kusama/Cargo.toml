@@ -86,7 +86,6 @@ xcm-runtime-apis = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-dmp-queue = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
@@ -102,7 +101,6 @@ assets-common = { workspace = true }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { workspace = true }
-snowbridge-router-primitives = { workspace = true }
 
 [dev-dependencies]
 asset-test-utils = { workspace = true }
@@ -124,7 +122,6 @@ default = ["std"]
 state-trie-version-1 = ["pallet-state-trie-migration"]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
-	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -154,7 +151,6 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -162,7 +158,6 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
-	"cumulus-pallet-dmp-queue/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
@@ -203,7 +198,6 @@ std = [
 	"bp-bridge-hub-polkadot/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
-	"cumulus-pallet-dmp-queue/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-session-benchmarking/std",
 	"cumulus-pallet-xcm/std",
@@ -254,7 +248,6 @@ std = [
 	"primitive-types/std",
 	"scale-info/std",
 	"serde_json/std",
-	"snowbridge-router-primitives/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",

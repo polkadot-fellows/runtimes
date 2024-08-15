@@ -49,7 +49,6 @@ coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" 
 coretime-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot" }
 coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
 cumulus-pallet-aura-ext = { version = "0.15.0", default-features = false }
-cumulus-pallet-dmp-queue = { version = "0.15.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.15.0", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "17.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.15.0", default-features = false }
@@ -189,6 +188,7 @@ frame-metadata-hash-extension = { version = "0.4.0", default-features = false }
 remote-externalities = { version = "0.43.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "15.0.1", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "35.0.0" }
+sc-network = { version = "0.42.0" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }

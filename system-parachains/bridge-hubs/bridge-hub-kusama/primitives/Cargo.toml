@@ -18,16 +18,12 @@ system-parachains-constants = { workspace = true }
 bp-bridge-hub-cumulus = { workspace = true }
 bp-runtime = { workspace = true }
 bp-messages = { workspace = true }
-snowbridge-core = { workspace = true }
 
 # Substrate Based Dependencies
 frame-support = { workspace = true }
 sp-api = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-
-# Polkadot
-xcm = { workspace = true }
 
 [features]
 default = ["std"]
@@ -38,10 +34,8 @@ std = [
 	"frame-support/std",
 	"kusama-runtime-constants/std",
 	"polkadot-runtime-constants/std",
-	"snowbridge-core/std",
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-std/std",
 	"system-parachains-constants/std",
-	"xcm/std",
 ]

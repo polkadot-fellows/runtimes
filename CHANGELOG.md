@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All runtimes: add `LocationToAccountApi` ([polkadot-fellows/runtimes#413](https://github.com/polkadot-fellows/runtimes/pull/413))
 - Enable Agile Coretime on Polkadot ([polkadot-fellows/runtimes#401](https://github.com/polkadot-fellows/runtimes/pull/401))
 - Add the Polkadot Coretime Chain runtime ([polkadot-fellows/runtimes#410](https://github.com/polkadot-fellows/runtimes/pull/410))
+- Add the Polkadot and Kusama Coretime Chain specs ([polkadot-fellows/runtimes#432](https://github.com/polkadot-fellows/runtimes/pull/432))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -113,6 +114,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove deprecated calls from treasury pallet ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #3820](https://github.com/paritytech/polkadot-sdk/pull/3820)).
 - Treasury pallet: - remove unused config parameters ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4831](https://github.com/paritytech/polkadot-sdk/pull/4831)).
 - Remove Identity from Polkadot Relay Chain ([runtimes#415](https://github.com/polkadot-fellows/runtimes/pull/415))
+- Kusama: Remove unused Snowbridge code and configs ([polkadot-fellows/runtimes#411](https://github.com/polkadot-fellows/runtimes/pull/411)
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
