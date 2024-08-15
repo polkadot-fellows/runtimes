@@ -1980,7 +1980,7 @@ impl Runtime {
 		let (staked, _start) = ActiveEra::<Runtime>::get()
 			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
 			.unwrap_or((0, 0));
-		let stake_able_issuance = Balances::total_issuance();
+		let stakable_issuance = Nis::issuance().other;
 
 		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
 		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
@@ -1988,7 +1988,7 @@ impl Runtime {
 				.into_iter()
 				// all active para-ids that do not belong to a system chain is the number of
 				// parachains that we should take into account for inflation.
-				.filter(|i| *i >= 2000.into())
+				.filter(|i| *i >= LOWEST_PUBLIC_ID.into())
 				.count() as u64;
 			ideal_staking_rate
 				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
