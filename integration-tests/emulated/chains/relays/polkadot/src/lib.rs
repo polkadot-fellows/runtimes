@@ -38,8 +38,6 @@ decl_test_relay_chains! {
 			Treasury: polkadot_runtime::Treasury,
 			AssetRate: polkadot_runtime::AssetRate,
 			Hrmp: polkadot_runtime::Hrmp,
-			Identity: polkadot_runtime::Identity,
-			IdentityMigrator: polkadot_runtime::IdentityMigrator,
 		}
 	},
 }

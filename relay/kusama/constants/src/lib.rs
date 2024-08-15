@@ -113,7 +113,7 @@ pub mod system_parachain {
 	pub const BRIDGE_HUB_ID: u32 = 1002;
 	/// People parachain ID.
 	pub const PEOPLE_ID: u32 = 1004;
-	/// Brokerage parachain ID.
+	/// Coretime parachain ID.
 	pub const BROKER_ID: u32 = 1005;
 
 	// System parachains from Kusama point of view.

@@ -16,7 +16,9 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use sc_chain_spec::{ChainSpec, ChainSpecExtension, ChainSpecGroup, ChainType};
+use sc_network::config::MultiaddrWithPeerId;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Generic extensions for Parachain ChainSpecs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
@@ -43,6 +45,8 @@ pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+
+pub type CoretimePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -212,6 +216,99 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 			),
 		)
 		.with_properties(properties)
+		.build(),
+	))
+}
+
+pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	let boot_nodes = [
+		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
+		"/dns/kusama-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWAGFiMZDF9RxdacrkenzGdo8nhfSe9EXofHc5mHeJ9vGX",
+		"/dns/kusama-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWR7Biy6nPgQFhk2eYP62pAkcFA6he9RUFURTDh7ewTjpo",
+		"/dns/kusama-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWAGFiMZDF9RxdacrkenzGdo8nhfSe9EXofHc5mHeJ9vGX",
+	];
+
+	Ok(Box::new(
+		CoretimeKusamaChainSpec::builder(
+			coretime_kusama_runtime::WASM_BINARY.expect("Kusama Coretime wasm not available!"),
+			Extensions { relay_chain: "kusama".into(), para_id: 1005 },
+		)
+		.with_name("Kusama Coretime")
+		.with_id("coretime-kusama")
+		.with_chain_type(ChainType::Live)
+		.with_genesis_config_preset_name("live")
+		.with_properties(properties)
+		.with_boot_nodes(
+			boot_nodes
+				.iter()
+				.map(|addr| {
+					MultiaddrWithPeerId::from_str(addr).expect("Boot node address is incorrect.")
+				})
+				.collect(),
+		)
+		.build(),
+	))
+}
+
+pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+
+	Ok(Box::new(
+		CoretimePolkadotChainSpec::builder(
+			coretime_polkadot_runtime::WASM_BINARY.expect("CoretimePolkadot wasm not available!"),
+			Extensions { relay_chain: "polkadot-local".into(), para_id: 1005 },
+		)
+		.with_name("Polkadot Coretime Local")
+		.with_id("coretime-polkadot-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_preset_name("local_testnet")
+		.with_properties(properties)
+		.build(),
+	))
+}
+
+pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 0.into());
+	properties.insert("tokenSymbol".into(), "DOT".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+
+	let boot_nodes = [
+		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/30334/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
+		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/30334/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
+		"/dns/polkadot-coretime-connect-a-0.polkadot.io/tcp/443/wss/p2p/12D3KooWKjnixAHbKMsPTJwGx8SrBeGEJLHA8KmKcEDYMp3YmWgR",
+		"/dns/polkadot-coretime-connect-a-1.polkadot.io/tcp/443/wss/p2p/12D3KooWQ7B7p4DFv1jWqaKfhrZBcMmi5g8bWFnmskguLaGEmT6n",
+		"/dns4/coretime-polkadot.boot.stake.plus/tcp/30332/wss/p2p/12D3KooWFJ2yBTKFKYwgKUjfY3F7XfaxHV8hY6fbJu5oMkpP7wZ9",
+		"/dns4/coretime-polkadot.boot.stake.plus/tcp/31332/wss/p2p/12D3KooWCy5pToLafcQzPHn5kadxAftmF6Eh8ZJGPXhSeXSUDfjv",
+
+	];
+
+	Ok(Box::new(
+		CoretimePolkadotChainSpec::builder(
+			coretime_polkadot_runtime::WASM_BINARY.expect("Polkadot Coretime wasm not available!"),
+			Extensions { relay_chain: "polkadot".into(), para_id: 1005 },
+		)
+		.with_name("Polkadot Coretime")
+		.with_id("coretime-polkadot")
+		.with_chain_type(ChainType::Live)
+		.with_genesis_config_preset_name("live")
+		.with_properties(properties)
+		.with_boot_nodes(
+			boot_nodes
+				.iter()
+				.map(|addr| {
+					MultiaddrWithPeerId::from_str(addr).expect("Boot node address is incorrect.")
+				})
+				.collect(),
+		)
 		.build(),
 	))
 }
