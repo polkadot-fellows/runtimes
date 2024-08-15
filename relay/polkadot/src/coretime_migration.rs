@@ -288,7 +288,7 @@ fn migrate_send_assignments_to_coretime_chain<
 	let pool_content = message_content.clone().chain(pool).collect();
 	let leases_content_1 = message_content
 		.clone()
-		.chain(leases.by_ref().take(legacy_paras_count / 2)) // split in two messages to avoid overweighted XCM
+		.chain(leases.by_ref().take(leases.len() / 2)) // split in two messages to avoid overweighted XCM
 		.collect();
 	let leases_content_2 = message_content.clone().chain(leases).collect();
 	let set_core_count_content = message_content.clone().chain(set_core_count).collect();
