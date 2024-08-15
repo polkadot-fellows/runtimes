@@ -13,7 +13,6 @@ if [ -z "$FRAMEWORK_REPO_PATH" ]; then
   # to `~/local_bridge_testing/downloads/polkadot-sdk`.
   export DOWNLOADS_PATH=$LOCAL_BRIDGE_TESTING_PATH/downloads
   echo "FRAMEWORK_REPO_PATH is NOT set, so downloading 'polkadot-sdk' repo to the: $DOWNLOADS_PATH"
-  exit 1
   mkdir -p $DOWNLOADS_PATH
   framework_repo_path=$DOWNLOADS_PATH/polkadot-sdk
   rm -rf $framework_repo_path
