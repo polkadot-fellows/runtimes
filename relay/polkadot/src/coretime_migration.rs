@@ -256,8 +256,7 @@ fn migrate_send_assignments_to_coretime_chain<
 
 			// We assume the coretime chain set this parameter to the recommended value in RFC-1:
 			const TIME_SLICE_PERIOD: u32 = 80;
-			let round_up = if valid_until % TIME_SLICE_PERIOD > 0 { 1 } else { 0 };
-			let time_slice = valid_until / TIME_SLICE_PERIOD + TIME_SLICE_PERIOD * round_up;
+			let time_slice = (valid_until + TIME_SLICE_PERIOD - 1) / TIME_SLICE_PERIOD;
 			log::trace!(target: "coretime-migration", "Sending of lease holding para {:?}, valid_until: {:?}, time_slice: {:?}", p, valid_until, time_slice);
 			Some(mk_coretime_call::<T>(CoretimeCalls::SetLease(p.into(), time_slice)))
 		});
