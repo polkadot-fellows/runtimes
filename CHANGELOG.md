@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add the Polkadot Coretime Chain runtime ([polkadot-fellows/runtimes#410](https://github.com/polkadot-fellows/runtimes/pull/410))
 - Kusama: Add a "Spokesperson" proxy type only allowed to send remarks ([polkadot-fellows/runtimes#430](https://github.com/polkadot-fellows/runtimes/pull/430))
 - Add the Polkadot and Kusama Coretime Chain specs ([polkadot-fellows/runtimes#432](https://github.com/polkadot-fellows/runtimes/pull/432))
+- Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
