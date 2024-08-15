@@ -15,8 +15,8 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
-use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
 use sp_runtime::Perbill;
 
 #[test]
