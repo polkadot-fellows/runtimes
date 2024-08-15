@@ -285,7 +285,6 @@ fn migrate_send_assignments_to_coretime_chain<
 	});
 
 	let reservation_content = message_content.clone().chain(reservations).collect();
-	let pool_content = message_content.clone().chain(pool).collect();
 	let leases_content_1 = message_content
 		.clone()
 		.chain(leases.by_ref().take(legacy_paras_count / 2)) // split in two messages to avoid overweighted XCM
@@ -293,13 +292,24 @@ fn migrate_send_assignments_to_coretime_chain<
 	let leases_content_2 = message_content.clone().chain(leases).collect();
 	let set_core_count_content = message_content.clone().chain(set_core_count).collect();
 
-	let messages = [
-		Xcm(reservation_content),
-		Xcm(pool_content),
-		Xcm(leases_content_1),
-		Xcm(leases_content_2),
-		Xcm(set_core_count_content),
-	];
+	// If `pool_content` is empty don't send a blank XCM message
+	let messages = if core_count as usize > legacy_paras_count {
+		let pool_content = message_content.clone().chain(pool).collect();
+		vec![
+			Xcm(reservation_content),
+			Xcm(pool_content),
+			Xcm(leases_content_1),
+			Xcm(leases_content_2),
+			Xcm(set_core_count_content),
+		]
+	} else {
+		vec![
+			Xcm(reservation_content),
+			Xcm(leases_content_1),
+			Xcm(leases_content_2),
+			Xcm(set_core_count_content),
+		]
+	};
 
 	for message in messages {
 		send_xcm::<SendXcm>(Location::new(0, Junction::Parachain(T::BrokerId::get())), message)?;
