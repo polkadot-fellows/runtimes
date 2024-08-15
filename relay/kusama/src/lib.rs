@@ -1209,7 +1209,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1891,7 +1892,7 @@ impl Runtime {
 				.into_iter()
 				// all active para-ids that do not belong to a system chain is the number of
 				// parachains that we should take into account for inflation.
-				.filter(|i| *i >= LOWEST_PUBLIC_ID.into())
+				.filter(|i| *i >= LOWEST_PUBLIC_ID)
 				.count() as u64;
 			ideal_staking_rate
 				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
