@@ -259,13 +259,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			assignment
 		};
 
-		// The maximum number of assignments for a core in a given timeslice is 80, but only 28
-		// assignments fit inside the max size of an XCM, so we need to send in chunks.
-		for assignment_chunk in assignment.chunks(28) {
 			let assign_core_call = RelayRuntimePallets::Coretime(AssignCore(
 				core,
 				begin,
-				assignment_chunk.to_vec(),
+				assignment,
 				end_hint,
 			));
 
@@ -292,7 +289,6 @@ impl CoretimeInterface for CoretimeAllocator {
 					e
 				),
 			}
-		}
 	}
 
 	fn on_new_timeslice(t: pallet_broker::Timeslice) {
