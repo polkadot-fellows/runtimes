@@ -707,9 +707,7 @@ impl pallet_parameters::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeParameters = RuntimeParameters;
 	type AdminOrigin = DynamicParameterOrigin;
-	// TODO: add benchmarking and update weight info
-	type WeightInfo = ();
-	// type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 pub struct EraPayout;
@@ -1276,7 +1274,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1968,7 +1967,7 @@ pub mod apis {
 			///
 			/// This is marked as experimental in light of RFC#89. Nonetheless, its usage is highly
 			/// recommended over trying to read-storage, or re-create the onchain logic.
-			fn experimental_inflation_info() -> InflationInfo;
+			fn experimental_inflation_prediction_info() -> InflationInfo;
 		}
 	}
 }
@@ -2011,7 +2010,7 @@ impl Runtime {
 
 sp_api::impl_runtime_apis! {
 	impl apis::Inflation<Block> for Runtime {
-		fn experimental_inflation_info() -> InflationInfo {
+		fn experimental_inflation_prediction_info() -> InflationInfo {
 			Runtime::impl_experimental_inflation_info()
 		}
 	}
