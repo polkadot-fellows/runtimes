@@ -1131,6 +1131,8 @@ pub enum ProxyType {
 	Society,
 	#[codec(index = 8)]
 	NominationPools,
+	#[codec(index = 9)]
+	Spokesperson,
 }
 
 impl Default for ProxyType {
@@ -1230,6 +1232,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Slots(..)
 			),
 			ProxyType::Society => matches!(c, RuntimeCall::Society(..)),
+			ProxyType::Spokesperson => matches!(
+				c,
+				RuntimeCall::System(frame_system::Call::remark { .. }) |
+					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
+			),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
