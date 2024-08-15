@@ -29,3 +29,4 @@ std = [
 	"sp-weights/std",
 	"xcm-builder/std",
 ]
+fast-runtime = []

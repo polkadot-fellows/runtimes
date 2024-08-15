@@ -43,12 +43,13 @@ use frame_support::{
 };
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
-use pallet_ranked_collective::{Rank, Votes};
+use pallet_ranked_collective::{MemberIndex, Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
 	traits::{
-		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
+		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, MaybeConvert, Replace,
+		ReplaceWithDefault,
 	},
 	Permill,
 };
@@ -138,7 +139,21 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
 	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
 	#[cfg(feature = "runtime-benchmarks")]
+	type MaxMemberCount = ();
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxMemberCount = AmbassadorMemberCount;
+	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
+}
+
+/// Limits the number of Head Ambassadors to 21.
+///
+/// The value of 21 comes from the initial OpenGov proposal: <https://github.com/polkadot-fellows/runtimes/issues/264>
+pub struct AmbassadorMemberCount;
+impl MaybeConvert<Rank, MemberIndex> for AmbassadorMemberCount {
+	fn maybe_convert(rank: Rank) -> Option<MemberIndex> {
+		(rank == 3).then_some(21)
+	}
 }
 
 parameter_types! {
@@ -211,6 +226,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	>;
 	type ApproveOrigin = PromoteOrigin;
 	type PromoteOrigin = PromoteOrigin;
+	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
 	type MaxRank = ConstU32<9>;
@@ -298,29 +314,6 @@ pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 pub type AmbassadorTreasuryInstance = pallet_treasury::Instance2;
 
 impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
-	// The creation of proposals via the treasury pallet is deprecated and should not be utilized.
-	// Instead, public or fellowship referenda should be used to propose and command the treasury
-	// spend or spend_local dispatchables. The parameters below have been configured accordingly to
-	// discourage its use.
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ApproveOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ApproveOrigin = EnsureRoot<AccountId>;
-	type OnSlash = ();
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBond = ProposalBond;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBond = ProposalBondForBenchmark;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMinimum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMinimum = ConstU128<{ ExistentialDeposit::get() * 100 }>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type ProposalBondMaximum = MaxBalance;
-	#[cfg(feature = "runtime-benchmarks")]
-	type ProposalBondMaximum = ConstU128<{ ExistentialDeposit::get() * 500 }>;
-	// end.
-
 	type WeightInfo = weights::pallet_treasury_ambassador_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = AmbassadorTreasuryPalletId;
@@ -361,4 +354,21 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+}
+
+#[cfg(all(test, not(feature = "runtime-benchmarks")))]
+mod tests {
+	use super::*;
+
+	type Limit =
+		<Runtime as pallet_ranked_collective::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
+
+	#[test]
+	fn ambassador_rank_limit_works() {
+		assert_eq!(Limit::maybe_convert(0), None);
+		assert_eq!(Limit::maybe_convert(1), None);
+		assert_eq!(Limit::maybe_convert(2), None);
+		assert_eq!(Limit::maybe_convert(3), Some(21));
+		assert_eq!(Limit::maybe_convert(4), None);
+	}
 }
