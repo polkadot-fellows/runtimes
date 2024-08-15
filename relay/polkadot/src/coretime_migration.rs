@@ -193,7 +193,6 @@ fn migrate_to_coretime<
 	}
 
 	let config = configuration::ActiveConfig::<T>::get();
-	// num_cores was on_demand_cores until now:
 	for on_demand in 0..config.scheduler_params.num_cores {
 		let core = CoreIndex(legacy_count.saturating_add(on_demand as _));
 		let r = parachains_assigner_coretime::Pallet::<T>::assign_core(
