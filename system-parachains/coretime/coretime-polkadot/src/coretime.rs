@@ -261,36 +261,32 @@ impl CoretimeInterface for CoretimeAllocator {
 			assignment
 		};
 
-			let assign_core_call = RelayRuntimePallets::Coretime(AssignCore(
-				core,
-				begin,
-				assignment,
-				end_hint,
-			));
+		let assign_core_call =
+			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
-			let message = Xcm(vec![
-				Instruction::UnpaidExecution {
-					weight_limit: WeightLimit::Unlimited,
-					check_origin: None,
-				},
-				Instruction::Transact {
-					origin_kind: OriginKind::Native,
-					require_weight_at_most: call_weight,
-					call: assign_core_call.encode().into(),
-				},
-			]);
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Native,
+				require_weight_at_most: call_weight,
+				call: assign_core_call.encode().into(),
+			},
+		]);
 
-			match PolkadotXcm::send_xcm(Here, Location::parent(), message.clone()) {
-				Ok(_) => log::debug!(
-					target: "runtime::coretime",
-					"Core assignment sent successfully."
-				),
-				Err(e) => log::error!(
-					target: "runtime::coretime",
-					"Core assignment failed to send: {:?}",
-					e
-				),
-			}
+		match PolkadotXcm::send_xcm(Here, Location::parent(), message.clone()) {
+			Ok(_) => log::debug!(
+				target: "runtime::coretime",
+				"Core assignment sent successfully."
+			),
+			Err(e) => log::error!(
+				target: "runtime::coretime",
+				"Core assignment failed to send: {:?}",
+				e
+			),
+		}
 	}
 
 	fn on_new_timeslice(t: pallet_broker::Timeslice) {
