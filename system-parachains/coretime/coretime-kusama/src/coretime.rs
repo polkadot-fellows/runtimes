@@ -27,7 +27,7 @@ use frame_support::{
 	},
 };
 use frame_system::Pallet as System;
-use kusama_runtime_constants::system_parachain::coretime;
+use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
 use parachains_common::{AccountId, Balance};
 use sp_runtime::traits::AccountIdConversion;
@@ -223,14 +223,44 @@ impl CoretimeInterface for CoretimeAllocator {
 		end_hint: Option<RCBlockNumberOf<Self>>,
 	) {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
-		let assign_core_call =
-			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		// Weight for `assign_core` from Kusama runtime benchmarks:
 		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
 		// `proof_size` = 3612
 		// Add 5% to each component and round to 2 significant figures.
 		let call_weight = Weight::from_parts(248_000_000, 3800);
+
+		// The relay chain currently only allows `assign_core` to be called with a complete mask
+		// and only ever with increasing `begin`. The assignments must be truncated to avoid
+		// dropping that core's assignment completely.
+
+		// This shadowing of `assignment` is temporary and can be removed when the relay can accept
+		// multiple messages to assign a single core.
+		let assignment = if assignment.len() > 28 {
+			let mut total_parts = 0u16;
+			// Account for missing parts with a new `Idle` assignment at the start as
+			// `assign_core` on the relay assumes this is sorted. We'll add the rest of the
+			// assignments and sum the parts in one pass, so this is just initialized to 0.
+			let mut assignment_truncated = vec![(CoreAssignment::Idle, 0)];
+			// Truncate to first 27 non-idle assignments.
+			assignment_truncated.extend(
+				assignment
+					.into_iter()
+					.filter(|(a, _)| *a != CoreAssignment::Idle)
+					.take(27)
+					.inspect(|(_, parts)| total_parts += *parts)
+					.collect::<Vec<_>>(),
+			);
+
+			// Set the parts of the `Idle` assignment we injected at the start of the vec above.
+			assignment_truncated[0].1 = 57_600u16.saturating_sub(total_parts);
+			assignment_truncated
+		} else {
+			assignment
+		};
+
+		let assign_core_call =
+			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -258,9 +288,13 @@ impl CoretimeInterface for CoretimeAllocator {
 	}
 
 	fn on_new_timeslice(t: pallet_broker::Timeslice) {
-		// Burn roughly once per day. Unchecked math: RHS hardcoded as non-zero.
-		if t % 180 != 0 {
-			return
+		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
+		const BURN_PERIOD: pallet_broker::Timeslice =
+			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
+		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
+		// have bigger issues with the chain, but we still want to burn.
+		if t.checked_rem(BURN_PERIOD).map_or(false, |r| r != 0) {
+			return;
 		}
 
 		let stash = CoretimeBurnAccount::get();

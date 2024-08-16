@@ -41,6 +41,7 @@ decl_test_parachains! {
 		pallets = {
 			PolkadotXcm: coretime_kusama_runtime::PolkadotXcm,
 			Balances: coretime_kusama_runtime::Balances,
+			Broker: coretime_kusama_runtime::Broker,
 		}
 	},
 }
