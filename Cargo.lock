@@ -4597,9 +4597,9 @@ dependencies = [
 
 [[package]]
 name = "frame-system"
-version = "36.0.0"
+version = "36.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c2f10b6943da5d00f45b1b07b101bea49647d0e6c7e755b2852fd947072d7ee"
+checksum = "d19f388280c14dbabcee2a817e1123c59c55847c6d07a5b5ca901b34a5910093"
 dependencies = [
  "cfg-if",
  "docify",
@@ -10157,9 +10157,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-parachains"
-version = "15.0.1"
+version = "15.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3df740bff0b29ba4cd8c8874d7f8fb90e5722c24a7354d2e96d15e7121c1525e"
+checksum = "a6cb1cf1fa41c64b0b515a33d7bd388c3af0de31e5f93bd4c2b220e408f7f968"
 dependencies = [
  "bitflags 1.3.2",
  "bitvec",
@@ -14401,9 +14401,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm"
-version = "14.0.1"
+version = "14.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "536c5c8f8f25589e714a3be6b068d174debcc882e648dc9b0c3bd6ce45434de3"
+checksum = "f2b7b5f531c6bf9629514ef8e5fda0e9e80dd84516957f710940d0e01d3fb36c"
 dependencies = [
  "array-bytes",
  "bounded-collections",
@@ -16615,9 +16615,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-procedural"
-version = "10.0.0"
+version = "10.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0fd01495dfeb643167557631b34b54d312c1e70cf7eb64249ab687d84fd6045"
+checksum = "87fb4f14094d65c500a59bcf540cf42b99ee82c706edd6226a92e769ad60563e"
 dependencies = [
  "Inflector",
  "proc-macro2",
