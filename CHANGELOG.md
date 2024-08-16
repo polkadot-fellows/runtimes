@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama: Add a "Spokesperson" proxy type only allowed to send remarks ([polkadot-fellows/runtimes#430](https://github.com/polkadot-fellows/runtimes/pull/430))
 - Add the Polkadot and Kusama Coretime Chain specs ([polkadot-fellows/runtimes#432](https://github.com/polkadot-fellows/runtimes/pull/432))
 - Kusama: Make the current inflation formula adjustable ([polkadot-fellows/runtimes#364](https://github.com/polkadot-fellows/runtimes/pull/364))
+- Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
+
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -78,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
 - `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
 - Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
+- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434][https://github.com/polkadot-fellows/runtimes/pull/434]).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
