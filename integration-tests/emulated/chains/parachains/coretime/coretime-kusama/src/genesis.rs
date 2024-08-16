@@ -22,7 +22,7 @@ use emulated_integration_tests_common::{
 };
 use parachains_common::Balance;
 
-pub const PARA_ID: u32 = 1001;
+pub const PARA_ID: u32 = 1005;
 pub const ED: Balance = coretime_kusama_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {

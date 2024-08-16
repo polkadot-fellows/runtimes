@@ -83,7 +83,6 @@ fn construct_extrinsic(
 		BridgeRejectObsoleteHeadersAndMessages,
 		(RefundBridgeHubPolkadotMessages::default()),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-		cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim::<Runtime>::new(),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
 	let signature = payload.using_encoded(|e| sender.sign(e));
