@@ -15,8 +15,8 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
+use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
-use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_runtime::Perbill;
 
 #[test]
@@ -31,18 +31,18 @@ fn transact_hardcoded_weights_are_sane() {
 
 	// RuntimeEvent aliases to avoid warning from usage of qualified paths in assertions due to
 	// <https://github.com/rust-lang/rust/issues/86935>
-	type CoretimeEvent = <CoretimePolkadot as Chain>::RuntimeEvent;
-	type RelayEvent = <Polkadot as Chain>::RuntimeEvent;
+	type CoretimeEvent = <CoretimeKusama as Chain>::RuntimeEvent;
+	type RelayEvent = <Kusama as Chain>::RuntimeEvent;
 
 	// Reserve a workload, configure broker and start sales.
-	CoretimePolkadot::execute_with(|| {
+	CoretimeKusama::execute_with(|| {
 		// Hooks don't run in emulated tests - workaround as we need `on_initialize` to tick things
 		// along and have no concept of time passing otherwise.
-		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-			<CoretimePolkadot as Chain>::System::block_number(),
+		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
+			<CoretimeKusama as Chain>::System::block_number(),
 		);
 
-		let coretime_root_origin = <CoretimePolkadot as Chain>::RuntimeOrigin::root();
+		let coretime_root_origin = <CoretimeKusama as Chain>::RuntimeOrigin::root();
 
 		// Create and populate schedule with the worst case assignment on this core.
 		let mut schedule = Vec::new();
@@ -53,7 +53,7 @@ fn transact_hardcoded_weights_are_sane() {
 			})
 		}
 
-		assert_ok!(<CoretimePolkadot as CoretimePolkadotPallet>::Broker::reserve(
+		assert_ok!(<CoretimeKusama as CoretimeKusamaPallet>::Broker::reserve(
 			coretime_root_origin.clone(),
 			schedule.try_into().expect("Vector is within bounds."),
 		));
@@ -69,24 +69,24 @@ fn transact_hardcoded_weights_are_sane() {
 			renewal_bump: Perbill::from_percent(2),
 			contribution_timeout: 1,
 		};
-		assert_ok!(<CoretimePolkadot as CoretimePolkadotPallet>::Broker::configure(
+		assert_ok!(<CoretimeKusama as CoretimeKusamaPallet>::Broker::configure(
 			coretime_root_origin.clone(),
 			config
 		));
-		assert_ok!(<CoretimePolkadot as CoretimePolkadotPallet>::Broker::start_sales(
+		assert_ok!(<CoretimeKusama as CoretimeKusamaPallet>::Broker::start_sales(
 			coretime_root_origin,
 			100,
 			0
 		));
 		assert_eq!(
-			pallet_broker::Status::<<CoretimePolkadot as Chain>::Runtime>::get()
+			pallet_broker::Status::<<CoretimeKusama as Chain>::Runtime>::get()
 				.unwrap()
 				.core_count,
 			1
 		);
 
 		assert_expected_events!(
-			CoretimePolkadot,
+			CoretimeKusama,
 			vec![
 				CoretimeEvent::Broker(
 					pallet_broker::Event::ReservationMade { .. }
@@ -103,11 +103,11 @@ fn transact_hardcoded_weights_are_sane() {
 
 	// Check that the request_core_count message was processed successfully. This will fail if the
 	// weights are misconfigured.
-	Polkadot::execute_with(|| {
-		Polkadot::assert_ump_queue_processed(true, Some(CoretimePolkadot::para_id()), None);
+	Kusama::execute_with(|| {
+		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
 
 		assert_expected_events!(
-			Polkadot,
+			Kusama,
 			vec![
 				RelayEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
@@ -118,38 +118,38 @@ fn transact_hardcoded_weights_are_sane() {
 
 	// Keep track of the relay chain block number so we can fast forward while still checking the
 	// right block.
-	let mut block_number_cursor = Polkadot::ext_wrapper(<Polkadot as Chain>::System::block_number);
+	let mut block_number_cursor = Kusama::ext_wrapper(<Kusama as Chain>::System::block_number);
 
-	let config = CoretimePolkadot::ext_wrapper(|| {
-		Configuration::<<CoretimePolkadot as Chain>::Runtime>::get()
+	let config = CoretimeKusama::ext_wrapper(|| {
+		Configuration::<<CoretimeKusama as Chain>::Runtime>::get()
 			.expect("Pallet was configured earlier.")
 	});
 
 	// Now run up to the block before the sale is rotated.
 	while block_number_cursor < TIMESLICE_PERIOD - config.advance_notice - 1 {
-		CoretimePolkadot::execute_with(|| {
+		CoretimeKusama::execute_with(|| {
 			// Hooks don't run in emulated tests - workaround.
-			<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-				<CoretimePolkadot as Chain>::System::block_number(),
+			<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
+				<CoretimeKusama as Chain>::System::block_number(),
 			);
 		});
 
-		Polkadot::ext_wrapper(|| {
-			block_number_cursor = <Polkadot as Chain>::System::block_number();
+		Kusama::ext_wrapper(|| {
+			block_number_cursor = <Kusama as Chain>::System::block_number();
 		});
 
 		dbg!(&block_number_cursor);
 	}
 
 	// In this block we trigger assign core.
-	CoretimePolkadot::execute_with(|| {
+	CoretimeKusama::execute_with(|| {
 		// Hooks don't run in emulated tests - workaround.
-		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-			<CoretimePolkadot as Chain>::System::block_number(),
+		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
+			<CoretimeKusama as Chain>::System::block_number(),
 		);
 
 		assert_expected_events!(
-			CoretimePolkadot,
+			CoretimeKusama,
 			vec![
 				CoretimeEvent::Broker(
 					pallet_broker::Event::SaleInitialized { .. }
@@ -165,14 +165,14 @@ fn transact_hardcoded_weights_are_sane() {
 	});
 
 	// In this block we trigger request revenue.
-	CoretimePolkadot::execute_with(|| {
+	CoretimeKusama::execute_with(|| {
 		// Hooks don't run in emulated tests - workaround.
-		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
-			<CoretimePolkadot as Chain>::System::block_number(),
+		<CoretimeKusama as CoretimeKusamaPallet>::Broker::on_initialize(
+			<CoretimeKusama as Chain>::System::block_number(),
 		);
 
 		assert_expected_events!(
-			CoretimePolkadot,
+			CoretimeKusama,
 			vec![
 				CoretimeEvent::ParachainSystem(
 					cumulus_pallet_parachain_system::Event::UpwardMessageSent { .. }
@@ -183,11 +183,11 @@ fn transact_hardcoded_weights_are_sane() {
 
 	// Check that the assign_core and request_revenue_info_at messages were processed successfully.
 	// This will fail if the weights are misconfigured.
-	Polkadot::execute_with(|| {
-		Polkadot::assert_ump_queue_processed(true, Some(CoretimePolkadot::para_id()), None);
+	Kusama::execute_with(|| {
+		Kusama::assert_ump_queue_processed(true, Some(CoretimeKusama::para_id()), None);
 
 		assert_expected_events!(
-			Polkadot,
+			Kusama,
 			vec![
 				RelayEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
