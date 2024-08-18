@@ -141,6 +141,8 @@ use governance::{
 pub mod impls;
 pub mod xcm_config;
 
+mod coretime_migration;
+
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 impl_runtime_weights!(polkadot_runtime_constants);
@@ -1936,7 +1938,7 @@ pub mod migrations {
 	use super::*;
 
 	pub struct GetLegacyLeaseImpl;
-	impl coretime::migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
+	impl coretime_migration::GetLegacyLease<BlockNumber> for GetLegacyLeaseImpl {
 		fn get_parachain_lease_in_blocks(para: ParaId) -> Option<BlockNumber> {
 			let now = frame_system::Pallet::<Runtime>::block_number();
 			let lease = slots::Leases::<Runtime>::get(para);
@@ -1946,6 +1948,13 @@ pub mod migrations {
 			let (index, _) =
 				<slots::Pallet<Runtime> as Leaser<BlockNumber>>::lease_period_index(now)?;
 			Some(index.saturating_add(lease.len() as u32).saturating_mul(LeasePeriod::get()))
+		}
+
+		fn get_all_parachains_with_leases() -> Vec<ParaId> {
+			slots::Leases::<Runtime>::iter()
+				.filter(|(_, lease)| !lease.is_empty())
+				.map(|(para, _)| para)
+				.collect::<Vec<_>>()
 		}
 	}
 
@@ -2001,7 +2010,7 @@ pub mod migrations {
 		>,
 		clear_judgement_proxies::Migration,
 		// Migrate from legacy lease to coretime. Needs to run after configuration v11
-		coretime::migration::MigrateToCoretime<
+		coretime_migration::MigrateToCoretime<
 			Runtime,
 			crate::xcm_config::XcmRouter,
 			GetLegacyLeaseImpl,

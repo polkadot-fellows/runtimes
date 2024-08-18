@@ -18,7 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All runtimes: add `LocationToAccountApi` ([polkadot-fellows/runtimes#413](https://github.com/polkadot-fellows/runtimes/pull/413))
 - Enable Agile Coretime on Polkadot ([polkadot-fellows/runtimes#401](https://github.com/polkadot-fellows/runtimes/pull/401))
 - Add the Polkadot Coretime Chain runtime ([polkadot-fellows/runtimes#410](https://github.com/polkadot-fellows/runtimes/pull/410))
+- Kusama: Add a "Spokesperson" proxy type only allowed to send remarks ([polkadot-fellows/runtimes#430](https://github.com/polkadot-fellows/runtimes/pull/430))
 - Add the Polkadot and Kusama Coretime Chain specs ([polkadot-fellows/runtimes#432](https://github.com/polkadot-fellows/runtimes/pull/432))
+- Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -48,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Fast promotion tracks for the Fellowship ranks I-III ([polkadot-fellows/runtimes#356](https://github.com/polkadot-fellows/runtimes/pull/356)).
+- Migration to remove all but the 21 first elected Head Ambassador members from the Program ([polkadot-fellows/runtimes#422](https://github.com/polkadot-fellows/runtimes/pull/422)).
 
 ### Changed
 
@@ -76,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
 - `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
 - Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
+- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434][https://github.com/polkadot-fellows/runtimes/pull/434]).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
@@ -115,6 +119,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Treasury pallet: - remove unused config parameters ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4831](https://github.com/paritytech/polkadot-sdk/pull/4831)).
 - Remove Identity from Polkadot Relay Chain ([runtimes#415](https://github.com/polkadot-fellows/runtimes/pull/415))
 - Kusama: Remove unused Snowbridge code and configs ([polkadot-fellows/runtimes#411](https://github.com/polkadot-fellows/runtimes/pull/411)
+- Remove the identity ops pallet after the invalid judgments have been cleared ([polkadot-fellows/runtimes#408](https://github.com/polkadot-fellows/runtimes/pull/408)).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
