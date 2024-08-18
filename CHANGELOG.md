@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Fast promotion tracks for the Fellowship ranks I-III ([polkadot-fellows/runtimes#356](https://github.com/polkadot-fellows/runtimes/pull/356)).
+- Migration to remove all but the 21 first elected Head Ambassador members from the Program ([polkadot-fellows/runtimes#422](https://github.com/polkadot-fellows/runtimes/pull/422)).
 
 ### Changed
 
