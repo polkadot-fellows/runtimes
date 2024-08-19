@@ -4,6 +4,14 @@ and the [Runtime release guidelines](https://github.com/polkadot-fellows/runtime
 Use this PR template to communicate on the changes that you are proposing, to help streamline the release process, and to provide a course of action for impacted stakeholders.
 -->
 
+<!-- Remember that you can run `/merge` to enable auto-merge in the PR -->
+
+<!-- Remember to modify the changelog. If you don't need to modify it, you can check the following box.
+Instead, if you have already modified it, simply delete the following line. -->
+
+- [ ] Does not require a CHANGELOG entry
+
+
 ## I'm submitting a/n...
 <!---
 REQUIRED:
