@@ -15,6 +15,7 @@ polkadot-runtime = { workspace = true }
 kusama-runtime = { workspace = true }
 
 sc-chain-spec = { workspace = true }
+sc-network = { workspace = true }
 
 asset-hub-polkadot-runtime = { workspace = true }
 asset-hub-kusama-runtime = { workspace = true }
@@ -24,6 +25,7 @@ bridge-hub-kusama-runtime = { workspace = true }
 encointer-kusama-runtime = { workspace = true }
 glutton-kusama-runtime = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
+coretime-polkadot-runtime = { workspace = true }
 people-kusama-runtime = { workspace = true }
 people-polkadot-runtime = { workspace = true }
 
@@ -36,6 +38,7 @@ runtime-benchmarks = [
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
 	"collectives-polkadot-runtime/runtime-benchmarks",
 	"coretime-kusama-runtime/runtime-benchmarks",
+	"coretime-polkadot-runtime/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
