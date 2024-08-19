@@ -62,15 +62,23 @@
     "is_relay": false
   },
   {
+    "name": "coretime-polkadot",
+    "package": "coretime-polkadot-runtime",
+    "path": "system-parachains/coretime/coretime-polkadot",
+    "is_relay": false
+  },
+  {
     "name": "people-kusama",
     "package": "people-kusama-runtime",
     "path": "system-parachains/people/people-kusama",
+    "uri": "wss://kusama-people-rpc.polkadot.io:443",
     "is_relay": false
   },
   {
     "name": "people-polkadot",
     "package": "people-polkadot-runtime",
     "path": "system-parachains/people/people-polkadot",
+    "uri": "wss://polkadot-people-rpc.polkadot.io:443",
     "is_relay": false
   },
   {
