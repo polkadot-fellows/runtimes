@@ -1619,7 +1619,10 @@ impl_runtime_apis! {
 				pub TrustedReserve: Option<(Location, Asset)> = Some(
 					(
 						xcm_config::bridging::to_kusama::AssetHubKusama::get(),
-						Asset::from((xcm_config::bridging::to_kusama::KsmLocation::get(), 1000000000000 as u128))
+						Asset::from((
+							xcm_config::bridging::to_kusama::KusamaEcosystem::get(),
+							1000000000000 as u128
+						))
 					)
 				);
 			}

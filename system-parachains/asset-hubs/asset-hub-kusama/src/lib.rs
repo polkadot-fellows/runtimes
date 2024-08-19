@@ -1614,7 +1614,10 @@ impl_runtime_apis! {
 				pub TrustedReserve: Option<(Location, Asset)> = Some(
 					(
 						xcm_config::bridging::to_polkadot::AssetHubPolkadot::get(),
-						Asset::from((xcm_config::bridging::to_polkadot::DotLocation::get(), 1000000000000 as u128))
+						Asset::from((
+							xcm_config::bridging::to_polkadot::PolkadotEcosystem::get(),
+							1000000000000 as u128,
+						))
 					)
 				);
 			}
