@@ -880,7 +880,7 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 			},
 		});
 		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
-		assert_ok!(EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id().into()));
+		assert_ok!(EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()));
 
 		// Check that the message was sent
 		assert_expected_events!(

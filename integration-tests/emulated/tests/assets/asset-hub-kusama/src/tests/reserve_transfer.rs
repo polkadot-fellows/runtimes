@@ -912,7 +912,7 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 
 	// Fund SA-of-Penpal-on-AHR to be able to pay for the fees.
 	AssetHubKusama::fund_accounts(vec![(
-		sov_penpal_on_ahr.clone().into(),
+		sov_penpal_on_ahr.clone(),
 		ASSET_HUB_KUSAMA_ED * 10000000,
 	)]);
 	// Fund SA-of-Penpal-on-AHR to be able to pay for the sent amount.
