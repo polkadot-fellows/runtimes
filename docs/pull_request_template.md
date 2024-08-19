@@ -34,14 +34,14 @@ If submitting a breaking change, please make sure to ping @SBalaguer and @anaell
 ### Who will be impacted by theses changes in practice?
 <!---
 OPTIONAL:
-Indicate if merging this PR will impact network stakeholders (i.e teams working on parachains, wallets, UIs, CEXes, or DEXes).
+Indicate the network stakeholders (i.e teams working on parachains, wallets, UIs, CEXes, or DEXes) that this PR will affect.
 -->
 
 
 ### How should impacted team/builders follow up on these changes?
 <!---
 OPTIONAL:
-Mention any relevant recommendations (i.e  resources for code refactoring or further reading) for network stakeholders.
+Recommend a course of action (i.e resources for code refactoring or further reading) for network stakeholders.
 -->
 
 
