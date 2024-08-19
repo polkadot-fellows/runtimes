@@ -128,7 +128,7 @@ fn para_to_relay_receiver_assertions(t: ParaToRelayTest) {
 			RuntimeEvent::Balances(
 				pallet_balances::Event::Burned { who, amount }
 			) => {
-				who: *who == sov_penpal_on_relay.clone().into(),
+				who: *who == sov_penpal_on_relay.clone(),
 				amount: *amount == t.args.amount,
 			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
@@ -575,7 +575,7 @@ fn reserve_transfer_ksm_from_para_to_relay() {
 	let sov_penpal_on_relay = Kusama::sovereign_account_id_of(penpal_location_as_seen_by_relay);
 
 	// fund Parachain's SA on Relay with the native tokens held in reserve
-	Kusama::fund_accounts(vec![(sov_penpal_on_relay.into(), amount_to_send * 2)]);
+	Kusama::fund_accounts(vec![(sov_penpal_on_relay, amount_to_send * 2)]);
 
 	// Init Test
 	let test_args = TestContext {
@@ -853,8 +853,8 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 	// bought_execution`; `delivery_fees` might be paid from transfer or JIT, also
 	// `bought_execution` is unknown but should be non-zero
 	assert!(
-		receiver_system_native_assets_after
-			< receiver_system_native_assets_before + fee_amount_to_send
+		receiver_system_native_assets_after <
+			receiver_system_native_assets_before + fee_amount_to_send
 	);
 
 	// Sender's asset balance is reduced by exact amount

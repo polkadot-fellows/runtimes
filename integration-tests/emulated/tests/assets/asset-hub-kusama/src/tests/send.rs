@@ -70,7 +70,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 
 	// SA-of-Penpal-on-AHK needs to have balance to pay for fees and asset creation deposit
 	AssetHubKusama::fund_accounts(vec![(
-		para_sovereign_account.clone().into(),
+		para_sovereign_account.clone(),
 		ASSET_HUB_KUSAMA_ED * 10000000000,
 	)]);
 
@@ -149,7 +149,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
 
 	// SA-of-Penpal-on-AHK needs to have balance to pay for asset creation deposit
 	AssetHubKusama::fund_accounts(vec![(
-		para_sovereign_account.clone().into(),
+		para_sovereign_account.clone(),
 		ASSET_HUB_KUSAMA_ED * 10000000000,
 	)]);
 
