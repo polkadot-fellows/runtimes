@@ -137,6 +137,7 @@ pallet-nomination-pools-benchmarking = { version = "34.0.0", default-features = 
 pallet-nomination-pools-runtime-api = { version = "31.0.0", default-features = false }
 pallet-offences = { version = "35.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "36.0.0", default-features = false }
+pallet-parameters = { version = "0.7.0", default-features = false }
 pallet-preimage = { version = "36.0.0", default-features = false }
 pallet-proxy = { version = "36.0.0", default-features = false }
 pallet-ranked-collective = { version = "36.0.0", default-features = false }
@@ -243,6 +244,8 @@ subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
 zombienet-sdk = { version = "0.2.4" }
 tuplex = { version = "0.1.0", default-features = false }
+relay-common = { path = "relay/common", default-features = false }
+ss58-registry = { version = "1.47.0" }
 
 [workspace]
 resolver = "2"
@@ -275,6 +278,7 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
+	"relay/common",
 	"relay/kusama",
 	"relay/kusama/constants",
 	"relay/polkadot",
