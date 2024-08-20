@@ -657,13 +657,13 @@ pub mod dynamic_params {
 		#[codec(index = 3)]
 		pub static Falloff: Perquintill = Perquintill::from_percent(5);
 
-		/// Whether to use auction slots or not in the calculation of era payouts, then we subtract
-		/// `num_auctioned_slots.min(60) / 200` from `ideal_stake`.
+		/// Whether to use auction slots or not in the calculation of era payouts. If true, then we
+		/// subtract `num_auctioned_slots.min(60) / 200` from `ideal_stake`.
 		///
 		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
 		/// maximum of 30%.
 		///
-		/// With the move to agile-coretime, this parameter does not make much sense and should
+		/// With the move to Agile Coretime, this parameter does not make much sense and should
 		/// generally be set to false.
 		#[codec(index = 4)]
 		pub static UseAuctionSlots: bool = false;
@@ -731,7 +731,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 			legacy_auction_proportion: if dynamic_params::inflation::UseAuctionSlots::get() {
 				let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
 					.into_iter()
-					// all active para-ids that do not belong to a system chain is the number of
+					// All active para-ids that do not belong to a system chain is the number of
 					// parachains that we should take into account for inflation.
 					.filter(|i| *i >= LOWEST_PUBLIC_ID)
 					.count() as u64;
@@ -1896,7 +1896,7 @@ impl Runtime {
 		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
 			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
 				.into_iter()
-				// all active para-ids that do not belong to a system chain is the number of
+				// All active para-ids that do not belong to a system chain is the number of
 				// parachains that we should take into account for inflation.
 				.filter(|i| *i >= LOWEST_PUBLIC_ID)
 				.count() as u64;
@@ -1906,7 +1906,7 @@ impl Runtime {
 			ideal_staking_rate
 		};
 
-		// we assume un-delayed 6h eras.
+		// We assume un-delayed 6h eras.
 		let era_duration = 6 * HOURS;
 		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
 			staked,

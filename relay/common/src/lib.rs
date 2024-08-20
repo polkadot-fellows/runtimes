@@ -61,7 +61,7 @@ pub struct EraPayoutParams {
 	/// Usually, this is equal to the total issuance, except if a large part of the issuance is
 	/// locked in another sub-system.
 	pub total_stakable: Balance,
-	/// Ideal stake ratio, which is deducted by `legacy_auction_proportion` if not `None`.
+	/// Ideal stake ratio, which is reduced by `legacy_auction_proportion` if not `None`.
 	pub ideal_stake: Perquintill,
 	/// Maximum inflation rate.
 	pub max_annual_inflation: Perquintill,
@@ -71,12 +71,12 @@ pub struct EraPayoutParams {
 	pub falloff: Perquintill,
 	/// Fraction of the era period used to calculate era payouts.
 	pub period_fraction: Perquintill,
-	/// Legacy auction proportion, which substracts from `ideal_stake` if not `None`.
+	/// Legacy auction proportion, which, if not `None`, is subtracted from `ideal_stake`.
 	pub legacy_auction_proportion: Option<Perquintill>,
 }
 
-/// A specialized function to compute the inflation of the staking system, tailored for polkadot
-/// relay chains, such as Polkadot, Kusama and Westend.
+/// A specialized function to compute the inflation of the staking system, tailored for Polkadot
+/// Relay Chains, such as Polkadot, Kusama, and Westend.
 pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 	let EraPayoutParams {
 		total_staked,
