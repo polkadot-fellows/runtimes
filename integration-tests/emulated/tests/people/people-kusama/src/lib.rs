@@ -49,6 +49,7 @@ pub use kusama_system_emulated_network::{
 	PeopleKusamaParaReceiver as PeopleKusamaReceiver, PeopleKusamaParaSender as PeopleKusamaSender,
 };
 pub use parachains_common::{AccountId, Balance};
+pub use people_kusama_runtime::ExistentialDeposit as PeopleKusamaExistentialDeposit;
 
 pub type RelayToSystemParaTest = Test<Kusama, PeopleKusama>;
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
