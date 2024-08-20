@@ -8704,6 +8704,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-parameters"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58d9a81a93202105a660e6aa3d3f81638bdd109ca0497f3e528529cd52d034db"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "paste",
+ "scale-info",
+ "serde",
+ "sp-core 34.0.0",
+ "sp-runtime 38.0.0",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11077,6 +11096,18 @@ name = "regex-syntax"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
+
+[[package]]
+name = "relay-common"
+version = "1.0.0"
+dependencies = [
+ "pallet-staking-reward-fn",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "scale-info",
+ "sp-api",
+ "sp-runtime 38.0.0",
+]
 
 [[package]]
 name = "reqwest"
@@ -14239,9 +14270,9 @@ dependencies = [
 
 [[package]]
 name = "ss58-registry"
-version = "1.44.0"
+version = "1.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35935738370302d5e33963665b77541e4b990a3e919ec904c837a56cfc891de1"
+checksum = "4743ce898933fbff7bbf414f497c459a782d496269644b3d650a398ae6a487ba"
 dependencies = [
  "Inflector",
  "num-format",
@@ -14325,6 +14356,7 @@ dependencies = [
  "pallet-nomination-pools-runtime-api",
  "pallet-offences",
  "pallet-offences-benchmarking",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-ranked-collective",
@@ -14349,6 +14381,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "relay-common",
  "scale-info",
  "separator",
  "serde_json",
@@ -14376,6 +14409,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie 36.0.0",
  "sp-version",
+ "ss58-registry",
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
