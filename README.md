@@ -71,7 +71,7 @@ Here are the recommended steps for both major and minor runtime releases.
 |1 |Identify **released crates**. | ✔️ | ❌ |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). | ✔️ | ✔️ |
 |3 |Identify and include **priority PRs (fixes and patches)** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
-|4 |Identify and include **recommended PRs** (enhancements, backports, migrations) with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
+|4 |Identify and include **recommended PRs** (enhancements, migrations, backports) with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
 |5 |Propose or include **additional PRs** (small configurations, simple migrations, general cleanup). | ✔️ | ✔️ |
 |6 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. | ✔️ | ✔️ |
 |7 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
