@@ -21,58 +21,164 @@ mod register_bridged_assets;
 mod send_xcm;
 mod teleport;
 
+mod snowbridge {
+	pub const CHAIN_ID: u64 = 11155111;
+	pub const WETH: [u8; 20] = hex_literal::hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
+}
+
 pub(crate) fn asset_hub_polkadot_location() -> Location {
-	Location::new(
-		2,
-		[GlobalConsensus(NetworkId::Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
-	)
+	Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())])
 }
 
 pub(crate) fn bridge_hub_polkadot_location() -> Location {
+	Location::new(2, [GlobalConsensus(Polkadot), Parachain(BridgeHubPolkadot::para_id().into())])
+}
+
+// KSM and wKSM
+pub(crate) fn ksm_at_ah_kusama() -> Location {
+	Parent.into()
+}
+pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
+	Location::new(2, [GlobalConsensus(Kusama)])
+}
+
+// wDOT
+pub(crate) fn bridged_dot_at_ah_kusama() -> Location {
+	Location::new(2, [GlobalConsensus(Polkadot)])
+}
+
+// USDT and wUSDT
+pub(crate) fn usdt_at_ah_polkadot() -> Location {
+	Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(USDT_ID.into())])
+}
+pub(crate) fn bridged_usdt_at_ah_kusama() -> Location {
 	Location::new(
 		2,
-		[GlobalConsensus(NetworkId::Polkadot), Parachain(BridgeHubPolkadot::para_id().into())],
+		[
+			GlobalConsensus(Polkadot),
+			Parachain(AssetHubPolkadot::para_id().into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(USDT_ID.into()),
+		],
 	)
 }
 
-pub(crate) fn send_asset_from_asset_hub_kusama(
-	destination: Location,
-	(id, amount): (Location, u128),
-) -> DispatchResult {
-	let signed_origin =
-		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
+// wETH has same relative location on both Kusama and Polkadot AssetHubs
+pub(crate) fn weth_at_asset_hubs() -> Location {
+	Location::new(
+		2,
+		[
+			GlobalConsensus(Ethereum { chain_id: snowbridge::CHAIN_ID }),
+			AccountKey20 { network: None, key: snowbridge::WETH },
+		],
+	)
+}
 
-	let beneficiary: Location =
-		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
+pub(crate) fn create_foreign_on_ah_kusama(
+	id: v3::Location,
+	sufficient: bool,
+	prefund_accounts: Vec<(AccountId, u128)>,
+) {
+	let owner = AssetHubKusama::account_id_of(ALICE);
+	let min = ASSET_MIN_BALANCE;
+	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
+}
 
-	let assets: Assets = (id, amount).into();
-	let fee_asset_item = 0;
+pub(crate) fn create_foreign_on_ah_polkadot(id: v3::Location, sufficient: bool) {
+	let owner = AssetHubPolkadot::account_id_of(ALICE);
+	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
+}
 
+pub(crate) fn foreign_balance_on_ah_kusama(id: v3::Location, who: &AccountId) -> u128 {
 	AssetHubKusama::execute_with(|| {
-		let call =
-			send_asset_from_asset_hub_kusama_call(destination, beneficiary, assets, fee_asset_item);
-		match call.dispatch(signed_origin) {
-			Ok(_) => Ok(()),
-			Err(error_with_post_info) => Err(error_with_post_info.error),
-		}
+		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
+		<Assets as Inspect<_>>::balance(id, who)
+	})
+}
+pub(crate) fn foreign_balance_on_ah_polkadot(id: v3::Location, who: &AccountId) -> u128 {
+	AssetHubPolkadot::execute_with(|| {
+		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
+		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
 
-pub(crate) fn send_asset_from_asset_hub_kusama_call(
+// set up pool
+pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v3::Location, is_foreign: bool) {
+	let dot: v3::Location = v3::Parent.into();
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		let owner = AssetHubPolkadotSender::get();
+		let signed_owner = <AssetHubPolkadot as Chain>::RuntimeOrigin::signed(owner.clone());
+
+		if is_foreign {
+			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
+				signed_owner.clone(),
+				asset.clone().into(),
+				owner.clone().into(),
+				3_000_000_000_000,
+			));
+		} else {
+			let asset_id = match asset.interior.last() {
+				Some(v3::Junction::GeneralIndex(id)) => *id as u32,
+				_ => unreachable!(),
+			};
+			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
+				signed_owner.clone(),
+				asset_id.into(),
+				owner.clone().into(),
+				3_000_000_000_000,
+			));
+		}
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
+			signed_owner.clone(),
+			Box::new(dot.clone()),
+			Box::new(asset.clone()),
+		));
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+			]
+		);
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
+			signed_owner.clone(),
+			Box::new(dot),
+			Box::new(asset),
+			1_000_000_000_000,
+			2_000_000_000_000,
+			1,
+			1,
+			owner.into()
+		));
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {..}) => {},
+			]
+		);
+	});
+}
+
+pub(crate) fn send_assets_from_asset_hub_kusama(
 	destination: Location,
-	beneficiary: Location,
 	assets: Assets,
-	fee_asset_item: u32,
-) -> <AssetHubKusama as Chain>::RuntimeCall {
-	<AssetHubKusama as Chain>::RuntimeCall::PolkadotXcm(
-		pallet_xcm::Call::limited_reserve_transfer_assets {
-			dest: bx!(destination.into()),
-			beneficiary: bx!(beneficiary.into()),
-			assets: bx!(assets.into()),
-			fee_asset_item,
-			weight_limit: WeightLimit::Unlimited,
-		},
-	)
+	fee_idx: u32,
+) -> DispatchResult {
+	let signed_origin =
+		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
+	let beneficiary: Location =
+		AccountId32Junction { network: None, id: AssetHubPolkadotReceiver::get().into() }.into();
+
+	AssetHubKusama::execute_with(|| {
+		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+			signed_origin,
+			bx!(destination.into()),
+			bx!(beneficiary.into()),
+			bx!(assets.into()),
+			fee_idx,
+			WeightLimit::Unlimited,
+		)
+	})
 }
 
 pub(crate) fn assert_bridge_hub_kusama_message_accepted(expected_processed: bool) {
