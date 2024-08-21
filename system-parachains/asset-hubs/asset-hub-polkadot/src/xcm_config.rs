@@ -374,7 +374,7 @@ impl xcm_executor::Config for XcmConfig {
 	// under `pallet-assets`. Users must use teleport where allowed (e.g. DOT with the Relay Chain).
 	type IsReserve = (
 		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
-		bridging::to_ethereum::IsTrustedBridgedReserveLocationForForeignAsset,
+		bridging::to_ethereum::EthereumAssetFromEthereum,
 	);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
@@ -725,7 +725,7 @@ pub mod bridging {
 			);
 		}
 
-		pub type IsTrustedBridgedReserveLocationForForeignAsset =
+		pub type EthereumAssetFromEthereum =
 			IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
 		impl Contains<(Location, Junction)> for UniversalAliases {
