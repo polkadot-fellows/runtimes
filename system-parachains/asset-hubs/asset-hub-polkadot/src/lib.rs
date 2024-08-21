@@ -1621,7 +1621,7 @@ impl_runtime_apis! {
 					(
 						xcm_config::bridging::to_kusama::AssetHubKusama::get(),
 						Asset::from((
-							xcm_config::bridging::to_kusama::KusamaEcosystem::get(),
+							xcm_config::bridging::to_kusama::KsmLocation::get(),
 							1000000000000 as u128
 						))
 					)

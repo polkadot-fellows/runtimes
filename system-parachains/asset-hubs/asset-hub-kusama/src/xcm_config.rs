@@ -524,6 +524,7 @@ pub mod bridging {
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				],
 			);
+			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 
 			/// Set up exporters configuration.
 			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
