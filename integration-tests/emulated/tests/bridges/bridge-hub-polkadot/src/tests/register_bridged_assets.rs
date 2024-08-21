@@ -74,7 +74,7 @@ fn register_asset_on_kah_from_pah(bridged_asset_at_kah: v3::Location) {
 	// SA-of-PAH-on-KAH needs to have balance to pay for fees and asset creation deposit
 	AssetHubKusama::fund_accounts(vec![(
 		sa_of_pah_on_kah.clone(),
-		ASSET_HUB_POLKADOT_ED * 10000000000,
+		ASSET_HUB_KUSAMA_ED * 10000000000,
 	)]);
 
 	let destination = asset_hub_kusama_location();
