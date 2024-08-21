@@ -39,6 +39,7 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -100,6 +101,9 @@ pub type LocationToAccountId = (
 	// Different global consensus parachain sovereign account.
 	// (Used for over-bridge transfers and reserve processing)
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
+	// Ethereum contract sovereign account.
+	// (Used to get convert ethereum contract locations to sovereign account)
+	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -454,6 +458,8 @@ pub type ForeignCreatorsSovereignAccountOf = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	ParentIsPreset<AccountId>,
+	GlobalConsensusEthereumConvertsFor<AccountId>,
+	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
 );
 
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
@@ -557,34 +563,54 @@ pub mod bridging {
 			AssetHubPolkadot,
 		>;
 
-		// TODO: get this from `assets_common v0.17.0` when SDK deps are upgraded
+		// TODO: get this from `assets_common v0.17.1` when SDK deps are upgraded
 		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
 		/// `OriginLocation`.
 		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
 			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
 		);
-		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
-			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		impl<
+				L: TryInto<Location> + Clone,
+				AssetsAllowedNetworks: Contains<Location>,
+				OriginLocation: Get<Location>,
+			> ContainsPair<L, L> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
 		{
-			fn contains(asset: &Asset, origin: &Location) -> bool {
+			fn contains(asset: &L, origin: &L) -> bool {
+				let latest_asset: Location = if let Ok(location) = asset.clone().try_into() {
+					location
+				} else {
+					return false;
+				};
+				let latest_origin: Location = if let Ok(location) = origin.clone().try_into() {
+					location
+				} else {
+					return false;
+				};
 				let expected_origin = OriginLocation::get();
 				// ensure `origin` is expected `OriginLocation`
-				if !expected_origin.eq(origin) {
+				if !expected_origin.eq(&latest_origin) {
 					log::trace!(
 						target: "xcm::contains",
 						"RemoteAssetFromLocation asset: {:?}, origin: {:?} is not from expected {:?}",
-						asset, origin, expected_origin,
+						latest_asset, latest_origin, expected_origin,
 					);
 					return false;
 				} else {
 					log::trace!(
 						target: "xcm::contains",
-						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
+						"RemoteAssetFromLocation asset: {latest_asset:?}, origin: {latest_origin:?}",
 					);
 				}
 
 				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
-				AssetsAllowedNetworks::contains(&asset.id.0)
+				AssetsAllowedNetworks::contains(&latest_asset)
+			}
+		}
+		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
+			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &Asset, origin: &Location) -> bool {
+				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)
 			}
 		}
 	}

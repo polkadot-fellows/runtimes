@@ -443,7 +443,10 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type AssetIdParameter = xcm::v3::Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
-		FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
+		(
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
+			xcm_config::bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
+		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
 		xcm::v3::Location,

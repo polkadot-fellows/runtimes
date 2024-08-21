@@ -371,6 +371,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 				xcm_config::bridging::to_ethereum::EthereumNetwork,
 				xcm::v3::Location,
 			>,
+			xcm_config::bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,

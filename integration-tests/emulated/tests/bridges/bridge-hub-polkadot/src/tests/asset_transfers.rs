@@ -46,7 +46,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		vec![],
 	);
 	let sov_ahk_on_ahp = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
-		NetworkId::Kusama,
+		Kusama,
 		AssetHubKusama::para_id(),
 	);
 
@@ -116,7 +116,7 @@ fn send_ksms_from_asset_hub_polkadot_to_asset_hub_kusama() {
 
 	// fund the AHP's SA on AHK with the KSM tokens held in reserve
 	let sov_ahp_on_ahk = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
-		NetworkId::Polkadot,
+		Polkadot,
 		AssetHubPolkadot::para_id(),
 	);
 	AssetHubKusama::fund_accounts(vec![(sov_ahp_on_ahk.clone(), prefund_amount)]);
@@ -193,7 +193,7 @@ fn send_dots_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 		vec![],
 	);
 	let sov_ahk_on_ahp = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
-		NetworkId::Kusama,
+		Kusama,
 		AssetHubKusama::para_id(),
 	);
 
@@ -356,7 +356,7 @@ fn send_ksms_from_asset_hub_polkadot_to_asset_hub_kusama_fee_from_pool() {
 
 	// fund the AHP's SA on AHK with the KSM tokens held in reserve
 	let sov_ahp_on_ahk = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
-		NetworkId::Polkadot,
+		Polkadot,
 		AssetHubPolkadot::para_id(),
 	);
 	AssetHubKusama::fund_accounts(vec![(sov_ahp_on_ahk.clone(), prefund_amount)]);
