@@ -834,3 +834,132 @@ fn make_register_token_message() -> InboundQueueFixture {
 		block_roots_root: hex!("3adb5c78afd49ef17160ca7fc38b47228cbb13a317709c86bb6f51d799ba9ab6").into(),
 	}
 }
+
+fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u128) {
+	let weth_asset_location: Location = Location::new(
+		2,
+		[EthereumNetwork::get().into(), AccountKey20 { network: None, key: WETH }],
+	);
+	// Fund asset hub sovereign on bridge hub
+	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
+		1,
+		[Parachain(AssetHubPolkadot::para_id().into())],
+	));
+	BridgeHubPolkadot::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
+
+	// Register WETH
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
+			RuntimeOrigin::root(),
+			weth_asset_location.clone().try_into().unwrap(),
+			asset_hub_sovereign.into(),
+			false,
+			1,
+		));
+
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
+			weth_asset_location.clone().try_into().unwrap(),
+		));
+	});
+
+	// Send WETH to an existent account on asset hub
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		type EthereumInboundQueue =
+			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumInboundQueue;
+		let message_id: H256 = [0; 32].into();
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::SendToken {
+				token: WETH.into(),
+				destination: Destination::AccountId32 { id: account_id },
+				amount: 1_000_000,
+				fee,
+			},
+		});
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		assert_ok!(EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()));
+
+		// Check that the message was sent
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn send_token_from_ethereum_to_existent_account_on_asset_hub() {
+	send_token_from_ethereum_to_asset_hub_with_fee(AssetHubPolkadotSender::get().into(), XCM_FEE);
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn send_token_from_ethereum_to_non_existent_account_on_asset_hub() {
+	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], XCM_FEE);
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_insufficient_fee() {
+	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], INSUFFICIENT_XCM_FEE);
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the message was not processed successfully due to insufficient fee
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:false, .. }) => {},
+			]
+		);
+	});
+}
+
+#[test]
+fn send_token_from_ethereum_to_non_existent_account_on_asset_hub_with_sufficient_fee_but_do_not_satisfy_ed(
+) {
+	// On AH the xcm fee is 26_789_690 and the ED is 3_300_000
+	send_token_from_ethereum_to_asset_hub_with_fee([1; 32], 30_000_000);
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the message was not processed successfully due to insufficient ED
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success:false, .. }) => {},
+			]
+		);
+	});
+}

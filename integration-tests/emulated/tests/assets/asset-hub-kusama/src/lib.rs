@@ -18,10 +18,12 @@ pub use codec::Encode;
 // Substrate
 pub use frame_support::{
 	assert_err, assert_ok,
+	dispatch::RawOrigin,
 	pallet_prelude::Weight,
 	sp_runtime::{AccountId32, DispatchError, DispatchResult},
 	traits::fungibles::Inspect,
 };
+pub use sp_runtime::traits::Dispatchable;
 
 // Polkadot
 pub use xcm::{
@@ -40,6 +42,9 @@ pub use emulated_integration_tests_common::{
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, RESERVABLE_ASSET_ID, XCM_V3,
+};
+pub use integration_tests_helpers::{
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use kusama_runtime::xcm_config::UniversalLocation as KusamaUniversalLocation;
 pub use kusama_system_emulated_network::{
@@ -67,8 +72,8 @@ pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
 
-pub type RelayToSystemParaTest = Test<Kusama, AssetHubKusama>;
 pub type RelayToParaTest = Test<Kusama, PenpalA>;
+pub type ParaToRelayTest = Test<PenpalA, Kusama>;
 pub type SystemParaToRelayTest = Test<AssetHubKusama, Kusama>;
 pub type SystemParaToParaTest = Test<AssetHubKusama, PenpalA>;
 pub type ParaToSystemParaTest = Test<PenpalA, AssetHubKusama>;

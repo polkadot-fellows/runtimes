@@ -137,8 +137,6 @@ fn transact_hardcoded_weights_are_sane() {
 		Polkadot::ext_wrapper(|| {
 			block_number_cursor = <Polkadot as Chain>::System::block_number();
 		});
-
-		dbg!(&block_number_cursor);
 	}
 
 	// In this block we trigger assign core.
@@ -197,6 +195,27 @@ fn transact_hardcoded_weights_are_sane() {
 				) => {},
 				RelayEvent::Coretime(
 					runtime_parachains::coretime::Event::CoreAssigned { .. }
+				) => {},
+			]
+		);
+	});
+
+	// Here we receive and process the notify_revenue XCM with zero revenue.
+	CoretimePolkadot::execute_with(|| {
+		// Hooks don't run in emulated tests - workaround.
+		<CoretimePolkadot as CoretimePolkadotPallet>::Broker::on_initialize(
+			<CoretimePolkadot as Chain>::System::block_number(),
+		);
+
+		assert_expected_events!(
+			CoretimePolkadot,
+			vec![
+				CoretimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+				// Zero revenue in first timeslice so history is immediately dropped.
+				CoretimeEvent::Broker(
+					pallet_broker::Event::HistoryDropped { when: 0, revenue: 0 }
 				) => {},
 			]
 		);
