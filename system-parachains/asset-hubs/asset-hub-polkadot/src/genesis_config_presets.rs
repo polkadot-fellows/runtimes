@@ -19,6 +19,7 @@
 use crate::*;
 use parachains_common::AssetHubPolkadotAuraId;
 use sp_core::sr25519;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -86,6 +87,11 @@ pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::
 
 fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	asset_hub_polkadot_local_testnet_genesis(para_id)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
