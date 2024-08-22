@@ -15,14 +15,14 @@
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
-use frame_support::traits::fungibles::{Create, Mutate};
+use frame_support::traits::fungibles::Mutate;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 
 #[test]
-fn create_and_claim_treasury_spend() {
-	const ASSET_ID: u32 = 1984;
-	const SPEND_AMOUNT: u128 = 1_000_000;
+fn create_and_claim_treasury_spend_in_usdt() {
+	const USDT_ID: u32 = 1984;
+	const SPEND_AMOUNT: u128 = 1_000_000_000;
 	// treasury location from a sibling parachain.
 	let treasury_location: Location = Location::new(1, PalletInstance(19));
 	// treasury account on a sibling parachain.
@@ -38,7 +38,7 @@ fn create_and_claim_treasury_spend() {
 	let asset_kind = VersionedLocatableAsset::V3 {
 		location: asset_hub_location,
 		asset_id: v3::AssetId::Concrete(
-			(v3::Junction::PalletInstance(50), v3::Junction::GeneralIndex(ASSET_ID.into())).into(),
+			(v3::Junction::PalletInstance(50), v3::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.
@@ -49,16 +49,10 @@ fn create_and_claim_treasury_spend() {
 	AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
 
-		// create an asset class and mint some assets to the treasury account.
-		assert_ok!(<Assets as Create<_>>::create(
-			ASSET_ID,
-			treasury_account.clone(),
-			true,
-			SPEND_AMOUNT / 2
-		));
-		assert_ok!(<Assets as Mutate<_>>::mint_into(ASSET_ID, &treasury_account, SPEND_AMOUNT * 4));
+		// USDT created at genesis, mint some assets to the treasury account.
+		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account, SPEND_AMOUNT * 4));
 		// beneficiary has zero balance.
-		assert_eq!(<Assets as Inspect<_>>::balance(ASSET_ID, &alice,), 0u128,);
+		assert_eq!(<Assets as Inspect<_>>::balance(USDT_ID, &alice,), 0u128,);
 	});
 
 	Polkadot::execute_with(|| {
@@ -100,7 +94,7 @@ fn create_and_claim_treasury_spend() {
 			AssetHubPolkadot,
 			vec![
 				RuntimeEvent::Assets(pallet_assets::Event::Transferred { asset_id: id, from, to, amount }) => {
-					id: id == &ASSET_ID,
+					id: id == &USDT_ID,
 					from: from == &treasury_account,
 					to: to == &alice,
 					amount: amount == &SPEND_AMOUNT,
@@ -110,7 +104,7 @@ fn create_and_claim_treasury_spend() {
 			]
 		);
 		// beneficiary received the assets from the treasury.
-		assert_eq!(<Assets as Inspect<_>>::balance(ASSET_ID, &alice,), SPEND_AMOUNT,);
+		assert_eq!(<Assets as Inspect<_>>::balance(USDT_ID, &alice,), SPEND_AMOUNT,);
 	});
 
 	Polkadot::execute_with(|| {

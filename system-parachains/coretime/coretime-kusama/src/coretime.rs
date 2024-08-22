@@ -21,13 +21,19 @@ use cumulus_primitives_core::relay_chain;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{Balanced, Credit},
-		OnUnbalanced,
+		fungible::{Balanced, Credit, Inspect},
+		tokens::{Fortitude, Preservation},
+		DefensiveResult, OnUnbalanced,
 	},
+	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
+use frame_system::Pallet as System;
+use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
+use parachains_common::{AccountId, Balance};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
+use xcm_executor::traits::TransactAsset;
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
 /// construct any remote calls. The codec index must correspond to the index of `Coretime` in the
@@ -64,11 +70,52 @@ parameter_types! {
 
 /// Burn revenue from coretime sales. See
 /// [RFC-010](https://polkadot-fellows.github.io/RFCs/approved/0010-burn-coretime-revenue.html).
-pub struct BurnRevenue;
-impl OnUnbalanced<Credit<AccountId, Balances>> for BurnRevenue {
-	fn on_nonzero_unbalanced(credit: Credit<AccountId, Balances>) {
-		let _ = <Balances as Balanced<_>>::resolve(&CoretimeBurnAccount::get(), credit);
+pub struct BurnCoretimeRevenue;
+impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
+	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
+		let acc = CoretimeBurnAccount::get();
+		if !System::<Runtime>::account_exists(&acc) {
+			// The account doesn't require ED to survive.
+			System::<Runtime>::inc_providers(&acc);
+		}
+		Balances::resolve(&acc, amount).defensive_ok();
 	}
+}
+
+type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
+
+fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
+	let dest = Location::parent();
+	let stash_location =
+		Junction::AccountId32 { network: None, id: stash.clone().into() }.into_location();
+	let asset = Asset { id: AssetId(Location::parent()), fun: Fungible(value) };
+	let dummy_xcm_context = XcmContext { origin: None, message_id: [0; 32], topic: None };
+
+	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
+
+	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
+	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
+
+	let parent_assets = Into::<Assets>::into(withdrawn)
+		.reanchored(&dest, &Here)
+		.defensive_map_err(|_| XcmError::ReanchorFailed)?;
+
+	PolkadotXcm::send_xcm(
+		Here,
+		Location::parent(),
+		Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			ReceiveTeleportedAsset(parent_assets.clone()),
+			BurnAsset(parent_assets),
+		]),
+	)?;
+
+	AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
+
+	Ok(())
 }
 
 parameter_types! {
@@ -91,10 +138,11 @@ impl CoretimeInterface for CoretimeAllocator {
 		let request_core_count_call = RelayRuntimePallets::Coretime(RequestCoreCount(count));
 
 		// Weight for `request_core_count` from Kusama runtime benchmarks:
-		// `ref_time` = 7889000 + (3 * 25000000) + (1 * 100000000) = 182889000
-		// `proof_size` = 1636
-		// Add 5% to each component and round to 2 significant figures.
-		let call_weight = Weight::from_parts(190_000_000, 1700);
+		// `ref_time`, `proof_size`, reads, writes
+		// 9_670_000, 1640, 3, 1
+		// Add 30% to each component with a healthy round up.
+		let call_weight =
+			Weight::from_parts(250 * WEIGHT_REF_TIME_PER_MICROS, 3 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -123,13 +171,39 @@ impl CoretimeInterface for CoretimeAllocator {
 
 	fn request_revenue_info_at(when: RCBlockNumberOf<Self>) {
 		use crate::coretime::CoretimeProviderCalls::RequestRevenueInfoAt;
-		let _request_revenue_info_at_call =
+		let request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		log::debug!(
-			target: "runtime::coretime",
-			"`request_revenue` is unmiplemented on the relay."
-		);
+		// Weight for `request_revenue_at` from Kusama runtime benchmarks:
+		// `ref_time`, `proof_size`, reads, writes
+		// 94_091_000, 6384, 7, 5
+		// Add 30% to each component with a healthy round up.
+		let call_weight =
+			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
+
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Native,
+				require_weight_at_most: call_weight,
+				call: request_revenue_info_at_call.encode().into(),
+			},
+		]);
+
+		match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
+			Ok(_) => log::debug!(
+				target: "runtime::coretime",
+				"Revenue info request sent successfully."
+			),
+			Err(e) => log::error!(
+				target: "runtime::coretime",
+				"Request for revenue info failed to send: {:?}",
+				e
+			),
+		}
 	}
 
 	fn credit_account(who: Self::AccountId, amount: Self::Balance) {
@@ -138,7 +212,7 @@ impl CoretimeInterface for CoretimeAllocator {
 
 		log::debug!(
 			target: "runtime::coretime",
-			"`credit_account` is unmiplemented on the relay."
+			"`credit_account` is unimplemented on the relay."
 		);
 	}
 
@@ -149,14 +223,45 @@ impl CoretimeInterface for CoretimeAllocator {
 		end_hint: Option<RCBlockNumberOf<Self>>,
 	) {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
-		let assign_core_call =
-			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		// Weight for `assign_core` from Kusama runtime benchmarks:
-		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
-		// `proof_size` = 3612
-		// Add 5% to each component and round to 2 significant figures.
-		let call_weight = Weight::from_parts(248_000_000, 3800);
+		// `ref_time`, `proof_size`, reads, writes
+		// 12_042_907 + 80 * 13_919, 3545, 1, 2
+		// Add 30% to each component with a healthy round up.
+		let call_weight =
+			Weight::from_parts(350 * WEIGHT_REF_TIME_PER_MICROS, 5 * WEIGHT_PROOF_SIZE_PER_KB);
+
+		// The relay chain currently only allows `assign_core` to be called with a complete mask
+		// and only ever with increasing `begin`. The assignments must be truncated to avoid
+		// dropping that core's assignment completely.
+
+		// This shadowing of `assignment` is temporary and can be removed when the relay can accept
+		// multiple messages to assign a single core.
+		let assignment = if assignment.len() > 28 {
+			let mut total_parts = 0u16;
+			// Account for missing parts with a new `Idle` assignment at the start as
+			// `assign_core` on the relay assumes this is sorted. We'll add the rest of the
+			// assignments and sum the parts in one pass, so this is just initialized to 0.
+			let mut assignment_truncated = vec![(CoreAssignment::Idle, 0)];
+			// Truncate to first 27 non-idle assignments.
+			assignment_truncated.extend(
+				assignment
+					.into_iter()
+					.filter(|(a, _)| *a != CoreAssignment::Idle)
+					.take(27)
+					.inspect(|(_, parts)| total_parts += *parts)
+					.collect::<Vec<_>>(),
+			);
+
+			// Set the parts of the `Idle` assignment we injected at the start of the vec above.
+			assignment_truncated[0].1 = 57_600u16.saturating_sub(total_parts);
+			assignment_truncated
+		} else {
+			assignment
+		};
+
+		let assign_core_call =
+			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -183,15 +288,31 @@ impl CoretimeInterface for CoretimeAllocator {
 		}
 	}
 
-	fn check_notify_revenue_info() -> Option<(RCBlockNumberOf<Self>, Self::Balance)> {
-		let revenue = CoretimeRevenue::get();
-		CoretimeRevenue::set(&None);
-		revenue
-	}
+	fn on_new_timeslice(t: pallet_broker::Timeslice) {
+		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
+		const BURN_PERIOD: pallet_broker::Timeslice =
+			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
+		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
+		// have bigger issues with the chain, but we still want to burn.
+		if t.checked_rem(BURN_PERIOD).map_or(false, |r| r != 0) {
+			return;
+		}
 
-	#[cfg(feature = "runtime-benchmarks")]
-	fn ensure_notify_revenue_info(when: RCBlockNumberOf<Self>, revenue: Self::Balance) {
-		CoretimeRevenue::set(&Some((when, revenue)));
+		let stash = CoretimeBurnAccount::get();
+		let value =
+			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
+
+		if value > 0 {
+			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens at RC");
+			match burn_at_relay(&stash, value) {
+				Ok(()) => {
+					log::debug!(target: "runtime::coretime", "Succesfully burnt {value} tokens");
+				},
+				Err(err) => {
+					log::error!(target: "runtime::coretime", "burn_at_relay failed: {err:?}");
+				},
+			}
+		}
 	}
 }
 
@@ -202,11 +323,8 @@ parameter_types! {
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type OnRevenue = BurnRevenue;
-	#[cfg(feature = "fast-runtime")]
-	type TimeslicePeriod = ConstU32<10>;
-	#[cfg(not(feature = "fast-runtime"))]
-	type TimeslicePeriod = ConstU32<80>;
+	type OnRevenue = BurnCoretimeRevenue;
+	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<50>;
 	type MaxReservedCores = ConstU32<10>;
 	type Coretime = CoretimeAllocator;

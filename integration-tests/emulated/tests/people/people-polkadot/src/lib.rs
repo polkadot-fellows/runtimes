@@ -40,11 +40,12 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use parachains_common::{AccountId, Balance};
+pub use people_polkadot_runtime::ExistentialDeposit as PeoplePolkadotExistentialDeposit;
 pub use polkadot_system_emulated_network::{
 	people_polkadot_emulated_chain::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	},
-	polkadot_emulated_chain::{genesis::ED as KUSAMA_ED, PolkadotRelayPallet as PolkadotPallet},
+	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot,
 	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
 	PeoplePolkadotParaSender as PeoplePolkadotSender, PolkadotRelay as Polkadot,

@@ -16,7 +16,7 @@
 use crate::tests::*;
 use bridge_hub_kusama_runtime::RuntimeEvent;
 use frame_support::{dispatch::RawOrigin, traits::fungible::Mutate};
-use xcm_fee_payment_runtime_api::dry_run::runtime_decl_for_dry_run_api::DryRunApiV1;
+use xcm_runtime_apis::dry_run::runtime_decl_for_dry_run_api::DryRunApiV1;
 
 fn send_asset_from_asset_hub_kusama_to_asset_hub_polkadot(id: Location, amount: u128) {
 	let destination = asset_hub_polkadot_location();

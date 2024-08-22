@@ -14,15 +14,17 @@ codec = { workspace = true, default-features = true }
 sp-runtime = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
+pallet-broker = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
+runtime-parachains = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 xcm-executor = { workspace = true }
-xcm-fee-payment-runtime-api = { workspace = true, default-features = true }
+xcm-runtime-apis = { workspace = true, default-features = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }

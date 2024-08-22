@@ -18,12 +18,14 @@ pub use codec::Encode;
 // Substrate
 pub use frame_support::{
 	assert_err, assert_ok,
+	dispatch::RawOrigin,
 	instances::Instance2,
 	pallet_prelude::Weight,
 	sp_runtime::{AccountId32, DispatchError, DispatchResult, ModuleError},
 	traits::fungibles::Inspect,
 	BoundedVec,
 };
+pub use sp_runtime::traits::Dispatchable;
 
 // Polkadot
 pub use xcm::{
@@ -42,6 +44,9 @@ pub use emulated_integration_tests_common::{
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+};
+pub use integration_tests_helpers::{
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLocation;
@@ -76,8 +81,8 @@ pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
 
-pub type RelayToSystemParaTest = Test<Polkadot, AssetHubPolkadot>;
 pub type RelayToParaTest = Test<Polkadot, PenpalB>;
+pub type ParaToRelayTest = Test<PenpalA, Polkadot>;
 pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
 pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
 pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;

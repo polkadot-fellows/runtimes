@@ -71,18 +71,16 @@ polkadot-runtime-common = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
-xcm-fee-payment-runtime-api = { workspace = true }
+xcm-runtime-apis = { workspace = true }
 
 # Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-dmp-queue = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
 cumulus-primitives-aura = { workspace = true }
 cumulus-primitives-core = { workspace = true }
-cumulus-primitives-storage-weight-reclaim = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
@@ -106,18 +104,6 @@ pallet-bridge-parachains = { workspace = true }
 pallet-bridge-relayers = { workspace = true }
 pallet-xcm-bridge-hub = { workspace = true }
 
-# Ethereum Bridge (Snowbridge)
-snowbridge-beacon-primitives = { workspace = true }
-snowbridge-pallet-system = { workspace = true }
-snowbridge-system-runtime-api = { workspace = true }
-snowbridge-core = { workspace = true }
-snowbridge-pallet-ethereum-client = { workspace = true }
-snowbridge-pallet-inbound-queue = { workspace = true }
-snowbridge-pallet-outbound-queue = { workspace = true }
-snowbridge-outbound-queue-runtime-api = { workspace = true }
-snowbridge-router-primitives = { workspace = true }
-snowbridge-runtime-common = { workspace = true }
-
 [dev-dependencies]
 bridge-hub-test-utils = { workspace = true }
 bridge-runtime-common = { features = [
@@ -125,7 +111,6 @@ bridge-runtime-common = { features = [
 ], workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 static_assertions = { workspace = true }
-snowbridge-runtime-test-common = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
@@ -147,14 +132,12 @@ std = [
 	"bridge-runtime-common/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
-	"cumulus-pallet-dmp-queue/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-session-benchmarking/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
-	"cumulus-primitives-storage-weight-reclaim/std",
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
@@ -193,16 +176,6 @@ std = [
 	"scale-info/std",
 	"serde",
 	"serde_json/std",
-	"snowbridge-beacon-primitives/std",
-	"snowbridge-core/std",
-	"snowbridge-outbound-queue-runtime-api/std",
-	"snowbridge-pallet-ethereum-client/std",
-	"snowbridge-pallet-inbound-queue/std",
-	"snowbridge-pallet-outbound-queue/std",
-	"snowbridge-pallet-system/std",
-	"snowbridge-router-primitives/std",
-	"snowbridge-runtime-common/std",
-	"snowbridge-system-runtime-api/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
@@ -222,14 +195,13 @@ std = [
 	"tuplex/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
-	"xcm-fee-payment-runtime-api/std",
+	"xcm-runtime-apis/std",
 	"xcm/std",
 ]
 
 runtime-benchmarks = [
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-runtime-common/runtime-benchmarks",
-	"cumulus-pallet-dmp-queue/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
@@ -255,23 +227,14 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"snowbridge-core/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
-	"snowbridge-pallet-inbound-queue/runtime-benchmarks",
-	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
-	"snowbridge-pallet-system/runtime-benchmarks",
-	"snowbridge-router-primitives/runtime-benchmarks",
-	"snowbridge-runtime-common/runtime-benchmarks",
-	"snowbridge-runtime-test-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"xcm-fee-payment-runtime-api/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
 ]
 
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
-	"cumulus-pallet-dmp-queue/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
@@ -297,10 +260,6 @@ try-runtime = [
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
-	"snowbridge-pallet-ethereum-client/try-runtime",
-	"snowbridge-pallet-inbound-queue/try-runtime",
-	"snowbridge-pallet-outbound-queue/try-runtime",
-	"snowbridge-pallet-system/try-runtime",
 	"sp-runtime/try-runtime",
 ]
 

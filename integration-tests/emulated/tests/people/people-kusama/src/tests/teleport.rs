@@ -21,7 +21,7 @@ use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
-use xcm_fee_payment_runtime_api::{
+use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
@@ -88,7 +88,7 @@ fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResu
 }
 
 /// Limited Teleport of native asset from System Parachain to Relay Chain
-/// should't work when there is not enough balance in Relay Chain's `CheckAccount`
+/// shouldn't work when there is not enough balance in Relay Chain's `CheckAccount`
 #[test]
 fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	// Init values for Relay Chain

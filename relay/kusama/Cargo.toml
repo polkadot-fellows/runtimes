@@ -85,6 +85,7 @@ pallet-whitelist = { workspace = true }
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
+pallet-parameters = { workspace = true }
 
 frame-benchmarking = { optional = true, workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
@@ -102,9 +103,10 @@ polkadot-primitives = { workspace = true }
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-builder = { workspace = true }
-xcm-fee-payment-runtime-api = { workspace = true }
+xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
+relay-common = { workspace = true }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
@@ -113,6 +115,7 @@ separator = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
+ss58-registry = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -166,6 +169,7 @@ std = [
 	"pallet-offences/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
+	"pallet-parameters/std",
 	"pallet-ranked-collective/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
@@ -186,6 +190,7 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
+	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -211,7 +216,7 @@ std = [
 	"substrate-wasm-builder",
 	"xcm-builder/std",
 	"xcm-executor/std",
-	"xcm-fee-payment-runtime-api/std",
+	"xcm-runtime-apis/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
@@ -241,6 +246,7 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-offences-benchmarking/runtime-benchmarks",
 	"pallet-offences/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
@@ -264,7 +270,7 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"xcm-fee-payment-runtime-api/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -314,6 +320,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-parameters/try-runtime",
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
@@ -325,7 +332,7 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
-fast-runtime = []
+fast-runtime = ["kusama-runtime-constants/fast-runtime"]
 
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
