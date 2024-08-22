@@ -1700,33 +1700,80 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::{migration::move_storage_from_pallet, traits::OnRuntimeUpgrade};
+	#[cfg(feature = "try-runtime")]
+	use frame_support::storage::PrefixIterator;
+	use frame_support::{
+		migration::move_pallet,
+		traits::{GetStorageVersion, OnRuntimeUpgrade, PalletInfoAccess},
+	};
+	#[cfg(feature = "try-runtime")]
+	use sp_io::hashing::twox_128;
 
-	// Migrate storage for pallet rename `OnDemandAssignmentProvider` -> `OnDemand`
+	// Migrate storage for pallet rename `OnDemandAssignmentProvider` -> `OnDemand`.
 	pub struct OnDemandRename;
+	impl OnDemandRename {
+		const OLD_PALLET_NAME: &'static str = "OnDemandAssignmentProvider";
+	}
 	impl OnRuntimeUpgrade for OnDemandRename {
-		fn on_runtime_upgrade() -> Weight {
-			move_storage_from_pallet(b"Pallet", b"OnDemandAssignmentProvider", b"OnDemand");
-			move_storage_from_pallet(b"ParaIdAffinity", b"OnDemandAssignmentProvider", b"OnDemand");
-			move_storage_from_pallet(b"QueueStatus", b"OnDemandAssignmentProvider", b"OnDemand");
-			move_storage_from_pallet(b"FreeEntries", b"OnDemandAssignmentProvider", b"OnDemand");
-			move_storage_from_pallet(
-				b"AffinityEntries",
-				b"OnDemandAssignmentProvider",
-				b"OnDemand",
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			let old_pallet_prefix = twox_128(Self::OLD_PALLET_NAME.as_bytes());
+			let iter = PrefixIterator::<_>::new(
+				old_pallet_prefix.to_vec(),
+				old_pallet_prefix.to_vec(),
+				|k, v| Ok((k.to_vec(), v.to_vec())),
 			);
-			move_storage_from_pallet(b"Revenue", b"OnDemandAssignmentProvider", b"OnDemand");
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(0, 0) //todo
+
+			let mut count = 0;
+			for (k, v) in iter {
+				log::trace!(target: "runtime", "Found storage keys before running OnDemandRename: {:x?}", k);
+				count += 1;
+			}
+
+			log::trace!(target: "runtime", "Before running OnDemandRename: {} keys found for prefix {:x?}", count, old_pallet_prefix);
+
+			Ok(Vec::new())
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			// todo: version check
+
+			log::info!(target: "runtime", "Applying OnDemandRename");
+
+			let new_pallet = <OnDemand as PalletInfoAccess>::name();
+			move_pallet(Self::OLD_PALLET_NAME.as_bytes(), new_pallet.as_bytes());
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(0, 0) //todo: set proper weights
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			let old_pallet_prefix = twox_128(Self::OLD_PALLET_NAME.as_bytes());
+			let count = PrefixIterator::<_>::new(
+				old_pallet_prefix.to_vec(),
+				old_pallet_prefix.to_vec(),
+				|_, _| Ok(()),
+			)
+			.count();
+
+			log::trace!(target: "runtime", "After running OnDemandRename: {} old keys found", count);
+
+			if count == 0 {
+				Ok(())
+			} else {
+				Err(sp_runtime::TryRuntimeError::Other(
+					"OnDemandRename failed - keys with the old prefix still exist",
+				))
+			}
 		}
 	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		OnDemandRename,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		parachains_assigner_on_demand::migration::MigrateV0ToV1<Runtime>,
+		OnDemandRename,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
