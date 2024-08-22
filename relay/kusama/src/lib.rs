@@ -132,6 +132,9 @@ use kusama_runtime_constants::{
 	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
+/// Default logging target.
+pub const LOG_TARGET: &str = "runtime::kusama";
+
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
@@ -3035,17 +3038,17 @@ mod remote_tests {
 			use ss58_registry::TokenRegistry;
 			let token: ss58_registry::Token = TokenRegistry::Ksm.into();
 
-			log::info!(target: "runtime::kusama", "total-staked = {:?}", token.amount(total_staked));
-			log::info!(target: "runtime::kusama", "total-issuance = {:?}", token.amount(total_issuance));
-			log::info!(target: "runtime::kusama", "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
-			log::info!(target: "runtime::kusama", "era-duration = {:?}", average_era_duration_millis);
-			log::info!(target: "runtime::kusama", "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
-			log::info!(target: "runtime::kusama", "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
-			log::info!(target: "runtime::kusama", "falloff = {:?}", dynamic_params::inflation::Falloff::get());
-			log::info!(target: "runtime::kusama", "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
-			log::info!(target: "runtime::kusama", "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
-			log::info!(target: "runtime::kusama", "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
-			log::info!(target: "runtime::kusama", "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
+			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
+			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
+			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
+			log::info!(target: LOG_TARGET, "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
+			log::info!(target: LOG_TARGET, "falloff = {:?}", dynamic_params::inflation::Falloff::get());
+			log::info!(target: LOG_TARGET, "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
+			log::info!(target: LOG_TARGET, "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
+			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
+			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 		});
 	}
 

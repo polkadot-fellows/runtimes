@@ -142,6 +142,7 @@ pub mod xcm_config;
 
 mod coretime_migration;
 
+/// Default logging target.
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 impl_runtime_weights!(polkadot_runtime_constants);
@@ -651,7 +652,7 @@ pub mod dynamic_params {
 		/// With the move to agile-coretime, this parameter does not make much sense and should
 		/// generally be set to false.
 		#[codec(index = 4)]
-		pub static UseAuctionSlots: bool = false;
+		pub static UseAuctionSlots: bool = true;
 	}
 }
 
@@ -728,7 +729,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 			},
 		};
 
-		log::debug!(target: "runtime::polkadot", "params: {:?}", params);
+		log::debug!(target: LOG_TARGET, "params: {:?}", params);
 		relay_common::relay_era_payout(params)
 	}
 }
@@ -3468,6 +3469,73 @@ mod remote_tests {
 		ext.execute_with(|| {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
+		});
+	}
+
+	#[tokio::test]
+	async fn next_inflation() {
+		use hex_literal::hex;
+		sp_tracing::try_init_simple();
+		let transport: Transport =
+			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string()).into();
+		let mut ext = Builder::<Block>::default()
+			.mode(Mode::Online(OnlineConfig {
+				transport,
+				hashed_prefixes: vec![
+					// staking eras total stake
+					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")
+						.to_vec(),
+				],
+				hashed_keys: vec![
+					// staking active era
+					hex!("5f3e4907f716ac89b6347d15ececedca487df464e44a534ba6b0cbb32407b587")
+						.to_vec(),
+					// balances ti
+					hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80")
+						.to_vec(),
+					// timestamp now
+					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+						.to_vec(),
+					// para-ids
+					hex!("cd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee")
+						.to_vec(),
+				],
+				..Default::default()
+			}))
+			.build()
+			.await
+			.unwrap();
+		ext.execute_with(|| {
+			use pallet_staking::EraPayout;
+			let (total_staked, started) = pallet_staking::ActiveEra::<Runtime>::get()
+				.map(|ae| {
+					(pallet_staking::ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap())
+				})
+				.unwrap();
+			let total_issuance = Balances::total_issuance();
+			let _real_era_duration_millis =
+				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
+			// 24h in milliseconds
+			let average_era_duration_millis = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
+			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+				total_staked,
+				total_issuance,
+				average_era_duration_millis.into(),
+			);
+			use ss58_registry::TokenRegistry;
+			let token: ss58_registry::Token = TokenRegistry::Dot.into();
+
+			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
+			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
+			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
+			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
+			log::info!(target: LOG_TARGET, "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
+			log::info!(target: LOG_TARGET, "falloff = {:?}", dynamic_params::inflation::Falloff::get());
+			log::info!(target: LOG_TARGET, "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
+			log::info!(target: LOG_TARGET, "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
+			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
+			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 		});
 	}
 }
