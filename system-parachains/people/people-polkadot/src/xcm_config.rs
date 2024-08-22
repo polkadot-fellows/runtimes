@@ -258,7 +258,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = ();
 }
 
-/// Converts a local signed origin into an XCM location. Forms the basis for local origins
+/// Converts a local signed origin into an XCM `Location`. Forms the basis for local origins
 /// sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 

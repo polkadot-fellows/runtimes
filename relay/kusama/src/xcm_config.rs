@@ -241,7 +241,7 @@ parameter_types! {
 /// Type to convert an `Origin` type value into a `Location` value which represents an interior
 /// location of this chain.
 pub type LocalOriginToLocation = (
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
@@ -265,7 +265,7 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `Location` value.
 	FellowsToPlurality,
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 

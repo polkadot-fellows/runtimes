@@ -267,7 +267,7 @@ pub type GeneralAdminToPlurality =
 /// location of this chain.
 pub type LocalOriginToLocation = (
 	GeneralAdminToPlurality,
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
@@ -293,7 +293,7 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	FellowshipAdminToPlurality,
 	// `Treasurer` origin to be used in XCM as a corresponding Plurality `Location` value.
 	TreasurerToPlurality,
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
