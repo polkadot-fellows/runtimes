@@ -346,8 +346,7 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains.clone(), &sender)
 	});
-	let receiver_dot_before =
-		foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama.clone(), &receiver);
+	let receiver_dot_before = foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama, &receiver);
 
 	// Send DOTs over bridge
 	{

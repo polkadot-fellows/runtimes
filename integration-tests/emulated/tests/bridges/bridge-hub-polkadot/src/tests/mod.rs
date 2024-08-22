@@ -161,7 +161,7 @@ pub(crate) fn send_assets_from_asset_hub_polkadot(
 	fee_idx: u32,
 ) -> DispatchResult {
 	let signed_origin =
-		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get().into());
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
 	let beneficiary: Location =
 		AccountId32Junction { network: None, id: AssetHubKusamaReceiver::get().into() }.into();
 
