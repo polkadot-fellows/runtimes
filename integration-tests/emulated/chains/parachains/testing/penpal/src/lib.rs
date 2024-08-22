@@ -15,11 +15,13 @@
 
 mod genesis;
 pub use genesis::{genesis, PenpalAssetOwner, ED, PARA_ID_A, PARA_ID_B};
-pub use penpal_runtime;
-pub use penpal_runtime::xcm_config::{
-	CustomizableAssetFromSystemAssetHub, LocalReservableFromAssetHub, LocalTeleportableToAssetHub,
-	RelayNetworkId as PenpalRelayNetworkId, XcmConfig, ASSETS_PALLET_ID, RESERVABLE_ASSET_ID,
-	TELEPORTABLE_ASSET_ID,
+pub use penpal_runtime::{
+	self,
+	xcm_config::{
+		CustomizableAssetFromSystemAssetHub, LocalReservableFromAssetHub,
+		LocalTeleportableToAssetHub, RelayNetworkId as PenpalRelayNetworkId, XcmConfig,
+		ASSETS_PALLET_ID, RESERVABLE_ASSET_ID, TELEPORTABLE_ASSET_ID,
+	},
 };
 
 // Substrate

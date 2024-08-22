@@ -44,7 +44,7 @@ fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_pah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	// fund Penpal's sovereign account on AssetHub
-	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_pah.into(), amount * 2)]);
+	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_pah, amount * 2)]);
 	// fund Penpal's sender account
 	PenpalB::mint_foreign_asset(
 		<PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -95,11 +95,11 @@ fn send_assets_from_penpal_polkadot_through_polkadot_ah_to_kusama_ah(
 					RuntimeEvent::Balances(
 						pallet_balances::Event::Burned { who, .. }
 					) => {
-						who: *who == sov_penpal_on_pah.clone().into(),
+						who: *who == sov_penpal_on_pah.clone(),
 					},
 					// Amount deposited in KAH's sovereign account
 					RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
-						who: *who == sov_kah_on_pah.clone().into(),
+						who: *who == sov_kah_on_pah.clone(),
 					},
 					RuntimeEvent::XcmpQueue(
 						cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
@@ -224,7 +224,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	}]);
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender.into()),
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
 			bx!(asset_hub_kusama_location().into()),
 			bx!(assets.into()),
 			bx!(TransferType::LocalReserve),
@@ -454,7 +454,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	{
 		let final_destination = asset_hub_kusama_location();
 		let intermediary_hop = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
-		let context = PenpalB::execute_with(|| PenpalUniversalLocation::get());
+		let context = PenpalB::execute_with(PenpalUniversalLocation::get);
 
 		// what happens at final destination
 		let beneficiary = AccountId32Junction { network: None, id: receiver.clone().into() }.into();
@@ -474,7 +474,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		// reanchor KSMs to the view of hop (Asset Hub Polkadot)
 		let asset: Asset = (ksm_at_polkadot_parachains_latest.clone(), amount).into();
 		let asset = asset.reanchored(&intermediary_hop, &context).unwrap();
-		// on Asset Hub Polkadot, forward a request to withdraw KSMs from reserve on Asset Hub Kusama
+		// on Asset Hub Polkadot, forward a request to withdraw KSMs from reserve on Asset Hub
+		// Kusama
 		let xcm_on_hop = Xcm::<()>(vec![InitiateReserveWithdraw {
 			assets: Definite(asset.into()), // KSMs
 			reserve: final_destination,     // KAH

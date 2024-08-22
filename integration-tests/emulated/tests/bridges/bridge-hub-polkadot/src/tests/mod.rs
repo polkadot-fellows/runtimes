@@ -109,7 +109,7 @@ pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign:
 		if is_foreign {
 			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
 				signed_owner.clone(),
-				asset.clone().into(),
+				asset,
 				owner.clone().into(),
 				3_000_000_000_000,
 			));
@@ -127,8 +127,8 @@ pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign:
 		}
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			signed_owner.clone(),
-			Box::new(ksm.clone()),
-			Box::new(asset.clone()),
+			Box::new(ksm),
+			Box::new(asset),
 		));
 		assert_expected_events!(
 			AssetHubKusama,
@@ -144,7 +144,7 @@ pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign:
 			2_000_000_000_000,
 			1,
 			1,
-			owner.into()
+			owner,
 		));
 		assert_expected_events!(
 			AssetHubKusama,
