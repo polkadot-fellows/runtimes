@@ -16,55 +16,12 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
-use polkadot_runtime::xcm_config::XcmConfig as PolkadotXcmConfig;
+use frame_support::traits::fungible::Mutate;
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
-
-fn relay_origin_assertions(t: RelayToSystemParaTest) {
-	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-
-	Polkadot::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(632_207_000, 7_186)));
-
-	assert_expected_events!(
-		Polkadot,
-		vec![
-			// Amount to teleport is withdrawn from Sender
-			RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
-				who: *who == t.sender.account_id,
-				amount: *amount == t.args.amount,
-			},
-			// Amount to teleport is deposited in Relay's `CheckAccount`
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount }) => {
-				who: *who == <Polkadot as PolkadotPallet>::XcmPallet::check_account(),
-				amount:  *amount == t.args.amount,
-			},
-		]
-	);
-}
-
-fn relay_dest_assertions(t: SystemParaToRelayTest) {
-	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-
-	Polkadot::assert_ump_queue_processed(
-		true,
-		Some(AssetHubPolkadot::para_id()),
-		Some(Weight::from_parts(308_222_000, 7_186)),
-	);
-
-	assert_expected_events!(
-		Polkadot,
-		vec![
-			// Amount is withdrawn from Relay Chain's `CheckAccount`
-			RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
-				who: *who == <Polkadot as PolkadotPallet>::XcmPallet::check_account(),
-				amount: *amount == t.args.amount,
-			},
-			// Amount minus fees are deposited in Receiver's account
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
-				who: *who == t.receiver.account_id,
-			},
-		]
-	);
-}
+use xcm_runtime_apis::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
 	Polkadot::assert_ump_queue_processed(
@@ -91,22 +48,6 @@ fn para_origin_assertions(t: SystemParaToRelayTest) {
 			RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
 				who: *who == t.sender.account_id,
 				amount: *amount == t.args.amount,
-			},
-		]
-	);
-}
-
-fn para_dest_assertions(t: RelayToSystemParaTest) {
-	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-
-	AssetHubPolkadot::assert_dmp_queue_complete(Some(Weight::from_parts(164_793_000, 3593)));
-
-	assert_expected_events!(
-		AssetHubPolkadot,
-		vec![
-			// Amount minus fees are deposited in Receiver's account
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
-				who: *who == t.receiver.account_id,
 			},
 		]
 	);
@@ -233,17 +174,6 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 	);
 }
 
-fn relay_limited_teleport_assets(t: RelayToSystemParaTest) -> DispatchResult {
-	<Polkadot as PolkadotPallet>::XcmPallet::limited_teleport_assets(
-		t.signed_origin,
-		bx!(t.args.dest.into()),
-		bx!(t.args.beneficiary.into()),
-		bx!(t.args.assets.into()),
-		t.args.fee_asset_item,
-		t.args.weight_limit,
-	)
-}
-
 fn system_para_limited_teleport_assets(t: SystemParaToRelayTest) -> DispatchResult {
 	<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_teleport_assets(
 		t.signed_origin,
@@ -277,90 +207,41 @@ fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResul
 	)
 }
 
-/// Limited Teleport of native asset from Relay Chain to the System Parachain should work
 #[test]
-fn limited_teleport_native_assets_from_relay_to_system_para_works() {
-	// Init values for Relay Chain
-	let amount_to_send: Balance = POLKADOT_ED * 1000;
-	let dest = Polkadot::child_location_of(AssetHubPolkadot::para_id());
-	let beneficiary = AssetHubPolkadotReceiver::get();
-	let test_args = TestContext {
-		sender: PolkadotSender::get(),
-		receiver: beneficiary.clone(),
-		args: TestArgs::new_relay(dest, beneficiary, amount_to_send),
-	};
+fn teleport_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 100;
+	let native_asset: Assets = (Parent, amount).into();
 
-	let mut test = RelayToSystemParaTest::new(test_args);
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,          // Origin
+		AssetHubPolkadotXcmConfig, // XCM Configuration
+		vec![BridgeHubPolkadot],   // Destinations
+		(native_asset, amount)
+	);
+}
 
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
+#[test]
+fn teleport_from_and_to_relay() {
+	let amount = POLKADOT_ED * 100;
+	let native_asset: Assets = (Here, amount).into();
 
-	test.set_assertion::<Polkadot>(relay_origin_assertions);
-	test.set_assertion::<AssetHubPolkadot>(para_dest_assertions);
-	test.set_dispatchable::<Polkadot>(relay_limited_teleport_assets);
-	test.assert();
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		PolkadotXcmConfig,
+		vec![AssetHubPolkadot],
+		(native_asset, amount)
+	);
 
-	let delivery_fees = Polkadot::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<PolkadotXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
-	});
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
+	test_parachain_is_trusted_teleporter_for_relay!(
+		AssetHubPolkadot,
+		AssetHubPolkadotXcmConfig,
+		Polkadot,
+		amount
+	);
 }
 
 /// Limited Teleport of native asset from System Parachain to Relay Chain
-/// should work when there is enough balance in Relay Chain's `CheckAccount`
-#[test]
-fn limited_teleport_native_assets_back_from_system_para_to_relay_works() {
-	// Dependency - Relay Chain's `CheckAccount` should have enough balance
-	limited_teleport_native_assets_from_relay_to_system_para_works();
-
-	// Init values for Relay Chain
-	let amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 1000;
-	let destination = AssetHubPolkadot::parent_location();
-	let beneficiary_id = PolkadotReceiver::get();
-	let assets = (Parent, amount_to_send).into();
-
-	let test_args = TestContext {
-		sender: AssetHubPolkadotSender::get(),
-		receiver: PolkadotReceiver::get(),
-		args: TestArgs::new_para(destination, beneficiary_id, amount_to_send, assets, None, 0),
-	};
-
-	let mut test = SystemParaToRelayTest::new(test_args);
-
-	let sender_balance_before = test.sender.balance;
-	let receiver_balance_before = test.receiver.balance;
-
-	test.set_assertion::<AssetHubPolkadot>(para_origin_assertions);
-	test.set_assertion::<Polkadot>(relay_dest_assertions);
-	test.set_dispatchable::<AssetHubPolkadot>(system_para_limited_teleport_assets);
-	test.assert();
-
-	let sender_balance_after = test.sender.balance;
-	let receiver_balance_after = test.receiver.balance;
-
-	let delivery_fees = AssetHubPolkadot::execute_with(|| {
-		xcm_helpers::teleport_assets_delivery_fees::<
-			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
-	});
-
-	// Sender's balance is reduced
-	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
-	// Receiver's balance is increased
-	assert!(receiver_balance_after > receiver_balance_before);
-}
-
-/// Limited Teleport of native asset from System Parachain to Relay Chain
-/// should't work when there is not enough balance in Relay Chain's `CheckAccount`
+/// shouldn't work when there is not enough balance in Relay Chain's `CheckAccount`
 #[test]
 fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	// Init values for Relay Chain
@@ -398,19 +279,6 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	assert_eq!(sender_balance_before - amount_to_send - delivery_fees, sender_balance_after);
 	// Receiver's balance does not change
 	assert_eq!(receiver_balance_after, receiver_balance_before);
-}
-
-#[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = ASSET_HUB_POLKADOT_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		AssetHubPolkadot,          // Origin
-		AssetHubPolkadotXcmConfig, // XCM Configuration
-		vec![BridgeHubPolkadot],   // Destinations
-		(native_asset, amount)
-	);
 }
 
 /// Bidirectional teleports of local Penpal assets to Asset Hub as foreign assets while paying
