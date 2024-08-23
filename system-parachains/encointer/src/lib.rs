@@ -113,7 +113,7 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-use xcm_config::{KsmLocation, StakingPot, XcmConfig, XcmOriginToTransactDispatchOrigin};
+use xcm_config::{KsmLocation, StakingPot, XcmOriginToTransactDispatchOrigin};
 
 /// A type to hold UTC unix epoch [ms]
 pub type Moment = u64;
