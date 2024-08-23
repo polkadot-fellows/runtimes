@@ -70,16 +70,14 @@ Here are the recommended steps for both major and minor runtime releases.
 |0 |Open an [issue](https://github.com/polkadot-fellows/runtimes/issues) for the release in the runtimes repo with the **version number**. | ✔️ | ✔️ |
 |1 |Identify **released crates**. | ✔️ | ❌ |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). | ✔️ | ✔️ |
-|3 |Identify and include **priority PRs (fixes and patches)** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
-|4 |Identify and include **recommended PRs** (enhancements, migrations, backports) with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
-|5 |Propose or include **additional PRs** (small configurations, simple migrations, general cleanup). | ✔️ | ✔️ |
-|6 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. | ✔️ | ✔️ |
-|7 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
-|8 |Trigger the release for **final reviews**, making sure to highlight information about all breaking changes or disruptions in the **CHANGELOG entry**. | ✔️ | ✔️ |
-|9 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.| ✔️ | ✔️ |
-|10 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. | ✔️ | ✔️ |
-|11 |Close the issue for the release once the referendum is **approved and executed**. | ✔️ | ✔️ |
-|12 |Open an issue for **the next release** in the runtimes repo, if applicable.| ❌ | ✔️ |
+|3 |Identify and include **PRs** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
+|4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. | ✔️ | ✔️ |
+|5 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
+|6 |Trigger the release for **final reviews**, making sure to highlight information about all breaking changes or disruptions in the **CHANGELOG entry**. | ✔️ | ✔️ |
+|7 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.| ✔️ | ✔️ |
+|8 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. | ✔️ | ✔️ |
+|9 |Close the issue for the release once the referendum is **approved and executed**. | ✔️ | ✔️ |
+|10 |Open an issue for **the next release** in the runtimes repo, if applicable.| ❌ | ✔️ |
 
 
 ## Communication channels
