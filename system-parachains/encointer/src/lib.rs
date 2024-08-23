@@ -1114,7 +1114,7 @@ impl_runtime_apis! {
 				}
 			}
 
-						use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			impl pallet_xcm::benchmarking::Config for Runtime {
 				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
 					xcm_config::XcmConfig,
