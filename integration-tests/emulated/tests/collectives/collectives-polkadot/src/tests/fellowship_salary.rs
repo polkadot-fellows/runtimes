@@ -18,10 +18,7 @@ use asset_hub_polkadot_runtime::xcm_config::LocationToAccountId;
 use collectives_polkadot_runtime::fellowship::FellowshipSalaryPaymaster;
 use frame_support::{
 	assert_ok,
-	traits::{
-		fungibles::{Create, Mutate},
-		tokens::Pay,
-	},
+	traits::{fungibles::Mutate, tokens::Pay},
 };
 use xcm_executor::traits::ConvertLocation;
 
@@ -30,7 +27,7 @@ const FELLOWSHIP_SALARY_PALLET_ID: u8 =
 
 #[test]
 fn pay_salary() {
-	let asset_id: u32 = 1984;
+	const USDT_ID: u32 = 1984;
 	let fellowship_salary = (
 		Parent,
 		Parachain(CollectivesPolkadot::para_id().into()),
@@ -38,18 +35,12 @@ fn pay_salary() {
 	);
 	let pay_from = LocationToAccountId::convert_location(&fellowship_salary.into()).unwrap();
 	let pay_to = Polkadot::account_id_of(ALICE);
-	let pay_amount = 9000;
+	let pay_amount = 9_000_000_000;
 
 	AssetHubPolkadot::execute_with(|| {
 		type AssetHubAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
-
-		assert_ok!(<AssetHubAssets as Create<_>>::create(
-			asset_id,
-			pay_to.clone(),
-			true,
-			pay_amount / 2
-		));
-		assert_ok!(<AssetHubAssets as Mutate<_>>::mint_into(asset_id, &pay_from, pay_amount * 2));
+		// USDT registered in genesis, now mint some into the payer's account
+		assert_ok!(<AssetHubAssets as Mutate<_>>::mint_into(USDT_ID, &pay_from, pay_amount * 2));
 	});
 
 	CollectivesPolkadot::execute_with(|| {
@@ -69,9 +60,9 @@ fn pay_salary() {
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-			RuntimeEvent::Assets(pallet_assets::Event::Transferred { .. }) => {},
-			RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true ,.. }) => {},
-				]
+				RuntimeEvent::Assets(pallet_assets::Event::Transferred { .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true ,.. }) => {},
+			]
 		);
 	});
 }

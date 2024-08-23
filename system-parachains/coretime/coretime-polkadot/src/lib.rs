@@ -180,17 +180,22 @@ parameter_types! {
 
 /// Filter out credit purchase calls until the credit system is implemented. Otherwise, users
 /// may have chance of locking their funds forever on purchased credits they cannot use.
-pub struct IsBrokerCreditPurchaseCall;
-impl Contains<RuntimeCall> for IsBrokerCreditPurchaseCall {
+/// Also filter the interlace call until the relay can support this fully.
+pub struct IsFilteredBrokerCall;
+impl Contains<RuntimeCall> for IsFilteredBrokerCall {
 	fn contains(c: &RuntimeCall) -> bool {
-		matches!(c, RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }))
+		matches!(
+			c,
+			RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }) |
+				RuntimeCall::Broker(pallet_broker::Call::interlace { .. })
+		)
 	}
 }
 
 // Configure FRAME pallets to include in runtime.
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<IsBrokerCreditPurchaseCall>;
+	type BaseCallFilter = EverythingBut<IsFilteredBrokerCall>;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The nonce type for storing how many extrinsics an account has signed.

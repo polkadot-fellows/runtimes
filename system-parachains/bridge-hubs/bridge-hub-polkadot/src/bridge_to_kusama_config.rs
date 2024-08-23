@@ -152,9 +152,9 @@ parameter_types! {
 	pub const RelayerStakeLease: u32 = 300;
 
 	// see the `FEE_BOOST_PER_RELAY_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerRelayHeader: u64 = 200_048_840_048;
+	pub PriorityBoostPerRelayHeader: u64 = 220_053_724_053;
 	// see the `FEE_BOOST_PER_PARACHAIN_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerParachainHeader: u64 = 10_602_588_522_588;
+	pub PriorityBoostPerParachainHeader: u64 = 9_182_241_758_241;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
 }
