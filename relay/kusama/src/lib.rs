@@ -666,7 +666,7 @@ pub mod dynamic_params {
 		/// With the move to Agile Coretime, this parameter does not make much sense and should
 		/// generally be set to false.
 		#[codec(index = 4)]
-		pub static UseAuctionSlots: bool = false;
+		pub static UseAuctionSlots: bool = true;
 	}
 }
 
