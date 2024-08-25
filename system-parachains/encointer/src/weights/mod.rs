@@ -40,8 +40,10 @@ pub mod pallet_proxy;
 pub mod pallet_session;
 pub mod pallet_timestamp;
 pub mod pallet_utility;
+pub mod pallet_xcm;
 pub mod paritydb_weights;
 pub mod rocksdb_weights;
+pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;
 pub use extrinsic_weights::constants::ExtrinsicBaseWeight;
