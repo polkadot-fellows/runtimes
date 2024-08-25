@@ -36,10 +36,10 @@ use xcm_builder::{
 	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeTerminus, EnsureXcmOrigin, FrameTransactionalProcessor, FungibleAdapter,
-	HashedDescription, IsConcrete, NativeAsset, ParentAsSuperuser, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin,
+	HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin,
 };
 use xcm_executor::XcmExecutor;
 
@@ -163,7 +163,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmRecorder = ();
 	type AssetTransactor = FungibleTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = ();
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
