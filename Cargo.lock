@@ -2457,6 +2457,7 @@ dependencies = [
  "sp-core 34.0.0",
  "sp-genesis-builder",
  "sp-inherents",
+ "sp-io 37.0.0",
  "sp-offchain",
  "sp-runtime 38.0.0",
  "sp-session",
