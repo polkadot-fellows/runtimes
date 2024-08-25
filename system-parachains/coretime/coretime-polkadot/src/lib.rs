@@ -937,10 +937,10 @@ impl_runtime_apis! {
 				}
 
 				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Relay/native token can be teleported between AH and Relay.
+					// Relay/native token can be teleported between Coretime and Relay.
 					Some((
 						Asset {
-							fun: Fungible(SYSTEM_PARA_EXISTENTIAL_DEPOSIT),
+							fun: Fungible(ExistentialDeposit::get()),
 							id: AssetId(Parent.into())
 						},
 						Parent.into(),
