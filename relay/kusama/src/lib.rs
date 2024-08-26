@@ -1824,6 +1824,20 @@ pub mod migrations {
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
 }
 
+/// Migration to fix current corrupted staking ledgers in Kusama.
+///
+/// It consists of:
+/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
+///  * Root origin;
+///  * Default `None` paramters.
+/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
+/// stash's free balance.
+///
+/// The stashes associated with corrupted ledgers that will be "migrated" are set in
+/// [`CorruptedStashes`].
+///
+/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
+/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
 pub(crate) mod restore_corrupted_ledgers {
 	use super::*;
 
