@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2] 27.08.2024
+
+### Fixed
+
+- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+
 ## [1.3.1] 23.08.2024
 
 ### Fixed
