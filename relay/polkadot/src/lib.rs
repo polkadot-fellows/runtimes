@@ -2042,7 +2042,7 @@ pub mod migrations {
 pub(crate) mod restore_corrupted_ledgers {
 	use super::*;
 
-	use frame_support::traits::{Currency, OnRuntimeUpgrade};
+	use frame_support::traits::Currency;
 	use frame_system::RawOrigin;
 
 	use pallet_staking::WeightInfo;
@@ -2081,9 +2081,11 @@ pub(crate) mod restore_corrupted_ledgers {
 				) {
 					Ok(_) => (), // proceed.
 					Err(err) => {
+						// note: after first migration run, restoring ledger will fail with
+						// `staking::pallet::Error::<T>CannotRestoreLedger`.
 						log::error!(
 							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected.",
+							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
 							err
 						);
 						continue
