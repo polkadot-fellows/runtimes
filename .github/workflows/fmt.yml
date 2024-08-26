@@ -24,7 +24,12 @@ jobs:
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install nightly toolchain
-        run: rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component rustfmt
+        run: |
+          rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component rustfmt
+          cargo install taplo-cli --version $TAPLO_VERSION
 
       - name: Rustfmt (check)
         run: cargo +nightly-$RUST_NIGHTLY_VERSION fmt --all -- --check
+
+      - name: Taplo (check)
+        run: taplo format --check --config .config/taplo.toml

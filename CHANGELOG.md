@@ -4,11 +4,17 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.3.2] 27.08.2024
 
 ### Fixed
 
-- Revert accidental changes to Kusama inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+
+## [1.3.1] 23.08.2024
+
+### Fixed
+
+- [🚨 Breaking Change] Polkadot Collectives: enable transaction payment ([polkadot-fellows/runtimes#442](https://github.com/polkadot-fellows/runtimes/pull/442))
 
 ## [1.3.0] 20.08.2024
 
