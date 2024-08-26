@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Polkadot Collectives: enable transaction payment ([polkadot-fellows/runtimes#442](https://github.com/polkadot-fellows/runtimes/pull/442))
+- [🚨 Breaking Change] Polkadot Collectives: enable transaction payment ([polkadot-fellows/runtimes#442](https://github.com/polkadot-fellows/runtimes/pull/442))
 
 ## [1.3.0] 20.08.2024
 
