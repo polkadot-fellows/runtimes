@@ -159,7 +159,7 @@ use governance::{
 #[cfg(test)]
 mod tests;
 
-pub const LOG_TARGET: &'static str = "runtime::kusama";
+pub const LOG_TARGET: &str = "runtime::kusama";
 
 impl_runtime_weights!(kusama_runtime_constants);
 
@@ -1212,8 +1212,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
