@@ -21,7 +21,8 @@ jobs:
 
       - name: Load fellows
         id: load-fellows
-        uses: paritytech/get-fellows-action@v1.2.0
+        #uses: paritytech/get-fellows-action@v1.2.0
+        run: echo "github-handles=[mordamax]" >> $GITHUB_OUTPUT
 
   reject-non-fellows:
     needs: fellows
@@ -137,7 +138,13 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `<details><summary>Command help:</summary>${{ steps.help.outputs.help }}</details>`
+              body: `<details><summary>Command help:</summary> 
+            
+            \`\`\`
+            ${{ steps.help.outputs.help }}
+            \`\`\` 
+            
+            </details>`
             })
 
       - name: Add confused reaction on failure
@@ -165,13 +172,48 @@ jobs:
               repo: context.repo.repo,
               content: '+1'
             })
+  
+  # Get PR branch name, because the issue_comment event does not contain the PR branch name
+  get-pr-branch:
+    needs: [clean, fellows]
+    runs-on: ubuntu-latest
+    outputs:
+      pr-branch: ${{ steps.get-pr.outputs.result }}
+    steps:
+      - name: Check if the issue is a PR
+        id: check-pr
+        run: |
+          if [ -n "${{ github.event.issue.pull_request.url }}" ]; then
+            echo "This is a pull request comment"
+          else
+            echo "This is not a pull request comment"
+            exit 1
+          fi
+
+      - name: Get PR Branch Name
+        if: steps.check-pr.outcome == 'success'
+        id: get-pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            return pr.data.head.ref;
+          result-encoding: string
+
+      - name: Use PR Branch Name
+        run: echo "The PR branch is ${{ steps.get-pr.outputs.result }}"
 
   cmd:
-    needs: [clean, fellows]
+    needs: [get-pr-branch, fellows]
     env:
       JOB_NAME: 'cmd'
+      PR_BRANCH: ${{ needs.get-pr-branch.outputs.pr-branch }}
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
-    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'gitrun-001' || 'ubuntu-22.04' }}
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && vars.WEIGHTS_RUNNER || 'ubuntu-22.04' }}
     steps:
       - name: Install updates and protobuf-compiler
         if: startsWith(github.event.comment.body, '/cmd bench')
@@ -225,7 +267,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -256,7 +298,8 @@ jobs:
         env:
           CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
-          echo "Running command: $CMD"
+          echo "github.ref: ${{ github.ref }}"
+          echo "Running command: $CMD on branch ${{ needs.get-pr-branch.outputs.pr-branch }}"
           git remote -v
           python3 .github/scripts/cmd/cmd.py $CMD
           git status
@@ -268,11 +311,12 @@ jobs:
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             
-            git pull origin ${{ github.head_ref }}
+            git pull origin ${{ needs.get-pr-branch.outputs.pr-branch }}
             git add .
             git restore --staged Cargo.lock # ignore changes in Cargo.lock
             git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'" || true
-            git push origin ${{ github.head_ref }}
+            git push origin ${{ needs.get-pr-branch.outputs.pr-branch }}
+            
           else
             echo "Nothing to commit";
           fi
