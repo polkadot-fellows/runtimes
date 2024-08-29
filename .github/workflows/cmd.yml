@@ -178,7 +178,8 @@ jobs:
     needs: [clean, fellows]
     runs-on: ubuntu-latest
     outputs:
-      pr-branch: ${{ steps.get-pr.outputs.result }}
+      pr-branch: ${{ steps.get-pr.outputs.pr_branch }}
+      repo: ${{ steps.get-pr.outputs.repo }}
     steps:
       - name: Check if the issue is a PR
         id: check-pr
@@ -190,10 +191,10 @@ jobs:
             exit 1
           fi
 
-      - name: Get PR Branch Name
+      - name: Get PR Branch Name and Repo
         if: steps.check-pr.outcome == 'success'
         id: get-pr
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const pr = await github.rest.pulls.get({
@@ -201,12 +202,15 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
             });
-            return pr.data.head.ref;
+            const prBranch = pr.data.head.ref;
+            const repo = pr.data.head.repo.full_name;
+            return { pr_branch: prBranch, repo: repo };
           result-encoding: string
 
-      - name: Use PR Branch Name
-        run: echo "The PR branch is ${{ steps.get-pr.outputs.result }}"
-
+      - name: Use PR Branch Name and Repo
+        run: |
+          echo "The PR branch is ${{ steps.get-pr.outputs.pr_branch }}"
+          echo "The repository is ${{ steps.get-pr.outputs.repo }}"
   cmd:
     needs: [get-pr-branch, fellows]
     env:
@@ -267,6 +271,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: ${{ needs.get-pr-branch.outputs.repo }}
           ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
       - name: Set rust version via common env file
@@ -316,7 +321,6 @@ jobs:
             git restore --staged Cargo.lock # ignore changes in Cargo.lock
             git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'" || true
             git push origin ${{ needs.get-pr-branch.outputs.pr-branch }}
-            
           else
             echo "Nothing to commit";
           fi
