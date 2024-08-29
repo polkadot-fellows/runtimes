@@ -334,7 +334,7 @@ jobs:
             --no-color \
             --change added changed \
             --ignore-errors \
-            refs/remotes/origin/main ${{ github.ref }})
+            refs/remotes/origin/main refs/heads/${{ needs.get-pr-branch.outputs.pr-branch }})
           
           # Save the multiline result to the output
           {
