@@ -25,6 +25,7 @@ use frame_support::{
 		tokens::{Fortitude, Preservation},
 		DefensiveResult, OnUnbalanced,
 	},
+	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
 use frame_system::Pallet as System;
 use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
@@ -137,11 +138,12 @@ impl CoretimeInterface for CoretimeAllocator {
 		let request_core_count_call = RelayRuntimePallets::Coretime(RequestCoreCount(count));
 
 		// Weight for `request_core_count` from Polkadot runtime benchmarks:
-		// `ref_time` = 7889000 + (3 * 25000000) + (1 * 100000000) = 182889000
-		// `proof_size` = 1636
-		// Add 5% to each component and round to 2 significant figures.
-		// TODO check when benchmarks are rerun
-		let call_weight = Weight::from_parts(190_000_000, 1700);
+		// `ref_time`, `proof_size`, reads, writes
+		// 9_660_000, 1640, 3, 1
+		// Use overestimates for reads and writes, add 30% to each component with a healthy round
+		// up.
+		let call_weight =
+			Weight::from_parts(250 * WEIGHT_REF_TIME_PER_MICROS, 3 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -174,13 +176,12 @@ impl CoretimeInterface for CoretimeAllocator {
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
 		// Weight for `request_revenue_at` from Polkadot runtime benchmarks:
-		// `ref_time` = 37_637_000 + (3 * 25000000) + (6 * 100000000) = 712637000
-		// `proof_size` = 6428
-		// Add 5% to each component and round to 2 significant figures.
-		//
-		// These weights have been transplanted from another network and not rerun, so a healthy
-		// buffer is included. TODO refine when benchmarks are run.
-		let call_weight = Weight::from_parts(1_000_000_000, 20_000);
+		// `ref_time`, `proof_size`, reads, writes
+		// 93_731_000, 6313, 7, 5
+		// Use overestimates for reads and writes, add 30% to each component with a healthy round
+		// up.
+		let call_weight =
+			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -226,11 +227,12 @@ impl CoretimeInterface for CoretimeAllocator {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
 
 		// Weight for `assign_core` from Polkadot runtime benchmarks:
-		// `ref_time` = 10177115 + (1 * 25000000) + (2 * 100000000) + (80 * 13932) = 236291675
-		// `proof_size` = 3612
-		// Add 5% to each component and round to 2 significant figures.
-		// TODO check when benchmarks are rerun
-		let call_weight = Weight::from_parts(248_000_000, 3800);
+		// `ref_time`, `proof_size`, reads, writes
+		// 12_201_135 + 80 * 13_556, 3579, 1, 2
+		// Use overestimates for reads and writes, add 30% to each component with a healthy round
+		// up.
+		let call_weight =
+			Weight::from_parts(350 * WEIGHT_REF_TIME_PER_MICROS, 5 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		// The relay chain currently only allows `assign_core` to be called with a complete mask
 		// and only ever with increasing `begin`. The assignments must be truncated to avoid

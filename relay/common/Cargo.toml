@@ -1,0 +1,30 @@
+[package]
+authors.workspace = true
+description = "Shared utilities between relay runtimes"
+edition.workspace = true
+license.workspace = true
+name = "relay-common"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+
+sp-api = { workspace = true }
+sp-runtime = { workspace = true }
+polkadot-primitives = { workspace = true }
+pallet-staking-reward-fn = { workspace = true }
+
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"scale-info/std",
+
+	"pallet-staking-reward-fn/std",
+	"polkadot-primitives/std",
+	"sp-api/std",
+	"sp-runtime/std",
+]

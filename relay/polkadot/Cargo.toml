@@ -147,6 +147,7 @@ std = [
 	"pallet-beefy-mmr/std",
 	"pallet-beefy/std",
 	"pallet-bounties/std",
+	"pallet-broker/std",
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-election-provider-multi-phase/std",
@@ -182,6 +183,7 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
+	"polkadot-parachain-primitives/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
@@ -212,8 +214,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-broker/std",
-	"polkadot-parachain-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -226,6 +226,7 @@ runtime-benchmarks = [
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
+	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
@@ -255,6 +256,7 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
@@ -263,8 +265,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-broker/runtime-benchmarks",
-	"polkadot-parachain-primitives/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",

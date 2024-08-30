@@ -20,8 +20,14 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit.
 #![recursion_limit = "512"]
 
+extern crate alloc;
+
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS};
+use frame_support::{
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
+	traits::EnsureOriginWithArg,
+	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
+};
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
@@ -35,12 +41,15 @@ use polkadot_primitives::{
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
+		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
+		VersionedLocatableAsset, VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots, BalanceToU256, BlockHashCount, BlockLength,
 	CurrencyToVote, SlowAdjustingFeeUpdate, U256ToBalance,
 };
+use relay_common::apis::*;
 use scale_info::TypeInfo;
+use sp_runtime::traits::Saturating;
 use sp_std::{
 	cmp::Ordering,
 	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
@@ -78,9 +87,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, Contains, EitherOf, EitherOfDiverse, Everything,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, StorageMapShim, WithdrawReasons,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, EitherOf,
+		EitherOfDiverse, Everything, FromContains, InstanceFilter, KeyOwnerProofSystem,
+		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError, StorageMapShim,
+		WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
 	PalletId,
@@ -146,9 +156,6 @@ use governance::{
 	Treasurer, TreasurySpender,
 };
 
-// Implemented types.
-pub mod impls;
-
 #[cfg(test)]
 mod tests;
 
@@ -164,7 +171,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_002_008,
+	spec_version: 1_003_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -623,6 +630,86 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used to calculate era payouts, see
+	/// [`polkadot_runtime_common::impls::EraPayoutParams`].
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
+		#[codec(index = 0)]
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
+
+		/// Maximum inflation rate used to calculate era payouts.
+		#[codec(index = 1)]
+		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
+
+		/// Ideal stake ratio used to calculate era payouts.
+		#[codec(index = 2)]
+		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
+
+		/// Falloff used to calculate era payouts.
+		#[codec(index = 3)]
+		pub static Falloff: Perquintill = Perquintill::from_percent(5);
+
+		/// Whether to use auction slots or not in the calculation of era payouts. If true, then we
+		/// subtract `num_auctioned_slots.min(60) / 200` from `ideal_stake`.
+		///
+		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
+		/// maximum of 30%.
+		///
+		/// With the move to Agile Coretime, this parameter does not make much sense and should
+		/// generally be set to false.
+		#[codec(index = 4)]
+		pub static UseAuctionSlots: bool = true;
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
+			dynamic_params::inflation::MinInflation,
+			Some(Perquintill::from_rational(25u64, 1000u64)),
+		))
+	}
+}
+
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			Inflation(_) => frame_system::ensure_root(origin.clone()),
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
 pub struct EraPayout;
 impl pallet_staking::EraPayout<Balance> for EraPayout {
 	fn era_payout(
@@ -630,24 +717,30 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		_total_issuance: Balance,
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
-		// all para-ids that are currently active.
-		let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
-			// all active para-ids that do not belong to a system chain is the number
-			// of parachains that we should take into account for inflation.
-			.filter(|i| *i >= LOWEST_PUBLIC_ID)
-			.count() as u64;
-
-		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
 		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
-		polkadot_runtime_common::impls::era_payout(
+		let params = relay_common::EraPayoutParams {
 			total_staked,
-			Nis::issuance().other,
-			MAX_ANNUAL_INFLATION,
-			Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
-			auctioned_slots,
-		)
+			total_stakable: Nis::issuance().other,
+			ideal_stake: dynamic_params::inflation::IdealStake::get(),
+			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
+			falloff: dynamic_params::inflation::Falloff::get(),
+			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
+			legacy_auction_proportion: if dynamic_params::inflation::UseAuctionSlots::get() {
+				let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+					.into_iter()
+					// All active para-ids that do not belong to a system chain is the number of
+					// parachains that we should take into account for inflation.
+					.filter(|i| *i >= LOWEST_PUBLIC_ID)
+					.count() as u64;
+				Some(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
+			} else {
+				None
+			},
+		};
+		log::debug!(target: "runtime::kusama", "params: {:?}", params);
+		relay_common::relay_era_payout(params)
 	}
 }
 
@@ -766,7 +859,7 @@ impl pallet_treasury::Config for Runtime {
 		LocatableAssetConverter,
 		VersionedLocationConverter,
 	>;
-	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
@@ -1520,6 +1613,19 @@ impl pallet_nomination_pools::Config for Runtime {
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 }
 
+/// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
+/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
+/// native asset and provide a one-to-one balance conversion for them.
+pub type AssetRateWithNative = UnityOrOuterConversion<
+	ContainsLocationParts<
+		FromContains<
+			xcm_builder::IsChildSystemParachain<ParaId>,
+			xcm_builder::IsParentsOnly<ConstU8<1>>,
+		>,
+	>,
+	AssetRate,
+>;
+
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
@@ -1568,6 +1674,7 @@ construct_runtime! {
 		FellowshipReferenda: pallet_referenda::<Instance2> = 23,
 		Origins: pallet_custom_origins = 43,
 		Whitelist: pallet_whitelist = 44,
+		Parameters: pallet_parameters = 46,
 
 		// Claims. Usable initially.
 		Claims: claims = 19,
@@ -1781,6 +1888,7 @@ mod benches {
 		[pallet_vesting, Vesting]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
+		[pallet_parameters, Parameters]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
@@ -1788,7 +1896,47 @@ mod benches {
 	);
 }
 
+impl Runtime {
+	fn impl_experimental_inflation_info() -> InflationInfo {
+		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
+		let (staked, _start) = ActiveEra::<Runtime>::get()
+			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
+			.unwrap_or((0, 0));
+		let stake_able_issuance = Nis::issuance().other;
+
+		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
+		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
+			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+				.into_iter()
+				// All active para-ids that do not belong to a system chain is the number of
+				// parachains that we should take into account for inflation.
+				.filter(|i| *i >= LOWEST_PUBLIC_ID)
+				.count() as u64;
+			ideal_staking_rate
+				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 200u64))
+		} else {
+			ideal_staking_rate
+		};
+
+		// We assume un-delayed 6h eras.
+		let era_duration = 6 * HOURS;
+		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
+			staked,
+			stake_able_issuance,
+			era_duration.into(),
+		);
+
+		InflationInfo { inflation, next_mint }
+	}
+}
+
 sp_api::impl_runtime_apis! {
+	impl relay_common::apis::Inflation<Block> for Runtime {
+		fn experimental_inflation_prediction_info() -> InflationInfo {
+			Runtime::impl_experimental_inflation_info()
+		}
+	}
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
@@ -2842,6 +2990,75 @@ mod remote_tests {
 			.await
 			.unwrap();
 		ext.execute_with(|| Runtime::on_runtime_upgrade(UpgradeCheckSelect::PreAndPost));
+	}
+
+	#[tokio::test]
+	async fn next_inflation() {
+		use hex_literal::hex;
+		sp_tracing::try_init_simple();
+		let transport: Transport =
+			var("WS").unwrap_or("wss://rpc.dotters.network/kusama".to_string()).into();
+		let mut ext = Builder::<Block>::default()
+			.mode(Mode::Online(OnlineConfig {
+				transport,
+				hashed_prefixes: vec![
+					// entire nis pallet
+					hex!("928fa8b8d92aa31f47ed74f188a43f70").to_vec(),
+					// staking eras total stake
+					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")
+						.to_vec(),
+				],
+				hashed_keys: vec![
+					// staking active era
+					hex!("5f3e4907f716ac89b6347d15ececedca487df464e44a534ba6b0cbb32407b587")
+						.to_vec(),
+					// balances ti
+					hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80")
+						.to_vec(),
+					// timestamp now
+					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+						.to_vec(),
+					// para-ids
+					hex!("cd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee")
+						.to_vec(),
+				],
+				..Default::default()
+			}))
+			.build()
+			.await
+			.unwrap();
+		ext.execute_with(|| {
+			use pallet_staking::EraPayout;
+			let (total_staked, started) = pallet_staking::ActiveEra::<Runtime>::get()
+				.map(|ae| {
+					(pallet_staking::ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap())
+				})
+				.unwrap();
+			let total_issuance = Nis::issuance().other;
+			let _real_era_duration_millis =
+				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
+			// 6h in milliseconds
+			let average_era_duration_millis = 6 * 60 * 60 * 1000;
+			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+				total_staked,
+				total_issuance,
+				average_era_duration_millis,
+			);
+			use ss58_registry::TokenRegistry;
+			let token: ss58_registry::Token = TokenRegistry::Ksm.into();
+
+			log::info!(target: "runtime::kusama", "total-staked = {:?}", token.amount(total_staked));
+			log::info!(target: "runtime::kusama", "total-issuance = {:?}", token.amount(total_issuance));
+			log::info!(target: "runtime::kusama", "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
+			log::info!(target: "runtime::kusama", "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: "runtime::kusama", "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
+			log::info!(target: "runtime::kusama", "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
+			log::info!(target: "runtime::kusama", "falloff = {:?}", dynamic_params::inflation::Falloff::get());
+			log::info!(target: "runtime::kusama", "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
+			log::info!(target: "runtime::kusama", "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
+			log::info!(target: "runtime::kusama", "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
+			log::info!(target: "runtime::kusama", "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+		});
 	}
 
 	#[tokio::test]

@@ -85,6 +85,7 @@ pallet-whitelist = { workspace = true }
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
+pallet-parameters = { workspace = true }
 
 frame-benchmarking = { optional = true, workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
@@ -105,6 +106,7 @@ xcm-builder = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
+relay-common = { workspace = true }
 
 [dev-dependencies]
 sp-keyring = { workspace = true }
@@ -113,6 +115,7 @@ separator = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
+ss58-registry = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -164,6 +167,7 @@ std = [
 	"pallet-nomination-pools/std",
 	"pallet-offences-benchmarking?/std",
 	"pallet-offences/std",
+	"pallet-parameters/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
@@ -186,6 +190,7 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
+	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -241,6 +246,7 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-offences-benchmarking/runtime-benchmarks",
 	"pallet-offences/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
@@ -295,6 +301,7 @@ try-runtime = [
 	"pallet-nis/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-offences/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",

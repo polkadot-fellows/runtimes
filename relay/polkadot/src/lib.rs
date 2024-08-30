@@ -24,7 +24,8 @@ use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		DealWithFees, LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
+		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
+		VersionedLocatableAsset, VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots,
 	traits::OnSwap,
@@ -62,9 +63,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstU32, EitherOf, EitherOfDiverse, Everything, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, EitherOf,
+		EitherOfDiverse, Everything, FromContains, Get, InstanceFilter, KeyOwnerProofSystem,
+		LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp, ProcessMessage, ProcessMessageError,
+		WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -158,7 +160,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_002_008,
+	spec_version: 1_003_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -826,7 +828,7 @@ impl pallet_treasury::Config for Runtime {
 		LocatableAssetConverter,
 		VersionedLocationConverter,
 	>;
-	type BalanceConverter = impls::NativeOnSystemParachain<AssetRate>;
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
@@ -1553,6 +1555,19 @@ impl pallet_state_trie_migration::Config for Runtime {
 	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
 	type MaxKeyLen = MigrationMaxKeyLen;
 }
+
+/// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
+/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
+/// native asset and provide a one-to-one balance conversion for them.
+pub type AssetRateWithNative = UnityOrOuterConversion<
+	ContainsLocationParts<
+		FromContains<
+			xcm_builder::IsChildSystemParachain<ParaId>,
+			xcm_builder::IsParentsOnly<ConstU8<1>>,
+		>,
+	>,
+	AssetRate,
+>;
 
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;

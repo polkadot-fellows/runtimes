@@ -53,7 +53,9 @@ use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
-use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use polkadot_runtime_common::impls::{
+	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
+};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -75,8 +77,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstBool, ConstU16, ConstU32,
-		ConstU64, ConstU8, EitherOfDiverse, InstanceFilter, LinearStoragePrice, TransformOrigin,
+		fungible::HoldConsideration,
+		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
+		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOfDiverse, FromContains,
+		InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -95,7 +99,7 @@ use system_parachains_constants::{
 	SLOT_DURATION,
 };
 use xcm_config::{
-	GovernanceLocation, LocationToAccountId, StakingPot, TreasurerBodyId,
+	GovernanceLocation, LocationToAccountId, SelfParaId, StakingPot, TreasurerBodyId,
 	XcmOriginToTransactDispatchOrigin,
 };
 
@@ -124,7 +128,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_002_008,
+	spec_version: 1_003_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -658,6 +662,19 @@ impl pallet_preimage::Config for Runtime {
 	>;
 }
 
+/// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
+/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
+/// native asset and provide a one-to-one balance conversion for them.
+pub type AssetRateWithNative = UnityOrOuterConversion<
+	ContainsLocationParts<
+		FromContains<
+			xcm_builder::IsSiblingSystemParachain<ParaId, SelfParaId>,
+			xcm_builder::IsParentsOnly<ConstU8<1>>,
+		>,
+	>,
+	AssetRate,
+>;
+
 impl pallet_asset_rate::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
@@ -761,6 +778,7 @@ pub type SignedExtra = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
+	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
