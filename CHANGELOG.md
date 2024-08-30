@@ -1,4 +1,4 @@
-# Changelog1
+# Changelog
 
 Changelog for the runtimes governed by the Polkadot Fellowship.
 
