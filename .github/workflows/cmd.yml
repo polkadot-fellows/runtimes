@@ -212,6 +212,7 @@ jobs:
           echo "The PR branch is ${{ steps.get-pr.outputs.pr_branch }}"
           echo "The repository is ${{ steps.get-pr.outputs.repo }}"
 
+
   cmd:
     needs: [get-pr-branch, fellows]
     env:
@@ -322,7 +323,6 @@ jobs:
             git restore --staged Cargo.lock # ignore changes in Cargo.lock
             git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'" || true
             git push origin ${{ needs.get-pr-branch.outputs.pr-branch }}
-            
           else
             echo "Nothing to commit";
           fi
