@@ -23,9 +23,9 @@ use crate::{
 	impls::ToParentTreasury,
 	weights,
 	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
-	AccountId, AssetRate, Balance, Balances, FellowshipReferenda, GovernanceLocation,
-	ParachainInfo, PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
+	AccountId, AssetRateWithNative, Balance, Balances, FellowshipReferenda, GovernanceLocation,
+	PolkadotTreasuryAccount, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
 use frame_support::{
 	parameter_types,
@@ -324,7 +324,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	type Paymaster = FellowshipTreasuryPaymaster;
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
-	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<

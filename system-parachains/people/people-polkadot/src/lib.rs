@@ -880,7 +880,7 @@ impl_runtime_apis! {
 					// Relay/native token can be teleported between People and Relay.
 					Some((
 						Asset {
-							fun: Fungible(SYSTEM_PARA_EXISTENTIAL_DEPOSIT),
+							fun: Fungible(ExistentialDeposit::get()),
 							id: AssetId(Parent.into())
 						},
 						Parent.into(),

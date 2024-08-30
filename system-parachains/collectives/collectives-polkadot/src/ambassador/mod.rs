@@ -36,7 +36,7 @@ pub use origins::pallet_origins as pallet_ambassador_origins;
 
 use crate::{
 	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId},
-	*,
+	AssetRateWithNative, *,
 };
 use frame_support::{
 	pallet_prelude::PalletInfoAccess,
@@ -348,7 +348,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		AmbassadorTreasuryPaymaster,
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
-	type BalanceConverter = crate::impls::NativeOnSiblingParachain<AssetRate, ParachainInfo>;
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
