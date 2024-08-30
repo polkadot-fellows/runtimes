@@ -737,7 +737,7 @@ construct_runtime!(
 		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
 
 		// The Secretary Collective
-		// pub type SecretaryCollectiveInstance = pallet_ranked_cllective::instance3;
+		// pub type SecretaryCollectiveInstance = pallet_ranked_collective::instance3;
 		SecretaryCollective: pallet_ranked_collective::<Instance3> = 80,
 		// pub type SecretarySalaryInstance = pallet_salary::Instance3;
 		SecretarySalary: pallet_salary::<Instance3> = 81,
@@ -819,7 +819,7 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
-		[pallet_ranked_cllective, SecretaryCollective]
+		[pallet_ranked_collective, SecretaryCollective]
 		[pallet_salary, SecretarySalary]
 	);
 }
