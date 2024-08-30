@@ -216,7 +216,6 @@ jobs:
     needs: [get-pr-branch, fellows]
     env:
       JOB_NAME: 'cmd'
-      PR_BRANCH: ${{ needs.get-pr-branch.outputs.pr-branch }}
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
     runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'gitrun-001' || 'ubuntu-22.04' }}
     steps:
