@@ -68,11 +68,11 @@ Here are the recommended steps for both major and minor runtime releases.
 |Steps |Description |Major |Minor |
 |------|------------|------|------|
 |0 |Open an [issue](https://github.com/polkadot-fellows/runtimes/issues) for the release in the runtimes repo with the **version number**. | ✔️ | ✔️ |
-|1 |Identify **released crates**. | ✔️ | ❌ |
+|1 |Identify **[released crates](https://github.com/paritytech/polkadot-sdk?tab=readme-ov-file#-releases)**. | ✔️ | ❌ |
 |2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). | ✔️ | ✔️ |
 |3 |Identify and include **PRs** with required tests, highlighting the integration tests that have changed. | ✔️ | ✔️ |
 |4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. | ✔️ | ✔️ |
-|5 |Run **benchmarking** for changed pallets. | ✔️ | ✔️ |
+|5 |Run **[benchmarking](https://github.com/polkadot-fellows/runtimes/blob/main/docs/weight-generation.md)** for changed pallets. | ✔️ | ✔️ |
 |6 |Trigger the release for **final reviews**, making sure to highlight information about all breaking changes or disruptions in the **CHANGELOG entry**. | ✔️ | ✔️ |
 |7 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.| ✔️ | ✔️ |
 |8 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. | ✔️ | ✔️ |
