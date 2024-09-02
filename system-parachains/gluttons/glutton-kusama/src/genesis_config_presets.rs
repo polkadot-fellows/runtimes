@@ -20,12 +20,18 @@ use crate::*;
 use cumulus_primitives_core::ParaId;
 
 fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
-	serde_json::json!({
-		"parachainInfo": ParachainInfoConfig {
+	let config = RuntimeGenesisConfig {
+		system: Default::default(),
+		parachain_system: Default::default(),
+		parachain_info: ParachainInfoConfig {
 			parachain_id: id,
 			..Default::default()
 		},
-	})
+		glutton: Default::default(),
+		sudo: Default::default(),
+	};
+
+	serde_json::to_value(&config).expect("Could not build genesis config.")
 }
 
 pub fn glutton_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
