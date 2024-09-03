@@ -38,10 +38,7 @@ fn coretime_kusama_genesis(
 				.map(|k| (k, CORETIME_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: CORETIME_KUSAMA_ED * 16,

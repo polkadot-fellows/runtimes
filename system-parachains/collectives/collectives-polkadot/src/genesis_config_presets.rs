@@ -36,10 +36,7 @@ fn collectives_polkadot_genesis(
 				.map(|k| (k, COLLECTIVES_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: COLLECTIVES_POLKADOT_ED * 16,
@@ -50,9 +47,9 @@ fn collectives_polkadot_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                             // account id
-						acc,                                     // validator id
-						SessionKeys { aura },			 // session keys
+						acc.clone(),          // account id
+						acc,                  // validator id
+						SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),

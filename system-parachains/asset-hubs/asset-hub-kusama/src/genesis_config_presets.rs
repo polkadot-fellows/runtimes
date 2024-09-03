@@ -37,10 +37,7 @@ fn asset_hub_kusama_genesis(
 				.collect(),
 		},
 		transaction_payment: Default::default(),
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ASSET_HUB_KUSAMA_ED * 16,
@@ -51,9 +48,9 @@ fn asset_hub_kusama_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						SessionKeys { aura }, 	// session keys
+						acc.clone(),          // account id
+						acc,                  // validator id
+						SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),

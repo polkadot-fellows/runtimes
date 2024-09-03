@@ -36,10 +36,7 @@ fn bridge_hub_polkadot_genesis(
 				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: BRIDGE_HUB_POLKADOT_ED * 16,
@@ -50,8 +47,8 @@ fn bridge_hub_polkadot_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                            // account id
-						acc,                                    // validator id
+						acc.clone(),          // account id
+						acc,                  // validator id
 						SessionKeys { aura }, // session keys
 					)
 				})
@@ -74,7 +71,7 @@ fn bridge_hub_polkadot_genesis(
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 		parachain_system: Default::default(),
-		transaction_payment: Default::default()
+		transaction_payment: Default::default(),
 	};
 
 	serde_json::to_value(&config).expect("Could not build genesis config.")

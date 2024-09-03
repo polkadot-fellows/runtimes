@@ -36,10 +36,7 @@ fn people_kusama_genesis(
 				.map(|k| (k, PEOPLE_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: PEOPLE_KUSAMA_ED * 16,
@@ -50,9 +47,9 @@ fn people_kusama_genesis(
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						SessionKeys { aura }, 		// session keys
+						acc.clone(),          // account id
+						acc,                  // validator id
+						SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),
@@ -66,7 +63,7 @@ fn people_kusama_genesis(
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 		parachain_system: Default::default(),
-		transaction_payment: Default::default()
+		transaction_payment: Default::default(),
 	};
 
 	serde_json::to_value(&config).expect("Could not build genesis config.")

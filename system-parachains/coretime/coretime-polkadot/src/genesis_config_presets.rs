@@ -39,10 +39,7 @@ fn coretime_polkadot_genesis(
 				.map(|k| (k, CORETIME_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: CORETIME_POLKADOT_ED * 16,
@@ -62,10 +59,7 @@ fn coretime_polkadot_genesis(
 		},
 		aura: Default::default(),
 		aura_ext: Default::default(),
-		polkadot_xcm: PolkadotXcmConfig {
-			_config: Default::default(),
-			safe_xcm_version: None,
-		},
+		polkadot_xcm: PolkadotXcmConfig { _config: Default::default(), safe_xcm_version: None },
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 		parachain_system: Default::default(),

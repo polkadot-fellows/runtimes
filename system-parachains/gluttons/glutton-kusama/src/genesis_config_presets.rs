@@ -23,10 +23,7 @@ fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
 	let config = RuntimeGenesisConfig {
 		system: Default::default(),
 		parachain_system: Default::default(),
-		parachain_info: ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		glutton: Default::default(),
 		sudo: Default::default(),
 	};
