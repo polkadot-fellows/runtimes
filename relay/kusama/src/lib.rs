@@ -1926,7 +1926,7 @@ impl Runtime {
 		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
 			staked,
 			stake_able_issuance,
-			era_duration,
+			era_duration.into(),
 		);
 
 		InflationInfo { inflation, next_mint }
