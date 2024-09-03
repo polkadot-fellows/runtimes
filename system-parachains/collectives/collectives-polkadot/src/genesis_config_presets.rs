@@ -70,7 +70,7 @@ fn collectives_polkadot_genesis(
 		ambassador_treasury: Default::default(),
 	};
 
-	serde_json::to_value(&config).expect("Could not build genesis config.")
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn collectives_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

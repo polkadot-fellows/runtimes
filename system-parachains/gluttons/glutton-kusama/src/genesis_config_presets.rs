@@ -28,7 +28,7 @@ fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
 		sudo: Default::default(),
 	};
 
-	serde_json::to_value(&config).expect("Could not build genesis config.")
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn glutton_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

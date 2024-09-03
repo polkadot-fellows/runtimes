@@ -73,7 +73,7 @@ fn encointer_kusama_genesis(
 		encointer_faucet: Default::default(),
 	};
 
-	serde_json::to_value(&config).expect("Could not build genesis config.")
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

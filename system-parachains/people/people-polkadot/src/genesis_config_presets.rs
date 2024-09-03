@@ -66,7 +66,7 @@ fn people_polkadot_genesis(
 		transaction_payment: Default::default(),
 	};
 
-	serde_json::to_value(&config).expect("Could not build genesis config.")
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn people_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

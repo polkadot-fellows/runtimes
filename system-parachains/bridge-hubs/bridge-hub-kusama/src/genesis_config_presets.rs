@@ -69,7 +69,7 @@ fn bridge_hub_kusama_genesis(
 		bridge_polkadot_messages: Default::default(),
 	};
 
-	serde_json::to_value(&config).expect("Could not build genesis config.")
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
