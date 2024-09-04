@@ -361,7 +361,6 @@ Note: This release only affects the following runtimes and is not a full system 
 - Add BEEFY to Polkadot ([polkadot-fellows/runtimes#65](https://github.com/polkadot-fellows/runtimes/pull/65))
 - Fellowship Treasury pallet on Polkadot Collectives ([polkadot-fellows/runtimes#109](https://github.com/polkadot-fellows/runtimes/pull/109))
 - Added Polkadot <> Kusama bridge to support asset transfers between Asset Hubs ([polkadot-fellows/runtimes#108](https://github.com/polkadot-fellows/runtimes/pull/108))
-  
 ### Fixed
 
 - Add missing weight functions for `runtime_parachains_hrmp` and `preimage` pallets ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
