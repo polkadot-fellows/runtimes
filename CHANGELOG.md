@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407))
 
+## [1.3.2] 27.08.2024
+
+### Fixed
+
+- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+
+## [1.3.1] 23.08.2024
+
+### Fixed
+
+- [🚨 Breaking Change] Polkadot Collectives: enable transaction payment ([polkadot-fellows/runtimes#442](https://github.com/polkadot-fellows/runtimes/pull/442))
+
 ## [1.3.0] 20.08.2024
 
 ### Added

@@ -18,6 +18,7 @@ use super::{
 	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, WeightToFee, XcmpQueue,
 };
+use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{tokens::imbalance::ResolveTo, ConstU32, Contains, Equals, Everything, Nothing},
@@ -72,6 +73,7 @@ parameter_types! {
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
