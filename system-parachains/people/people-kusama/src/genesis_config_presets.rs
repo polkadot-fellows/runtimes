@@ -54,14 +54,14 @@ fn people_kusama_genesis(
 				})
 				.collect(),
 		},
+		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
+		// of this. `aura: Default::default()`
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		polkadot_xcm: PolkadotXcmConfig {
 			_config: Default::default(),
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
 		parachain_system: Default::default(),
 		transaction_payment: Default::default(),
 	};
