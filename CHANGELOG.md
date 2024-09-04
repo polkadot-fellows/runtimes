@@ -4,6 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+- Genesis config presets: Make use of RuntimeGenesisConfig to construct genesis config values for all runtimes ([polkadot-fellows/runtimes#451](https://github.com/polkadot-fellows/runtimes/pull/451)).
+
 ## [1.3.2] 27.08.2024
 
 ### Fixed
@@ -356,7 +361,7 @@ Note: This release only affects the following runtimes and is not a full system 
 - Add BEEFY to Polkadot ([polkadot-fellows/runtimes#65](https://github.com/polkadot-fellows/runtimes/pull/65))
 - Fellowship Treasury pallet on Polkadot Collectives ([polkadot-fellows/runtimes#109](https://github.com/polkadot-fellows/runtimes/pull/109))
 - Added Polkadot <> Kusama bridge to support asset transfers between Asset Hubs ([polkadot-fellows/runtimes#108](https://github.com/polkadot-fellows/runtimes/pull/108))
-
+  
 ### Fixed
 
 - Add missing weight functions for `runtime_parachains_hrmp` and `preimage` pallets ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
