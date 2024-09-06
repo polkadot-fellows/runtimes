@@ -485,16 +485,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
-			ProxyType::Assets => {
-				matches!(
-					c,
-					RuntimeCall::Assets { .. } |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
-				)
-			},
+			ProxyType::Assets => matches!(
+				c,
+				RuntimeCall::Assets { .. } |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. } |
+					RuntimeCall::Nfts { .. } |
+					RuntimeCall::Uniques { .. }
+			),
 			ProxyType::AssetOwner => matches!(
 				c,
 				RuntimeCall::Assets(TrustBackedAssetsCall::create { .. }) |
