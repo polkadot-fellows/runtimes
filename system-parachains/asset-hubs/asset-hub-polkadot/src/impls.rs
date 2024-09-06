@@ -267,8 +267,9 @@ pub mod tx_payment {
 						// The error should not occur since swap was quoted before.
 						Err((refund, _)) => {
 							match T::Assets::settle(who, debt, Preservation::Expendable) {
-								Ok(dust) =>
-									ensure!(dust.peek().is_zero(), InvalidTransaction::Payment),
+								Ok(dust) => {
+									ensure!(dust.peek().is_zero(), InvalidTransaction::Payment)
+								},
 								// The error should not occur as the `debt` was just withdrawn
 								// above.
 								Err(_) => return Err(InvalidTransaction::Payment.into()),
