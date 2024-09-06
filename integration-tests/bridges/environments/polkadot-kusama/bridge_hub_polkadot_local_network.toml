@@ -5,7 +5,7 @@ node_spawn_timeout = 240
 default_command = "{{POLKADOT_BINARY}}"
 default_args = ["-lparachain=debug,xcm=trace"]
 chain = "polkadot-local"
-chain_spec_command = "{{CHAIN_SPEC_GEN_BINARY}} {% raw %} {{chainName}} {% endraw %}"
+chain_spec_command = "{{CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT}} {% raw %} {{chainName}} {% endraw %}"
 
 [[relaychain.nodes]]
 name = "alice"
@@ -31,7 +31,7 @@ balance = 2000000000000
 [[parachains]]
 id = 1000
 chain = "asset-hub-polkadot-local"
-chain_spec_command = "{{CHAIN_SPEC_GEN_BINARY}} {% raw %} {{chainName}} {% endraw %}"
+chain_spec_command = "{{CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT}} {% raw %} {{chainName}} {% endraw %}"
 cumulus_based = true
 
 [[parachains.collators]]
@@ -49,7 +49,7 @@ args = ["-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"]
 [[parachains]]
 id = 1002
 chain = "bridge-hub-polkadot-local"
-chain_spec_command = "{{ENV_PATH}}/generate_bh_spec.sh Kusama {% raw %} {{chainName}} {% endraw %}"
+chain_spec_command = "{{ENV_PATH}}/generate_bhp_spec.sh Kusama {% raw %} {{chainName}} {% endraw %}"
 cumulus_based = true
 
 [[parachains.collators]]
