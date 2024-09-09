@@ -18,6 +18,7 @@
 
 use crate::*;
 use cumulus_primitives_core::ParaId;
+use sp_genesis_builder::PresetId;
 
 fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
 	let config = RuntimeGenesisConfig {
@@ -37,6 +38,11 @@ pub fn glutton_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Valu
 
 fn glutton_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 	glutton_kusama_local_testnet_genesis(para_id)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.

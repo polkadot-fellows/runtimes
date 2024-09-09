@@ -19,6 +19,7 @@
 use crate::*;
 use hex_literal::hex;
 use sp_core::crypto::UncheckedInto;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -135,6 +136,11 @@ fn coretime_kusama_live_genesis(para_id: ParaId) -> serde_json::Value {
 		Vec::new(),
 		para_id,
 	)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.

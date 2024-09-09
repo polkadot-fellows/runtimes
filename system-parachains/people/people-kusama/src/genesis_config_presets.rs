@@ -17,6 +17,7 @@
 //! Genesis configs presets for the PeopleKusama runtime
 
 use crate::*;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -75,6 +76,11 @@ pub fn people_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value
 
 fn people_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 	people_kusama_local_testnet_genesis(para_id)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
