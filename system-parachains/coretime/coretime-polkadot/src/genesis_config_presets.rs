@@ -67,7 +67,10 @@ fn coretime_polkadot_genesis(
 		broker: Default::default(),
 	};
 
-	serde_json::to_value(config).expect("Could not build genesis config.")
+	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
+	remove_phantom_fields(&mut config_values);
+
+	config_values
 }
 
 fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

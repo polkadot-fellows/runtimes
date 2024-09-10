@@ -17,6 +17,7 @@
 
 use parachains_common::AuraId;
 use polkadot_primitives::{AccountId, AccountPublic};
+use serde_json::Value;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
 #[cfg(not(feature = "std"))]
@@ -66,3 +67,21 @@ where
 
 /// The default XCM version to set in genesis config.
 pub const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
+
+pub fn remove_phantom_fields(value: &mut Value) {
+	match value {
+		Value::Object(map) => {
+			map.remove("phantom");
+
+			for (_, v) in map.iter_mut() {
+				remove_phantom_fields(v);
+			}
+		}
+		Value::Array(arr) => {
+			for v in arr.iter_mut() {
+				remove_phantom_fields(v);
+			}
+		}
+		_ => {}
+	}
+}

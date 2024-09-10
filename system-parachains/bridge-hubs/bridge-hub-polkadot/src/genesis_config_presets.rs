@@ -16,6 +16,7 @@
 
 //! Genesis configs presets for the BridgeHubPolkadot runtime
 
+use sp_std::marker::PhantomData;
 use crate::*;
 use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
@@ -62,8 +63,16 @@ fn bridge_hub_polkadot_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
 		bridge_kusama_grandpa: Default::default(),
-		bridge_kusama_parachains: Default::default(),
-		bridge_kusama_messages: Default::default(),
+		bridge_kusama_parachains: BridgeKusamaParachainsConfig {
+			operating_mode: Default::default(),
+			owner: None,
+			phantom: PhantomData::default(),
+		},
+		bridge_kusama_messages: BridgeKusamaMessagesConfig {
+			operating_mode: Default::default(),
+			owner: None,
+			phantom: PhantomData::default(),
+		},
 		ethereum_system: EthereumSystemConfig {
 			para_id: id,
 			asset_hub_para_id: polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
@@ -75,7 +84,10 @@ fn bridge_hub_polkadot_genesis(
 		transaction_payment: Default::default(),
 	};
 
-	serde_json::to_value(config).expect("Could not build genesis config.")
+	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
+	remove_phantom_fields(&mut config_values);
+
+	config_values
 }
 
 pub fn bridge_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
