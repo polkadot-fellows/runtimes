@@ -18,7 +18,7 @@
 
 use crate::*;
 use sp_genesis_builder::PresetId;
-use sp_std::{marker::PhantomData, vec::Vec};
+use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
 const BRIDGE_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
