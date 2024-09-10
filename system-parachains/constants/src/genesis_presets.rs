@@ -76,12 +76,11 @@ pub fn remove_phantom_fields(value: &mut Value) {
 			for (_, v) in map.iter_mut() {
 				remove_phantom_fields(v);
 			}
-		}
-		Value::Array(arr) => {
+		},
+		Value::Array(arr) =>
 			for v in arr.iter_mut() {
 				remove_phantom_fields(v);
-			}
-		}
-		_ => {}
+			},
+		_ => {},
 	}
 }

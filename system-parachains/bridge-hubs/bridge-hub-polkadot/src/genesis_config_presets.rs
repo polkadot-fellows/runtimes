@@ -16,10 +16,9 @@
 
 //! Genesis configs presets for the BridgeHubPolkadot runtime
 
-use sp_std::marker::PhantomData;
 use crate::*;
 use sp_genesis_builder::PresetId;
-use sp_std::vec::Vec;
+use sp_std::{marker::PhantomData, vec::Vec};
 use system_parachains_constants::genesis_presets::*;
 
 const BRIDGE_HUB_POLKADOT_ED: Balance = ExistentialDeposit::get();
@@ -63,16 +62,8 @@ fn bridge_hub_polkadot_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
 		bridge_kusama_grandpa: Default::default(),
-		bridge_kusama_parachains: BridgeKusamaParachainsConfig {
-			operating_mode: Default::default(),
-			owner: None,
-			phantom: PhantomData::default(),
-		},
-		bridge_kusama_messages: BridgeKusamaMessagesConfig {
-			operating_mode: Default::default(),
-			owner: None,
-			phantom: PhantomData::default(),
-		},
+		bridge_kusama_parachains: Default::default(),
+		bridge_kusama_messages: Default::default(),
 		ethereum_system: EthereumSystemConfig {
 			para_id: id,
 			asset_hub_para_id: polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
