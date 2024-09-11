@@ -61,7 +61,10 @@ fn coretime_polkadot_genesis(
 		// of this. `aura: Default::default()`
 		aura: Default::default(),
 		aura_ext: Default::default(),
-		polkadot_xcm: PolkadotXcmConfig { _config: Default::default(), safe_xcm_version: None },
+		polkadot_xcm: PolkadotXcmConfig {
+			_config: Default::default(),
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
+		},
 		parachain_system: Default::default(),
 		transaction_payment: Default::default(),
 		broker: Default::default(),
