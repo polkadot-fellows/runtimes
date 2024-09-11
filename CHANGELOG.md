@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407))
+- Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407)).
+- Genesis config presets: Make use of RuntimeGenesisConfig to construct genesis config values for all runtimes ([polkadot-fellows/runtimes#451](https://github.com/polkadot-fellows/runtimes/pull/451)).
 
 ### Fixed
 
