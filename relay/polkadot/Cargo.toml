@@ -152,7 +152,6 @@ std = [
 	"pallet-beefy/std",
 	"pallet-bounties/std",
 	"pallet-broker/std",
-	"pallet-broker/std",
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-election-provider-multi-phase/std",
