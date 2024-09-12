@@ -700,7 +700,7 @@ impl pallet_parameters::Config for Runtime {
 	type AdminOrigin = DynamicParameterOrigin;
 	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
-
+/// Defines how much should the inflation be for an era given its duration.
 pub struct EraPayout;
 impl pallet_staking::EraPayout<Balance> for EraPayout {
 	fn era_payout(
