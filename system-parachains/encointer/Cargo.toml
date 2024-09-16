@@ -139,6 +139,7 @@ runtime-benchmarks = [
 	"pallet-encointer-faucet/runtime-benchmarks",
 	"pallet-encointer-reputation-commitments/runtime-benchmarks",
 	"pallet-encointer-scheduler/runtime-benchmarks",
+	"pallet-encointer-treasuries/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
