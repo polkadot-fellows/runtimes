@@ -59,8 +59,8 @@ use frame_support::{
 	traits::{
 		fungibles::{Balanced, Credit},
 		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
-		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
-		TransformOrigin,
+		ConstBool, ConstU128, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+		InstanceFilter, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -545,6 +545,29 @@ impl pallet_encointer_faucet::Config for Runtime {
 	type WeightInfo = weights::pallet_encointer_faucet::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
+	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+}
+
+impl pallet_encointer_democracy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxReputationCount = ConstU32<64>;
+	type ConfirmationPeriod = ConfirmationPeriod;
+	type ProposalLifetime = ProposalLifetime;
+	type MinTurnout = ConstU128<1>; // permill of electorate: 1 = 0.1%, 50 = 5.0%
+	type WeightInfo = weights::pallet_encointer_democracy::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	pub const TreasuriesPalletId: PalletId = PalletId(*b"trsrysId");
+}
+impl pallet_encointer_treasuries::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = pallet_balances::Pallet<Runtime>;
+	type PalletId = TreasuriesPalletId;
+}
+
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
@@ -724,6 +747,8 @@ construct_runtime! {
 		EncointerBazaar: pallet_encointer_bazaar = 64,
 		EncointerReputationCommitments: pallet_encointer_reputation_commitments = 65,
 		EncointerFaucet: pallet_encointer_faucet = 66,
+		EncointerDemocracy: pallet_encointer_democracy = 67,
+		EncointerTreasuries: pallet_encointer_treasuries = 68,
 	}
 }
 
@@ -788,6 +813,7 @@ mod benches {
 		[pallet_encointer_bazaar, EncointerBazaar]
 		[pallet_encointer_ceremonies, EncointerCeremonies]
 		[pallet_encointer_communities, EncointerCommunities]
+		[pallet_encointer_democracy, EncointerDemocracy]
 		[pallet_encointer_faucet, EncointerFaucet]
 		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
 		[pallet_encointer_scheduler, EncointerScheduler]
@@ -1028,6 +1054,13 @@ impl_runtime_apis! {
 			BalanceToCommunityBalance::<Runtime>::to_asset_balance(amount, asset_id).map_err(|_e|
 				encointer_balances_tx_payment_rpc_runtime_api::Error::RuntimeError
 			)
+		}
+	}
+
+	impl pallet_encointer_treasuries_rpc_runtime_api::TreasuriesApi<Block, AccountId> for Runtime {
+
+		fn get_community_treasury_account_unchecked(maybecid: &Option<CommunityIdentifier>) -> AccountId {
+			EncointerTreasuries::get_community_treasury_account_unchecked(*maybecid)
 		}
 	}
 
