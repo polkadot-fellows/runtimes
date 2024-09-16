@@ -241,7 +241,7 @@ parameter_types! {
 /// Type to convert an `Origin` type value into a `Location` value which represents an interior
 /// location of this chain.
 pub type LocalOriginToLocation = (
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
@@ -265,14 +265,14 @@ pub type LocalPalletOrSignedOriginToLocation = (
 	StakingAdminToPlurality,
 	// Fellows origin to be used in XCM as a corresponding Plurality `Location` value.
 	FellowsToPlurality,
-	// And a usual Signed origin to be used in XCM as a corresponding AccountId32
+	// And a usual Signed origin to be used in XCM as a corresponding `AccountId32`.
 	SignedToAccountId32<RuntimeOrigin, AccountId, ThisNetwork>,
 );
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// This is basically safe to enable for everyone (safe the possibility of someone spamming the
-	// parachain if they're willing to pay the KSM to send from the Relay-chain).
+	// This is safe to enable for everyone (save the possibility of someone spamming a parachain
+	// if they're willing to pay the KSM to send from the Relay-chain).
 	type SendXcmOrigin =
 		xcm_builder::EnsureXcmOrigin<RuntimeOrigin, LocalPalletOrSignedOriginToLocation>;
 	type XcmRouter = XcmRouter;

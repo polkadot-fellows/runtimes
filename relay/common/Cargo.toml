@@ -11,10 +11,10 @@ version.workspace = true
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 
-sp-api ={ workspace = true }
+sp-api = { workspace = true }
 sp-runtime = { workspace = true }
 polkadot-primitives = { workspace = true }
-pallet-staking-reward-fn ={ workspace = true }
+pallet-staking-reward-fn = { workspace = true }
 
 
 [features]
@@ -23,8 +23,8 @@ std = [
 	"codec/std",
 	"scale-info/std",
 
+	"pallet-staking-reward-fn/std",
+	"polkadot-primitives/std",
 	"sp-api/std",
 	"sp-runtime/std",
-	"polkadot-primitives/std",
-	"pallet-staking-reward-fn/std",
 ]

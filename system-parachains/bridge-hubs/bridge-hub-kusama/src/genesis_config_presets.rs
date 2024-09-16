@@ -17,6 +17,7 @@
 //! Genesis configs presets for the BridgeHubKusama runtime
 
 use crate::*;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -70,6 +71,11 @@ pub fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::V
 
 fn bridge_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 	bridge_hub_kusama_local_testnet_genesis(para_id)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
