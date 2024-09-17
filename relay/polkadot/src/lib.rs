@@ -649,7 +649,7 @@ pub mod dynamic_params {
 		/// `num_auctioned_slots.min(60) / 300` from `ideal_stake`.
 		///
 		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
-		/// maximum of 30%.
+		/// maximum of 20%.
 		///
 		/// With the move to agile-coretime, this parameter does not make much sense and should
 		/// generally be set to false.
