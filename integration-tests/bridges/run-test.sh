@@ -34,7 +34,8 @@ echo
 export ZOMBIENET_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/zombienet
 export POLKADOT_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot
 export POLKADOT_PARACHAIN_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/polkadot-parachain
-export CHAIN_SPEC_GEN_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator
+export CHAIN_SPEC_GEN_BINARY_FOR_KUSAMA=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator-kusama
+export CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT=$LOCAL_BRIDGE_TESTING_PATH/bin/chain-spec-generator-polkadot
 export SUBSTRATE_RELAY_BINARY=$LOCAL_BRIDGE_TESTING_PATH/bin/substrate-relay
 
 export TEST_DIR=`mktemp -d /tmp/bridges-tests-run-XXXXX`

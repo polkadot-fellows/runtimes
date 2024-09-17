@@ -25,9 +25,12 @@ To start a test, you need to:
 - build Substrate relay by running `cargo build -p substrate-relay --release` command in the
 [`parity-bridges-common`](https://github.com/paritytech/parity-bridges-common) repository clone. Copy the binary to `~/local_bridge_testing/bin/substrate-relay`. 
 - build chain spec generator:
+  - (you can use the current branch, or you can build generators from different branches, such as from specific tags or releases)
   - add the `sudo` pallet to the Polkadot and Kusama runtimes and give sudo rights to Alice, e.g. by running `git apply ./integration-tests/bridges/sudo-relay.patch` from the fellows root dir.
   - with this change build the chain spec generator by running `cargo build --release -p chain-spec-generator --features fast-runtime` 
-command. Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator`.
+command.
+    - Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator-kusama`.
+    - Copy the binary to `~/local_bridge_testing/bin/chain-spec-generator-polkadot`.
 - check/change the `POLKADOT_BINARY` and `POLKADOT_PARACHAIN_BINARY` paths (and ensure that the nearby variables
 have correct values) in the `./run-test.sh`.
 

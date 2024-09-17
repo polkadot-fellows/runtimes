@@ -23,6 +23,7 @@ use pallet_staking::{Forcing, StakerStatus};
 use polkadot_primitives::{AccountPublic, AssignmentId, AsyncBackingParams};
 use runtime_parachains::configuration::HostConfiguration;
 use sp_core::{sr25519, Pair, Public};
+use sp_genesis_builder::PresetId;
 use sp_runtime::{traits::IdentifyAccount, Perbill};
 #[cfg(not(feature = "std"))]
 use sp_std::alloc::format;
@@ -222,6 +223,11 @@ pub fn kusama_development_config_genesis() -> serde_json::Value {
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,
 	)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
