@@ -189,7 +189,6 @@ std = [
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
 	"polkadot-parachain-primitives/std",
-	"polkadot-parachain-primitives/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
