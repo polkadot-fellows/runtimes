@@ -81,6 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hubs: setup auto incremented asset id to 50_000_000 for trust backed assets ([polkadot-fellows/runtimes#414](https://github.com/polkadot-fellows/runtimes/pull/414)).
 - Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332)).
 - Filter `interlace` calls on the Polkadot Coretime Chain until the Relay chain implementation is more mature ([polkadot-fellows/runtimes#438](https://github.com/polkadot-fellows/runtimes/pull/438)).
+- Kusama, pallet OnDemandAssignmentProvider: renamed to OnDemand ([polkadot-fellows/runtimes#417](https://github.com/polkadot-fellows/runtimes/pull/417))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
