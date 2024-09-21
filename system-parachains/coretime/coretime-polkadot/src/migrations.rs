@@ -87,7 +87,7 @@ impl OnRuntimeUpgrade for FixMigration {
 				assignment: CoreAssignment::Task(para_id),
 			}]));
 
-			Workplan::<Runtime>::insert((292605, core_id), workplan_entry);
+			Workplan::<Runtime>::insert((287565, core_id), workplan_entry);
 		}
 
 		// Add cores to the system - this will take 2 sessions to kick in.
