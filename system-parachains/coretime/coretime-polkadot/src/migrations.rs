@@ -22,17 +22,17 @@
 
 use crate::{weights, Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
-use pallet_broker::{CoreAssignment, Leases, LeasesRecordOf, WeightInfo};
-#[cfg(feature = "try-runtime")]
 use pallet_broker::{
-	CoreAssignment::{Pool, Task},
-	CoreMask, LeaseRecordItem, PotentialRenewalId, PotentialRenewalRecord, PotentialRenewals,
-	SaleInfo, SaleInfoRecordOf, Schedule, ScheduleItem, Workplan,
+	CoreAssignment, CoreAssignment::Pool, CoreMask, LeaseRecordItem, Leases, LeasesRecordOf,
+	PotentialRenewalId, PotentialRenewals, Schedule, ScheduleItem, WeightInfo, Workplan,
 };
+
+use sp_std::vec::Vec;
+
+#[cfg(feature = "try-runtime")]
+use pallet_broker::{CoreAssignment::Task, PotentialRenewalRecord, SaleInfo, SaleInfoRecordOf};
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
-#[cfg(feature = "try-runtime")]
-use sp_std::vec::Vec;
 
 /// The log target.
 const TARGET: &str = "runtime::bootstrapping::fix-migration";
