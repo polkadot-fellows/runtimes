@@ -24,13 +24,13 @@ use crate::{weights, Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 use pallet_broker::{
 	CoreAssignment, CoreAssignment::Pool, CoreMask, LeaseRecordItem, Leases, LeasesRecordOf,
-	PotentialRenewalId, PotentialRenewals, Schedule, ScheduleItem, WeightInfo, Workplan,
+	PotentialRenewalId, PotentialRenewals, SaleInfo, Schedule, ScheduleItem, WeightInfo, Workplan,
 };
 
 use sp_std::vec::Vec;
 
 #[cfg(feature = "try-runtime")]
-use pallet_broker::{CoreAssignment::Task, PotentialRenewalRecord, SaleInfo, SaleInfoRecordOf};
+use pallet_broker::{CoreAssignment::Task, PotentialRenewalRecord, SaleInfoRecordOf};
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
 
@@ -77,10 +77,15 @@ impl OnRuntimeUpgrade for FixMigration {
 			PotentialRenewals::<Runtime>::remove(PotentialRenewalId { core, when });
 		}
 
+		// Get the last sale info to obtain information about cores
+		let sale_info = SaleInfo::<Runtime>::get().expect("SaleInfo should be set");
+
 		// Sort the parachains who can renew. They are currently missing from the broker state
 		// entirely.
-		// TODO double check the core ids, these should be on top of the last available in the sale.
-		for (&(para_id, _), core_id) in POTENTIAL_RENEWALS.iter().zip(56u16..61u16) {
+		for (&(para_id, _), core_id) in POTENTIAL_RENEWALS
+			.iter()
+			.zip((sale_info.first_core + sale_info.cores_offered)..POTENTIAL_RENEWALS.len() as u16)
+		{
 			// Add to the workplan at timeslice 287565 using the new cores.
 			let workplan_entry = Schedule::truncate_from(Vec::from([ScheduleItem {
 				mask: CoreMask::complete(),
@@ -134,7 +139,7 @@ impl OnRuntimeUpgrade for FixMigration {
 			.writes(1)
 			.saturating_mul(LEASES.len() as u64)
 			.saturating_add(BrokerWeights::request_core_count(62))
-			.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(1))
+			.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(2))
 	}
 
 	#[cfg(feature = "try-runtime")]
