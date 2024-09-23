@@ -157,8 +157,6 @@ impl OnRuntimeUpgrade for FixMigration {
 
 	#[cfg(feature = "try-runtime")]
 	fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-		use pallet_broker::LeasesRecordOf;
-
 		if state.is_empty() {
 			return Ok(())
 		}
