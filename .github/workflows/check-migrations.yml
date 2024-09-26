@@ -101,13 +101,15 @@ jobs:
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         #uses: "paritytech/try-runtime-gha@v0.2.0"
-        #with:
-        #  runtime-package: ${{ matrix.runtime.package }}
-        #  node-uri: ${{ matrix.runtime.uri }}
-        #  checks: ${{ env.CHECKS }}
-        #  extra-args: ${{ env.EXTRA_ARGS }}
+        env:
+          EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
+          CHECKS: ${{ env.CHECKS }}
+          #  runtime-package: ${{ matrix.runtime.package }}
+          #  node-uri: ${{ matrix.runtime.uri }}
+          #  checks: ${{ env.CHECKS }}
+          #  extra-args: ${{ env.EXTRA_ARGS }}
         run: |
-          cargo install --git https://github.com/liamaharon/try-runtime-cli --branch liam-runtime-upgrade-mbms
+          cargo install -q --git https://github.com/liamaharon/try-runtime-cli --branch liam-runtime-upgrade-mbms
 
           cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
 
@@ -115,6 +117,8 @@ jobs:
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           export RUST_LOG=remote-ext=debug,runtime=debug
+
+          echo "Extra args: $EXTRA_ARGS"
   
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
