@@ -52,7 +52,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		}
 
 		// Add leases for 2040, 2094, 3333, 2106, 2101, 2093 with a properly calculated end
-		// timeslice.
+		// timeslice. Add 11520 for all other leases.
 		let leases: LeasesRecordOf<Runtime> = LEASES
 			.iter()
 			.map(|(until, task)| LeaseRecordItem { until: *until, task: *task })
@@ -62,7 +62,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		Leases::<Runtime>::put(leases);
 
 		// This reorders the cores, so the existing entries to the workplan need to be overwritten.
-		for (&(para_id, _), core_id) in LEASES.iter().zip(51u16..55u16) {
+		for (&(para_id, _), core_id) in LEASES.iter().zip(51u16..56u16) {
 			// Add to the workplan at timeslice 287565 using the new cores.
 			let workplan_entry = Schedule::truncate_from(Vec::from([ScheduleItem {
 				mask: CoreMask::complete(),
@@ -77,8 +77,8 @@ impl OnRuntimeUpgrade for FixMigration {
 			PotentialRenewals::<Runtime>::remove(PotentialRenewalId { core, when });
 		}
 
-		// Sort the parachains who can renew. They are currently missing from the broker state
-		// entirely.
+		// Sort the parachains who can renew. They are currently missing from the broker
+		// state entirely.
 		// TODO double check the core ids, these should be on top of the last available in the sale.
 		for (&(para_id, _), core_id) in POTENTIAL_RENEWALS.iter().zip(56u16..61u16) {
 			// Add to the workplan at timeslice 287565 using the new cores.
@@ -168,16 +168,15 @@ impl OnRuntimeUpgrade for FixMigration {
 		// The workplan entries start from the region begin reported by the new SaleInfo.
 		let workplan_start = sale_info.region_begin;
 
+		let system_chains = [Task(1001), Task(1002), Task(1000), Task(1004), Task(1005)];
+
 		// Check the reservations are still in the workplan out of an abundance of caution.
-		for (core_id, task) in [Task(1001), Task(1002), Task(1000), Task(1004), Task(1005)]
-			.into_iter()
-			.enumerate()
-		{
+		for (core_id, task) in system_chains.iter().enumerate() {
 			assert_eq!(
 				Workplan::<Runtime>::get((workplan_start, core_id as u16)),
 				Some(Schedule::truncate_from(Vec::from([ScheduleItem {
 					mask: CoreMask::complete(),
-					assignment: task,
+					assignment: task.clone(),
 				}])))
 			);
 		}
@@ -194,7 +193,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		// in the workplan.
 		for (i, (para_id, until)) in LEASES.iter().enumerate() {
 			// Add the system parachains as an offset - these should come before the leases.
-			let core_id = i as u16 + 4;
+			let core_id = i as u16 + 5;
 
 			assert!(leases_vec.contains(&(*until, *para_id)));
 
@@ -218,9 +217,9 @@ impl OnRuntimeUpgrade for FixMigration {
 		// Iterate through hardcoded potential renewals and check they're all correctly in state
 		// and scheduled in the workplan.
 		for (i, (para_id, until)) in POTENTIAL_RENEWALS.iter().enumerate() {
-			// Add the system parachains as an offset - these should come before
-			// the leases.
-			let core_id = i as u16 + 4;
+			// Add the system parachains and leases as an offset.
+			// system chains + leases + new cores = 5 + 46 + 5 = 56.
+			let core_id = i as u16 + 56;
 
 			// This is the entry found in Workplan and PotentialRenewals.
 			let workload = Schedule::truncate_from(Vec::from([ScheduleItem {
@@ -249,8 +248,31 @@ impl OnRuntimeUpgrade for FixMigration {
 
 		// Walk the workplan at timeslice 287565 and make sure there is an entry for every 62 cores.
 		for i in 0..61 {
-			// TODO - finalise
-			assert!(Workplan::<Runtime>::get((287565, i)).is_some());
+			let entry = Workplan::<Runtime>::get((287565, i)).expect("Entry should exist");
+			assert_eq!(entry.len(), 1);
+			assert_eq!(entry.get(0).unwrap().mask, CoreMask::complete());
+			if i < 5 {
+				// system chains
+				assert_eq!(entry.get(0).unwrap().assignment, system_chains[i as usize]);
+			} else if i < 51 {
+				// leases
+				assert_eq!(
+					entry.get(0).unwrap().assignment,
+					Task(LEASES.get(i as usize - 5).unwrap().0)
+				);
+			} else if i < 56 {
+				// 5 new cores
+				assert_eq!(
+					entry.get(0).unwrap().assignment,
+					Task(LEASES.get(i as usize - 51).unwrap().0)
+				);
+			} else {
+				// 5 potential renewals
+				assert_eq!(
+					entry.get(0).unwrap().assignment,
+					Task(POTENTIAL_RENEWALS.get(i as usize - 56).unwrap().0)
+				);
+			}
 		}
 
 		// Ensure we have requested the correct number of cores.
@@ -283,48 +305,48 @@ const POTENTIAL_RENEWALS: [(u32, u32); 5] =
 const LEASES: [(u32, u32); 46] = [
 	(2094, 298800),
 	(2040, 298800),
-	(3333, 298800),
-	(2106, 298800),
-	(2093, 298800),
-	(2101, 298800),
-	(3369, 313920),
-	(2000, 313920),
-	(3338, 329040),
-	(2004, 329040),
-	(3344, 344160),
-	(3345, 344160),
-	(3340, 344160),
-	(2031, 344160),
-	(3346, 344160),
-	(2026, 344160),
-	(2006, 344160),
 	(2035, 359280),
-	(2032, 359280),
-	(2025, 359280),
-	(2002, 359280),
-	(2034, 359280),
-	(2012, 359280),
-	(3354, 359280),
-	(3367, 374400),
-	(2030, 374400),
-	(2046, 374400),
-	(3366, 374400),
-	(2037, 374400),
-	(2043, 374400),
-	(2013, 374400),
+	(3344, 344160),
 	(3370, 389520),
+	(3367, 374400),
 	(2086, 389520),
+	(2032, 359280),
+	(3333, 298800),
 	(2051, 389520),
+	(2106, 298800),
+	(3369, 313920),
 	(2008, 389520),
-	(3359, 389520),
-	(3377, 389520),
-	(3373, 389520),
+	(2025, 359280),
+	(2000, 313920),
 	(2092, 404640),
+	(2002, 359280),
+	(3359, 389520),
+	(2030, 374400),
 	(3378, 404640),
 	(2104, 404640),
+	(2046, 374400),
+	(3345, 344160),
+	(3340, 344160),
+	(3338, 329040),
+	(2004, 329040),
+	(3377, 389520),
+	(3373, 389520),
+	(2031, 344160),
 	(3389, 404640),
+	(3366, 374400),
+	(2037, 374400),
+	(2034, 359280),
 	(2090, 404640),
+	(3346, 344160),
+	(2012, 359280),
 	(3397, 404640),
+	(2043, 374400),
 	(2091, 404640),
+	(2093, 298800),
+	(2026, 344160),
 	(3388, 404640),
+	(2101, 298800),
+	(3354, 359280),
+	(2006, 344160),
+	(2013, 374400),
 ];
