@@ -53,7 +53,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Build EXTRA_ARGS
+      - name: Build EXTRA_FLAGS
         run: |
           # When running on relay, we don't need weight checks.
           EXTRA_FLAGS=""
@@ -83,7 +83,7 @@ jobs:
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
-          echo "EXTRA_ARGS=$EXTRA_FLAGS" >> $GITHUB_ENV
+          echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Install Protoc
@@ -107,7 +107,7 @@ jobs:
           #  runtime-package: ${{ matrix.runtime.package }}
           #  node-uri: ${{ matrix.runtime.uri }}
           #  checks: ${{ env.CHECKS }}
-          #  extra-args: ${{ env.EXTRA_ARGS }}
+          #  extra-args: ${{ env.EXTRA_FLAGS }}
         run: |
           cargo install -q --git https://github.com/liamaharon/try-runtime-cli --branch liam-runtime-upgrade-mbms
 
@@ -118,7 +118,7 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           export RUST_LOG=remote-ext=debug,runtime=debug
 
-          echo "Extra args: $EXTRA_ARGS"
+          echo "Extra args: $EXTRA_FLAGS"
   
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
