@@ -149,6 +149,10 @@ impl FixMigration {
 			(2101, 298800),
 		];
 
+		if PotentialRenewals::<Runtime>::iter().count() != premature_renewals.len() {
+			log::error!(target: TARGET, "Unexpected renewal state!");
+		}
+
 		if PotentialRenewals::<Runtime>::clear(premature_renewals.len() as u32, None)
 			.maybe_cursor
 			.is_some()
@@ -253,6 +257,9 @@ impl OnRuntimeUpgrade for FixMigration {
 		let sale_info = SaleInfo::<Runtime>::get().unwrap();
 		let leases = Leases::<Runtime>::get();
 		let pre_upgrade_state = (sale_info, leases);
+
+		assert_eq!(PotentialRenewals::<Runtime>::iter().count(), INCORRECT_RENEWAL_IDS.len());
+
 		Ok(pre_upgrade_state.encode())
 	}
 
