@@ -67,9 +67,11 @@ impl FixMigration {
 			mask: CoreMask::complete(),
 			assignment: CoreAssignment::Pool,
 		}]));
-		let result =
-			pallet_broker::Pallet::<Runtime>::reserve(RuntimeOrigin::root(), schedule.clone());
-		debug_assert!(result.is_ok());
+		if let Err(err) =
+			pallet_broker::Pallet::<Runtime>::reserve(RuntimeOrigin::root(), schedule.clone())
+		{
+			log::error!(target: TARGET, "Adding pool reservation failed: {:?}", err);
+		}
 		// But we want it now(ish): add it to the workplan.
 		Workplan::<Runtime>::insert((sale_info.region_begin, *first_core), schedule);
 		first_core.saturating_inc();
@@ -147,13 +149,19 @@ impl FixMigration {
 			(2101, 298800),
 		];
 
-		let result = PotentialRenewals::<Runtime>::clear(premature_renewals.len() as u32, None);
-		debug_assert!(result.maybe_cursor.is_none());
+		if PotentialRenewals::<Runtime>::clear(premature_renewals.len() as u32, None)
+			.maybe_cursor
+			.is_some()
+		{
+			log::error!(target: TARGET, "Unexpected cursor from clear!");
+		}
 
 		for (task, until) in premature_renewals {
-			let result =
-				pallet_broker::Pallet::<Runtime>::set_lease(RuntimeOrigin::root(), task, until);
-			debug_assert!(result.is_ok());
+			if let Err(err) =
+				pallet_broker::Pallet::<Runtime>::set_lease(RuntimeOrigin::root(), task, until)
+			{
+				log::error!(target: TARGET, "Setting lease failed: {:?}", err);
+			}
 		}
 	}
 
@@ -196,7 +204,6 @@ impl FixMigration {
 			first_core.saturating_inc()
 		}
 	}
-		}
 }
 
 impl OnRuntimeUpgrade for FixMigration {
