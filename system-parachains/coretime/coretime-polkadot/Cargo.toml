@@ -132,6 +132,7 @@ std = [
 	"serde",
 	"serde_json/std",
 	"sp-api/std",
+	"sp-arithmetic/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
