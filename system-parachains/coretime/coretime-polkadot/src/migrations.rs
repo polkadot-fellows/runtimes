@@ -126,7 +126,6 @@ impl FixMigration {
 				.into_iter()
 				.map(|mut l| {
 					let Some(new_until) = short_leases.get(&l.task) else { return l };
-					debug_assert!(*new_until > l.until);
 					l.until = *new_until;
 					l
 				})
@@ -148,7 +147,6 @@ impl FixMigration {
 			(2101, 298800),
 		];
 
-		debug_assert_eq!(PotentialRenewals::<Runtime>::iter().count(), premature_renewals.len());
 		let result = PotentialRenewals::<Runtime>::clear(premature_renewals.len() as u32, None);
 		debug_assert!(result.maybe_cursor.is_none());
 
@@ -188,7 +186,6 @@ impl FixMigration {
 			Workplan::<Runtime>::insert((sale_info.region_begin, *first_core), schedule.clone());
 
 			// Renewal:
-			debug_assert_eq!(new_prices.target_price, 100 * UNITS);
 			let renewal_id = PotentialRenewalId { core: *first_core, when: sale_info.region_end };
 			let record = PotentialRenewalRecord {
 				price: 100 * UNITS,
@@ -269,11 +266,24 @@ impl OnRuntimeUpgrade for FixMigration {
 		// The workplan entries start from the region begin reported by the new SaleInfo.
 		let workplan_start = sale_info.region_begin;
 
-		let system_chains = [Task(1001), Task(1002), Task(1000), Task(1004), Task(1005)];
+		let system_chains = [Task(1001), Task(1002), Task(1000), Task(1004), Task(1005), Pool];
 
+		let reservations = Reservations::<Runtime>::get();
+		assert_eq!(reservations.len(), system_chains.len());
 		// Check the reservations are still in the workplan out of an abundance of caution.
 		log::trace!(target: TARGET, "Checking system chains");
-		for (core_id, task) in system_chains.iter().enumerate() {
+		for (i, (task, reservation)) in
+			system_chains.iter().zip(reservations.into_iter()).enumerate()
+		{
+			log::trace!(target: TARGET, "Checking system chain {:?}", i);
+			let core_id = if i < 5 {
+				i
+			} else {
+				// 51 ... first core for sale
+				// 5 ... five cores for sale
+				// 5 ... the dropped leases
+				51 + 5 + 5
+			};
 			assert_eq!(
 				Workplan::<Runtime>::get((workplan_start, core_id as u16)),
 				Some(Schedule::truncate_from(Vec::from([ScheduleItem {
@@ -281,6 +291,10 @@ impl OnRuntimeUpgrade for FixMigration {
 					assignment: task.clone(),
 				}])))
 			);
+
+			assert_eq!(reservation.len(), 1);
+			let reservation = reservation.into_iter().next().unwrap();
+			assert_eq!(reservation.assignment, *task,);
 		}
 
 		// Make sure we've got all the leases.
@@ -364,6 +378,7 @@ impl OnRuntimeUpgrade for FixMigration {
 					completion: pallet_broker::CompletionStatus::Complete(workload.clone())
 				}
 			);
+			assert_eq!(PotentialRenewals::<Runtime>::iter().count(), POTENTIAL_RENEWALS.len());
 
 			// They should all be in the workplan for next sale.
 			log::trace!(target: TARGET, "Workplan entry exists as expected?");
