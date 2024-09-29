@@ -234,6 +234,7 @@ impl OnRuntimeUpgrade for FixMigration {
 			Ok(_) => log::info!(target: TARGET, "Request for 62 cores sent."),
 			Err(_) => log::error!(target: TARGET, "Request for 62 cores failed to send."),
 		}
+
 		// TODO finalise the weights here.
 		<Runtime as frame_system::Config>::DbWeight::get()
 			.writes(1)
@@ -277,6 +278,7 @@ impl OnRuntimeUpgrade for FixMigration {
 
 		let reservations = Reservations::<Runtime>::get();
 		assert_eq!(reservations.len(), system_chains.len());
+
 		// Check the reservations are still in the workplan out of an abundance of caution.
 		log::trace!(target: TARGET, "Checking system chains");
 		for (i, (task, reservation)) in
@@ -400,6 +402,7 @@ impl OnRuntimeUpgrade for FixMigration {
 				continue;
 			}
 			log::trace!(target: TARGET, "Core: {:?}", i);
+
 			let entry = Workplan::<Runtime>::get((287565, i)).expect("Entry should exist");
 			log::trace!(target: TARGET, "Found entry");
 			assert_eq!(entry.len(), 1);
