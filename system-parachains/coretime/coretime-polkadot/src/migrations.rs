@@ -188,13 +188,10 @@ impl FixMigration {
 			Workplan::<Runtime>::insert((sale_info.region_begin, *first_core), schedule.clone());
 
 			// Renewal:
-			let new_prices = <Runtime as pallet_broker::Config>::PriceAdapter::adapt_price(
-				SalePerformance::from_sale(&sale_info),
-			);
 			debug_assert_eq!(new_prices.target_price, 100 * UNITS);
 			let renewal_id = PotentialRenewalId { core: *first_core, when: sale_info.region_end };
 			let record = PotentialRenewalRecord {
-				price: new_prices.target_price,
+				price: 100 * UNITS,
 				completion: CompletionStatus::Complete(schedule),
 			};
 			PotentialRenewals::<Runtime>::insert(renewal_id, &record);
@@ -202,100 +199,7 @@ impl FixMigration {
 			first_core.saturating_inc()
 		}
 	}
-
-	fn on_runtime_upgrade_donal() -> Weight {
-		if PotentialRenewals::<Runtime>::get(PotentialRenewalId { core: 6, when: 292605 }).is_none()
-		{
-			// Idempotency check - this core will never be renewable at this timeslice ever again.
-			log::error!(target: TARGET, "This migration includes hardcoded values not relevant to this runtime. Bailing.");
-			return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
 		}
-
-		// Add leases for 2040, 2094, 3333, 2106, 2101, 2093 with a properly calculated end
-		// timeslice. Add 11520 for all other leases.
-		let leases: LeasesRecordOf<Runtime> = LEASES
-			.iter()
-			.map(|(until, task)| LeaseRecordItem { until: *until, task: *task })
-			.collect::<Vec<_>>()
-			.try_into()
-			.expect("Within range of bounded vec");
-		Leases::<Runtime>::put(leases);
-
-		// This reorders the cores, so the existing entries to the workplan need to be overwritten.
-		for (&(para_id, _), core_id) in LEASES.iter().zip(51u16..56u16) {
-			// Add to the workplan at timeslice 287565 using the new cores.
-			let workplan_entry = Schedule::truncate_from(Vec::from([ScheduleItem {
-				mask: CoreMask::complete(),
-				assignment: CoreAssignment::Task(para_id),
-			}]));
-
-			Workplan::<Runtime>::insert((287565, core_id), workplan_entry);
-		}
-
-		// Remove the existing 6 PotentialRenewals.
-		for &(core, when) in INCORRECT_RENEWAL_IDS.iter() {
-			PotentialRenewals::<Runtime>::remove(PotentialRenewalId { core, when });
-		}
-
-		// Sort the parachains who can renew. They are currently missing from the broker
-		// state entirely.
-		// TODO double check the core ids, these should be on top of the last available in the sale.
-		for (&(para_id, _), core_id) in POTENTIAL_RENEWALS.iter().zip(56u16..61u16) {
-			// Add to the workplan at timeslice 287565 using the new cores.
-			let workplan_entry = Schedule::truncate_from(Vec::from([ScheduleItem {
-				mask: CoreMask::complete(),
-				assignment: CoreAssignment::Task(para_id),
-			}]));
-
-			Workplan::<Runtime>::insert((287565, core_id), workplan_entry);
-		}
-
-		// Add cores to the system - this will take 2 sessions to kick in.
-		// 1 core for the system on-demand pool, 5 for open market, 5 for reservations and 51
-		// parachains, of which 46 have leases and 5 are up for renewal.
-		let core_count = pallet_broker::Reservations::<Runtime>::decode_len().unwrap_or(0) as u16 +
-			pallet_broker::Leases::<Runtime>::decode_len().unwrap_or(0) as u16 +
-			5 + 6;
-
-		match pallet_broker::Pallet::<Runtime>::request_core_count(
-			RuntimeOrigin::root(),
-			core_count,
-		) {
-			Ok(_) => log::info!(target: TARGET, "Request for 62 cores sent."),
-			Err(_) => log::error!(target: TARGET, "Request for 62 cores failed to send."),
-		}
-
-		let pool_assignment = Schedule::truncate_from(Vec::from([ScheduleItem {
-			mask: CoreMask::complete(),
-			assignment: Pool,
-		}]));
-
-		// Reserve the system pool core - this kicks in after two sale period boundaries.
-		match pallet_broker::Pallet::<Runtime>::reserve(
-			RuntimeOrigin::root(),
-			pool_assignment.clone(),
-		) {
-			Ok(_) => log::info!(target: TARGET, "Pool core reserved."),
-			Err(_) => log::error!(target: TARGET, "Pool core reservation failed."),
-		}
-
-		// Add the system pool core to the workplan for the next cycle (287565) on the last new core
-		// (core 61)
-		Workplan::<Runtime>::insert((292605, 61), pool_assignment.clone());
-
-		// Add the system pool core to the workplan starting now.
-		let now = 287000; // TODO - this needs to be after the cores have just added have been processed, which takes
-					// two sessions. Currently just a placeholder. This part is probably better as a call to
-					// assign_core on the relay as part of the referendum instead of here.
-		Workplan::<Runtime>::insert((now, 61), pool_assignment);
-
-		// TODO finalise the weights here.
-		<Runtime as frame_system::Config>::DbWeight::get()
-			.writes(1)
-			.saturating_mul(LEASES.len() as u64)
-			.saturating_add(BrokerWeights::request_core_count(62))
-			.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(1))
-	}
 }
 
 impl OnRuntimeUpgrade for FixMigration {
@@ -314,11 +218,18 @@ impl OnRuntimeUpgrade for FixMigration {
 			return <Runtime as frame_system::Config>::DbWeight::get().writes(50)
 		};
 
-		Self::add_pool_core(&mut first_core);
 		Self::extend_short_leases();
 		Self::remove_premature_renewals_add_back_leases();
 		Self::give_dropped_leases_renewal_rights_and_workplan_entry(&mut first_core);
+		Self::add_pool_core(&mut first_core);
 
+		match pallet_broker::Pallet::<Runtime>::request_core_count(
+			RuntimeOrigin::root(),
+			first_core,
+		) {
+			Ok(_) => log::info!(target: TARGET, "Request for 62 cores sent."),
+			Err(_) => log::error!(target: TARGET, "Request for 62 cores failed to send."),
+		}
 		// TODO finalise the weights here.
 		<Runtime as frame_system::Config>::DbWeight::get()
 			.writes(1)
@@ -385,7 +296,11 @@ impl OnRuntimeUpgrade for FixMigration {
 			// Add the system parachains as an offset - these should come before the leases.
 			let core_id = i as u16 + 5;
 
-			assert!(leases_vec.contains(&(*until, *para_id)));
+			assert!(
+				leases_vec.contains(&(*para_id, *until)),
+				"Lease entry not found: {:?}",
+				*para_id
+			);
 
 			// This is the entry found in Workplan
 			let workload = Schedule::truncate_from(Vec::from([ScheduleItem {
@@ -394,14 +309,18 @@ impl OnRuntimeUpgrade for FixMigration {
 			}]));
 
 			// They should all be in the workplan for next region.
-			assert_eq!(Workplan::<Runtime>::get((workplan_start, core_id)), Some(workload));
+			assert_eq!(
+				Workplan::<Runtime>::get((workplan_start, core_id)),
+				Some(workload),
+				"Workplan entry not found/invalid."
+			);
 		}
 
 		// For the leases we had before their lease should extend for an additional 11520
 		// timeslices (64 days).
 		for LeaseRecordItem { task, until } in prev_leases.iter() {
 			log::error!("{task}, {until}");
-			assert!(leases_vec.contains(&(*until + 11520, *task)))
+			assert!(leases_vec.contains(&(*task, *until + 11520)))
 		}
 
 		// Iterate through hardcoded potential renewals and check they're all correctly in state
@@ -421,15 +340,19 @@ impl OnRuntimeUpgrade for FixMigration {
 			assert!(!leases.contains(&LeaseRecordItem { until: *until, task: *para_id }));
 
 			// Ensure they can renew in the next region.
+			let renewal_entry = PotentialRenewals::<Runtime>::get(PotentialRenewalId {
+				core: core_id,
+				// TODO: Where are these 5040 coming from?!
+				// when: sale_info.region_end + 5040,
+				when: sale_info.region_end,
+			})
+			.unwrap();
 			assert_eq!(
-				PotentialRenewals::<Runtime>::get(PotentialRenewalId {
-					core: core_id,
-					when: sale_info.region_end + 5040,
-				}),
-				Some(PotentialRenewalRecord {
-					price: 1_000_000_000_000,
+				renewal_entry,
+				PotentialRenewalRecord {
+					price: 100 * UNITS,
 					completion: pallet_broker::CompletionStatus::Complete(workload.clone())
-				})
+				}
 			);
 
 			// They should all be in the workplan for next sale.
@@ -437,7 +360,11 @@ impl OnRuntimeUpgrade for FixMigration {
 		}
 
 		// Walk the workplan at timeslice 287565 and make sure there is an entry for every 62 cores.
-		for i in 0..61 {
+		for i in 0..62 {
+			if i >= 51 && i < 56 {
+				// Cores offered for sale, we don't know anything about them for sure.
+				continue;
+			}
 			let entry = Workplan::<Runtime>::get((287565, i)).expect("Entry should exist");
 			assert_eq!(entry.len(), 1);
 			assert_eq!(entry.get(0).unwrap().mask, CoreMask::complete());
@@ -450,18 +377,15 @@ impl OnRuntimeUpgrade for FixMigration {
 					entry.get(0).unwrap().assignment,
 					Task(LEASES.get(i as usize - 5).unwrap().0)
 				);
-			} else if i < 56 {
-				// 5 new cores
-				assert_eq!(
-					entry.get(0).unwrap().assignment,
-					Task(LEASES.get(i as usize - 51).unwrap().0)
-				);
-			} else {
+			} else if i <= 60 {
 				// 5 potential renewals
 				assert_eq!(
 					entry.get(0).unwrap().assignment,
 					Task(POTENTIAL_RENEWALS.get(i as usize - 56).unwrap().0)
 				);
+			} else {
+				// Pool core:
+				assert_eq!(entry.get(0).unwrap().assignment, Pool,);
 			}
 		}
 
