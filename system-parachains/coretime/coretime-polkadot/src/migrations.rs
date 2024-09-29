@@ -25,11 +25,9 @@ extern crate alloc;
 use crate::{weights, Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 use pallet_broker::{
-	CompletionStatus,
-	CoreAssignment::{self, Pool},
-	CoreIndex, CoreMask, LeaseRecordItem, Leases, LeasesRecordOf, PotentialRenewalId,
-	PotentialRenewals, Reservations, Schedule, ScheduleItem, TaskId, Timeslice, WeightInfo,
-	Workplan,
+	CompletionStatus, CoreAssignment, CoreIndex, CoreMask, Leases, PotentialRenewalId,
+	PotentialRenewalRecord, PotentialRenewals, SaleInfo, ScheduleItem, TaskId, Timeslice,
+	WeightInfo, Workplan,
 };
 
 use alloc::collections::btree_map::BTreeMap;
@@ -37,7 +35,10 @@ use sp_arithmetic::traits::Saturating;
 use sp_std::vec::Vec;
 
 #[cfg(feature = "try-runtime")]
-use pallet_broker::{CoreAssignment::Task, PotentialRenewalRecord, SaleInfo, SaleInfoRecordOf};
+use pallet_broker::{
+	CoreAssignment::{Pool, Task},
+	LeaseRecordItem, LeasesRecordOf, Reservations, SaleInfoRecordOf, Schedule,
+};
 #[cfg(feature = "try-runtime")]
 use sp_runtime::TryRuntimeError;
 use system_parachains_constants::polkadot::currency::UNITS;
@@ -53,7 +54,7 @@ pub struct FixMigration;
 impl FixMigration {
 	fn get_first_usable_core() -> Option<CoreIndex> {
 		let sale_info = SaleInfo::<Runtime>::get()?;
-		// Cores between first_core and cores_offered are for sale and my not be used anymore:
+		// Cores between first_core and cores_offered are for sale and are thus not usable.
 		Some(sale_info.first_core + sale_info.cores_offered)
 	}
 
@@ -63,18 +64,19 @@ impl FixMigration {
 			return
 		};
 
+		// Workplan add (speed up by one cycle):
 		let schedule = BoundedVec::truncate_from(Vec::from([ScheduleItem {
 			mask: CoreMask::complete(),
 			assignment: CoreAssignment::Pool,
 		}]));
-		if let Err(err) =
-			pallet_broker::Pallet::<Runtime>::reserve(RuntimeOrigin::root(), schedule.clone())
+		Workplan::<Runtime>::insert((sale_info.region_begin, *first_core), schedule.clone());
+		first_core.saturating_inc();
+
+		// And reserve:
+		if let Err(err) = pallet_broker::Pallet::<Runtime>::reserve(RuntimeOrigin::root(), schedule)
 		{
 			log::error!(target: TARGET, "Adding pool reservation failed: {:?}", err);
 		}
-		// But we want it now(ish): add it to the workplan.
-		Workplan::<Runtime>::insert((sale_info.region_begin, *first_core), schedule);
-		first_core.saturating_inc();
 	}
 
 	fn extend_short_leases() {
@@ -242,7 +244,6 @@ impl OnRuntimeUpgrade for FixMigration {
 		// TODO finalise the weights here.
 		<Runtime as frame_system::Config>::DbWeight::get()
 			.writes(1)
-			.saturating_mul(LEASES.len() as u64)
 			.saturating_add(BrokerWeights::request_core_count(62))
 			.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(1))
 	}
@@ -310,7 +311,7 @@ impl OnRuntimeUpgrade for FixMigration {
 
 			assert_eq!(reservation.len(), 1);
 			let reservation = reservation.into_iter().next().unwrap();
-			assert_eq!(reservation.assignment, *task,);
+			assert_eq!(reservation.assignment, *task);
 		}
 
 		// Make sure we've got all the leases.
@@ -399,11 +400,11 @@ impl OnRuntimeUpgrade for FixMigration {
 			assert_eq!(Workplan::<Runtime>::get((workplan_start, core_id)), Some(workload));
 		}
 
-		// Walk the workplan at timeslice 287565 and make sure there is an entry for every 62 cores.
+		// Walk the workplan at timeslice 287565 and make sure there is an entry for all 62 cores.
 		log::trace!(target: TARGET, "Checking workplan");
 		for i in 0..62 {
 			if i >= 51 && i < 56 {
-				// Cores offered for sale, we don't know anything about them for sure.
+				// Cores offered for sale, we don't know anything about them.
 				continue;
 			}
 			log::trace!(target: TARGET, "Core: {:?}", i);
@@ -434,6 +435,17 @@ impl OnRuntimeUpgrade for FixMigration {
 			}
 		}
 
+		log::info!(target: TARGET, "Workplan entries: {:?}", Workplan::<Runtime>::iter().count());
+		log::debug!(target: TARGET, "Complete workplan:");
+		let workplan_by_core: BTreeMap<_, _> = Workplan::<Runtime>::iter()
+			.map(|((timeslice, core_index), schedule)| {
+				(core_index, (schedule.into_iter().next().unwrap().assignment, timeslice))
+			})
+			.collect();
+		for (core_index, (task, timeslice)) in workplan_by_core {
+			log::debug!(target: TARGET, "{:?}, {:?}, {:?}", core_index, task, timeslice);
+		}
+
 		// Ensure we have requested the correct number of cores.
 		log::trace!(target: TARGET, "Checking requested core count");
 		assert!(frame_system::Pallet::<Runtime>::read_events_no_consensus().any(|e| {
@@ -454,14 +466,18 @@ impl OnRuntimeUpgrade for FixMigration {
 }
 
 // Incorrect potential renewals in state
+
+#[cfg(feature = "try-runtime")]
 const INCORRECT_RENEWAL_IDS: [(u16, u32); 6] =
 	[(6, 292605), (5, 292605), (13, 292605), (15, 292605), (47, 292605), (44, 292605)];
 
 // Hardcoded para ids and their end timeslice.
 // Taken from https://github.com/SBalaguer/coretime-migration/blob/master/polkadot-output-200924.json
+#[cfg(feature = "try-runtime")]
 const POTENTIAL_RENEWALS: [(u32, u32); 5] =
 	[(2048, 283680), (3375, 283680), (3358, 283680), (2053, 283680), (2056, 283680)];
 
+#[cfg(feature = "try-runtime")]
 const LEASES: [(u32, u32); 46] = [
 	(2094, 298800),
 	(2040, 298800),
