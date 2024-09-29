@@ -272,6 +272,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		let system_chains = [Task(1001), Task(1002), Task(1000), Task(1004), Task(1005)];
 
 		// Check the reservations are still in the workplan out of an abundance of caution.
+		log::trace!(target: TARGET, "Checking system chains");
 		for (core_id, task) in system_chains.iter().enumerate() {
 			assert_eq!(
 				Workplan::<Runtime>::get((workplan_start, core_id as u16)),
@@ -283,6 +284,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		}
 
 		// Make sure we've got all the leases.
+		log::trace!(target: TARGET, "Checking leases");
 		let leases = Leases::<Runtime>::get();
 		assert_eq!(leases.len(), LEASES.iter().filter(|(_, l)| sale_info.region_end <= *l).count());
 
@@ -292,10 +294,12 @@ impl OnRuntimeUpgrade for FixMigration {
 
 		// Iterate through hardcoded leases and check they're all correctly in state and scheduled
 		// in the workplan.
+		log::trace!(target: TARGET, "Checking leases more thoroughly");
 		for (i, (para_id, until)) in LEASES.iter().enumerate() {
 			// Add the system parachains as an offset - these should come before the leases.
 			let core_id = i as u16 + 5;
 
+			log::trace!(target: TARGET, "Checking lease existence, core: {:?}, lease: {:?}", core_id, para_id);
 			assert!(
 				leases_vec.contains(&(*para_id, *until)),
 				"Lease entry not found: {:?}",
@@ -309,6 +313,7 @@ impl OnRuntimeUpgrade for FixMigration {
 			}]));
 
 			// They should all be in the workplan for next region.
+			log::trace!(target: TARGET, "Checking workplan existence");
 			assert_eq!(
 				Workplan::<Runtime>::get((workplan_start, core_id)),
 				Some(workload),
@@ -318,6 +323,7 @@ impl OnRuntimeUpgrade for FixMigration {
 
 		// For the leases we had before their lease should extend for an additional 11520
 		// timeslices (64 days).
+		log::trace!(target: TARGET, "Checking lease durations");
 		for LeaseRecordItem { task, until } in prev_leases.iter() {
 			log::error!("{task}, {until}");
 			assert!(leases_vec.contains(&(*task, *until + 11520)))
@@ -325,6 +331,7 @@ impl OnRuntimeUpgrade for FixMigration {
 
 		// Iterate through hardcoded potential renewals and check they're all correctly in state
 		// and scheduled in the workplan.
+		log::trace!(target: TARGET, "Checking potential renewals");
 		for (i, (para_id, until)) in POTENTIAL_RENEWALS.iter().enumerate() {
 			// Add the system parachains and leases as an offset.
 			// system chains + leases + new cores = 5 + 46 + 5 = 56.
@@ -337,9 +344,11 @@ impl OnRuntimeUpgrade for FixMigration {
 			}]));
 
 			// Make sure they're not in the leases.
+			log::trace!(target: TARGET, "Potential renewal not in leases?");
 			assert!(!leases.contains(&LeaseRecordItem { until: *until, task: *para_id }));
 
 			// Ensure they can renew in the next region.
+			log::trace!(target: TARGET, "Potential renewal exists as expected? core_id: {:?}, when: {:?}, para: {:?}", core_id, sale_info.region_end, para_id);
 			let renewal_entry = PotentialRenewals::<Runtime>::get(PotentialRenewalId {
 				core: core_id,
 				// TODO: Where are these 5040 coming from?!
@@ -347,6 +356,7 @@ impl OnRuntimeUpgrade for FixMigration {
 				when: sale_info.region_end,
 			})
 			.unwrap();
+			log::trace!(target: TARGET, "Renewal entry found: {:?} {:?}", renewal_entry.price / UNITS, renewal_entry.completion);
 			assert_eq!(
 				renewal_entry,
 				PotentialRenewalRecord {
@@ -356,18 +366,23 @@ impl OnRuntimeUpgrade for FixMigration {
 			);
 
 			// They should all be in the workplan for next sale.
+			log::trace!(target: TARGET, "Workplan entry exists as expected?");
 			assert_eq!(Workplan::<Runtime>::get((workplan_start, core_id)), Some(workload));
 		}
 
 		// Walk the workplan at timeslice 287565 and make sure there is an entry for every 62 cores.
+		log::trace!(target: TARGET, "Checking workplan");
 		for i in 0..62 {
 			if i >= 51 && i < 56 {
 				// Cores offered for sale, we don't know anything about them for sure.
 				continue;
 			}
+			log::trace!(target: TARGET, "Core: {:?}", i);
 			let entry = Workplan::<Runtime>::get((287565, i)).expect("Entry should exist");
+			log::trace!(target: TARGET, "Found entry");
 			assert_eq!(entry.len(), 1);
 			assert_eq!(entry.get(0).unwrap().mask, CoreMask::complete());
+			log::trace!(target: TARGET, "Entry complete");
 			if i < 5 {
 				// system chains
 				assert_eq!(entry.get(0).unwrap().assignment, system_chains[i as usize]);
@@ -390,6 +405,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		}
 
 		// Ensure we have requested the correct number of cores.
+		log::trace!(target: TARGET, "Checking requested core count");
 		assert!(frame_system::Pallet::<Runtime>::read_events_no_consensus().any(|e| {
 			match e.event {
 				crate::RuntimeEvent::Broker(
