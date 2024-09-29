@@ -25,10 +25,10 @@ extern crate alloc;
 use crate::{weights, Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 use pallet_broker::{
-	AdaptPrice, CompletionStatus,
+	CompletionStatus,
 	CoreAssignment::{self, Pool},
 	CoreIndex, CoreMask, LeaseRecordItem, Leases, LeasesRecordOf, PotentialRenewalId,
-	PotentialRenewals, SalePerformance, Schedule, ScheduleItem, TaskId, Timeslice, WeightInfo,
+	PotentialRenewals, Reservations, Schedule, ScheduleItem, TaskId, Timeslice, WeightInfo,
 	Workplan,
 };
 
