@@ -381,8 +381,6 @@ impl OnRuntimeUpgrade for FixMigration {
 			log::trace!(target: TARGET, "Potential renewal exists as expected? core_id: {:?}, when: {:?}, para: {:?}", core_id, sale_info.region_end, para_id);
 			let renewal_entry = PotentialRenewals::<Runtime>::get(PotentialRenewalId {
 				core: core_id,
-				// TODO: Where are these 5040 coming from?!
-				// when: sale_info.region_end + 5040,
 				when: sale_info.region_end,
 			})
 			.unwrap();
@@ -410,7 +408,7 @@ impl OnRuntimeUpgrade for FixMigration {
 			}
 			log::trace!(target: TARGET, "Core: {:?}", i);
 
-			let entry = Workplan::<Runtime>::get((287565, i)).expect("Entry should exist");
+			let entry = Workplan::<Runtime>::get((workplan_start, i)).expect("Entry should exist");
 			log::trace!(target: TARGET, "Found entry");
 			assert_eq!(entry.len(), 1);
 			assert_eq!(entry.get(0).unwrap().mask, CoreMask::complete());
