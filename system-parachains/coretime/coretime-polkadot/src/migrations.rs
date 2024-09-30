@@ -22,7 +22,7 @@
 
 extern crate alloc;
 
-use crate::{weights, Runtime, RuntimeOrigin};
+use crate::{Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 use pallet_broker::{
 	CompletionStatus, CoreAssignment, CoreIndex, CoreMask, Leases, PotentialRenewalId,
@@ -46,8 +46,37 @@ use system_parachains_constants::polkadot::currency::UNITS;
 /// The log target.
 const TARGET: &str = "runtime::bootstrapping::fix-migration";
 
-// Alias into the broker weights for this runtime.
-type BrokerWeights = weights::pallet_broker::WeightInfo<Runtime>;
+struct Weights;
+impl Weights {
+	fn get_first_usable_core() -> Weight {
+		<Runtime as frame_system::Config>::DbWeight::get().reads(1)
+	}
+
+	fn add_pool_core() -> Weight {
+		<Runtime as frame_system::Config>::DbWeight::get()
+			.reads_writes(1, 1)
+			.saturating_add(<Runtime as pallet_broker::Config>::WeightInfo::reserve())
+	}
+
+	fn extend_short_leases() -> Weight {
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 1)
+	}
+
+	fn remove_premature_renewals_add_back_leases() -> Weight {
+		let removed_renewals = INCORRECT_RENEWAL_IDS.len() as u64;
+		<Runtime as frame_system::Config>::DbWeight::get()
+			.reads_writes(removed_renewals, removed_renewals)
+			.saturating_add(
+				<Runtime as pallet_broker::Config>::WeightInfo::set_lease()
+					.saturating_mul(removed_renewals),
+			)
+	}
+
+	fn give_dropped_leases_renewal_rights_and_workplan_entry() -> Weight {
+		let added_renewals = POTENTIAL_RENEWALS.len() as u64;
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 2 * added_renewals)
+	}
+}
 
 pub struct FixMigration;
 
@@ -241,11 +270,12 @@ impl OnRuntimeUpgrade for FixMigration {
 			Err(_) => log::error!(target: TARGET, "Request for 62 cores failed to send."),
 		}
 
-		// TODO finalise the weights here.
-		<Runtime as frame_system::Config>::DbWeight::get()
-			.writes(1)
-			.saturating_add(BrokerWeights::request_core_count(62))
-			.saturating_add(<Runtime as frame_system::Config>::DbWeight::get().reads(1))
+		Weights::get_first_usable_core()
+			.saturating_add(Weights::extend_short_leases())
+			.saturating_add(Weights::remove_premature_renewals_add_back_leases())
+			.saturating_add(Weights::give_dropped_leases_renewal_rights_and_workplan_entry())
+			.saturating_add(Weights::add_pool_core())
+			.saturating_add(<Runtime as pallet_broker::Config>::WeightInfo::request_core_count(62))
 	}
 
 	#[cfg(feature = "try-runtime")]
@@ -467,13 +497,11 @@ impl OnRuntimeUpgrade for FixMigration {
 
 // Incorrect potential renewals in state
 
-#[cfg(feature = "try-runtime")]
 const INCORRECT_RENEWAL_IDS: [(u16, u32); 6] =
 	[(6, 292605), (5, 292605), (13, 292605), (15, 292605), (47, 292605), (44, 292605)];
 
 // Hardcoded para ids and their end timeslice.
 // Taken from https://github.com/SBalaguer/coretime-migration/blob/master/polkadot-output-200924.json
-#[cfg(feature = "try-runtime")]
 const POTENTIAL_RENEWALS: [(u32, u32); 5] =
 	[(2048, 283680), (3375, 283680), (3358, 283680), (2053, 283680), (2056, 283680)];
 
