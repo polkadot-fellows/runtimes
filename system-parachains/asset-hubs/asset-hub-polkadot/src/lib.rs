@@ -1340,10 +1340,7 @@ impl_runtime_apis! {
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![
-				sp_genesis_builder::PresetId::from("local_testnet"),
-				sp_genesis_builder::PresetId::from("development"),
-			]
+			genesis_config_presets::preset_names()
 		}
 	}
 

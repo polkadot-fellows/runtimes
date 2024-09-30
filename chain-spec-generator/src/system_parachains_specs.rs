@@ -66,7 +66,7 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 		.with_name("Polkadot Asset Hub Local")
 		.with_id("asset-hub-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(asset_hub_polkadot_runtime::genesis_config_presets::asset_hub_polkadot_local_testnet_genesis(1000.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -86,7 +86,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_name("Kusama Asset Hub Local")
 		.with_id("asset-hub-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(asset_hub_kusama_runtime::genesis_config_presets::asset_hub_kusama_local_testnet_genesis(1000.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -107,7 +107,7 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 		.with_name("Polkadot Collectives Local")
 		.with_id("collectives-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(collectives_polkadot_runtime::genesis_config_presets::collectives_polkadot_local_testnet_genesis(1001.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -128,7 +128,7 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 		.with_name("Polkadot Bridge Hub Local")
 		.with_id("bridge-hub-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(bridge_hub_polkadot_runtime::genesis_config_presets::bridge_hub_polkadot_local_testnet_genesis(1002.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -148,7 +148,7 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		.with_name("Kusama Bridge Hub Local")
 		.with_id("bridge-hub-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(bridge_hub_kusama_runtime::genesis_config_presets::bridge_hub_kusama_local_testnet_genesis(1002.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -166,11 +166,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 		.with_name("Kusama Glutton Local")
 		.with_id("glutton-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(
-			glutton_kusama_runtime::genesis_config_presets::glutton_kusama_local_testnet_genesis(
-				1300.into(),
-			),
-		)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -190,7 +186,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_name("Kusama Encointer Local")
 		.with_id("encointer-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(encointer_kusama_runtime::genesis_config_presets::encointer_kusama_local_testnet_genesis(1001.into()))
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -210,11 +206,7 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 		.with_name("Kusama Coretime Local")
 		.with_id("coretime-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(
-			coretime_kusama_runtime::genesis_config_presets::coretime_kusama_local_testnet_genesis(
-				1005.into(),
-			),
-		)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -327,11 +319,7 @@ pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String
 		.with_name("Kusama People Local")
 		.with_id("people-kusama-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(
-			people_kusama_runtime::genesis_config_presets::people_kusama_local_testnet_genesis(
-				1004.into(),
-			),
-		)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))
@@ -351,11 +339,7 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 		.with_name("Polkadot People Local")
 		.with_id("people-polkadot-local")
 		.with_chain_type(ChainType::Local)
-		.with_genesis_config_patch(
-			people_polkadot_runtime::genesis_config_presets::people_polkadot_local_testnet_genesis(
-				1004.into(),
-			),
-		)
+		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
 	))

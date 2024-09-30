@@ -17,6 +17,7 @@
 //! Genesis configs presets for the EncointerKusama runtime
 
 use crate::*;
+use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
@@ -59,6 +60,36 @@ fn encointer_kusama_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"encointerScheduler": {
+			"currentPhase": CeremonyPhaseType::Registering,
+			"currentCeremonyIndex": 1,
+			"phaseDurations": vec![
+				(CeremonyPhaseType::Registering, 604800000u64), // 7d
+				(CeremonyPhaseType::Assigning, 86400000u64),    // 1d
+				(CeremonyPhaseType::Attesting, 172800000u64),   // 2d
+			],
+		},
+		"encointerCeremonies": {
+			"ceremonyReward": BalanceType::from_num(1),
+			"timeTolerance": 600_000u64,   // +-10min
+			"locationTolerance": 1_000, // [m]
+			"endorsementTicketsPerBootstrapper": 10,
+			"endorsementTicketsPerReputable": 5,
+			"reputationLifetime": 5,
+			"inactivityTimeout": 5, // idle ceremonies before purging community
+			"meetupTimeOffset": 0,
+		},
+		"encointerCommunities": {
+			"minSolarTripTimeS": 1, // [s]
+			"maxSpeedMps": 1,         // [m/s] suggested would be 83m/s for security,
+		},
+		"encointerBalances": {
+			// for relative adjustment.
+			"feeConversionFactor": 7_143u32,
+		},
+		"encointerFaucet": {
+			"reserveAmount": 10_000_000_000_000u128,
+		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
@@ -70,6 +101,11 @@ pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Va
 
 fn encointer_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 	encointer_kusama_local_testnet_genesis(para_id)
+}
+
+/// Provides the names of the predefined genesis configs for this runtime.
+pub fn preset_names() -> Vec<PresetId> {
+	vec![PresetId::from("development"), PresetId::from("local_testnet")]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.

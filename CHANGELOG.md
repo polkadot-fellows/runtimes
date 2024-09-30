@@ -4,11 +4,18 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.3.3] 30.09.2024
+## [Unreleased]
+
+### Changed
+
+- Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407))
+- Include the Core and Salary pallets into the Fellowship proxy ([polkadot-fellows/runtimes#454](https://github.com/polkadot-fellows/runtimes/pull/454))
+- Add new community democracy and treasuries pallets to Encointer ([polkadot-fellows/runtimes#456](https://github.com/polkadot-fellows/runtimes/pull/456))
 
 ### Fixed
 
-In the initial Coretime migration the leases were off due to the lease offset on
+- Chain-spec generator: propagate the `on_chain_release_build` feature to the chain-spec generator. Without this the live/genesis chain-specs contain a wrongly-configured WASM blob ([polkadot-fellows/runtimes#450](https://github.com/polkadot-fellows/runtimes/pull/450)).
+- In the initial Coretime migration the leases were off due to the lease offset on
 Polkadot. [polkadot-fellows/runtimes#458](https://github.com/polkadot-fellows/runtimes/pull/458)
 fixes this via another storage migration on the Coretime chain.
 
@@ -81,6 +88,7 @@ fixes this via another storage migration on the Coretime chain.
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
+- The `MessageQueue` also runs "on idle", this causes `MessageQueue::Processed` events to be emitted in other phases than just initialization ([SDK v1.13 #3844](https://github.com/paritytech/polkadot-sdk/pull/3844)).
 - AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
 - Allow StakingAdmin to manage nomination pool configurations ([SDK v1.11 #3959](https://github.com/paritytech/polkadot-sdk/pull/3959)).
 - Bridge: make some headers submissions free ([SDK v1.12 #4102](https://github.com/paritytech/polkadot-sdk/pull/4102)).
