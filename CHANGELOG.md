@@ -4,11 +4,19 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.3] 30.09.2024
+
+### Fixed
+
+In the initial Coretime migration the leases were off due to the lease offset on
+Polkadot. [polkadot-fellows/runtimes#458](https://github.com/polkadot-fellows/runtimes/pull/458)
+fixes this via another storage migration on the Coretime chain.
+
 ## [1.3.2] 27.08.2024
 
 ### Fixed
 
-- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](https://github.com/polkadot-fellows/runtimes/pull/445)).
 
 ## [1.3.1] 23.08.2024
 
