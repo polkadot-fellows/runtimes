@@ -70,7 +70,7 @@ jobs:
             CHECKS="all"
           fi
 
-          EXTRA_FLAGS+="--blocktime ${{ matrix.runtime.blocktime }}"
+          EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
