@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Chain-spec generator: propagate the `on_chain_release_build` feature to the chain-spec generator. Without this the live/genesis chain-specs contain a wrongly-configured WASM blob ([polkadot-fellows/runtimes#450](https://github.com/polkadot-fellows/runtimes/pull/450)).
-- Adds a migration to the Polkadot Coretime chain to fix an issue from the initial Coretime migration. [polkadot-fellows/runtimes#458](https://github.com/polkadot-fellows/runtimes/pull/458)
+- Adds a migration to the Polkadot Coretime chain to fix an issue from the initial Coretime migration. ([polkadot-fellows/runtimes#458](https://github.com/polkadot-fellows/runtimes/pull/458))
 
 ### Added
 
