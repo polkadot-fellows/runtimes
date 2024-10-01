@@ -1922,7 +1922,7 @@ impl Runtime {
 		};
 
 		// We assume un-delayed 6h eras.
-		let era_duration = 6 * 60 * 60 * 1000;
+		let era_duration = 6 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
 		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
 			staked,
 			stake_able_issuance,

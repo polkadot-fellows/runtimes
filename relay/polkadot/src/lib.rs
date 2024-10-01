@@ -2155,7 +2155,7 @@ impl Runtime {
 			ideal_staking_rate
 		};
 
-		// we assume un-delayed 24h eras.
+		// We assume un-delayed 24h eras.
 		let era_duration = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
 		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
 			staked,
