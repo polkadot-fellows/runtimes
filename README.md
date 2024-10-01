@@ -61,6 +61,25 @@ The release process is building all runtimes and then puts them into a release i
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Release guidelines
+
+Here is an overview of the recommended steps.
+
+|Steps |Description |
+|------|------------|
+|0 |Open an [issue](https://github.com/polkadot-fellows/runtimes/issues) for the release in the runtimes repo with the **version number**. |
+|1 |Update **[polkadot-sdk](https://github.com/paritytech/polkadot-sdk?tab=readme-ov-file#-releases)**, if applicable. |
+|2 |Identify and monitor **potential blockers** (old dependencies, pending or failed upgrades). |
+|3 |Identify and include **PRs** with required tests, highlighting the integration tests that have changed. |
+|4 |Identify and communicate all details about **potential breaking changes** (transaction/event/error encoding, polkadot-sdk migrations, XCM and storage format, etc.) or **disruptions**. Make sure to **ping @SBalaguer and @anaelleltd** in your commentary. |
+|5 |Run **[benchmarking](https://github.com/polkadot-fellows/runtimes/blob/main/docs/weight-generation.md)** for changed pallets. |
+|6 |Trigger the release for **final reviews**, making sure to highlight information about all breaking changes or disruptions in the **CHANGELOG entry**. |
+|7 |Create the **[whitelisting proposal (Fellowship)](https://github.com/joepetrowski/opengov-cli)** with contextual information.|
+|8 |Create the **[whitelisted caller referendum (OpenGov)](https://github.com/joepetrowski/opengov-cli)** with contextual information and **instructions for following up** on breaking changes or disruptions. |
+|9 |Close the issue for the release once the referendum is **approved and executed**. |
+|10 |Open an issue for **the next release** in the runtimes repo, if applicable.|
+
+
 ## Communication channels
 
 The Fellowship is using Matrix for communication. Right now there exists two channels:
