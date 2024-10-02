@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Include the Core and Salary pallets into the Fellowship proxy ([polkadot-fellows/runtimes#454](https://github.com/polkadot-fellows/runtimes/pull/454))
 - Add new community democracy and treasuries pallets to Encointer ([polkadot-fellows/runtimes#456](https://github.com/polkadot-fellows/runtimes/pull/456))
 - Change target block time for Encointer to 6s ([polkadot-fellows/runtimes#462](https://github.com/polkadot-fellows/runtimes/pull/462))
+- Asset Hubs: allow Polkadot, Kusama and Ethereum assets across P<>K bridge ([polkadot-fellows/runtimes#421](https://github.com/polkadot-fellows/runtimes/pull/421)).
 
 ### Fixed
 

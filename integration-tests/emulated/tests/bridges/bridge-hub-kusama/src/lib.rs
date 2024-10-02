@@ -26,6 +26,7 @@ pub use xcm::{
 		NetworkId::{Kusama as KusamaId, Polkadot as PolkadotId},
 	},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Bridges
 pub use bp_messages::LaneId;
@@ -40,37 +41,42 @@ pub use emulated_integration_tests_common::{
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
-	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	asset_hub_polkadot_emulated_chain::{
-		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
 	bridge_hub_kusama_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_KUSAMA_ED, BridgeHubKusamaParaPallet as BridgeHubKusamaPallet,
 	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
+	penpal_emulated_chain::{
+		penpal_runtime::xcm_config::{
+			CustomizableAssetFromSystemAssetHub as PenpalCustomizableAssetFromSystemAssetHub,
+			UniversalLocation as PenpalUniversalLocation,
+		},
+		PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
+	},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
+	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver,
 	BridgeHubKusamaParaSender as BridgeHubKusamaSender, BridgeHubPolkadotPara as BridgeHubPolkadot,
 	KusamaRelay as Kusama, KusamaRelayReceiver as KusamaReceiver,
-	KusamaRelaySender as KusamaSender,
-};
-pub use kusama_system_emulated_network::{
-	penpal_emulated_chain::PenpalAParaPallet as PenpalAPallet,
-	BridgeHubKusamaParaReceiver as BridgeHubKusamaReceiver, PenpalAPara as PenpalA,
+	KusamaRelaySender as KusamaSender, PenpalAPara as PenpalA,
 	PenpalAParaReceiver as PenpalAReceiver, PenpalAParaSender as PenpalASender,
 };
 pub use parachains_common::{AccountId, Balance};
 
 pub const ASSET_ID: u32 = 1;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
-pub const ASSETS_PALLET_ID: u8 = 50;
+pub const USDT_ID: u32 = 1984;
 
 #[cfg(test)]
 mod tests;

@@ -97,5 +97,6 @@ decl_test_sender_receiver_accounts_parameter_types! {
 	PolkadotRelay { sender: ALICE, receiver: BOB },
 	AssetHubPolkadotPara { sender: ALICE, receiver: BOB },
 	BridgeHubPolkadotPara { sender: ALICE, receiver: BOB },
-	PenpalAPara { sender: ALICE, receiver: BOB }
+	PenpalAPara { sender: ALICE, receiver: BOB },
+	PenpalBPara { sender: ALICE, receiver: BOB }
 }

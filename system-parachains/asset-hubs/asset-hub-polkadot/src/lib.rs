@@ -371,6 +371,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 				xcm_config::bridging::to_ethereum::EthereumNetwork,
 				xcm::v3::Location,
 			>,
+			xcm_config::bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
@@ -1616,7 +1617,10 @@ impl_runtime_apis! {
 				pub TrustedReserve: Option<(Location, Asset)> = Some(
 					(
 						xcm_config::bridging::to_kusama::AssetHubKusama::get(),
-						Asset::from((xcm_config::bridging::to_kusama::KsmLocation::get(), 1000000000000 as u128))
+						Asset::from((
+							xcm_config::bridging::to_kusama::KsmLocation::get(),
+							1000000000000 as u128
+						))
 					)
 				);
 			}
