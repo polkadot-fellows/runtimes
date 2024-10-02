@@ -2056,10 +2056,156 @@ pub mod migrations {
 			GetLegacyLeaseImpl,
 		>,
 		CancelAuctions,
+		restore_corrupted_ledgers::Migrate<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+}
+
+/// Migration to fix current corrupted staking ledgers in Polkadot.
+///
+/// It consists of:
+/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
+///  * Root origin;
+///  * Default `None` paramters.
+/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
+/// stash's free balance.
+///
+/// The stashes associated with corrupted ledgers that will be "migrated" are set in
+/// [`CorruptedStashes`].
+///
+/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
+/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
+pub(crate) mod restore_corrupted_ledgers {
+	use super::*;
+
+	use frame_support::traits::Currency;
+	use frame_system::RawOrigin;
+
+	use pallet_staking::WeightInfo;
+	use sp_staking::StakingAccount;
+
+	parameter_types! {
+		pub CorruptedStashes: Vec<AccountId> = vec![
+			// stash account 138fZsNu67JFtiiWc1eWK2Ev5jCYT6ZirZM288tf99CUHk8K
+			hex_literal::hex!["5e510306a89f40e5520ae46adcc7a4a1bbacf27c86c163b0691bbbd7b5ef9c10"].into(),
+			// stash account 14kwUJW6rtjTVW3RusMecvTfDqjEMAt8W159jAGBJqPrwwvC
+			hex_literal::hex!["a6379e16c5dab15e384c71024e3c6667356a5487127c291e61eed3d8d6b335dd"].into(),
+			// stash account 13SvkXXNbFJ74pHDrkEnUw6AE8TVkLRRkUm2CMXsQtd4ibwq
+			hex_literal::hex!["6c3e8acb9225c2a6d22539e2c268c8721b016be1558b4aad4bed220dfbf01fea"].into(),
+			// stash account 12YcbjN5cvqM63oK7WMhNtpTQhtCrrUr4ntzqqrJ4EijvDE8
+			hex_literal::hex!["4458ad5f0c082da64610607beb9d3164a77f1ef7964b7871c1de182ea7213783"].into(),
+		];
+	}
+
+	pub struct Migrate<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
+		fn on_runtime_upgrade() -> Weight {
+			let mut total_weight: Weight = Default::default();
+			let mut ok_migration = 0;
+			let mut err_migration = 0;
+
+			for stash in CorruptedStashes::get().into_iter() {
+				let stash_account: T::AccountId = if let Ok(stash_account) =
+					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
+				{
+					stash_account
+				} else {
+					log::error!(
+						target: LOG_TARGET,
+						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
+						stash.clone(),
+					);
+					err_migration += 1;
+					continue
+				};
+
+				// restore currupted ledger.
+				match pallet_staking::Pallet::<T>::restore_ledger(
+					RawOrigin::Root.into(),
+					stash_account.clone(),
+					None,
+					None,
+					None,
+				) {
+					Ok(_) => (), // proceed.
+					Err(err) => {
+						// note: after first migration run, restoring ledger will fail with
+						// `staking::pallet::Error::<T>CannotRestoreLedger`.
+						log::error!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
+							err
+						);
+						continue
+					},
+				};
+
+				// check if restored ledger total is higher than the stash's free balance. If
+				// that's the case, force unstake the ledger.
+				let weight = if let Ok(ledger) = pallet_staking::Pallet::<T>::ledger(
+					StakingAccount::Stash(stash_account.clone()),
+				) {
+					// force unstake the ledger.
+					if ledger.total > T::Currency::free_balance(&stash_account) {
+						let slashing_spans = 10; // default slashing spans for migration.
+						let _ = pallet_staking::Pallet::<T>::force_unstake(
+							RawOrigin::Root.into(),
+							stash_account.clone(),
+							slashing_spans,
+						)
+						.map_err(|err| {
+							log::error!(
+								target: LOG_TARGET,
+								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
+								err
+							);
+							err_migration += 1;
+							err
+						});
+
+						log::info!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
+							stash_account,
+						);
+						ok_migration += 1;
+
+						<T::WeightInfo>::restore_ledger()
+							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: ledger of {:?} restored.",
+							stash,
+						);
+						ok_migration += 1;
+
+						<T::WeightInfo>::restore_ledger()
+					}
+				} else {
+					log::error!(
+						target: LOG_TARGET,
+						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
+					);
+					err_migration += 1;
+					<T::WeightInfo>::restore_ledger()
+				};
+
+				total_weight.saturating_accrue(weight);
+			}
+
+			log::info!(
+				target: LOG_TARGET,
+				"migrations::corrupted_ledgers: done. success: {}, error: {}",
+				ok_migration,
+				err_migration
+			);
+
+			total_weight
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
