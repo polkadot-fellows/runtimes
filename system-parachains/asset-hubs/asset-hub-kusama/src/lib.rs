@@ -443,7 +443,10 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type AssetIdParameter = xcm::v3::Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
-		FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
+		(
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v3::Location>,
+			xcm_config::bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
+		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
 		xcm::v3::Location,
@@ -1611,7 +1614,10 @@ impl_runtime_apis! {
 				pub TrustedReserve: Option<(Location, Asset)> = Some(
 					(
 						xcm_config::bridging::to_polkadot::AssetHubPolkadot::get(),
-						Asset::from((xcm_config::bridging::to_polkadot::DotLocation::get(), 1000000000000 as u128))
+						Asset::from((
+							xcm_config::bridging::to_polkadot::DotLocation::get(),
+							10000000000 as u128,
+						))
 					)
 				);
 			}
