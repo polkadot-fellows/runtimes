@@ -46,3 +46,19 @@ runtime-benchmarks = [
 	"people-polkadot-runtime/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",
 ]
+
+on-chain-release-build = [
+	"asset-hub-kusama-runtime/on-chain-release-build",
+	"asset-hub-polkadot-runtime/on-chain-release-build",
+	"bridge-hub-kusama-runtime/on-chain-release-build",
+	"bridge-hub-polkadot-runtime/on-chain-release-build",
+	"collectives-polkadot-runtime/on-chain-release-build",
+	"coretime-kusama-runtime/on-chain-release-build",
+	"coretime-polkadot-runtime/on-chain-release-build",
+	"encointer-kusama-runtime/on-chain-release-build",
+	"glutton-kusama-runtime/on-chain-release-build",
+	"kusama-runtime/on-chain-release-build",
+	"people-kusama-runtime/on-chain-release-build",
+	"people-polkadot-runtime/on-chain-release-build",
+	"polkadot-runtime/on-chain-release-build",
+]

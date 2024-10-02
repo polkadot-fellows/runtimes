@@ -31,6 +31,7 @@ pub mod pallet_encointer_balances;
 pub mod pallet_encointer_bazaar;
 pub mod pallet_encointer_ceremonies;
 pub mod pallet_encointer_communities;
+pub mod pallet_encointer_democracy;
 pub mod pallet_encointer_faucet;
 pub mod pallet_encointer_reputation_commitments;
 pub mod pallet_encointer_scheduler;
@@ -40,8 +41,10 @@ pub mod pallet_proxy;
 pub mod pallet_session;
 pub mod pallet_timestamp;
 pub mod pallet_utility;
+pub mod pallet_xcm;
 pub mod paritydb_weights;
 pub mod rocksdb_weights;
+pub mod xcm;
 
 pub use block_weights::constants::BlockExecutionWeight;
 pub use extrinsic_weights::constants::ExtrinsicBaseWeight;
