@@ -588,7 +588,6 @@ pub mod bridging {
 			);
 
 			pub const KusamaNetwork: NetworkId = NetworkId::Kusama;
-			pub KusamaEcosystem: Location = Location::new(2, [GlobalConsensus(KusamaNetwork::get())]);
 			pub AssetHubKusama: Location = Location::new(
 				2,
 				[
@@ -630,7 +629,7 @@ pub mod bridging {
 		}
 		/// Allow any asset native to the Kusama ecosystem if it comes from Kusama Asset Hub.
 		pub type KusamaAssetFromAssetHubKusama =
-			RemoteAssetFromLocation<StartsWith<KusamaEcosystem>, AssetHubKusama>;
+			RemoteAssetFromLocation<StartsWith<KsmLocation>, AssetHubKusama>;
 
 		// TODO: get this from `assets_common v0.17.1` when SDK deps are upgraded
 		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
@@ -672,7 +671,8 @@ pub mod bridging {
 			}
 		}
 		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
-			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+			ContainsPair<Asset, Location>
+			for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
 		{
 			fn contains(asset: &Asset, origin: &Location) -> bool {
 				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)

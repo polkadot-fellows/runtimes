@@ -515,8 +515,8 @@ pub mod bridging {
 
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
 			pub const EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
-			pub PolkadotEcosystem: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 			pub EthereumEcosystem: Location = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
+			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 			pub AssetHubPolkadot: Location = Location::new(
 				2,
 				[
@@ -524,7 +524,6 @@ pub mod bridging {
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				],
 			);
-			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 
 			/// Set up exporters configuration.
 			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
@@ -560,7 +559,7 @@ pub mod bridging {
 		/// Allow any asset native to the Polkadot or Ethereum ecosystems if it comes from Polkadot
 		/// Asset Hub.
 		pub type PolkadotOrEthereumAssetFromAssetHubPolkadot = RemoteAssetFromLocation<
-			(StartsWith<PolkadotEcosystem>, StartsWith<EthereumEcosystem>),
+			(StartsWith<DotLocation>, StartsWith<EthereumEcosystem>),
 			AssetHubPolkadot,
 		>;
 
@@ -577,38 +576,35 @@ pub mod bridging {
 			> ContainsPair<L, L> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
 		{
 			fn contains(asset: &L, origin: &L) -> bool {
-				let latest_asset: Location = if let Ok(location) = asset.clone().try_into() {
-					location
-				} else {
+				let Ok(asset) = asset.clone().try_into() else {
 					return false;
 				};
-				let latest_origin: Location = if let Ok(location) = origin.clone().try_into() {
-					location
-				} else {
+				let Ok(origin) = origin.clone().try_into() else {
 					return false;
 				};
+
 				let expected_origin = OriginLocation::get();
 				// ensure `origin` is expected `OriginLocation`
-				if !expected_origin.eq(&latest_origin) {
+				if !expected_origin.eq(&origin) {
 					log::trace!(
 						target: "xcm::contains",
-						"RemoteAssetFromLocation asset: {:?}, origin: {:?} is not from expected {:?}",
-						latest_asset, latest_origin, expected_origin,
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?} is not from expected {expected_origin:?}"
 					);
 					return false;
 				} else {
 					log::trace!(
 						target: "xcm::contains",
-						"RemoteAssetFromLocation asset: {latest_asset:?}, origin: {latest_origin:?}",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
 					);
 				}
 
 				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
-				AssetsAllowedNetworks::contains(&latest_asset)
+				AssetsAllowedNetworks::contains(&asset)
 			}
 		}
 		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
-			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+			ContainsPair<Asset, Location>
+			for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
 		{
 			fn contains(asset: &Asset, origin: &Location) -> bool {
 				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)
