@@ -348,6 +348,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
+					RuntimeCall::FellowshipCore { .. } |
+					RuntimeCall::FellowshipSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -760,6 +762,7 @@ pub type SignedExtra = (
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
+	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1038,10 +1041,7 @@ impl_runtime_apis! {
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![
-				sp_genesis_builder::PresetId::from("local_testnet"),
-				sp_genesis_builder::PresetId::from("development"),
-			]
+			genesis_config_presets::preset_names()
 		}
 	}
 

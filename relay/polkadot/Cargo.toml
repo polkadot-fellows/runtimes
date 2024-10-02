@@ -62,6 +62,7 @@ pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-offences = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
@@ -97,6 +98,7 @@ hex-literal = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
+relay-common = { workspace = true }
 
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -115,6 +117,8 @@ separator = { workspace = true }
 remote-externalities = { workspace = true }
 tokio = { features = ["macros"], workspace = true }
 sp-tracing = { workspace = true }
+hex-literal = { workspace = true }
+ss58-registry = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -148,6 +152,7 @@ std = [
 	"pallet-beefy-mmr/std",
 	"pallet-beefy/std",
 	"pallet-bounties/std",
+	"pallet-broker/std",
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-election-provider-multi-phase/std",
@@ -164,6 +169,7 @@ std = [
 	"pallet-nomination-pools/std",
 	"pallet-offences-benchmarking?/std",
 	"pallet-offences/std",
+	"pallet-parameters/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-referenda/std",
@@ -183,9 +189,11 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
+	"polkadot-parachain-primitives/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -213,8 +221,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-broker/std",
-	"polkadot-parachain-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -227,6 +233,7 @@ runtime-benchmarks = [
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
+	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
@@ -242,6 +249,7 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-offences-benchmarking/runtime-benchmarks",
 	"pallet-offences/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
@@ -256,6 +264,7 @@ runtime-benchmarks = [
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
@@ -264,8 +273,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-broker/runtime-benchmarks",
-	"polkadot-parachain-primitives/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-election-provider-support/try-runtime",
@@ -296,6 +303,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-offences/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-referenda/try-runtime",
