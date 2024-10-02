@@ -1616,7 +1616,7 @@ impl_runtime_apis! {
 						xcm_config::bridging::to_polkadot::AssetHubPolkadot::get(),
 						Asset::from((
 							xcm_config::bridging::to_polkadot::DotLocation::get(),
-							1000000000000 as u128,
+							10000000000 as u128,
 						))
 					)
 				);
