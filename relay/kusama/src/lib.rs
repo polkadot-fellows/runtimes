@@ -162,8 +162,6 @@ use governance::{
 #[cfg(test)]
 mod tests;
 
-pub const LOG_TARGET: &str = "runtime::kusama";
-
 impl_runtime_weights!(kusama_runtime_constants);
 
 // Make the WASM binary available.
