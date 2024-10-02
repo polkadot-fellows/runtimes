@@ -23,6 +23,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod coretime;
+mod migrations;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 #[cfg(test)]
@@ -117,6 +118,7 @@ pub type UncheckedExtrinsic =
 pub type Migrations = (
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
+	migrations::FixMigration,
 );
 
 /// Executive: handles dispatch to the various modules.
