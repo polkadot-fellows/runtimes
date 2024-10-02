@@ -1860,12 +1860,24 @@ pub(crate) mod restore_corrupted_ledgers {
 	pub struct Migrate<T>(sp_std::marker::PhantomData<T>);
 	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
 		fn on_runtime_upgrade() -> Weight {
-			let mut total_weight = Default::default();
+			let mut total_weight: Weight = Default::default();
+			let mut ok_migration = 0;
+			let mut err_migration = 0;
 
 			for stash in CorruptedStashes::get().into_iter() {
-				let stash_account: T::AccountId =
+				let stash_account: T::AccountId = if let Ok(stash_account) =
 					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
-						.expect("32 bytes fits, qed.");
+				{
+					stash_account
+				} else {
+					log::error!(
+						target: LOG_TARGET,
+						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
+						stash.clone(),
+					);
+					err_migration += 1;
+					continue
+				};
 
 				// restore currupted ledger.
 				match pallet_staking::Pallet::<T>::restore_ledger(
@@ -1907,6 +1919,7 @@ pub(crate) mod restore_corrupted_ledgers {
 								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
 								err
 							);
+							err_migration += 1;
 							err
 						});
 
@@ -1915,15 +1928,17 @@ pub(crate) mod restore_corrupted_ledgers {
 							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
 							stash_account,
 						);
+						ok_migration += 1;
 
-						<T::WeightInfo>::restore_ledger() +
-							<T::WeightInfo>::force_unstake(slashing_spans)
+						<T::WeightInfo>::restore_ledger()
+							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
 					} else {
 						log::info!(
 							target: LOG_TARGET,
 							"migrations::corrupted_ledgers: ledger of {:?} restored.",
 							stash,
 						);
+						ok_migration += 1;
 
 						<T::WeightInfo>::restore_ledger()
 					}
@@ -1932,13 +1947,19 @@ pub(crate) mod restore_corrupted_ledgers {
 						target: LOG_TARGET,
 						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
 					);
+					err_migration += 1;
 					<T::WeightInfo>::restore_ledger()
 				};
 
-				total_weight += weight;
+				total_weight.saturating_accrue(weight);
 			}
 
-			log::info!(target: LOG_TARGET, "migrations::corrupted_ledgers: done");
+			log::info!(
+				target: LOG_TARGET,
+				"migrations::corrupted_ledgers: done. success: {}, error: {}",
+				ok_migration, err_migration
+			);
+
 			total_weight
 		}
 	}
