@@ -1630,7 +1630,7 @@ construct_runtime! {
 
 		// Consensus support.
 		// Authorship must be before session in order to note author in the correct session and era
-		// for im-online and staking.
+		// for staking.
 		Authorship: pallet_authorship = 6,
 		Staking: pallet_staking = 7,
 		Offences: pallet_offences = 8,
@@ -2429,12 +2429,6 @@ sp_api::impl_runtime_apis! {
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
-			use sp_runtime::{traits::Header, DigestItem};
-
-			if header.digest().logs().iter().any(|di| di == &DigestItem::RuntimeEnvironmentUpdated) {
-				pallet_im_online::migration::clear_offchain_storage(Session::validators().len() as u32);
-			}
-
 			Executive::offchain_worker(header)
 		}
 	}
