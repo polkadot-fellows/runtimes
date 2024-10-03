@@ -124,7 +124,6 @@ pallet-fast-unstake = { version = "35.0.0", default-features = false }
 pallet-glutton = { version = "22.0.0", default-features = false }
 pallet-grandpa = { version = "36.0.0", default-features = false }
 pallet-identity = { version = "36.0.0", default-features = false }
-pallet-im-online = { version = "35.0.0", default-features = false }
 pallet-indices = { version = "36.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "24.0.0", default-features = false }
 pallet-membership = { version = "36.0.0", default-features = false }
