@@ -25,10 +25,11 @@ use assets_common::{
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
+	pallet_prelude::Get,
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, Nothing, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -38,6 +39,7 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -99,6 +101,9 @@ pub type LocationToAccountId = (
 	// Different global consensus parachain sovereign account.
 	// (Used for over-bridge transfers and reserve processing)
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
+	// Ethereum contract sovereign account.
+	// (Used to get convert ethereum contract locations to sovereign account)
+	GlobalConsensusEthereumConvertsFor<AccountId>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -302,8 +307,9 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Asset Hub trusts only particular, pre-configured bridged locations from a different consensus
 	// as reserve locations (we trust the Bridge Hub to relay the message that a reserve is being
-	// held). Kusama Asset Hub accepts PolkadotAssetHub as a reserve location for DOT.
-	type IsReserve = (bridging::to_polkadot::IsTrustedBridgedReserveLocationForConcreteAsset,);
+	// held). On Kusama Asset Hub, we allow Polkadot Asset Hub to act as reserve for any asset
+	// native to the Polkadot or Ethereum ecosystems.
+	type IsReserve = (bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
@@ -452,6 +458,8 @@ pub type ForeignCreatorsSovereignAccountOf = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	ParentIsPreset<AccountId>,
+	GlobalConsensusEthereumConvertsFor<AccountId>,
+	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
 );
 
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
@@ -466,7 +474,6 @@ impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
-	use assets_common::matching;
 	use sp_std::collections::btree_set::BTreeSet;
 	use xcm_builder::NetworkExportTableItem;
 
@@ -507,18 +514,15 @@ pub mod bridging {
 			);
 
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
+			pub const EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+			pub EthereumEcosystem: Location = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
+			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 			pub AssetHubPolkadot: Location = Location::new(
 				2,
 				[
 					GlobalConsensus(PolkadotNetwork::get()),
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
 				],
-			);
-			pub DotLocation: Location = Location::new(2, GlobalConsensus(PolkadotNetwork::get()));
-
-			pub DotFromAssetHubPolkadot: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: AssetId(DotLocation::get()) }),
-				AssetHubPolkadot::get()
 			);
 
 			/// Set up exporters configuration.
@@ -552,17 +556,59 @@ pub mod bridging {
 			}
 		}
 
-		/// Reserve locations filter for `xcm_executor::Config::IsReserve`.
-		/// Locations from which the runtime accepts reserved assets.
-		pub type IsTrustedBridgedReserveLocationForConcreteAsset =
-			matching::IsTrustedBridgedReserveLocationForConcreteAsset<
-				UniversalLocation,
-				(
-					// allow receive DOT from AssetHubPolkadot
-					xcm_builder::Case<DotFromAssetHubPolkadot>,
-					// and nothing else
-				),
-			>;
+		/// Allow any asset native to the Polkadot or Ethereum ecosystems if it comes from Polkadot
+		/// Asset Hub.
+		pub type PolkadotOrEthereumAssetFromAssetHubPolkadot = RemoteAssetFromLocation<
+			(StartsWith<DotLocation>, StartsWith<EthereumEcosystem>),
+			AssetHubPolkadot,
+		>;
+
+		// TODO: get this from `assets_common v0.17.1` when SDK deps are upgraded
+		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
+		/// `OriginLocation`.
+		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
+			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
+		);
+		impl<
+				L: TryInto<Location> + Clone,
+				AssetsAllowedNetworks: Contains<Location>,
+				OriginLocation: Get<Location>,
+			> ContainsPair<L, L> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &L, origin: &L) -> bool {
+				let Ok(asset) = asset.clone().try_into() else {
+					return false;
+				};
+				let Ok(origin) = origin.clone().try_into() else {
+					return false;
+				};
+
+				let expected_origin = OriginLocation::get();
+				// ensure `origin` is expected `OriginLocation`
+				if !expected_origin.eq(&origin) {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?} is not from expected {expected_origin:?}"
+					);
+					return false;
+				} else {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
+					);
+				}
+
+				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
+				AssetsAllowedNetworks::contains(&asset)
+			}
+		}
+		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
+			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &Asset, origin: &Location) -> bool {
+				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)
+			}
+		}
 	}
 
 	/// Benchmarks helper for bridging configuration.

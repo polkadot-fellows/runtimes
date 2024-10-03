@@ -60,6 +60,7 @@ use frame_election_provider_support::{
 };
 use frame_support::{
 	construct_runtime,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
@@ -88,13 +89,11 @@ use polkadot_primitives::{
 };
 use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
-	create_runtime_str,
-	curve::PiecewiseLinear,
-	generic, impl_opaque_keys,
+	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
 		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
-		Verify,
+		Saturating, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -145,6 +144,7 @@ pub mod xcm_config;
 
 mod coretime_migration;
 
+/// Default logging target.
 pub const LOG_TARGET: &str = "runtime::polkadot";
 
 impl_runtime_weights!(polkadot_runtime_constants);
@@ -160,7 +160,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_003_000,
+	spec_version: 1_003_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -619,20 +619,121 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
-// TODO #6469: This shouldn't be static, but a lazily cached value, not built unless needed, and
-// re-built in case input parameters have changed. The `ideal_stake` should be determined by the
-// amount of parachain slots being bid on: this should be around `(75 - 25.min(slots / 4))%`.
-pallet_staking_reward_curve::build! {
-	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
-		min_inflation: 0_025_000,
-		max_inflation: 0_100_000,
-		// 3:2:1 staked : parachains : float.
-		// while there's no parachains, then this is 75% staked : 25% float.
-		ideal_stake: 0_750_000,
-		falloff: 0_050_000,
-		max_piece_count: 40,
-		test_precision: 0_005_000,
-	);
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used to calculate era payouts, see
+	/// [`polkadot_runtime_common::impls::EraPayoutParams`].
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// Minimum inflation rate used to calculate era payouts.
+		#[codec(index = 0)]
+		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
+
+		/// Maximum inflation rate used to calculate era payouts.
+		#[codec(index = 1)]
+		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
+
+		/// Ideal stake ratio used to calculate era payouts.
+		#[codec(index = 2)]
+		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
+
+		/// Falloff used to calculate era payouts.
+		#[codec(index = 3)]
+		pub static Falloff: Perquintill = Perquintill::from_percent(5);
+
+		/// Whether to use auction slots or not in the calculation of era payouts, then we subtract
+		/// `num_auctioned_slots.min(60) / 300` from `ideal_stake`.
+		///
+		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
+		/// maximum of 20%.
+		///
+		/// With the move to agile-coretime, this parameter does not make much sense and should
+		/// generally be set to false.
+		#[codec(index = 4)]
+		pub static UseAuctionSlots: bool = true;
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
+			dynamic_params::inflation::MinInflation,
+			Some(Perquintill::from_rational(25u64, 1000u64)),
+		))
+	}
+}
+
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey>
+	for DynamicParameterOrigin
+{
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			Inflation(_) => frame_system::ensure_root(origin.clone()),
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+/// Defines how much should the inflation be for an era given its duration.
+pub struct EraPayout;
+impl pallet_staking::EraPayout<Balance> for EraPayout {
+	fn era_payout(
+		total_staked: Balance,
+		_total_issuance: Balance,
+		era_duration_millis: u64,
+	) -> (Balance, Balance) {
+		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
+
+		let params = relay_common::EraPayoutParams {
+			total_staked,
+			total_stakable: Balances::total_issuance(),
+			ideal_stake: dynamic_params::inflation::IdealStake::get(),
+			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
+			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
+			falloff: dynamic_params::inflation::Falloff::get(),
+			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
+			legacy_auction_proportion: if dynamic_params::inflation::UseAuctionSlots::get() {
+				let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+					.into_iter()
+					// all active para-ids that do not belong to a system chain is the number of
+					// parachains that we should take into account for inflation.
+					.filter(|i| *i >= LOWEST_PUBLIC_ID)
+					.count() as u64;
+				Some(Perquintill::from_rational(auctioned_slots.min(60), 300u64))
+			} else {
+				None
+			},
+		};
+
+		log::debug!(target: LOG_TARGET, "params: {:?}", params);
+		relay_common::relay_era_payout(params)
+	}
 }
 
 parameter_types! {
@@ -650,7 +751,6 @@ parameter_types! {
 		27,
 		"DOT_SLASH_DEFER_DURATION"
 	);
-	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
 	pub const MaxExposurePageSize: u32 = 512;
 	// Note: this is not really correct as Max Nominators is (MaxExposurePageSize * page_count) but
 	// this is an unbounded number. We just set it to a reasonably high value, 1 full page
@@ -659,82 +759,6 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 16
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
-}
-
-/// Custom version of `runtime_commong::era_payout` somewhat tailored for Polkadot's crowdloan
-/// unlock history. The only tweak should be
-///
-/// ```diff
-/// - let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 200u64);
-/// + let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 300u64);
-/// ```
-///
-/// See <https://forum.polkadot.network/t/adjusting-polkadots-ideal-staking-rate-calculation/3897>.
-fn polkadot_era_payout(
-	total_staked: Balance,
-	total_stakable: Balance,
-	max_annual_inflation: Perquintill,
-	period_fraction: Perquintill,
-	auctioned_slots: u64,
-) -> (Balance, Balance) {
-	use pallet_staking_reward_fn::compute_inflation;
-	use sp_runtime::traits::Saturating;
-
-	let min_annual_inflation = Perquintill::from_rational(25u64, 1000u64);
-	let delta_annual_inflation = max_annual_inflation.saturating_sub(min_annual_inflation);
-
-	// 20% reserved for up to 60 slots.
-	let auction_proportion = Perquintill::from_rational(auctioned_slots.min(60), 300u64);
-
-	// Therefore the ideal amount at stake (as a percentage of total issuance) is 75% less the
-	// amount that we expect to be taken up with auctions.
-	let ideal_stake = Perquintill::from_percent(75).saturating_sub(auction_proportion);
-
-	let stake = Perquintill::from_rational(total_staked, total_stakable);
-	let falloff = Perquintill::from_percent(5);
-	let adjustment = compute_inflation(stake, ideal_stake, falloff);
-	let staking_inflation =
-		min_annual_inflation.saturating_add(delta_annual_inflation * adjustment);
-
-	let max_payout = period_fraction * max_annual_inflation * total_stakable;
-	let staking_payout = (period_fraction * staking_inflation) * total_stakable;
-	let rest = max_payout.saturating_sub(staking_payout);
-
-	let other_issuance = total_stakable.saturating_sub(total_staked);
-	if total_staked > other_issuance {
-		let _cap_rest = Perquintill::from_rational(other_issuance, total_staked) * staking_payout;
-		// We don't do anything with this, but if we wanted to, we could introduce a cap on the
-		// treasury amount with: `rest = rest.min(cap_rest);`
-	}
-	(staking_payout, rest)
-}
-
-pub struct EraPayout;
-impl pallet_staking::EraPayout<Balance> for EraPayout {
-	fn era_payout(
-		total_staked: Balance,
-		total_issuance: Balance,
-		era_duration_millis: u64,
-	) -> (Balance, Balance) {
-		// all para-ids that are not active.
-		let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
-			// all active para-ids that do not belong to a system chain is the number
-			// of parachains that we should take into account for inflation.
-			.filter(|i| *i >= LOWEST_PUBLIC_ID)
-			.count() as u64;
-
-		const MAX_ANNUAL_INFLATION: Perquintill = Perquintill::from_percent(10);
-		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
-
-		polkadot_era_payout(
-			total_staked,
-			total_issuance,
-			MAX_ANNUAL_INFLATION,
-			Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
-			auctioned_slots,
-		)
-	}
 }
 
 impl pallet_staking::Config for Runtime {
@@ -1606,7 +1630,7 @@ construct_runtime! {
 
 		// Consensus support.
 		// Authorship must be before session in order to note author in the correct session and era
-		// for im-online and staking.
+		// for staking.
 		Authorship: pallet_authorship = 6,
 		Staking: pallet_staking = 7,
 		Offences: pallet_offences = 8,
@@ -1622,6 +1646,7 @@ construct_runtime! {
 		Referenda: pallet_referenda = 21,
 		Origins: pallet_custom_origins = 22,
 		Whitelist: pallet_whitelist = 23,
+		Parameters: pallet_parameters = 27,
 
 		// Claims. Usable initially.
 		Claims: claims = 24,
@@ -2031,10 +2056,156 @@ pub mod migrations {
 			GetLegacyLeaseImpl,
 		>,
 		CancelAuctions,
+		restore_corrupted_ledgers::Migrate<Runtime>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
+}
+
+/// Migration to fix current corrupted staking ledgers in Polkadot.
+///
+/// It consists of:
+/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
+///  * Root origin;
+///  * Default `None` paramters.
+/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
+/// stash's free balance.
+///
+/// The stashes associated with corrupted ledgers that will be "migrated" are set in
+/// [`CorruptedStashes`].
+///
+/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
+/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
+pub(crate) mod restore_corrupted_ledgers {
+	use super::*;
+
+	use frame_support::traits::Currency;
+	use frame_system::RawOrigin;
+
+	use pallet_staking::WeightInfo;
+	use sp_staking::StakingAccount;
+
+	parameter_types! {
+		pub CorruptedStashes: Vec<AccountId> = vec![
+			// stash account 138fZsNu67JFtiiWc1eWK2Ev5jCYT6ZirZM288tf99CUHk8K
+			hex_literal::hex!["5e510306a89f40e5520ae46adcc7a4a1bbacf27c86c163b0691bbbd7b5ef9c10"].into(),
+			// stash account 14kwUJW6rtjTVW3RusMecvTfDqjEMAt8W159jAGBJqPrwwvC
+			hex_literal::hex!["a6379e16c5dab15e384c71024e3c6667356a5487127c291e61eed3d8d6b335dd"].into(),
+			// stash account 13SvkXXNbFJ74pHDrkEnUw6AE8TVkLRRkUm2CMXsQtd4ibwq
+			hex_literal::hex!["6c3e8acb9225c2a6d22539e2c268c8721b016be1558b4aad4bed220dfbf01fea"].into(),
+			// stash account 12YcbjN5cvqM63oK7WMhNtpTQhtCrrUr4ntzqqrJ4EijvDE8
+			hex_literal::hex!["4458ad5f0c082da64610607beb9d3164a77f1ef7964b7871c1de182ea7213783"].into(),
+		];
+	}
+
+	pub struct Migrate<T>(sp_std::marker::PhantomData<T>);
+	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
+		fn on_runtime_upgrade() -> Weight {
+			let mut total_weight: Weight = Default::default();
+			let mut ok_migration = 0;
+			let mut err_migration = 0;
+
+			for stash in CorruptedStashes::get().into_iter() {
+				let stash_account: T::AccountId = if let Ok(stash_account) =
+					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
+				{
+					stash_account
+				} else {
+					log::error!(
+						target: LOG_TARGET,
+						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
+						stash.clone(),
+					);
+					err_migration += 1;
+					continue
+				};
+
+				// restore currupted ledger.
+				match pallet_staking::Pallet::<T>::restore_ledger(
+					RawOrigin::Root.into(),
+					stash_account.clone(),
+					None,
+					None,
+					None,
+				) {
+					Ok(_) => (), // proceed.
+					Err(err) => {
+						// note: after first migration run, restoring ledger will fail with
+						// `staking::pallet::Error::<T>CannotRestoreLedger`.
+						log::error!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
+							err
+						);
+						continue
+					},
+				};
+
+				// check if restored ledger total is higher than the stash's free balance. If
+				// that's the case, force unstake the ledger.
+				let weight = if let Ok(ledger) = pallet_staking::Pallet::<T>::ledger(
+					StakingAccount::Stash(stash_account.clone()),
+				) {
+					// force unstake the ledger.
+					if ledger.total > T::Currency::free_balance(&stash_account) {
+						let slashing_spans = 10; // default slashing spans for migration.
+						let _ = pallet_staking::Pallet::<T>::force_unstake(
+							RawOrigin::Root.into(),
+							stash_account.clone(),
+							slashing_spans,
+						)
+						.map_err(|err| {
+							log::error!(
+								target: LOG_TARGET,
+								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
+								err
+							);
+							err_migration += 1;
+							err
+						});
+
+						log::info!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
+							stash_account,
+						);
+						ok_migration += 1;
+
+						<T::WeightInfo>::restore_ledger()
+							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
+					} else {
+						log::info!(
+							target: LOG_TARGET,
+							"migrations::corrupted_ledgers: ledger of {:?} restored.",
+							stash,
+						);
+						ok_migration += 1;
+
+						<T::WeightInfo>::restore_ledger()
+					}
+				} else {
+					log::error!(
+						target: LOG_TARGET,
+						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
+					);
+					err_migration += 1;
+					<T::WeightInfo>::restore_ledger()
+				};
+
+				total_weight.saturating_accrue(weight);
+			}
+
+			log::info!(
+				target: LOG_TARGET,
+				"migrations::corrupted_ledgers: done. success: {}, error: {}",
+				ok_migration,
+				err_migration
+			);
+
+			total_weight
+		}
+	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2107,7 +2278,48 @@ mod benches {
 	);
 }
 
+use relay_common::apis::InflationInfo;
+impl Runtime {
+	fn impl_experimental_inflation_info() -> InflationInfo {
+		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
+		let (staked, _start) = ActiveEra::<Runtime>::get()
+			.map(|ae| (ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap_or(0)))
+			.unwrap_or((0, 0));
+		let stake_able_issuance = Balances::total_issuance();
+
+		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
+		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
+			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
+				.into_iter()
+				// all active para-ids that do not belong to a system chain is the number of
+				// parachains that we should take into account for inflation.
+				.filter(|i| *i >= LOWEST_PUBLIC_ID)
+				.count() as u64;
+			ideal_staking_rate
+				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 300u64))
+		} else {
+			ideal_staking_rate
+		};
+
+		// We assume un-delayed 24h eras.
+		let era_duration = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
+		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
+			staked,
+			stake_able_issuance,
+			era_duration,
+		);
+
+		InflationInfo { inflation, next_mint }
+	}
+}
+
 sp_api::impl_runtime_apis! {
+	impl relay_common::apis::Inflation<Block> for Runtime {
+		fn experimental_inflation_prediction_info() -> InflationInfo {
+			Runtime::impl_experimental_inflation_info()
+		}
+	}
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION
@@ -2217,12 +2429,6 @@ sp_api::impl_runtime_apis! {
 
 	impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
 		fn offchain_worker(header: &<Block as BlockT>::Header) {
-			use sp_runtime::{traits::Header, DigestItem};
-
-			if header.digest().logs().iter().any(|di| di == &DigestItem::RuntimeEnvironmentUpdated) {
-				pallet_im_online::migration::clear_offchain_storage(Session::validators().len() as u32);
-			}
-
 			Executive::offchain_worker(header)
 		}
 	}
@@ -3415,6 +3621,73 @@ mod remote_tests {
 		ext.execute_with(|| {
 			pallet_fast_unstake::ErasToCheckPerBlock::<Runtime>::put(1);
 			polkadot_runtime_common::try_runtime::migrate_all_inactive_nominators::<Runtime>()
+		});
+	}
+
+	#[tokio::test]
+	async fn next_inflation() {
+		use hex_literal::hex;
+		sp_tracing::try_init_simple();
+		let transport: Transport =
+			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string()).into();
+		let mut ext = Builder::<Block>::default()
+			.mode(Mode::Online(OnlineConfig {
+				transport,
+				hashed_prefixes: vec![
+					// staking eras total stake
+					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")
+						.to_vec(),
+				],
+				hashed_keys: vec![
+					// staking active era
+					hex!("5f3e4907f716ac89b6347d15ececedca487df464e44a534ba6b0cbb32407b587")
+						.to_vec(),
+					// balances ti
+					hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80")
+						.to_vec(),
+					// timestamp now
+					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+						.to_vec(),
+					// para-ids
+					hex!("cd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee")
+						.to_vec(),
+				],
+				..Default::default()
+			}))
+			.build()
+			.await
+			.unwrap();
+		ext.execute_with(|| {
+			use pallet_staking::EraPayout;
+			let (total_staked, started) = pallet_staking::ActiveEra::<Runtime>::get()
+				.map(|ae| {
+					(pallet_staking::ErasTotalStake::<Runtime>::get(ae.index), ae.start.unwrap())
+				})
+				.unwrap();
+			let total_issuance = Balances::total_issuance();
+			let _real_era_duration_millis =
+				pallet_timestamp::Now::<Runtime>::get().saturating_sub(started);
+			// 24h in milliseconds
+			let average_era_duration_millis = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
+			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+				total_staked,
+				total_issuance,
+				average_era_duration_millis.into(),
+			);
+			use ss58_registry::TokenRegistry;
+			let token: ss58_registry::Token = TokenRegistry::Dot.into();
+
+			log::info!(target: LOG_TARGET, "total-staked = {:?}", token.amount(total_staked));
+			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
+			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
+			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
+			log::info!(target: LOG_TARGET, "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
+			log::info!(target: LOG_TARGET, "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
+			log::info!(target: LOG_TARGET, "falloff = {:?}", dynamic_params::inflation::Falloff::get());
+			log::info!(target: LOG_TARGET, "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
+			log::info!(target: LOG_TARGET, "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
+			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
+			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
 		});
 	}
 }

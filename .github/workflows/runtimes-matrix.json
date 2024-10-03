@@ -75,7 +75,8 @@
     "package": "coretime-polkadot-runtime",
     "path": "system-parachains/coretime/coretime-polkadot",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "uri": "wss://polkadot-coretime-rpc.polkadot.io:443"
   },
   {
     "name": "people-kusama",
