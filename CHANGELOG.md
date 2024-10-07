@@ -4,6 +4,10 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+- Update foreign asset ids in Asset Hub Polkadot and Asset Hub Kusama from v3 to v4 locations ([polkadot-fellows/runtimes#472](https://github.com/polkadot-fellows/runtimes/pull/472))
+
 ## [1.3.3] 01.10.2024
 
 ### Changed
