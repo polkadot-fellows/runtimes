@@ -3459,6 +3459,27 @@ mod multiplier_tests {
 		assert_eq!(projected_total_issuance, 26_725_065_621_398_235_666);
 	}
 
+	// Print percent per year, just as convenience.
+	#[test]
+	fn staking_inflation_correct_print_percent() {
+		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+			123, // ignored
+			456, // ignored
+			(35625 * MILLISECONDS_PER_DAY) / 100, // 1 year
+		);
+		let yearly_emission = to_stakers + to_treasury;
+		let mut ti: i128 = 15_011_657_390_566_252_333;
+
+		for y in 0..10 {
+			let new_ti = ti + yearly_emission as i128;
+			let inflation = 100.0 * (new_ti - ti) as f64 / ti as f64;
+			println!("Year {y} inflation: {inflation}%");
+			ti = new_ti;
+
+			assert!(inflation <= 8.0 && inflation > 2.0, "sanity check");
+		}
+	}
+
 	#[test]
 	fn fast_unstake_estimate() {
 		use pallet_fast_unstake::WeightInfo;
