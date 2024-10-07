@@ -113,7 +113,7 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v4::Location, is_foreig
 		if is_foreign {
 			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 				signed_owner.clone(),
-				asset,
+				asset.clone(),
 				owner.clone().into(),
 				3_000_000_000_000,
 			));
@@ -131,8 +131,8 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v4::Location, is_foreig
 		}
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			signed_owner.clone(),
-			Box::new(dot),
-			Box::new(asset),
+			Box::new(dot.clone()),
+			Box::new(asset.clone()),
 		));
 		assert_expected_events!(
 			AssetHubPolkadot,

@@ -39,7 +39,7 @@ fn register_kusama_asset_on_pah_from_kah() {
 
 	// Encoded `create_asset` call to be executed in Polkadot Asset Hub ForeignAssets pallet.
 	let call = AssetHubPolkadot::create_foreign_asset_call(
-		bridged_asset_at_pah,
+		bridged_asset_at_pah.clone(),
 		ASSET_MIN_BALANCE,
 		sa_of_kah_on_pah.clone(),
 	);

@@ -208,7 +208,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		);
 
 		// 6. Swap!
-		let path = vec![asset_native.clone(), Box::new(foreign_asset_at_asset_hub_polkadot.clone())];
+		let path =
+			vec![asset_native.clone(), Box::new(foreign_asset_at_asset_hub_polkadot.clone())];
 
 		assert_ok!(
             <AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::swap_exact_tokens_for_tokens(
