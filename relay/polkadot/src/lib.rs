@@ -704,35 +704,25 @@ impl pallet_parameters::Config for Runtime {
 pub struct EraPayout;
 impl pallet_staking::EraPayout<Balance> for EraPayout {
 	fn era_payout(
-		total_staked: Balance,
+		_total_staked: Balance,
 		_total_issuance: Balance,
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
-		const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
-
-		let params = relay_common::EraPayoutParams {
-			total_staked,
-			total_stakable: Balances::total_issuance(),
-			ideal_stake: dynamic_params::inflation::IdealStake::get(),
-			max_annual_inflation: dynamic_params::inflation::MaxInflation::get(),
-			min_annual_inflation: dynamic_params::inflation::MinInflation::get(),
-			falloff: dynamic_params::inflation::Falloff::get(),
-			period_fraction: Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR),
-			legacy_auction_proportion: if dynamic_params::inflation::UseAuctionSlots::get() {
-				let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-					.into_iter()
-					// all active para-ids that do not belong to a system chain is the number of
-					// parachains that we should take into account for inflation.
-					.filter(|i| *i >= LOWEST_PUBLIC_ID)
-					.count() as u64;
-				Some(Perquintill::from_rational(auctioned_slots.min(60), 300u64))
-			} else {
-				None
-			},
-		};
-
-		log::debug!(target: LOG_TARGET, "params: {:?}", params);
-		relay_common::relay_era_payout(params)
+		const MILLISECONDS_PER_YEAR: u64 = (1000 * 3600 * 24 * 36525) / 100;
+		// A normal-sized era will have 1 / 356 here:
+		let relative_era_len = Perquintill::from_rational(era_duration_millis, MILLISECONDS_PER_YEAR);
+		
+		// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
+		let fixed_total_issuance = 15_011_657_390_566_252_333;
+		let yearly_inflation_rate = Perquintill::from_percent(8);
+		let yearly_emission = fixed_total_issuance * fixed_inflation_rate;
+		
+		let era_emission = yearly_emission * relative_era_len;
+		// 15% to treasury, as per ref 1139.
+		let to_treasury = era_emission * Perquintill::from_percent(15);
+		let to_stakers = era_emission - to_treasury;
+		
+		(to_stakers, to_treasury)
 	}
 }
 
