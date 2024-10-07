@@ -25,9 +25,6 @@ pub mod account {
 	/// Referenda pallet ID.
 	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
 	pub const REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/refer");
-	/// Ambassador Referenda pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const AMBASSADOR_REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/amref");
 	/// Identity pallet ID.
 	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
 	pub const IDENTITY_PALLET_ID: PalletId = PalletId(*b"py/ident");
@@ -35,6 +32,8 @@ pub mod account {
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+	/// Potoc treasury pallet ID
+	pub const POTOC_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ptctr");
 }
 
 /// Consensus-related.
