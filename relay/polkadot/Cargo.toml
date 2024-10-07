@@ -110,6 +110,7 @@ sp-debug-derive = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 
 [dev-dependencies]
+approx = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }
