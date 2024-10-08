@@ -710,7 +710,7 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		era_duration_millis: u64,
 	) -> (Balance, Balance) {
 		const MILLISECONDS_PER_YEAR: u64 = (1000 * 3600 * 24 * 36525) / 100;
-		// A normal-sized era will have 1 / 356.25 here:
+		// A normal-sized era will have 1 / 365.25 here:
 		let relative_era_len =
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
 
@@ -3434,11 +3434,28 @@ mod multiplier_tests {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
 			123,                                  // ignored
 			456,                                  // ignored
-			(35625 * MILLISECONDS_PER_DAY) / 100, // 1 year
+			(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
 		);
 
 		// 8% of the fixed total issuance: 120M Dot per year
 		let yearly_emission = 120_093_259 * UNITS;
+
+		assert_relative_eq!(to_stakers as f64, yearly_emission as f64 * 0.85, max_relative = 0.1);
+		assert_relative_eq!(to_treasury as f64, yearly_emission as f64 * 0.15, max_relative = 0.1);
+	}
+
+	#[test]
+	fn staking_inflation_while_year_exact() {
+		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+			123,                                  // ignored
+			456,                                  // ignored
+			(365625 * MILLISECONDS_PER_DAY) / 100, // 1 year
+		);
+
+		// 8% of the fixed total issuance is about 120M Dot per year
+		let yearly_emission = 120_093_259 * UNITS;
+		// But also check it exactly:
+		assert_eq!(to_stakers + to_treasury, 1200932590000000000);
 
 		assert_relative_eq!(to_stakers as f64, yearly_emission as f64 * 0.85, max_relative = 0.1);
 		assert_relative_eq!(to_treasury as f64, yearly_emission as f64 * 0.15, max_relative = 0.1);
@@ -3450,13 +3467,13 @@ mod multiplier_tests {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
 			123,                                 // ignored
 			456,                                 // ignored
-			(35625 * MILLISECONDS_PER_DAY) / 10, // 10 years
+			(365625 * MILLISECONDS_PER_DAY) / 10, // 10 years
 		);
 		let initial_ti: i128 = 15_011_657_390_566_252_333;
 		let projected_total_issuance = (to_stakers as i128 + to_treasury as i128) + initial_ti;
 
-		// In 2034, there will be about 26.7 billion DOTs in existence.
-		assert_eq!(projected_total_issuance, 26_725_065_621_398_235_666);
+		// In 2034, there will be about 2.7 billion DOT in existence.
+		assert_relative_eq!(projected_total_issuance as f64, (2_700_000_0000 * UNITS) as f64, max_relative = 0.1);
 	}
 
 	// Print percent per year, just as convenience.
@@ -3465,7 +3482,7 @@ mod multiplier_tests {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
 			123,                                  // ignored
 			456,                                  // ignored
-			(35625 * MILLISECONDS_PER_DAY) / 100, // 1 year
+			(365625 * MILLISECONDS_PER_DAY) / 100, // 1 year
 		);
 		let yearly_emission = to_stakers + to_treasury;
 		let mut ti: i128 = 15_011_657_390_566_252_333;
