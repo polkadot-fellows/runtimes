@@ -56,7 +56,7 @@ jobs:
       - name: Build EXTRA_FLAGS
         run: |
           # When running on relay, we don't need weight checks.
-          EXTRA_FLAGS=""
+          EXTRA_FLAGS="${{ matrix.runtime.extra_args }}"
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             EXTRA_FLAGS+="--no-weight-warnings"
             echo "Disabling weight checks since we are on a relay"
@@ -105,10 +105,6 @@ jobs:
         env:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
-          #  runtime-package: ${{ matrix.runtime.package }}
-          #  node-uri: ${{ matrix.runtime.uri }}
-          #  checks: ${{ env.CHECKS }}
-          #  extra-args: ${{ env.EXTRA_FLAGS }}
         run: |
           cargo install -q --git https://github.com/liamaharon/try-runtime-cli --branch liam-runtime-upgrade-mbms
 
