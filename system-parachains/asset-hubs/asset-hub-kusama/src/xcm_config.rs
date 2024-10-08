@@ -603,7 +603,8 @@ pub mod bridging {
 			}
 		}
 		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
-			ContainsPair<Asset, Location> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+			ContainsPair<Asset, Location>
+			for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
 		{
 			fn contains(asset: &Asset, origin: &Location) -> bool {
 				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)
