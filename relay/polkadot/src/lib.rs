@@ -3432,8 +3432,8 @@ mod multiplier_tests {
 	#[test]
 	fn staking_inflation_correct_whole_year() {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123, // ignored
-			456, // ignored
+			123,                                  // ignored
+			456,                                  // ignored
 			(35625 * MILLISECONDS_PER_DAY) / 100, // 1 year
 		);
 
@@ -3448,8 +3448,8 @@ mod multiplier_tests {
 	#[test]
 	fn staking_inflation_correct_not_overflow() {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123, // ignored
-			456, // ignored
+			123,                                 // ignored
+			456,                                 // ignored
 			(35625 * MILLISECONDS_PER_DAY) / 10, // 10 years
 		);
 		let initial_ti: i128 = 15_011_657_390_566_252_333;
@@ -3463,8 +3463,8 @@ mod multiplier_tests {
 	#[test]
 	fn staking_inflation_correct_print_percent() {
 		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123, // ignored
-			456, // ignored
+			123,                                  // ignored
+			456,                                  // ignored
 			(35625 * MILLISECONDS_PER_DAY) / 100, // 1 year
 		);
 		let yearly_emission = to_stakers + to_treasury;

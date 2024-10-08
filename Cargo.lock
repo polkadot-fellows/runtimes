@@ -10069,6 +10069,7 @@ dependencies = [
 name = "polkadot-runtime"
 version = "1.0.0"
 dependencies = [
+ "approx",
  "binary-merkle-tree",
  "frame-benchmarking",
  "frame-election-provider-support",
