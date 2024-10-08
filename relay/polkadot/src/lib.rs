@@ -3413,13 +3413,13 @@ mod multiplier_tests {
 		);
 
 		// Values are within 0.1%
-		assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.01);
-		assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.01);
+		assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
+		assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
 		// Total per day is ~328,797 DOT
 		assert_relative_eq!(
 			(to_stakers as f64 + to_treasury as f64),
 			(328_797 * UNITS) as f64,
-			max_relative = 0.01
+			max_relative = 0.001
 		);
 	}
 
@@ -3432,8 +3432,8 @@ mod multiplier_tests {
 			2 * MILLISECONDS_PER_DAY,
 		);
 
-		assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64 * 2.0, max_relative = 0.01);
-		assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64 * 2.0, max_relative = 0.01);
+		assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64 * 2.0, max_relative = 0.001);
+		assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64 * 2.0, max_relative = 0.001);
 	}
 
 	#[test]
@@ -3449,11 +3449,11 @@ mod multiplier_tests {
 		assert_relative_eq!(
 			to_stakers as f64 + to_treasury as f64,
 			yearly_emission as f64,
-			max_relative = 0.01
+			max_relative = 0.001
 		);
 
-		assert_relative_eq!(to_stakers as f64, yearly_emission as f64 * 0.85, max_relative = 0.01);
-		assert_relative_eq!(to_treasury as f64, yearly_emission as f64 * 0.15, max_relative = 0.01);
+		assert_relative_eq!(to_stakers as f64, yearly_emission as f64 * 0.85, max_relative = 0.001);
+		assert_relative_eq!(to_treasury as f64, yearly_emission as f64 * 0.15, max_relative = 0.001);
 	}
 
 	// 10 years into the future, our values do not overflow.
@@ -3471,7 +3471,7 @@ mod multiplier_tests {
 		assert_relative_eq!(
 			projected_total_issuance as f64,
 			(2_700_000_000 * UNITS) as f64,
-			max_relative = 0.01
+			max_relative = 0.001
 		);
 	}
 
