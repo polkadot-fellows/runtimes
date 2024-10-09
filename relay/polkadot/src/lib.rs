@@ -1183,8 +1183,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -2157,7 +2156,7 @@ pub(crate) mod restore_corrupted_ledgers {
 							stash_account.clone(),
 							slashing_spans,
 						)
-						.inspect(|err| {
+						.inspect_err(|err| {
 							log::error!(
 								target: LOG_TARGET,
 								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",

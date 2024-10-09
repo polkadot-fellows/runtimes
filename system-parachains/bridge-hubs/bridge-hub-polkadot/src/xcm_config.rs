@@ -73,6 +73,7 @@ parameter_types! {
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
 /// when determining ownership of accounts for asset transacting and when attempting to use XCM
 /// `Transact` in order to determine the dispatch Origin.
@@ -101,6 +102,7 @@ pub type FungibleTransactor = FungibleAdapter<
 	(),
 >;
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
 /// biases the kind of local `Origin` it will become.
@@ -300,6 +302,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// A `FeeManager` implementation that forces fees for any message delivered to Ethereum.
 /// Otherwise, it permits the specified `WaivedLocations` to not pay for fees and uses the provided
 /// `HandleFee` implementation.

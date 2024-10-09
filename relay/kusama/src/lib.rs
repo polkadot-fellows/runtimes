@@ -1213,8 +1213,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1617,6 +1616,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
 /// native asset and provide a one-to-one balance conversion for them.
@@ -1829,10 +1829,10 @@ pub mod migrations {
 ///
 /// It consists of:
 /// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
-///  * Root origin;
-///  * Default `None` paramters.
+///   * Root origin;
+///   * Default `None` paramters.
 /// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
-/// stash's free balance.
+///   stash's free balance.
 ///
 /// The stashes associated with corrupted ledgers that will be "migrated" are set in
 /// [`CorruptedStashes`].
@@ -1915,14 +1915,13 @@ pub(crate) mod restore_corrupted_ledgers {
 							stash_account.clone(),
 							slashing_spans,
 						)
-						.map_err(|err| {
+						.inspect_err(|err| {
 							log::error!(
 								target: LOG_TARGET,
 								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
 								err
 							);
 							err_migration += 1;
-							err
 						});
 
 						log::info!(
