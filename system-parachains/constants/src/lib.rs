@@ -27,6 +27,7 @@ use frame_support::{
 pub use parachains_common::BlockNumber;
 use sp_runtime::Perbill;
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// This determines the average expected block time that we are targeting. Blocks will be
 /// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
 /// `pallet_timestamp` which is in turn picked up by `pallet_aura` to implement `fn
