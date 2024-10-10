@@ -17,10 +17,11 @@
 
 use asset_hub_kusama_runtime::{
 	xcm_config::{
-		KsmLocation, KsmLocationV3, StakingPot, TrustBackedAssetsPalletLocationV3, XcmConfig,
+		AssetFeeAsExistentialDepositMultiplierFeeCharger, KsmLocation, StakingPot,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
-	SessionKeys,
+	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ExistentialDeposit, ForeignAssets,
+	Runtime, SessionKeys,
 };
 use asset_test_utils::ExtBuilder;
 use assets_common::AssetIdForTrustBackedAssetsConvert;
@@ -33,12 +34,6 @@ use frame_support::{
 	weights::WeightToFee as WeightToFeeT,
 };
 
-use asset_hub_kusama_runtime::{
-	xcm_config::{
-		AssetFeeAsExistentialDepositMultiplierFeeCharger, TrustBackedAssetsPalletLocation,
-	},
-	ExistentialDeposit,
-};
 use cumulus_primitives_utility::ChargeWeightInFungibles;
 use frame_support::assert_noop;
 
@@ -466,10 +461,10 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
 			let asset_1: u32 = 1;
-			let native_location = KsmLocationV3::get();
+			let native_location = KsmLocation::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
-				TrustBackedAssetsPalletLocationV3,
-				xcm::v3::Location,
+				TrustBackedAssetsPalletLocation,
+				xcm::v4::Location,
 			>::convert_back(&asset_1)
 			.unwrap();
 			// bob's initial balance for native and `asset1` assets.
@@ -486,14 +481,14 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
-				Box::new(native_location),
-				Box::new(asset_1_location)
+				Box::new(native_location.clone()),
+				Box::new(asset_1_location.clone())
 			));
 
 			assert_ok!(AssetConversion::add_liquidity(
 				RuntimeHelper::origin_of(bob.clone()),
-				Box::new(native_location),
-				Box::new(asset_1_location),
+				Box::new(native_location.clone()),
+				Box::new(asset_1_location.clone()),
 				pool_liquidity,
 				pool_liquidity,
 				1,
@@ -505,8 +500,6 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let asset_total_issuance = Assets::total_issuance(asset_1);
 			let native_total_issuance = Balances::total_issuance();
 
-			let asset_1_location_latest: Location = asset_1_location.try_into().unwrap();
-
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
 			let fee = WeightToFee::weight_to_fee(&weight);
@@ -514,7 +507,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 				AssetConversion::get_amount_in(&fee, &pool_liquidity, &pool_liquidity).unwrap();
 			let extra_amount = 100;
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
-			let payment: Asset = (asset_1_location_latest.clone(), asset_fee + extra_amount).into();
+			let payment: Asset = (asset_1_location.clone(), asset_fee + extra_amount).into();
 
 			// init trader and buy weight.
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
@@ -522,10 +515,8 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
 
 			// assert.
-			let unused_amount = unused_asset
-				.fungible
-				.get(&asset_1_location_latest.clone().into())
-				.map_or(0, |a| *a);
+			let unused_amount =
+				unused_asset.fungible.get(&asset_1_location.clone().into()).map_or(0, |a| *a);
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance + asset_fee);
 
@@ -533,13 +524,13 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let refund_weight = Weight::from_parts(1_000_000_000, 0);
 			let refund = WeightToFee::weight_to_fee(&refund_weight);
 			let (reserve1, reserve2) =
-				AssetConversion::get_reserves(native_location, asset_1_location).unwrap();
+				AssetConversion::get_reserves(native_location, asset_1_location.clone()).unwrap();
 			let asset_refund =
 				AssetConversion::get_amount_out(&refund, &reserve1, &reserve2).unwrap();
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			assert_eq!(actual_refund, (asset_1_location_latest, asset_refund).into());
+			assert_eq!(actual_refund, (asset_1_location, asset_refund).into());
 
 			// assert.
 			assert_eq!(Balances::balance(&staking_pot), initial_balance);
@@ -568,12 +559,12 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
-			let native_location = KsmLocationV3::get();
-			let foreign_location = xcm::v3::Location {
+			let native_location = KsmLocation::get();
+			let foreign_location = xcm::v4::Location {
 				parents: 1,
 				interior: (
-					xcm::v3::Junction::Parachain(1234),
-					xcm::v3::Junction::GeneralIndex(12345),
+					xcm::v4::Junction::Parachain(1234),
+					xcm::v4::Junction::GeneralIndex(12345),
 				)
 					.into(),
 			};
@@ -584,26 +575,26 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// init asset, balances and pool.
 			assert_ok!(<ForeignAssets as Create<_>>::create(
-				foreign_location,
+				foreign_location.clone(),
 				bob.clone(),
 				true,
 				10
 			));
 
-			assert_ok!(ForeignAssets::mint_into(foreign_location, &bob, initial_balance));
+			assert_ok!(ForeignAssets::mint_into(foreign_location.clone(), &bob, initial_balance));
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
 			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
-				Box::new(native_location),
-				Box::new(foreign_location)
+				Box::new(native_location.clone()),
+				Box::new(foreign_location.clone())
 			));
 
 			assert_ok!(AssetConversion::add_liquidity(
 				RuntimeHelper::origin_of(bob.clone()),
-				Box::new(native_location),
-				Box::new(foreign_location),
+				Box::new(native_location.clone()),
+				Box::new(foreign_location.clone()),
 				pool_liquidity,
 				pool_liquidity,
 				1,
@@ -612,10 +603,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			));
 
 			// keep initial total issuance to assert later.
-			let asset_total_issuance = ForeignAssets::total_issuance(foreign_location);
+			let asset_total_issuance = ForeignAssets::total_issuance(foreign_location.clone());
 			let native_total_issuance = Balances::total_issuance();
-
-			let foreign_location_latest: Location = foreign_location.try_into().unwrap();
 
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
@@ -624,7 +613,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 				AssetConversion::get_amount_in(&fee, &pool_liquidity, &pool_liquidity).unwrap();
 			let extra_amount = 100;
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
-			let payment: Asset = (foreign_location_latest.clone(), asset_fee + extra_amount).into();
+			let payment: Asset = (foreign_location.clone(), asset_fee + extra_amount).into();
 
 			// init trader and buy weight.
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
@@ -632,13 +621,11 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
 
 			// assert.
-			let unused_amount = unused_asset
-				.fungible
-				.get(&foreign_location_latest.clone().into())
-				.map_or(0, |a| *a);
+			let unused_amount =
+				unused_asset.fungible.get(&foreign_location.clone().into()).map_or(0, |a| *a);
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(
-				ForeignAssets::total_issuance(foreign_location),
+				ForeignAssets::total_issuance(foreign_location.clone()),
 				asset_total_issuance + asset_fee
 			);
 
@@ -646,13 +633,13 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			let refund_weight = Weight::from_parts(1_000_000_000, 0);
 			let refund = WeightToFee::weight_to_fee(&refund_weight);
 			let (reserve1, reserve2) =
-				AssetConversion::get_reserves(native_location, foreign_location).unwrap();
+				AssetConversion::get_reserves(native_location, foreign_location.clone()).unwrap();
 			let asset_refund =
 				AssetConversion::get_amount_out(&refund, &reserve1, &reserve2).unwrap();
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			assert_eq!(actual_refund, (foreign_location_latest, asset_refund).into());
+			assert_eq!(actual_refund, (foreign_location.clone(), asset_refund).into());
 
 			// assert.
 			assert_eq!(Balances::balance(&staking_pot), initial_balance);
