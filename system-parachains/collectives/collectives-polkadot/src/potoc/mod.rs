@@ -19,7 +19,6 @@
 mod origins;
 mod tracks;
 
-use frame_support::traits::NeverEnsureOrigin;
 use crate::{
 	impls::ToParentTreasury,
 	weights,
@@ -28,19 +27,16 @@ use crate::{
 	PotocReferenda, Preimage, Runtime, RuntimeCall, RuntimeEvent, Scheduler, DAYS,
 	POTOC_TREASURY_PALLET_ID, *,
 };
+use frame_support::traits::NeverEnsureOrigin;
 // There is only one admin for all collectives:
 use crate::xcm_config::FellowshipAdminBodyId as PotocAdminBodyId;
 use frame_support::{
 	parameter_types,
-	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess,
-	},
+	traits::{EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
-pub use origins::{
-	pallet_origins as pallet_potoc_origins, Members,
-};
+pub use origins::{pallet_origins as pallet_potoc_origins, Members};
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
@@ -48,9 +44,7 @@ use polkadot_runtime_common::impls::{
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
-use sp_runtime::traits::{
-	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
-};
+use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault};
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -132,8 +126,7 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 	// Exchange is by any of:
 	// - Root can exchange arbitrarily.
 	// - the Members origin
-	type ExchangeOrigin =
-		EitherOf<frame_system::EnsureRoot<Self::AccountId>, Members>;
+	type ExchangeOrigin = EitherOf<frame_system::EnsureRoot<Self::AccountId>, Members>;
 	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
 	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = PotocReferenda;
