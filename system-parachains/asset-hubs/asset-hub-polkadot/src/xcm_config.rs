@@ -86,6 +86,7 @@ parameter_types! {
 			.unwrap_or(TreasuryAccount::get());
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
 /// when determining ownership of accounts for asset transacting and when attempting to use XCM
 /// `Transact` in order to determine the dispatch Origin.
@@ -198,6 +199,7 @@ pub type PoolFungiblesTransactor = FungiblesAdapter<
 pub type AssetTransactors =
 	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
 /// biases the kind of local `Origin` it will become.
