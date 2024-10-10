@@ -19,6 +19,7 @@
 use super::ranks;
 pub use pallet_origins::*;
 
+#[allow(unreachable_patterns)]
 #[frame_support::pallet]
 pub mod pallet_origins {
 	use super::ranks;
@@ -134,7 +135,9 @@ pub mod pallet_origins {
 
 	/// A `TryMorph` implementation which is designed to convert an aggregate `RuntimeOrigin`
 	/// value into the Fellowship voice it represents if it is a Fellowship pallet origin an
-	/// appropriate variant. See also [Origin::as_voice].
+	/// appropriate variant.
+	///
+	/// See also [Origin::as_voice].
 	pub struct ToVoice;
 	impl<'a, O: 'a + TryInto<&'a Origin>> sp_runtime::traits::TryMorph<O> for ToVoice {
 		type Outcome = pallet_ranked_collective::Rank;
