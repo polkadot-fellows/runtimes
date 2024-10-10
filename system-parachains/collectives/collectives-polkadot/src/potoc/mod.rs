@@ -23,16 +23,17 @@ use frame_support::traits::NeverEnsureOrigin;
 use crate::{
 	impls::ToParentTreasury,
 	weights,
-	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId, LocationToAccountId, TreasurerBodyId},
+	xcm_config::{AssetHubUsdt, LocationToAccountId, TreasurerBodyId},
 	AccountId, AssetRateWithNative, Balance, Balances, GovernanceLocation, PolkadotTreasuryAccount,
-	PotocReferenda, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler, DAYS,
+	PotocReferenda, Preimage, Runtime, RuntimeCall, RuntimeEvent, Scheduler, DAYS,
 	POTOC_TREASURY_PALLET_ID, *,
 };
-use frame_support::traits::TryMapSuccess;
+// There is only one admin for all collectives:
+use crate::xcm_config::FellowshipAdminBodyId as PotocAdminBodyId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		EitherOf, EitherOfDiverse, MapSuccess, OriginTrait, PalletInfoAccess, TryWithMorphedArg,
+		EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess,
 	},
 	PalletId,
 };
@@ -40,23 +41,22 @@ use frame_system::{EnsureRoot, EnsureRootWithSuccess};
 pub use origins::{
 	pallet_origins as pallet_potoc_origins, Members,
 };
-use pallet_ranked_collective::EnsureOfRank;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
-use polkadot_runtime_constants::{currency::GRAND, time::HOURS, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use polkadot_runtime_constants::{currency::GRAND, time::HOURS};
 use sp_arithmetic::Permill;
 use sp_core::{ConstU128, ConstU32};
 use sp_runtime::traits::{
-	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault, TakeFirst,
+	ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault,
 };
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::impls::benchmarks::{OpenHrmpChannel, PayWithEnsure};
 
-/// PoToC's members ranks.
+/// PoToC's ranks.
 pub mod ranks {
 	use pallet_ranked_collective::Rank;
 
@@ -66,31 +66,24 @@ pub mod ranks {
 	pub const MEMBER: Rank = 1;
 }
 
-/// Root, FellowshipAdmin or Members.
+/// Origin of either Member vote, OpenGov or Root.
 pub type OpenGovOrMembers = EitherOfDiverse<
-	EnsureRoot<AccountId>,
-	EitherOfDiverse<EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>, Members>,
+	Members,
+	EitherOfDiverse<
+		EnsureXcm<IsVoiceOfBody<GovernanceLocation, PotocAdminBodyId>>,
+		EnsureRoot<AccountId>,
+	>,
 >;
 
 /// Promote origin, either:
 /// - Root
 /// - PoToC's Admin origin (i.e. token holder referendum)
 /// - Members vote
-pub type PromoteOrigin = EitherOf<
-	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
-	EitherOf<
-		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			Replace<ConstU16<65535>>,
-		>,
-		TryMapSuccess<Members, Replace<ConstU16<1>>>,
-	>,
->;
+pub type PromoteOrigin = MapSuccess<OpenGovOrMembers, Replace<ConstU16<1>>>;
 
 impl pallet_potoc_origins::Config for Runtime {}
 
 pub type PotocReferendaInstance = pallet_referenda::Instance3;
-
 impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
 	type WeightInfo = weights::pallet_referenda_fellowship_referenda::WeightInfo<Runtime>;
 	type RuntimeCall = RuntimeCall;
@@ -114,14 +107,13 @@ impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
 }
 
 pub type PotocCollectiveInstance = pallet_ranked_collective::Instance3;
-
 impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	// Promotions and the induction of new members are serviced by `PotocCore` pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
+	type PromoteOrigin = frame_system::EnsureNever<Rank>;
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
 	// pass.
 	#[cfg(feature = "runtime-benchmarks")]
@@ -130,13 +122,10 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 	// Demotion is by any of:
 	// - Root can demote arbitrarily.
 	// - PoToC's Admin origin (i.e. token holder referendum);
-	//
-	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
-	// pass.
 	type DemoteOrigin = EitherOf<
 		EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>,
 		MapSuccess<
-			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
+			EnsureXcm<IsVoiceOfBody<GovernanceLocation, PotocAdminBodyId>>,
 			Replace<ConstU16<65535>>,
 		>,
 	>;

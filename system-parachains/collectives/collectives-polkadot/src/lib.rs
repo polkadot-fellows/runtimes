@@ -1136,7 +1136,7 @@ impl_runtime_apis! {
 						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: AssetId(Parent.into())
-						}.into(),
+						},
 						Parent.into(),
 					))
 				}

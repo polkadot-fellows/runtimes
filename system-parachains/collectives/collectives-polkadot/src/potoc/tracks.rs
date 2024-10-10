@@ -17,9 +17,10 @@
 //! Track configurations for PoToC.
 
 use super::origins::Origin;
-use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
-use pallet_ranked_collective::Rank;
-use sp_runtime::{traits::Convert, Perbill};
+use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS};
+use sp_runtime::Perbill;
+use pallet_referenda::TrackInfo;
+use pallet_referenda::Curve::LinearDecreasing;
 
 /// Referendum `TrackId` type.
 pub type TrackId = u16;
@@ -42,23 +43,23 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
 
 	/// Return the array of available tracks and their information.
-	fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
-		static DATA: [(TrackId, pallet_referenda::TrackInfo<Balance, BlockNumber>); 1] = [(
+	fn tracks() -> &'static [(Self::Id, TrackInfo<Balance, BlockNumber>)] {
+		static DATA: [(TrackId, TrackInfo<Balance, BlockNumber>); 1] = [(
 			constants::MEMBERS,
-			pallet_referenda::TrackInfo {
+			TrackInfo {
 				name: "members",
-				max_deciding: 20,
+				max_deciding: 10,
 				decision_deposit: 5 * DOLLARS,
 				prepare_period: 24 * HOURS,
 				decision_period: 7 * DAYS,
 				confirm_period: 24 * HOURS,
 				min_enactment_period: HOURS,
-				min_approval: pallet_referenda::Curve::LinearDecreasing {
+				min_approval: LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(50),
 					ceil: Perbill::from_percent(100),
 				},
-				min_support: pallet_referenda::Curve::LinearDecreasing {
+				min_support: LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(0),
 					ceil: Perbill::from_percent(50),

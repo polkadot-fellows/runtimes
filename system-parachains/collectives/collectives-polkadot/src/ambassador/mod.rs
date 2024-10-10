@@ -18,14 +18,14 @@
 //! The module defines the following on-chain functionality of the Ambassador Program:
 //!
 //! - Managed set of program members, where every member has a [rank](ranks)
-//! (via [AmbassadorCollective](pallet_ranked_collective)).
+//!   (via [AmbassadorCollective](pallet_ranked_collective)).
 //! - Referendum functionality for the program members to propose, vote on, and execute
-//! proposals on behalf of the members of a certain [rank](Origin)
-//! (via [AmbassadorReferenda](pallet_referenda)).
+//!    proposals on behalf of the members of a certain [rank](Origin)
+//!   (via [AmbassadorReferenda](pallet_referenda)).
 //! - Promotion and demotion periods, register of members' activity, and rank based salaries
-//! (via [AmbassadorCore](pallet_core_fellowship)).
+//!   (via [AmbassadorCore](pallet_core_fellowship)).
 //! - Members' salaries (via [AmbassadorSalary](pallet_salary), requiring a member to be
-//! imported or inducted into [AmbassadorCore](pallet_core_fellowship)).
+//!   imported or inducted into [AmbassadorCore](pallet_core_fellowship)).
 //! - Ambassador Program Sub-Treasury (via [AmbassadorTreasury](pallet_treasury)).
 
 pub mod migrations;
