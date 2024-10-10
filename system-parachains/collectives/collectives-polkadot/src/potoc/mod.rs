@@ -113,7 +113,7 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 
 	// Promotions and the induction of new members are serviced by `PotocCore` pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	type PromoteOrigin = frame_system::EnsureNever<Rank>;
+	type PromoteOrigin = frame_system::EnsureNever<pallet_ranked_collective::Rank>;
 	// The maximum value of `u16` set as a success value for the root to ensure the benchmarks will
 	// pass.
 	#[cfg(feature = "runtime-benchmarks")]

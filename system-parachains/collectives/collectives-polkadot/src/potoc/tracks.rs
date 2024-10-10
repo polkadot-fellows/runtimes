@@ -17,10 +17,11 @@
 //! Track configurations for PoToC.
 
 use super::origins::Origin;
-use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS};
+use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS, MINUTES};
 use sp_runtime::Perbill;
 use pallet_referenda::TrackInfo;
 use pallet_referenda::Curve::LinearDecreasing;
+use polkadot_runtime_common::prod_or_fast;
 
 /// Referendum `TrackId` type.
 pub type TrackId = u16;
@@ -50,10 +51,22 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				name: "members",
 				max_deciding: 10,
 				decision_deposit: 5 * DOLLARS,
-				prepare_period: 24 * HOURS,
-				decision_period: 7 * DAYS,
-				confirm_period: 24 * HOURS,
-				min_enactment_period: HOURS,
+				prepare_period: prod_or_fast!(
+					24 * HOURS,
+					1 * MINUTES
+				),
+				decision_period: prod_or_fast!(
+					7 * DAYS,
+					5 * MINUTES
+				),
+				confirm_period: prod_or_fast!(
+					24 * HOURS,
+					1 * MINUTES
+				),
+				min_enactment_period: prod_or_fast!(
+					HOURS,
+					1 * MINUTES
+				),
 				min_approval: LinearDecreasing {
 					length: Perbill::from_percent(100),
 					floor: Perbill::from_percent(50),
