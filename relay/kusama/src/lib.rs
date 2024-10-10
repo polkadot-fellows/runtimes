@@ -1617,10 +1617,11 @@ impl pallet_nomination_pools::Config for Runtime {
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 }
 
-#[allow(clippy::too_long_first_doc_paragraph)]
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
-/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
-/// native asset and provide a one-to-one balance conversion for them.
+/// `AssetRate` pallet instance.
+///
+/// With additional decoration to identify different IDs/locations of native asset and provide a
+/// one-to-one balance conversion for them.
 pub type AssetRateWithNative = UnityOrOuterConversion<
 	ContainsLocationParts<
 		FromContains<
