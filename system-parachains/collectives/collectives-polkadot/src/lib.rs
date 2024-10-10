@@ -782,6 +782,7 @@ type Migrations = (
 	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, fellowship::FellowshipCoreInstance>,
 	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, ambassador::AmbassadorCoreInstance>,
 	ambassador::migrations::TruncateHeadAmbassadors,
+	potoc::InsertSeedMembers,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );

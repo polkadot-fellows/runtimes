@@ -27,23 +27,26 @@ use crate::{
 	PotocReferenda, Preimage, Runtime, RuntimeCall, RuntimeEvent, Scheduler, DAYS,
 	POTOC_TREASURY_PALLET_ID, *,
 };
-use frame_support::traits::NeverEnsureOrigin;
 // There is only one admin for all collectives:
 use crate::xcm_config::FellowshipAdminBodyId as PotocAdminBodyId;
 use frame_support::{
 	parameter_types,
-	traits::{EitherOf, EitherOfDiverse, MapSuccess, PalletInfoAccess},
+	traits::{
+		DefensiveResult, EitherOf, EitherOfDiverse, MapSuccess, NeverEnsureOrigin,
+		OnRuntimeUpgrade, PalletInfoAccess, RankedMembers,
+	},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
 pub use origins::{pallet_origins as pallet_potoc_origins, Members};
+use pallet_ranked_collective::WeightInfo;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::impls::{
 	LocatableAssetConverter, VersionedLocatableAsset, VersionedLocationConverter,
 };
 use polkadot_runtime_constants::{currency::GRAND, time::HOURS};
 use sp_arithmetic::Permill;
-use sp_core::{ConstU128, ConstU32};
+use sp_core::{crypto::Ss58Codec, ConstU128, ConstU32};
 use sp_runtime::traits::{ConstU16, ConvertToValue, IdentityLookup, Replace, ReplaceWithDefault};
 use xcm_builder::{AliasesIntoAccountId32, PayOverXcm};
 
@@ -272,4 +275,49 @@ impl pallet_treasury::Config<PotocTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+}
+
+pub struct InsertSeedMembers;
+impl OnRuntimeUpgrade for InsertSeedMembers {
+	fn on_runtime_upgrade() -> Weight {
+		let mut weight = Weight::default();
+
+		let seed_member = vec![
+			"151S1YrZd4zfUYCeWhNERkGdmom8kdqAtRqtHwh9HYMTfFYJ",
+			"14DsLzVyTUTDMm2eP3czwPbH53KgqnQRp3CJJZS9GR7yxGDP",
+			"16JskuojL6mSp6HNcjiHYa9jqksWbLD8L9YGWU1ppiPWQ9sa",
+			"15oLanodWWweiZJSoDTEBtrX7oGfq6e8ct5y5E6fVRDPhUgj",
+			"14iKbZws1fjJ6TH27yoRq6KeeVNof83VmxUBN2W2udQVBe5o",
+			"12TNvHiRkwzYqT5UZ86cfUvBeZBjLLYUzHLa4Hix99oTrgqT",
+			"12W3ea6jWKhzSWSCMjUKqtDwasRACeYFGkyvVb9Y9b5dGm2v",
+			"15roJ4ZrgrZam5BQWJgiGHpgp7ShFQBRNLq6qUfiNqXDZjMK",
+			"15DCWHQknBjc5YPFoVj8Pn2KoqrqYywJJ95BYNYJ4Fj3NLqz",
+			"15DCZocYEM2ThYCAj22QE4QENRvUNVrDtoLBVbCm5x4EQncr",
+			"16a357f5Sxab3V2ne4emGQvqJaCLeYpTMx3TCjnQhmJQ71DX",
+			"13ogXJ1tpHZoaav2iQQRDH5eHcvpAEfwB1UFY6dijDBmDcic",
+			"16JGzEsi8gcySKjpmxHVrkLTHdFHodRepEz8n244gNZpr9J",
+		];
+
+		for address in seed_member.iter() {
+			let Ok(member) = AccountId::from_ss58check(address) else {
+				frame_support::defensive!("Invalid seed member: {member}");
+				continue;
+			};
+
+			<pallet_ranked_collective::Pallet::<Runtime, PotocCollectiveInstance> as RankedMembers>::induct(
+				&member,
+			).defensive_ok();
+			<pallet_ranked_collective::Pallet::<Runtime, PotocCollectiveInstance> as RankedMembers>::promote(
+				&member,
+			).defensive_ok();
+
+			log::info!("PoToC Seed member inserted: {address}");
+
+			// TODO use potoc weight
+			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::add_member());
+			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::promote_member(1));
+		}
+
+		weight
+	}
 }
