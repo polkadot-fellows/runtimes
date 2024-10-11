@@ -38,7 +38,7 @@ fn set_up_ksm_for_penpal_kusama_through_kah_to_pah(
 	amount: u128,
 ) -> (Location, v4::Location) {
 	let ksm_at_kusama_parachains = ksm_at_ah_kusama();
-	let ksm_at_asset_hub_polkadot = v4::Location::try_from(bridged_ksm_at_ah_polkadot()).unwrap();
+	let ksm_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
 	create_foreign_on_ah_polkadot(ksm_at_asset_hub_polkadot.clone(), true);
 
 	let penpal_location = AssetHubKusama::sibling_location_of(PenpalA::para_id());
@@ -115,8 +115,8 @@ fn send_ksm_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let amount = ASSET_HUB_KUSAMA_ED * 1_000;
 	let sender = AssetHubKusamaSender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let ksm_at_asset_hub_kusama = v4::Location::try_from(ksm_at_ah_kusama()).unwrap();
-	let bridged_ksm_at_ah_polkadot = v4::Location::try_from(bridged_ksm_at_ah_polkadot()).unwrap();
+	let ksm_at_asset_hub_kusama = ksm_at_ah_kusama();
+	let bridged_ksm_at_ah_polkadot = bridged_ksm_at_ah_polkadot();
 
 	create_foreign_on_ah_polkadot(bridged_ksm_at_ah_polkadot.clone(), true);
 	set_up_pool_with_dot_on_ah_polkadot(bridged_ksm_at_ah_polkadot.clone(), true);
@@ -187,7 +187,7 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let amount_to_send = ASSET_HUB_POLKADOT_ED * 1_000;
 	let sender = AssetHubKusamaSender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let dot_at_asset_hub_kusama = v4::Location::try_from(bridged_dot_at_ah_kusama()).unwrap();
+	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 	let prefund_accounts = vec![(sender.clone(), prefund_amount)];
 	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true, prefund_accounts);
 
@@ -259,13 +259,12 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	//////////////////////////////////////////////////////////////////
 
 	// wETH has same relative location on both Polkadot and Kusama AssetHubs
-	let bridged_weth_at_ah = v4::Location::try_from(weth_at_asset_hubs()).unwrap();
-	let bridged_usdt_at_asset_hub_kusama =
-		v4::Location::try_from(bridged_usdt_at_ah_kusama()).unwrap();
+	let bridged_weth_at_ah = weth_at_asset_hubs();
+	let bridged_usdt_at_asset_hub_kusama = bridged_usdt_at_ah_kusama();
 
 	// set up destination chain AH Polkadot:
 	// create a DOT/USDT pool to be able to pay fees with USDT (USDT created in genesis)
-	set_up_pool_with_dot_on_ah_polkadot(usdt_at_ah_polkadot().try_into().unwrap(), false);
+	set_up_pool_with_dot_on_ah_polkadot(usdt_at_ah_polkadot(), false);
 	// create wETH on Polkadot (IRL it's already created by Snowbridge)
 	create_foreign_on_ah_polkadot(bridged_weth_at_ah.clone(), true);
 	// prefund KAH's sovereign account on PAH to be able to withdraw USDT and wETH from reserves
@@ -300,11 +299,11 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let receiver_weth_before =
 		foreign_balance_on_ah_polkadot(bridged_weth_at_ah.clone(), &receiver);
 
-	let usdt_id: AssetId = Location::try_from(bridged_usdt_at_asset_hub_kusama).unwrap().into();
+	let usdt_id: AssetId = bridged_usdt_at_asset_hub_kusama.into();
 	// send USDTs and wETHs
 	let assets: Assets = vec![
 		(usdt_id.clone(), amount_to_send).into(),
-		(Location::try_from(bridged_weth_at_ah.clone()).unwrap(), amount_to_send).into(),
+		(bridged_weth_at_ah.clone(), amount_to_send).into(),
 	]
 	.into();
 	// use USDT for fees
@@ -398,7 +397,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 			vec![
 				// issue KSMs on PAH
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == v4::Location::try_from(ksm_at_kusama_parachains.clone()).unwrap(),
+					asset_id: *asset_id == ksm_at_kusama_parachains.clone(),
 					owner: owner == &receiver,
 				},
 				// message processed successfully

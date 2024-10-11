@@ -284,7 +284,7 @@ fn send_token_from_ethereum_to_penpal() {
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
-	let weth_asset_id: v4::Location = weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_id = weth_asset_location.clone();
 
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
@@ -853,14 +853,14 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
-			weth_asset_location.clone().try_into().unwrap(),
+			weth_asset_location.clone(),
 			asset_hub_sovereign.into(),
 			false,
 			1,
 		));
 
 		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
-			weth_asset_location.clone().try_into().unwrap(),
+			weth_asset_location.clone(),
 		));
 	});
 
