@@ -87,6 +87,7 @@ parameter_types! {
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
+///
 /// This is used when determining ownership of accounts for asset transacting and when attempting to
 /// use XCM `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (

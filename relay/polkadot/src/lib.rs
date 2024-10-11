@@ -1583,6 +1583,7 @@ impl pallet_state_trie_migration::Config for Runtime {
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance.
+///
 /// With additional decoration to identify different IDs/locations of native asset and provide a
 /// one-to-one balance conversion for them.
 pub type AssetRateWithNative = UnityOrOuterConversion<
