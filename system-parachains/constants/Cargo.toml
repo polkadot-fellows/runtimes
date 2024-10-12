@@ -20,6 +20,7 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 xcm = { workspace = true }
+serde_json = { features = ["alloc"], workspace = true }
 
 [features]
 default = ["std"]
