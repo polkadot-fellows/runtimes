@@ -7,19 +7,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Changed
-
-- Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407)).
 - Genesis config presets: Make use of RuntimeGenesisConfig to construct genesis config values for all runtimes ([polkadot-fellows/runtimes#451](https://github.com/polkadot-fellows/runtimes/pull/451)).
+
+
+## [1.3.3] 01.10.2024
+
+### Changed
+
+- Allow signed origins to send arbitrary XCMs from some system chains ([polkadot-fellows/runtimes#407](https://github.com/polkadot-fellows/runtimes/pull/407))
+- Include the Core and Salary pallets into the Fellowship proxy ([polkadot-fellows/runtimes#454](https://github.com/polkadot-fellows/runtimes/pull/454))
+- Add new community democracy and treasuries pallets to Encointer ([polkadot-fellows/runtimes#456](https://github.com/polkadot-fellows/runtimes/pull/456))
+- Change target block time for Encointer to 6s ([polkadot-fellows/runtimes#462](https://github.com/polkadot-fellows/runtimes/pull/462))
+- Asset Hubs: allow Polkadot, Kusama and Ethereum assets across P<>K bridge ([polkadot-fellows/runtimes#421](https://github.com/polkadot-fellows/runtimes/pull/421)).
 
 ### Fixed
 
 - Chain-spec generator: propagate the `on_chain_release_build` feature to the chain-spec generator. Without this the live/genesis chain-specs contain a wrongly-configured WASM blob ([polkadot-fellows/runtimes#450](https://github.com/polkadot-fellows/runtimes/pull/450)).
+- Adds a migration to the Polkadot Coretime chain to fix an issue from the initial Coretime migration. ([polkadot-fellows/runtimes#458](https://github.com/polkadot-fellows/runtimes/pull/458))
+- Adds migrations to restore currupted staking ledgers in Polkadot and Kusama ([polkadot-fellows/runtimes#447](https://github.com/polkadot-fellows/runtimes/pull/447))
+
+### Added
+
+- Polkadot: Make the current inflation formula adjustable ([polkadot-fellows/runtimes#443](https://github.com/polkadot-fellows/runtimes/pull/443))
 
 ## [1.3.2] 27.08.2024
 
 ### Fixed
 
-- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](tps://github.com/polkadot-fellows/runtimes/pull/445)).
+- Kusama: Revert accidental changes to inflation formula ([polkadot-fellows/runtimes#445](https://github.com/polkadot-fellows/runtimes/pull/445)).
 
 ## [1.3.1] 23.08.2024
 
@@ -84,6 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
+- The `MessageQueue` also runs "on idle", this causes `MessageQueue::Processed` events to be emitted in other phases than just initialization ([SDK v1.13 #3844](https://github.com/paritytech/polkadot-sdk/pull/3844)).
 - AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
 - Allow StakingAdmin to manage nomination pool configurations ([SDK v1.11 #3959](https://github.com/paritytech/polkadot-sdk/pull/3959)).
 - Bridge: make some headers submissions free ([SDK v1.12 #4102](https://github.com/paritytech/polkadot-sdk/pull/4102)).

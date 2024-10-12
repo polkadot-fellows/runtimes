@@ -60,7 +60,7 @@ emulated-integration-tests-common = { version = "11.0.0" }
 encointer-balances-tx-payment = { version = "~13.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~13.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~13.2.0", default-features = false }
+encointer-primitives = { version = "~13.3.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "36.0.0", default-features = false }
 frame-election-provider-support = { version = "36.0.0", default-features = false }
@@ -114,14 +114,16 @@ pallet-encointer-ceremonies = { version = "~13.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~13.1.0", default-features = false }
 pallet-encointer-communities = { version = "~13.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~13.1.0", default-features = false }
+pallet-encointer-democracy = { version = "~13.3.2", default-features = false }
 pallet-encointer-faucet = { version = "~13.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~13.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~13.1.0", default-features = false }
+pallet-encointer-treasuries = { version = "~13.3.0", default-features = false }
+pallet-encointer-treasuries-rpc-runtime-api = { version = "~13.3.0", default-features = false }
 pallet-fast-unstake = { version = "35.0.0", default-features = false }
 pallet-glutton = { version = "22.0.0", default-features = false }
 pallet-grandpa = { version = "36.0.0", default-features = false }
 pallet-identity = { version = "36.0.0", default-features = false }
-pallet-im-online = { version = "35.0.0", default-features = false }
 pallet-indices = { version = "36.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "24.0.0", default-features = false }
 pallet-membership = { version = "36.0.0", default-features = false }
