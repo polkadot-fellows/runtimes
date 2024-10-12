@@ -15,7 +15,6 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Genesis configs presets for the EncointerKusama runtime
-
 use crate::*;
 use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
@@ -57,39 +56,6 @@ fn encointer_kusama_genesis(
 				})
 				.collect(),
 		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
-		},
-		"encointerScheduler": {
-			"currentPhase": CeremonyPhaseType::Registering,
-			"currentCeremonyIndex": 1,
-			"phaseDurations": vec![
-				(CeremonyPhaseType::Registering, 604800000u64), // 7d
-				(CeremonyPhaseType::Assigning, 86400000u64),    // 1d
-				(CeremonyPhaseType::Attesting, 172800000u64),   // 2d
-			],
-		},
-		"encointerCeremonies": {
-			"ceremonyReward": BalanceType::from_num(1),
-			"timeTolerance": 600_000u64,   // +-10min
-			"locationTolerance": 1_000, // [m]
-			"endorsementTicketsPerBootstrapper": 10,
-			"endorsementTicketsPerReputable": 5,
-			"reputationLifetime": 5,
-			"inactivityTimeout": 5, // idle ceremonies before purging community
-			"meetupTimeOffset": 0,
-		},
-		"encointerCommunities": {
-			"minSolarTripTimeS": 1, // [s]
-			"maxSpeedMps": 1,         // [m/s] suggested would be 83m/s for security,
-		},
-		"encointerBalances": {
-			// for relative adjustment.
-			"feeConversionFactor": 7_143u32,
-		},
-		"encointerFaucet": {
-			"reserveAmount": 10_000_000_000_000u128,
-		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 		aura: Default::default(),
@@ -100,17 +66,45 @@ fn encointer_kusama_genesis(
 		},
 		collective: Default::default(),
 		membership: Default::default(),
-		encointer_scheduler: Default::default(),
-		encointer_ceremonies: Default::default(),
-		encointer_communities: Default::default(),
-		encointer_balances: Default::default(),
-		encointer_faucet: Default::default(),
+		encointer_scheduler: EncointerSchedulerConfig {
+			current_phase: CeremonyPhaseType::Registering,
+			current_ceremony_index: 1,
+			phase_durations: vec![
+				(CeremonyPhaseType::Registering, 604800000u64), //7d
+				(CeremonyPhaseType::Assigning, 86400000u64),    // 1d
+				(CeremonyPhaseType::Attesting, 172800000u64), // 2d
+
+			],
+			_config: Default::default(),
+		},
+		encointer_ceremonies: EncointerCeremoniesConfig {
+			ceremony_reward: BalanceType::from_num(1),
+			time_tolerance: 600_000u64,   // +-10min
+			location_tolerance: 1_000, // [m]
+			endorsement_tickets_per_bootstrapper: 10,
+			endorsement_tickets_per_reputable: 5,
+			reputation_lifetime: 5,
+			inactivity_timeout: 5, // idle ceremonies before purging community
+			meetup_time_offset: 0,
+			_config: Default::default(),
+		},
+		encointer_communities: EncointerCommunitiesConfig {
+			min_solar_trip_time_s: 1, // [s]
+			max_speed_mps: 1,         // [m/s] suggested would be 83m/s for security,
+			_config: Default::default(),
+		},
+		encointer_balances: EncointerBalancesConfig {
+			fee_conversion_factor: 7_143u128,
+			_config: Default::default(),
+		},
+		encointer_faucet: EncointerFaucetConfig{
+			reserve_amount: 10_000_000_000_000u128,
+			_config: Default::default(),
+		},
+		encointer_democracy: Default::default(),
 	};
 
-	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
-	remove_phantom_fields(&mut config_values);
-
-	config_values
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

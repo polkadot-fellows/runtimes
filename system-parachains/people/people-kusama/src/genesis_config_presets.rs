@@ -67,10 +67,7 @@ fn people_kusama_genesis(
 		transaction_payment: Default::default(),
 	};
 
-	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
-	remove_phantom_fields(&mut config_values);
-
-	config_values
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn people_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
