@@ -72,15 +72,14 @@ fn encointer_kusama_genesis(
 			phase_durations: vec![
 				(CeremonyPhaseType::Registering, 604800000u64), //7d
 				(CeremonyPhaseType::Assigning, 86400000u64),    // 1d
-				(CeremonyPhaseType::Attesting, 172800000u64), // 2d
-
+				(CeremonyPhaseType::Attesting, 172800000u64),   // 2d
 			],
 			_config: Default::default(),
 		},
 		encointer_ceremonies: EncointerCeremoniesConfig {
 			ceremony_reward: BalanceType::from_num(1),
-			time_tolerance: 600_000u64,   // +-10min
-			location_tolerance: 1_000, // [m]
+			time_tolerance: 600_000u64, // +-10min
+			location_tolerance: 1_000,  // [m]
 			endorsement_tickets_per_bootstrapper: 10,
 			endorsement_tickets_per_reputable: 5,
 			reputation_lifetime: 5,
@@ -97,7 +96,7 @@ fn encointer_kusama_genesis(
 			fee_conversion_factor: 7_143u128,
 			_config: Default::default(),
 		},
-		encointer_faucet: EncointerFaucetConfig{
+		encointer_faucet: EncointerFaucetConfig {
 			reserve_amount: 10_000_000_000_000u128,
 			_config: Default::default(),
 		},
