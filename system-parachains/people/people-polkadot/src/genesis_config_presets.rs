@@ -67,7 +67,10 @@ fn people_polkadot_genesis(
 		transaction_payment: Default::default(),
 	};
 
-	serde_json::to_value(config).expect("Could not build genesis config.")
+	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
+	remove_phantom_fields(&mut config_values);
+
+	config_values
 }
 
 pub fn people_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
