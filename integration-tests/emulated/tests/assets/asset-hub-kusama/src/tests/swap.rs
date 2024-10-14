@@ -21,8 +21,7 @@ use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOS
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
 	let asset_native = Box::new(
-		v4::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
-			.expect("conversion works"),
+		asset_hub_kusama_runtime::xcm_config::KsmLocation::get().expect("conversion works"),
 	);
 	let asset_one = Box::new(v4::Location::new(
 		0,
@@ -120,11 +119,10 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(
-		v4::Location::try_from(asset_hub_kusama_runtime::xcm_config::KsmLocation::get())
-			.expect("conversion works"),
+		asset_hub_kusama_runtime::xcm_config::KsmLocation::get().expect("conversion works"),
 	);
 	let asset_location_on_penpal =
-		v4::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
+		PenpalLocalTeleportableToAssetHub::get().expect("conversion works");
 	let foreign_asset_at_asset_hub_kusama =
 		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
@@ -237,14 +235,10 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 #[test]
 fn cannot_create_pool_from_pool_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get()
-		.try_into()
-		.expect("conversion works");
+	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocation::get()
 		.appended_with(GeneralIndex(ASSET_ID.into()))
-		.expect("valid location")
-		.try_into()
-		.expect("conversion works");
+		.expect("valid location");
 
 	AssetHubKusama::execute_with(|| {
 		let pool_owner_account_id = asset_hub_kusama_runtime::AssetConversionOrigin::get();
@@ -277,9 +271,7 @@ fn cannot_create_pool_from_pool_assets() {
 
 #[test]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
-	let asset_native: xcm::v4::Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get()
-		.try_into()
-		.expect("conversion works");
+	let asset_native: xcm::v4::Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
 	let asset_one = xcm::v4::Location {
 		parents: 0,
 		interior: [

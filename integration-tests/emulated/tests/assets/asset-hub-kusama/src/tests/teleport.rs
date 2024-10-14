@@ -271,7 +271,9 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	let delivery_fees = AssetHubKusama::execute_with(|| {
 		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubKusamaXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
 	});
 
 	// Sender's balance is reduced
@@ -373,7 +375,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_receiver_assets_before = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_kusama.clone(),
 			&AssetHubKusamaReceiver::get(),
 		)
 	});
@@ -400,7 +402,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_receiver_assets_after = AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_kusama.clone(),
 			&AssetHubKusamaReceiver::get(),
 		)
 	});
@@ -428,7 +430,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		assert_ok!(ForeignAssets::transfer(
 			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaReceiver::get()),
-			foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_kusama.clone(),
 			AssetHubKusamaSender::get().into(),
 			asset_amount_to_send,
 		));
@@ -474,7 +476,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_sender_assets_before = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_kusama.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_kusama.clone(),
 			&AssetHubKusamaSender::get(),
 		)
 	});
@@ -500,7 +502,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_sender_assets_after = AssetHubKusama::execute_with(|| {
 		type ForeignAssets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_kusama.try_into().unwrap(),
+			foreign_asset_at_asset_hub_kusama,
 			&AssetHubKusamaSender::get(),
 		)
 	});
