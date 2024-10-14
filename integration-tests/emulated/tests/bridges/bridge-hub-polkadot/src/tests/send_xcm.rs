@@ -29,7 +29,7 @@ fn send_xcm_from_polkadot_relay_to_kusama_asset_hub_should_fail_on_not_applicabl
 	let xcm = VersionedXcm::from(Xcm(vec![
 		UnpaidExecution { weight_limit, check_origin },
 		ExportMessage {
-			network: KusamaId.into(),
+			network: KusamaId,
 			destination: [Parachain(AssetHubKusama::para_id().into())].into(),
 			xcm: remote_xcm,
 		},

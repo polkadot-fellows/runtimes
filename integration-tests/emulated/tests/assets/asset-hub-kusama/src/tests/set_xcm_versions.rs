@@ -26,7 +26,7 @@ fn relay_sets_system_para_xcm_supported_version() {
 		assert_ok!(<Kusama as KusamaPallet>::XcmPallet::force_xcm_version(
 			sudo_origin,
 			bx!(system_para_destination.clone()),
-			XCM_V3
+			XCM_V4
 		));
 
 		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
@@ -36,7 +36,7 @@ fn relay_sets_system_para_xcm_supported_version() {
 			vec![
 				RuntimeEvent::XcmPallet(pallet_xcm::Event::SupportedVersionChanged {
 					location,
-					version: XCM_V3
+					version: XCM_V4
 				}) => { location: *location == system_para_destination, },
 			]
 		);
@@ -52,7 +52,7 @@ fn system_para_sets_relay_xcm_supported_version() {
 			<AssetHubKusama as Chain>::Runtime,
 		>::force_xcm_version {
 			location: bx!(parent_location.clone()),
-			version: XCM_V3,
+			version: XCM_V4,
 		})
 		.encode()
 		.into();
@@ -74,7 +74,7 @@ fn system_para_sets_relay_xcm_supported_version() {
 			vec![
 				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::SupportedVersionChanged {
 					location,
-					version: XCM_V3
+					version: XCM_V4
 				}) => { location: *location == parent_location, },
 			]
 		);
