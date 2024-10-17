@@ -28,8 +28,13 @@ use frame_support::{
 };
 use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
+use sp_core::crypto::Ss58Codec;
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_runtime::traits::AccountIdConversion;
+use xcm_runtime_apis::conversions::LocationToAccountHelper;
+use crate::xcm_config::LocationToAccountId;
+
+const ALICE: [u8; 32] = [1u8; 32];
 
 fn advance_to(b: BlockNumber) {
 	while System::block_number() < b {
@@ -41,8 +46,6 @@ fn advance_to(b: BlockNumber) {
 
 #[test]
 fn bulk_revenue_is_burnt() {
-	const ALICE: [u8; 32] = [1u8; 32];
-
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
@@ -109,4 +112,113 @@ fn timeslice_period_is_sane() {
 	assert_eq!(TIMESLICE_PERIOD, 20);
 	#[cfg(not(feature = "fast-runtime"))]
 	assert_eq!(TIMESLICE_PERIOD, 80);
+}
+
+#[test]
+fn location_conversion_works() {
+	// the purpose of hardcoded values is to catch an unintended location conversion logic change.
+	struct TestCase {
+		description: &'static str,
+		location: Location,
+		expected_account_id_str: &'static str,
+	}
+
+	let test_cases = vec![
+		// DescribeTerminus
+		TestCase {
+			description: "DescribeTerminus Parent",
+			location: Location::new(1, Here),
+			expected_account_id_str: "5Dt6dpkWPwLaH4BBCKJwjiWrFVAGyYk3tLUabvyn4v7KtESG",
+		},
+		TestCase {
+			description: "DescribeTerminus Sibling",
+			location: Location::new(1, [Parachain(1111)]),
+			expected_account_id_str: "5Eg2fnssmmJnF3z1iZ1NouAuzciDaaDQH7qURAy3w15jULDk",
+		},
+		// DescribePalletTerminal
+		TestCase {
+			description: "DescribePalletTerminal Parent",
+			location: Location::new(1, [PalletInstance(50)]),
+			expected_account_id_str: "5CnwemvaAXkWFVwibiCvf2EjqwiqBi29S5cLLydZLEaEw6jZ",
+		},
+		TestCase {
+			description: "DescribePalletTerminal Sibling",
+			location: Location::new(1, [Parachain(1111), PalletInstance(50)]),
+			expected_account_id_str: "5GFBgPjpEQPdaxEnFirUoa51u5erVx84twYxJVuBRAT2UP2g",
+		},
+		// DescribeAccountId32Terminal
+		TestCase {
+			description: "DescribeAccountId32Terminal Parent",
+			location: Location::new(
+				1,
+				[xcm::prelude::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(ALICE).into() }],
+			),
+			expected_account_id_str: "5DN5SGsuUG7PAqFL47J9meViwdnk9AdeSWKFkcHC45hEzVz4",
+		},
+		TestCase {
+			description: "DescribeAccountId32Terminal Sibling",
+			location: Location::new(
+				1,
+				[
+					Parachain(1111),
+					Junction::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(ALICE).into() },
+				],
+			),
+			expected_account_id_str: "5DGRXLYwWGce7wvm14vX1Ms4Vf118FSWQbJkyQigY2pfm6bg",
+		},
+		// DescribeAccountKey20Terminal
+		TestCase {
+			description: "DescribeAccountKey20Terminal Parent",
+			location: Location::new(1, [AccountKey20 { network: None, key: [0u8; 20] }]),
+			expected_account_id_str: "5F5Ec11567pa919wJkX6VHtv2ZXS5W698YCW35EdEbrg14cg",
+		},
+		TestCase {
+			description: "DescribeAccountKey20Terminal Sibling",
+			location: Location::new(
+				1,
+				[Parachain(1111), AccountKey20 { network: None, key: [0u8; 20] }],
+			),
+			expected_account_id_str: "5CB2FbUds2qvcJNhDiTbRZwiS3trAy6ydFGMSVutmYijpPAg",
+		},
+		// DescribeTreasuryVoiceTerminal
+		TestCase {
+			description: "DescribeTreasuryVoiceTerminal Parent",
+			location: Location::new(1, [Plurality { id: BodyId::Treasury, part: BodyPart::Voice }]),
+			expected_account_id_str: "5CUjnE2vgcUCuhxPwFoQ5r7p1DkhujgvMNDHaF2bLqRp4D5F",
+		},
+		TestCase {
+			description: "DescribeTreasuryVoiceTerminal Sibling",
+			location: Location::new(
+				1,
+				[Parachain(1111), Plurality { id: BodyId::Treasury, part: BodyPart::Voice }],
+			),
+			expected_account_id_str: "5G6TDwaVgbWmhqRUKjBhRRnH4ry9L9cjRymUEmiRsLbSE4gB",
+		},
+		// DescribeBodyTerminal
+		TestCase {
+			description: "DescribeBodyTerminal Parent",
+			location: Location::new(1, [Plurality { id: BodyId::Unit, part: BodyPart::Voice }]),
+			expected_account_id_str: "5EBRMTBkDisEXsaN283SRbzx9Xf2PXwUxxFCJohSGo4jYe6B",
+		},
+		TestCase {
+			description: "DescribeBodyTerminal Sibling",
+			location: Location::new(
+				1,
+				[Parachain(1111), Plurality { id: BodyId::Unit, part: BodyPart::Voice }],
+			),
+			expected_account_id_str: "5DBoExvojy8tYnHgLL97phNH975CyT45PWTZEeGoBZfAyRMH",
+		},
+	];
+
+	for tc in test_cases {
+		let expected =
+			polkadot_core_primitives::AccountId::from_string(tc.expected_account_id_str).expect("Invalid AccountId string");
+
+		let got = LocationToAccountHelper::<polkadot_core_primitives::AccountId, LocationToAccountId>::convert_location(
+			tc.location.into(),
+		)
+			.unwrap();
+
+		assert_eq!(got, expected, "{}", tc.description);
+	}
 }
