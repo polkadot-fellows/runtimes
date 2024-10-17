@@ -23,6 +23,7 @@ pub mod genesis_config_presets;
 pub mod people;
 mod weights;
 pub mod xcm_config;
+mod tests;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
