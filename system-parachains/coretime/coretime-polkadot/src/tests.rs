@@ -16,6 +16,7 @@
 
 use crate::{
 	coretime::{BrokerPalletId, CoretimeBurnAccount},
+	xcm_config::LocationToAccountId,
 	*,
 };
 use coretime::CoretimeAllocator;
@@ -28,11 +29,10 @@ use frame_support::{
 };
 use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
 use parachains_runtimes_test_utils::ExtBuilder;
-use sp_core::crypto::Ss58Codec;
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use sp_core::crypto::Ss58Codec;
 use sp_runtime::traits::AccountIdConversion;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
-use crate::xcm_config::LocationToAccountId;
 
 const ALICE: [u8; 32] = [1u8; 32];
 
@@ -151,7 +151,10 @@ fn location_conversion_works() {
 			description: "DescribeAccountId32Terminal Parent",
 			location: Location::new(
 				1,
-				[xcm::prelude::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(ALICE).into() }],
+				[xcm::prelude::AccountId32 {
+					network: None,
+					id: polkadot_core_primitives::AccountId::from(ALICE).into(),
+				}],
 			),
 			expected_account_id_str: "5DN5SGsuUG7PAqFL47J9meViwdnk9AdeSWKFkcHC45hEzVz4",
 		},
@@ -161,7 +164,10 @@ fn location_conversion_works() {
 				1,
 				[
 					Parachain(1111),
-					Junction::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(ALICE).into() },
+					Junction::AccountId32 {
+						network: None,
+						id: polkadot_core_primitives::AccountId::from(ALICE).into(),
+					},
 				],
 			),
 			expected_account_id_str: "5DGRXLYwWGce7wvm14vX1Ms4Vf118FSWQbJkyQigY2pfm6bg",
@@ -211,8 +217,8 @@ fn location_conversion_works() {
 	];
 
 	for tc in test_cases {
-		let expected =
-			polkadot_core_primitives::AccountId::from_string(tc.expected_account_id_str).expect("Invalid AccountId string");
+		let expected = polkadot_core_primitives::AccountId::from_string(tc.expected_account_id_str)
+			.expect("Invalid AccountId string");
 
 		let got = LocationToAccountHelper::<polkadot_core_primitives::AccountId, LocationToAccountId>::convert_location(
 			tc.location.into(),

@@ -407,7 +407,10 @@ fn location_conversion_works() {
 			description: "DescribeAccountId32Terminal Parent",
 			location: Location::new(
 				1,
-				[xcm::prelude::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(Alice).into() }],
+				[xcm::prelude::AccountId32 {
+					network: None,
+					id: polkadot_core_primitives::AccountId::from(Alice).into(),
+				}],
 			),
 			expected_account_id_str: "5EueAXd4h8u75nSbFdDJbC29cmi4Uo1YJssqEL9idvindxFL",
 		},
@@ -417,7 +420,10 @@ fn location_conversion_works() {
 				1,
 				[
 					Parachain(1111),
-					Junction::AccountId32 { network: None, id: polkadot_core_primitives::AccountId::from(Alice).into() },
+					Junction::AccountId32 {
+						network: None,
+						id: polkadot_core_primitives::AccountId::from(Alice).into(),
+					},
 				],
 			),
 			expected_account_id_str: "5Dmbuiq48fU4iW58FKYqoGbbfxFHjbAeGLMtjFg6NNCw3ssr",
@@ -467,8 +473,8 @@ fn location_conversion_works() {
 	];
 
 	for tc in test_cases {
-		let expected =
-			polkadot_core_primitives::AccountId::from_string(tc.expected_account_id_str).expect("Invalid AccountId string");
+		let expected = polkadot_core_primitives::AccountId::from_string(tc.expected_account_id_str)
+			.expect("Invalid AccountId string");
 
 		let got = LocationToAccountHelper::<polkadot_core_primitives::AccountId, LocationToAccountId>::convert_location(
 			tc.location.into(),
