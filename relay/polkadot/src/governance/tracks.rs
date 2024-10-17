@@ -154,7 +154,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 16
 		13,
 		pallet_referenda::TrackInfo {
 			name: "fellowship_admin",
-			max_deciding: 10,
+			max_deciding: 30,
 			decision_deposit: 5 * GRAND,
 			prepare_period: 2 * HOURS,
 			decision_period: 28 * DAYS,
