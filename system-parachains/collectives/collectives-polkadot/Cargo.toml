@@ -94,6 +94,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 
 [features]
 default = ["std"]
+fast-runtime = []
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
