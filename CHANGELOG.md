@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fix missing bump of the Kusama-Asset-Hub spec version to 1.3.3 ([polkadot-fellows/runtimes#463](https://github.com/polkadot-fellows/runtimes/pull/463))
 
+### Changed
+
+Change Polkadot inflation to 120M DOT per year ([polkadot-fellows/runtimes#471](https://github.com/polkadot-fellows/runtimes/pull/471))
+
 ## [1.3.3] 01.10.2024
 
 ### Changed
