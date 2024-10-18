@@ -910,7 +910,7 @@ pub mod remove_when_updated_to_stable2409 {
 				);
 				// check `CheckingAccount` before
 				assert_eq!(
-					<pallet_balances::Pallet<Runtime>>::free_balance(&CheckingAccount::get()),
+					<pallet_balances::Pallet<Runtime>>::free_balance(CheckingAccount::get()),
 					existential_deposit
 				);
 				assert_eq!(
@@ -923,7 +923,7 @@ pub mod remove_when_updated_to_stable2409 {
 				assert_eq!(
 					<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::balance(
 						foreign_asset_id_location.clone().into(),
-						&CheckingAccount::get()
+						CheckingAccount::get()
 					),
 					0.into()
 				);
@@ -1007,13 +1007,13 @@ pub mod remove_when_updated_to_stable2409 {
 				);
 				// checks `CheckingAccount` after
 				assert_eq!(
-					<pallet_balances::Pallet<Runtime>>::free_balance(&CheckingAccount::get()),
+					<pallet_balances::Pallet<Runtime>>::free_balance(CheckingAccount::get()),
 					existential_deposit
 				);
 				assert_eq!(
 					<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::balance(
 						foreign_asset_id_location.clone().into(),
-						&CheckingAccount::get()
+						CheckingAccount::get()
 					),
 					0.into()
 				);
@@ -1090,7 +1090,7 @@ pub mod remove_when_updated_to_stable2409 {
 					assert_eq!(
 						<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::balance(
 							foreign_asset_id_location.clone().into(),
-							&CheckingAccount::get()
+							CheckingAccount::get()
 						),
 						0.into()
 					);
