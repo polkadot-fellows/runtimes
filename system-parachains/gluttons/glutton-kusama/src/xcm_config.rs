@@ -34,8 +34,9 @@ parameter_types! {
 }
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
-/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
-/// bias the kind of local `Origin` it will become.
+/// ready for dispatching a transaction with Xcm's `Transact`.
+///
+/// There is an `OriginKind` which can bias the kind of local `Origin` it will become.
 pub type XcmOriginToTransactDispatchOrigin = (
 	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
 	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
