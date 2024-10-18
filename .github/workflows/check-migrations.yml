@@ -106,7 +106,7 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          cargo install -q --git https://github.com/liamaharon/try-runtime-cli
+          cargo install -q --git https://github.com/paritytech/try-runtime-cli
 
           cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
 
