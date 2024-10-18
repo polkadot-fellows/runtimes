@@ -270,7 +270,9 @@ fn limited_teleport_native_assets_from_system_para_to_relay_fails() {
 	let delivery_fees = AssetHubPolkadot::execute_with(|| {
 		xcm_helpers::teleport_assets_delivery_fees::<
 			<AssetHubPolkadotXcmConfig as xcm_executor::Config>::XcmSender,
-		>(test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest)
+		>(
+			test.args.assets.clone(), 0, test.args.weight_limit, test.args.beneficiary, test.args.dest
+		)
 	});
 
 	// Sender's balance is reduced
@@ -372,7 +374,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_receiver_assets_before = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_polkadot.clone(),
 			&AssetHubPolkadotReceiver::get(),
 		)
 	});
@@ -399,7 +401,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_receiver_assets_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_polkadot.clone(),
 			&AssetHubPolkadotReceiver::get(),
 		)
 	});
@@ -427,7 +429,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		assert_ok!(ForeignAssets::transfer(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
-			foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_polkadot.clone(),
 			AssetHubPolkadotSender::get().into(),
 			asset_amount_to_send,
 		));
@@ -473,7 +475,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_sender_assets_before = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap(),
+			foreign_asset_at_asset_hub_polkadot.clone(),
 			&AssetHubPolkadotSender::get(),
 		)
 	});
@@ -499,7 +501,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_sender_assets_after = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<ForeignAssets as Inspect<_>>::balance(
-			foreign_asset_at_asset_hub_polkadot.try_into().unwrap(),
+			foreign_asset_at_asset_hub_polkadot,
 			&AssetHubPolkadotSender::get(),
 		)
 	});

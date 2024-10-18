@@ -1190,7 +1190,7 @@ pub mod remove_when_updated_to_stable2409 {
 				// Set account as block author, who will receive fees
 				RuntimeHelper::<Runtime, AllPalletsWithoutSystem>::run_to_block(
 					2,
-					block_author_account.clone().into(),
+					block_author_account.clone(),
 				);
 
 				// drip 'ED' user target account

@@ -1156,6 +1156,7 @@ pub mod remove_when_updated_to_stable2409 {
 			.expect("expected instruction DepositAsset");
 	}
 
+	#[allow(clippy::too_many_arguments)]
 	pub fn receive_reserve_asset_deposited_from_different_consensus_works<
 		Runtime,
 		AllPalletsWithoutSystem,
