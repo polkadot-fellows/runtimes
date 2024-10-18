@@ -21,7 +21,7 @@ use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOS
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
 	let asset_native = Box::new(
-		asset_hub_kusama_runtime::xcm_config::KsmLocation::get().expect("conversion works"),
+		asset_hub_kusama_runtime::xcm_config::KsmLocation::get(),
 	);
 	let asset_one = Box::new(v4::Location::new(
 		0,
@@ -118,11 +118,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(
-		asset_hub_kusama_runtime::xcm_config::KsmLocation::get().expect("conversion works"),
-	);
-	let asset_location_on_penpal =
-		PenpalLocalTeleportableToAssetHub::get().expect("conversion works");
+	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
+	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_kusama =
 		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)

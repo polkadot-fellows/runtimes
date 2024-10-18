@@ -707,6 +707,7 @@ fn treasury_pallet_account_not_none() {
 	)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub mod remove_when_updated_to_stable2409 {
 	use crate::{AccountId, Balance, TestBridgingConfig};
 

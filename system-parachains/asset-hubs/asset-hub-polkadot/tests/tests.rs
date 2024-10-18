@@ -731,6 +731,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub mod remove_when_updated_to_stable2409 {
 	use crate::{AccountId, Balance, TestBridgingConfig};
 
@@ -1156,7 +1157,6 @@ pub mod remove_when_updated_to_stable2409 {
 			.expect("expected instruction DepositAsset");
 	}
 
-	#[allow(clippy::too_many_arguments)]
 	pub fn receive_reserve_asset_deposited_from_different_consensus_works<
 		Runtime,
 		AllPalletsWithoutSystem,
@@ -1215,7 +1215,7 @@ pub mod remove_when_updated_to_stable2409 {
 				// Set account as block author, who will receive fees
 				RuntimeHelper::<Runtime, AllPalletsWithoutSystem>::run_to_block(
 					2,
-					block_author_account.clone().into(),
+					block_author_account.clone(),
 				);
 
 				// drip 'ED' user target account
