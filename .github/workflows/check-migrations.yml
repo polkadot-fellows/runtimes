@@ -53,10 +53,10 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Build EXTRA_ARGS
+      - name: Build EXTRA_FLAGS
         run: |
           # When running on relay, we don't need weight checks.
-          EXTRA_FLAGS=""
+          EXTRA_FLAGS="${{ matrix.runtime.extra_args }}"
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
             EXTRA_FLAGS+="--no-weight-warnings"
             echo "Disabling weight checks since we are on a relay"
@@ -70,6 +70,8 @@ jobs:
             CHECKS="all"
           fi
 
+          EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
+
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
           if [ "$(.github/changelog-processor.py CHANGELOG.md --should-release)" = "0" ]; then
@@ -82,16 +84,51 @@ jobs:
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
-          echo "EXTRA_ARGS=$EXTRA_FLAGS" >> $GITHUB_ENV
+          echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
-      - name: Run ${{ matrix.runtime.name }} Runtime Checks
-        uses: "paritytech/try-runtime-gha@v0.2.0"
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1.3.0
         with:
-          runtime-package: ${{ matrix.runtime.package }}
-          node-uri: ${{ matrix.runtime.uri }}
-          checks: ${{ env.CHECKS }}
-          extra-args: ${{ env.EXTRA_ARGS }}
+          version: "3.6.1"
+
+      - name: Add wasm32-unknown-unknown target
+        run: rustup target add wasm32-unknown-unknown
+        shell: bash
+
+      - name: Add rust-src component
+        run: rustup component add rust-src
+        shell: bash
+
+      - name: Run ${{ matrix.runtime.name }} Runtime Checks
+        #uses: "paritytech/try-runtime-gha@v0.2.0"
+        env:
+          EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
+          CHECKS: ${{ env.CHECKS }}
+        run: |
+          cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
+
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
+
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          export RUST_LOG=remote-ext=debug,runtime=debug
+
+          echo "Extra args: $EXTRA_FLAGS"
+  
+          # Store the command in a variable so we can log it
+          COMMAND="try-runtime \
+            --runtime $RUNTIME_BLOB_PATH \
+            on-runtime-upgrade --checks=$CHECKS \
+            $EXTRA_FLAGS \
+            live --uri ${{ matrix.runtime.uri }}"
+  
+          # Echo the command before running it, for debugging purposes
+          echo "Running command:"
+          echo "$COMMAND"
+          eval "$COMMAND"
+          
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
