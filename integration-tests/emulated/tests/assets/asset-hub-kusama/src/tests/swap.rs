@@ -20,9 +20,7 @@ use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOS
 
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
-	let asset_native = Box::new(
-		asset_hub_kusama_runtime::xcm_config::KsmLocation::get(),
-	);
+	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
 	let asset_one = Box::new(v4::Location::new(
 		0,
 		[
