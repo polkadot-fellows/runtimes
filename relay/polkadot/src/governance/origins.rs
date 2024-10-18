@@ -18,7 +18,6 @@
 
 pub use pallet_custom_origins::*;
 
-#[allow(unreachable_patterns)]
 #[frame_support::pallet]
 pub mod pallet_custom_origins {
 	use crate::{Balance, DOLLARS, GRAND};
