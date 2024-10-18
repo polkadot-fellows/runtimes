@@ -175,13 +175,13 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		)
 		.unwrap();
 	let asset_hub_location =
-		v3::Location::new(0, v3::Junction::Parachain(AssetHubKusama::para_id().into()));
+		v4::Location::new(0, v4::Junction::Parachain(AssetHubKusama::para_id().into()));
 	let root = <Kusama as Chain>::RuntimeOrigin::root();
 	// asset kind to be spend from the treasury.
-	let asset_kind = VersionedLocatableAsset::V3 {
+	let asset_kind = VersionedLocatableAsset::V4 {
 		location: asset_hub_location,
-		asset_id: v3::AssetId::Concrete(
-			(v3::Junction::PalletInstance(50), v3::Junction::GeneralIndex(USDT_ID.into())).into(),
+		asset_id: v4::AssetId(
+			(v4::Junction::PalletInstance(50), v4::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.

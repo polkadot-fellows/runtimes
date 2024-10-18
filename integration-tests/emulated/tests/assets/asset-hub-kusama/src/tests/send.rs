@@ -36,21 +36,21 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal = v3::Location::new(
+	let asset_location_on_penpal = v4::Location::new(
 		0,
 		[
-			v3::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v3::Junction::GeneralIndex(ASSET_ID.into()),
+			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v4::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	let foreign_asset_at_asset_hub =
-		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
+		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
 	// Encoded `create_asset` call to be executed in AssetHub
 	let call = AssetHubKusama::create_foreign_asset_call(
-		foreign_asset_at_asset_hub,
+		foreign_asset_at_asset_hub.clone(),
 		ASSET_MIN_BALANCE,
 		para_sovereign_account.clone(),
 	);
@@ -97,7 +97,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 				},
 				// Foreign Asset created
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { asset_id, creator, owner }) => {
-					asset_id: *asset_id == foreign_asset_at_asset_hub,
+					asset_id: *asset_id == foreign_asset_at_asset_hub.clone(),
 					creator: *creator == para_sovereign_account.clone(),
 					owner: *owner == para_sovereign_account,
 				},

@@ -21,15 +21,12 @@ use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEP
 fn swap_locally_on_chain_using_local_assets() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native: xcm::v3::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
-			.try_into()
-			.expect("conversion works");
-	let asset_one = v3::Location::new(
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = v4::Location::new(
 		0,
 		[
-			v3::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v3::Junction::GeneralIndex(ASSET_ID.into()),
+			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v4::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 
@@ -58,8 +55,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			bx!(asset_native),
-			bx!(asset_one),
+			bx!(asset_native.clone()),
+			bx!(asset_one.clone()),
 		));
 
 		assert_expected_events!(
@@ -71,8 +68,8 @@ fn swap_locally_on_chain_using_local_assets() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			bx!(asset_native),
-			bx!(asset_one),
+			bx!(asset_native.clone()),
+			bx!(asset_one.clone()),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
@@ -87,7 +84,7 @@ fn swap_locally_on_chain_using_local_assets() {
 			]
 		);
 
-		let path = vec![bx!(asset_native), bx!(asset_one)];
+		let path = vec![bx!(asset_native.clone()), bx!(asset_one.clone())];
 
 		assert_ok!(
             <AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::swap_exact_tokens_for_tokens(
@@ -128,14 +125,10 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(
-		v3::Location::try_from(asset_hub_polkadot_runtime::xcm_config::DotLocation::get())
-			.expect("conversion works"),
-	);
-	let asset_location_on_penpal =
-		v3::Location::try_from(PenpalLocalTeleportableToAssetHub::get()).expect("conversion works");
+	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocation::get());
+	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_polkadot =
-		v3::Location::new(1, [v3::Junction::Parachain(PenpalA::para_id().into())])
+		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -160,7 +153,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		// 3. Mint foreign asset (in reality this should be a teleport or some such)
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahp.clone()),
-			foreign_asset_at_asset_hub_polkadot,
+			foreign_asset_at_asset_hub_polkadot.clone(),
 			sov_penpal_on_ahp.clone().into(),
 			ASSET_HUB_POLKADOT_ED * 3_000_000_000_000,
 		));
@@ -176,7 +169,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
 			asset_native.clone(),
-			Box::new(foreign_asset_at_asset_hub_polkadot),
+			Box::new(foreign_asset_at_asset_hub_polkadot.clone()),
 		));
 
 		assert_expected_events!(
@@ -190,7 +183,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sov_penpal_on_ahp.clone()),
 			asset_native.clone(),
-			Box::new(foreign_asset_at_asset_hub_polkadot),
+			Box::new(foreign_asset_at_asset_hub_polkadot.clone()),
 			1_000_000_000_000,
 			2_000_000_000_000,
 			0,
@@ -208,7 +201,8 @@ fn swap_locally_on_chain_using_foreign_assets() {
 		);
 
 		// 6. Swap!
-		let path = vec![asset_native.clone(), Box::new(foreign_asset_at_asset_hub_polkadot)];
+		let path =
+			vec![asset_native.clone(), Box::new(foreign_asset_at_asset_hub_polkadot.clone())];
 
 		assert_ok!(
             <AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::swap_exact_tokens_for_tokens(
@@ -250,14 +244,10 @@ fn swap_locally_on_chain_using_foreign_assets() {
 fn cannot_create_pool_from_pool_assets() {
 	use frame_support::traits::fungibles::{Create, Mutate};
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
-		.try_into()
-		.expect("conversion works");
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
 	let asset_one = asset_hub_polkadot_runtime::xcm_config::PoolAssetsPalletLocation::get()
 		.appended_with(GeneralIndex(ASSET_ID.into()))
-		.expect("valid location")
-		.try_into()
-		.expect("conversion works");
+		.expect("valid location");
 
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(
@@ -291,15 +281,13 @@ fn cannot_create_pool_from_pool_assets() {
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native: xcm::v3::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocation::get()
-			.try_into()
-			.expect("conversion works");
-	let asset_one = xcm::v3::Location {
+	let asset_native: xcm::v4::Location =
+		asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = xcm::v4::Location {
 		parents: 0,
 		interior: [
-			xcm::v3::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v3::Junction::GeneralIndex(ASSET_ID.into()),
+			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
 		]
 		.into(),
 	};
@@ -333,8 +321,8 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			Box::new(asset_native),
-			Box::new(asset_one),
+			Box::new(asset_native.clone()),
+			Box::new(asset_one.clone()),
 		));
 
 		assert_expected_events!(

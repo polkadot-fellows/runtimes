@@ -30,7 +30,7 @@ pub use sp_runtime::traits::Dispatchable;
 // Polkadot
 pub use xcm::{
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v3::{self, Error, NetworkId::Polkadot as PolkadotId},
+	v4::{self, Error, NetworkId::Polkadot as PolkadotId},
 };
 pub use xcm_executor::traits::TransferType;
 
@@ -43,7 +43,7 @@ pub use emulated_integration_tests_common::{
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
-	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
 pub use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
