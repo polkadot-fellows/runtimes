@@ -19,7 +19,6 @@
 use super::ranks;
 pub use pallet_origins::*;
 
-#[allow(unreachable_patterns)]
 #[frame_support::pallet]
 pub mod pallet_origins {
 	use super::ranks;

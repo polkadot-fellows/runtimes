@@ -25,8 +25,11 @@ jobs:
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
-      - name: Install nightly toolchain
-        run: rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component clippy
+      - name: Install stable toolchain
+        run: |
+          rustup toolchain install $RUST_STABLE_VERSION --profile minimal --component clippy
+          cargo --version
+          cargo clippy --version
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -34,7 +37,7 @@ jobs:
           shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
-        run: cargo +nightly-$RUST_NIGHTLY_VERSION clippy --all-targets --locked -q
+        run: cargo clippy --all-targets --locked -q
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
