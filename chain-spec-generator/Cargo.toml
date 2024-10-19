@@ -22,7 +22,7 @@ asset-hub-kusama-runtime = { workspace = true }
 collectives-polkadot-runtime = { workspace = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 bridge-hub-kusama-runtime = { workspace = true }
-encointer-kusama-runtime = { workspace = true }
+# encointer-kusama-runtime = { workspace = true }
 glutton-kusama-runtime = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 coretime-polkadot-runtime = { workspace = true }
@@ -39,7 +39,7 @@ runtime-benchmarks = [
 	"collectives-polkadot-runtime/runtime-benchmarks",
 	"coretime-kusama-runtime/runtime-benchmarks",
 	"coretime-polkadot-runtime/runtime-benchmarks",
-	"encointer-kusama-runtime/runtime-benchmarks",
+	# "encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"people-kusama-runtime/runtime-benchmarks",
@@ -55,7 +55,7 @@ on-chain-release-build = [
 	"collectives-polkadot-runtime/on-chain-release-build",
 	"coretime-kusama-runtime/on-chain-release-build",
 	"coretime-polkadot-runtime/on-chain-release-build",
-	"encointer-kusama-runtime/on-chain-release-build",
+	# "encointer-kusama-runtime/on-chain-release-build",
 	"glutton-kusama-runtime/on-chain-release-build",
 	"kusama-runtime/on-chain-release-build",
 	"people-kusama-runtime/on-chain-release-build",

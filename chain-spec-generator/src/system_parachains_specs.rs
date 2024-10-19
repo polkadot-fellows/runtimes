@@ -42,7 +42,7 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+// pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -172,7 +172,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 	))
 }
 
-pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+/* pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -190,7 +190,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		.with_properties(properties)
 		.build(),
 	))
-}
+} */
 
 pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
