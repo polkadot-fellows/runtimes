@@ -106,6 +106,8 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect::<Vec<_>>(),
+			// TODO: Any keys to add here?
+			non_authority_keys: vec![],
 		},
 		staking: polkadot_runtime::StakingConfig {
 			validator_count: validators::initial_authorities().len() as u32,
