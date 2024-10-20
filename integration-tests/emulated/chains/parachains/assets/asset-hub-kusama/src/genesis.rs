@@ -72,6 +72,8 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect(),
+			// TODO: Any keys to add here?
+			non_authority_keys: vec![],
 		},
 		polkadot_xcm: asset_hub_kusama_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
