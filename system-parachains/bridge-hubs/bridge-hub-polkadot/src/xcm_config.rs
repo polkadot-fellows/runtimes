@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::XcmOverBridgeHubKusama;
+
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork,
-	bridge_to_kusama_config::ToBridgeHubKusamaHaulBlobExporter, AccountId, AllPalletsWithSystem,
-	Balances, CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee,
-	XcmpQueue,
+	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balances,
+	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
+	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -43,10 +43,9 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
 	FungibleAdapter, HandleFee, HashedDescription, IsConcrete, ParentAsSuperuser, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
-	XcmFeeToAccount,
 };
 use xcm_executor::{
 	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export},
@@ -237,11 +236,11 @@ impl xcm_executor::Config for XcmConfig {
 				Self::AssetTransactor,
 				crate::EthereumOutboundQueue,
 			>,
-			XcmFeeToAccount<Self::AssetTransactor, AccountId, RelayTreasuryPalletAccount>,
+			SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
 		),
 	>;
 	type MessageExporter =
-		(ToBridgeHubKusamaHaulBlobExporter, crate::bridge_to_ethereum_config::SnowbridgeExporter);
+		(XcmOverBridgeHubKusama, crate::bridge_to_ethereum_config::SnowbridgeExporter);
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;

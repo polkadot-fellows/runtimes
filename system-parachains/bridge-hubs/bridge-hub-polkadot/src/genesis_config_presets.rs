@@ -56,6 +56,8 @@ fn bridge_hub_polkadot_genesis(
 					)
 				})
 				.collect(),
+			// TODO: Any keys to add here?
+			non_authority_keys: vec![],
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
