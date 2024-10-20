@@ -20,9 +20,9 @@ use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, PolkadotXcm, Runtime,
-	RuntimeEvent, RuntimeOrigin, XcmOverBridgeHubPolkadot,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmOverBridgeHubPolkadot,
 };
-use bp_messages::LaneId;
+use bp_messages::{LaneId, LegacyLaneId};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_runtime::Chain;
 use bridge_runtime_common::{
@@ -42,10 +42,13 @@ use bridge_runtime_common::{
 	},
 };
 use frame_support::{parameter_types, traits::PalletInfoAccess};
+use frame_system::{EnsureNever, EnsureRoot};
 use kusama_runtime_constants as constants;
+use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::{traits::ConstU32, RuntimeDebug};
 use xcm::latest::prelude::*;
-use xcm_builder::BridgeBlobDispatcher;
+use xcm_builder::{BridgeBlobDispatcher, ParentIsPreset, SiblingParachainConvertsVia};
 
 /// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
 pub const XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT: LaneId = LaneId([0, 0, 0, 1]);
@@ -157,6 +160,9 @@ parameter_types! {
 	pub PriorityBoostPerParachainHeader: u64 = 920_224_664_224_664;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 182_044_444_444_444;
+
+	// TODO: What's the correct value?
+	pub storage BridgeDeposit: Balance = 10 * DOLLARS;
 }
 
 /// Add GRANDPA bridge pallet to track Polkadot relay chain.
@@ -197,6 +203,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 		RequiredStakeForStakeAndSlash,
 		RelayerStakeLease,
 	>;
+	type LaneId = LegacyLaneId;
 	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
@@ -205,26 +212,16 @@ pub type WithBridgeHubPolkadotMessagesInstance = pallet_bridge_messages::Instanc
 impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_bridge_messages::WeightInfo<Runtime>;
-	type BridgedChainId = BridgeHubPolkadotChainId;
-	type ActiveOutboundLanes = ActiveOutboundLanesToBridgeHubPolkadot;
-	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
-	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
-
-	type MaximalOutboundPayloadSize = ToBridgeHubPolkadotMaximalOutboundPayloadSize;
-	type OutboundPayload = XcmAsPlainPayload;
 
 	type InboundPayload = XcmAsPlainPayload;
-	type InboundRelayer = AccountId;
+	type OutboundPayload = XcmAsPlainPayload;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = TargetHeaderChainAdapter<WithBridgeHubPolkadotMessageBridge>;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubPolkadotMessagesInstance,
 		DeliveryRewardInBalance,
 	>;
-
-	type SourceHeaderChain = SourceHeaderChainAdapter<WithBridgeHubPolkadotMessageBridge>;
 	type MessageDispatch = XcmBlobMessageDispatch<
 		FromPolkadotMessageBlobDispatcher,
 		Self::WeightInfo,
@@ -234,6 +231,15 @@ impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for R
 		>,
 	>;
 	type OnMessagesDelivered = OnMessagesDeliveredFromPolkadot;
+
+	type ThisChain = BridgeHubKusama;
+	type BridgedChain = BridgeHubPolkadot;
+	type BridgedHeaderChain = pallet_bridge_parachains::ParachainHeaders<
+		Runtime,
+		BridgeParachainPolkadotInstance,
+		bp_bridge_hub_polkadot::BridgeHubPolkadot,
+	>;
+	type LaneId = LegacyLaneId;
 }
 
 /// Proof of messages, coming from Polkadot.
@@ -265,17 +271,34 @@ impl XcmBlobHauler for ToBridgeHubPolkadotXcmBlobHauler {
 /// Add support for the export and dispatch of XCM programs.
 pub type XcmOverBridgeHubPolkadotInstance = pallet_xcm_bridge_hub::Instance1;
 impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubPolkadotInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
 	type UniversalLocation = UniversalLocation;
 	type BridgedNetwork = PolkadotGlobalConsensusNetworkLocation;
 	type BridgeMessagesPalletInstance = WithBridgeHubPolkadotMessagesInstance;
-	// `MessageExportPrice` is simply propagated to the inner `xcm_builder::HaulBlobExporter`, and
-	// we do not need or want to add any additional price for exporting here, as it is already
-	// covered by the measured weight of the `ExportMessage` instruction.
+
 	type MessageExportPrice = ();
 	type DestinationVersion =
 		XcmVersionOfDestAndRemoteBridge<PolkadotXcm, BridgeHubPolkadotLocation>;
-	type Lanes = ActiveLanes;
-	type LanesSupport = ToBridgeHubPolkadotXcmBlobHauler;
+
+	type ForceOrigin = EnsureRoot<AccountId>;
+	// We don't want to allow creating bridges for this instance with `LegacyLaneId`.
+	type OpenBridgeOrigin = EnsureNever<Location>;
+	// Converter aligned with `OpenBridgeOrigin`.
+	type BridgeOriginAccountIdConverter =
+		(ParentIsPreset<AccountId>, SiblingParachainConvertsVia<Sibling, AccountId>);
+
+	type BridgeDeposit = BridgeDeposit;
+	type Currency = Balances;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	// Do not require deposit from system parachains or relay chain
+	type AllowWithoutBridgeDeposit =
+		RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>;
+
+	// TODO: (bridges-v2) - add `LocalXcmChannelManager` impl - https://github.com/paritytech/parity-bridges-common/issues/3047
+	// @acatangiu
+	type LocalXcmChannelManager = ();
+	type BlobDispatcher = FromPolkadotMessageBlobDispatcher;
 }
 
 /// On messages delivered callback.
@@ -388,7 +411,6 @@ mod tests {
 			runtime: Runtime,
 			with_bridged_chain_grandpa_instance: BridgeGrandpaPolkadotInstance,
 			with_bridged_chain_messages_instance: WithBridgeHubPolkadotMessagesInstance,
-			bridge: WithBridgeHubPolkadotMessageBridge,
 			this_chain: bp_kusama::Kusama,
 			bridged_chain: bp_polkadot::Polkadot,
 		);
@@ -397,26 +419,11 @@ mod tests {
 			Runtime,
 			BridgeGrandpaPolkadotInstance,
 			WithBridgeHubPolkadotMessagesInstance,
-			WithBridgeHubPolkadotMessageBridge,
+			bp_polkadot::Polkadot,
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_kusama::BlockLength::get(),
 				block_weights: bp_bridge_hub_kusama::BlockWeights::get(),
-			},
-			messages_pallet_constants: AssertBridgeMessagesPalletConstants {
-				max_unrewarded_relayers_in_bridged_confirmation_tx:
-					bp_bridge_hub_polkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-				max_unconfirmed_messages_in_bridged_confirmation_tx:
-					bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_bridge_hub_polkadot::BridgeHubPolkadot::ID,
-			},
-			pallet_names: AssertBridgePalletNames {
-				with_this_chain_messages_pallet_name:
-					bp_bridge_hub_kusama::WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME,
-				with_bridged_chain_grandpa_pallet_name:
-					bp_polkadot::WITH_POLKADOT_GRANDPA_PALLET_NAME,
-				with_bridged_chain_messages_pallet_name:
-					bp_bridge_hub_polkadot::WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME,
 			},
 		});
 
