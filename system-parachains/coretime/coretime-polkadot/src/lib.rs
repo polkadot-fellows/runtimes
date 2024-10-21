@@ -180,9 +180,10 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// Filter out credit purchase calls until the credit system is implemented. Otherwise, users
-/// may have chance of locking their funds forever on purchased credits they cannot use.
-/// Also filter the interlace call until the relay can support this fully.
+/// Filter out credit purchase calls until the credit system is implemented.
+///
+/// Otherwise, users may have chance of locking their funds forever on purchased credits they cannot
+/// use. Also filter the interlace call until the relay can support this fully.
 pub struct IsFilteredBrokerCall;
 impl Contains<RuntimeCall> for IsFilteredBrokerCall {
 	fn contains(c: &RuntimeCall) -> bool {
