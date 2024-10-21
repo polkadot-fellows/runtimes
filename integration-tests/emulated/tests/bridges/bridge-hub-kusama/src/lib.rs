@@ -29,7 +29,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Bridges
-pub use bp_messages::LaneId;
+pub use bp_messages::LegacyLaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{
