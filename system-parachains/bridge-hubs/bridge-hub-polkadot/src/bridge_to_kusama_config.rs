@@ -37,7 +37,7 @@ use pallet_bridge_relayers::extension::{
 use pallet_xcm_bridge_hub::XcmAsPlainPayload;
 use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::{self as constants, DOLLARS};
+use polkadot_runtime_constants as constants;
 use sp_runtime::{traits::ConstU32, RuntimeDebug};
 use xcm::latest::prelude::*;
 use xcm_builder::{BridgeBlobDispatcher, ParentIsPreset, SiblingParachainConvertsVia};
@@ -135,7 +135,7 @@ parameter_types! {
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
 	// TODO: @acatangiu, is there any specs about the deposit cost?
-	pub storage BridgeDeposit: Balance = 10 * DOLLARS;
+	pub storage BridgeDeposit: Balance = 10 * constants::currency::UNITS;
 }
 
 /// Dispatches received XCM messages from other bridge
@@ -186,8 +186,8 @@ impl pallet_bridge_relayers::Config for Runtime {
 		RequiredStakeForStakeAndSlash,
 		RelayerStakeLease,
 	>;
-	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 	type LaneId = LegacyLaneId;
+	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubKusama.
