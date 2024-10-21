@@ -354,7 +354,8 @@ mod tests {
 
 		pallet_bridge_relayers::extension::per_parachain_header::ensure_priority_boost_is_sane::<
 			Runtime,
-			RefundableParachain<WithBridgeHubPolkadotMessagesInstance, BridgeHubPolkadot>,
+			WithBridgeHubPolkadotMessagesInstance,
+			bp_bridge_hub_polkadot::BridgeHubPolkadot,
 			PriorityBoostPerParachainHeader,
 		>(FEE_BOOST_PER_PARACHAIN_HEADER);
 
