@@ -60,6 +60,8 @@ pub fn genesis(para_id: u32) -> Storage {
 					)
 				})
 				.collect(),
+			// TODO: Any keys to add here?
+			non_authority_keys: vec![],
 		},
 		polkadot_xcm: penpal_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
