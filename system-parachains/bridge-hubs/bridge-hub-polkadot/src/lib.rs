@@ -566,6 +566,9 @@ construct_runtime!(
 );
 
 #[cfg(feature = "runtime-benchmarks")]
+use pallet_bridge_messages::LaneIdOf;
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -1123,11 +1126,48 @@ impl_runtime_apis! {
 						);
 						BenchmarkError::Stop("XcmVersion was not stored!")
 					})?;
+
+					let sibling_parachain_id = Parachain(5678);
+					let remote_parachain_id = Parachain(8765);
+					let sibling_parachain_location = Location::new(1, [sibling_parachain_id]);
+
+					// fund SA
+					use frame_support::traits::fungible::Mutate;
+					use xcm_executor::traits::ConvertLocation;
+					frame_support::assert_ok!(
+						Balances::mint_into(
+							&xcm_config::LocationToAccountId::convert_location(&sibling_parachain_location).expect("valid AccountId"),
+							bridge_to_kusama_config::BridgeDeposit::get()
+								.saturating_add(ExistentialDeposit::get())
+								.saturating_add(UNITS * 5)
+						)
+					);
+
+					// open bridge
+					let bridge_destination_universal_location: InteriorLocation = [GlobalConsensus(NetworkId::Kusama), remote_parachain_id].into();
+					let locations = XcmOverBridgeHubKusama::bridge_locations(
+						sibling_parachain_location.clone(),
+						bridge_destination_universal_location.clone(),
+					)?;
+					XcmOverBridgeHubKusama::do_open_bridge(
+						locations,
+						bp_messages::LegacyLaneId([1, 2, 3, 4]),
+						true,
+					).map_err(|e| {
+						log::error!(
+							"Failed to `XcmOverBridgeHubRococo::open_bridge`({:?}, {:?})`, error: {:?}",
+							sibling_parachain_location,
+							bridge_destination_universal_location,
+							e
+						);
+						BenchmarkError::Stop("Bridge was not opened!")
+					})?;
+
 					Ok(
 						(
-							bridge_to_kusama_config::FromAssetHubPolkadotToAssetHubKusamaRoute::get().location,
+							sibling_parachain_location,
 							NetworkId::Kusama,
-							Parachain(bridge_to_kusama_config::AssetHubKusamaParaId::get().into()).into()
+							[remote_parachain_id].into()
 						)
 					)
 				}
@@ -1151,12 +1191,13 @@ impl_runtime_apis! {
 
 			impl BridgeRelayersConfig for Runtime {
 				fn prepare_rewards_account(
-					account_params: bp_relayers::RewardsAccountParams,
+					account_params: bp_relayers::RewardsAccountParams<LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>,
 					reward: Balance,
 				) {
 					let rewards_account = bp_relayers::PayRewardFromAccount::<
 						Balances,
-						AccountId
+						AccountId,
+						LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>
 					>::rewards_account(account_params);
 					Self::deposit_account(rewards_account, reward);
 				}
@@ -1179,17 +1220,17 @@ impl_runtime_apis! {
 				fn prepare_parachain_heads_proof(
 					parachains: &[bp_polkadot_core::parachains::ParaId],
 					parachain_head_size: u32,
-					proof_size: bp_runtime::StorageProofSize,
+					proof_params: bp_runtime::UnverifiedStorageProofParams,
 				) -> (
-					pallet_bridge_parachains::RelayBlockNumber,
-					pallet_bridge_parachains::RelayBlockHash,
+					bp_parachains::RelayBlockNumber,
+					bp_parachains::RelayBlockHash,
 					bp_polkadot_core::parachains::ParaHeadsProof,
 					Vec<(bp_polkadot_core::parachains::ParaId, bp_polkadot_core::parachains::ParaHash)>,
 				) {
 					prepare_parachain_heads_proof::<Runtime, bridge_to_kusama_config::BridgeParachainKusamaInstance>(
 						parachains,
 						parachain_head_size,
-						proof_size,
+						proof_params,
 					)
 				}
 			}
@@ -1220,25 +1261,30 @@ impl_runtime_apis! {
 				}
 
 				fn prepare_message_proof(
-					params: MessageProofParams,
-				) -> (bridge_to_kusama_config::FromKusamaBridgeHubMessagesProof, Weight) {
+					params: MessageProofParams<LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>,
+				) -> (bridge_to_kusama_config::FromKusamaBridgeHubMessagesProof<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>, Weight) {
 					use cumulus_primitives_core::XcmpMessageSource;
 					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
 					prepare_message_proof_from_parachain::<
 						Runtime,
 						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-						bridge_to_kusama_config::WithBridgeHubKusamaMessageBridge,
+						bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
 					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Polkadot), Parachain(42)].into()))
 				}
 
 				fn prepare_message_delivery_proof(
-					params: MessageDeliveryProofParams<AccountId>,
-				) -> bridge_to_kusama_config::ToKusamaBridgeHubMessagesDeliveryProof {
+					params: MessageDeliveryProofParams<AccountId, LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>,
+				) -> bridge_to_kusama_config::ToKusamaBridgeHubMessagesDeliveryProof<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance> {
+					let _ = bridge_to_kusama_config::open_bridge_for_benchmarks::<
+						Runtime,
+						bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
+						xcm_config::LocationToAccountId,
+					>(params.lane, 42);
 					prepare_message_delivery_proof_from_parachain::<
 						Runtime,
 						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
-						bridge_to_kusama_config::WithBridgeHubKusamaMessageBridge,
+						bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
 					>(params)
 				}
 

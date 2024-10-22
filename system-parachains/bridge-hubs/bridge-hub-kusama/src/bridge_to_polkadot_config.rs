@@ -22,9 +22,12 @@ use crate::{
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, PolkadotXcm, Runtime,
 	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubPolkadot,
 };
-use bp_messages::LegacyLaneId;
+use bp_messages::{
+	source_chain::FromBridgedChainMessagesDeliveryProof,
+	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,
+};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
-use bp_runtime::{Chain, UnderlyingChainProvider};
+use bp_runtime::Chain;
 use bridge_hub_common::xcm_version::XcmVersionOfDestAndRemoteBridge;
 use frame_support::{parameter_types, traits::PalletInfoAccess};
 use frame_system::{EnsureNever, EnsureRoot};
@@ -36,13 +39,9 @@ use pallet_bridge_relayers::extension::{
 use pallet_xcm_bridge_hub::XcmAsPlainPayload;
 use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
 use polkadot_parachain_primitives::primitives::Sibling;
-use sp_runtime::{traits::ConstU32, RuntimeDebug};
+use sp_runtime::traits::ConstU32;
 use xcm::latest::prelude::*;
 use xcm_builder::{BridgeBlobDispatcher, ParentIsPreset, SiblingParachainConvertsVia};
-
-/// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
-pub const XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT: LegacyLaneId =
-	LegacyLaneId([0, 0, 0, 1]);
 
 // Parameters that may be changed by the governance.
 parameter_types! {
@@ -74,10 +73,10 @@ parameter_types! {
 	/// Interior location (relative to this runtime) of the with-Polkadot messages pallet.
 	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8).into();
 
+	/// Identifier of the sibling Polkadot Asset Hub parachain.
+	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Identifier of the sibling Kusama Asset Hub parachain.
 	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
-	/// Identifier of the bridged Polkadot Asset Hub parachain.
-	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 	/// Location of the bridged Polkadot Bridge Hub parachain.
 	pub BridgeHubPolkadotLocation: Location = Location {
 		parents: 2,
@@ -86,10 +85,28 @@ parameter_types! {
 			Parachain(<bp_bridge_hub_polkadot::BridgeHubPolkadot as bp_runtime::Parachain>::PARACHAIN_ID)
 		].into()
 	};
+}
 
-	/// Lane identifier, used to connect Kusama Asset Hub and Polkadot Asset Hub.
-	pub const AssetHubKusamaToAssetHubPolkadotMessagesLane: LegacyLaneId
-		= XCM_LANE_FOR_ASSET_HUB_KUSAMA_TO_ASSET_HUB_POLKADOT;
+pub type RelayersForLegacyLaneIdsMessagesInstance = ();
+/// Allows collect and claim rewards for relayers.
+impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Reward = Balance;
+	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
+		pallet_balances::Pallet<Runtime>,
+		AccountId,
+		Self::LaneId,
+	>;
+	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
+		AccountId,
+		BlockNumber,
+		Balances,
+		RelayerStakeReserveId,
+		RequiredStakeForStakeAndSlash,
+		RelayerStakeLease,
+	>;
+	type LaneId = LegacyLaneId;
+	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
 // Parameters, used by bridge transport code.
@@ -112,16 +129,6 @@ parameter_types! {
 	/// Name of the `paras` pallet at Polkadot that tracks all parachain heads.
 	pub const ParachainPalletNameAtPolkadot: &'static str = bp_polkadot::PARAS_PALLET_NAME;
 
-	/// Maximal number of entries in the unrewarded relayers vector at the Kusama Bridge Hub. It matches the
-	/// maximal number of unrewarded relayers that the single confirmation transaction at Polkadot Bridge
-	/// Hub may process.
-	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
-		bp_bridge_hub_polkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	/// Maximal number of unconfirmed messages at the Kusama Bridge Hub. It matches the maximal number of
-	/// uncinfirmed messages that the single confirmation transaction at Polkadot Bridge Hub may process.
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
-		bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
 	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
 	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
@@ -137,12 +144,33 @@ parameter_types! {
 	pub storage BridgeDeposit: Balance = constants::currency::UNITS;
 }
 
+/// Proof of messages, coming from Polkadot.
+pub type FromPolkadotBridgeHubMessagesProof<MI> =
+	FromBridgedChainMessagesProof<bp_bridge_hub_polkadot::Hash, LaneIdOf<Runtime, MI>>;
+/// Messages delivery proof for Polkadot Bridge Hub -> Kusama Bridge Hub messages.
+pub type ToPolkadotBridgeHubMessagesDeliveryProof<MI> =
+	FromBridgedChainMessagesDeliveryProof<bp_bridge_hub_polkadot::Hash, LaneIdOf<Runtime, MI>>;
+
 /// Dispatches received XCM messages from other bridge
 pub type FromPolkadotMessageBlobDispatcher = BridgeBlobDispatcher<
 	XcmRouter,
 	UniversalLocation,
 	BridgeKusamaToPolkadotMessagesPalletInstance,
 >;
+
+/// Signed extension that refunds relayers that are delivering messages from the Polkadot parachain.
+pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersSignedExtension<
+	Runtime,
+	WithMessagesExtensionConfig<
+		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
+		Runtime,
+		WithBridgeHubPolkadotMessagesInstance,
+		RelayersForLegacyLaneIdsMessagesInstance,
+		PriorityBoostPerMessage,
+	>,
+	LaneIdOf<Runtime, WithBridgeHubPolkadotMessagesInstance>,
+>;
+bp_runtime::generate_static_str_provider!(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages);
 
 /// Add GRANDPA bridge pallet to track Polkadot relay chain.
 pub type BridgeGrandpaPolkadotInstance = pallet_bridge_grandpa::Instance1;
@@ -166,27 +194,6 @@ impl pallet_bridge_parachains::Config<BridgeParachainPolkadotInstance> for Runti
 		SingleParaStoredHeaderDataBuilder<bp_bridge_hub_polkadot::BridgeHubPolkadot>;
 	type HeadsToKeep = ParachainHeadsToKeep;
 	type MaxParaHeadDataSize = MaxParaHeadDataSize;
-}
-
-/// Allows collect and claim rewards for relayers.
-impl pallet_bridge_relayers::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Reward = Balance;
-	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
-		pallet_balances::Pallet<Runtime>,
-		AccountId,
-		Self::LaneId,
-	>;
-	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
-		AccountId,
-		BlockNumber,
-		Balances,
-		RelayerStakeReserveId,
-		RequiredStakeForStakeAndSlash,
-		RelayerStakeLease,
-	>;
-	type LaneId = LegacyLaneId;
-	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
 /// Add XCM messages support for exchanging messages with BridgeHubPolkadot.
@@ -252,37 +259,51 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubPolkadotInstance> for Runtime
 	type BlobDispatcher = FromPolkadotMessageBlobDispatcher;
 }
 
-/// BridgeHubPolkadot chain from message lane point of view.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct BridgeHubPolkadot;
-
-impl UnderlyingChainProvider for BridgeHubPolkadot {
-	type Chain = bp_bridge_hub_polkadot::BridgeHubPolkadot;
-}
-
-/// BridgeHubKusama chain from message lane point of view.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct BridgeHubKusama;
-
-impl UnderlyingChainProvider for BridgeHubKusama {
-	type Chain = bp_bridge_hub_kusama::BridgeHubKusama;
-}
-
-pub type RelayersForLegacyLaneIdsMessagesInstance = ();
-
-/// Signed extension that refunds relayers that are delivering messages from the Polkadot parachain.
-pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersSignedExtension<
-	Runtime,
-	WithMessagesExtensionConfig<
-		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-		Runtime,
-		WithBridgeHubPolkadotMessagesInstance,
-		RelayersForLegacyLaneIdsMessagesInstance,
-		PriorityBoostPerMessage,
+#[cfg(feature = "runtime-benchmarks")]
+pub(crate) fn open_bridge_for_benchmarks<R, XBHI, C>(
+	with: pallet_xcm_bridge_hub::LaneIdOf<R, XBHI>,
+	sibling_para_id: u32,
+) -> InteriorLocation
+where
+	R: pallet_xcm_bridge_hub::Config<XBHI>,
+	XBHI: 'static,
+	C: xcm_executor::traits::ConvertLocation<
+		bp_runtime::AccountIdOf<pallet_xcm_bridge_hub::ThisChainOf<R, XBHI>>,
 	>,
-	LaneIdOf<Runtime, WithBridgeHubPolkadotMessagesInstance>,
->;
-bp_runtime::generate_static_str_provider!(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages);
+{
+	use pallet_xcm_bridge_hub::{Bridge, BridgeId, BridgeState};
+	use sp_runtime::traits::Zero;
+	use sp_std::boxed::Box;
+	use xcm::VersionedInteriorLocation;
+
+	// insert bridge metadata
+	let lane_id = with;
+	let sibling_parachain = Location::new(1, [Parachain(sibling_para_id)]);
+	let universal_source = [GlobalConsensus(Westend), Parachain(sibling_para_id)].into();
+	let universal_destination = [GlobalConsensus(Rococo), Parachain(2075)].into();
+	let bridge_id = BridgeId::new(&universal_source, &universal_destination);
+
+	// insert only bridge metadata, because the benchmarks create lanes
+	pallet_xcm_bridge_hub::Bridges::<R, XBHI>::insert(
+		bridge_id,
+		Bridge {
+			bridge_origin_relative_location: Box::new(sibling_parachain.clone().into()),
+			bridge_origin_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_source.clone(),
+			)),
+			bridge_destination_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_destination,
+			)),
+			state: BridgeState::Opened,
+			bridge_owner_account: C::convert_location(&sibling_parachain).expect("valid AccountId"),
+			deposit: Zero::zero(),
+			lane_id,
+		},
+	);
+	pallet_xcm_bridge_hub::LaneToBridge::<R, XBHI>::insert(lane_id, bridge_id);
+
+	universal_source
+}
 
 #[cfg(test)]
 mod tests {

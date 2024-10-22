@@ -15,13 +15,15 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_bridge_hub_kusama::Perbill;
+use bp_messages::LegacyLaneId;
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_kusama_config::{
-		AssetHubKusamaParaId, BridgeGrandpaKusamaInstance, BridgeHubKusamaChainId,
-		BridgeHubKusamaLocation, BridgeParachainKusamaInstance, DeliveryRewardInBalance,
-		KusamaGlobalConsensusNetwork, RequiredStakeForStakeAndSlash,
-		WithBridgeHubKusamaMessagesInstance, XcmOverBridgeHubKusamaInstance,
+		AssetHubKusamaParaId, BridgeGrandpaKusamaInstance, BridgeHubKusamaLocation,
+		BridgeParachainKusamaInstance, DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
+		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RelayersForLegacyLaneIdsMessagesInstance,
+		RequiredStakeForStakeAndSlash, WithBridgeHubKusamaMessagesInstance,
+		XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
 		DotRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
@@ -57,7 +59,7 @@ pub const BRIDGED_LOCATION_PARACHAIN_ID: u32 = 1075;
 parameter_types! {
 	pub SiblingParachainLocation: Location = Location::new(1, [Parachain(SIBLING_PARACHAIN_ID)]);
 	pub SiblingSystemParachainLocation: Location = Location::new(1, [Parachain(SIBLING_SYSTEM_PARACHAIN_ID)]);
-	pub BridgedUniversalLocation: InteriorLocation = [GlobalConsensus(PolkadotGlobalConsensusNetwork::get()), Parachain(BRIDGED_LOCATION_PARACHAIN_ID)].into();
+	pub BridgedUniversalLocation: InteriorLocation = [GlobalConsensus(KusamaGlobalConsensusNetwork::get()), Parachain(BRIDGED_LOCATION_PARACHAIN_ID)].into();
 }
 
 // Runtime from tests PoV
@@ -91,7 +93,7 @@ fn construct_extrinsic(
 		frame_system::CheckWeight::<Runtime>::new(),
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
-		(RefundBridgeHubKusamaMessages::default()),
+		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
