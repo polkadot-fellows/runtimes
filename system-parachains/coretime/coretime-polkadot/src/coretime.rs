@@ -348,8 +348,6 @@ impl pallet_broker::Config for Runtime {
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
-	// Roughly 1.5 years with a period of 28 days(~ish)
-	// TODO: @szegoo, can you help checking this value?
-	type MaxAutoRenewals = ConstU32<20>;
+	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
 }
