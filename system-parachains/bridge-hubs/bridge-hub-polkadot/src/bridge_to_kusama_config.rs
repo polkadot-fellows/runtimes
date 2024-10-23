@@ -411,7 +411,7 @@ pub mod migration {
 	/// Ensure that the existing lanes for the AHR<>AHW bridge are correctly configured.
 	pub type StaticToDynamicLanes = pallet_xcm_bridge_hub::migration::OpenBridgeForLane<
 		Runtime,
-		XcmOverBridgeHubPolkadotInstance,
+		XcmOverBridgeHubKusamaInstance,
 		AssetHubPolkadotToAssetHubKusamaMessagesLane,
 		// the lanes are already created for AHP<>AHK, but we need to link them to the bridge
 		// structs
