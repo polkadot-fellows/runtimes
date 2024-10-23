@@ -24,10 +24,7 @@ const ALICE: [u8; 32] = [1u8; 32];
 
 #[test]
 fn location_conversion_works() {
-	let alice_32 = AccountId32 {
-		network: None,
-		id: AccountId::from(ALICE).into(),
-	};
+	let alice_32 = AccountId32 { network: None, id: AccountId::from(ALICE).into() };
 	let bob_20 = AccountKey20 { network: None, key: [123u8; 20] };
 
 	// the purpose of hardcoded values is to catch an unintended location conversion logic change.
@@ -63,21 +60,12 @@ fn location_conversion_works() {
 		// DescribeAccountId32Terminal
 		TestCase {
 			description: "DescribeAccountId32Terminal Parent",
-			location: Location::new(
-				1,
-				[alice_32.clone()],
-			),
+			location: Location::new(1, [alice_32.clone()]),
 			expected_account_id_str: "5DN5SGsuUG7PAqFL47J9meViwdnk9AdeSWKFkcHC45hEzVz4",
 		},
 		TestCase {
 			description: "DescribeAccountId32Terminal Sibling",
-			location: Location::new(
-				1,
-				[
-					Parachain(1111),
-					alice_32.clone(),
-				],
-			),
+			location: Location::new(1, [Parachain(1111), alice_32.clone()]),
 			expected_account_id_str: "5DGRXLYwWGce7wvm14vX1Ms4Vf118FSWQbJkyQigY2pfm6bg",
 		},
 		// DescribeAccountKey20Terminal
@@ -88,10 +76,7 @@ fn location_conversion_works() {
 		},
 		TestCase {
 			description: "DescribeAccountKey20Terminal Sibling",
-			location: Location::new(
-				1,
-				[Parachain(1111), bob_20.clone()],
-			),
+			location: Location::new(1, [Parachain(1111), bob_20.clone()]),
 			expected_account_id_str: "5CE6V5AKH8H4rg2aq5KMbvaVUDMumHKVPPQEEDMHPy3GmJQp",
 		},
 		// DescribeTreasuryVoiceTerminal
