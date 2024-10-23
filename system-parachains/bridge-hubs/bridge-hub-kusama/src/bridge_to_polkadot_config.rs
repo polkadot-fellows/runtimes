@@ -406,7 +406,7 @@ pub mod migration {
 	parameter_types! {
 		pub AssetHubKusamaToAssetHubPolkadotMessagesLane: LegacyLaneId = LegacyLaneId([0, 0, 0, 1]);
 		pub AssetHubKusamaLocation: Location = Location::new(1, [Parachain(bp_asset_hub_kusama::ASSET_HUB_KUSAMA_PARACHAIN_ID)]);
-		pub AssetHubPolkadotUniversalLocation: InteriorLocation = [GlobalConsensus(KusamaGlobalConsensusNetwork::get()), Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID)].into();
+		pub AssetHubPolkadotUniversalLocation: InteriorLocation = [GlobalConsensus(PolkadotGlobalConsensusNetwork::get()), Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID)].into();
 	}
 
 	/// Ensure that the existing lanes for the AHR<>AHW bridge are correctly configured.
