@@ -28,14 +28,12 @@ pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;
 
-use bp_messages::LegacyLaneId;
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
 
-use pallet_bridge_messages::LaneIdOf;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
