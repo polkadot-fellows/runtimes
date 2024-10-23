@@ -411,23 +411,23 @@ fn location_conversion_works() {
 		// DescribeAccountId32Terminal
 		TestCase {
 			description: "DescribeAccountId32Terminal Parent",
-			location: Location::new(1, [alice_32.clone()]),
+			location: Location::new(1, [alice_32]),
 			expected_account_id_str: "5EueAXd4h8u75nSbFdDJbC29cmi4Uo1YJssqEL9idvindxFL",
 		},
 		TestCase {
 			description: "DescribeAccountId32Terminal Sibling",
-			location: Location::new(1, [Parachain(1111), alice_32.clone()]),
+			location: Location::new(1, [Parachain(1111), alice_32]),
 			expected_account_id_str: "5Dmbuiq48fU4iW58FKYqoGbbfxFHjbAeGLMtjFg6NNCw3ssr",
 		},
 		// DescribeAccountKey20Terminal
 		TestCase {
 			description: "DescribeAccountKey20Terminal Parent",
-			location: Location::new(1, [bob_20.clone()]),
+			location: Location::new(1, [bob_20]),
 			expected_account_id_str: "5CJeW9bdeos6EmaEofTUiNrvyVobMBfWbdQvhTe6UciGjH2n",
 		},
 		TestCase {
 			description: "DescribeAccountKey20Terminal Sibling",
-			location: Location::new(1, [Parachain(1111), bob_20.clone()]),
+			location: Location::new(1, [Parachain(1111), bob_20]),
 			expected_account_id_str: "5CE6V5AKH8H4rg2aq5KMbvaVUDMumHKVPPQEEDMHPy3GmJQp",
 		},
 		// DescribeTreasuryVoiceTerminal
