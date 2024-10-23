@@ -711,6 +711,12 @@ fn treasury_pallet_account_not_none() {
 
 #[test]
 fn location_conversion_works() {
+	let alice_32 = AccountId32 {
+		network: None,
+		id: polkadot_core_primitives::AccountId::from(ALICE).into(),
+	};
+	let bob_20 = AccountKey20 { network: None, key: [123u8; 20] };
+
 	// the purpose of hardcoded values is to catch an unintended location conversion logic change.
 	struct TestCase {
 		description: &'static str,
@@ -746,10 +752,7 @@ fn location_conversion_works() {
 			description: "DescribeAccountId32Terminal Parent",
 			location: Location::new(
 				1,
-				[AccountId32 {
-					network: None,
-					id: polkadot_core_primitives::AccountId::from(ALICE).into(),
-				}],
+				[alice_32.clone()],
 			),
 			expected_account_id_str: "5DN5SGsuUG7PAqFL47J9meViwdnk9AdeSWKFkcHC45hEzVz4",
 		},
@@ -759,10 +762,7 @@ fn location_conversion_works() {
 				1,
 				[
 					Parachain(1111),
-					Junction::AccountId32 {
-						network: None,
-						id: polkadot_core_primitives::AccountId::from(ALICE).into(),
-					},
+					alice_32.clone(),
 				],
 			),
 			expected_account_id_str: "5DGRXLYwWGce7wvm14vX1Ms4Vf118FSWQbJkyQigY2pfm6bg",
@@ -770,16 +770,16 @@ fn location_conversion_works() {
 		// DescribeAccountKey20Terminal
 		TestCase {
 			description: "DescribeAccountKey20Terminal Parent",
-			location: Location::new(1, [AccountKey20 { network: None, key: [0u8; 20] }]),
-			expected_account_id_str: "5F5Ec11567pa919wJkX6VHtv2ZXS5W698YCW35EdEbrg14cg",
+			location: Location::new(1, [bob_20.clone()]),
+			expected_account_id_str: "5CJeW9bdeos6EmaEofTUiNrvyVobMBfWbdQvhTe6UciGjH2n",
 		},
 		TestCase {
 			description: "DescribeAccountKey20Terminal Sibling",
 			location: Location::new(
 				1,
-				[Parachain(1111), AccountKey20 { network: None, key: [0u8; 20] }],
+				[Parachain(1111), bob_20.clone()],
 			),
-			expected_account_id_str: "5CB2FbUds2qvcJNhDiTbRZwiS3trAy6ydFGMSVutmYijpPAg",
+			expected_account_id_str: "5CE6V5AKH8H4rg2aq5KMbvaVUDMumHKVPPQEEDMHPy3GmJQp",
 		},
 		// DescribeTreasuryVoiceTerminal
 		TestCase {
