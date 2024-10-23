@@ -174,7 +174,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_003_004,
+	spec_version: 1_003_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1213,7 +1213,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) | RuntimeCall::Utility(..) |
+						RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
 						RuntimeCall::FastUnstake(..) |
 						RuntimeCall::VoterList(..) |
 						RuntimeCall::NominationPools(..)
@@ -1617,8 +1618,10 @@ impl pallet_nomination_pools::Config for Runtime {
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
-/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
-/// native asset and provide a one-to-one balance conversion for them.
+/// `AssetRate` pallet instance.
+///
+/// With additional decoration to identify different IDs/locations of native asset and provide a
+/// one-to-one balance conversion for them.
 pub type AssetRateWithNative = UnityOrOuterConversion<
 	ContainsLocationParts<
 		FromContains<
@@ -1828,10 +1831,10 @@ pub mod migrations {
 ///
 /// It consists of:
 /// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
-///  * Root origin;
-///  * Default `None` paramters.
+///   * Root origin;
+///   * Default `None` paramters.
 /// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
-/// stash's free balance.
+///   stash's free balance.
 ///
 /// The stashes associated with corrupted ledgers that will be "migrated" are set in
 /// [`CorruptedStashes`].
@@ -1914,14 +1917,13 @@ pub(crate) mod restore_corrupted_ledgers {
 							stash_account.clone(),
 							slashing_spans,
 						)
-						.map_err(|err| {
+						.inspect_err(|err| {
 							log::error!(
 								target: LOG_TARGET,
 								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
 								err
 							);
 							err_migration += 1;
-							err
 						});
 
 						log::info!(
