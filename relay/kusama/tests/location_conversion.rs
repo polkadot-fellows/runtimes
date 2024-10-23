@@ -34,87 +34,54 @@ fn location_conversion_works() {
 	let test_cases = vec![
 		// DescribeTerminus
 		TestCase {
-			description: "DescribeTerminus Parent",
-			location: Location::new(1, Here),
-			expected_account_id_str: "5GyWtDJP7qaipWRGr4KJ6VUDxRXf4jDnPW6KPTeCekHfqZkD",
-		},
-		TestCase {
-			description: "DescribeTerminus Sibling",
-			location: Location::new(1, [Parachain(1111)]),
-			expected_account_id_str: "5EC5GfEFm9XEBYjXzxb1VseMHsG2VhPeGTGWF9H8tYZnGsSk",
+			description: "DescribeTerminus Child",
+			location: Location::new(0, [Parachain(1111)]),
+			expected_account_id_str: "5Ec4AhP4h37t7TFsAZ4HhFq6k92usAAJDUC3ADSZ4H4Acru3",
 		},
 		// DescribePalletTerminal
 		TestCase {
-			description: "DescribePalletTerminal Parent",
-			location: Location::new(1, [PalletInstance(50)]),
-			expected_account_id_str: "5CnwemvaAXkWFVwibiCvf2EjqwiqBi29S5cLLydZLEaEw6jZ",
-		},
-		TestCase {
-			description: "DescribePalletTerminal Sibling",
-			location: Location::new(1, [Parachain(1111), PalletInstance(50)]),
-			expected_account_id_str: "5GFBgPjpEQPdaxEnFirUoa51u5erVx84twYxJVuBRAT2UP2g",
+			description: "DescribePalletTerminal Child",
+			location: Location::new(0, [Parachain(1111), PalletInstance(50)]),
+			expected_account_id_str: "5FjEBrKn3STAFsZpQF4jzwxUYHNGnNgzdZqSQfTzeJ82XKp6",
 		},
 		// DescribeAccountId32Terminal
 		TestCase {
-			description: "DescribeAccountId32Terminal Parent",
+			description: "DescribeAccountId32Terminal Child",
 			location: Location::new(
-				1,
-				[AccountId32 { network: None, id: AccountId::from(ALICE).into() }],
-			),
-			expected_account_id_str: "5DN5SGsuUG7PAqFL47J9meViwdnk9AdeSWKFkcHC45hEzVz4",
-		},
-		TestCase {
-			description: "DescribeAccountId32Terminal Sibling",
-			location: Location::new(
-				1,
+				0,
 				[
 					Parachain(1111),
 					Junction::AccountId32 { network: None, id: AccountId::from(ALICE).into() },
 				],
 			),
-			expected_account_id_str: "5DGRXLYwWGce7wvm14vX1Ms4Vf118FSWQbJkyQigY2pfm6bg",
+			expected_account_id_str: "5D6CDyPd9Mya81xFN3nChiKqLvUzd8zS9fwKhfCW6FtJKjS2",
 		},
 		// DescribeAccountKey20Terminal
 		TestCase {
-			description: "DescribeAccountKey20Terminal Parent",
-			location: Location::new(1, [AccountKey20 { network: None, key: [0u8; 20] }]),
-			expected_account_id_str: "5F5Ec11567pa919wJkX6VHtv2ZXS5W698YCW35EdEbrg14cg",
-		},
-		TestCase {
 			description: "DescribeAccountKey20Terminal Sibling",
 			location: Location::new(
-				1,
-				[Parachain(1111), AccountKey20 { network: None, key: [0u8; 20] }],
+				0,
+				[Parachain(1111), AccountKey20 { network: None, key: [123u8; 20] }],
 			),
-			expected_account_id_str: "5CB2FbUds2qvcJNhDiTbRZwiS3trAy6ydFGMSVutmYijpPAg",
+			expected_account_id_str: "5DEZsy7tsnNXB7ehLGkF8b4EUqfLQWqEzGiy2RrneC8uRNMK",
 		},
 		// DescribeTreasuryVoiceTerminal
 		TestCase {
-			description: "DescribeTreasuryVoiceTerminal Parent",
-			location: Location::new(1, [Plurality { id: BodyId::Treasury, part: BodyPart::Voice }]),
-			expected_account_id_str: "5CUjnE2vgcUCuhxPwFoQ5r7p1DkhujgvMNDHaF2bLqRp4D5F",
-		},
-		TestCase {
-			description: "DescribeTreasuryVoiceTerminal Sibling",
+			description: "DescribeTreasuryVoiceTerminal Child",
 			location: Location::new(
-				1,
+				0,
 				[Parachain(1111), Plurality { id: BodyId::Treasury, part: BodyPart::Voice }],
 			),
-			expected_account_id_str: "5G6TDwaVgbWmhqRUKjBhRRnH4ry9L9cjRymUEmiRsLbSE4gB",
+			expected_account_id_str: "5GenE4vJgHvwYVcD6b4nBvH5HNY4pzpVHWoqwFpNMFT7a2oX",
 		},
 		// DescribeBodyTerminal
 		TestCase {
-			description: "DescribeBodyTerminal Parent",
-			location: Location::new(1, [Plurality { id: BodyId::Unit, part: BodyPart::Voice }]),
-			expected_account_id_str: "5EBRMTBkDisEXsaN283SRbzx9Xf2PXwUxxFCJohSGo4jYe6B",
-		},
-		TestCase {
-			description: "DescribeBodyTerminal Sibling",
+			description: "DescribeBodyTerminal Child",
 			location: Location::new(
-				1,
+				0,
 				[Parachain(1111), Plurality { id: BodyId::Unit, part: BodyPart::Voice }],
 			),
-			expected_account_id_str: "5DBoExvojy8tYnHgLL97phNH975CyT45PWTZEeGoBZfAyRMH",
+			expected_account_id_str: "5DPgGBFTTYm1dGbtB1VWHJ3T3ScvdrskGGx6vSJZNP1WNStV",
 		},
 	];
 
