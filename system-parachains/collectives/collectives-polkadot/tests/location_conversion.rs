@@ -24,9 +24,9 @@ const ALICE: [u8; 32] = [1u8; 32];
 
 #[test]
 fn location_conversion_works() {
-	let alice_32 = xcm::prelude::AccountId32 {
+	let alice_32 = AccountId32 {
 		network: None,
-		id: polkadot_core_primitives::AccountId::from(ALICE).into(),
+		id: AccountId::from(ALICE).into(),
 	};
 	let bob_20 = AccountKey20 { network: None, key: [123u8; 20] };
 
