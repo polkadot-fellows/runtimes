@@ -140,7 +140,7 @@ parameter_types! {
 	pub PriorityBoostPerParachainHeader: u64 = 920_224_664_224_664;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 182_044_444_444_444;
-	// TODO: What's the correct value?
+	// TODO: What's the correct value? - FAIL-CI
 	pub storage BridgeDeposit: Balance = constants::currency::UNITS;
 }
 

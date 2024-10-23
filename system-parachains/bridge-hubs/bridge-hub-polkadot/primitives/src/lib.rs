@@ -156,7 +156,7 @@ pub mod snowbridge {
 	use frame_support::parameter_types;
 	use snowbridge_core::{PricingParameters, Rewards, U256};
 	use sp_runtime::FixedU128;
-	use xcm::{latest::NetworkId, v4::Location};
+	use xcm::latest::{Location, NetworkId};
 
 	parameter_types! {
 		/// Should match the `ForeignAssets::create` index on Asset Hub.
