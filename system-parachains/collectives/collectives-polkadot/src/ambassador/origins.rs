@@ -15,7 +15,6 @@
 
 //! The Ambassador Program's origins.
 
-#[allow(unreachable_patterns)]
 #[frame_support::pallet]
 pub mod pallet_origins {
 	use crate::ambassador::ranks;
