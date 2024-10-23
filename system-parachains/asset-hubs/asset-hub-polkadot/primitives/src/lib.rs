@@ -70,3 +70,6 @@ fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<
 		}
 	]
 }
+
+/// Identifier of AssetHubPolkadot in the Polkadot relay chain.
+pub const ASSET_HUB_POLKADOT_PARACHAIN_ID: u32 = 1000;
