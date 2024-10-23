@@ -58,8 +58,7 @@ fn coretime_polkadot_genesis(
 					)
 				})
 				.collect(),
-			// TODO: Any keys to add here?
-			non_authority_keys: vec![],
+			..Default::default()
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),

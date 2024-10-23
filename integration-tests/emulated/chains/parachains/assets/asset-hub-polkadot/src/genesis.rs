@@ -98,8 +98,7 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect(),
-			// TODO: Any keys to add here?
-			non_authority_keys: vec![],
+			..Default::default()
 		},
 		polkadot_xcm: asset_hub_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),

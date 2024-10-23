@@ -104,8 +104,7 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect::<Vec<_>>(),
-			// TODO: Any keys to add here?
-			non_authority_keys: vec![],
+			..Default::default()
 		},
 		babe: kusama_runtime::BabeConfig {
 			authorities: Default::default(),
