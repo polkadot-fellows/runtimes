@@ -588,6 +588,9 @@ construct_runtime!(
 );
 
 #[cfg(feature = "runtime-benchmarks")]
+use pallet_bridge_messages::LaneIdOf;
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -1195,7 +1198,7 @@ impl_runtime_apis! {
 					let rewards_account = bp_relayers::PayRewardFromAccount::<
 						Balances,
 						AccountId,
-						LegacyLaneId,
+						bp_messages::LegacyLaneId,
 					>::rewards_account(account_params);
 					Self::deposit_account(rewards_account, reward);
 				}
