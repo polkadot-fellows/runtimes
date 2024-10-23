@@ -397,3 +397,27 @@ mod tests {
 			.starts_with(&PolkadotGlobalConsensusNetworkLocation::get()));
 	}
 }
+
+/// Contains the migration for the AssetHubKusama<>AssetHubPolkadot bridge.
+pub mod migration {
+	use super::*;
+	use frame_support::traits::ConstBool;
+
+	parameter_types! {
+		pub AssetHubKusamaToAssetHubPolkadotMessagesLane: LegacyLaneId = LegacyLaneId([0, 0, 0, 1]);
+		pub AssetHubKusamaLocation: Location = Location::new(1, [Parachain(bp_asset_hub_kusama::ASSET_HUB_KUSAMA_PARACHAIN_ID)]);
+		pub AssetHubPolkadotUniversalLocation: InteriorLocation = [GlobalConsensus(KusamaGlobalConsensusNetwork::get()), Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID)].into();
+	}
+
+	/// Ensure that the existing lanes for the AHR<>AHW bridge are correctly configured.
+	pub type StaticToDynamicLanes = pallet_xcm_bridge_hub::migration::OpenBridgeForLane<
+		Runtime,
+		XcmOverBridgeHubPolkadotInstance,
+		AssetHubKusamaToAssetHubPolkadotMessagesLane,
+		// the lanes are already created for AHP<>AHK, but we need to link them to the bridge
+		// structs
+		ConstBool<false>,
+		AssetHubKusamaLocation,
+		AssetHubPolkadotUniversalLocation,
+	>;
+}

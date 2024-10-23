@@ -141,6 +141,11 @@ parameter_types! {
 	pub EthereumSystemName: &'static str = "EthereumSystem";
 }
 
+parameter_types! {
+	pub const BridgePolkadotMessagesPalletName: &'static str = "BridgePolkadotMessages";
+	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	// unreleased and/or un-applied
@@ -160,6 +165,20 @@ pub type Migrations = (
 	frame_support::migrations::RemovePallet<
 		EthereumSystemName,
 		<Runtime as frame_system::Config>::DbWeight,
+	>,
+	pallet_bridge_messages::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+	>,
+	bridge_to_polkadot_config::migration::StaticToDynamicLanes,
+	frame_support::migrations::RemoveStorage<
+		BridgePolkadotMessagesPalletName,
+		OutboundLanesCongestedSignalsKey,
+		RocksDbWeight,
+	>,
+	pallet_bridge_relayers::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
 	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,

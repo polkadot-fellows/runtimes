@@ -140,10 +140,29 @@ bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages! {
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
+parameter_types! {
+	pub const BridgeKusamaMessagesPalletName: &'static str = "BridgeKusamaMessages";
+	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	// unreleased and/or un-applied
 	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
+	pallet_bridge_messages::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
+	>,
+	bridge_to_kusama_config::migration::StaticToDynamicLanes,
+	frame_support::migrations::RemoveStorage<
+		BridgeKusamaMessagesPalletName,
+		OutboundLanesCongestedSignalsKey,
+		RocksDbWeight,
+	>,
+	pallet_bridge_relayers::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_kusama_config::RelayersForLegacyLaneIdsMessagesInstance,
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
