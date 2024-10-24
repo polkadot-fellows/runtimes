@@ -6,6 +6,7 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+pallet-ahm-controller = { path = "ahm-controller", default-features = false }
 assert_matches = { version = "1.5.0" }
 asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
@@ -254,6 +255,7 @@ ss58-registry = { version = "1.47.0" }
 resolver = "2"
 
 members = [
+	"ahm-controller",
 	"chain-spec-generator",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",

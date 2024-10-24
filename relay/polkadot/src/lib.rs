@@ -281,7 +281,7 @@ impl pallet_preimage::Config for Runtime {
 parameter_types! {
 	pub EpochDuration: u64 = prod_or_fast!(
 		EPOCH_DURATION_IN_SLOTS as u64,
-		2 * MINUTES as u64,
+		(MINUTES as u64) / 3,
 		"DOT_EPOCH_DURATION"
 	);
 	pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
@@ -1612,6 +1612,18 @@ impl OnSwap for SwapLeases {
 	}
 }
 
+use pallet_ahm_controller::Role;
+
+parameter_types! {
+	pub const OurRole: Role = Role::Relay;
+}
+
+impl pallet_ahm_controller::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Role = OurRole;
+	type SendXcm = crate::xcm_config::XcmRouter;
+}
+
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1722,6 +1734,8 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+
+		AhmController: pallet_ahm_controller = 244,
 	}
 }
 
