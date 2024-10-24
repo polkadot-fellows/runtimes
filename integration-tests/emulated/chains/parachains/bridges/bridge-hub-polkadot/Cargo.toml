@@ -12,8 +12,10 @@ publish = false
 # Substrate
 sp-core = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
-xcm.workspace = true
-bp-messages.workspace = true
+
+# Bridges
+bp-messages = { workspace = true }
+xcm = { workspace = true }
 
 # Cumulus
 parachains-common = { workspace = true, default-features = true }
