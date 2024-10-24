@@ -304,7 +304,7 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	// send USDTs and wETHs
 	let assets: Assets = vec![
 		(usdt_id.clone(), amount_to_send).into(),
-		(Location::try_from(bridged_weth_at_ah.clone()).unwrap(), amount_to_send).into(),
+		(bridged_weth_at_ah.clone(), amount_to_send).into(),
 	]
 	.into();
 	// use USDT for fees
@@ -317,7 +317,7 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	}]);
 	assert_ok!(AssetHubKusama::execute_with(|| {
 		<AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sender.into()),
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(sender),
 			bx!(asset_hub_polkadot_location().into()),
 			bx!(assets.into()),
 			bx!(TransferType::DestinationReserve),
