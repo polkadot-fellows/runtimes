@@ -1691,12 +1691,14 @@ dependencies = [
 name = "bridge-hub-kusama-emulated-chain"
 version = "1.0.0"
 dependencies = [
+ "bp-messages",
  "bridge-hub-common",
  "bridge-hub-kusama-runtime",
  "emulated-integration-tests-common",
  "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -1833,12 +1835,14 @@ dependencies = [
 name = "bridge-hub-polkadot-emulated-chain"
 version = "1.0.0"
 dependencies = [
+ "bp-messages",
  "bridge-hub-common",
  "bridge-hub-polkadot-runtime",
  "emulated-integration-tests-common",
  "frame-support",
  "parachains-common",
  "sp-core 34.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
