@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // Substrate
+pub use codec::Encode;
 pub use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResult};
 pub use sp_runtime::{traits::Dispatchable, DispatchError};
 
@@ -29,7 +30,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Bridges
-pub use bp_messages::LaneId;
+pub use bp_messages::LegacyLaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{

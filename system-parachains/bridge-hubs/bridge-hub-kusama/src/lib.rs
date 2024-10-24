@@ -116,7 +116,7 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteHeadersAndMessages,
-	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
+	bridge_to_polkadot_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
@@ -141,6 +141,11 @@ parameter_types! {
 	pub EthereumSystemName: &'static str = "EthereumSystem";
 }
 
+parameter_types! {
+	pub const BridgePolkadotMessagesPalletName: &'static str = "BridgePolkadotMessages";
+	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	// unreleased and/or un-applied
@@ -160,6 +165,20 @@ pub type Migrations = (
 	frame_support::migrations::RemovePallet<
 		EthereumSystemName,
 		<Runtime as frame_system::Config>::DbWeight,
+	>,
+	pallet_bridge_messages::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+	>,
+	bridge_to_polkadot_config::migration::StaticToDynamicLanes,
+	frame_support::migrations::RemoveStorage<
+		BridgePolkadotMessagesPalletName,
+		OutboundLanesCongestedSignalsKey,
+		RocksDbWeight,
+	>,
+	pallet_bridge_relayers::migration::v1::MigrationToV1<
+		Runtime,
+		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
 	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
@@ -569,6 +588,9 @@ construct_runtime!(
 );
 
 #[cfg(feature = "runtime-benchmarks")]
+use pallet_bridge_messages::LaneIdOf;
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -848,7 +870,7 @@ impl_runtime_apis! {
 
 	impl bp_bridge_hub_polkadot::FromBridgeHubPolkadotInboundLaneApi<Block> for Runtime {
 		fn message_details(
-			lane: bp_messages::LaneId,
+			lane: bp_messages::LegacyLaneId,
 			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
@@ -860,7 +882,7 @@ impl_runtime_apis! {
 
 	impl bp_bridge_hub_polkadot::ToBridgeHubPolkadotOutboundLaneApi<Block> for Runtime {
 		fn message_details(
-			lane: bp_messages::LaneId,
+			lane: bp_messages::LegacyLaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
 		) -> Vec<bp_messages::OutboundMessageDetails> {
@@ -1105,11 +1127,48 @@ impl_runtime_apis! {
 						);
 						BenchmarkError::Stop("XcmVersion was not stored!")
 					})?;
+
+					let sibling_parachain_id = Parachain(8765);
+					let remote_parachain_id = Parachain(5678);
+					let sibling_parachain_location = Location::new(1, [sibling_parachain_id]);
+
+					// fund SA
+					use frame_support::traits::fungible::Mutate;
+					use xcm_executor::traits::ConvertLocation;
+					frame_support::assert_ok!(
+						Balances::mint_into(
+							&xcm_config::LocationToAccountId::convert_location(&sibling_parachain_location).expect("valid AccountId"),
+							bridge_to_polkadot_config::BridgeDeposit::get()
+								.saturating_add(ExistentialDeposit::get())
+								.saturating_add(UNITS * 5)
+						)
+					);
+
+					// open bridge
+					let bridge_destination_universal_location: InteriorLocation = [GlobalConsensus(NetworkId::Polkadot), remote_parachain_id].into();
+					let locations = XcmOverBridgeHubPolkadot::bridge_locations(
+						sibling_parachain_location.clone(),
+						bridge_destination_universal_location.clone(),
+					)?;
+					XcmOverBridgeHubPolkadot::do_open_bridge(
+						locations,
+						bp_messages::LegacyLaneId([1, 2, 3, 4]),
+						true,
+					).map_err(|e| {
+						log::error!(
+							"Failed to `XcmOverBridgeHubRococo::open_bridge`({:?}, {:?})`, error: {:?}",
+							sibling_parachain_location,
+							bridge_destination_universal_location,
+							e
+						);
+						BenchmarkError::Stop("Bridge was not opened!")
+					})?;
+
 					Ok(
 						(
-							bridge_to_polkadot_config::FromAssetHubKusamaToAssetHubPolkadotRoute::get().location,
+							sibling_parachain_location,
 							NetworkId::Polkadot,
-							Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()).into()
+							[remote_parachain_id].into()
 						)
 					)
 				}
@@ -1133,12 +1192,13 @@ impl_runtime_apis! {
 
 			impl BridgeRelayersConfig for Runtime {
 				fn prepare_rewards_account(
-					account_params: bp_relayers::RewardsAccountParams,
+					account_params: bp_relayers::RewardsAccountParams<LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>>,
 					reward: Balance,
 				) {
 					let rewards_account = bp_relayers::PayRewardFromAccount::<
 						Balances,
-						AccountId
+						AccountId,
+						bp_messages::LegacyLaneId,
 					>::rewards_account(account_params);
 					Self::deposit_account(rewards_account, reward);
 				}
@@ -1161,17 +1221,17 @@ impl_runtime_apis! {
 				fn prepare_parachain_heads_proof(
 					parachains: &[bp_polkadot_core::parachains::ParaId],
 					parachain_head_size: u32,
-					proof_size: bp_runtime::StorageProofSize,
+					proof_params: bp_runtime::UnverifiedStorageProofParams,
 				) -> (
-					pallet_bridge_parachains::RelayBlockNumber,
-					pallet_bridge_parachains::RelayBlockHash,
+					bp_parachains::RelayBlockNumber,
+					bp_parachains::RelayBlockHash,
 					bp_polkadot_core::parachains::ParaHeadsProof,
 					Vec<(bp_polkadot_core::parachains::ParaId, bp_polkadot_core::parachains::ParaHash)>,
 				) {
 					prepare_parachain_heads_proof::<Runtime, bridge_to_polkadot_config::BridgeParachainPolkadotInstance>(
 						parachains,
 						parachain_head_size,
-						proof_size,
+						proof_params,
 					)
 				}
 			}
@@ -1202,25 +1262,30 @@ impl_runtime_apis! {
 				}
 
 				fn prepare_message_proof(
-					params: MessageProofParams,
-				) -> (bridge_to_polkadot_config::FromPolkadotBridgeHubMessagesProof, Weight) {
+					params: MessageProofParams<LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>>,
+				) -> (bridge_to_polkadot_config::FromPolkadotBridgeHubMessagesProof<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>, Weight) {
 					use cumulus_primitives_core::XcmpMessageSource;
 					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
 					prepare_message_proof_from_parachain::<
 						Runtime,
 						bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
-						bridge_to_polkadot_config::WithBridgeHubPolkadotMessageBridge,
+						bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
 					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Kusama), Parachain(42)].into()))
 				}
 
 				fn prepare_message_delivery_proof(
-					params: MessageDeliveryProofParams<AccountId>,
-				) -> bridge_to_polkadot_config::ToPolkadotBridgeHubMessagesDeliveryProof {
+					params: MessageDeliveryProofParams<AccountId, LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>>,
+				) -> bridge_to_polkadot_config::ToPolkadotBridgeHubMessagesDeliveryProof<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance> {
+					let _ = bridge_to_polkadot_config::open_bridge_for_benchmarks::<
+						Runtime,
+						bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
+						xcm_config::LocationToAccountId,
+					>(params.lane, 42);
 					prepare_message_delivery_proof_from_parachain::<
 						Runtime,
 						bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
-						bridge_to_polkadot_config::WithBridgeHubPolkadotMessageBridge,
+						bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
 					>(params)
 				}
 

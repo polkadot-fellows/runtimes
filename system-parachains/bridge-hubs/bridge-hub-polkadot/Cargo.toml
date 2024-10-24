@@ -121,6 +121,7 @@ bridge-hub-test-utils = { workspace = true }
 bridge-runtime-common = { features = [
 	"integrity-test",
 ], workspace = true, default-features = true }
+pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
 static_assertions = { workspace = true }
 snowbridge-runtime-test-common = { workspace = true }

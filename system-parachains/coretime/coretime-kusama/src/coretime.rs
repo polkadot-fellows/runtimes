@@ -29,11 +29,14 @@ use frame_support::{
 };
 use frame_system::Pallet as System;
 use kusama_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
-use pallet_broker::{CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf};
+use pallet_broker::{
+	CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf, TaskId,
+};
 use parachains_common::{AccountId, Balance};
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
 use xcm::latest::prelude::*;
-use xcm_executor::traits::TransactAsset;
+use xcm_config::LocationToAccountId;
+use xcm_executor::traits::{ConvertLocation, TransactAsset};
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
 /// construct any remote calls. The codec index must correspond to the index of `Coretime` in the
@@ -320,6 +323,15 @@ parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
 }
 
+pub struct SovereignAccountOf;
+impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
+	fn maybe_convert(id: TaskId) -> Option<AccountId> {
+		// Currently all tasks are parachains
+		let location = Location::new(1, [Parachain(id)]);
+		LocationToAccountId::convert_location(&location)
+	}
+}
+
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -332,5 +344,7 @@ impl pallet_broker::Config for Runtime {
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type SovereignAccountOf = SovereignAccountOf;
+	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
 }

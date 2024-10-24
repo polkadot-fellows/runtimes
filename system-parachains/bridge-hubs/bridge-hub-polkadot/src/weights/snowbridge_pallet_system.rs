@@ -269,4 +269,10 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	fn register_token() -> Weight {
+		Weight::from_parts(0, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

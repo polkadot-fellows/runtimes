@@ -15,13 +15,12 @@
 // along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	xcm_config,
-	xcm_config::{RelayTreasuryPalletAccount, UniversalLocation},
+	xcm_config::{self, RelayNetwork, RelayTreasuryPalletAccount, UniversalLocation},
 	Balances, EthereumInboundQueue, EthereumOutboundQueue, EthereumSystem, MessageQueue, Runtime,
 	RuntimeEvent, TransactionByteFee,
 };
-pub use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use bp_bridge_hub_polkadot::snowbridge::{CreateAssetCall, InboundQueuePalletInstance, Parameters};
+pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 use frame_support::{parameter_types, weights::ConstantMultiplier};
 use pallet_xcm::EnsureXcm;
 use parachains_common::{AccountId, Balance};
@@ -31,6 +30,7 @@ use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlob
 use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
 use system_parachains_constants::polkadot::fee::WeightToFee;
+use xcm::prelude::{GlobalConsensus, InteriorLocation, Location, Parachain};
 
 /// Exports message to the Ethereum Gateway contract.
 pub type SnowbridgeExporter = EthereumBlobExporter<
@@ -38,11 +38,14 @@ pub type SnowbridgeExporter = EthereumBlobExporter<
 	EthereumNetwork,
 	snowbridge_pallet_outbound_queue::Pallet<Runtime>,
 	snowbridge_core::AgentIdOf,
+	EthereumSystem,
 >;
 
 parameter_types! {
 	// The gateway address is set by governance.
 	pub storage EthereumGatewayAddress: H160 = H160::zero();
+	pub AssetHubFromEthereum: Location = Location::new(1,[GlobalConsensus(RelayNetwork::get()),Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)]);
+	pub EthereumUniversalLocation: InteriorLocation = [GlobalConsensus(EthereumNetwork::get())].into();
 }
 
 impl snowbridge_pallet_inbound_queue::Config for Runtime {
@@ -63,6 +66,9 @@ impl snowbridge_pallet_inbound_queue::Config for Runtime {
 		InboundQueuePalletInstance,
 		AccountId,
 		Balance,
+		EthereumSystem,
+		EthereumUniversalLocation,
+		AssetHubFromEthereum,
 	>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -139,9 +145,12 @@ parameter_types! {
 	};
 }
 
+pub const SLOTS_PER_EPOCH: u32 = snowbridge_pallet_ethereum_client::config::SLOTS_PER_EPOCH as u32;
+
 impl snowbridge_pallet_ethereum_client::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ForkVersions = ChainForkVersions;
+	type FreeHeadersInterval = ConstU32<SLOTS_PER_EPOCH>;
 	type WeightInfo = crate::weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
 }
 
@@ -157,6 +166,8 @@ impl snowbridge_pallet_system::Config for Runtime {
 	type Helper = Runtime;
 	type DefaultPricingParameters = Parameters;
 	type InboundDeliveryCost = EthereumInboundQueue;
+	type UniversalLocation = UniversalLocation;
+	type EthereumLocation = EthereumLocation;
 }
 
 #[cfg(feature = "runtime-benchmarks")]

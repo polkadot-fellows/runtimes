@@ -70,3 +70,6 @@ fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<
 		}
 	]
 }
+
+/// Identifier of AssetHubKusama in the Kusama relay chain.
+pub const ASSET_HUB_KUSAMA_PARACHAIN_ID: u32 = 1000;
