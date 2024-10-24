@@ -24,13 +24,13 @@ const XCM_FEE: u128 = 40_000_000_000;
 #[test]
 fn register_polkadot_asset_on_kah_from_pah() {
 	// Polkadot Asset Hub asset when bridged to Kusama Asset Hub.
-	let bridged_asset_at_kah = v3::Location::new(
+	let bridged_asset_at_kah = v4::Location::new(
 		2,
 		[
-			v3::Junction::GlobalConsensus(v3::NetworkId::Polkadot),
-			v3::Junction::Parachain(AssetHubPolkadot::para_id().into()),
-			v3::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v3::Junction::GeneralIndex(ASSET_ID.into()),
+			v4::Junction::GlobalConsensus(v4::NetworkId::Polkadot),
+			v4::Junction::Parachain(AssetHubPolkadot::para_id().into()),
+			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v4::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
@@ -41,18 +41,18 @@ fn register_polkadot_asset_on_kah_from_pah() {
 #[test]
 fn register_ethereum_asset_on_kah_from_pah() {
 	// Ethereum asset when bridged to Kusama Asset Hub.
-	let bridged_asset_at_kah = v3::Location::new(
+	let bridged_asset_at_kah = v4::Location::new(
 		2,
 		[
-			v3::Junction::GlobalConsensus(v3::NetworkId::Ethereum { chain_id: CHAIN_ID }),
-			v3::Junction::AccountKey20 { network: None, key: WETH },
+			v4::Junction::GlobalConsensus(v4::NetworkId::Ethereum { chain_id: CHAIN_ID }),
+			v4::Junction::AccountKey20 { network: None, key: WETH },
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
 	register_asset_on_kah_from_pah(bridged_asset_at_kah);
 }
 
-fn register_asset_on_kah_from_pah(bridged_asset_at_kah: v3::Location) {
+fn register_asset_on_kah_from_pah(bridged_asset_at_kah: v4::Location) {
 	let sa_of_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		Polkadot,
 		AssetHubPolkadot::para_id(),
@@ -60,7 +60,7 @@ fn register_asset_on_kah_from_pah(bridged_asset_at_kah: v3::Location) {
 
 	// Encoded `create_asset` call to be executed in Kusama Asset Hub ForeignAssets pallet.
 	let call = AssetHubKusama::create_foreign_asset_call(
-		bridged_asset_at_kah,
+		bridged_asset_at_kah.clone(),
 		ASSET_MIN_BALANCE,
 		sa_of_pah_on_kah.clone(),
 	);
