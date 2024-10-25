@@ -513,9 +513,14 @@ pub mod bridging {
 				]
 			);
 
+			// TODO: @bkontur or @acatangiu, please confirm if this chain will be used at all.
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
 			pub const EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+			// TODO: @bkontur or @acatangiu, please confirm if this should be in the configuration, or if
+			// this `chain_id` is just for testing purposes.
+			pub const EthereumNetworkSnowbridgeChain: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
 			pub EthereumEcosystem: Location = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
+			pub EthereumSnowbridge: Location = Location::new(2, [GlobalConsensus(EthereumNetworkSnowbridgeChain::get())]);
 			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 			pub AssetHubPolkadot: Location = Location::new(
 				2,
@@ -559,7 +564,11 @@ pub mod bridging {
 		/// Allow any asset native to the Polkadot or Ethereum ecosystems if it comes from Polkadot
 		/// Asset Hub.
 		pub type PolkadotOrEthereumAssetFromAssetHubPolkadot = RemoteAssetFromLocation<
-			(StartsWith<DotLocation>, StartsWith<EthereumEcosystem>),
+			(
+				StartsWith<DotLocation>,
+				StartsWith<EthereumEcosystem>,
+				StartsWith<EthereumSnowbridge>,
+			),
 			AssetHubPolkadot,
 		>;
 
