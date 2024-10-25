@@ -1909,6 +1909,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-aura",
  "cumulus-primitives-core",
+ "cumulus-primitives-storage-weight-reclaim",
  "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
@@ -3255,6 +3256,23 @@ dependencies = [
  "sp-externalities 0.29.0",
  "sp-runtime-interface 28.0.0",
  "sp-trie 37.0.0",
+]
+
+[[package]]
+name = "cumulus-primitives-storage-weight-reclaim"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fc49dfec0ba3438afad73787736cc0dba88d15b5855881f12a4d8b812a72927"
+dependencies = [
+ "cumulus-primitives-core",
+ "cumulus-primitives-proof-size-hostfunction",
+ "docify",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 39.0.2",
 ]
 
 [[package]]

@@ -69,6 +69,31 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	}
 	/// Storage: `BridgePolkadotMessages::PalletOperatingMode` (r:1 w:0)
 	/// Proof: `BridgePolkadotMessages::PalletOperatingMode` (`max_values`: Some(1), `max_size`: Some(2), added: 497, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotParachains::ImportedParaHeads` (r:1 w:0)
+	/// Proof: `BridgePolkadotParachains::ImportedParaHeads` (`max_values`: Some(64), `max_size`: Some(196), added: 1186, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotMessages::InboundLanes` (r:1 w:1)
+	/// Proof: `BridgePolkadotMessages::InboundLanes` (`max_values`: None, `max_size`: Some(49209), added: 51684, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::LaneToBridge` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::LaneToBridge` (`max_values`: None, `max_size`: Some(65), added: 2540, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::Bridges` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::Bridges` (`max_values`: None, `max_size`: Some(1918), added: 4393, mode: `MaxEncodedLen`)
+	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
+	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 4076]`.
+	fn receive_n_messages_proof(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `701`
+		//  Estimated: `52674`
+		// Minimum execution time: 62_034_000 picoseconds.
+		Weight::from_parts(63_355_000, 0)
+			.saturating_add(Weight::from_parts(0, 52674))
+			// Standard Error: 8_231
+			.saturating_add(Weight::from_parts(14_096_117, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `BridgePolkadotMessages::PalletOperatingMode` (r:1 w:0)
+	/// Proof: `BridgePolkadotMessages::PalletOperatingMode` (`max_values`: Some(1), `max_size`: Some(2), added: 497, mode: `MaxEncodedLen`)
 	/// Storage: `XcmpQueue::OutboundXcmpStatus` (r:1 w:0)
 	/// Proof: `XcmpQueue::OutboundXcmpStatus` (`max_values`: Some(1), `max_size`: Some(1282), added: 1777, mode: `MaxEncodedLen`)
 	/// Storage: `BridgePolkadotParachains::ImportedParaHeads` (r:1 w:0)
@@ -85,6 +110,31 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		Weight::from_parts(62_040_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `BridgePolkadotMessages::PalletOperatingMode` (r:1 w:0)
+	/// Proof: `BridgePolkadotMessages::PalletOperatingMode` (`max_values`: Some(1), `max_size`: Some(2), added: 497, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotParachains::ImportedParaHeads` (r:1 w:0)
+	/// Proof: `BridgePolkadotParachains::ImportedParaHeads` (`max_values`: Some(64), `max_size`: Some(196), added: 1186, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotMessages::InboundLanes` (r:1 w:1)
+	/// Proof: `BridgePolkadotMessages::InboundLanes` (`max_values`: None, `max_size`: Some(49209), added: 51684, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::LaneToBridge` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::LaneToBridge` (`max_values`: None, `max_size`: Some(65), added: 2540, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::Bridges` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::Bridges` (`max_values`: None, `max_size`: Some(1918), added: 4393, mode: `MaxEncodedLen`)
+	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
+	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 16384]`.
+	fn receive_single_n_bytes_message_proof(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `701`
+		//  Estimated: `52674`
+		// Minimum execution time: 58_688_000 picoseconds.
+		Weight::from_parts(61_404_716, 0)
+			.saturating_add(Weight::from_parts(0, 52674))
+			// Standard Error: 7
+			.saturating_add(Weight::from_parts(2_249, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `BridgePolkadotMessages::PalletOperatingMode` (r:1 w:0)
@@ -147,25 +197,43 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	fn receive_n_messages_proof(n: u32) -> Weight {
-		Weight::from_parts(0, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			.saturating_add(Weight::from_parts(0, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	fn receive_single_n_bytes_message_proof(n: u32) -> Weight {
-		Weight::from_parts(0, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			.saturating_add(Weight::from_parts(0, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	fn receive_single_n_bytes_message_proof_with_dispatch(n: u32) -> Weight {
-		Weight::from_parts(0, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			.saturating_add(Weight::from_parts(0, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+	/// Storage: `BridgePolkadotMessages::PalletOperatingMode` (r:1 w:0)
+	/// Proof: `BridgePolkadotMessages::PalletOperatingMode` (`max_values`: Some(1), `max_size`: Some(2), added: 497, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotParachains::ImportedParaHeads` (r:1 w:0)
+	/// Proof: `BridgePolkadotParachains::ImportedParaHeads` (`max_values`: Some(64), `max_size`: Some(196), added: 1186, mode: `MaxEncodedLen`)
+	/// Storage: `BridgePolkadotMessages::InboundLanes` (r:1 w:1)
+	/// Proof: `BridgePolkadotMessages::InboundLanes` (`max_values`: None, `max_size`: Some(49209), added: 51684, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::LaneToBridge` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::LaneToBridge` (`max_values`: None, `max_size`: Some(65), added: 2540, mode: `MaxEncodedLen`)
+	/// Storage: `XcmOverBridgeHubKusama::Bridges` (r:1 w:0)
+	/// Proof: `XcmOverBridgeHubKusama::Bridges` (`max_values`: None, `max_size`: Some(1918), added: 4393, mode: `MaxEncodedLen`)
+	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
+	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `XcmpQueue::DeliveryFeeFactor` (r:1 w:0)
+	/// Proof: `XcmpQueue::DeliveryFeeFactor` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `MaxEncodedLen`)
+	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)
+	/// Proof: `PolkadotXcm::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `PolkadotXcm::VersionDiscoveryQueue` (r:1 w:1)
+	/// Proof: `PolkadotXcm::VersionDiscoveryQueue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `PolkadotXcm::SafeXcmVersion` (r:1 w:0)
+	/// Proof: `PolkadotXcm::SafeXcmVersion` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `ParachainSystem::RelevantMessagingState` (r:1 w:0)
+	/// Proof: `ParachainSystem::RelevantMessagingState` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `XcmpQueue::OutboundXcmpStatus` (r:1 w:1)
+	/// Proof: `XcmpQueue::OutboundXcmpStatus` (`max_values`: Some(1), `max_size`: Some(1282), added: 1777, mode: `MaxEncodedLen`)
+	/// Storage: `XcmpQueue::OutboundXcmpMessages` (r:0 w:1)
+	/// Proof: `XcmpQueue::OutboundXcmpMessages` (`max_values`: None, `max_size`: Some(105506), added: 107981, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 16384]`.
+	fn receive_single_n_bytes_message_proof_with_dispatch(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `965`
+		//  Estimated: `52674`
+		// Minimum execution time: 84_340_000 picoseconds.
+		Weight::from_parts(89_615_003, 0)
+			.saturating_add(Weight::from_parts(0, 52674))
+			// Standard Error: 15
+			.saturating_add(Weight::from_parts(7_574, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(12))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 }

@@ -196,6 +196,7 @@ fn max_message_queue_service_weight_is_more_than_beacon_extrinsic_weights() {
 	max_message_queue_weight.all_gt(submit_checkpoint);
 }
 
+// FAIL-CI @bkontur can you help me to check why it's exceeding the weight limits?
 #[test]
 fn ethereum_client_consensus_extrinsics_work() {
 	snowbridge_runtime_test_common::ethereum_extrinsic(
@@ -255,6 +256,7 @@ fn construct_extrinsic(
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
 		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
+		cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim::new(),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();

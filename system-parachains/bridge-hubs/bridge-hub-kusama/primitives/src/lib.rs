@@ -104,11 +104,11 @@ frame_support::parameter_types! {
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_140_827_287;
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_142_112_953;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 574_592_739;
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 575_036_072;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending

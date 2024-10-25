@@ -54,7 +54,7 @@ pub const SIBLING_PARACHAIN_ID: u32 = 1000;
 // Random para id of sibling chain used in tests.
 pub const SIBLING_SYSTEM_PARACHAIN_ID: u32 = 1008;
 // Random para id of bridged chain from different global consensus used in tests.
-pub const BRIDGED_LOCATION_PARACHAIN_ID: u32 = 1075;
+pub const BRIDGED_LOCATION_PARACHAIN_ID: u32 = 1000;
 
 parameter_types! {
 	pub SiblingParachainLocation: Location = Location::new(1, [Parachain(SIBLING_PARACHAIN_ID)]);
@@ -94,6 +94,7 @@ fn construct_extrinsic(
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
 		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
+		cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim::new(),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();
