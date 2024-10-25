@@ -94,7 +94,6 @@ fn construct_extrinsic(
 		pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 		BridgeRejectObsoleteHeadersAndMessages,
 		(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages::default()),
-		cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim::new(),
 		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 	);
 	let payload = SignedPayload::new(call.clone(), extra.clone()).unwrap();

@@ -56,7 +56,6 @@ cumulus-pallet-xcm = { version = "0.17.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.17.0", default-features = false }
 cumulus-primitives-aura = { version = "0.15.0", default-features = false }
 cumulus-primitives-core = { version = "0.16.0", default-features = false }
-cumulus-primitives-storage-weight-reclaim = { version = "8.0.0", default-features = false }
 cumulus-primitives-utility = { version = "0.17.0", default-features = false }
 emulated-integration-tests-common = { version = "14.0.0" }
 encointer-balances-tx-payment = { version = "~14.1.0", default-features = false }

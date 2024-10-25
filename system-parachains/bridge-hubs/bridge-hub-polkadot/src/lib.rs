@@ -123,7 +123,6 @@ pub type SignedExtra = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteHeadersAndMessages,
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	cumulus_primitives_storage_weight_reclaim::StorageWeightReclaim<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
