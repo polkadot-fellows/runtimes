@@ -1827,7 +1827,7 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 
 parameter_types! {
 	// This is used to limit max pools that migrates in the runtime upgrade.  This is set to
-	// existing_pool_count plus ~10 to also account for any new pools getting created before the
+	// existing_pool_count plus ~15 to also account for any new pools getting created before the
 	// migration is actually executed.
 	pub const MaxPoolsToMigrate: u32 = 200;
 }

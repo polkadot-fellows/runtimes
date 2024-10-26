@@ -10095,6 +10095,7 @@ dependencies = [
  "pallet-broker",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
