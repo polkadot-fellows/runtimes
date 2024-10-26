@@ -106,6 +106,7 @@ pallet-collator-selection = { version = "17.0.0", default-features = false }
 pallet-collective = { version = "36.0.0", default-features = false }
 pallet-conviction-voting = { version = "36.0.0", default-features = false }
 pallet-core-fellowship = { version = "20.0.0", default-features = false }
+pallet-delegated-staking = { version = "3.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "35.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "35.0.0", default-features = false }
 pallet-encointer-balances = { version = "~13.1.0", default-features = false }
