@@ -1608,8 +1608,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
 	type StakeAdapter =
-
-	pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1633,8 +1632,6 @@ impl pallet_delegated_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
 }
-
-
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance.

@@ -1518,7 +1518,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type BalanceToU256 = polkadot_runtime_common::BalanceToU256;
 	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
 	type StakeAdapter =
-	pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
 	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -2050,11 +2050,11 @@ pub mod migrations {
 	}
 
 	parameter_types! {
-	// This is used to limit max pools that migrates in the runtime upgrade.  This is set to
-	// existing_pool_count plus ~15 to also account for any new pools getting created before the
-	// migration is actually executed.
-	pub const MaxPoolsToMigrate: u32 = 250;
-}
+		// This is used to limit max pools that migrates in the runtime upgrade.  This is set to
+		// existing_pool_count plus ~15 to also account for any new pools getting created before the
+		// migration is actually executed.
+		pub const MaxPoolsToMigrate: u32 = 250;
+	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
