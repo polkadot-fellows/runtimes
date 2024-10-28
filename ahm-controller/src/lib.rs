@@ -25,6 +25,7 @@ use alloc::{vec, vec::Vec};
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 
+use frame_support::storage::TransactionOutcome;
 use xcm::{
 	prelude::{send_xcm, Instruction, Junction, Location, OriginKind, SendXcm, WeightLimit, Xcm},
 	v4::{
@@ -54,13 +55,17 @@ pub enum Role {
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
 pub enum Phase {
-	Waiting,
+	MigrateBalancesEds { next_account: Option<BoundedVec<u8, ConstU32<128>>> },
+
+	AllDone,
 }
 
 #[derive(Encode, Decode)]
-enum AssetHubPalletConfig {
+enum AssetHubPalletConfig<T: Config> {
 	#[codec(index = 244)]
 	AhmController(AhmCall),
+	#[codec(index = 5)]
+	Indices(pallet_indices::Call<T>),
 }
 
 /// Call encoding for the calls needed from the Broker pallet.
@@ -70,12 +75,18 @@ enum AhmCall {
 	EmitHey,
 }
 
+/*#[derive(Encode, Decode)]
+enum AhIndicesCall<T: Config> {
+	#[codec(index = 5)]
+	MigrateInNext(<T as pallet_indices::Config>::AccountIndex, T::AccountId, BalanceOf<T>, bool),
+}*/
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_indices::Config + pallet_balances::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		#[pallet::constant]
@@ -95,8 +106,11 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		Hey,
+		
 		SentDownward,
-		ErrorSending,
+		ErrorSendingDownward,
+
+		PalletIndicesFinished,
 	}
 
 	#[pallet::error]
@@ -105,35 +119,13 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-			if T::Role::get() != Role::Relay {
-				return Weight::zero();
-			}
-
-			let message = Xcm(vec![
-				Instruction::UnpaidExecution {
-					weight_limit: WeightLimit::Unlimited,
-					check_origin: None,
+			match T::Role::get() {
+				Role::Relay => {
+					Self::relay_on_init();
 				},
-				Instruction::Transact {
-					origin_kind: OriginKind::Superuser,
-					require_weight_at_most: Weight::from_parts(10 * WEIGHT_REF_TIME_PER_MILLIS, 30000), // TODO
-					call: AssetHubPalletConfig::AhmController(AhmCall::EmitHey).encode().into(),
-				}
-			]);
-
-			for _ in 0..100 {
-				match send_xcm::<T::SendXcm>(
-					Location::new(0, [Junction::Parachain(1000)]),
-					message.clone(),
-				) {
-					Ok(_) => {
-						Self::deposit_event(Event::SentDownward);
-					},
-					Err(_) => {
-						Self::deposit_event(Event::ErrorSending);
-					},
-				}
-			}
+				Role::AssetHub => {
+				},
+			};
 
 			Weight::zero()
 		}
@@ -147,6 +139,116 @@ pub mod pallet {
 			Self::deposit_event(Event::Hey);
 
 			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn relay_on_init() {
+			// Phase init
+			let phase = match Phase::<T>::get() {
+				None => Phase::MigrateBalancesEds { next_account: Vec::new() },
+				Some(phase) => phase,
+			};
+
+			// Phase handling and transistion
+			let phase = match phase {
+				Phase::MigrateBalancesEds { mut next_account } => {
+					Self::migrate_eds(&mut next_account, 100)?;
+
+					if next_account.is_some() {
+						Phase::MigrateBalancesEds { next_account }
+					} else {
+						Phase::AllDone
+					}
+				},
+				other => other,
+			};
+			// Write back
+			Phase::<T>::put(phase);
+
+			/*for _ in 0..10 {
+				match Self::migrate_indices() {
+					Ok(false) => break,
+					Err(_) => break,
+					_ => (),
+				}
+			}*/
+		}
+
+		fn migrate_eds(next_acc: &mut Option<Vec<u8>>) -> Result<(), ()> {
+			frame_support::storage::transactional::with_transaction_opaque_err::<(), (), _>(|| {
+				let Some((call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(&mut next_acc, 100) else {
+					return TransactionOutcome::Commit(Ok(()));
+				};
+				
+				let ah_call: xcm::DoubleEncoded<()> = AssetHubPalletConfig::<T>::Indices(
+					call,
+				).encode().into();
+
+				let message = Xcm(vec![
+					Instruction::UnpaidExecution {
+						weight_limit: WeightLimit::Unlimited,
+						check_origin: None,
+					},
+					Instruction::Transact {
+						origin_kind: OriginKind::Superuser,
+						require_weight_at_most: Weight::from_parts(10 * WEIGHT_REF_TIME_PER_MILLIS, 30000), // TODO
+						call: ah_call,
+					},
+				]);
+
+				match send_xcm::<T::SendXcm>(
+					Location::new(0, [Junction::Parachain(1000)]),
+					message.clone(),
+				) {
+					Ok(_) => {
+						Self::deposit_event(Event::SentDownward);
+						TransactionOutcome::Commit(Ok(()))
+					},
+					Err(_) => {
+						Self::deposit_event(Event::ErrorSendingDownward);
+						TransactionOutcome::Commit(Err(()))
+					},
+				}
+			})?
+		}
+
+		fn migrate_indices() -> Result<bool, ()> {
+			frame_support::storage::transactional::with_transaction_opaque_err::<bool, (), _>(|| {
+				let Some((call, weight)) = pallet_indices::Pallet::<T>::migrate_next(100) else {
+					return TransactionOutcome::Commit(Ok(false));
+				};
+				
+				let ah_call: xcm::DoubleEncoded<()> = AssetHubPalletConfig::<T>::Indices(
+					call,
+				).encode().into();
+
+				let message = Xcm(vec![
+					Instruction::UnpaidExecution {
+						weight_limit: WeightLimit::Unlimited,
+						check_origin: None,
+					},
+					Instruction::Transact {
+						origin_kind: OriginKind::Superuser,
+						require_weight_at_most: Weight::from_parts(10 * WEIGHT_REF_TIME_PER_MILLIS, 30000), // TODO
+						call: ah_call,
+					},
+				]);
+
+				match send_xcm::<T::SendXcm>(
+					Location::new(0, [Junction::Parachain(1000)]),
+					message.clone(),
+				) {
+					Ok(_) => {
+						Self::deposit_event(Event::SentDownward);
+						TransactionOutcome::Commit(Ok(true))
+					},
+					Err(_) => {
+						Self::deposit_event(Event::ErrorSendingDownward);
+						TransactionOutcome::Commit(Err(()))
+					},
+				}
+			})?
 		}
 	}
 }

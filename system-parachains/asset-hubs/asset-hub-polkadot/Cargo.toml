@@ -40,6 +40,7 @@ pallet-assets = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nfts = { workspace = true }
@@ -149,7 +150,8 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-ahm-controller/runtime-benchmarks"
+	"pallet-ahm-controller/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -182,7 +184,8 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-ahm-controller/try-runtime"
+	"pallet-ahm-controller/try-runtime",
+	"pallet-indices/try-runtime"
 ]
 std = [
 	"assets-common/std",
@@ -262,7 +265,8 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-ahm-controller/std"
+	"pallet-ahm-controller/std",
+	"pallet-indices/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

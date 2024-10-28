@@ -959,6 +959,18 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 }
 
+parameter_types! {
+	pub const IndexDeposit: Balance = (10 * DOLLARS) / 100;
+}
+
+impl pallet_indices::Config for Runtime {
+	type AccountIndex = parachains_common::AccountIndex; // FAIL-CI double check
+	type Currency = Balances;
+	type Deposit = IndexDeposit;
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_indices::weights::SubstrateWeight<Runtime>; // FAIL-CI
+}
+
 use pallet_ahm_controller::Role;
 
 parameter_types! {
@@ -981,6 +993,7 @@ construct_runtime!(
 		// RandomnessCollectiveFlip = 2 removed
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
+		Indices: pallet_indices = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
