@@ -204,6 +204,7 @@ snowbridge-outbound-queue-runtime-api = { version = "0.10.0", default-features =
 snowbridge-pallet-ethereum-client = { version = "0.10.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.10.0", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.18.0" }
+snowbridge-pallet-ethereum-client-fixtures = { version = "0.18.0" }
 snowbridge-pallet-outbound-queue = { version = "0.10.0", default-features = false }
 snowbridge-pallet-system = { version = "0.10.0", default-features = false }
 snowbridge-router-primitives = { version = "0.16.0", default-features = false }

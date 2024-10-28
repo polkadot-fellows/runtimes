@@ -111,7 +111,7 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		//  Measured:  `92787`
 		//  Estimated: `93857`
 		// Minimum execution time: 169_086_936_000 picoseconds.
-		Weight::from_parts(69_539_621_000, 0)
+		Weight::from_parts(169_539_621_000, 0)
 			.saturating_add(Weight::from_parts(0, 93857))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(1))

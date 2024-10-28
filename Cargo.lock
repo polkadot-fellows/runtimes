@@ -1953,6 +1953,7 @@ dependencies = [
  "snowbridge-core",
  "snowbridge-outbound-queue-runtime-api",
  "snowbridge-pallet-ethereum-client",
+ "snowbridge-pallet-ethereum-client-fixtures",
  "snowbridge-pallet-inbound-queue",
  "snowbridge-pallet-outbound-queue",
  "snowbridge-pallet-system",

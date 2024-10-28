@@ -125,6 +125,7 @@ pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
 static_assertions = { workspace = true }
 snowbridge-runtime-test-common = { workspace = true }
+snowbridge-pallet-ethereum-client-fixtures = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
