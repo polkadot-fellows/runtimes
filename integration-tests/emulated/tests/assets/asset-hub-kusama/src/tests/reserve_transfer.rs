@@ -1062,7 +1062,7 @@ fn reserve_withdraw_from_untrusted_reserve_fails() {
 	// Init values for Parachain Origin
 	let destination = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let signed_origin =
-		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get().into());
+		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
 	let ksm_to_send: Balance = KUSAMA_ED * 10000;
 	let ksm_location = KsmLocation::get();
 
