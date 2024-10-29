@@ -58,6 +58,7 @@ const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const INSUFFICIENT_XCM_FEE: u128 = 1000;
 const XCM_FEE: u128 = 4_000_000_000;
 const TOKEN_AMOUNT: u128 = 100_000_000_000;
+const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum ControlCall {
@@ -479,12 +480,11 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		(ethereum_sovereign_account(), INITIAL_FUND),
 	]);
 
-	let base_fee = 2_750_872_500_000u128;
-
+	// Set base transfer fee to Ethereum on AH.
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
-			vec![(BridgeHubEthereumBaseFee::key().to_vec(), base_fee.encode())],
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
 		));
 	});
 
@@ -615,7 +615,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			);
 		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
 		let free_balance_diff = free_balance_before - free_balance_after;
-		assert!(free_balance_diff > base_fee);
+		assert!(free_balance_diff > AH_BASE_FEE);
 	});
 
 	BridgeHubPolkadot::execute_with(|| {
@@ -1009,6 +1009,12 @@ fn transfer_relay_token() {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
+		// Set base transfer fee to Ethereum on AH.
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
+		));
+
 		let assets = vec![Asset { id: AssetId(Location::parent()), fun: Fungible(TOKEN_AMOUNT) }];
 		let versioned_assets = VersionedAssets::V4(Assets::from(assets));
 
@@ -1174,9 +1180,14 @@ fn transfer_ah_token() {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
+		// Set base transfer fee to Ethereum on AH.
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
+		));
+
 		// Send partial of the token, will fail if send all
-		let assets =
-			vec![Asset { id: AssetId(asset_id.clone()), fun: Fungible(TOKEN_AMOUNT / 10) }];
+		let assets = vec![Asset { id: AssetId(asset_id.clone()), fun: Fungible(TOKEN_AMOUNT / 2) }];
 		let versioned_assets = VersionedAssets::V4(Assets::from(assets));
 
 		let beneficiary = VersionedLocation::V4(Location::new(
