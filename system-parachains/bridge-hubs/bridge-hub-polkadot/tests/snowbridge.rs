@@ -342,7 +342,7 @@ pub fn ethereum_extrinsic<Runtime>(
 				snowbridge_pallet_ethereum_client::Error::<Runtime>::InvalidUpdateSlot
 			);
 			let balance_after_invalid_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
 
 			// Sync committee update
 			let sync_committee_outcome =
