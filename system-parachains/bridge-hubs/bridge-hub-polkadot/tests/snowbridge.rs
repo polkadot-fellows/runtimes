@@ -359,7 +359,7 @@ pub fn ethereum_extrinsic<Runtime>(
 				snowbridge_pallet_ethereum_client::Error::<Runtime>::InvalidUpdateSlot
 			);
 			let balance_after_invalid_sync_com_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
 
 			// Assert paid operations are charged and free operations are free
 			// Checkpoint is a free operation
