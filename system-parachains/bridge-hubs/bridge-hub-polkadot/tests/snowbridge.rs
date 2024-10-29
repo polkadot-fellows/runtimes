@@ -292,7 +292,7 @@ pub fn ethereum_extrinsic<Runtime>(
 			)
 			.unwrap();
 			let balance_before =
-				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
 
 			assert_ok!(<snowbridge_pallet_ethereum_client::Pallet<Runtime>>::force_checkpoint(
 				RuntimeHelper::<Runtime>::root_origin(),
