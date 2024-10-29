@@ -299,7 +299,7 @@ pub fn ethereum_extrinsic<Runtime>(
 				initial_checkpoint.clone(),
 			));
 			let balance_after_checkpoint =
-				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
 
 			let update_call: <Runtime as pallet_utility::Config>::RuntimeCall =
 				snowbridge_pallet_ethereum_client::Call::<Runtime>::submit {
