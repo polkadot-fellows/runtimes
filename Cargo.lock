@@ -7735,6 +7735,8 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "sp-crypto-hashing",
+ "sp-io 37.0.0",
  "sp-runtime 38.0.0",
  "sp-std",
 ]

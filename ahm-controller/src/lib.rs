@@ -54,18 +54,21 @@ pub enum Role {
 }
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo)]
-pub enum Phase {
+pub enum Phases {
 	MigrateBalancesEds { next_account: Option<BoundedVec<u8, ConstU32<128>>> },
 
 	AllDone,
 }
 
+/// WARNING EXTREMLY IMPORTANT THAT THESE INDICES ARE CORRECT
 #[derive(Encode, Decode)]
 enum AssetHubPalletConfig<T: Config> {
-	#[codec(index = 244)]
-	AhmController(AhmCall),
 	#[codec(index = 5)]
 	Indices(pallet_indices::Call<T>),
+	#[codec(index = 10)]
+	Balances(pallet_balances::Call<T>),
+	#[codec(index = 244)]
+	AhmController(AhmCall),
 }
 
 /// Call encoding for the calls needed from the Broker pallet.
@@ -100,7 +103,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::storage]
-	pub type Phase<T: Config> = StorageValue<_, super::Phase>;
+	pub type Phase<T: Config> = StorageValue<_, super::Phases>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -146,19 +149,19 @@ pub mod pallet {
 		fn relay_on_init() {
 			// Phase init
 			let phase = match Phase::<T>::get() {
-				None => Phase::MigrateBalancesEds { next_account: Vec::new() },
+				None => Phases::MigrateBalancesEds { next_account: None },
 				Some(phase) => phase,
 			};
 
 			// Phase handling and transistion
 			let phase = match phase {
-				Phase::MigrateBalancesEds { mut next_account } => {
-					Self::migrate_eds(&mut next_account, 100)?;
+				Phases::MigrateBalancesEds { mut next_account } => {
+					Self::migrate_eds(&mut next_account);
 
 					if next_account.is_some() {
-						Phase::MigrateBalancesEds { next_account }
+						Phases::MigrateBalancesEds { next_account }
 					} else {
-						Phase::AllDone
+						Phases::AllDone
 					}
 				},
 				other => other,
@@ -175,13 +178,32 @@ pub mod pallet {
 			}*/
 		}
 
-		fn migrate_eds(next_acc: &mut Option<Vec<u8>>) -> Result<(), ()> {
-			frame_support::storage::transactional::with_transaction_opaque_err::<(), (), _>(|| {
-				let Some((call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(&mut next_acc, 100) else {
-					return TransactionOutcome::Commit(Ok(()));
+		// Just to make the BoundedVec compiler stuff work...
+		fn migrate_eds(next_acc: &mut Option<BoundedVec<u8, ConstU32<128>>>) {
+			let Ok(new) = Self::do_migrate_eds(next_acc.clone().map(|v| v.into_inner())) else {
+				// TODO what do?
+				return;
+			};
+			let Some(new) = new else {
+				*next_acc = None;
+				return;
+			};
+			
+			let Ok(new_bounded) = BoundedVec::try_from(new) else {
+				defensive!("Very bad: could not store next cursor");
+				// TODO yikes
+				return;
+			};
+			*next_acc = Some(new_bounded);
+		}
+
+		fn do_migrate_eds(next_acc: Option<Vec<u8>>) -> Result<Option<Vec<u8>>, ()> {
+			frame_support::storage::transactional::with_transaction_opaque_err::<Option<Vec<u8>>, (), _>(|| {
+				let Some((next_key, call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(next_acc, 100) else {
+					return TransactionOutcome::Commit(Ok(None));
 				};
 				
-				let ah_call: xcm::DoubleEncoded<()> = AssetHubPalletConfig::<T>::Indices(
+				let ah_call: xcm::DoubleEncoded<()> = AssetHubPalletConfig::<T>::Balances(
 					call,
 				).encode().into();
 
@@ -203,7 +225,7 @@ pub mod pallet {
 				) {
 					Ok(_) => {
 						Self::deposit_event(Event::SentDownward);
-						TransactionOutcome::Commit(Ok(()))
+						TransactionOutcome::Commit(Ok(next_key))
 					},
 					Err(_) => {
 						Self::deposit_event(Event::ErrorSendingDownward);
