@@ -2205,8 +2205,10 @@ impl Runtime {
 		);
 		// reverse-engineer the current inflation by looking at the total minted against the total
 		// issuance.
-		let inflation =
-			Perquintill::from_rational((next_mint.0 + next_mint.1) * 365, stake_able_issuance);
+		let inflation = Perquintill::from_rational(
+			(next_mint.0 + next_mint.1) * 36525 / 100,
+			stake_able_issuance,
+		);
 
 		InflationInfo { inflation, next_mint }
 	}
