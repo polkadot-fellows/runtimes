@@ -183,7 +183,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		vec![],
 	);
 	AssetHubPolkadot::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -191,7 +191,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	);
 	AssetHubPolkadot::mint_foreign_asset(
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(assets_owner),
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		sender.clone(),
 		foreign_amount_to_send * 2,
 	);
@@ -223,10 +223,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let sender_balance_before = test.sender.balance;
 	let sender_ksm_before = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sender,
-		)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_assets_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
@@ -247,10 +244,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let sender_balance_after = test.sender.balance;
 	let sender_ksm_after = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sender,
-		)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
 	});
 	let receiver_assets_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
@@ -312,7 +306,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 		vec![],
 	);
 	AssetHubPolkadot::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -343,7 +337,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	AssetHubPolkadot::fund_accounts(vec![(sov_penpal_on_ahp.clone(), native_amount_to_send * 2)]);
 	AssetHubPolkadot::mint_foreign_asset(
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(assets_owner),
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		sov_penpal_on_ahp,
 		foreign_amount_to_send * 2,
 	);
@@ -383,10 +377,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	let receiver_native_before = test.receiver.balance;
 	let receiver_ksm_before = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&receiver,
-		)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &receiver)
 	});
 
 	// Set assertions and dispatchables
@@ -407,10 +398,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	let receiver_native_after = test.receiver.balance;
 	let receiver_ksm_after = AssetHubPolkadot::execute_with(|| {
 		type ForeignAssets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.try_into().unwrap(),
-			&receiver,
-		)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &receiver)
 	});
 
 	// Sender's balance is reduced by amount sent plus delivery fees
@@ -460,7 +448,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	// Register KSM as foreign asset and transfer it around the Polkadot ecosystem
 	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(Kusama)]);
 	AssetHubPolkadot::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -498,7 +486,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	AssetHubPolkadot::fund_accounts(vec![(sov_of_sender_on_ah.clone(), dot_to_send * 2)]);
 	AssetHubPolkadot::mint_foreign_asset(
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(assets_owner),
-		ksm_at_polkadot_parachains.clone().try_into().unwrap(),
+		ksm_at_polkadot_parachains.clone(),
 		sov_of_sender_on_ah.clone(),
 		ksm_to_send * 2,
 	);
@@ -542,19 +530,13 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_sender_on_ah.clone()).free;
 	let ksm_in_sender_reserve_on_ahp_before = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sov_of_sender_on_ah,
-		)
+		<Assets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sov_of_sender_on_ah)
 	});
 	let dot_in_receiver_reserve_on_ahp_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_receiver_on_ah.clone()).free;
 	let ksm_in_receiver_reserve_on_ahp_before = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sov_of_receiver_on_ah,
-		)
+		<Assets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sov_of_receiver_on_ah)
 	});
 	let receiver_dot_before = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
@@ -583,19 +565,13 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 	let ksm_in_sender_reserve_on_ahp_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sov_of_sender_on_ah,
-		)
+		<Assets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sov_of_sender_on_ah)
 	});
 	let dot_in_sender_reserve_on_ahp_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_sender_on_ah).free;
 	let ksm_in_receiver_reserve_on_ahp_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(
-			ksm_at_polkadot_parachains.clone().try_into().unwrap(),
-			&sov_of_receiver_on_ah,
-		)
+		<Assets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sov_of_receiver_on_ah)
 	});
 	let dot_in_receiver_reserve_on_ahp_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_receiver_on_ah).free;

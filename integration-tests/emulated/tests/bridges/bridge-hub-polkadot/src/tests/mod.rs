@@ -70,13 +70,13 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 	)
 }
 
-pub(crate) fn create_foreign_on_ah_kusama(id: v3::Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_kusama(id: v4::Location, sufficient: bool) {
 	let owner = AssetHubKusama::account_id_of(ALICE);
 	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
 pub(crate) fn create_foreign_on_ah_polkadot(
-	id: v3::Location,
+	id: v4::Location,
 	sufficient: bool,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
@@ -85,13 +85,13 @@ pub(crate) fn create_foreign_on_ah_polkadot(
 	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
 }
 
-pub(crate) fn foreign_balance_on_ah_kusama(id: v3::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_kusama(id: v4::Location, who: &AccountId) -> u128 {
 	AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
-pub(crate) fn foreign_balance_on_ah_polkadot(id: v3::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_polkadot(id: v4::Location, who: &AccountId) -> u128 {
 	AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
@@ -99,8 +99,8 @@ pub(crate) fn foreign_balance_on_ah_polkadot(id: v3::Location, who: &AccountId) 
 }
 
 // set up pool
-pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign: bool) {
-	let ksm: v3::Location = v3::Parent.into();
+pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v4::Location, is_foreign: bool) {
+	let ksm: v4::Location = v4::Parent.into();
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 		let owner = AssetHubKusamaSender::get();
@@ -109,13 +109,13 @@ pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign:
 		if is_foreign {
 			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
 				signed_owner.clone(),
-				asset,
+				asset.clone(),
 				owner.clone().into(),
 				3_000_000_000_000,
 			));
 		} else {
 			let asset_id = match asset.interior.last() {
-				Some(v3::Junction::GeneralIndex(id)) => *id as u32,
+				Some(v4::Junction::GeneralIndex(id)) => *id as u32,
 				_ => unreachable!(),
 			};
 			assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::mint(
@@ -127,8 +127,8 @@ pub(crate) fn set_up_pool_with_ksm_on_ah_kusama(asset: v3::Location, is_foreign:
 		}
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			signed_owner.clone(),
-			Box::new(ksm),
-			Box::new(asset),
+			Box::new(ksm.clone()),
+			Box::new(asset.clone()),
 		));
 		assert_expected_events!(
 			AssetHubKusama,
