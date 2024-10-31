@@ -7728,6 +7728,7 @@ dependencies = [
 name = "pallet-balances"
 version = "37.0.0"
 dependencies = [
+ "array-bytes",
  "docify",
  "frame-benchmarking",
  "frame-support",

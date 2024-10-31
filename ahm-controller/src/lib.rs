@@ -121,10 +121,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			match T::Role::get() {
 				Role::Relay => {
-					Self::relay_on_init();
+					Self::relay_on_init(now);
 				},
 				Role::AssetHub => {
 				},
@@ -146,7 +146,11 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn relay_on_init() {
+		fn relay_on_init(now: BlockNumberFor<T>) {
+			if now < 3u32.into() {
+				return;
+			}
+
 			// Phase init
 			let phase = match Phase::<T>::get() {
 				None => Phases::MigrateBalancesEds { next_account: None },
@@ -199,9 +203,11 @@ pub mod pallet {
 
 		fn do_migrate_eds(next_acc: Option<Vec<u8>>) -> Result<Option<Vec<u8>>, ()> {
 			frame_support::storage::transactional::with_transaction_opaque_err::<Option<Vec<u8>>, (), _>(|| {
-				let Some((next_key, call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(next_acc, 100) else {
+				let Some((next_key, call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(next_acc, 5000) else {
 					return TransactionOutcome::Commit(Ok(None));
 				};
+
+				// Issue: Inbound Downward message was too long
 				
 				let ah_call: xcm::DoubleEncoded<()> = AssetHubPalletConfig::<T>::Balances(
 					call,
