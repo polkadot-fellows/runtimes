@@ -155,6 +155,12 @@ fn polkadot_testnet_genesis(
 	const ENDOWMENT: u128 = 1_000_000 * DOT;
 	const STASH: u128 = 100 * DOT;
 
+	let mut indices = Vec::<(AccountIndex, AccountId)>::new();
+	for i in 0..1000 {
+		let who = get_account_id_from_seed::<sr25519::Public>(&format!("//Alice/{}", i));
+		indices.push((i, who));
+	}
+
 	serde_json::json!({
 		"balances": {
 			"balances": endowed_accounts.iter().map(|k| (k.clone(), ENDOWMENT)).collect::<Vec<_>>(),
@@ -191,6 +197,9 @@ fn polkadot_testnet_genesis(
 		},
 		"babe": {
 			"epochConfig": Some(BABE_GENESIS_EPOCH_CONFIG),
+		},
+		"indices": {
+			"indices": indices,
 		},
 		"configuration": {
 			"config": default_parachains_host_configuration(),

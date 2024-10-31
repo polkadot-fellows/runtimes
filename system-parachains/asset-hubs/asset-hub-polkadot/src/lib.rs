@@ -653,7 +653,7 @@ impl pallet_message_queue::Config for Runtime {
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
 	type ServiceWeight = MessageQueueServiceWeight;
-	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
+	type IdleMaxServiceWeight = ();
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -962,6 +962,30 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 }
 
+parameter_types! {
+	pub const IndexDeposit: Balance = (10 * DOLLARS) / 100;
+}
+
+impl pallet_indices::Config for Runtime {
+	type AccountIndex = parachains_common::AccountIndex; // FAIL-CI double check
+	type Currency = Balances;
+	type Deposit = IndexDeposit;
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_indices::weights::SubstrateWeight<Runtime>; // FAIL-CI
+}
+
+use pallet_ahm_controller::Role;
+
+parameter_types! {
+	pub const OurRole: Role = Role::AssetHub;
+}
+
+impl pallet_ahm_controller::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Role = OurRole;
+	type SendXcm = crate::xcm_config::XcmRouter;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -972,6 +996,7 @@ construct_runtime!(
 		// RandomnessCollectiveFlip = 2 removed
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
+		Indices: pallet_indices = 5,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1006,6 +1031,8 @@ construct_runtime!(
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+
+		AhmController: pallet_ahm_controller = 244,
 	}
 );
 
