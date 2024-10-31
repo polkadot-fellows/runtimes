@@ -291,15 +291,15 @@ pub fn ethereum_extrinsic<Runtime>(
 				10_000_000_000_000_u128.saturated_into::<BalanceOf<Runtime>>(),
 			)
 			.unwrap();
-			let balance_before =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+			let alice_account: <Runtime as frame_system::Config>::AccountId = alice_account.into();
+			let balance_before = <pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			assert_ok!(<snowbridge_pallet_ethereum_client::Pallet<Runtime>>::force_checkpoint(
 				RuntimeHelper::<Runtime>::root_origin(),
 				initial_checkpoint.clone(),
 			));
 			let balance_after_checkpoint =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			let update_call: <Runtime as pallet_utility::Config>::RuntimeCall =
 				snowbridge_pallet_ethereum_client::Call::<Runtime>::submit {
@@ -329,7 +329,7 @@ pub fn ethereum_extrinsic<Runtime>(
 			let update_outcome = construct_and_apply_extrinsic(alice, update_call.into());
 			assert_ok!(update_outcome);
 			let balance_after_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			// All the extrinsics in this test do no fit into 1 block
 			let _ = RuntimeHelper::<Runtime>::run_to_block(2, AccountId::from(alice).into());
@@ -342,14 +342,14 @@ pub fn ethereum_extrinsic<Runtime>(
 				snowbridge_pallet_ethereum_client::Error::<Runtime>::InvalidUpdateSlot
 			);
 			let balance_after_invalid_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			// Sync committee update
 			let sync_committee_outcome =
 				construct_and_apply_extrinsic(alice, update_sync_committee_call.into());
 			assert_ok!(sync_committee_outcome);
 			let balance_after_sync_com_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			// Invalid sync committee update
 			let invalid_sync_committee_outcome =
@@ -359,7 +359,7 @@ pub fn ethereum_extrinsic<Runtime>(
 				snowbridge_pallet_ethereum_client::Error::<Runtime>::InvalidUpdateSlot
 			);
 			let balance_after_invalid_sync_com_update =
-				<pallet_balances::Pallet<Runtime>>::free_balance(alice_account.clone().into());
+				<pallet_balances::Pallet<Runtime>>::free_balance(&alice_account);
 
 			// Assert paid operations are charged and free operations are free
 			// Checkpoint is a free operation
