@@ -272,27 +272,28 @@ where
 {
 	use pallet_xcm_bridge_hub::{Bridge, BridgeId, BridgeState};
 	use sp_runtime::traits::Zero;
-	use sp_std::boxed::Box;
 	use xcm::VersionedInteriorLocation;
 
 	// insert bridge metadata
 	let lane_id = with;
 	let sibling_parachain = Location::new(1, [Parachain(sibling_para_id)]);
-	let universal_source = [GlobalConsensus(Westend), Parachain(sibling_para_id)].into();
-	let universal_destination = [GlobalConsensus(Rococo), Parachain(2075)].into();
+	let universal_source = [GlobalConsensus(Polkadot), Parachain(sibling_para_id)].into();
+	let universal_destination = [GlobalConsensus(Kusama), Parachain(2075)].into();
 	let bridge_id = BridgeId::new(&universal_source, &universal_destination);
 
 	// insert only bridge metadata, because the benchmarks create lanes
 	pallet_xcm_bridge_hub::Bridges::<R, XBHI>::insert(
 		bridge_id,
 		Bridge {
-			bridge_origin_relative_location: Box::new(sibling_parachain.clone().into()),
-			bridge_origin_universal_location: Box::new(VersionedInteriorLocation::from(
-				universal_source.clone(),
-			)),
-			bridge_destination_universal_location: Box::new(VersionedInteriorLocation::from(
-				universal_destination,
-			)),
+			bridge_origin_relative_location: sp_std::boxed::Box::new(
+				sibling_parachain.clone().into(),
+			),
+			bridge_origin_universal_location: sp_std::boxed::Box::new(
+				VersionedInteriorLocation::from(universal_source.clone()),
+			),
+			bridge_destination_universal_location: sp_std::boxed::Box::new(
+				VersionedInteriorLocation::from(universal_destination),
+			),
 			state: BridgeState::Opened,
 			bridge_owner_account: C::convert_location(&sibling_parachain).expect("valid AccountId"),
 			deposit: Zero::zero(),

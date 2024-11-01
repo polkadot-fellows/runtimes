@@ -1268,7 +1268,8 @@ impl_runtime_apis! {
 			impl BridgeMessagesConfig<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance> for Runtime {
 				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
 					let bench_lane_id = <Self as BridgeMessagesConfig<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>::bench_lane_id();
-					let bridged_chain_id = bridge_to_kusama_config::BridgeHubKusamaChainId::get();
+					use bp_runtime::Chain;
+					let bridged_chain_id =<Self as pallet_bridge_messages::Config<bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>>::BridgedChain::ID;
 					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
 						relayer,
 						bp_relayers::RewardsAccountParams::new(
@@ -1285,11 +1286,16 @@ impl_runtime_apis! {
 					use cumulus_primitives_core::XcmpMessageSource;
 					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
+					let universal_source = bridge_to_kusama_config::open_bridge_for_benchmarks::<
+						Runtime,
+						bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
+						xcm_config::LocationToAccountId,
+					>(params.lane, 42);
 					prepare_message_proof_from_parachain::<
 						Runtime,
 						bridge_to_kusama_config::BridgeGrandpaKusamaInstance,
 						bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
-					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Polkadot), Parachain(42)].into()))
+					>(params, generate_xcm_builder_bridge_message_sample(universal_source))
 				}
 
 				fn prepare_message_delivery_proof(
