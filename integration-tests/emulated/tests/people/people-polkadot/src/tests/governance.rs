@@ -128,7 +128,10 @@ fn relay_commands_kill_identity() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
+					// Making the weight's ref time any lower will prevent the XCM from triggering
+					// execution of the intended extrinsic on the People chain - beware of spurious
+					// test failure due to this.
+					require_weight_at_most: Weight::from_parts(12_000_000_000, 500_000),
 					call: kill_identity_call.encode().into(),
 				}
 			]))),
@@ -155,4 +158,61 @@ fn relay_commands_kill_identity() {
 			]
 		);
 	});
+}
+
+#[test]
+fn relay_commands_add_username_authority() {
+	let origins = vec![
+		(OriginKind::Xcm, GeneralAdminOrigin.into()),
+		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root()),
+	];
+	for (origin_kind, origin) in origins {
+		Polkadot::execute_with(|| {
+			type Runtime = <Polkadot as Chain>::Runtime;
+			type RuntimeCall = <Polkadot as Chain>::RuntimeCall;
+			type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
+			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
+			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
+
+			let add_username_authority =
+				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
+					authority: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(ALICE)),
+					suffix: b"suffix".into(),
+					allocation: 10
+				});
+
+			let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+				message: bx!(VersionedXcm::from(Xcm(vec![
+					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+					Transact {
+						origin_kind,
+						require_weight_at_most: Weight::from_parts(1_000_000_000, 500_000),
+						call: add_username_authority.encode().into(),
+					}
+				]))),
+			});
+
+			assert_ok!(xcm_message.dispatch(origin));
+
+			assert_expected_events!(
+				Polkadot,
+				vec![
+					RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
+				]
+			);
+		});
+
+		PeoplePolkadot::execute_with(|| {
+			type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+
+			assert_expected_events!(
+				PeoplePolkadot,
+				vec![
+					RuntimeEvent::Identity(pallet_identity::Event::AuthorityAdded { .. }) => {},
+					RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
+				]
+			);
+		});
+	}
 }
