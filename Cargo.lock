@@ -9749,6 +9749,7 @@ dependencies = [
  "parachains-common",
  "people-polkadot-runtime",
  "polkadot-emulated-chain",
+ "polkadot-runtime-constants",
  "sp-core 34.0.0",
 ]
 
