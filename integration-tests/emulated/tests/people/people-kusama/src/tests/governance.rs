@@ -85,16 +85,17 @@ fn relay_commands_kill_identity() {
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 		type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-		let people_kusama_alice = <PeopleKusama as Chain>::RuntimeOrigin::signed(PeopleKusama::account_id_of(ALICE));
+		let people_kusama_alice =
+			<PeopleKusama as Chain>::RuntimeOrigin::signed(PeopleKusama::account_id_of(ALICE));
 
 		let mut identity_info = <IdentityInfo as Default>::default();
 		identity_info.email = Data::Raw(b"test@test.io".to_vec().try_into().unwrap());
-		let identity: Box<<PeopleRuntime as pallet_identity::Config>::IdentityInformation> = Box::new(identity_info);
+		let identity: Box<<PeopleRuntime as pallet_identity::Config>::IdentityInformation> =
+			Box::new(identity_info);
 
-		assert_ok!(
-			<PeopleKusama as PeopleKusamaPallet>::Identity::set_identity(
-				people_kusama_alice,
-				identity
+		assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_identity(
+			people_kusama_alice,
+			identity
 		));
 
 		assert_expected_events!(
@@ -105,8 +106,7 @@ fn relay_commands_kill_identity() {
 		);
 	});
 
-	let (origin_kind, origin) =
-		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root());
+	let (origin_kind, origin) = (OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root());
 
 	Kusama::execute_with(|| {
 		type Runtime = <Kusama as Chain>::Runtime;
@@ -163,7 +163,6 @@ fn relay_commands_add_remove_username_authority() {
 	let people_kusama_alice = PeopleKusama::account_id_of(ALICE);
 	let people_kusama_bob = PeopleKusama::account_id_of(BOB);
 
-
 	let origins = vec![
 		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin"),
 		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root(), "rootusername"),
@@ -177,12 +176,13 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
-			let add_username_authority =
-				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
-					authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
-					suffix: b"suffix1".into(),
-					allocation: 10
-				});
+			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::add_username_authority {
+				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
 
 			let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
 				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
@@ -223,12 +223,11 @@ fn relay_commands_add_remove_username_authority() {
 		PeopleKusama::execute_with(|| {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-			assert_ok!(
-				<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
-					<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
-					people_kusama_runtime::MultiAddress::Id(people_kusama_bob.clone()),
-					usr.to_owned().into_bytes().try_into().unwrap(),
-					None,
+			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
+				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
+				people_kusama_runtime::MultiAddress::Id(people_kusama_bob.clone()),
+				usr.to_owned().into_bytes().try_into().unwrap(),
+				None,
 			));
 
 			assert_expected_events!(
@@ -244,10 +243,9 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 			let full_username = [usr.to_owned(), ".suffix1".to_owned()].concat().into_bytes();
 
-			assert_ok!(
-				<PeopleKusama as PeopleKusamaPallet>::Identity::accept_username(
-					<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_bob.clone()),
-					full_username.try_into().unwrap(),
+			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::accept_username(
+				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_bob.clone()),
+				full_username.try_into().unwrap(),
 			));
 
 			assert_expected_events!(
@@ -266,22 +264,24 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
-			let remove_username_authority =
-				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::remove_username_authority {
-					authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
-				});
-
-			let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::from(Xcm(vec![
-					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-					Transact {
-						origin_kind,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
-						call: remove_username_authority.encode().into(),
-					}
-				]))),
+			let remove_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::remove_username_authority {
+				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
 			});
+
+			let remove_authority_xcm_msg =
+				RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+							call: remove_username_authority.encode().into(),
+						}
+					]))),
+				});
 
 			assert_ok!(remove_authority_xcm_msg.dispatch(origin));
 
@@ -305,6 +305,5 @@ fn relay_commands_add_remove_username_authority() {
 				]
 			);
 		});
-
 	}
 }

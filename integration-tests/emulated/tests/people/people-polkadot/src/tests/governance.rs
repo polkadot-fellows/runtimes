@@ -17,8 +17,8 @@ use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 
 use frame_support::sp_runtime::traits::Dispatchable;
-use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
 use people_polkadot_runtime::people::IdentityInfo;
+use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
 
 use pallet_identity::Data;
 
@@ -85,16 +85,17 @@ fn relay_commands_kill_identity() {
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 		type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 
-		let people_polkadot_alice = <PeoplePolkadot as Chain>::RuntimeOrigin::signed(PeoplePolkadot::account_id_of(ALICE));
+		let people_polkadot_alice =
+			<PeoplePolkadot as Chain>::RuntimeOrigin::signed(PeoplePolkadot::account_id_of(ALICE));
 
 		let mut identity_info = <IdentityInfo as Default>::default();
 		identity_info.email = Data::Raw(b"test@test.io".to_vec().try_into().unwrap());
-		let identity: Box<<PeopleRuntime as pallet_identity::Config>::IdentityInformation> = Box::new(identity_info);
+		let identity: Box<<PeopleRuntime as pallet_identity::Config>::IdentityInformation> =
+			Box::new(identity_info);
 
-		assert_ok!(
-			<PeoplePolkadot as PeoplePolkadotPallet>::Identity::set_identity(
-				people_polkadot_alice,
-				identity
+		assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::set_identity(
+			people_polkadot_alice,
+			identity
 		));
 
 		assert_expected_events!(
@@ -105,8 +106,7 @@ fn relay_commands_kill_identity() {
 		);
 	});
 
-	let (origin_kind, origin) =
-		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root());
+	let (origin_kind, origin) = (OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root());
 
 	Polkadot::execute_with(|| {
 		type Runtime = <Polkadot as Chain>::Runtime;
@@ -117,7 +117,9 @@ fn relay_commands_kill_identity() {
 
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
-				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(ALICE)),
+				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
+					ALICE,
+				)),
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
@@ -163,7 +165,6 @@ fn relay_commands_add_remove_username_authority() {
 	let people_polkadot_alice = PeoplePolkadot::account_id_of(ALICE);
 	let people_polkadot_bob = PeoplePolkadot::account_id_of(BOB);
 
-
 	let origins = vec![
 		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin"),
 		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root(), "rootusername"),
@@ -177,12 +178,13 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-			let add_username_authority =
-				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
-					authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
-					suffix: b"suffix1".into(),
-					allocation: 10
-				});
+			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::add_username_authority {
+				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
 
 			let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
 				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
@@ -223,12 +225,11 @@ fn relay_commands_add_remove_username_authority() {
 		PeoplePolkadot::execute_with(|| {
 			type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 
-			assert_ok!(
-				<PeoplePolkadot as PeoplePolkadotPallet>::Identity::set_username_for(
-					<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice.clone()),
-					people_polkadot_runtime::MultiAddress::Id(people_polkadot_bob.clone()),
-					usr.to_owned().into_bytes().try_into().unwrap(),
-					None,
+			assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::set_username_for(
+				<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice.clone()),
+				people_polkadot_runtime::MultiAddress::Id(people_polkadot_bob.clone()),
+				usr.to_owned().into_bytes().try_into().unwrap(),
+				None,
 			));
 
 			assert_expected_events!(
@@ -244,10 +245,9 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 			let full_username = [usr.to_owned(), ".suffix1".to_owned()].concat().into_bytes();
 
-			assert_ok!(
-				<PeoplePolkadot as PeoplePolkadotPallet>::Identity::accept_username(
-					<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_bob.clone()),
-					full_username.try_into().unwrap(),
+			assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::accept_username(
+				<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_bob.clone()),
+				full_username.try_into().unwrap(),
 			));
 
 			assert_expected_events!(
@@ -266,22 +266,24 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-			let remove_username_authority =
-				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::remove_username_authority {
-					authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
-				});
-
-			let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::from(Xcm(vec![
-					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-					Transact {
-						origin_kind,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
-						call: remove_username_authority.encode().into(),
-					}
-				]))),
+			let remove_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+				PeopleRuntime,
+			>::remove_username_authority {
+				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
 			});
+
+			let remove_authority_xcm_msg =
+				RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+					dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+					message: bx!(VersionedXcm::from(Xcm(vec![
+						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+						Transact {
+							origin_kind,
+							require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+							call: remove_username_authority.encode().into(),
+						}
+					]))),
+				});
 
 			assert_ok!(remove_authority_xcm_msg.dispatch(origin));
 
@@ -305,6 +307,5 @@ fn relay_commands_add_remove_username_authority() {
 				]
 			);
 		});
-
 	}
 }

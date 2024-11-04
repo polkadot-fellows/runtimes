@@ -19,10 +19,10 @@ use sp_core::storage::Storage;
 // Cumulus
 use cumulus_primitives_core::ParaId;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION
+	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
-use parachains_common::Balance;
 use kusama_runtime_constants::currency::UNITS as KSM;
+use parachains_common::Balance;
 
 const ENDOWMENT: u128 = 1_000 * KSM;
 pub const PARA_ID: u32 = 1004;
