@@ -9639,6 +9639,7 @@ dependencies = [
  "emulated-integration-tests-common",
  "frame-support",
  "kusama-emulated-chain",
+ "kusama-runtime-constants",
  "parachains-common",
  "people-kusama-runtime",
  "sp-core 34.0.0",
