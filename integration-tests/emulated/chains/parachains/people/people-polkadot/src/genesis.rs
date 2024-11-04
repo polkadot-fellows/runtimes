@@ -19,7 +19,7 @@ use sp_core::storage::Storage;
 // Cumulus
 use cumulus_primitives_core::ParaId;
 use emulated_integration_tests_common::{
-	accounts, collators, build_genesis_storage, get_account_id_from_seed, get_from_seed, get_host_config, SAFE_XCM_VERSION
+	accounts, collators, build_genesis_storage, SAFE_XCM_VERSION
 };
 use parachains_common::Balance;
 use polkadot_runtime_constants::currency::UNITS as DOT;
