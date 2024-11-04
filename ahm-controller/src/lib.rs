@@ -24,6 +24,7 @@ use alloc::{vec, vec::Vec};
 
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
+use sp_io::hashing::blake2_256;
 
 use frame_support::storage::TransactionOutcome;
 use xcm::{
@@ -105,6 +106,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Phase<T: Config> = StorageValue<_, super::Phases>;
 
+	/// Set of accounts that we placed a sufficient reference on.
+	#[pallet::storage]
+	pub type SufficientAccounts<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ()>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -127,6 +132,7 @@ pub mod pallet {
 					Self::relay_on_init(now);
 				},
 				Role::AssetHub => {
+					Self::ah_on_init(now);
 				},
 			};
 
@@ -146,6 +152,10 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn ah_on_init(_now: BlockNumberFor<T>) {
+			
+		}
+
 		fn relay_on_init(now: BlockNumberFor<T>) {
 			if now < 3u32.into() {
 				return;
@@ -203,7 +213,7 @@ pub mod pallet {
 
 		fn do_migrate_eds(next_acc: Option<Vec<u8>>) -> Result<Option<Vec<u8>>, ()> {
 			frame_support::storage::transactional::with_transaction_opaque_err::<Option<Vec<u8>>, (), _>(|| {
-				let Some((next_key, call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(next_acc, 5000) else {
+				let Some((next_key, call, weight)) = pallet_balances::Pallet::<T>::migrate_ed(next_acc, 1300) else {
 					return TransactionOutcome::Commit(Ok(None));
 				};
 
