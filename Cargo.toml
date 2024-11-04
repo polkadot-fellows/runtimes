@@ -23,7 +23,7 @@ bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkado
 bp-bridge-hub-cumulus = { version = "0.18.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
-bp-header-chain = { version = "0.18.0", default-features = false }
+bp-header-chain = { version = "0.18.1", default-features = false }
 bp-kusama = { version = "0.16.0", default-features = false }
 bp-messages = { version = "0.18.0", default-features = false }
 bp-parachains = { version = "0.18.0", default-features = false }
@@ -50,14 +50,14 @@ coretime-kusama-runtime = { path = "system-parachains/coretime/coretime-kusama" 
 coretime-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/coretime/coretime-polkadot" }
 coretime-polkadot-runtime = { path = "system-parachains/coretime/coretime-polkadot" }
 cumulus-pallet-aura-ext = { version = "0.17.0", default-features = false }
-cumulus-pallet-parachain-system = { version = "0.17.0", default-features = false }
+cumulus-pallet-parachain-system = { version = "0.17.1", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "19.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.17.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.17.0", default-features = false }
 cumulus-primitives-aura = { version = "0.15.0", default-features = false }
 cumulus-primitives-core = { version = "0.16.0", default-features = false }
 cumulus-primitives-utility = { version = "0.17.0", default-features = false }
-emulated-integration-tests-common = { version = "14.0.0" }
+emulated-integration-tests-common = { version = "14.1.0" }
 encointer-balances-tx-payment = { version = "~14.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
@@ -128,7 +128,7 @@ pallet-identity = { version = "38.0.0", default-features = false }
 pallet-indices = { version = "38.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "26.0.0", default-features = false }
 pallet-membership = { version = "38.0.0", default-features = false }
-pallet-message-queue = { version = "41.0.0", default-features = false }
+pallet-message-queue = { version = "41.0.1", default-features = false }
 pallet-mmr = { version = "38.0.0", default-features = false }
 pallet-multisig = { version = "38.0.0", default-features = false }
 pallet-nft-fractionalization = { version = "21.0.0", default-features = false }
@@ -168,7 +168,7 @@ pallet-whitelist = { version = "37.0.0", default-features = false }
 pallet-xcm = { version = "17.0.0", default-features = false }
 pallet-xcm-benchmarks = { version = "17.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.13.0", default-features = false }
-pallet-xcm-bridge-hub-router = { version = "0.15.0", default-features = false }
+pallet-xcm-bridge-hub-router = { version = "0.15.1", default-features = false }
 parachain-info = { version = "0.17.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "18.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "17.0.0" }
@@ -190,9 +190,9 @@ polkadot-system-emulated-network = { path = "integration-tests/emulated/networks
 primitive-types = { version = "0.12.2", default-features = false }
 frame-metadata-hash-extension = { version = "0.6.0", default-features = false }
 remote-externalities = { version = "0.46.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "17.0.0", default-features = false, package = "polkadot-runtime-parachains" }
+runtime-parachains = { version = "17.0.1", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "38.0.0" }
-sc-network = { version = "0.45.0" }
+sc-network = { version = "0.45.1" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
@@ -239,7 +239,7 @@ substrate-wasm-builder = { version = "24.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
 xcm = { version = "14.2.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "17.0.0", default-features = false, package = "staging-xcm-builder" }
+xcm-builder = { version = "17.0.1", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.16.0" }
 xcm-executor = { version = "17.0.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.4.0", default-features = false }
