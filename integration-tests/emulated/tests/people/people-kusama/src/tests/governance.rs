@@ -88,8 +88,10 @@ fn relay_commands_kill_identity() {
 		let people_kusama_alice =
 			<PeopleKusama as Chain>::RuntimeOrigin::signed(PeopleKusama::account_id_of(ALICE));
 
-		let mut identity_info = <IdentityInfo as Default>::default();
-		identity_info.email = Data::Raw(b"test@test.io".to_vec().try_into().unwrap());
+		let identity_info = IdentityInfo {
+			email: Data::Raw(b"test@test.io".to_vec().try_into().unwrap()),
+			..Default::default()
+		};
 		let identity: Box<<PeopleRuntime as pallet_identity::Config>::IdentityInformation> =
 			Box::new(identity_info);
 
@@ -226,7 +228,7 @@ fn relay_commands_add_remove_username_authority() {
 			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
 				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
 				people_kusama_runtime::MultiAddress::Id(people_kusama_bob.clone()),
-				usr.to_owned().into_bytes().try_into().unwrap(),
+				usr.to_owned().into_bytes(),
 				None,
 			));
 
