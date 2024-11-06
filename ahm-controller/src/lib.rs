@@ -167,8 +167,10 @@ pub mod pallet {
 				Some(phase) => phase,
 			};
 
+			pallet
+
 			// Phase handling and transistion
-			let phase = match phase {
+			/*let phase = match phase {
 				Phases::MigrateBalancesEds { mut next_account } => {
 					Self::migrate_eds(&mut next_account);
 
@@ -181,7 +183,7 @@ pub mod pallet {
 				other => other,
 			};
 			// Write back
-			Phase::<T>::put(phase);
+			Phase::<T>::put(phase);*/
 
 			/*for _ in 0..10 {
 				match Self::migrate_indices() {
