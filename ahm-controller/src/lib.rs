@@ -167,7 +167,7 @@ pub mod pallet {
 				Some(phase) => phase,
 			};
 
-			pallet
+			//pallet
 
 			// Phase handling and transistion
 			/*let phase = match phase {
@@ -185,13 +185,13 @@ pub mod pallet {
 			// Write back
 			Phase::<T>::put(phase);*/
 
-			/*for _ in 0..10 {
+			for _ in 0..10 {
 				match Self::migrate_indices() {
 					Ok(false) => break,
 					Err(_) => break,
 					_ => (),
 				}
-			}*/
+			}
 		}
 
 		// Just to make the BoundedVec compiler stuff work...
@@ -255,7 +255,7 @@ pub mod pallet {
 
 		fn migrate_indices() -> Result<bool, ()> {
 			frame_support::storage::transactional::with_transaction_opaque_err::<bool, (), _>(|| {
-				let Some((call, weight)) = pallet_indices::Pallet::<T>::migrate_next(100) else {
+				let Some((call, weight)) = pallet_indices::Pallet::<T>::migrate_next(1000) else {
 					return TransactionOutcome::Commit(Ok(false));
 				};
 				
