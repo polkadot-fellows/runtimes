@@ -82,8 +82,10 @@ fn relay_commands_add_registrar() {
 fn relay_commands_add_registrar_wrong_origin() {
 	let people_polkadot_alice = PeoplePolkadot::account_id_of(ALICE);
 
-	let (origin_kind, origin) =
-		(OriginKind::SovereignAccount, <Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice),
+	);
 
 	let registrar: AccountId = [1; 32].into();
 	Polkadot::execute_with(|| {
@@ -220,8 +222,10 @@ fn relay_commands_kill_identity() {
 fn relay_commands_kill_identity_wrong_origin() {
 	let people_polkadot_alice = PeoplePolkadot::account_id_of(BOB);
 
-	let (origin_kind, origin) = 
-		(OriginKind::SovereignAccount, <Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice),
+	);
 
 	Polkadot::execute_with(|| {
 		type Runtime = <Polkadot as Chain>::Runtime;
@@ -232,7 +236,9 @@ fn relay_commands_kill_identity_wrong_origin() {
 
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
-				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(ALICE)),
+				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
+					ALICE,
+				)),
 			});
 
 		let xcm_message = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
@@ -423,8 +429,10 @@ fn relay_commands_add_remove_username_authority() {
 fn relay_commands_add_remove_username_authority_wrong_origin() {
 	let people_polkadot_alice = PeoplePolkadot::account_id_of(ALICE);
 
-	let (origin_kind, origin) =
-		(OriginKind::SovereignAccount, <Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice.clone()));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice.clone()),
+	);
 
 	Polkadot::execute_with(|| {
 		type Runtime = <Polkadot as Chain>::Runtime;
@@ -433,13 +441,12 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
-		let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
-			PeopleRuntime,
-		>::add_username_authority {
-			authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
-			suffix: b"suffix1".into(),
-			allocation: 10,
-		});
+		let add_username_authority =
+			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
+				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
 
 		let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
 			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
@@ -491,20 +498,20 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
 		});
 
-		let remove_authority_xcm_msg =
-			RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::from(Xcm(vec![
-					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-					Transact {
-						origin_kind: OriginKind::SovereignAccount,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
-						call: remove_username_authority.encode().into(),
-					}
-				]))),
-			});
+		let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::SovereignAccount,
+					require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+					call: remove_username_authority.encode().into(),
+				}
+			]))),
+		});
 
-		assert_ok!(remove_authority_xcm_msg.dispatch(<Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice)));
+		assert_ok!(remove_authority_xcm_msg
+			.dispatch(<Polkadot as Chain>::RuntimeOrigin::signed(people_polkadot_alice)));
 
 		assert_expected_events!(
 			Polkadot,
@@ -523,5 +530,5 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
 			]
 		);
-	});	
+	});
 }

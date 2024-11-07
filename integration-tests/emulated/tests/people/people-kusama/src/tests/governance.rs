@@ -14,9 +14,9 @@
 // limitations under the License.
 
 use crate::*;
-use emulated_integration_tests_common::accounts::{ALICE, BOB, CHARLIE};
+use emulated_integration_tests_common::accounts::{ALICE, BOB};
 
-use frame_support::{traits::ProcessMessageError, sp_runtime::traits::Dispatchable};
+use frame_support::{sp_runtime::traits::Dispatchable, traits::ProcessMessageError};
 use kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
 use people_kusama_runtime::people::IdentityInfo;
 
@@ -82,8 +82,10 @@ fn relay_commands_add_registrar() {
 fn relay_commands_add_registrar_wrong_origin() {
 	let people_kusama_alice = PeopleKusama::account_id_of(ALICE);
 
-	let (origin_kind, origin) =
-		(OriginKind::SovereignAccount, <Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice),
+	);
 
 	let registrar: AccountId = [1; 32].into();
 	Kusama::execute_with(|| {
@@ -130,7 +132,6 @@ fn relay_commands_add_registrar_wrong_origin() {
 			]
 		);
 	});
-
 }
 
 #[test]
@@ -219,8 +220,10 @@ fn relay_commands_kill_identity() {
 fn relay_commands_kill_identity_wrong_origin() {
 	let people_kusama_alice = PeopleKusama::account_id_of(BOB);
 
-	let (origin_kind, origin) = 
-		(OriginKind::SovereignAccount, <Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice),
+	);
 
 	Kusama::execute_with(|| {
 		type Runtime = <Kusama as Chain>::Runtime;
@@ -266,7 +269,6 @@ fn relay_commands_kill_identity_wrong_origin() {
 			]
 		);
 	});
-
 }
 
 #[test]
@@ -423,8 +425,10 @@ fn relay_commands_add_remove_username_authority() {
 fn relay_commands_add_remove_username_authority_wrong_origin() {
 	let people_kusama_alice = PeopleKusama::account_id_of(ALICE);
 
-	let (origin_kind, origin) =
-		(OriginKind::SovereignAccount, <Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()));
+	let (origin_kind, origin) = (
+		OriginKind::SovereignAccount,
+		<Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
+	);
 
 	Kusama::execute_with(|| {
 		type Runtime = <Kusama as Chain>::Runtime;
@@ -433,13 +437,12 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
-		let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
-			PeopleRuntime,
-		>::add_username_authority {
-			authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
-			suffix: b"suffix1".into(),
-			allocation: 10,
-		});
+		let add_username_authority =
+			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
+				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
+				suffix: b"suffix1".into(),
+				allocation: 10,
+			});
 
 		let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
 			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
@@ -491,20 +494,20 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
 		});
 
-		let remove_authority_xcm_msg =
-			RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::from(Xcm(vec![
-					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-					Transact {
-						origin_kind: OriginKind::SovereignAccount,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
-						call: remove_username_authority.encode().into(),
-					}
-				]))),
-			});
+		let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::SovereignAccount,
+					require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+					call: remove_username_authority.encode().into(),
+				}
+			]))),
+		});
 
-		assert_ok!(remove_authority_xcm_msg.dispatch(<Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice)));
+		assert_ok!(remove_authority_xcm_msg
+			.dispatch(<Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice)));
 
 		assert_expected_events!(
 			Kusama,
