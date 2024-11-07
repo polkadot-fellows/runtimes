@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.3.4] 01.11.2024
+## [Unreleased]
 
 ### Added
 
@@ -19,9 +19,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Change Polkadot inflation to 120M DOT per year ([polkadot-fellows/runtimes#471](https://github.com/polkadot-fellows/runtimes/pull/471))
-- Update foreign asset ids in Asset Hub Polkadot and Asset Hub Kusama from v3 to v4 locations ([polkadot-fellows/runtimes#472](https://github.com/polkadot-fellows/runtimes/pull/472))
-
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
 - Polkadot Primitives v8 ([SDK v1.16 #5525](https://github.com/paritytech/polkadot-sdk/pull/5525)).
@@ -29,6 +26,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bridges V2 refactoring backport and `pallet_bridge_messages` simplifications ([SDK `stable2407` #4935](https://github.com/paritytech/polkadot-sdk/pull/4935))
 - Renamed `assigner_on_demand` to `on_demand` ([SDK `stable2409` #4706](https://github.com/paritytech/polkadot-sdk/pull/4706)).
 - \[BEEFY\] Add runtime support for reporting fork voting ([SDK `stable2407` #4522](https://github.com/paritytech/polkadot-sdk/pull/4522)).
+
+## [1.3.4] 01.11.2024
+
+### Changed
+
+- Change Polkadot inflation to 120M DOT per year ([polkadot-fellows/runtimes#471](https://github.com/polkadot-fellows/runtimes/pull/471))
+- Update foreign asset ids in Asset Hub Polkadot and Asset Hub Kusama from v3 to v4 locations ([polkadot-fellows/runtimes#472](https://github.com/polkadot-fellows/runtimes/pull/472))
 
 ## [1.3.3] 01.10.2024
 
@@ -138,7 +142,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
 - `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
 - Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
-- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434][https://github.com/polkadot-fellows/runtimes/pull/434]).
+- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434](https://github.com/polkadot-fellows/runtimes/pull/434)).
 - Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322)
