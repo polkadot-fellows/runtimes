@@ -253,7 +253,7 @@ pub mod pallet {
 			})?
 		}
 
-		fn migrate_indices() -> Result<bool, ()> {
+		pub fn migrate_indices() -> Result<bool, ()> {
 			frame_support::storage::transactional::with_transaction_opaque_err::<bool, (), _>(|| {
 				let Some((call, weight)) = pallet_indices::Pallet::<T>::migrate_next(1000) else {
 					return TransactionOutcome::Commit(Ok(false));

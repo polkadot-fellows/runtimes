@@ -317,6 +317,12 @@ inherits = "release"
 lto = true
 codegen-units = 1
 
+[profile.testnet]
+inherits = "release"
+debug = 1               # debug symbols are useful for profilers
+debug-assertions = true
+overflow-checks = true
+
 [patch.crates-io]
 assert_matches = { path = "../vendor/assert_matches" }
 asset-test-utils = { path = "../vendor/asset-test-utils" }
