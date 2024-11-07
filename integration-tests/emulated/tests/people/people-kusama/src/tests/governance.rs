@@ -423,79 +423,61 @@ fn relay_commands_add_remove_username_authority() {
 fn relay_commands_add_remove_username_authority_wrong_origin() {
 	let people_kusama_alice = PeopleKusama::account_id_of(ALICE);
 
-	let origins = vec![
-		(OriginKind::SovereignAccount, <Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone())),
-		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root()),
-	];
+	let (origin_kind, origin) =
+		(OriginKind::SovereignAccount, <Kusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()));
 
-	let mut first: bool = true;
+	Kusama::execute_with(|| {
+		type Runtime = <Kusama as Chain>::Runtime;
+		type RuntimeCall = <Kusama as Chain>::RuntimeCall;
+		type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
+		type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
+		type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
 
-	// The first iteration will fail, but the second succeeds, solely because a username authority
-	// is needed to test using `remove_username_authority` with an incorrect signed.
-	for (origin_kind, origin) in origins {
-		Kusama::execute_with(|| {
-			type Runtime = <Kusama as Chain>::Runtime;
-			type RuntimeCall = <Kusama as Chain>::RuntimeCall;
-			type RuntimeEvent = <Kusama as Chain>::RuntimeEvent;
-			type PeopleCall = <PeopleKusama as Chain>::RuntimeCall;
-			type PeopleRuntime = <PeopleKusama as Chain>::Runtime;
-
-			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
-				PeopleRuntime,
-			>::add_username_authority {
-				authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
-				suffix: b"suffix1".into(),
-				allocation: 10,
-			});
-
-			let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
-				dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
-				message: bx!(VersionedXcm::from(Xcm(vec![
-					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-					Transact {
-						origin_kind,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
-						call: add_username_authority.encode().into(),
-					}
-				]))),
-			});
-
-			assert_ok!(add_authority_xcm_msg.dispatch(origin));
-
-			assert_expected_events!(
-				Kusama,
-				vec![
-					RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
-				]
-			);
+		let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
+			PeopleRuntime,
+		>::add_username_authority {
+			authority: people_kusama_runtime::MultiAddress::Id(people_kusama_alice.clone()),
+			suffix: b"suffix1".into(),
+			allocation: 10,
 		});
 
-		// Check events system-parachain-side
-		PeopleKusama::execute_with(|| {
-			type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
-
-			if first {
-				assert_expected_events!(
-					PeopleKusama,
-					vec![
-						RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
-					]
-				);
-	
-			} else {
-				assert_expected_events!(
-					PeopleKusama,
-					vec![
-						RuntimeEvent::Identity(pallet_identity::Event::AuthorityAdded { .. }) => {},
-						RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true, .. }) => {},
-					]
-				);
-			}
+		let add_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
+			dest: bx!(VersionedLocation::from(Location::new(0, [Parachain(1004)]))),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind,
+					require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+					call: add_username_authority.encode().into(),
+				}
+			]))),
 		});
 
-		first = false;
-	}
+		assert_ok!(add_authority_xcm_msg.dispatch(origin));
 
+		assert_expected_events!(
+			Kusama,
+			vec![
+				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
+			]
+		);
+	});
+
+	// Check events system-parachain-side
+	PeopleKusama::execute_with(|| {
+		type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			PeopleKusama,
+			vec![
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+			]
+		);
+	});
+
+	// I mistakenly assumed that to test the removal of an authority would need one to exist.
+	// However, since the origin check is the very first extrinsic in `remove_username_authority`,
+	// an authority need not exist to test the safety of the origin check.
 	Kusama::execute_with(|| {
 		type Runtime = <Kusama as Chain>::Runtime;
 		type RuntimeCall = <Kusama as Chain>::RuntimeCall;
