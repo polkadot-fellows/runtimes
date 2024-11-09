@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - \[Assets\] Call implementation for `transfer_all` ([SDK `stable2409` #4527](https://github.com/paritytech/polkadot-sdk/pull/4527))
 - Tx Payment: drop ED requirements for tx payments with exchangeable asset ([SDK `stable2409` #4488](https://github.com/paritytech/polkadot-sdk/pull/4488))
 - Coretime auto-renew ([SDK `stable2409` #4424](https://github.com/paritytech/polkadot-sdk/pull/4424))
+- Initialises pallet-delegated-staking ([SDK `v1.12.0` #3904](https://github.com/paritytech/polkadot-sdk/pull/3904))
 
 ### Changed
 
@@ -26,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bridges V2 refactoring backport and `pallet_bridge_messages` simplifications ([SDK `stable2407` #4935](https://github.com/paritytech/polkadot-sdk/pull/4935))
 - Renamed `assigner_on_demand` to `on_demand` ([SDK `stable2409` #4706](https://github.com/paritytech/polkadot-sdk/pull/4706)).
 - \[BEEFY\] Add runtime support for reporting fork voting ([SDK `stable2407` #4522](https://github.com/paritytech/polkadot-sdk/pull/4522)).
+- Migrates Nomination Pool to use delegated staking: i.e. allowing delegated funds to be held in member's own account
+  instead of the pool account. This would enable pool member funds to be used for voting in opengov.
+  ([SDK `v1.13.0` #3905](https://github.com/paritytech/polkadot-sdk/pull/3905))
 
 ## [1.3.4] 01.11.2024
 

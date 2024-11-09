@@ -152,6 +152,7 @@ pallet-session = { version = "38.0.0", default-features = false }
 pallet-session-benchmarking = { version = "38.0.0", default-features = false }
 pallet-society = { version = "38.0.0", default-features = false }
 pallet-staking = { version = "38.0.0", default-features = false }
+pallet-delegated-staking = { version = "5.0.0", default-features = false }
 pallet-staking-reward-curve = { version = "12.0.0" }
 pallet-staking-reward-fn = { version = "22.0.0", default-features = false }
 pallet-staking-runtime-api = { version = "24.0.0", default-features = false }

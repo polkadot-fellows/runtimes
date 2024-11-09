@@ -46,6 +46,7 @@ pallet-beefy-mmr = { workspace = true }
 pallet-bounties = { workspace = true }
 pallet-broker = { workspace = true }
 pallet-child-bounties = { workspace = true }
+pallet-delegated-staking = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }
@@ -155,6 +156,7 @@ std = [
 	"pallet-broker/std",
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
+	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-phase/std",
 	"pallet-election-provider-support-benchmarking?/std",
 	"pallet-fast-unstake/std",
@@ -236,6 +238,7 @@ runtime-benchmarks = [
 	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
@@ -292,6 +295,7 @@ try-runtime = [
 	"pallet-broker/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
