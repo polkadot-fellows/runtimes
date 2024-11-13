@@ -37,6 +37,7 @@ async fn ahm_indices_out() {
 
 	ext.execute_with(|| {
 		frame_system::Pallet::<T>::set_block_number(1);
+		total_issuance_correct();
 		let ti = pallet_balances::TotalIssuance::<T>::get();
 
 		loop {
@@ -45,21 +46,40 @@ async fn ahm_indices_out() {
 			};
 			calls.push(call);
 
-			/*log::error!("Number of events: {:?}", System::events().len());
+			log::error!("Number of events: {:?}", System::events().len());
 			for event in System::events() {
 				log::error!("Event: {:?}", event);
 			}
-			System::reset_events();*/
+			System::reset_events();
 		}
 
+		log::error!("Dispatched {} calls", calls.len());
 		for call in calls {
 			let runtime_call: polkadot_runtime::RuntimeCall = call.into();
 			runtime_call.dispatch(frame_system::RawOrigin::Root.into()).unwrap();
 		}
 
+		log::error!("Number of events: {:?}", System::events().len());
+		for event in System::events() {
+			log::error!("Event: {:?}", event);
+		}
+
+		total_issuance_correct();
 		let ti2 = pallet_balances::TotalIssuance::<T>::get();
 		assert_eq!(ti, ti2, "Total issuance must be the same after migration");
 	});	
+}
+
+fn total_issuance_correct() {
+	println!("Checkig TI");
+	let mut total = 0;
+	for acc in frame_system::Account::<T>::iter_values() {
+		total += acc.data.free + acc.data.reserved;
+	}
+
+	let known_bad_diff = 15153004468955758308u128 - 15152788105929904271u128;
+	let ti = pallet_balances::TotalIssuance::<T>::get();
+	assert_eq!(total + known_bad_diff, ti, "Total issuance must be the same as sum of all account balances");
 }
 
 async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {

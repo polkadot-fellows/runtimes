@@ -333,7 +333,7 @@ impl pallet_indices::Config for Runtime {
 	type Deposit = IndexDeposit;
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_indices::WeightInfo<Runtime>;
-	type AhReserveMigrator = frame_support::ahm::NoopMigrator<Self::AccountId, Balance>;
+	type AhReserveMigrator = frame_support::ahm::NoopMigrator<(), Self::AccountId, Balance>;
 }
 
 parameter_types! {
