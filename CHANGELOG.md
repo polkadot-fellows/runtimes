@@ -4,6 +4,11 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+- Asset Hub: remove XCM sufficient asset fee trader ([polkadot-fellows/runtimes#502](https://github.com/polkadot-fellows/runtimes/pull/502))
+
 ## [1.3.4] 01.11.2024
 
 ### Changed
