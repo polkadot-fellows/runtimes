@@ -110,77 +110,141 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 }
 
 /// We tests two things here:
-/// - Parachain should be able to send XCM paying its fee at Asset Hub using sufficient asset
+/// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
-fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
-	let para_sovereign_account = AssetHubPolkadot::sovereign_account_id_of(
-		AssetHubPolkadot::sibling_location_of(PenpalA::para_id()),
-	);
+fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
+	use frame_support::traits::fungible::Mutate;
 
-	// Force create and mint sufficient assets for Parachain's sovereign account
-	AssetHubPolkadot::force_create_and_mint_asset(
-		ASSET_ID,
-		ASSET_MIN_BALANCE,
-		true,
-		para_sovereign_account.clone(),
-		Some(Weight::from_parts(1_019_445_000, 200_000)),
-		ASSET_MIN_BALANCE * 1000000000,
-	);
+	let asset_native: xcm::v4::Location =
+		asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = xcm::v4::Location {
+		parents: 0,
+		interior: [
+			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
+		]
+		.into(),
+	};
+	let penpal = AssetHubPolkadot::sovereign_account_id_of(AssetHubPolkadot::sibling_location_of(
+		PenpalB::para_id(),
+	));
 
-	// Just a different `asset_id`` that does not exist yet
-	let new_asset_id = ASSET_ID + 1;
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-	// Encoded `create_asset` call to be executed in AssetHub
-	let call = AssetHubPolkadot::create_asset_call(
-		new_asset_id,
-		ASSET_MIN_BALANCE,
-		para_sovereign_account.clone(),
-	);
+		// set up pool with ASSET_ID <> NATIVE pair
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::create(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			AssetHubPolkadotSender::get().into(),
+			ASSET_MIN_BALANCE,
+		));
+		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::asset_exists(ASSET_ID));
 
-	let origin_kind = OriginKind::SovereignAccount;
-	let fee_amount = ASSET_MIN_BALANCE * 1000000;
-	let asset =
-		([PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())], fee_amount).into();
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			AssetHubPolkadotSender::get().into(),
+			3_000_000_000_000,
+		));
 
-	let root_origin = <PenpalA as Chain>::RuntimeOrigin::root();
-	let system_para_destination = PenpalA::sibling_location_of(AssetHubPolkadot::para_id()).into();
-	let xcm = xcm_transact_paid_execution(call, origin_kind, asset, para_sovereign_account.clone());
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::set_balance(
+			&AssetHubPolkadotSender::get(),
+			3_000_000_000_000,
+		);
 
-	// SA-of-Penpal-on-AHP needs to have balance to pay for asset creation deposit
-	AssetHubPolkadot::fund_accounts(vec![(
-		para_sovereign_account.clone(),
-		ASSET_HUB_POLKADOT_ED * 10000000000,
-	)]);
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			Box::new(asset_native.clone()),
+			Box::new(asset_one.clone()),
+		));
 
-	PenpalA::execute_with(|| {
-		assert_ok!(<PenpalA as PenpalAPallet>::PolkadotXcm::send(
-			root_origin,
-			bx!(system_para_destination),
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+			]
+		);
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::add_liquidity(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			Box::new(asset_native),
+			Box::new(asset_one),
+			1_000_000_000_000,
+			2_000_000_000_000,
+			0,
+			0,
+			AssetHubPolkadotSender::get()
+		));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {lp_token_minted, .. }) => { lp_token_minted: *lp_token_minted == 1414213562273, },
+			]
+		);
+
+		// ensure `penpal` sovereign account has no native tokens and mint some `ASSET_ID`
+		assert_eq!(
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(penpal.clone()),
+			0
+		);
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::touch_other(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+		));
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+			10_000_000_000_000,
+		));
+	});
+
+	PenpalB::execute_with(|| {
+		// send xcm transact from `penpal` account which as only `ASSET_ID` tokens on
+		// `AssetHubPolkadot`
+		let call = AssetHubPolkadot::force_create_asset_call(
+			ASSET_ID + 1000,
+			penpal.clone(),
+			true,
+			ASSET_MIN_BALANCE,
+		);
+
+		let penpal_root = <PenpalB as Chain>::RuntimeOrigin::root();
+		let fee_amount = 4_000_000_000_000u128;
+		let asset_one =
+			([PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())], fee_amount).into();
+		let asset_hub_location = PenpalB::sibling_location_of(AssetHubPolkadot::para_id()).into();
+		let xcm = xcm_transact_paid_execution(
+			call,
+			OriginKind::SovereignAccount,
+			asset_one,
+			penpal.clone(),
+		);
+
+		assert_ok!(<PenpalB as PenpalBPallet>::PolkadotXcm::send(
+			penpal_root,
+			bx!(asset_hub_location),
 			bx!(xcm),
 		));
 
-		PenpalA::assert_xcm_pallet_sent();
+		PenpalB::assert_xcm_pallet_sent();
 	});
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
 		AssetHubPolkadot::assert_xcmp_queue_success(None);
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				// Burned the fee
-				RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-					asset_id: *asset_id == ASSET_ID,
-					owner: *owner == para_sovereign_account,
-					balance: *balance == fee_amount,
-				},
-				// Asset created
-				RuntimeEvent::Assets(pallet_assets::Event::Created { asset_id, creator, owner }) => {
-					asset_id: *asset_id == new_asset_id,
-					creator: *creator == para_sovereign_account.clone(),
-					owner: *owner == para_sovereign_account,
-				},
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapCreditExecuted { .. },) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true,.. }) => {},
 			]
 		);
 	});

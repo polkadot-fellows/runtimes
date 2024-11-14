@@ -368,6 +368,8 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	let receiver_ksm_before =
 		foreign_balance_on_ah_polkadot(ksm_at_asset_hub_polkadot.clone(), &receiver);
 
+	set_up_pool_with_dot_on_ah_polkadot(ksm_at_asset_hub_polkadot.clone(), true);
+
 	// Send KSMs over bridge
 	{
 		let destination = asset_hub_polkadot_location();
