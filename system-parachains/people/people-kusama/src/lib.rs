@@ -84,9 +84,10 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// This determines the average expected block time that we are targeting. Blocks will be
-/// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-/// `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
+/// This determines the average expected block time that we are targeting.
+///
+/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is
+/// picked up by `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
 /// slot_duration()`.
 ///
 /// Change this to adjust the block time.
@@ -177,7 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("people-kusama"),
 	impl_name: create_runtime_str!("people-kusama"),
 	authoring_version: 1,
-	spec_version: 1_003_000,
+	spec_version: 1_003_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1077,10 +1078,7 @@ impl_runtime_apis! {
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![
-				sp_genesis_builder::PresetId::from("local_testnet"),
-				sp_genesis_builder::PresetId::from("development"),
-			]
+			genesis_config_presets::preset_names()
 		}
 	}
 }

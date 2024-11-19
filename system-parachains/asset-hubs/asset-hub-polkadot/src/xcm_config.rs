@@ -25,10 +25,11 @@ use assets_common::{
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
+	pallet_prelude::Get,
 	parameter_types,
 	traits::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, Equals, Everything, Nothing, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, Nothing, PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -59,7 +60,6 @@ use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
 	pub const DotLocation: Location = Location::parent();
-	pub const DotLocationV3: xcm::v3::Location = xcm::v3::Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
@@ -68,8 +68,6 @@ parameter_types! {
 	pub TrustBackedAssetsPalletIndex: u8 = <Assets as PalletInfoAccess>::index() as u8;
 	pub TrustBackedAssetsPalletLocation: Location =
 		PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
-	pub TrustBackedAssetsPalletLocationV3: xcm::v3::Location =
-		xcm::v3::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub const GovernanceLocation: Location = Location::parent();
@@ -85,9 +83,10 @@ parameter_types! {
 			.unwrap_or(TreasuryAccount::get());
 }
 
-/// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
-/// when determining ownership of accounts for asset transacting and when attempting to use XCM
-/// `Transact` in order to determine the dispatch Origin.
+/// Type for specifying how a `Location` can be converted into an `AccountId`.
+///
+/// This is used when determining ownership of accounts for asset transacting and when attempting to
+/// use XCM `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
 	// The parent (Relay-chain) origin converts to the parent `AccountId`.
 	ParentIsPreset<AccountId>,
@@ -153,7 +152,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
-	xcm::v3::Location,
+	xcm::v4::Location,
 >;
 
 /// Means for transacting foreign assets from different global consensus.
@@ -198,8 +197,9 @@ pub type AssetTransactors =
 	(FungibleTransactor, FungiblesTransactor, ForeignFungiblesTransactor, PoolFungiblesTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
-/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
-/// biases the kind of local `Origin` it will become.
+/// ready for dispatching a transaction with Xcm's `Transact`.
+///
+/// There is an `OriginKind` which can biases the kind of local `Origin` it will become.
 pub type XcmOriginToTransactDispatchOrigin = (
 	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
 	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
@@ -398,8 +398,8 @@ impl xcm_executor::Config for XcmConfig {
 	// held). Asset Hub may _act_ as a reserve location for DOT and assets created
 	// under `pallet-assets`. Users must use teleport where allowed (e.g. DOT with the Relay Chain).
 	type IsReserve = (
-		bridging::to_kusama::IsTrustedBridgedReserveLocationForConcreteAsset,
-		bridging::to_ethereum::IsTrustedBridgedReserveLocationForForeignAsset,
+		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
+		bridging::to_ethereum::EthereumAssetFromEthereum,
 	);
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
@@ -420,7 +420,7 @@ impl xcm_executor::Config for XcmConfig {
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].
 		cumulus_primitives_utility::SwapFirstAssetTrader<
-			DotLocationV3,
+			DotLocation,
 			AssetConversion,
 			WeightToFee,
 			NativeAndAssets,
@@ -428,7 +428,7 @@ impl xcm_executor::Config for XcmConfig {
 				TrustBackedAssetsAsLocation<
 					TrustBackedAssetsPalletLocation,
 					Balance,
-					xcm::v3::Location,
+					xcm::v4::Location,
 				>,
 				ForeignAssetsConvertedConcreteId,
 			),
@@ -486,9 +486,9 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelClosingHandler = ();
 }
 
-/// Converts a local signed origin into an XCM location.
+/// Converts a local signed origin into an XCM `Location`.
 /// Forms the basis for local origins sending/executing XCMs.
-pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
+pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 /// For routing XCM messages which do not cross local consensus boundary.
 type LocalXcmRouter = (
@@ -518,11 +518,11 @@ pub type XcmRouter = WithUniqueTopic<(
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// We want to disallow users sending (arbitrary) XCMs from this chain.
-	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, ()>;
+	// Any local signed origin can send XCM messages.
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
 	type XcmRouter = XcmRouter;
-	// Anyone can execute XCM messages locally.
-	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
+	// Any local signed origin can execute XCM messages.
+	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
 	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Everything;
@@ -558,21 +558,21 @@ pub type ForeignCreatorsSovereignAccountOf = (
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	ParentIsPreset<AccountId>,
 	GlobalConsensusEthereumConvertsFor<AccountId>,
+	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
 );
 
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<xcm::v3::Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> xcm::v3::Location {
-		xcm::v3::Location::new(1, xcm::v3::Junction::Parachain(id))
+impl pallet_assets::BenchmarkHelper<xcm::v4::Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> xcm::v4::Location {
+		xcm::v4::Location::new(1, xcm::v4::Junction::Parachain(id))
 	}
 }
 
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
-	use assets_common::matching;
 	use sp_std::collections::btree_set::BTreeSet;
 	use xcm_builder::NetworkExportTableItem;
 
@@ -622,11 +622,6 @@ pub mod bridging {
 			);
 			pub KsmLocation: Location = Location::new(2, GlobalConsensus(KusamaNetwork::get()));
 
-			pub KsmFromAssetHubKusama: (AssetFilter, Location) = (
-				Wild(AllOf { fun: WildFungible, id: AssetId(KsmLocation::get()) }),
-				AssetHubKusama::get()
-			);
-
 			/// Set up exporters configuration.
 			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
 			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = sp_std::vec![
@@ -657,18 +652,57 @@ pub mod bridging {
 				UniversalAliases::get().contains(alias)
 			}
 		}
+		/// Allow any asset native to the Kusama ecosystem if it comes from Kusama Asset Hub.
+		pub type KusamaAssetFromAssetHubKusama =
+			RemoteAssetFromLocation<StartsWith<KsmLocation>, AssetHubKusama>;
 
-		/// Reserve locations filter for `xcm_executor::Config::IsReserve`.
-		/// Locations from which the runtime accepts reserved assets.
-		pub type IsTrustedBridgedReserveLocationForConcreteAsset =
-			matching::IsTrustedBridgedReserveLocationForConcreteAsset<
-				UniversalLocation,
-				(
-					// allow receive KSM from AssetHubKusama
-					xcm_builder::Case<KsmFromAssetHubKusama>,
-					// and nothing else
-				),
-			>;
+		// TODO: get this from `assets_common v0.17.1` when SDK deps are upgraded
+		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
+		/// `OriginLocation`.
+		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
+			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
+		);
+		impl<
+				L: TryInto<Location> + Clone,
+				AssetsAllowedNetworks: Contains<Location>,
+				OriginLocation: Get<Location>,
+			> ContainsPair<L, L> for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &L, origin: &L) -> bool {
+				let Ok(asset) = asset.clone().try_into() else {
+					return false;
+				};
+				let Ok(origin) = origin.clone().try_into() else {
+					return false;
+				};
+
+				let expected_origin = OriginLocation::get();
+				// ensure `origin` is expected `OriginLocation`
+				if !expected_origin.eq(&origin) {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?} is not from expected {expected_origin:?}"
+					);
+					return false;
+				} else {
+					log::trace!(
+						target: "xcm::contains",
+						"RemoteAssetFromLocation asset: {asset:?}, origin: {origin:?}",
+					);
+				}
+
+				// ensure `asset` is from remote consensus listed in `AssetsAllowedNetworks`
+				AssetsAllowedNetworks::contains(&asset)
+			}
+		}
+		impl<AssetsAllowedNetworks: Contains<Location>, OriginLocation: Get<Location>>
+			ContainsPair<Asset, Location>
+			for RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>
+		{
+			fn contains(asset: &Asset, origin: &Location) -> bool {
+				<Self as ContainsPair<Location, Location>>::contains(&asset.id.0, origin)
+			}
+		}
 	}
 
 	pub mod to_ethereum {
@@ -712,8 +746,8 @@ pub mod bridging {
 			);
 		}
 
-		pub type IsTrustedBridgedReserveLocationForForeignAsset =
-			matching::IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
+		pub type EthereumAssetFromEthereum =
+			IsForeignConcreteAsset<FromNetwork<UniversalLocation, EthereumNetwork>>;
 
 		impl Contains<(Location, Junction)> for UniversalAliases {
 			fn contains(alias: &(Location, Junction)) -> bool {

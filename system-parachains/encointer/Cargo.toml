@@ -36,9 +36,12 @@ pallet-encointer-ceremonies = { workspace = true }
 pallet-encointer-ceremonies-rpc-runtime-api = { workspace = true }
 pallet-encointer-communities = { workspace = true }
 pallet-encointer-communities-rpc-runtime-api = { workspace = true }
+pallet-encointer-democracy = { workspace = true }
 pallet-encointer-faucet = { workspace = true }
 pallet-encointer-reputation-commitments = { workspace = true }
 pallet-encointer-scheduler = { workspace = true }
+pallet-encointer-treasuries = { workspace = true }
+pallet-encointer-treasuries-rpc-runtime-api = { workspace = true }
 
 
 # Substrate
@@ -132,9 +135,11 @@ runtime-benchmarks = [
 	"pallet-encointer-bazaar/runtime-benchmarks",
 	"pallet-encointer-ceremonies/runtime-benchmarks",
 	"pallet-encointer-communities/runtime-benchmarks",
+	"pallet-encointer-democracy/runtime-benchmarks",
 	"pallet-encointer-faucet/runtime-benchmarks",
 	"pallet-encointer-reputation-commitments/runtime-benchmarks",
 	"pallet-encointer-scheduler/runtime-benchmarks",
+	"pallet-encointer-treasuries/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
@@ -188,9 +193,12 @@ std = [
 	"pallet-encointer-ceremonies/std",
 	"pallet-encointer-communities-rpc-runtime-api/std",
 	"pallet-encointer-communities/std",
+	"pallet-encointer-democracy/std",
 	"pallet-encointer-faucet/std",
 	"pallet-encointer-reputation-commitments/std",
 	"pallet-encointer-scheduler/std",
+	"pallet-encointer-treasuries-rpc-runtime-api/std",
+	"pallet-encointer-treasuries/std",
 	"pallet-insecure-randomness-collective-flip/std",
 	"pallet-membership/std",
 	"pallet-message-queue/std",
@@ -253,9 +261,11 @@ try-runtime = [
 	"pallet-encointer-bazaar/try-runtime",
 	"pallet-encointer-ceremonies/try-runtime",
 	"pallet-encointer-communities/try-runtime",
+	"pallet-encointer-democracy/try-runtime",
 	"pallet-encointer-faucet/try-runtime",
 	"pallet-encointer-reputation-commitments/try-runtime",
 	"pallet-encointer-scheduler/try-runtime",
+	"pallet-encointer-treasuries/try-runtime",
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-membership/try-runtime",
 	"pallet-message-queue/try-runtime",

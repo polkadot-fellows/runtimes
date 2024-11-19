@@ -59,10 +59,12 @@ use frame_support::{
 	traits::{
 		fungibles::{Balanced, Credit},
 		tokens::{imbalance::ResolveTo, ConversionToAssetBalance},
-		ConstBool, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly, InstanceFilter,
-		TransformOrigin,
+		ConstBool, ConstU128, ConstU64, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+		InstanceFilter, TransformOrigin,
 	},
-	weights::{ConstantMultiplier, Weight, WeightToFee as _},
+	weights::{
+		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFee as _,
+	},
 	PalletId,
 };
 use frame_system::{
@@ -98,11 +100,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-	SLOT_DURATION,
-};
+use system_parachains_constants::kusama::{consensus::*, currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::prelude::{AssetId as XcmAssetId, BodyId},
@@ -133,7 +131,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("encointer-parachain"),
 	impl_name: create_runtime_str!("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_003_000,
+	spec_version: 1_003_004,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -292,15 +290,11 @@ impl frame_system::Config for Runtime {
 	type PostTransactions = ();
 }
 
-parameter_types! {
-	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
-}
-
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = Moment;
 	type OnTimestampSet = EncointerScheduler;
-	type MinimumPeriod = MinimumPeriod;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -545,11 +539,34 @@ impl pallet_encointer_faucet::Config for Runtime {
 	type WeightInfo = weights::pallet_encointer_faucet::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub const ConfirmationPeriod: Moment = 2 * 24 * 3600 * 1000; // [ms]
+	pub const ProposalLifetime: Moment = 9 * 24 * 3600 * 1000; // [ms]
+}
+
+impl pallet_encointer_democracy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxReputationCount = ConstU32<64>;
+	type ConfirmationPeriod = ConfirmationPeriod;
+	type ProposalLifetime = ProposalLifetime;
+	type MinTurnout = ConstU128<50>; // perthousand of electorate: 1 = 0.1%, 50 = 5.0%
+	type WeightInfo = weights::pallet_encointer_democracy::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	pub const TreasuriesPalletId: PalletId = PalletId(*b"trsrysId");
+}
+impl pallet_encointer_treasuries::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = pallet_balances::Pallet<Runtime>;
+	type PalletId = TreasuriesPalletId;
+}
+
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = MaxAuthorities;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -724,8 +741,46 @@ construct_runtime! {
 		EncointerBazaar: pallet_encointer_bazaar = 64,
 		EncointerReputationCommitments: pallet_encointer_reputation_commitments = 65,
 		EncointerFaucet: pallet_encointer_faucet = 66,
+		EncointerDemocracy: pallet_encointer_democracy = 67,
+		EncointerTreasuries: pallet_encointer_treasuries = 68,
 	}
 }
+
+/// This determines the average expected block time that we are targeting.
+///
+/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is
+/// picked up by `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
+/// slot_duration()`.
+///
+/// Change this to adjust the block time.
+pub const MILLISECS_PER_BLOCK: u64 = 6_000;
+pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+
+// Time is measured by number of blocks.
+pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+pub const HOURS: BlockNumber = MINUTES * 60;
+pub const DAYS: BlockNumber = HOURS * 24;
+
+/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
+/// used to limit the maximal weight of a single extrinsic.
+pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
+/// `Operational` extrinsics.
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+
+/// We allow for 2 seconds of compute with a 6 second average block time.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
+
+/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
+/// into the relay chain.
+pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 2;
+
+/// How many parachain blocks are processed by the relay chain per parent. Limits the
+/// number of blocks authored per slot.
+pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
@@ -788,6 +843,7 @@ mod benches {
 		[pallet_encointer_bazaar, EncointerBazaar]
 		[pallet_encointer_ceremonies, EncointerCeremonies]
 		[pallet_encointer_communities, EncointerCommunities]
+		[pallet_encointer_democracy, EncointerDemocracy]
 		[pallet_encointer_faucet, EncointerFaucet]
 		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
 		[pallet_encointer_scheduler, EncointerScheduler]
@@ -1031,6 +1087,13 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_encointer_treasuries_rpc_runtime_api::TreasuriesApi<Block, AccountId> for Runtime {
+
+		fn get_community_treasury_account_unchecked(maybecid: &Option<CommunityIdentifier>) -> AccountId {
+			EncointerTreasuries::get_community_treasury_account_unchecked(*maybecid)
+		}
+	}
+
 	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
 		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
 			build_state::<RuntimeGenesisConfig>(config)
@@ -1041,10 +1104,7 @@ impl_runtime_apis! {
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![
-				sp_genesis_builder::PresetId::from("local_testnet"),
-				sp_genesis_builder::PresetId::from("development"),
-			]
+			genesis_config_presets::preset_names()
 		}
 	}
 

@@ -21,11 +21,12 @@ pub use sp_runtime::DispatchError;
 pub use xcm::{
 	latest::ParentThen,
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v3::{
+	v4::{
 		self, Error,
 		NetworkId::{Kusama as KusamaId, Polkadot as PolkadotId},
 	},
 };
+pub use xcm_executor::traits::TransferType;
 
 // Bridges
 pub use bp_messages::LaneId;
@@ -40,38 +41,44 @@ pub use emulated_integration_tests_common::{
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
-	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	asset_hub_polkadot_emulated_chain::{
-		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
 	},
 	bridge_hub_polkadot_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
+	penpal_emulated_chain::{
+		penpal_runtime::xcm_config::{
+			CustomizableAssetFromSystemAssetHub as PenpalCustomizableAssetFromSystemAssetHub,
+			UniversalLocation as PenpalUniversalLocation,
+		},
+		PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
+	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
-	AssetHubPolkadotPara as AssetHubPolkadot,
+	AssetHubKusamaParaSender as AssetHubKusamaSender, AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PolkadotRelay as Polkadot,
-	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
+	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, PenpalBPara as PenpalB,
+	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
+	PolkadotRelay as Polkadot, PolkadotRelayReceiver as PolkadotReceiver,
+	PolkadotRelaySender as PolkadotSender,
 };
 pub use parachains_common::{AccountId, Balance};
-pub use polkadot_system_emulated_network::{
-	penpal_emulated_chain::PenpalBParaPallet as PenpalBPallet,
-	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver, PenpalBPara as PenpalB,
-	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,
-};
 
 pub const ASSET_ID: u32 = 1;
 pub const ASSET_MIN_BALANCE: u128 = 1000;
-pub const ASSETS_PALLET_ID: u8 = 50;
+pub const USDT_ID: u32 = 1984;
 
 #[cfg(test)]
 mod tests;

@@ -128,7 +128,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("collectives"),
 	impl_name: create_runtime_str!("collectives"),
 	authoring_version: 1,
-	spec_version: 1_003_000,
+	spec_version: 1_003_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -353,6 +353,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
+					RuntimeCall::FellowshipCore { .. } |
+					RuntimeCall::FellowshipSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -663,7 +665,9 @@ impl pallet_preimage::Config for Runtime {
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
-/// `AssetRate` pallet instance, with additional decoration to identify different IDs/locations of
+/// `AssetRate` pallet instance.
+///
+/// With additional decoration to identify different IDs/locations of
 /// native asset and provide a one-to-one balance conversion for them.
 pub type AssetRateWithNative = UnityOrOuterConversion<
 	ContainsLocationParts<
@@ -1059,10 +1063,7 @@ impl_runtime_apis! {
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-			vec![
-				sp_genesis_builder::PresetId::from("local_testnet"),
-				sp_genesis_builder::PresetId::from("development"),
-			]
+			genesis_config_presets::preset_names()
 		}
 	}
 

@@ -48,11 +48,12 @@ use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::currency::UNITS;
 
+pub const CHAIN_ID: u64 = 1;
+pub const WETH: [u8; 20] = hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
+pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
+pub const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301CaB39");
+
 const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
-const CHAIN_ID: u64 = 1;
-const WETH: [u8; 20] = hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
-const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
-const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301CaB39");
 const INSUFFICIENT_XCM_FEE: u128 = 1000;
 const XCM_FEE: u128 = 4_000_000_000;
 const WETH_AMOUNT: u128 = 1_000_000_000;
@@ -283,7 +284,7 @@ fn send_token_from_ethereum_to_penpal() {
 	let weth_asset_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Converts the Weth asset location into an asset ID
-	let weth_asset_id: v3::Location = weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_id = weth_asset_location.clone();
 
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
@@ -312,7 +313,7 @@ fn send_token_from_ethereum_to_penpal() {
 	AssetHubPolkadot::execute_with(|| {
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
-			weth_asset_id,
+			weth_asset_id.clone(),
 			asset_hub_sovereign.clone().into(),
 			true,
 			1000,
@@ -733,7 +734,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			<AssetHubPolkadot as Chain>::Runtime,
 			pallet_assets::Instance2,
 		>::create {
-			id: v3::Location::default(),
+			id: v4::Location::default(),
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
@@ -852,14 +853,14 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
-			weth_asset_location.clone().try_into().unwrap(),
+			weth_asset_location.clone(),
 			asset_hub_sovereign.into(),
 			false,
 			1,
 		));
 
 		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
-			weth_asset_location.clone().try_into().unwrap(),
+			weth_asset_location.clone(),
 		));
 	});
 

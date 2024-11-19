@@ -62,9 +62,10 @@ parameter_types! {
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
-/// Type for specifying how a `Location` can be converted into an `AccountId`. This is used
-/// when determining ownership of accounts for asset transacting and when attempting to use XCM
-/// `Transact` in order to determine the dispatch Origin.
+/// Type for specifying how a `Location` can be converted into an `AccountId`.
+///
+/// This is used when determining ownership of accounts for asset transacting and when attempting to
+/// use XCM `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
 	// The parent (Relay-chain) origin converts to the parent `AccountId`.
 	ParentIsPreset<AccountId>,
@@ -111,8 +112,9 @@ pub type RegionTransactor = NonFungibleAdapter<
 pub type AssetTransactors = (FungibleTransactor, RegionTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
-/// ready for dispatching a transaction with XCM's `Transact`. There is an `OriginKind` that can
-/// bias the kind of local `Origin` it will become.
+/// ready for dispatching a transaction with XCM's `Transact`.
+///
+/// There is an `OriginKind` that can bias the kind of local `Origin` it will become.
 pub type XcmOriginToTransactDispatchOrigin = (
 	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
 	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
@@ -232,9 +234,9 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelClosingHandler = ();
 }
 
-/// Converts a local signed origin into an XCM `Location``. Forms the basis for local origins
+/// Converts a local signed origin into an XCM `Location`. Forms the basis for local origins
 /// sending/executing XCMs.
-pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
+pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
@@ -250,8 +252,8 @@ impl pallet_xcm::Config for Runtime {
 	// We want to disallow users sending (arbitrary) XCM programs from this chain.
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, ()>;
 	type XcmRouter = XcmRouter;
-	// Anyone can execute XCM messages locally.
-	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
+	// Any local signed origin can execute XCM messages.
+	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
 	type XcmExecuteFilter = Everything;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Everything;
