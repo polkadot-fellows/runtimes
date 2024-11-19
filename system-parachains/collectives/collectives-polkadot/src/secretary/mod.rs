@@ -50,7 +50,7 @@ pub mod ranks {
 /// - Root;
 /// - FellowshipAdmin (i.e. token holder referendum);
 /// - Plurality vote from Fellows can promote, demote, remove and approve rank retention
-/// of members of the Secretary Collective (rank `2`).
+///   of members of the Secretary Collective (rank `2`).
 type ApproveOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
