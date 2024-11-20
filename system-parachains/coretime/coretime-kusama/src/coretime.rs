@@ -345,6 +345,6 @@ impl pallet_broker::Config for Runtime {
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
-	type MaxAutoRenewals = ConstU32<100>;
+	type MaxAutoRenewals = ConstU32<0>;
 	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
 }
