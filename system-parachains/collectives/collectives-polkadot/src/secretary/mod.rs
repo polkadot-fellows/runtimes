@@ -49,8 +49,8 @@ pub mod ranks {
 /// Origins of:
 /// - Root;
 /// - FellowshipAdmin (i.e. token holder referendum);
-/// - Plurality vote from Fellows can promote, demote, remove and approve rank retention
-///   of members of the Secretary Collective (rank `2`).
+/// - Plurality vote from Fellows can promote, demote, remove and approve rank retention of members
+///   of the Secretary Collective (rank `2`).
 type ApproveOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
 	EitherOf<
@@ -118,7 +118,7 @@ impl<T: pallet_ranked_collective::Config<I>, I: 'static> Polling<TallyOf<T, I>>
 pub type SecretaryCollectiveInstance = pallet_ranked_collective::Instance3;
 
 impl pallet_ranked_collective::Config<SecretaryCollectiveInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_secretary_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type AddOrigin = ApproveOrigin;
 	type RemoveOrigin = ApproveOrigin;
@@ -168,7 +168,7 @@ impl GetSalary<u16, AccountId, Balance> for SalaryForRank {
 }
 
 impl pallet_salary::Config<SecretarySalaryInstance> for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_salary_secretary_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_secretary_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
