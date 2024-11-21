@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- The Secretary Program ([polkadot-fellows/runtimes#347](https://github.com/polkadot-fellows/runtimes/pull/347))
+
 ## [1.3.4] 01.11.2024
 
 ### Changed
@@ -64,7 +70,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Migration to remove all but the 21 first elected Head Ambassador members from the Program ([polkadot-fellows/runtimes#422](https://github.com/polkadot-fellows/runtimes/pull/422)).
 - Kusama: Make the current inflation formula adjustable ([polkadot-fellows/runtimes#364](https://github.com/polkadot-fellows/runtimes/pull/364))
 - Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
-- The Secretary Program ([polkadot-fellows/runtimes#306](https://github.com/polkadot-fellows/runtimes/pull/306))
 
 #### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
 
