@@ -807,7 +807,7 @@ impl pallet_staking::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
-	type EventListeners = (NominationPools, DelegatedStaking);
+	type EventListeners = NominationPools;
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
@@ -1615,8 +1615,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
-	type StakeAdapter =
-		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
+	type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1831,13 +1830,6 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 	}
 }
 
-parameter_types! {
-	// This is used to limit max pools that migrates in the runtime upgrade.  This is set to
-	// existing_pool_count plus ~15 to also account for any new pools getting created before the
-	// migration is actually executed.
-	pub const MaxPoolsToMigrate: u32 = 200;
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1856,11 +1848,6 @@ pub mod migrations {
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		parachains_on_demand::migration::MigrateV0ToV1<Runtime>,
 		restore_corrupted_ledgers::Migrate<Runtime>,
-		// Migrate NominationPools to `DelegateStake` adapter. This is an unversioned upgrade.
-		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
-			Runtime,
-			MaxPoolsToMigrate,
-		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.

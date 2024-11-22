@@ -2059,10 +2059,10 @@ pub mod migrations {
 	}
 
 	parameter_types! {
-		// This is used to limit max pools that migrates in the runtime upgrade.  This is set to
-		// existing_pool_count plus ~15 to also account for any new pools getting created before the
+		// This is used to bound number of pools migrating in the runtime upgrade.  This is set to
+		// ~existing_pool_count * 2 to also account for any new pools getting created before the
 		// migration is actually executed.
-		pub const MaxPoolsToMigrate: u32 = 250;
+		pub const MaxPoolsToMigrate: u32 = 500;
 	}
 
 	/// Unreleased migrations. Add new ones here:
