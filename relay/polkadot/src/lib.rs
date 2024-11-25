@@ -31,6 +31,7 @@ use polkadot_runtime_common::{
 	traits::OnSwap,
 	BlockHashCount, BlockLength, CurrencyToVote, SlowAdjustingFeeUpdate,
 };
+use relay_common::apis::InflationInfo;
 
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime,
@@ -60,7 +61,6 @@ use frame_election_provider_support::{
 };
 use frame_support::{
 	construct_runtime,
-	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
@@ -85,7 +85,7 @@ use polkadot_primitives::{
 	GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment,
 	NodeFeatures, Nonce, OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes,
 	SessionInfo, Signature, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
-	LOWEST_PUBLIC_ID, PARACHAIN_KEY_TYPE_ID,
+	PARACHAIN_KEY_TYPE_ID,
 };
 use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
@@ -93,7 +93,7 @@ use sp_runtime::{
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
 		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
-		Saturating, Verify,
+		Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
@@ -617,88 +617,6 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type WeightInfo = weights::pallet_bags_list::WeightInfo<Runtime>;
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
-}
-
-/// Dynamic params that can be adjusted at runtime.
-#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
-pub mod dynamic_params {
-	use super::*;
-
-	/// Parameters used to calculate era payouts, see
-	/// [`polkadot_runtime_common::impls::EraPayoutParams`].
-	#[dynamic_pallet_params]
-	#[codec(index = 0)]
-	pub mod inflation {
-		/// Minimum inflation rate used to calculate era payouts.
-		#[codec(index = 0)]
-		pub static MinInflation: Perquintill = Perquintill::from_rational(25u64, 1000);
-
-		/// Maximum inflation rate used to calculate era payouts.
-		#[codec(index = 1)]
-		pub static MaxInflation: Perquintill = Perquintill::from_percent(10);
-
-		/// Ideal stake ratio used to calculate era payouts.
-		#[codec(index = 2)]
-		pub static IdealStake: Perquintill = Perquintill::from_percent(75);
-
-		/// Falloff used to calculate era payouts.
-		#[codec(index = 3)]
-		pub static Falloff: Perquintill = Perquintill::from_percent(5);
-
-		/// Whether to use auction slots or not in the calculation of era payouts, then we subtract
-		/// `num_auctioned_slots.min(60) / 300` from `ideal_stake`.
-		///
-		/// That is, we assume up to 60 parachains that are leased can reduce the ideal stake by a
-		/// maximum of 20%.
-		///
-		/// With the move to agile-coretime, this parameter does not make much sense and should
-		/// generally be set to false.
-		#[codec(index = 4)]
-		pub static UseAuctionSlots: bool = true;
-	}
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-impl Default for RuntimeParameters {
-	fn default() -> Self {
-		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::MinInflation(
-			dynamic_params::inflation::MinInflation,
-			Some(Perquintill::from_rational(25u64, 1000u64)),
-		))
-	}
-}
-
-/// Defines what origin can modify which dynamic parameters.
-pub struct DynamicParameterOrigin;
-impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey>
-	for DynamicParameterOrigin
-{
-	type Success = ();
-
-	fn try_origin(
-		origin: RuntimeOrigin,
-		key: &RuntimeParametersKey,
-	) -> Result<Self::Success, RuntimeOrigin> {
-		use crate::RuntimeParametersKey::*;
-
-		match key {
-			Inflation(_) => frame_system::ensure_root(origin.clone()),
-		}
-		.map_err(|_| origin)
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
-		// Provide the origin for the parameter returned by `Default`:
-		Ok(RuntimeOrigin::root())
-	}
-}
-
-impl pallet_parameters::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeParameters = RuntimeParameters;
-	type AdminOrigin = DynamicParameterOrigin;
-	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 /// Defines how much should the inflation be for an era given its duration.
@@ -1641,7 +1559,6 @@ construct_runtime! {
 		Referenda: pallet_referenda = 21,
 		Origins: pallet_custom_origins = 22,
 		Whitelist: pallet_whitelist = 23,
-		Parameters: pallet_parameters = 27,
 
 		// Claims. Usable initially.
 		Claims: claims = 24,
@@ -2272,7 +2189,6 @@ mod benches {
 	);
 }
 
-use relay_common::apis::InflationInfo;
 impl Runtime {
 	fn impl_experimental_inflation_info() -> InflationInfo {
 		use pallet_staking::{ActiveEra, EraPayout, ErasTotalStake};
@@ -2281,26 +2197,18 @@ impl Runtime {
 			.unwrap_or((0, 0));
 		let stake_able_issuance = Balances::total_issuance();
 
-		let ideal_staking_rate = dynamic_params::inflation::IdealStake::get();
-		let inflation = if dynamic_params::inflation::UseAuctionSlots::get() {
-			let auctioned_slots = parachains_paras::Parachains::<Runtime>::get()
-				.into_iter()
-				// all active para-ids that do not belong to a system chain is the number of
-				// parachains that we should take into account for inflation.
-				.filter(|i| *i >= LOWEST_PUBLIC_ID)
-				.count() as u64;
-			ideal_staking_rate
-				.saturating_sub(Perquintill::from_rational(auctioned_slots.min(60), 300u64))
-		} else {
-			ideal_staking_rate
-		};
-
 		// We assume un-delayed 24h eras.
 		let era_duration = 24 * (HOURS as Moment) * MILLISECS_PER_BLOCK;
 		let next_mint = <Self as pallet_staking::Config>::EraPayout::era_payout(
 			staked,
 			stake_able_issuance,
 			era_duration,
+		);
+		// reverse-engineer the current inflation by looking at the total minted against the total
+		// issuance.
+		let inflation = Perquintill::from_rational(
+			(next_mint.0 + next_mint.1) * 36525 / 100,
+			stake_able_issuance,
 		);
 
 		InflationInfo { inflation, next_mint }
@@ -3750,9 +3658,6 @@ mod remote_tests {
 					// timestamp now
 					hex!("f0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
 						.to_vec(),
-					// para-ids
-					hex!("cd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee")
-						.to_vec(),
 				],
 				..Default::default()
 			}))
@@ -3783,13 +3688,9 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "total-issuance = {:?}", token.amount(total_issuance));
 			log::info!(target: LOG_TARGET, "staking-rate = {:?}", Perquintill::from_rational(total_staked, total_issuance));
 			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
-			log::info!(target: LOG_TARGET, "min-inflation = {:?}", dynamic_params::inflation::MinInflation::get());
-			log::info!(target: LOG_TARGET, "max-inflation = {:?}", dynamic_params::inflation::MaxInflation::get());
-			log::info!(target: LOG_TARGET, "falloff = {:?}", dynamic_params::inflation::Falloff::get());
-			log::info!(target: LOG_TARGET, "useAuctionSlots = {:?}", dynamic_params::inflation::UseAuctionSlots::get());
-			log::info!(target: LOG_TARGET, "idealStake = {:?}", dynamic_params::inflation::IdealStake::get());
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
 		});
 	}
 }
