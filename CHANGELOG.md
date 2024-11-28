@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update foreign asset ids in Asset Hub Polkadot and Asset Hub Kusama from v3 to v4 locations ([polkadot-fellows/runtimes#472](https://github.com/polkadot-fellows/runtimes/pull/472))
 - Lower Parachain and Data Deposits to Encourage Experimentation on Kusama ([polkadot-fellows/runtimes#501](https://github.com/polkadot-fellows/runtimes/pull/501))
 
+### Fixed
+
+- Fix `experimental_inflation_info` in Polkadot and remove unused code (https://github.com/polkadot-fellows/runtimes/pull/497)
+
 ## [1.3.3] 01.10.2024
 
 ### Changed
