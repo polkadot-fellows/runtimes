@@ -227,6 +227,8 @@ parameter_types! {
 	pub XcmAssetFeesReceiver: Option<AccountId> = Authorship::author();
 }
 
+/// Location type to determine the Technical Fellowship related
+/// pallets for use in XCM.
 pub struct FellowshipEntities;
 impl Contains<Location> for FellowshipEntities {
 	fn contains(location: &Location) -> bool {
@@ -259,6 +261,8 @@ impl Contains<Location> for FellowshipEntities {
 	}
 }
 
+/// Location type to determine the Ambassador Collective
+/// pallets for use in XCM.
 pub struct AmbassadorEntities;
 impl Contains<Location> for AmbassadorEntities {
 	fn contains(location: &Location) -> bool {
@@ -278,6 +282,26 @@ impl Contains<Location> for AmbassadorEntities {
 					Parachain(system_parachain::COLLECTIVES_ID),
 					PalletInstance(
 						collectives_polkadot_runtime_constants::AMBASSADOR_TREASURY_PALLET_INDEX
+					)
+				]
+			)
+		)
+	}
+}
+
+/// Location type to determine the Secretary Collective related
+/// pallets for use in XCM.
+pub struct SecretaryEntities;
+impl Contains<Location> for SecretaryEntities {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(
+				1,
+				[
+					Parachain(system_parachain::COLLECTIVES_ID),
+					PalletInstance(
+						collectives_polkadot_runtime_constants::SECRETARY_SALARY_PALLET_INDEX
 					)
 				]
 			)
@@ -314,6 +338,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						Equals<RelayTreasuryLocation>,
 						Equals<bridging::SiblingBridgeHub>,
 						AmbassadorEntities,
+						SecretaryEntities,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
@@ -340,6 +365,7 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,
 	AmbassadorEntities,
+	SecretaryEntities,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
