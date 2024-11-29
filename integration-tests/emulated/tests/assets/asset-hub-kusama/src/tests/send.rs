@@ -110,53 +110,118 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 }
 
 /// We tests two things here:
-/// - Parachain should be able to send XCM paying its fee at Asset Hub using sufficient asset
+/// - Parachain should be able to send XCM paying its fee at Asset Hub using a pool
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
-fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
-	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
-		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
-	);
+fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
+	let asset_native: xcm::v4::Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
+	let asset_one = xcm::v4::Location {
+		parents: 0,
+		interior: [
+			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
+		]
+		.into(),
+	};
+	let penpal = AssetHubKusama::sovereign_account_id_of(AssetHubKusama::sibling_location_of(
+		PenpalA::para_id(),
+	));
 
-	// Force create and mint sufficient assets for Parachain's sovereign account
-	AssetHubKusama::force_create_and_mint_asset(
-		ASSET_ID,
-		ASSET_MIN_BALANCE,
-		true,
-		para_sovereign_account.clone(),
-		Some(Weight::from_parts(1_019_445_000, 200_000)),
-		ASSET_MIN_BALANCE * 1000000000,
-	);
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
-	// Just a different `asset_id`` that does not exist yet
-	let new_asset_id = ASSET_ID + 1;
+		// set up pool with ASSET_ID <> NATIVE pair
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::create(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			ASSET_ID.into(),
+			AssetHubKusamaSender::get().into(),
+			ASSET_MIN_BALANCE,
+		));
+		assert!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::asset_exists(ASSET_ID));
 
-	// Encoded `create_asset` call to be executed in AssetHub
-	let call = AssetHubKusama::create_asset_call(
-		new_asset_id,
-		ASSET_MIN_BALANCE,
-		para_sovereign_account.clone(),
-	);
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::mint(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			ASSET_ID.into(),
+			AssetHubKusamaSender::get().into(),
+			3_000_000_000_000,
+		));
 
-	let origin_kind = OriginKind::SovereignAccount;
-	let fee_amount = ASSET_MIN_BALANCE * 1000000;
-	let asset =
-		([PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())], fee_amount).into();
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			Box::new(asset_native.clone()),
+			Box::new(asset_one.clone()),
+		));
 
-	let root_origin = <PenpalA as Chain>::RuntimeOrigin::root();
-	let system_para_destination = PenpalA::sibling_location_of(AssetHubKusama::para_id()).into();
-	let xcm = xcm_transact_paid_execution(call, origin_kind, asset, para_sovereign_account.clone());
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+			]
+		);
 
-	// SA-of-Penpal-on-AHK needs to have balance to pay for asset creation deposit
-	AssetHubKusama::fund_accounts(vec![(
-		para_sovereign_account.clone(),
-		ASSET_HUB_KUSAMA_ED * 10000000000,
-	)]);
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			Box::new(asset_native),
+			Box::new(asset_one),
+			1_000_000_000_000,
+			2_000_000_000_000,
+			0,
+			0,
+			AssetHubKusamaSender::get()
+		));
+
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded {lp_token_minted, .. }) => { lp_token_minted: *lp_token_minted == 1414213562273, },
+			]
+		);
+
+		// ensure `penpal` sovereign account has no native tokens and mint some `ASSET_ID`
+		assert_eq!(
+			<AssetHubKusama as AssetHubKusamaPallet>::Balances::free_balance(penpal.clone()),
+			0
+		);
+
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::touch_other(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+		));
+
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::Assets::mint(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			ASSET_ID.into(),
+			penpal.clone().into(),
+			10_000_000_000_000,
+		));
+	});
 
 	PenpalA::execute_with(|| {
+		// send xcm transact from `penpal` account which has only `ASSET_ID` tokens on
+		// `AssetHubKusama`
+		let call = AssetHubKusama::force_create_asset_call(
+			ASSET_ID + 1000,
+			penpal.clone(),
+			true,
+			ASSET_MIN_BALANCE,
+		);
+
+		let penpal_root = <PenpalA as Chain>::RuntimeOrigin::root();
+		let fee_amount = 4_000_000_000_000u128;
+		let asset_one =
+			([PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())], fee_amount).into();
+		let asset_hub_location = PenpalA::sibling_location_of(AssetHubKusama::para_id()).into();
+		let xcm = xcm_transact_paid_execution(
+			call,
+			OriginKind::SovereignAccount,
+			asset_one,
+			penpal.clone(),
+		);
+
 		assert_ok!(<PenpalA as PenpalAPallet>::PolkadotXcm::send(
-			root_origin,
-			bx!(system_para_destination),
+			penpal_root,
+			bx!(asset_hub_location),
 			bx!(xcm),
 		));
 
@@ -165,22 +230,13 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
 
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+
 		AssetHubKusama::assert_xcmp_queue_success(None);
 		assert_expected_events!(
 			AssetHubKusama,
 			vec![
-				// Burned the fee
-				RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-					asset_id: *asset_id == ASSET_ID,
-					owner: *owner == para_sovereign_account,
-					balance: *balance == fee_amount,
-				},
-				// Asset created
-				RuntimeEvent::Assets(pallet_assets::Event::Created { asset_id, creator, owner }) => {
-					asset_id: *asset_id == new_asset_id,
-					creator: *creator == para_sovereign_account.clone(),
-					owner: *owner == para_sovereign_account,
-				},
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::SwapCreditExecuted { .. },) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: true,.. }) => {},
 			]
 		);
 	});
