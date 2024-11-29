@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
+
 Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
@@ -11,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Change Polkadot inflation to 120M DOT per year ([polkadot-fellows/runtimes#471](https://github.com/polkadot-fellows/runtimes/pull/471))
 - Update foreign asset ids in Asset Hub Polkadot and Asset Hub Kusama from v3 to v4 locations ([polkadot-fellows/runtimes#472](https://github.com/polkadot-fellows/runtimes/pull/472))
 - Lower Parachain and Data Deposits to Encourage Experimentation on Kusama ([polkadot-fellows/runtimes#501](https://github.com/polkadot-fellows/runtimes/pull/501))
+
+### Fixed
+
+- Fix `experimental_inflation_info` in Polkadot and remove unused code (https://github.com/polkadot-fellows/runtimes/pull/497)
 
 ## [1.3.3] 01.10.2024
 
