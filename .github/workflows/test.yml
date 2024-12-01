@@ -266,6 +266,66 @@ jobs:
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
+  build-runtimes:
+    needs: [ runtime-matrix ]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-build-runtimes-test"
+
+      - name: Build runtime ${{ matrix.runtime.name }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          # Build wasm
+          echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+          # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features=metadata-hash -q --locked
+
+      - name: Upload  ${{ matrix.runtime.name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+          path: ${{ env.RUNTIME_BLOB_PATH }}
+
+  ecosystem-tests:
+    needs: [runtime-matrix]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v2
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: hydradx_runtime.compact.compressed.wasm
+
+      - name: Run ecosystem tests
+        run: |
+          # Set the path to the downloaded WASM file
+          export HYDRADX_RUNTIME_WASM_PATH="$PWD/hydradx_runtime.compact.compressed.wasm"
+          
+          yarn install
+          yarn test
+        env:
+          HYDRADX_RUNTIME_WASM_PATH: ${{ env.HYDRADX_RUNTIME_WASM_PATH }}
+
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
