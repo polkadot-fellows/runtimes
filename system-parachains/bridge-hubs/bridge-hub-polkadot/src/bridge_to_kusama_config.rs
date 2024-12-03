@@ -30,7 +30,10 @@ use bp_messages::{
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_runtime::Chain;
 use bridge_hub_common::xcm_version::XcmVersionOfDestAndRemoteBridge;
-use frame_support::{parameter_types, traits::PalletInfoAccess};
+use frame_support::{
+	parameter_types,
+	traits::{ConstU128, PalletInfoAccess},
+};
 use frame_system::{EnsureNever, EnsureRoot};
 use pallet_bridge_messages::LaneIdOf;
 use pallet_bridge_relayers::extension::{
@@ -141,8 +144,6 @@ parameter_types! {
 	pub PriorityBoostPerParachainHeader: u64 = 9_182_241_758_241;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
-	// TODO: @acatangiu, is there any specs about the deposit cost?
-	pub storage BridgeDeposit: Balance = 10 * constants::currency::UNITS;
 }
 
 /// Proof of messages, coming from Kusama.
@@ -247,15 +248,153 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubKusamaInstance> for Runtime {
 	type BridgeOriginAccountIdConverter =
 		(ParentIsPreset<AccountId>, SiblingParachainConvertsVia<Sibling, AccountId>);
 
-	type BridgeDeposit = BridgeDeposit;
+	// We do not allow creating bridges here (see `T::OpenBridgeOrigin` above), so there is no need
+	// to set a deposit.
+	type BridgeDeposit = ConstU128<0>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type AllowWithoutBridgeDeposit =
 		RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>;
 
-	// TODO: @acatangiu (bridges-v2) - add `LocalXcmChannelManager` impl - https://github.com/paritytech/parity-bridges-common/issues/3047
-	type LocalXcmChannelManager = ();
+	type LocalXcmChannelManager = XcmpQueueChannelManager;
 	type BlobDispatcher = FromKusamaMessageBlobDispatcher;
+}
+
+/// Implementation `bp_xcm_bridge_hub::LocalXcmChannelManager`.
+pub struct XcmpQueueChannelManager;
+impl bp_xcm_bridge_hub::LocalXcmChannelManager for XcmpQueueChannelManager {
+	type Error = ();
+
+	fn is_congested(with: &Location) -> bool {
+		// This is used to check the inbound queue/messages to determine if they can be dispatched
+		// and sent to the sibling parachain. Therefore, checking `OutXcmp` is sufficient.
+		use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
+		cumulus_pallet_xcmp_queue::bridging::OutXcmpChannelStatusProvider::<Runtime>::is_congested(
+			with,
+		)
+	}
+
+	fn suspend_bridge(
+		_local_origin: &Location,
+		_: pallet_xcm_bridge_hub::BridgeId,
+	) -> Result<(), Self::Error> {
+		// IMPORTANT NOTE:
+		//
+		// Unfortunately, `https://github.com/paritytech/polkadot-sdk/pull/6231` reworked congestion is not yet released.
+		//
+		// And unfortunately, we don't have access to `XcmpQueue::send_signal(para,
+		// ChannelSignal::Suspend)` here (which would require patch release), we can add this
+		// hacky workaround/tmp/implementation that should trigger `ChannelSignal::Suspend`, e.g.:
+		/*
+		use crate::{MessageQueue, XcmpQueue};
+		use bridge_hub_common::message_queue::AggregateMessageOrigin;
+		use codec::{Decode, Encode, MaxEncodedLen};
+		use frame_support::traits::EnqueueMessage;
+		use frame_support::pallet_prelude::OptionQuery;
+		use pallet_message_queue::OnQueueChanged;
+		use scale_info::TypeInfo;
+
+		// get sibling para id
+		let local_origin_para_id: crate::ParaId = match _local_origin.unpack() {
+			(1, [Parachain(id)]) => (*id).into(),
+			_ => return Err(())
+		};
+
+		// read `suspend_threshold` from `XcmpQueue` storage
+		#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+		struct QueueConfigData {
+			suspend_threshold: u32,
+			drop_threshold: u32,
+			resume_threshold: u32,
+		}
+		#[frame_support::storage_alias]
+		type QueueConfig = StorageValue<XcmpQueue, QueueConfigData, OptionQuery>;
+		let suspend_threshold = match QueueConfig::get() {
+			Some(qc) => qc.suspend_threshold,
+			None => return Err(())
+		};
+
+		// Now, this should trigger `XcmpQueue::send_signal(para, ChannelSignal::Suspend)`
+		let mut qf = MessageQueue::footprint(AggregateMessageOrigin::Sibling(local_origin_para_id));
+		qf.ready_pages = suspend_threshold;
+		XcmpQueue::on_queue_changed(local_origin_para_id.into(), qf);
+		 */
+
+		// IMPORTANT NOTE2:
+		//
+		// In the current setup, this code is likely triggered only for the hard-coded AHK<>AHP
+		// lane, as we do not support any other bridge lanes on BridgeHubs. It is triggered only
+		// when `pallet_bridge_messages::OutboundMessages` reaches 8,192 undelivered messages. The
+		// potential risk of keeping `Ok(())` or `Err(())` here is that
+		// `pallet_bridge_messages::OutboundMessages` may continue to grow:
+		//
+		// ```
+		// 	#[pallet::storage]
+		// 	pub type OutboundMessages<T: Config<I>, I: 'static = ()> =
+		// 		StorageMap<_, Blake2_128Concat, MessageKey<T::LaneId>, StoredMessagePayload<T, I>>;
+		// ```
+
+		// TODO: decide:
+		// 1. wait for patch-release stable2409-3 2024-12-12
+		// 2. go with `Ok(())` / `Err(())`
+		// 3. go with `XcmpQueue::send_signal` temporary workaround till patch release
+
+		Ok(())
+	}
+
+	fn resume_bridge(
+		_local_origin: &Location,
+		_: pallet_xcm_bridge_hub::BridgeId,
+	) -> Result<(), Self::Error> {
+		// IMPORTANT NOTE:
+		//
+		// Unfortunately, `https://github.com/paritytech/polkadot-sdk/pull/6231` reworked congestion is not yet released.
+		//
+		// And unfortunately, we don't have access to `XcmpQueue::send_signal(para,
+		// ChannelSignal::Resume)` here (which would require patch release), we can add this hacky
+		// workaround/tmp/implementation that should trigger `ChannelSignal::Resume`, e.g.:
+		/*
+		use crate::{MessageQueue, XcmpQueue};
+		use bridge_hub_common::message_queue::AggregateMessageOrigin;
+		use codec::{Decode, Encode, MaxEncodedLen};
+		use frame_support::traits::EnqueueMessage;
+		use frame_support::pallet_prelude::OptionQuery;
+		use pallet_message_queue::OnQueueChanged;
+		use scale_info::TypeInfo;
+
+		// get sibling para id
+		let local_origin_para_id: crate::ParaId = match _local_origin.unpack() {
+			(1, [Parachain(id)]) => (*id).into(),
+			_ => return Err(())
+		};
+
+		// read `resume_threshold` from `XcmpQueue` storage
+		#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+		struct QueueConfigData {
+			suspend_threshold: u32,
+			drop_threshold: u32,
+			resume_threshold: u32,
+		}
+		#[frame_support::storage_alias]
+		type QueueConfig = StorageValue<XcmpQueue, QueueConfigData, OptionQuery>;
+		let resume_threshold = match QueueConfig::get() {
+			Some(qc) => qc.resume_threshold,
+			None => return Err(())
+		};
+
+		// Now, this should trigger `XcmpQueue::send_signal(para, ChannelSignal::Resume)`
+		let mut qf = MessageQueue::footprint(AggregateMessageOrigin::Sibling(local_origin_para_id));
+		qf.ready_pages = resume_threshold;
+		XcmpQueue::on_queue_changed(local_origin_para_id.into(), qf);
+		 */
+
+		// TODO: decide:
+		// 1. wait for patch-release stable2409-3 2024-12-12
+		// 2. go with `Ok(())` / `Err(())`
+		// 3. go with `XcmpQueue::send_signal` temporary workaround till patch release
+
+		Ok(())
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]

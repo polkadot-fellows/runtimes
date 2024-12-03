@@ -1128,21 +1128,9 @@ impl_runtime_apis! {
 						BenchmarkError::Stop("XcmVersion was not stored!")
 					})?;
 
-					let sibling_parachain_id = Parachain(8765);
+					let sibling_system_parachain_id = Parachain(1000);
 					let remote_parachain_id = Parachain(5678);
-					let sibling_parachain_location = Location::new(1, [sibling_parachain_id]);
-
-					// fund SA
-					use frame_support::traits::fungible::Mutate;
-					use xcm_executor::traits::ConvertLocation;
-					frame_support::assert_ok!(
-						Balances::mint_into(
-							&xcm_config::LocationToAccountId::convert_location(&sibling_parachain_location).expect("valid AccountId"),
-							bridge_to_polkadot_config::BridgeDeposit::get()
-								.saturating_add(ExistentialDeposit::get())
-								.saturating_add(UNITS * 5)
-						)
-					);
+					let sibling_parachain_location = Location::new(1, [sibling_system_parachain_id]);
 
 					// open bridge
 					let bridge_destination_universal_location: InteriorLocation = [GlobalConsensus(NetworkId::Polkadot), remote_parachain_id].into();

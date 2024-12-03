@@ -46,29 +46,8 @@ frame_support::parameter_types! {
 	/// Some sane weight to execute `xcm::Transact(pallet-xcm-bridge-hub-router::Call::report_bridge_status)`.
 	pub const XcmBridgeHubRouterTransactCallMaxWeight: Weight = Weight::from_parts(200_000_000, 6144);
 
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes congested.
-	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
-	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
-
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
-}
-
-fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {
-	sp_std::vec![
-		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-		Transact {
-			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
-			call: Call::ToKusamaXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
-				bridge_id: Default::default(),
-				is_congested,
-			})
-			.encode()
-			.into(),
-		}
-	]
 }
 
 /// Identifier of AssetHubPolkadot in the Polkadot relay chain.

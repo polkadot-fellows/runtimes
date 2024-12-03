@@ -32,6 +32,7 @@ bp-polkadot-bulletin = { version = "0.15.0", default-features = false }
 bp-polkadot-core = { version = "0.18.0", default-features = false }
 bp-relayers = { version = "0.18.0", default-features = false }
 bp-runtime = { version = "0.18.0", default-features = false }
+bp-xcm-bridge-hub = { version = "0.4.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.14.1", default-features = false }
 bridge-hub-common = { version = "0.10.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
