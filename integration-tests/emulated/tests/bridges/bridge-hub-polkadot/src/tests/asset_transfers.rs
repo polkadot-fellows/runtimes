@@ -434,6 +434,16 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		ASSET_MIN_BALANCE,
 		vec![(sender.clone(), amount * 2)],
 	);
+	// Configure source Penpal chain to trust local AH as reserve of bridged KSM
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as Chain>::System::set_storage(
+			<PenpalB as Chain>::RuntimeOrigin::root(),
+			vec![(
+				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
+				ksm_at_polkadot_parachains.encode(),
+			)],
+		));
+	});
 
 	// fund the PAH's SA on KAH with the KSM tokens held in reserve
 	let sov_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(

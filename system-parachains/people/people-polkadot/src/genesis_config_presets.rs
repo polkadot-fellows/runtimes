@@ -56,6 +56,7 @@ fn people_polkadot_genesis(
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),

@@ -56,6 +56,7 @@ fn encointer_kusama_genesis(
 					)
 				})
 				.collect(),
+			non_authority_keys: vec![],
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
