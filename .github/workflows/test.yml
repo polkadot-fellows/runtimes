@@ -209,7 +209,10 @@ jobs:
           shared-key: "fellowship-cache-tests"
 
       - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+        run: |
+          curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$CHAIN_SPEC_GENERATOR_RELEASE_VERSION/chain-spec-generator -o chain-spec-generator
+          chmod +x ./frame-omni-bencher
+          ./frame-omni-bencher --version
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
