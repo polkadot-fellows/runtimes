@@ -210,8 +210,8 @@ jobs:
 
       - name: Build
         run: |
-          cargo install chain-spec-generator
-          chain-spec-generator --version
+          cargo install chain-spec-builder
+          chain-spec-builder --version
 
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
