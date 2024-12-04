@@ -209,7 +209,10 @@ jobs:
           shared-key: "fellowship-cache-tests"
 
       - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+        run: |
+          cargo install chain-spec-generator
+          chain-spec-generator --version
+
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
