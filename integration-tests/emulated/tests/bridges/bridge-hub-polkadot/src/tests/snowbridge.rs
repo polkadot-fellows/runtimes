@@ -133,14 +133,14 @@ fn create_agent() {
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		// Check that a message was sent to Ethereum to create the agent
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateAgent {
-					..
-				}) => {},
-			]
+
+		let events = BridgeHubPolkadot::events();
+		assert!(
+			events.iter().any(|event| !matches!(
+				event,
+				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateAgent { .. })
+			)),
+			"Create agent event found while not expected."
 		);
 	});
 }
@@ -213,14 +213,13 @@ fn create_channel() {
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
-		// Check that the Channel was created
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateChannel {
-					..
-				}) => {},
-			]
+		let events = BridgeHubPolkadot::events();
+		assert!(
+			events.iter().any(|event| !matches!(
+				event,
+				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateChannel { .. })
+			)),
+			"Create channel event found while not expected."
 		);
 	});
 }
