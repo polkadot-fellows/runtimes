@@ -207,10 +207,10 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// We currently allow all calls.
 pub struct BaseFilter;
 impl Contains<RuntimeCall> for BaseFilter {
 	fn contains(call: &RuntimeCall) -> bool {
+		// Disallow these Snowbridge system calls.
 		if matches!(
 			call,
 			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_agent { .. })
@@ -218,12 +218,8 @@ impl Contains<RuntimeCall> for BaseFilter {
 			call,
 			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_channel { .. })
 		) {
-			log::trace!(target: "xcm::contains", "contains call create_agent or create_channel");
-
 			return false
 		}
-		log::trace!(target: "xcm::contains", "does not contain call create_agent or create_channel");
-
 		return true
 	}
 }
