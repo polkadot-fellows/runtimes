@@ -184,10 +184,9 @@ parameter_types! {
 }
 
 /// Filter:
-/// - Credit purchase calls until the credit system is implemented. Otherwise, users
-/// may have chance of locking their funds forever on purchased credits they cannot use.
-/// - Auto-renew functionality until resolution of polkadot-sdk issue
-/// [#6474](https://github.com/paritytech/polkadot-sdk/issues/6474)
+/// - Credit purchase calls until the credit system is implemented. Otherwise, users may have chance
+///   of locking their funds forever on purchased credits they cannot use.
+/// - Auto-renew functionality until resolution of polkadot-sdk issue [#6474](https://github.com/paritytech/polkadot-sdk/issues/6474)
 pub struct IsFilteredBrokerCall;
 impl Contains<RuntimeCall> for IsFilteredBrokerCall {
 	fn contains(c: &RuntimeCall) -> bool {
