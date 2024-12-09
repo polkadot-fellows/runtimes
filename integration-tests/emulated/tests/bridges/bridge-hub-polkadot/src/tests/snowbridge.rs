@@ -97,7 +97,7 @@ fn create_agent() {
 	// the treasury account may exist.
 	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
 
-	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
+	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();;ew
 	let destination = Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
 
 	let create_agent_call = SnowbridgeControl::Control(ControlCall::CreateAgent {});
