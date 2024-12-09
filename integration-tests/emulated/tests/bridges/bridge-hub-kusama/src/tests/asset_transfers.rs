@@ -187,9 +187,9 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 	let amount_to_send = ASSET_HUB_POLKADOT_ED * 1_000;
 	let sender = AssetHubKusamaSender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
-	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
+	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 	let prefund_accounts = vec![(sender.clone(), prefund_amount)];
-	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true, prefund_accounts);
+	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true, prefund_accounts);
 
 	////////////////////////////////////////////////////////////
 	// Let's first send back just some DOTs as a simple example
@@ -206,7 +206,8 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 	assert_eq!(dot_in_reserve_on_pah_before, prefund_amount);
 
-	let sender_dot_before = foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama.clone(), &sender);
+	let sender_dot_before =
+		foreign_balance_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), &sender);
 	assert_eq!(sender_dot_before, prefund_amount);
 	let receiver_dot_before = <AssetHubPolkadot as Chain>::account_data_of(receiver.clone()).free;
 
@@ -242,7 +243,7 @@ fn send_back_dot_usdt_and_weth_from_asset_hub_kusama_to_asset_hub_polkadot() {
 		);
 	});
 
-	let sender_dot_after = foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama, &sender);
+	let sender_dot_after = foreign_balance_on_ah_kusama(bridged_dot_at_asset_hub_kusama, &sender);
 	let receiver_dot_after = <AssetHubPolkadot as Chain>::account_data_of(receiver.clone()).free;
 	let dot_in_reserve_on_pah_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah).free;
@@ -449,6 +450,16 @@ fn send_back_dot_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkad
 		ASSET_MIN_BALANCE,
 		vec![(sender.clone(), amount * 2)],
 	);
+	// Configure source Penpal chain to trust local AH as reserve of bridged KSM
+	PenpalA::execute_with(|| {
+		assert_ok!(<PenpalA as Chain>::System::set_storage(
+			<PenpalA as Chain>::RuntimeOrigin::root(),
+			vec![(
+				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
+				dot_at_kusama_parachains.encode(),
+			)],
+		));
+	});
 
 	// fund the KAH's SA on PAH with the DOT tokens held in reserve
 	let sov_kah_on_pah = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
