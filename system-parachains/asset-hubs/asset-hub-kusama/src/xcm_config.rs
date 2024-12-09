@@ -513,11 +513,8 @@ pub mod bridging {
 				]
 			);
 
-			// TODO: @bkontur or @acatangiu, please confirm if this chain will be used at all.
 			pub const PolkadotNetwork: NetworkId = NetworkId::Polkadot;
 			pub const EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
-			// TODO: @bkontur or @acatangiu, please confirm if this should be in the configuration, or if
-			// this `chain_id` is just for testing purposes.
 			pub EthereumEcosystem: Location = Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
 			pub DotLocation: Location = Location::new(2, [GlobalConsensus(PolkadotNetwork::get())]);
 			pub AssetHubPolkadot: Location = Location::new(
@@ -525,7 +522,7 @@ pub mod bridging {
 				[
 					GlobalConsensus(PolkadotNetwork::get()),
 					Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID),
-				],
+			],
 			);
 
 			/// Set up exporters configuration.

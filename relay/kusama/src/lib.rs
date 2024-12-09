@@ -386,7 +386,7 @@ impl pallet_mmr::Config for Runtime {
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 	type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
+	type BenchmarkHelper = parachains_paras::benchmarking::mmr_setup::MmrSetup<Runtime>;
 }
 
 /// MMR helper types.
