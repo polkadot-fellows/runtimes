@@ -483,7 +483,8 @@ parameter_types! {
 
 impl pallet_encointer_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for following hooks
+	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for
+	// following hooks
 	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies);
 	type MomentsPerDay = MomentsPerDay;
 	type CeremonyMaster = MoreThanHalfCouncil;
