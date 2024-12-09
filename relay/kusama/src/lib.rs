@@ -830,7 +830,7 @@ parameter_types! {
 	pub const TipCountdown: BlockNumber = DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 100 * CENTS;
-	pub const DataDepositPerByte: Balance = CENTS;
+	pub const DataDepositPerByte: Balance = CENTS / 10;
 	pub const MaxApprovals: u32 = 100;
 	pub const MaxAuthorities: u32 = 100_000;
 	pub const MaxKeys: u32 = 10_000;
@@ -1468,7 +1468,7 @@ impl parachains_slashing::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ParaDeposit: Balance = 40 * UNITS;
+	pub const ParaDeposit: Balance = 4 * UNITS;
 }
 
 impl paras_registrar::Config for Runtime {
