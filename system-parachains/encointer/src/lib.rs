@@ -483,7 +483,8 @@ parameter_types! {
 
 impl pallet_encointer_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnCeremonyPhaseChange = EncointerCeremonies;
+	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for following hooks
+	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies);
 	type MomentsPerDay = MomentsPerDay;
 	type CeremonyMaster = MoreThanHalfCouncil;
 	type WeightInfo = weights::pallet_encointer_scheduler::WeightInfo<Runtime>;
