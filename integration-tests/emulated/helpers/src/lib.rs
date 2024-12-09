@@ -31,7 +31,6 @@ pub use xcm_emulator::Chain;
 /// TODO: when bumping to polkadot-sdk v1.8.0,
 /// remove this crate altogether and get the macros from `emulated-integration-tests-common`.
 /// TODO: backport this macros to polkadot-sdk
-
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
 	( $sender_relay:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr) ) => {
