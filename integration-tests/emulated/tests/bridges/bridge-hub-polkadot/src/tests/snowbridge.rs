@@ -86,28 +86,6 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 	)
 }
 
-#[test]
-fn create_agent_2() {
-	let origin_para: u32 = 1001;
-	// Fund the origin parachain sovereign account so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
-	// Fund Treasury account with ED so that when create agent fees are paid to treasury,
-	// the treasury account may exist.
-	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
-	let parachain_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
-		1,
-		[Parachain(origin_para.into())],
-	));
-
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		// Check that a message was sent to Ethereum to create the agent
-		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::create_agent(
-			<BridgeHubPolkadot as Chain>::RuntimeOrigin::signed(parachain_sovereign),
-		));
-	});
-}
-
 /// Create an agent on Ethereum. An agent is a representation of an entity in the Polkadot
 /// ecosystem (like a parachain) on Ethereum.
 #[test]
