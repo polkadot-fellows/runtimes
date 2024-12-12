@@ -373,7 +373,7 @@ fn relay_commands_add_remove_username_authority() {
 			);
 		});
 
-		// Now, remove the username authority with another priviledged XCM call.
+		// Now, remove the username authority with another privileged XCM call.
 		Polkadot::execute_with(|| {
 			type Runtime = <Polkadot as Chain>::Runtime;
 			type RuntimeCall = <Polkadot as Chain>::RuntimeCall;
@@ -482,8 +482,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		);
 	});
 
-	// I mistakenly assumed that to test the removal of an authority would need one to exist.
-	// However, since the origin check is the very first extrinsic in `remove_username_authority`,
+	// Since the origin check is the very first instruction in `remove_username_authority`,
 	// an authority need not exist to test the safety of the origin check.
 	Polkadot::execute_with(|| {
 		type Runtime = <Polkadot as Chain>::Runtime;

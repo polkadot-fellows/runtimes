@@ -48,6 +48,9 @@ fn relay_commands_add_registrar() {
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
+						// TODO:
+						// This and the below weight data in the XCM can be removed once XCMv5 is
+						// used.
 						require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
 						call: add_registrar_call.encode().into(),
 					}
@@ -369,7 +372,7 @@ fn relay_commands_add_remove_username_authority() {
 			);
 		});
 
-		// Now, remove the username authority with another priviledged XCM call.
+		// Now, remove the username authority with another privileged XCM call.
 		Kusama::execute_with(|| {
 			type Runtime = <Kusama as Chain>::Runtime;
 			type RuntimeCall = <Kusama as Chain>::RuntimeCall;
@@ -390,6 +393,9 @@ fn relay_commands_add_remove_username_authority() {
 						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 						Transact {
 							origin_kind,
+							// TODO:
+							// this and all other references to `require_weight_at_most` can be
+							// removed once XCMv5 is in use.
 							require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
 							call: remove_username_authority.encode().into(),
 						}
@@ -478,9 +484,8 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		);
 	});
 
-	// I mistakenly assumed that to test the removal of an authority would need one to exist.
-	// However, since the origin check is the very first extrinsic in `remove_username_authority`,
-	// an authority need not exist to test the safety of the origin check.
+	// Since the origin check is the very first instruction in `remove_username_authority`, an
+	// authority need not exist to test the safety of the origin check.
 	Kusama::execute_with(|| {
 		type Runtime = <Kusama as Chain>::Runtime;
 		type RuntimeCall = <Kusama as Chain>::RuntimeCall;
