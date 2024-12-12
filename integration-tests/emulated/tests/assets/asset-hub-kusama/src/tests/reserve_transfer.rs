@@ -1055,3 +1055,58 @@ fn reserve_transfer_ksm_from_para_to_para_through_relay() {
 	// Receiver's balance is increased
 	assert!(receiver_assets_after > receiver_assets_before);
 }
+
+/// Reserve Withdraw Native Asset from AssetHub to Parachain fails.
+#[test]
+fn reserve_withdraw_from_untrusted_reserve_fails() {
+	// Init values for Parachain Origin
+	let destination = AssetHubKusama::sibling_location_of(PenpalA::para_id());
+	let signed_origin =
+		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
+	let ksm_to_send: Balance = KUSAMA_ED * 10000;
+	let ksm_location = KsmLocation::get();
+
+	// Assets to send
+	let assets: Vec<Asset> = vec![(ksm_location.clone(), ksm_to_send).into()];
+	let fee_id: AssetId = ksm_location.into();
+
+	// this should fail
+	AssetHubKusama::execute_with(|| {
+		let result = <AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+			signed_origin.clone(),
+			bx!(destination.clone().into()),
+			bx!(assets.clone().into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(fee_id.into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(VersionedXcm::from(Xcm::<()>::new())),
+			Unlimited,
+		);
+		assert_err!(
+			result,
+			DispatchError::Module(sp_runtime::ModuleError {
+				index: 31,
+				error: [22, 0, 0, 0],
+				message: Some("InvalidAssetUnsupportedReserve")
+			})
+		);
+	});
+
+	// this should also fail
+	AssetHubKusama::execute_with(|| {
+		let xcm: Xcm<asset_hub_kusama_runtime::RuntimeCall> = Xcm(vec![
+			WithdrawAsset(assets.into()),
+			InitiateReserveWithdraw {
+				assets: Wild(All),
+				reserve: destination,
+				xcm: Xcm::<()>::new(),
+			},
+		]);
+		let result = <AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
+			signed_origin,
+			bx!(xcm::VersionedXcm::V4(xcm)),
+			Weight::MAX,
+		);
+		assert!(result.is_err());
+	});
+}
