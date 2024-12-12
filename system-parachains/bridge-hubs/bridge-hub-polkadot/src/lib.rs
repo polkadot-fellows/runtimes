@@ -218,9 +218,9 @@ impl Contains<RuntimeCall> for BaseFilter {
 			call,
 			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_channel { .. })
 		) {
-			return false
+			return false;
 		}
-		return true
+		true
 	}
 }
 
