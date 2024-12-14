@@ -23,13 +23,10 @@ pub mod tx_payment {
 		ensure,
 		pallet_prelude::{InvalidTransaction, TransactionValidityError},
 		traits::{
-			fungibles::{Balanced as FungiblesBalanced, Inspect as FungiblesInspect},
 			tokens::{Fortitude, Precision, Preservation},
 			Defensive, OnUnbalanced, SameOrOther,
 		},
 	};
-	use pallet_asset_conversion::{Pallet as AssetConversion, SwapCredit};
-	use pallet_asset_conversion_tx_payment::OnChargeAssetTransaction;
 	use pallet_transaction_payment::OnChargeTransaction;
 	use sp_core::Get;
 	use sp_runtime::{

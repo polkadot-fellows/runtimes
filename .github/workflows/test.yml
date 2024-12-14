@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-v1.13.0
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
 
 # cancel previous runs
 concurrency:
