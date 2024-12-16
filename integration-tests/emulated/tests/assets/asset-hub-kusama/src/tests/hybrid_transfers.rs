@@ -433,7 +433,16 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	let sov_of_receiver_on_ah = AssetHubKusama::sovereign_account_id_of(receiver_as_seen_by_ah);
 	let dot_to_send = ASSET_HUB_KUSAMA_ED * 10_000_000;
 
-	// Configure destination chain to trust AH as reserve of DOT
+	// Configure source and destination chains to trust AH as reserve of DOT
+	PenpalA::execute_with(|| {
+		assert_ok!(<PenpalA as Chain>::System::set_storage(
+			<PenpalA as Chain>::RuntimeOrigin::root(),
+			vec![(
+				CustomizableAssetFromSystemAssetHub::key().to_vec(),
+				Location::new(2, [GlobalConsensus(Polkadot)]).encode(),
+			)],
+		));
+	});
 	PenpalB::execute_with(|| {
 		assert_ok!(<PenpalB as Chain>::System::set_storage(
 			<PenpalB as Chain>::RuntimeOrigin::root(),
