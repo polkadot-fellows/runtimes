@@ -867,7 +867,7 @@ parameter_types! {
 	pub const MaxPeerInHeartbeats: u32 = 10_000;
 }
 
-use frame_support::traits::{Currency, Imbalance, OnUnbalanced};
+use frame_support::traits::{Currency, OnUnbalanced};
 
 pub type BalancesNegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 pub struct TreasuryBurnHandler;
@@ -877,11 +877,11 @@ impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 		if let Some(TreasuryBurnParameters { account, .. }) =
 			dynamic_params::treasury::BurnParameters::get()
 		{
-			let _numeric_amount = amount.peek();
 			// Must resolve into existing but better to be safe.
-			let _ = Balances::resolve_creating(&account, amount);
+			Balances::resolve_creating(&account, amount);
 		} else {
-			//
+			// If no account to destinate the funds to, just drop the
+			// imbalance.
 			<() as OnUnbalanced<_>>::on_nonzero_unbalanced(amount)
 		}
 	}
