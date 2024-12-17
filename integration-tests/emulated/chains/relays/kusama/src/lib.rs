@@ -14,6 +14,7 @@
 // limitations under the License.
 
 pub mod genesis;
+pub use kusama_runtime;
 
 // Cumulus
 use emulated_integration_tests_common::{
