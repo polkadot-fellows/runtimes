@@ -692,7 +692,7 @@ pub mod dynamic_params {
 
 	/// Parameters used by `pallet-treasury` to handle the burn process.
 	#[dynamic_pallet_params]
-	#[codec(index = 0)]
+	#[codec(index = 1)]
 	pub mod treasury {
 		/// A structure that includes the fraction of treasury surplus to handle instead of
 		/// plainly burning. It is expected that these two values work together.
