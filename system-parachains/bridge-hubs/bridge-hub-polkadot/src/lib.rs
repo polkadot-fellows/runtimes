@@ -232,10 +232,8 @@ impl Contains<RuntimeCall> for BaseFilter {
 		// Disallow these Snowbridge system calls.
 		if matches!(
 			call,
-			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_agent { .. })
-		) || matches!(
-			call,
-			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_channel { .. })
+			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_agent { .. }) |
+				RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_channel { .. })
 		) {
 			return false;
 		}
