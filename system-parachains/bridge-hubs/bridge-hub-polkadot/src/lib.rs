@@ -234,7 +234,9 @@ impl Contains<RuntimeCall> for BaseFilter {
 		if matches!(
 			call,
 			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_agent { .. }) |
-				RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_channel { .. })
+				RuntimeCall::EthereumSystem(
+					snowbridge_pallet_system::Call::create_channel { .. }
+				)
 		) {
 			return false;
 		}
