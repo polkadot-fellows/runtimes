@@ -226,6 +226,7 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// Disables extrinsics matching the specified calls.
 pub struct BaseFilter;
 impl Contains<RuntimeCall> for BaseFilter {
 	fn contains(call: &RuntimeCall) -> bool {
