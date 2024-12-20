@@ -782,6 +782,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-ah-migrator",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
  "pallet-assets",
@@ -793,6 +794,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-nfts",
  "pallet-nfts-runtime-api",
+ "pallet-preimage",
  "pallet-proxy",
  "pallet-session",
  "pallet-timestamp",
@@ -7611,6 +7613,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
+name = "pallet-ah-migrator"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-nomination-pools",
+ "pallet-preimage",
+ "pallet-rc-migrator",
+ "pallet-staking",
+ "pallet-state-trie-migration",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "serde",
+ "sp-core 34.0.0",
+ "sp-io 37.0.0",
+ "sp-runtime 38.0.0",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-alliance"
 version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8851,6 +8879,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-rc-migrator"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-staking",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "serde",
+ "sp-core 34.0.0",
+ "sp-io 37.0.0",
+ "sp-runtime 38.0.0",
+ "sp-std",
+ "staging-xcm",
+]
+
+[[package]]
 name = "pallet-recovery"
 version = "36.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10083,6 +10134,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
+ "pallet-ah-migrator",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -10111,6 +10163,7 @@ dependencies = [
  "pallet-parameters",
  "pallet-preimage",
  "pallet-proxy",
+ "pallet-rc-migrator",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",

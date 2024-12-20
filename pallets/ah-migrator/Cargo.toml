@@ -1,0 +1,83 @@
+[package]
+name = "pallet-ah-migrator"
+description = "Asset Hub migrator pallet for Asset Hub"
+license = "Apache-2.0"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+codec = { workspace = true, features = ["max-encoded-len"] }
+scale-info = { workspace = true, features = ["derive"] }
+serde = { features = ["derive"], optional = true, workspace = true }
+log = { workspace = true }
+
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+sp-io = { workspace = true }
+
+pallet-rc-migrator = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-staking = { workspace = true }
+pallet-preimage = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
+pallet-nomination-pools = { workspace = true }
+
+polkadot-runtime-common = { workspace = true }
+runtime-parachains = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
+
+[features]
+default = ["std"] 
+std = [
+	"codec/std",
+	"frame-benchmarking?/std",
+	"frame-support/std",
+	"frame-system/std",
+	"scale-info/std",
+	"serde",
+	"sp-core/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"sp-io/std",
+	"pallet-rc-migrator/std",
+	"pallet-balances/std",
+	"pallet-staking/std",
+	"pallet-preimage/std",
+	"pallet-state-trie-migration/std",
+	"pallet-nomination-pools/std",
+	"polkadot-runtime-common/std",
+	"runtime-parachains/std",
+]
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-nomination-pools/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
+	"pallet-rc-migrator/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-staking/try-runtime",
+	"pallet-preimage/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
+	"pallet-nomination-pools/try-runtime",
+	"polkadot-runtime-common/try-runtime",
+	"runtime-parachains/try-runtime",
+]

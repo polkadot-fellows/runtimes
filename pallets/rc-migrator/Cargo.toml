@@ -1,0 +1,70 @@
+[package]
+name = "pallet-rc-migrator"
+description = "Asset Hub migrator pallet for Relay Chain"
+license = "Apache-2.0"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+codec = { workspace = true, features = ["max-encoded-len"] }
+scale-info = { workspace = true, features = ["derive"] }
+serde = { features = ["derive"], optional = true, workspace = true }
+log = { workspace = true }
+
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+sp-io = { workspace = true }
+
+pallet-balances = { workspace = true }
+pallet-staking = { workspace = true }
+
+polkadot-runtime-common = { workspace = true }
+runtime-parachains = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
+
+xcm = { workspace = true }
+
+[features]
+default = ["std"] 
+std = [
+	"codec/std",
+	"frame-benchmarking?/std",
+	"frame-support/std",
+	"frame-system/std",
+	"scale-info/std",
+	"serde",
+	"sp-core/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"sp-io/std",
+	"pallet-balances/std",
+	"pallet-staking/std",
+	"polkadot-runtime-common/std",
+	"runtime-parachains/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"sp-runtime/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-staking/try-runtime",
+	"polkadot-runtime-common/try-runtime",
+	"runtime-parachains/try-runtime",
+]
