@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The helper pallet for the Asset Hub migration.
+//! The helper pallet for the Asset Hub migration meant to be setup on Relay Chain.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

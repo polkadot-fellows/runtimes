@@ -287,6 +287,7 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
+	"pallets/ah-migrator",
 	"pallets/rc-migrator",
 	"relay/common",
 	"relay/kusama",

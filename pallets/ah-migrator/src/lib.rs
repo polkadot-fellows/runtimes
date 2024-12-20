@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The helper pallet for the Asset Hub migration.
+//! The helper pallet for the Asset Hub migration meant to be setup on Asset Hub.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -32,7 +32,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::accounts::Account as RcAccount;
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::Convert, AccountId32};
 use sp_std::prelude::*;
 
 /// The log target of this pallet.
@@ -40,8 +40,6 @@ pub const LOG_TARGET: &str = "runtime::ah-migrator";
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
-	use sp_runtime::traits::Convert;
-
 	use super::*;
 
 	/// Super trait of all pallets the migration depends on.
