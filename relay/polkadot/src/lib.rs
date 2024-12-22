@@ -1550,6 +1550,22 @@ impl OnSwap for SwapLeases {
 	}
 }
 
+parameter_types! {
+	pub RcMigratorMaxWeight: Weight = Weight::from_all(1); // TODO set the actual max weight
+	pub AhMigratorMaxWeight: Weight = Weight::from_all(1); // TODO set the actual max weight
+}
+
+impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type CheckingAccount = xcm_config::CheckAccount;
+	type SendXcm = xcm_config::XcmRouter;
+	type MaxRcWeight = RcMigratorMaxWeight;
+	type MaxAhWeight = AhMigratorMaxWeight;
+	type RcWeightInfo = ();
+	type AhWeightInfo = ();
+}
+
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -1662,6 +1678,9 @@ construct_runtime! {
 		// refer to block<N>. See issue #160 for details.
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
+
+		// Relay Chain Migrator
+		RcMigrator: pallet_rc_migrator = 255,
 	}
 }
 
