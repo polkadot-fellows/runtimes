@@ -1,6 +1,6 @@
 [package]
 name = "pallet-ah-migrator"
-description = "Asset Hub migrator pallet for Asset Hub"
+description = "Operational pallet managing and processing migration from Relay Chain to Asset Hub on Asset Hub"
 license = "Apache-2.0"
 version = "0.1.0"
 edition.workspace = true

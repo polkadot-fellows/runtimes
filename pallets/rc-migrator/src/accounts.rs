@@ -19,6 +19,8 @@
 /*
 TODO: remove this dec comment when not needed
 
+Sources of account references
+
 provider refs:
 - crowdloans: fundraising system account / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/common/src/crowdloan/mod.rs#L416
 - parachains_assigner_on_demand / on_demand: pallet's account https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
@@ -58,10 +60,13 @@ Relay: XCM teleport processed
 ^ The minimum what we should replay while moving accounts from Relay to AH
 
 When the Asset Hub turned to the mint authority
+
 Relay: let checking_total = // total checking account balance
 Relay: burn_from(checking, checking_total) // publishes Balances::Burned event
 AH: let total_issuance = // total issuance on AH
 AH: mint_into(checking, checking_total - total_issuance) // publishes Balances::Minted event
+
+^ Ensure that this is the desired method of communicating the mint authority change via events.
 
 */
 
@@ -97,7 +102,7 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	pub locks: Vec<BalanceLock<Balance>>,
 	/// Unnamed reserve.
 	///
-	/// No named reserves for Polkadot and Kusama.
+	/// Only unnamed reserves for Polkadot and Kusama (no named ones).
 	pub unnamed_reserve: Balance,
 	/// Consumer ref count of migrating to Asset Hub pallets except a reference for `reserved` and
 	/// `frozen` balance.

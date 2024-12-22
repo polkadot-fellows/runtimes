@@ -15,7 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The helper pallet for the Asset Hub migration meant to be setup on Relay Chain.
+//! The operational pallet for the Relay Chain, designed to manage and facilitate the migration of
+//! subsystems such as Governance, Staking, Balances from the Relay Chain to the Asset Hub. This
+//! pallet works alongside its counterpart, `pallet_ah_migrator`, which handles migration
+//! processes on the Asset Hub side.
+//!
+//! This pallet is responsible for controlling the initiation, progression, and completion of the
+//! migration process, including managing its various stages and transferring the necessary data.
+//! The pallet directly accesses the storage of other pallets for read/write operations while
+//! maintaining compatibility with their existing APIs.
+//!
+//! To simplify development and avoid the need to edit the original pallets, this pallet may
+//! duplicate private items such as storage entries from the original pallets. This ensures that the
+//! migration logic can be implemented without altering the original implementations.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -56,7 +68,7 @@ pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started.
 	#[default]
 	Pending,
-	// Initializing
+	// TODO: Initializing?
 	/// Migrating account balances.
 	MigratingAccounts {
 		// Last migrated account
@@ -76,7 +88,8 @@ pub mod pallet {
 	/// Paras Registrar Pallet
 	type ParasRegistrar<T> = paras_registrar::Pallet<T>;
 
-	/// Super trait of all pallets the migration depends on.
+	/// Super config trait for all pallets that the migration depends on, providing convenient
+	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
