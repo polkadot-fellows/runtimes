@@ -460,7 +460,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
 				// account, should not be allowed.
 				RuntimeCall::Identity(pallet_identity::Call::add_sub { .. }) |
-				RuntimeCall::Identity(pallet_identity::Call::set_subs { .. }) |
+				RuntimeCall::Identity(pallet_identity::Call::set_subs { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
