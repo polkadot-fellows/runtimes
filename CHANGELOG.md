@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
 
+### Fixed
+- [Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes](https://github.com/polkadot-fellows/runtimes/pull/518)
+
 ### Added
 
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
