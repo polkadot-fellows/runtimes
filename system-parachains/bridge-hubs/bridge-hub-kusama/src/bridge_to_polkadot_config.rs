@@ -219,6 +219,7 @@ impl pallet_bridge_messages::Config<WithBridgeHubPolkadotMessagesInstance> for R
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubPolkadotMessagesInstance,
+		RelayersForLegacyLaneIdsMessagesInstance,
 		DeliveryRewardInBalance,
 	>;
 	type MessageDispatch = XcmOverBridgeHubPolkadot;
@@ -488,7 +489,6 @@ mod tests {
 	fn ensure_bridge_integrity() {
 		assert_complete_bridge_types!(
 			runtime: Runtime,
-			with_bridged_chain_grandpa_instance: BridgeGrandpaPolkadotInstance,
 			with_bridged_chain_messages_instance: WithBridgeHubPolkadotMessagesInstance,
 			this_chain: bp_bridge_hub_kusama::BridgeHubKusama,
 			bridged_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
@@ -496,9 +496,8 @@ mod tests {
 
 		assert_complete_with_parachain_bridge_constants::<
 			Runtime,
-			BridgeGrandpaPolkadotInstance,
+			BridgeParachainPolkadotInstance,
 			WithBridgeHubPolkadotMessagesInstance,
-			bp_polkadot::Polkadot,
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_kusama::BlockLength::get(),
