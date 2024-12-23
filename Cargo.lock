@@ -1388,7 +1388,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-std",
+ "sp-core 34.0.0",
  "staging-xcm",
  "system-parachains-constants",
 ]
@@ -1401,7 +1401,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-std",
+ "sp-core 34.0.0",
  "staging-xcm",
  "system-parachains-constants",
 ]

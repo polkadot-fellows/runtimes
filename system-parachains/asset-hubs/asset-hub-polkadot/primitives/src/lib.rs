@@ -18,11 +18,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
+use xcm::latest::prelude::*;
 
 use system_parachains_constants::polkadot::currency::*;
 
@@ -48,6 +50,28 @@ frame_support::parameter_types! {
 
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
+}
+
+/// Builds an (un)congestion XCM program with the `report_bridge_status` call for
+/// `ToKusamaXcmRouter`.
+pub fn build_congestion_message<RuntimeCall>(
+	bridge_id: sp_core::H256,
+	is_congested: bool,
+) -> alloc::vec::Vec<Instruction<RuntimeCall>> {
+	alloc::vec![
+		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+		Transact {
+			origin_kind: OriginKind::Xcm,
+			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			call: Call::ToKusamaXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
+				bridge_id,
+				is_congested,
+			})
+				.encode()
+				.into(),
+		},
+		ExpectTransactStatus(MaybeErrorCode::Success),
+	]
 }
 
 /// Identifier of AssetHubPolkadot in the Polkadot relay chain.

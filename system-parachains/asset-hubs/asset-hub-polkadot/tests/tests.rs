@@ -27,7 +27,7 @@ use asset_hub_polkadot_runtime::{
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
 	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
+	ToKusamaXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys, ExtBuilder,
@@ -582,6 +582,56 @@ fn reserve_transfer_native_asset_to_non_teleport_para_works() {
 			}
 		}),
 		WeightLimit::Unlimited,
+	);
+}
+
+#[test]
+fn report_bridge_status_from_xcm_bridge_router_for_kusama_works() {
+	asset_test_utils::test_cases_over_bridge::report_bridge_status_from_xcm_bridge_router_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		LocationToAccountId,
+		ToKusamaXcmRouterInstance,
+	>(
+		collator_session_keys(),
+		bridging_to_asset_hub_kusama,
+		|| bp_asset_hub_polkadot::build_congestion_message(Default::default(), true).into(),
+		|| bp_asset_hub_polkadot::build_congestion_message(Default::default(), false).into(),
+	)
+}
+
+#[test]
+fn test_report_bridge_status_call_compatibility() {
+	// if this test fails, make sure `bp_asset_hub_kusama` has valid encoding
+	assert_eq!(
+		RuntimeCall::ToKusamaXcmRouter(pallet_xcm_bridge_hub_router::Call::report_bridge_status {
+			bridge_id: Default::default(),
+			is_congested: true,
+		})
+			.encode(),
+		bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
+			bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
+				bridge_id: Default::default(),
+				is_congested: true,
+			}
+		)
+			.encode()
+	)
+}
+
+#[test]
+fn check_sane_weight_report_bridge_status() {
+	use pallet_xcm_bridge_hub_router::WeightInfo;
+	let actual = <Runtime as pallet_xcm_bridge_hub_router::Config<
+		ToKusamaXcmRouterInstance,
+	>>::WeightInfo::report_bridge_status();
+	let max_weight = bp_asset_hub_polkadot::XcmBridgeHubRouterTransactCallMaxWeight::get();
+	assert!(
+		actual.all_lte(max_weight),
+		"max_weight: {:?} should be adjusted to actual {:?}",
+		max_weight,
+		actual
 	);
 }
 
