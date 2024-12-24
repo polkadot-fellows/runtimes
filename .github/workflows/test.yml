@@ -277,6 +277,16 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        run: |
+          rustup install $RUST_STABLE_VERSION
+          rustup default $RUST_STABLE_VERSION
+          rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
+
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
@@ -299,7 +309,7 @@ jobs:
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
   ecosystem-tests:
-    needs: [runtime-matrix]
+    needs: [runtime-matrix, build-runtimes]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -314,7 +324,7 @@ jobs:
       - name: Download WASM artifact
         uses: actions/download-artifact@v2
         with:
-          name: hydradx_runtime.compact.compressed.wasm
+          name: ${{ matrix.runtime.name }}
 
       - name: Run ecosystem tests
         run: |
