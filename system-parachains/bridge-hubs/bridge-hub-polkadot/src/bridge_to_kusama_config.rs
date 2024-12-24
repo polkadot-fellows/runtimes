@@ -283,7 +283,7 @@ impl pallet_xcm_bridge_hub::LocalXcmChannelManager for CongestionManager {
 			local_origin.clone(),
 			bp_asset_hub_kusama::build_congestion_message(bridge.inner(), true).into(),
 		)
-			.map(|_| ())
+		.map(|_| ())
 	}
 
 	fn resume_bridge(local_origin: &Location, bridge: BridgeId) -> Result<(), Self::Error> {
@@ -293,7 +293,7 @@ impl pallet_xcm_bridge_hub::LocalXcmChannelManager for CongestionManager {
 			local_origin.clone(),
 			bp_asset_hub_kusama::build_congestion_message(bridge.inner(), false).into(),
 		)
-			.map(|_| ())
+		.map(|_| ())
 	}
 }
 

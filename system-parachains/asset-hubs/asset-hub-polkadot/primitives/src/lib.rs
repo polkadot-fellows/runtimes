@@ -67,8 +67,8 @@ pub fn build_congestion_message<RuntimeCall>(
 				bridge_id,
 				is_congested,
 			})
-				.encode()
-				.into(),
+			.encode()
+			.into(),
 		},
 		ExpectTransactStatus(MaybeErrorCode::Success),
 	]

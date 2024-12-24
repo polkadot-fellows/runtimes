@@ -609,14 +609,14 @@ fn test_report_bridge_status_call_compatibility() {
 			bridge_id: Default::default(),
 			is_congested: true,
 		})
-			.encode(),
+		.encode(),
 		bp_asset_hub_polkadot::Call::ToKusamaXcmRouter(
 			bp_asset_hub_polkadot::XcmBridgeHubRouterCall::report_bridge_status {
 				bridge_id: Default::default(),
 				is_congested: true,
 			}
 		)
-			.encode()
+		.encode()
 	)
 }
 

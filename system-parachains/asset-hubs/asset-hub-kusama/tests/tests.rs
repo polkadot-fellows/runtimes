@@ -614,14 +614,14 @@ fn test_report_bridge_status_call_compatibility() {
 				is_congested: true,
 			}
 		)
-			.encode(),
+		.encode(),
 		bp_asset_hub_kusama::Call::ToPolkadotXcmRouter(
 			bp_asset_hub_kusama::XcmBridgeHubRouterCall::report_bridge_status {
 				bridge_id: Default::default(),
 				is_congested: true,
 			}
 		)
-			.encode()
+		.encode()
 	)
 }
 

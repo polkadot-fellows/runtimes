@@ -956,10 +956,8 @@ impl pallet_xcm_bridge_hub_router::Config<ToPolkadotXcmRouterInstance> for Runti
 	type DestinationVersion = PolkadotXcm;
 
 	type SiblingBridgeHubLocation = xcm_config::bridging::SiblingBridgeHub;
-	type BridgeHubOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EnsureXcm<Equals<Self::SiblingBridgeHubLocation>>,
-	>;
+	type BridgeHubOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<Equals<Self::SiblingBridgeHubLocation>>>;
 	type ToBridgeHubSender = XcmpQueue;
 
 	type ByteFee = xcm_config::bridging::XcmBridgeHubRouterByteFee;
