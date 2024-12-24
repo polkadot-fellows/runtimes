@@ -1253,6 +1253,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. }) |
 					RuntimeCall::Registrar(paras_registrar::Call::register { .. }) |
+					RuntimeCall::Utility(..) |
 					RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
 			),
 		}
