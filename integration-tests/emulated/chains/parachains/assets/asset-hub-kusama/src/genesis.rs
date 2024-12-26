@@ -72,6 +72,7 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		polkadot_xcm: asset_hub_kusama_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
@@ -88,7 +89,7 @@ pub fn genesis() -> Storage {
 			assets: vec![
 				// Penpal's teleportable asset representation
 				(
-					PenpalATeleportableAssetLocation::get().try_into().unwrap(),
+					PenpalATeleportableAssetLocation::get(),
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,

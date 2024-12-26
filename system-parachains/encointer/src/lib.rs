@@ -131,7 +131,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("encointer-parachain"),
 	impl_name: create_runtime_str!("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 1_003_003,
+	spec_version: 1_003_004,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
@@ -483,7 +483,9 @@ parameter_types! {
 
 impl pallet_encointer_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnCeremonyPhaseChange = EncointerCeremonies;
+	// attention!: EncointerDemocracy must be first hook as it potentially changes the rules for
+	// following hooks
+	type OnCeremonyPhaseChange = (EncointerDemocracy, EncointerCeremonies);
 	type MomentsPerDay = MomentsPerDay;
 	type CeremonyMaster = MoreThanHalfCouncil;
 	type WeightInfo = weights::pallet_encointer_scheduler::WeightInfo<Runtime>;
@@ -746,9 +748,10 @@ construct_runtime! {
 	}
 }
 
-/// This determines the average expected block time that we are targeting. Blocks will be
-/// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-/// `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
+/// This determines the average expected block time that we are targeting.
+///
+/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is
+/// picked up by `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
 /// slot_duration()`.
 ///
 /// Change this to adjust the block time.

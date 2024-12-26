@@ -71,6 +71,7 @@ fn asset_hub_polkadot_genesis(
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`

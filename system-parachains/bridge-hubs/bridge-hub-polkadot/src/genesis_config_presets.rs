@@ -54,6 +54,7 @@ fn bridge_hub_polkadot_genesis(
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		aura: Default::default(),
 		aura_ext: Default::default(),
