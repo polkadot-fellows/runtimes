@@ -301,6 +301,7 @@ jobs:
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=metadata-hash -q --locked
+          echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
 
       - name: Upload  ${{ matrix.runtime.name }}
         uses: actions/upload-artifact@v4
@@ -321,20 +322,22 @@ jobs:
         with:
           repository: open-web3-stack/polkadot-ecosystem-tests
 
-      - name: Download WASM artifact
-        uses: actions/download-artifact@v2
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.runtime.name }}
+          merge-multiple: true
 
       - name: Run ecosystem tests
         run: |
-          # Set the path to the downloaded WASM file
-          export HYDRADX_RUNTIME_WASM_PATH="$PWD/hydradx_runtime.compact.compressed.wasm"
+          jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
+            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            # Set the path to the build runtimes
+            eval "export ${NAME}_WASM=$RUNTIME_BLOB_NAME"
+          done 
           
           yarn install
           yarn test
-        env:
-          HYDRADX_RUNTIME_WASM_PATH: ${{ env.HYDRADX_RUNTIME_WASM_PATH }}
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
@@ -349,5 +352,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
