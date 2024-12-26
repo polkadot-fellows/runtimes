@@ -312,9 +312,6 @@ jobs:
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes]
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout polkadot-ecosystem-tests
