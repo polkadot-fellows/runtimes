@@ -65,6 +65,7 @@ fn bridge_hub_polkadot_genesis(
 		bridge_kusama_grandpa: Default::default(),
 		bridge_kusama_parachains: Default::default(),
 		bridge_kusama_messages: Default::default(),
+		xcm_over_bridge_hub_kusama: Default::default(),
 		ethereum_system: EthereumSystemConfig {
 			para_id: id,
 			asset_hub_para_id: polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into(),
@@ -76,10 +77,7 @@ fn bridge_hub_polkadot_genesis(
 		transaction_payment: Default::default(),
 	};
 
-	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
-	remove_phantom_fields(&mut config_values);
-
-	config_values
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn bridge_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

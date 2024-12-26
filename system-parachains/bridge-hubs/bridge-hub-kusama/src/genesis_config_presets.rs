@@ -69,12 +69,10 @@ fn bridge_hub_kusama_genesis(
 		parachain_system: Default::default(),
 		transaction_payment: Default::default(),
 		bridge_polkadot_messages: Default::default(),
+		xcm_over_bridge_hub_polkadot: Default::default(),
 	};
 
-	let mut config_values = serde_json::to_value(config).expect("Could not build genesis config.");
-	remove_phantom_fields(&mut config_values);
-
-	config_values
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

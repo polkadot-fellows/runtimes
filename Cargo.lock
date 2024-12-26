@@ -14994,7 +14994,6 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime-constants",
- "serde_json",
  "smallvec",
  "sp-core 34.0.0",
  "sp-runtime 39.0.2",
