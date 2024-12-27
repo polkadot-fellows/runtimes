@@ -93,7 +93,7 @@ parameter_types! {
 
 pub type RelayersForLegacyLaneIdsMessagesInstance = ();
 /// Allows collect and claim rewards for relayers.
-impl pallet_bridge_relayers::Config for Runtime {
+impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
