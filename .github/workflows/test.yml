@@ -1,4 +1,4 @@
-name: "Test all features"
+name: "Tests"
 
 # If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
 # which is located at the end of this file (more info in the job)
@@ -299,8 +299,17 @@ jobs:
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+
+          # Dirty hack to find out if the `metadata-hash` feature exists for the given package.
+          # Should print "error: no bin target named `something-that-does-not-exist`." if the feature doesn't exist.
+          # Otherwise it should print "error: the package 'glutton-kusama-runtime' does not contain this feature: metadata-hash".
+          if grep -v "something-that-does-not-exist" <<< $(cargo build  -p ${{ matrix.runtime.package }} --features metadata-hash --bin something-that-does-not-exist 2>&1); then
+            FEATURES="--features=metadata-hash"
+          fi
+          
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
-          cargo build --profile production -p ${{ matrix.runtime.package }} --features=metadata-hash -q --locked
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
           echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
 
       - name: Upload  ${{ matrix.runtime.name }}
@@ -314,10 +323,14 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event_name == 'pull_request'
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
       - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: open-web3-stack/polkadot-ecosystem-tests
+          path: ecosystem-tests
 
       - name: Download WASM artifacts
         uses: actions/download-artifact@v4
@@ -329,10 +342,12 @@ jobs:
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
             NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
             RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
             # Set the path to the build runtimes
-            eval "export ${NAME}_WASM=$RUNTIME_BLOB_NAME"
+            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done 
           
+          cd ecosystem-tests
           yarn install
           yarn test
 
