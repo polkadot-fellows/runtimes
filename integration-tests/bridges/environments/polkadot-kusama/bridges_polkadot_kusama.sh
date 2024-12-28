@@ -133,7 +133,7 @@ ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_ThisChain="EoQBtnw
 ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain="EoQBtnwp4jMtCEpV7CPsssT6bdDHuHZmf3aGXxHJiSA4Dz3"
 
 LANE_ID="00000001"
-XCM_VERSION=3
+XCM_VERSION=4
 
 AHK_DOT_ED=10000000
 DOT=10000000000
@@ -294,7 +294,7 @@ case "$1" in
           "//Alice" \
           1000 \
           "ws://127.0.0.1:9910" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama" }] } }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Kusama" } ] } }')" \
           "$GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT" \
           $AHP_KSM_ED \
           true
@@ -353,7 +353,7 @@ case "$1" in
           "//Alice" \
           1000 \
           "ws://127.0.0.1:9010" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot" }] } }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Polkadot" } ] } }')" \
           "$GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT" \
           $AHK_DOT_ED \
           true
@@ -410,9 +410,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9910" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 1, "interior": "Here" } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 1, "interior": "Here" }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -423,9 +423,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9910" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 2, "interior": { "X1": { "GlobalConsensus": "Kusama" } } } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Kusama" } ] } }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -436,9 +436,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9010" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 1, "interior": "Here" } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 1, "interior": "Here" }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -449,9 +449,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9010" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 2, "interior": { "X1": { "GlobalConsensus": "Polkadot" } } } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Polkadot" } ] } }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
