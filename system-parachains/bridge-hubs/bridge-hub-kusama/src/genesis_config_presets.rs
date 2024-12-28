@@ -76,12 +76,8 @@ pub fn preset_names() -> Vec<PresetId> {
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
 	let patch = match id.try_into() {
-		Ok("development") => bridge_hub_kusama_genesis(
-			invulnerables(),
-			testnet_accounts(),
-			1002.into(),
-			vec![]
-		),
+		Ok("development") =>
+			bridge_hub_kusama_genesis(invulnerables(), testnet_accounts(), 1002.into(), vec![]),
 		Ok("local_testnet") => bridge_hub_kusama_genesis(
 			invulnerables(),
 			testnet_accounts(),
