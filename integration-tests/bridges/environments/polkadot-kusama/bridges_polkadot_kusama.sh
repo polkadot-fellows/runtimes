@@ -193,11 +193,98 @@ function run_relay() {
         --lane "${LANE_ID}"
 }
 
+function run_finality_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-headers polkadot-to-bridge-hub-kusama \
+        --only-free-headers \
+        --source-uri ws://localhost:9942 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Charlie \
+        --target-transactions-mortality 4&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-headers kusama-to-bridge-hub-polkadot \
+        --only-free-headers \
+        --source-uri ws://localhost:9945 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Charlie \
+        --target-transactions-mortality 4
+}
+
+function run_parachains_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-parachains polkadot-to-bridge-hub-kusama \
+        --only-free-headers \
+        --source-uri ws://localhost:9942 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Dave \
+        --target-transactions-mortality 4&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-parachains kusama-to-bridge-hub-polkadot \
+        --only-free-headers \
+        --source-uri ws://localhost:9945 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Dave \
+        --target-transactions-mortality 4
+}
+
+function run_messages_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-messages bridge-hub-polkadot-to-bridge-hub-kusama \
+        --source-uri ws://localhost:8943 \
+        --source-version-mode Auto \
+        --source-signer //Eve \
+        --source-transactions-mortality 4 \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Eve \
+        --target-transactions-mortality 4 \
+        --lane $LANE_ID&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-messages bridge-hub-kusama-to-bridge-hub-polkadot \
+        --source-uri ws://localhost:8945 \
+        --source-version-mode Auto \
+        --source-signer //Ferdie \
+        --source-transactions-mortality 4 \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Ferdie \
+        --target-transactions-mortality 4 \
+        --lane $LANE_ID
+}
+
 case "$1" in
   run-relay)
     init_kusama_polkadot
     init_polkadot_kusama
     run_relay
+    ;;
+  run-finality-relay)
+    init_kusama_polkadot
+    init_polkadot_kusama
+    run_finality_relay
+    ;;
+  run-parachains-relay)
+    run_parachains_relay
+    ;;
+  run-messages-relay)
+    run_messages_relay
     ;;
   init-asset-hub-polkadot-local)
       ensure_polkadot_js_api
@@ -372,6 +459,9 @@ case "$1" in
     echo "A command is require. Supported commands for:
     Local (zombienet) run:
           - run-relay
+          - run-finality-relay
+          - run-parachains-relay
+          - run-messages-relay
           - init-asset-hub-polkadot-local
           - init-bridge-hub-polkadot-local
           - init-asset-hub-kusama-local
