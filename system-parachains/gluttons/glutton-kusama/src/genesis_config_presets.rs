@@ -21,12 +21,12 @@ use cumulus_primitives_core::ParaId;
 use sp_genesis_builder::PresetId;
 
 fn glutton_kusama_genesis(id: ParaId) -> serde_json::Value {
-	serde_json::json!({
-		"parachainInfo": ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-	})
+	let config = RuntimeGenesisConfig {
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
+		..Default::default()
+	};
+
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn glutton_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {

@@ -15,7 +15,6 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Genesis configs presets for the EncointerKusama runtime
-
 use crate::*;
 use sp_genesis_builder::PresetId;
 use sp_std::vec::Vec;
@@ -28,72 +27,75 @@ fn encointer_kusama_genesis(
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> serde_json::Value {
-	serde_json::json!({
-		"balances": BalancesConfig {
+	let config = RuntimeGenesisConfig {
+		balances: BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
 				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
 				.collect(),
 		},
-		"parachainInfo": ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": CollatorSelectionConfig {
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
+		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ENCOINTER_KUSAMA_ED * 16,
 			..Default::default()
 		},
-		"session": SessionConfig {
+		session: SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						SessionKeys { aura }, 			// session keys
+						acc.clone(),          // account id
+						acc,                  // validator id
+						SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),
 			non_authority_keys: vec![],
 		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		polkadot_xcm: PolkadotXcmConfig {
+			_config: Default::default(),
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		"encointerScheduler": {
-			"currentPhase": CeremonyPhaseType::Registering,
-			"currentCeremonyIndex": 1,
-			"phaseDurations": vec![
-				(CeremonyPhaseType::Registering, 604800000u64), // 7d
+		encointer_scheduler: EncointerSchedulerConfig {
+			current_phase: CeremonyPhaseType::Registering,
+			current_ceremony_index: 1,
+			phase_durations: vec![
+				(CeremonyPhaseType::Registering, 604800000u64), //7d
 				(CeremonyPhaseType::Assigning, 86400000u64),    // 1d
 				(CeremonyPhaseType::Attesting, 172800000u64),   // 2d
 			],
+			_config: Default::default(),
 		},
-		"encointerCeremonies": {
-			"ceremonyReward": BalanceType::from_num(1),
-			"timeTolerance": 600_000u64,   // +-10min
-			"locationTolerance": 1_000, // [m]
-			"endorsementTicketsPerBootstrapper": 10,
-			"endorsementTicketsPerReputable": 5,
-			"reputationLifetime": 5,
-			"inactivityTimeout": 5, // idle ceremonies before purging community
-			"meetupTimeOffset": 0,
+		encointer_ceremonies: EncointerCeremoniesConfig {
+			ceremony_reward: BalanceType::from_num(1),
+			time_tolerance: 600_000u64, // +-10min
+			location_tolerance: 1_000,  // [m]
+			endorsement_tickets_per_bootstrapper: 10,
+			endorsement_tickets_per_reputable: 5,
+			reputation_lifetime: 5,
+			inactivity_timeout: 5, // idle ceremonies before purging community
+			meetup_time_offset: 0,
+			_config: Default::default(),
 		},
-		"encointerCommunities": {
-			"minSolarTripTimeS": 1, // [s]
-			"maxSpeedMps": 1,         // [m/s] suggested would be 83m/s for security,
+		encointer_communities: EncointerCommunitiesConfig {
+			min_solar_trip_time_s: 1, // [s]
+			max_speed_mps: 1,         // [m/s] suggested would be 83m/s for security,
+			_config: Default::default(),
 		},
-		"encointerBalances": {
-			// for relative adjustment.
-			"feeConversionFactor": 7_143u32,
+		encointer_balances: EncointerBalancesConfig {
+			fee_conversion_factor: 7_143u128,
+			_config: Default::default(),
 		},
-		"encointerFaucet": {
-			"reserveAmount": 10_000_000_000_000u128,
+		encointer_faucet: EncointerFaucetConfig {
+			reserve_amount: 10_000_000_000_000u128,
+			_config: Default::default(),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
+		..Default::default()
+	};
+
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn encointer_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
