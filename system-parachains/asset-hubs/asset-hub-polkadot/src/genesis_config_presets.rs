@@ -45,7 +45,6 @@ fn asset_hub_polkadot_genesis(
 	id: ParaId,
 ) -> serde_json::Value {
 	let config = RuntimeGenesisConfig {
-		system: Default::default(),
 		balances: BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -53,7 +52,6 @@ fn asset_hub_polkadot_genesis(
 				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
 				.collect(),
 		},
-		transaction_payment: Default::default(),
 		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -73,19 +71,11 @@ fn asset_hub_polkadot_genesis(
 				.collect(),
 			..Default::default()
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-		aura: Default::default(),
-		aura_ext: Default::default(),
 		polkadot_xcm: PolkadotXcmConfig {
 			_config: Default::default(),
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		assets: Default::default(),
-		foreign_assets: Default::default(),
-		parachain_system: Default::default(),
-		vesting: Default::default(),
-		pool_assets: Default::default(),
+		..Default::default()
 	};
 
 	serde_json::to_value(config).expect("Could not build genesis config.")

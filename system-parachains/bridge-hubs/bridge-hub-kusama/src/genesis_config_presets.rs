@@ -29,7 +29,6 @@ fn bridge_hub_kusama_genesis(
 	id: ParaId,
 ) -> serde_json::Value {
 	let config = RuntimeGenesisConfig {
-		system: Default::default(),
 		balances: BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -56,20 +55,11 @@ fn bridge_hub_kusama_genesis(
 				.collect(),
 			..Default::default()
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-		aura: Default::default(),
-		aura_ext: Default::default(),
 		polkadot_xcm: PolkadotXcmConfig {
 			_config: Default::default(),
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		bridge_polkadot_grandpa: Default::default(),
-		bridge_polkadot_parachains: Default::default(),
-		parachain_system: Default::default(),
-		transaction_payment: Default::default(),
-		bridge_polkadot_messages: Default::default(),
-		xcm_over_bridge_hub_polkadot: Default::default(),
+		..Default::default()
 	};
 
 	serde_json::to_value(config).expect("Could not build genesis config.")

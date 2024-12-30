@@ -28,8 +28,6 @@ fn encointer_kusama_genesis(
 	id: ParaId,
 ) -> serde_json::Value {
 	let config = RuntimeGenesisConfig {
-		system: Default::default(),
-		parachain_system: Default::default(),
 		balances: BalancesConfig {
 			balances: endowed_accounts
 				.iter()
@@ -37,7 +35,6 @@ fn encointer_kusama_genesis(
 				.map(|k| (k, ENCOINTER_KUSAMA_ED * 4096))
 				.collect(),
 		},
-		transaction_payment: Default::default(),
 		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
 		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -57,16 +54,10 @@ fn encointer_kusama_genesis(
 				.collect(),
 			non_authority_keys: vec![],
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-		aura: Default::default(),
-		aura_ext: Default::default(),
 		polkadot_xcm: PolkadotXcmConfig {
 			_config: Default::default(),
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		collective: Default::default(),
-		membership: Default::default(),
 		encointer_scheduler: EncointerSchedulerConfig {
 			current_phase: CeremonyPhaseType::Registering,
 			current_ceremony_index: 1,
@@ -101,7 +92,7 @@ fn encointer_kusama_genesis(
 			reserve_amount: 10_000_000_000_000u128,
 			_config: Default::default(),
 		},
-		encointer_democracy: Default::default(),
+		..Default::default()
 	};
 
 	serde_json::to_value(config).expect("Could not build genesis config.")
