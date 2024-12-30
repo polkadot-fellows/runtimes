@@ -18,7 +18,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
 - Genesis config presets: Make use of RuntimeGenesisConfig to construct genesis config values for all runtimes ([polkadot-fellows/runtimes#451](https://github.com/polkadot-fellows/runtimes/pull/451)).
 
-
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
 - Transfer Polkadot-native assets to Ethereum ([SDK `stable2409` #5710](https://github.com/paritytech/polkadot-sdk/pull/5710), [SDK #5546](https://github.com/paritytech/polkadot-sdk/pull/5546))
