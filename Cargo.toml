@@ -13,7 +13,7 @@ asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusa
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
 asset-test-utils = { version = "18.0.0" }
-assets-common = { version = "0.18.0", default-features = false }
+assets-common = { version = "0.18.3", default-features = false }
 authority-discovery-primitives = { version = "34.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.40.0", default-features = false, package = "sp-consensus-babe" }
 beefy-primitives = { version = "22.1.0", default-features = false, package = "sp-consensus-beefy" }
