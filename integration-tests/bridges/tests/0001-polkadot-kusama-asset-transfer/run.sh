@@ -10,7 +10,7 @@ source "$FRAMEWORK_PATH/utils/zombienet.sh"
 
 export ENV_PATH=`realpath ${BASH_SOURCE%/*}/../../environments/polkadot-kusama`
 
-$ENV_PATH/spawn.sh &
+$ENV_PATH/spawn.sh --init --start-relayer &
 env_pid=$!
 
 ensure_process_file $env_pid $TEST_DIR/polkadot.env 600

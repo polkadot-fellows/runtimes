@@ -133,7 +133,7 @@ ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_ThisChain="EoQBtnw
 ON_BRIDGE_HUB_KUSAMA_SOVEREIGN_ACCOUNT_FOR_LANE_00000001_bhpd_BridgedChain="EoQBtnwp4jMtCEpV7CPsssT6bdDHuHZmf3aGXxHJiSA4Dz3"
 
 LANE_ID="00000001"
-XCM_VERSION=3
+XCM_VERSION=4
 
 AHK_DOT_ED=10000000
 DOT=10000000000
@@ -193,11 +193,98 @@ function run_relay() {
         --lane "${LANE_ID}"
 }
 
+function run_finality_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-headers polkadot-to-bridge-hub-kusama \
+        --only-free-headers \
+        --source-uri ws://localhost:9942 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Charlie \
+        --target-transactions-mortality 4&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-headers kusama-to-bridge-hub-polkadot \
+        --only-free-headers \
+        --source-uri ws://localhost:9945 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Charlie \
+        --target-transactions-mortality 4
+}
+
+function run_parachains_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-parachains polkadot-to-bridge-hub-kusama \
+        --only-free-headers \
+        --source-uri ws://localhost:9942 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Dave \
+        --target-transactions-mortality 4&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-parachains kusama-to-bridge-hub-polkadot \
+        --only-free-headers \
+        --source-uri ws://localhost:9945 \
+        --source-version-mode Auto \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Dave \
+        --target-transactions-mortality 4
+}
+
+function run_messages_relay() {
+    local relayer_path=$(ensure_relayer)
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-messages bridge-hub-polkadot-to-bridge-hub-kusama \
+        --source-uri ws://localhost:8943 \
+        --source-version-mode Auto \
+        --source-signer //Eve \
+        --source-transactions-mortality 4 \
+        --target-uri ws://localhost:8945 \
+        --target-version-mode Auto \
+        --target-signer //Eve \
+        --target-transactions-mortality 4 \
+        --lane $LANE_ID&
+
+    RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
+        $relayer_path relay-messages bridge-hub-kusama-to-bridge-hub-polkadot \
+        --source-uri ws://localhost:8945 \
+        --source-version-mode Auto \
+        --source-signer //Ferdie \
+        --source-transactions-mortality 4 \
+        --target-uri ws://localhost:8943 \
+        --target-version-mode Auto \
+        --target-signer //Ferdie \
+        --target-transactions-mortality 4 \
+        --lane $LANE_ID
+}
+
 case "$1" in
   run-relay)
     init_kusama_polkadot
     init_polkadot_kusama
     run_relay
+    ;;
+  run-finality-relay)
+    init_kusama_polkadot
+    init_polkadot_kusama
+    run_finality_relay
+    ;;
+  run-parachains-relay)
+    run_parachains_relay
+    ;;
+  run-messages-relay)
+    run_messages_relay
     ;;
   init-asset-hub-polkadot-local)
       ensure_polkadot_js_api
@@ -207,7 +294,7 @@ case "$1" in
           "//Alice" \
           1000 \
           "ws://127.0.0.1:9910" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": { "GlobalConsensus": "Kusama" } } }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Kusama" } ] } }')" \
           "$GLOBAL_CONSENSUS_KUSAMA_SOVEREIGN_ACCOUNT" \
           $AHP_KSM_ED \
           true
@@ -266,7 +353,7 @@ case "$1" in
           "//Alice" \
           1000 \
           "ws://127.0.0.1:9010" \
-          "$(jq --null-input '{ "parents": 2, "interior": { "X1": { "GlobalConsensus": "Polkadot" } } }')" \
+          "$(jq --null-input '{ "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Polkadot" } ] } }')" \
           "$GLOBAL_CONSENSUS_POLKADOT_SOVEREIGN_ACCOUNT" \
           $AHK_DOT_ED \
           true
@@ -323,9 +410,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9910" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 1, "interior": "Here" } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 1, "interior": "Here" }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -336,9 +423,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9910" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 2, "interior": { "X1": { "GlobalConsensus": "Kusama" } } } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Kusama" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Kusama" } ] } }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -349,9 +436,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9010" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 1, "interior": "Here" } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 1, "interior": "Here" }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -362,9 +449,9 @@ case "$1" in
       limited_reserve_transfer_assets \
           "ws://127.0.0.1:9010" \
           "//Alice" \
-          "$(jq --null-input '{ "V3": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
-          "$(jq --null-input '{ "V3": { "parents": 0, "interior": { "X1": { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } } } }')" \
-          "$(jq --null-input '{ "V3": [ { "id": { "Concrete": { "parents": 2, "interior": { "X1": { "GlobalConsensus": "Polkadot" } } } }, "fun": { "Fungible": '$amount' } } ] }')" \
+          "$(jq --null-input '{ "V4": { "parents": 2, "interior": { "X2": [ { "GlobalConsensus": "Polkadot" }, { "Parachain": 1000 } ] } } }')" \
+          "$(jq --null-input '{ "V4": { "parents": 0, "interior": { "X1": [ { "AccountId32": { "id": [212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125] } } ] } } }')" \
+          "$(jq --null-input '{ "V4": [ { "id": { "parents": 2, "interior": { "X1": [ { "GlobalConsensus": "Polkadot" } ] } }, "fun": { "Fungible": '$amount' } } ] }')" \
           0 \
           "Unlimited"
       ;;
@@ -372,6 +459,9 @@ case "$1" in
     echo "A command is require. Supported commands for:
     Local (zombienet) run:
           - run-relay
+          - run-finality-relay
+          - run-parachains-relay
+          - run-messages-relay
           - init-asset-hub-polkadot-local
           - init-bridge-hub-polkadot-local
           - init-asset-hub-kusama-local
