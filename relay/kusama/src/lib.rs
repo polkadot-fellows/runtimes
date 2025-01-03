@@ -1143,6 +1143,8 @@ pub enum ProxyType {
 	NominationPools,
 	#[codec(index = 9)]
 	Spokesperson,
+	#[codec(index = 10)]
+	ParaRegistration,
 }
 
 impl Default for ProxyType {
@@ -1246,6 +1248,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::System(frame_system::Call::remark { .. }) |
 					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
+			),
+			ProxyType::ParaRegistration => matches!(
+				c,
+				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. }) |
+					RuntimeCall::Registrar(paras_registrar::Call::register { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. }) |
+					RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
 			),
 		}
 	}
