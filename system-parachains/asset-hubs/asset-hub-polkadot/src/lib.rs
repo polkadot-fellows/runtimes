@@ -1438,6 +1438,7 @@ impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
+			use frame_support::traits::WhitelistedStorageKeys;
 			use sp_storage::TrackedStorageKey;
 			use xcm::latest::prelude::{
 				Asset, Fungible, Here, InteriorLocation, Junction, Junction::*, Location, NetworkId,

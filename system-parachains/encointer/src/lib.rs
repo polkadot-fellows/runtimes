@@ -1161,7 +1161,7 @@ impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
-			use frame_support::traits::TrackedStorageKey;
+			use frame_support::traits::{TrackedStorageKey, WhitelistedStorageKeys};
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 			use frame_system_benchmarking::Pallet as SystemBench;
