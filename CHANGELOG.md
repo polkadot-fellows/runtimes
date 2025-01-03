@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
 - Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
+- Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
 
 ### Added
 
