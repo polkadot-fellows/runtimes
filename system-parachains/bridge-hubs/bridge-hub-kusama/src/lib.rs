@@ -1257,6 +1257,19 @@ impl_runtime_apis! {
 					use cumulus_primitives_core::XcmpMessageSource;
 					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
 					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
+					let _ = PolkadotXcm::force_xcm_version(
+						RuntimeOrigin::root(),
+						Box::new(Location::new(1, Parachain(42))),
+						XCM_VERSION,
+					).map_err(|e| {
+						log::error!(
+							"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+							RuntimeOrigin::root(),
+							Location::new(1, Parachain(42)),
+							XCM_VERSION,
+							e
+						);
+					}).expect("XcmVersion stored!");
 					let universal_source = bridge_to_polkadot_config::open_bridge_for_benchmarks::<
 						Runtime,
 						bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
