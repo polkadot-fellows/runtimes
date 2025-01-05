@@ -70,8 +70,10 @@ impl ChainWithMessages for BridgeHubKusama {
 		WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	/// This constant limits the maximum number of messages in `receive_messages_proof`.
+	/// We need to adjust it from 4096 to 2024 due to the actual weights identified by `check_message_lane_weights`.
+	/// A higher value can be set once we switch `max_extrinsic_weight` to `BlockWeightsForAsyncBacking`.
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 2024;
 }
 
 /// Public key of the chain account that may be used to verify signatures.

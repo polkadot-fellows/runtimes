@@ -372,14 +372,15 @@ mod tests {
 
 	#[test]
 	fn ensure_bridge_hub_kusama_message_lane_weights_are_correct() {
+		use bp_messages::ChainWithMessages;
 		check_message_lane_weights::<
 			bp_bridge_hub_kusama::BridgeHubKusama,
 			Runtime,
 			WithBridgeHubPolkadotMessagesInstance,
 		>(
 			bp_bridge_hub_polkadot::EXTRA_STORAGE_PROOF_SIZE,
-			bp_bridge_hub_kusama::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-			bp_bridge_hub_kusama::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			bp_bridge_hub_kusama::BridgeHubKusama::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_bridge_hub_kusama::BridgeHubKusama::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			true,
 		);
 	}
