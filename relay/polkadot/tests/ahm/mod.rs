@@ -20,7 +20,7 @@ mod accounts;
 
 // Runtime specific imports
 // Use general aliases for the imports to make it easier to copy&paste the tests for other runtimes.
-use polkadot_runtime::{RcMigrator, Block, Runtime as T, System, *};
+use polkadot_runtime::{Block, RcMigrator, Runtime as T, System, *};
 
 // General imports
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
@@ -34,15 +34,13 @@ use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 /// `try-runtime create-snapshot --uri wss://rpc.polkadot.io:443 polkadot.snap`.
 async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 	sp_tracing::try_init_simple();
-	let Some(snap) = std::env::var("SNAP").ok() else{
+	let Some(snap) = std::env::var("SNAP").ok() else {
 		return None;
 	};
 	let abs = std::path::absolute(snap.clone());
 
 	let ext = Builder::<Block>::default()
-		.mode(Mode::Offline(
-				OfflineConfig { state_snapshot: snap.clone().into() },
-			))
+		.mode(Mode::Offline(OfflineConfig { state_snapshot: snap.clone().into() }))
 		.build()
 		.await
 		.map_err(|e| {

@@ -20,7 +20,9 @@ use super::*;
 
 #[tokio::test]
 async fn account_test() {
-	let Some(mut ext) = remote_ext_test_setup().await else { return; };
+	let Some(mut ext) = remote_ext_test_setup().await else {
+		return;
+	};
 
 	ext.execute_with(|| {
 		let _ = RcMigrator::obtain_rc_accounts();
