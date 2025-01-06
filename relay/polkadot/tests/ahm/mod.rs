@@ -34,9 +34,7 @@ use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 /// `try-runtime create-snapshot --uri wss://rpc.polkadot.io:443 polkadot.snap`.
 async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 	sp_tracing::try_init_simple();
-	let Some(snap) = std::env::var("SNAP").ok() else {
-		return None;
-	};
+	let snap = std::env::var("SNAP").ok()?;
 	let abs = std::path::absolute(snap.clone());
 
 	let ext = Builder::<Block>::default()

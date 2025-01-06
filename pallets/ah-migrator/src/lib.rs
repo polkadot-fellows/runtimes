@@ -123,21 +123,17 @@ pub mod pallet {
 				debug_assert!(minted == total_balance);
 
 				for hold in account.holds {
-					let _ = T::Currency::hold(
-						&T::RcToAhHoldReason::convert(hold.id),
-						&who,
-						hold.amount,
-					)
-					// TODO handle error
-					.unwrap();
+					T::Currency::hold(&T::RcToAhHoldReason::convert(hold.id), &who, hold.amount)
+						// TODO handle error
+						.unwrap();
 				}
 
-				let _ = T::Currency::reserve(&who, account.unnamed_reserve)
+				T::Currency::reserve(&who, account.unnamed_reserve)
 					// TODO handle error
 					.unwrap();
 
 				for freeze in account.freezes {
-					let _ = T::Currency::set_freeze(
+					T::Currency::set_freeze(
 						&T::RcToAhFreezeReason::convert(freeze.id),
 						&who,
 						freeze.amount,

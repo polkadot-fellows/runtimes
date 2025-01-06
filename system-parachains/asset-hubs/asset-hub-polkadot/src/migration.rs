@@ -47,7 +47,7 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 
 pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, ()> for RcToAhFreezeReason {
-	fn convert(a: RcFreezeReason) -> () {
+	fn convert(a: RcFreezeReason) {
 		match a {
 			// TODO mapping
 			_ => (),

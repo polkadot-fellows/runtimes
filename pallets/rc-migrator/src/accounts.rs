@@ -244,7 +244,7 @@ impl<T: Config> Pallet<T> {
 				pallet_balances::Freezes::<T>::get(&who).into();
 
 			for freeze in &freezes {
-				let _ = <T as Config>::Currency::thaw(&freeze.id, &who)
+				<T as Config>::Currency::thaw(&freeze.id, &who)
 					// TODO: handle error
 					.unwrap();
 			}

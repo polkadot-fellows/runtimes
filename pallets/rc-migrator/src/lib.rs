@@ -218,7 +218,7 @@ pub mod pallet {
 				return weight_counter.consumed();
 			};
 
-			return weight_counter.consumed();
+			weight_counter.consumed()
 		}
 	}
 }
