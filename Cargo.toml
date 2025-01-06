@@ -6,6 +6,8 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
+pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
 asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
@@ -284,6 +286,8 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
+	"pallets/ah-migrator",
+	"pallets/rc-migrator",
 	"relay/common",
 	"relay/kusama",
 	"relay/kusama/constants",
