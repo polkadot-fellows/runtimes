@@ -25,6 +25,13 @@ use polkadot_runtime::{RcMigrator, Block, Runtime as T, System, *};
 // General imports
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 
+/// Create externalities that have their state initialized from a snapshot.
+///
+/// The path to the snapshot must be provided through the environment variable `SNAP`. If if is not
+/// set, this function will return `None`.
+///
+/// You can create such a snapshot with the [`try-runtime-cli`](https://github.com/paritytech/try-runtime-cli). For example:
+/// `try-runtime create-snapshot --uri wss://rpc.polkadot.io:443 polkadot.snap`.
 async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 	sp_tracing::try_init_simple();
 	let Some(snap) = std::env::var("SNAP").ok() else{

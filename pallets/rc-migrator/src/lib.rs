@@ -129,7 +129,7 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	//#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// TODO
 		TODO,
@@ -169,7 +169,7 @@ pub mod pallet {
 		/// TODO
 		#[pallet::call_index(0)]
 		#[pallet::weight({1})]
-		pub fn _do_something(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+		pub fn do_something(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			Ok(().into())
 		}
 	}

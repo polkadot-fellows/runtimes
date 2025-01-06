@@ -49,8 +49,8 @@ TODO: remove when not needed
 
 Regular native asset teleport from Relay (mint authority) to Asset Hub looks like:
 
-Relay: mint_into(checking, amount) // publishes Balances::Minted event
 Relay: burn_from(source, amount) // publishes Balances::Burned event
+Relay: mint_into(checking, amount) // publishes Balances::Minted event
 Relay: no effect on total issuance
 Relay: XCM with teleport sent
 AH: mint_into(dest, amount) // publishes Balances::Minted event

@@ -33,6 +33,8 @@ pub enum AhMigratorCall<T: Config> {
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
+///
+/// From: https://github.com/paritytech/polkadot-sdk/blob/b7afe48ed0bfef30836e7ca6359c2d8bb594d16e/polkadot/runtime/common/src/paras_registrar/mod.rs#L50-L59
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo)]
 pub struct ParaInfo<AccountId, Balance> {
 	/// The account that has placed a deposit for registering this para.
