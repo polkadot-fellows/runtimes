@@ -53,6 +53,8 @@ std = [
 	"pallet-nomination-pools/std",
 	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
+	"log/std",
+	"polkadot-parachain-primitives/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -67,6 +69,7 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
