@@ -95,12 +95,12 @@ jobs:
       - name: Test ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
           SKIP_WASM_BUILD: 1
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
@@ -115,7 +115,7 @@ jobs:
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -165,7 +165,7 @@ jobs:
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
@@ -211,7 +211,7 @@ jobs:
       - name: Build
         run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
