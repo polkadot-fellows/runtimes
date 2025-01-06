@@ -138,10 +138,6 @@ parameter_types! {
 	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
 	pub const RelayerStakeLease: u32 = 300;
 
-	// see the `FEE_BOOST_PER_RELAY_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerRelayHeader: u64 = 220_053_724_053;
-	// see the `FEE_BOOST_PER_PARACHAIN_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerParachainHeader: u64 = 9_182_241_758_241;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
 }
@@ -365,10 +361,6 @@ mod tests {
 	/// We want this tip to be large enough (delivery transactions with more messages = less
 	/// operational costs and a faster bridge), so this value should be significant.
 	const FEE_BOOST_PER_MESSAGE: Balance = 2 * constants::currency::UNITS;
-	// see `FEE_BOOST_PER_MESSAGE` comment
-	const FEE_BOOST_PER_RELAY_HEADER: Balance = 2 * constants::currency::UNITS;
-	// see `FEE_BOOST_PER_MESSAGE` comment
-	const FEE_BOOST_PER_PARACHAIN_HEADER: Balance = 2 * constants::currency::UNITS;
 
 	#[test]
 	fn ensure_bridge_hub_polkadot_message_lane_weights_are_correct() {
@@ -404,19 +396,6 @@ mod tests {
 				block_weights: bp_bridge_hub_polkadot::BlockWeights::get(),
 			},
 		});
-
-		pallet_bridge_relayers::extension::per_relay_header::ensure_priority_boost_is_sane::<
-			Runtime,
-			BridgeGrandpaKusamaInstance,
-			PriorityBoostPerRelayHeader,
-		>(FEE_BOOST_PER_RELAY_HEADER);
-
-		pallet_bridge_relayers::extension::per_parachain_header::ensure_priority_boost_is_sane::<
-			Runtime,
-			WithBridgeHubKusamaMessagesInstance,
-			bp_bridge_hub_kusama::BridgeHubKusama,
-			PriorityBoostPerParachainHeader,
-		>(FEE_BOOST_PER_PARACHAIN_HEADER);
 
 		pallet_bridge_relayers::extension::per_message::ensure_priority_boost_is_sane::<
 			Runtime,
