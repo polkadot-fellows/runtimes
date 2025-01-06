@@ -6,12 +6,8 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
-
-# Asset Hub Migration concerning deps
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
-# End: Asset Hub Migration concerning deps
-
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
 asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-kusama" }
