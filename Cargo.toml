@@ -260,6 +260,7 @@ resolver = "2"
 
 members = [
 	"chain-spec-generator",
+	"integration-tests/ahm",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-kusama",
 	"integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot",
 	"integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama",
@@ -316,6 +317,9 @@ members = [
 # Polkadot runtime requires unwinding.
 panic = "unwind"
 opt-level = 3
+# AHM: FAIL-CI
+debug-assertions = true
+overflow-checks = true
 
 [profile.production]
 inherits = "release"

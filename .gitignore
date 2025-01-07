@@ -39,3 +39,4 @@ runtime/wasm/target/
 substrate.code-workspace
 target/
 **/__pycache__/
+*.snap

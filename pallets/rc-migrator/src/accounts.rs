@@ -156,6 +156,13 @@ pub type AccountFor<T> = Account<
 >;
 
 impl<T: Config> Pallet<T> {
+	/// Get the first account that the migration should begin with.
+	///
+	/// Returns `None` when there are no accounts present.
+	pub fn first_account(_weight: &mut WeightMeter) -> Result<Option<T::AccountId>, ()> {
+		();
+		Ok(SystemAccount::<T>::iter().next().map(|(who, _)| who))
+	}
 	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
 
 	/// Migrate accounts from RC to AH.
@@ -214,7 +221,7 @@ impl<T: Config> Pallet<T> {
 
 			log::debug!(
 				target: LOG_TARGET,
-				"Migrating account '{:?}'",
+				"Migrating account '{}'",
 				who.to_ss58check(),
 			);
 
@@ -367,7 +374,20 @@ impl<T: Config> Pallet<T> {
 	/// be calculated there.
 	pub fn get_consumer_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
 		// TODO: check the pallets for provider references on Relay Chain.
-		0
+
+		// The following pallets increase consumers and are deployed on (Polkadot, Kusama, Westend):
+		// - `balances`: (P/K/W)
+		// - `recovery`: (/K/W)
+		// - `assets`: (//)
+		// - `contracts`: (//)
+		// - `nfts`: (//)
+		// - `uniques`: (//)
+		// - `revive`: (//)
+		// Staking stuff:
+		// - `session`: (P/K/W)
+		// - `staking`: (P/K/W)
+
+		0 // TODO count them
 	}
 
 	/// Provider ref count of migrating to Asset Hub pallets except the reference for existential
@@ -377,7 +397,16 @@ impl<T: Config> Pallet<T> {
 	/// calculated there.
 	pub fn get_provider_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
 		// TODO: check the pallets for provider references on Relay Chain.
-		0
+
+		// The following pallets increase consumers and are deployed on (Polkadot, Kusama, Westend):
+		// - `crowdloan`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/common/src/crowdloan/mod.rs#L416
+		// - `parachains_on_demand`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
+		// - `balances`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/balances/src/lib.rs#L1026
+		// - `broker`: (_/_/_)
+		// - `delegate_staking`: (P/K/W)
+		// - `session`: (P/K/W) <- Don't count this one (see https://github.com/paritytech/polkadot-sdk/blob/8d4138f77106a6af49920ad84f3283f696f3f905/substrate/frame/session/src/lib.rs#L462-L465)
+
+		0 // TODO count the ones that we want to migrate
 	}
 
 	/// The part of the balance of the `who` that must stay on the Relay Chain.
