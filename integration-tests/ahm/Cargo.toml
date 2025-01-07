@@ -24,7 +24,7 @@ polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
-remote-externalities = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
 runtime-parachains = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 sp-io = { workspace = true, default-features = true }
