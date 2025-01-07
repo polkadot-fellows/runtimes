@@ -20,20 +20,20 @@
 //! DATE: 2024-08-15, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
 //! HOSTNAME: `ggwpez-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
-//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./polkadot-chain-spec.json")`, DB CACHE: 1024
+//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./kusama-chain-spec.json")`, DB CACHE: 1024
 
 // Executed Command:
 // ./target/production/polkadot
 // benchmark
 // pallet
-// --chain=./polkadot-chain-spec.json
+// --chain=./kusama-chain-spec.json
 // --steps=50
 // --repeat=20
 // --pallet=runtime_parachains::assigner_on_demand
 // --extrinsic=*
 // --wasm-execution=compiled
 // --heap-pages=4096
-// --output=./polkadot-weights/
+// --output=./kusama-weights/
 // --header=./file_header.txt
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
@@ -46,51 +46,51 @@ use core::marker::PhantomData;
 
 /// Weight functions for `runtime_parachains::assigner_on_demand`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> runtime_parachains::assigner_on_demand::WeightInfo for WeightInfo<T> {
-	/// Storage: `OnDemand::QueueStatus` (r:1 w:1)
-	/// Proof: `OnDemand::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+impl<T: frame_system::Config> runtime_parachains::on_demand::WeightInfo for WeightInfo<T> {
+	/// Storage: `OnDemandAssignmentProvider::QueueStatus` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `OnDemand::Revenue` (r:1 w:1)
-	/// Proof: `OnDemand::Revenue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `OnDemand::ParaIdAffinity` (r:1 w:0)
-	/// Proof: `OnDemand::ParaIdAffinity` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `OnDemand::FreeEntries` (r:1 w:1)
-	/// Proof: `OnDemand::FreeEntries` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::Revenue` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::Revenue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::ParaIdAffinity` (r:1 w:0)
+	/// Proof: `OnDemandAssignmentProvider::ParaIdAffinity` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::FreeEntries` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::FreeEntries` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `s` is `[1, 9999]`.
 	fn place_order_keep_alive(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `132 + s * (8 ±0)`
-		//  Estimated: `3595 + s * (8 ±0)`
-		// Minimum execution time: 41_491_000 picoseconds.
-		Weight::from_parts(39_671_416, 0)
-			.saturating_add(Weight::from_parts(0, 3595))
-			// Standard Error: 76
-			.saturating_add(Weight::from_parts(16_969, 0).saturating_mul(s.into()))
+		//  Measured:  `237 + s * (8 ±0)`
+		//  Estimated: `3700 + s * (8 ±0)`
+		// Minimum execution time: 44_571_000 picoseconds.
+		Weight::from_parts(43_161_037, 0)
+			.saturating_add(Weight::from_parts(0, 3700))
+			// Standard Error: 72
+			.saturating_add(Weight::from_parts(16_712, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(Weight::from_parts(0, 8).saturating_mul(s.into()))
 	}
-	/// Storage: `OnDemand::QueueStatus` (r:1 w:1)
-	/// Proof: `OnDemand::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::QueueStatus` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `OnDemand::Revenue` (r:1 w:1)
-	/// Proof: `OnDemand::Revenue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `OnDemand::ParaIdAffinity` (r:1 w:0)
-	/// Proof: `OnDemand::ParaIdAffinity` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `OnDemand::FreeEntries` (r:1 w:1)
-	/// Proof: `OnDemand::FreeEntries` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::Revenue` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::Revenue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::ParaIdAffinity` (r:1 w:0)
+	/// Proof: `OnDemandAssignmentProvider::ParaIdAffinity` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::FreeEntries` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::FreeEntries` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `s` is `[1, 9999]`.
 	fn place_order_allow_death(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `132 + s * (8 ±0)`
-		//  Estimated: `3595 + s * (8 ±0)`
-		// Minimum execution time: 40_570_000 picoseconds.
-		Weight::from_parts(38_945_609, 0)
-			.saturating_add(Weight::from_parts(0, 3595))
-			// Standard Error: 75
-			.saturating_add(Weight::from_parts(17_169, 0).saturating_mul(s.into()))
+		//  Measured:  `237 + s * (8 ±0)`
+		//  Estimated: `3700 + s * (8 ±0)`
+		// Minimum execution time: 44_201_000 picoseconds.
+		Weight::from_parts(42_948_426, 0)
+			.saturating_add(Weight::from_parts(0, 3700))
+			// Standard Error: 72
+			.saturating_add(Weight::from_parts(16_707, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(Weight::from_parts(0, 8).saturating_mul(s.into()))
