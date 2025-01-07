@@ -347,7 +347,6 @@ jobs:
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
           done 
           
-          export DEBUG=api-ws
           cd ecosystem-tests
           yarn install
           yarn test
