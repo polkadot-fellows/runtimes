@@ -10013,6 +10013,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkadot-integration-tests-ahm"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-polkadot-runtime",
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "frame-remote-externalities",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-rc-migrator",
+ "parachains-common",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives 16.0.0",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains",
+ "sc-consensus-grandpa",
+ "sp-authority-discovery",
+ "sp-consensus-babe",
+ "sp-consensus-beefy",
+ "sp-core 34.0.0",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.2",
+ "sp-storage 21.0.0",
+ "sp-tracing 17.0.1",
+ "tokio",
+]
+
+[[package]]
 name = "polkadot-parachain-primitives"
 version = "14.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

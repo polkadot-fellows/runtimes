@@ -35,6 +35,7 @@ use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 	sp_tracing::try_init_simple();
 	let snap = std::env::var("SNAP").ok()?;
+	//let snap = "/home/oliver/polkadot.snap".to_string(); // FIXME dont push
 	let abs = std::path::absolute(snap.clone());
 
 	let ext = Builder::<Block>::default()

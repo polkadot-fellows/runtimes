@@ -43,7 +43,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		LockableCurrency, ReservableCurrency,
+		Defensive, LockableCurrency, ReservableCurrency,
 	},
 	weights::WeightMeter,
 };
@@ -65,9 +65,11 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum MigrationStage<AccountId> {
-	/// The migration has not yet started.
+	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
+	/// Initializing the account migration process.
+	InitAccountMigration,
 	// TODO: Initializing?
 	/// Migrating account balances.
 	MigratingAccounts {
@@ -174,6 +176,14 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> Pallet<T> {
+		fn transition(new_stage: MigrationStage<T::AccountId>) {
+			let old = RcMigrationStage::<T>::get();
+			RcMigrationStage::<T>::put(&new_stage);
+			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), old, new_stage);
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
@@ -185,7 +195,21 @@ pub mod pallet {
 				// TODO: not complete
 
 				let _ = Self::obtain_rc_accounts();
+				Self::transition(MigrationStage::InitAccountMigration);
 
+				return weight_counter.consumed();
+			}
+
+			if stage == MigrationStage::InitAccountMigration {
+				let first_acc = match Self::first_account(&mut weight_counter).defensive() {
+					Err(e) => {
+						log::error!(target: LOG_TARGET, "Error while obtaining first account: {:?}. Retrying with higher weight.", e);
+						Self::first_account(&mut WeightMeter::new()).unwrap_or_default()
+					},
+					Ok(acc) => acc,
+				};
+
+				Self::transition(MigrationStage::MigratingAccounts { last_key: first_acc });
 				return weight_counter.consumed();
 			}
 
