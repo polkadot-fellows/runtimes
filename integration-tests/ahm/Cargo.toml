@@ -31,4 +31,4 @@ sp-io = { workspace = true, default-features = true }
 sp-runtime = { workspace = true, default-features = true }
 sp-storage = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
-tokio = { features = ["macros", "full"], workspace = true }
+tokio = { features = ["full", "macros"], workspace = true }
