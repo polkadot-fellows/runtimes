@@ -2033,6 +2033,7 @@ mod benches {
 		[pallet_balances, Native]
 		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
+		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
