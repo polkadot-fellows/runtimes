@@ -103,6 +103,7 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uri }}
+          RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
