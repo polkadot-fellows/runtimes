@@ -70,7 +70,7 @@ AH: mint_into(checking, checking_total - total_issuance) // publishes Balances::
 
 */
 
-use crate::*;
+use crate::{types::*, *};
 use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
@@ -175,9 +175,9 @@ impl<T: Config> Pallet<T> {
 	/// - None - no accounts left to be migrated to AH.
 	/// - Some(maybe_last_key) - the last migrated account from RC to AH if
 	pub fn migrate_accounts(
-		maybe_last_key: Option<T::AccountId>,
+		mut maybe_last_key: Option<T::AccountId>,
 		weight_counter: &mut WeightMeter,
-	) -> Result<Option<Option<T::AccountId>>, ()> {
+	) -> Result<Option<T::AccountId>, Error<T>> {
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts package for the current iteration.
@@ -186,156 +186,44 @@ impl<T: Config> Pallet<T> {
 		// TODO transport weight
 		let xcm_weight = Weight::from_all(1);
 		if weight_counter.try_consume(xcm_weight).is_err() {
-			return Ok(Some(maybe_last_key));
+			return Err(Error::OutOfWeight);
 		}
 
-		let iter = if let Some(ref last_key) = maybe_last_key {
+		let mut iter = if let Some(ref last_key) = maybe_last_key {
 			SystemAccount::<T>::iter_from_key(last_key)
 		} else {
 			SystemAccount::<T>::iter()
 		};
 
-		let mut maybe_last_key = maybe_last_key;
-		let mut last_package = true;
-		for (who, account_info) in iter {
-			// account for `get_rc_state` read below
-			if weight_counter.try_consume(T::DbWeight::get().reads(1)).is_err() {
-				last_package = false;
+		loop {
+			let Some((who, account_info)) = iter.next() else {
+				maybe_last_key = None;
 				break;
-			}
-
-			let rc_state = Self::get_rc_state(&who);
-
-			if matches!(rc_state, AccountState::Preserve) {
-				log::debug!(
-					target: LOG_TARGET,
-					"Preserve account '{:?}' on Relay Chain",
-					who.to_ss58check(),
-				);
-				maybe_last_key = Some(who);
-				continue;
-			}
-
-			// TODO: we do not expect `Part` variation for now and might delete it later
-			debug_assert!(!matches!(rc_state, AccountState::Part { .. }));
-
-			log::debug!(
-				target: LOG_TARGET,
-				"Migrating account '{}'",
-				who.to_ss58check(),
-			);
-
-			// account the weight for migrating a single account on Relay Chain.
-			if weight_counter.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
-				last_package = false;
-				break;
-			}
-
-			// account the weight for receiving a single account on Asset Hub.
-			if ah_weight_counter.try_consume(T::AhWeightInfo::migrate_account()).is_err() {
-				last_package = false;
-				break;
-			}
-
-			// migrate the target account:
-			// - keep `balance`, `holds`, `freezes`, .. in memory
-			// - release all `holds`, `freezes`, ...
-			// - teleport all balance from RC to AH:
-			// -- mint into XCM `checking` account
-			// -- burn from target account
-			// - add `balance`, `holds`, `freezes`, .. to the accounts package to be sent via XCM
-
-			let account_data: AccountData<T::Balance> = account_info.data.clone();
-
-			let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
-				pallet_balances::Freezes::<T>::get(&who).into();
-
-			for freeze in &freezes {
-				<T as Config>::Currency::thaw(&freeze.id, &who)
-					// TODO: handle error
-					.unwrap();
-			}
-
-			let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
-				pallet_balances::Holds::<T>::get(&who).into();
-
-			for hold in &holds {
-				let _ =
-					<T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
-						// TODO: handle error
-						.unwrap();
-			}
-
-			let locks: Vec<BalanceLock<T::Balance>> =
-				pallet_balances::Locks::<T>::get(&who).into_inner();
-
-			for lock in &locks {
-				// Expected lock ids:
-				// - "staking " // should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
-				// - "vesting "
-				// - "pyconvot"
-				<T as Config>::Currency::remove_lock(lock.id, &who);
-			}
-
-			let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who);
-			let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
-
-			// TODO: To ensure the account can be fully withdrawn from RC to AH, we force-update the
-			// references here. After inspecting the state, it's clear that fully correcting the
-			// reference counts would be nearly impossible. Instead, for accounts meant to be fully
-			// migrated to the AH, we will calculate the actual reference counts based on the
-			// migrating pallets and transfer them to AH. This is done using the
-			// `Self::get_consumer_count` and `Self::get_provider_count` functions.
-			SystemAccount::<T>::mutate(&who, |a| {
-				a.consumers = 0;
-				a.providers = 1;
-			});
-
-			let balance = <T as Config>::Currency::reducible_balance(
-				&who,
-				Preservation::Expendable,
-				Fortitude::Polite,
-			);
-			let total_balance = <T as Config>::Currency::total_balance(&who);
-
-			debug_assert!(total_balance == balance);
-			debug_assert!(total_balance == account_data.free + account_data.reserved);
-			// TODO: total_balance > ED on AH
-
-			let burned = <T as Config>::Currency::burn_from(
-				&who,
-				total_balance,
-				Preservation::Expendable,
-				Precision::Exact,
-				Fortitude::Polite,
-			)
-			// TODO: handle error
-			.unwrap();
-
-			debug_assert!(total_balance == burned);
-
-			let minted =
-				<T as Config>::Currency::mint_into(&T::CheckingAccount::get(), total_balance)
-					// TODO: handle error;
-					.unwrap();
-
-			debug_assert!(total_balance == minted);
-
-			let account_to_ah = Account {
-				who: who.clone(),
-				free: account_data.free,
-				reserved: account_data.reserved,
-				frozen: account_data.frozen,
-				holds,
-				freezes,
-				locks,
-				unnamed_reserve,
-				consumers: Self::get_consumer_count(&who, &account_info),
-				providers: Self::get_provider_count(&who, &account_info),
 			};
+			maybe_last_key = Some(who.clone());
 
-			package.push(account_to_ah);
-			maybe_last_key = Some(who);
+			match Self::migrate_account(
+				who,
+				account_info.clone(),
+				weight_counter,
+				&mut ah_weight_counter,
+			) {
+				// Account does not need to be migrated
+				Ok(None) => continue,
+				Ok(Some(ah_account)) => package.push(ah_account),
+				// Not enough weight, lets try again in the next block since we made some progress.
+				Err(Error::OutOfWeight) if package.len() > 0 => break,
+				// Not enough weight and was unable to make progress, bad.
+				Err(Error::OutOfWeight) if package.len() == 0 => {
+					defensive!("Not enough weight to migrate a single account");
+					return Err(Error::OutOfWeight);
+				},
+				Err(e) => {
+					defensive!("Error while migrating account");
+					log::error!(target: LOG_TARGET, "Error while migrating account: {:?}", e);
+					return Err(e);
+				},
+			}
 		}
 
 		let call = types::AssetHubPalletConfig::<T>::AhmController(
@@ -357,14 +245,150 @@ impl<T: Config> Pallet<T> {
 		if let Err(_err) =
 			send_xcm::<T::SendXcm>(Location::new(0, [Junction::Parachain(1000)]), message.clone())
 		{
-			return Err(());
+			return Err(Error::TODO);
 		};
 
-		if last_package {
-			Ok(None)
-		} else {
-			Ok(Some(maybe_last_key))
+		Ok(maybe_last_key)
+	}
+
+	/// Migrate a single account out of the Relay chain and return it.
+	///
+	/// The account on the relay chain is modified as part of this operation.
+	pub fn migrate_account(
+		who: T::AccountId,
+		account_info: AccountInfoFor<T>,
+		rc_weight: &mut WeightMeter,
+		ah_weight: &mut WeightMeter,
+	) -> Result<Option<AccountFor<T>>, Error<T>> {
+		// account for `get_rc_state` read below
+		if rc_weight.try_consume(T::DbWeight::get().reads(1)).is_err() {
+			return Err(Error::OutOfWeight);
 		}
+
+		let rc_state = Self::get_rc_state(&who);
+
+		if matches!(rc_state, AccountState::Preserve) {
+			log::debug!(
+				target: LOG_TARGET,
+				"Preserve account '{:?}' on Relay Chain",
+				who.to_ss58check(),
+			);
+			return Ok(None);
+		}
+
+		// TODO: we do not expect `Part` variation for now and might delete it later
+		debug_assert!(!matches!(rc_state, AccountState::Part { .. }));
+
+		log::debug!(
+			target: LOG_TARGET,
+			"Migrating account '{}'",
+			who.to_ss58check(),
+		);
+
+		// account the weight for migrating a single account on Relay Chain.
+		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
+			return Err(Error::OutOfWeight);
+		}
+
+		// account the weight for receiving a single account on Asset Hub.
+		if ah_weight.try_consume(T::AhWeightInfo::migrate_account()).is_err() {
+			return Err(Error::OutOfWeight);
+		}
+
+		// migrate the target account:
+		// - keep `balance`, `holds`, `freezes`, .. in memory
+		// - release all `holds`, `freezes`, ...
+		// - teleport all balance from RC to AH:
+		// -- mint into XCM `checking` account
+		// -- burn from target account
+		// - add `balance`, `holds`, `freezes`, .. to the accounts package to be sent via XCM
+
+		let account_data: AccountData<T::Balance> = account_info.data.clone();
+
+		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
+			pallet_balances::Freezes::<T>::get(&who).into();
+
+		for freeze in &freezes {
+			<T as Config>::Currency::thaw(&freeze.id, &who)
+				// TODO: handle error
+				.unwrap();
+		}
+
+		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
+			pallet_balances::Holds::<T>::get(&who).into();
+
+		for hold in &holds {
+			let _ = <T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
+				// TODO: handle error
+				.unwrap();
+		}
+
+		let locks: Vec<BalanceLock<T::Balance>> =
+			pallet_balances::Locks::<T>::get(&who).into_inner();
+
+		for lock in &locks {
+			// Expected lock ids:
+			// - "staking " // should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
+			// - "vesting "
+			// - "pyconvot"
+			<T as Config>::Currency::remove_lock(lock.id, &who);
+		}
+
+		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who);
+		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
+
+		// TODO: To ensure the account can be fully withdrawn from RC to AH, we force-update the
+		// references here. After inspecting the state, it's clear that fully correcting the
+		// reference counts would be nearly impossible. Instead, for accounts meant to be fully
+		// migrated to the AH, we will calculate the actual reference counts based on the
+		// migrating pallets and transfer them to AH. This is done using the
+		// `Self::get_consumer_count` and `Self::get_provider_count` functions.
+		SystemAccount::<T>::mutate(&who, |a| {
+			a.consumers = 0;
+			a.providers = 1;
+		});
+
+		let balance = <T as Config>::Currency::reducible_balance(
+			&who,
+			Preservation::Expendable,
+			Fortitude::Polite,
+		);
+		let total_balance = <T as Config>::Currency::total_balance(&who);
+
+		debug_assert!(total_balance == balance);
+		debug_assert!(total_balance == account_data.free + account_data.reserved);
+		// TODO: total_balance > ED on AH
+
+		let burned = <T as Config>::Currency::burn_from(
+			&who,
+			total_balance,
+			Preservation::Expendable,
+			Precision::Exact,
+			Fortitude::Polite,
+		)
+		// TODO: handle error
+		.unwrap();
+
+		debug_assert!(total_balance == burned);
+
+		let minted = <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), total_balance)
+			// TODO: handle error;
+			.unwrap();
+
+		debug_assert!(total_balance == minted);
+
+		Ok(Some(Account {
+			who: who.clone(),
+			free: account_data.free,
+			reserved: account_data.reserved,
+			frozen: account_data.frozen,
+			holds,
+			freezes,
+			locks,
+			unnamed_reserve,
+			consumers: Self::get_consumer_count(&who, &account_info),
+			providers: Self::get_provider_count(&who, &account_info),
+		}))
 	}
 
 	/// Consumer ref count of migrating to Asset Hub pallets except a reference for `reserved` and
