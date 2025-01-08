@@ -304,7 +304,7 @@ jobs:
           # Dirty hack to find out if the `metadata-hash` feature exists for the given package.
           # Should print "error: no bin target named `something-that-does-not-exist`." if the feature doesn't exist.
           # Otherwise it should print "error: the package 'glutton-kusama-runtime' does not contain this feature: metadata-hash".
-          if grep -v "something-that-does-not-exist" <<< $(cargo build  -p ${{ matrix.runtime.package }} --features metadata-hash --bin something-that-does-not-exist 2>&1); then
+          if ! cargo build -p ${{ matrix.runtime.package }} --features metadata-hash --bin something-that-does-not-exist 2>&1 | grep "does not contain this feature: metadata-hash"; then
             FEATURES="--features=metadata-hash"
           fi
           
