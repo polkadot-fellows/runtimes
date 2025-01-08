@@ -9,28 +9,26 @@ repository.workspace = true
 
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
-scale-info = { workspace = true, features = ["derive"] }
-serde = { features = ["derive"], optional = true, workspace = true }
-log = { workspace = true }
-
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-sp-core = { workspace = true }
-sp-runtime = { workspace = true }
-sp-std = { workspace = true }
-sp-io = { workspace = true }
-
-pallet-rc-migrator = { workspace = true }
+log = { workspace = true }
 pallet-balances = { workspace = true }
-pallet-staking = { workspace = true }
-pallet-preimage = { workspace = true }
-pallet-state-trie-migration = { workspace = true }
 pallet-nomination-pools = { workspace = true }
-
+pallet-preimage = { workspace = true }
+pallet-rc-migrator = { workspace = true }
+pallet-staking = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
-polkadot-parachain-primitives = { workspace = true }
+scale-info = { workspace = true, features = ["derive"] }
+serde = { features = ["derive"], optional = true, workspace = true }
+sp-application-crypto = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 [features]
 default = ["std"]
@@ -51,6 +49,7 @@ std = [
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
+	"sp-application-crypto/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",

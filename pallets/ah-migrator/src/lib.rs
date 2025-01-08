@@ -36,6 +36,7 @@ pub use pallet::*;
 
 use frame_support::{
 	pallet_prelude::*,
+	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
@@ -44,6 +45,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::accounts::Account as RcAccount;
+use sp_application_crypto::Ss58Codec;
 use sp_runtime::{traits::Convert, AccountId32};
 use sp_std::prelude::*;
 
@@ -111,66 +113,104 @@ pub mod pallet {
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			ensure_root(origin)?;
 
+			Self::do_receive_accounts(accounts)?;
+			// TODO: publish event
+
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn do_receive_accounts(
+			accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
+		) -> Result<(), Error<T>> {
+			log::debug!(target: LOG_TARGET, "Integrating {} accounts", accounts.len());
+
 			for account in accounts {
-				let who = account.who;
-				let total_balance = account.free + account.reserved;
-				let minted = T::Currency::mint_into(&who, total_balance)
-					// TODO handle error
-					.unwrap();
-				debug_assert!(minted == total_balance);
+				let _: Result<(), ()> = with_transaction_opaque_err::<(), (), _>(|| {
+					match Self::do_receive_account(account) {
+						Ok(()) => TransactionOutcome::Commit(Ok(())),
+						Err(_) => TransactionOutcome::Rollback(Ok(())),
+					}
+				})
+				.expect("Always returning Ok; qed");
+			}
 
-				for hold in account.holds {
+			Ok(())
+		}
+
+		/// MAY CHANGED STORAGE ON ERROR RETURN
+		fn do_receive_account(
+			account: RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
+		) -> Result<(), Error<T>> {
+			let who = account.who;
+			let total_balance = account.free + account.reserved;
+			let minted = match T::Currency::mint_into(&who, total_balance) {
+				Ok(minted) => minted,
+				Err(e) => {
+					log::error!(target: LOG_TARGET, "Failed to mint into account {}: {:?}", who.to_ss58check(), e);
+					return Err(Error::<T>::TODO);
+				},
+			};
+			debug_assert!(minted == total_balance);
+
+			for hold in account.holds {
+				if let Err(e) =
 					T::Currency::hold(&T::RcToAhHoldReason::convert(hold.id), &who, hold.amount)
-						// TODO handle error
-						.unwrap();
+				{
+					log::error!(target: LOG_TARGET, "Failed to hold into account {}: {:?}", who.to_ss58check(), e);
+					return Err(Error::<T>::TODO);
 				}
+			}
 
-				T::Currency::reserve(&who, account.unnamed_reserve)
-					// TODO handle error
-					.unwrap();
+			if let Err(e) = T::Currency::reserve(&who, account.unnamed_reserve) {
+				log::error!(target: LOG_TARGET, "Failed to reserve into account {}: {:?}", who.to_ss58check(), e);
+				return Err(Error::<T>::TODO);
+			}
 
-				for freeze in account.freezes {
-					T::Currency::set_freeze(
-						&T::RcToAhFreezeReason::convert(freeze.id),
-						&who,
-						freeze.amount,
-					)
-					// TODO handle error
-					.unwrap();
+			for freeze in account.freezes {
+				if let Err(e) = T::Currency::set_freeze(
+					&T::RcToAhFreezeReason::convert(freeze.id),
+					&who,
+					freeze.amount,
+				) {
+					log::error!(target: LOG_TARGET, "Failed to freeze into account {}: {:?}", who.to_ss58check(), e);
+					return Err(Error::<T>::TODO);
 				}
+			}
 
-				for lock in account.locks {
-					T::Currency::set_lock(
-						lock.id,
-						&who,
-						lock.amount,
-						types::map_lock_reason(lock.reasons),
-					);
+			for lock in account.locks {
+				T::Currency::set_lock(
+					lock.id,
+					&who,
+					lock.amount,
+					types::map_lock_reason(lock.reasons),
+				);
+			}
+
+			log::debug!(
+				target: LOG_TARGET,
+				"Integrating account: {}", who.to_ss58check(),
+			);
+
+			// TODO run some post-migration sanity checks
+
+			// Apply all additional consumers that were excluded from the balance stuff above:
+			for _ in 0..account.consumers {
+				if let Err(e) = frame_system::Pallet::<T>::inc_consumers(&who) {
+					log::error!(target: LOG_TARGET, "Failed to inc consumers for account {}: {:?}", who.to_ss58check(), e);
+					return Err(Error::<T>::TODO);
 				}
-
-				let storage_account = pallet_balances::Account::<T>::get(&who);
-				debug_assert!(storage_account.free == account.free);
-				debug_assert!(storage_account.frozen == account.frozen);
-				debug_assert!(storage_account.reserved == account.reserved);
-
-				(0..account.consumers).for_each(|_| {
-					frame_system::Pallet::<T>::inc_consumers(&who)
-						// TODO handle error
-						.unwrap();
-				});
-				(0..account.providers).for_each(|_| {
-					frame_system::Pallet::<T>::inc_providers(&who);
-				});
-
-				// TODO: publish event
+			}
+			for _ in 0..account.providers {
+				frame_system::Pallet::<T>::inc_providers(&who);
 			}
 
 			// TODO: publish event
-
-			Ok(().into())
+			Ok(())
 		}
 	}
 

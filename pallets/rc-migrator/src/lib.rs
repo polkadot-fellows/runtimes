@@ -126,8 +126,8 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// TODO
 		TODO,
+		OutOfWeight,
 	}
 
 	#[pallet::event]
@@ -213,27 +213,27 @@ pub mod pallet {
 				return weight_counter.consumed();
 			}
 
-			// TODO init
-
 			if let MigrationStage::MigratingAccounts { last_key } = stage {
-				let res =
-					with_transaction_opaque_err::<Option<Option<T::AccountId>>, (), _>(|| {
-						match Self::migrate_accounts(last_key, &mut weight_counter) {
-							Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
-							Err(err) => TransactionOutcome::Commit(Err(err)),
-						}
-					});
+				let res = with_transaction_opaque_err::<Option<T::AccountId>, Error<T>, _>(|| {
+					TransactionOutcome::Commit(Self::migrate_accounts(
+						last_key,
+						&mut weight_counter,
+					))
+				})
+				.expect("Always returning Ok; qed");
 
 				match res {
-					Ok(Ok(None)) => {
+					Ok(None) => {
 						// accounts migration is completed
 						// TODO publish event
-						RcMigrationStage::<T>::put(MigrationStage::TODO);
+						Self::transition(MigrationStage::TODO);
 					},
-					Ok(Ok(Some(last_key))) => {
+					Ok(Some(last_key)) => {
 						// accounts migration continues with the next block
 						// TODO publish event
-						RcMigrationStage::<T>::put(MigrationStage::MigratingAccounts { last_key });
+						Self::transition(MigrationStage::MigratingAccounts {
+							last_key: Some(last_key),
+						});
 					},
 					_ => {
 						// TODO handle error

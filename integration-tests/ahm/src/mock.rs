@@ -56,6 +56,7 @@ pub fn next_block_rc() {
 	log::info!(target: LOG_RC, "Next block: {:?}", now + 1);
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
 	frame_system::Pallet::<polkadot_runtime::Runtime>::set_block_number(now + 1);
+	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
 		now + 1,
 	);
@@ -69,5 +70,6 @@ pub fn next_block_ah() {
 	);
 	frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::set_block_number(now + 1);
 	<asset_hub_polkadot_runtime::MessageQueue as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
 	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
 }
