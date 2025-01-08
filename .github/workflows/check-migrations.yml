@@ -46,7 +46,7 @@ jobs:
     needs: [runtime-matrix]
     runs-on: ubuntu-latest
     strategy:
-      # Ensure the other jobs are continue
+      # Ensure the other jobs continue
       fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
