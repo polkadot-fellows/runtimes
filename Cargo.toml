@@ -101,7 +101,7 @@ pallet-bridge-grandpa = { version = "0.18.0", default-features = false }
 pallet-bridge-messages = { version = "0.18.0", default-features = false }
 pallet-bridge-parachains = { version = "0.18.0", default-features = false }
 pallet-bridge-relayers = { version = "0.18.0", default-features = false }
-pallet-broker = { version = "0.17.0", default-features = false }
+pallet-broker = { version = "0.17.2", default-features = false }
 pallet-child-bounties = { version = "37.0.0", default-features = false }
 pallet-collator-selection = { version = "19.0.0", default-features = false }
 pallet-collective = { version = "38.0.0", default-features = false }
