@@ -49,6 +49,7 @@ std = [
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
+	"sp-application-crypto/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
