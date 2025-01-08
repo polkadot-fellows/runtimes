@@ -102,6 +102,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+          WS: ${{ matrix.runtime.uri }}
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
