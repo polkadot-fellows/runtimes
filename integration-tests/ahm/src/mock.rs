@@ -15,8 +15,11 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use asset_hub_polkadot_runtime::Block as AssetHubBlock;
+use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage};
+use frame_support::traits::EnqueueMessage;
 use polkadot_runtime::Block as PolkadotBlock;
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
+use sp_runtime::BoundedVec;
 
 const LOG_RC: &str = "runtime::relay";
 const LOG_AH: &str = "runtime::asset-hub";
@@ -72,4 +75,18 @@ pub fn next_block_ah() {
 	<asset_hub_polkadot_runtime::MessageQueue as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
 	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
 	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+}
+
+/// Enqueue DMP messages on the parachain side.
+///
+/// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
+/// enqueuing them.
+pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
+	for msg in msgs {
+		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
+		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
+			bounded_msg.as_bounded_slice(),
+			AggregateMessageOrigin::Parent,
+		);
+	}
 }

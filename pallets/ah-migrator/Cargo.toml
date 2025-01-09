@@ -14,6 +14,7 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-rc-migrator = { workspace = true }
@@ -29,6 +30,7 @@ sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
+hex-literal = { workspace = true }
 
 [features]
 default = ["std"]
@@ -54,6 +56,7 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"pallet-multisig/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -69,6 +72,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
@@ -82,4 +86,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-multisig/try-runtime"
 ]

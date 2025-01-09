@@ -33,13 +33,10 @@
 
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
-use pallet_rc_migrator::RcMigrationStage;
+use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
-use polkadot_runtime::RcMigrator;
-use sp_core::H256;
-use sp_io::TestExternalities;
-use sp_storage::StateVersion;
-use std::cell::OnceCell;
+use remote_externalities::RemoteExternalities;
+use tokio::sync::mpsc::channel;
 
 use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
@@ -61,13 +58,15 @@ async fn account_migration_works() {
 
 			let new_dmps =
 				runtime_parachains::dmp::DownwardMessageQueues::<Polkadot>::take(para_id);
-			if new_dmps.is_empty() && !dmps.is_empty() {
-				break;
-			}
 			dmps.extend(new_dmps);
-		}
 
-		dmps
+			if RcMigrationStage::<Polkadot>::get() ==
+				pallet_rc_migrator::MigrationStage::MultisigMigrationDone
+			{
+				log::info!("Multisig migration done");
+				break dmps;
+			}
+		}
 	});
 	rc.commit_all().unwrap();
 	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
@@ -94,18 +93,4 @@ async fn account_migration_works() {
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});
-}
-
-/// Enqueue DMP messages on the parachain side.
-///
-/// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
-/// enqueuing them.
-fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
-	for msg in msgs {
-		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
-		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
-			bounded_msg.as_bounded_slice(),
-			AggregateMessageOrigin::Parent,
-		);
-	}
 }

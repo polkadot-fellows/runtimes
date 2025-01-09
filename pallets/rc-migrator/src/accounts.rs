@@ -159,23 +159,23 @@ impl<T: Config> Pallet<T> {
 	/// Get the first account that the migration should begin with.
 	///
 	/// Returns `None` when there are no accounts present.
-	pub fn first_account(_weight: &mut WeightMeter) -> Result<Option<T::AccountId>, ()> {
+	pub fn first_account(_weight: &mut WeightMeter) -> Result<Option<T::AccountId>, Error<T>> {
 		();
-		Ok(SystemAccount::<T>::iter().next().map(|(who, _)| who))
+		Ok(SystemAccount::<T>::iter_keys().next())
 	}
 	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
 
 	/// Migrate accounts from RC to AH.
 	///
 	/// Parameters:
-	/// - `maybe_last_key` - the last migrated account from RC to AH if any
+	/// - `last_key` - the last migrated account from RC to AH if any
 	/// - `weight_counter` - the weight meter
 	///
 	/// Result:
 	/// - None - no accounts left to be migrated to AH.
 	/// - Some(maybe_last_key) - the last migrated account from RC to AH if
 	pub fn migrate_accounts(
-		mut maybe_last_key: Option<T::AccountId>,
+		last_key: T::AccountId,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<T::AccountId>, Error<T>> {
 		// we should not send more than AH can handle within the block.
@@ -189,21 +189,14 @@ impl<T: Config> Pallet<T> {
 			return Err(Error::OutOfWeight);
 		}
 
-		let mut iter = if let Some(ref last_key) = maybe_last_key {
-			SystemAccount::<T>::iter_from_key(last_key)
-		} else {
-			SystemAccount::<T>::iter()
-		};
-
-		loop {
+		let mut iter = SystemAccount::<T>::iter_from_key(last_key);
+		let maybe_last_key = loop {
 			let Some((who, account_info)) = iter.next() else {
-				maybe_last_key = None;
-				break;
+				break None;
 			};
-			maybe_last_key = Some(who.clone());
 
 			match Self::migrate_account(
-				who,
+				who.clone(),
 				account_info.clone(),
 				weight_counter,
 				&mut ah_weight_counter,
@@ -212,7 +205,7 @@ impl<T: Config> Pallet<T> {
 				Ok(None) => continue,
 				Ok(Some(ah_account)) => package.push(ah_account),
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if package.len() > 0 => break,
+				Err(Error::OutOfWeight) if package.len() > 0 => break Some(who.clone()),
 				// Not enough weight and was unable to make progress, bad.
 				Err(Error::OutOfWeight) if package.len() == 0 => {
 					defensive!("Not enough weight to migrate a single account");
@@ -224,7 +217,7 @@ impl<T: Config> Pallet<T> {
 					return Err(e);
 				},
 			}
-		}
+		};
 
 		let call = types::AssetHubPalletConfig::<T>::AhmController(
 			types::AhMigratorCall::<T>::ReceiveAccounts { accounts: package },

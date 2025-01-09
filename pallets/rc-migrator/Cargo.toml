@@ -12,7 +12,6 @@ codec = { workspace = true, features = ["max-encoded-len"] }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
 log = { workspace = true }
-
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -20,10 +19,9 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
-
 pallet-balances = { workspace = true }
 pallet-staking = { workspace = true }
-
+pallet-multisig = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
@@ -50,6 +48,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+	"pallet-multisig/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -61,6 +60,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
@@ -70,4 +70,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-multisig/try-runtime"
 ]
