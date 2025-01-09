@@ -6,13 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
+- Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
+
 ### Added
 
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
 
+- ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
+
 ### Changed
 
 - Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))
+- Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
