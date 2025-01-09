@@ -1,0 +1,41 @@
+[package]
+name = "pallet-remote-proxy"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codec = { features = ["derive", "max-encoded-len"], workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-proxy = { workspace = true }
+sp-core = { workspace = true }
+sp-trie = { workspace = true }
+sp-runtime = { workspace = true }
+
+[dev-dependencies]
+pallet-balances = { workspace = true }
+pallet-utility = { workspace = true }
+sp-io = { workspace = true }
+sp-state-machine = { workspace = true }
+
+[features]
+default = [ "std" ]
+
+std = [
+  "codec/std",
+  "cumulus-pallet-parachain-system/std",
+  "cumulus-primitives-core/std",
+  "frame-support/std",
+  "frame-system/std",
+  "pallet-proxy/std",
+  "sp-core/std",
+  "sp-trie/std",
+  "sp-runtime/std",
+]

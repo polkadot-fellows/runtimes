@@ -8853,6 +8853,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-remote-proxy"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 34.0.0",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "sp-state-machine 0.43.0",
+ "sp-trie 37.0.0",
+]
+
+[[package]]
 name = "pallet-salary"
 version = "23.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
