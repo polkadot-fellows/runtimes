@@ -29,7 +29,8 @@ async fn account_test() {
 	remote_ext_test_setup().await.map(|mut e| {
 		e.execute_with(|| {
 			let _ = RcMigrator::obtain_rc_accounts();
-			let _ = RcMigrator::migrate_accounts(None, &mut WeightMeter::new()).unwrap();
+			let first = RcMigrator::first_account(&mut WeightMeter::new()).unwrap().unwrap();
+			let _ = RcMigrator::migrate_accounts(first, &mut WeightMeter::new()).unwrap();
 		})
 	});
 }

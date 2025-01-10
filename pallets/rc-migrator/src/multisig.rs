@@ -16,7 +16,6 @@
 // limitations under the License.
 
 use frame_support::traits::Currency;
-use pallet_multisig::Multisigs;
 
 extern crate alloc;
 use crate::{types::*, *};
