@@ -123,6 +123,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 
 		let maybe_last_key = loop {
 			log::debug!("Migrating multisigs from {:?}", last_key);
+
 			let kv = iter.next();
 			let Some((k1, k2, multisig)) = kv else {
 				break None;

@@ -74,6 +74,7 @@ use crate::{types::*, *};
 use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
+use sp_runtime::traits::Zero;
 
 /// Account type meant to transfer data between RC and AH.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -160,7 +161,6 @@ impl<T: Config> Pallet<T> {
 	///
 	/// Returns `None` when there are no accounts present.
 	pub fn first_account(_weight: &mut WeightMeter) -> Result<Option<T::AccountId>, Error<T>> {
-		();
 		Ok(SystemAccount::<T>::iter_keys().next())
 	}
 	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
@@ -205,9 +205,9 @@ impl<T: Config> Pallet<T> {
 				Ok(None) => continue,
 				Ok(Some(ah_account)) => package.push(ah_account),
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if package.len() > 0 => break Some(who.clone()),
+				Err(Error::OutOfWeight) if !package.is_empty() => break Some(who.clone()),
 				// Not enough weight and was unable to make progress, bad.
-				Err(Error::OutOfWeight) if package.len() == 0 => {
+				Err(Error::OutOfWeight) if package.is_empty() => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
@@ -297,6 +297,18 @@ impl<T: Config> Pallet<T> {
 		// - add `balance`, `holds`, `freezes`, .. to the accounts package to be sent via XCM
 
 		let account_data: AccountData<T::Balance> = account_info.data.clone();
+
+		if account_data.free.is_zero() &&
+			account_data.reserved.is_zero() &&
+			account_data.frozen.is_zero()
+		{
+			if account_info.nonce.is_zero() {
+				log::warn!(target: LOG_TARGET, "Possible system account detected '{}'", who.to_ss58check());
+			} else {
+				log::warn!(target: LOG_TARGET, "Weird account detected '{}'", who.to_ss58check());
+			}
+			return Ok(None);
+		}
 
 		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
 			pallet_balances::Freezes::<T>::get(&who).into();

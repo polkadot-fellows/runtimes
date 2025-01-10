@@ -49,6 +49,7 @@ impl<T: Config> Pallet<T> {
 				log::error!(target: LOG_TARGET, "Failed to unreserve deposit for multisig {} missing {:?}, details: {:?}", multisig.creator.to_ss58check(), missing, multisig.details);
 			}
 		}
+
 		Ok(())
 	}
 }
