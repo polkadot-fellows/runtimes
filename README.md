@@ -4,7 +4,7 @@ This repository houses the code required to build the runtimes for Polkadot, Kus
 
 ## Structure
 
-Each leaf folder contains one runtime crate:
+Runtimes can be found in the `relay` and `system-parachains` top-level folders, each leaf folder of which contains one runtime crate:
 
 <!-- Run "tree -I 'target' -d -L 3" and then delete some folders from Polkadot and Kusama. -->
 
@@ -21,8 +21,15 @@ Each leaf folder contains one runtime crate:
     │   └── bridge-hub-polkadot
     ├── collectives
     │   └── collectives-polkadot
-    └── gluttons
-        └── glutton-kusama
+    ├── coretime
+    │   ├── coretime-kusama
+    │   └── coretime-polkadot
+    ├── encointer
+    ├── gluttons
+    │   └── glutton-kusama
+    └── people
+        ├── people-kusama
+        └── people-polkadot
 ```
 
 ## Approval rights
