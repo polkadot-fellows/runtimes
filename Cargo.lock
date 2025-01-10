@@ -10041,7 +10041,6 @@ dependencies = [
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.2",
- "sp-state-machine 0.43.0",
  "sp-storage 21.0.0",
  "sp-tracing 17.0.1",
  "tokio",

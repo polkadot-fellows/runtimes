@@ -231,7 +231,6 @@ sp-offchain = { version = "34.0.0", default-features = false }
 sp-runtime = { version = "39.0.1", default-features = false }
 sp-session = { version = "36.0.0", default-features = false }
 sp-staking = { version = "36.0.0", default-features = false }
-sp-state-machine = { version = "0.43.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-storage = { version = "21.0.0", default-features = false }
 sp-tracing = { version = "17.0.1", default-features = false }
