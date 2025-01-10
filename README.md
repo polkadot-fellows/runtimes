@@ -61,6 +61,18 @@ The release process is building all runtimes and then puts them into a release i
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### Point releases
+
+In order to release a patch or fix outside the normal release process, some additional steps are needed.
+
+To submit a fix to release `x.y.z` an make a point release:
+
+- Make your changes based on x.y.z
+- Create a branch `x.y.b` from the most recent release, where `b = z + 1` (contact a maintainer)
+- Make a PR against the branch x.y.b
+- Trigger the release process manually (contact a maintainer)
+- Check for other planned releases who originally targeted the same semver version and post on the issue letting them know that they should bump
+
 ## Release guidelines
 
 Here is an overview of the recommended steps.
