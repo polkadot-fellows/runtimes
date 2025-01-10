@@ -76,7 +76,7 @@ To submit a fix to release `x.y.z` and make a point release:
 
 - Make your changes based on x.y.z
 - Create a branch `x.y.b` from the most recent release, where `b = z + 1` (contact a maintainer)
-- Make a PR against the branch x.y.b
+- Make a PR against the branch `x.y.b`
 - Trigger the release process manually (contact a maintainer)
 - Check for other planned releases who originally targeted the same semver version and post on the issue letting them know that they should bump
 
