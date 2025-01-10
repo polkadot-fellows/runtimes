@@ -79,7 +79,8 @@ To submit a fix to release `x.y.z` and make a point release:
 - Make a PR against the branch `x.y.b`
 - Trigger the release process manually (contact a maintainer)
 - Check for other planned releases who originally targeted the same semver version and post on the issue letting them know that they should bump
-
+- Once the release is out, amend the GitHub release and delete all unchanged runtime blobs. Highlight if this release only affects some runtimes (contact a maintainer)
+- Backport your changes to the `CHANGELOG.md` to the main branch
 ## Release guidelines
 
 Here is an overview of the recommended steps.
