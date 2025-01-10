@@ -72,7 +72,7 @@ The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](http
 
 In order to release a patch or fix outside the normal release process, some additional steps are needed.
 
-To submit a fix to release `x.y.z` an make a point release:
+To submit a fix to release `x.y.z` and make a point release:
 
 - Make your changes based on x.y.z
 - Create a branch `x.y.b` from the most recent release, where `b = z + 1` (contact a maintainer)
