@@ -317,6 +317,72 @@ fn remote_proxy_register_works() {
 				crate::Call::remote_proxy_with_registered_proof {
 					real: anon,
 					force_proxy_type: None,
+					call: call.clone(),
+				}
+				.into()
+			]
+		})
+		.dispatch(RuntimeOrigin::signed(1)));
+
+		System::assert_has_event(ProxyEvent::ProxyExecuted { result: Ok(()) }.into());
+		System::reset_events();
+		assert_eq!(Balances::free_balance(6), 1);
+
+		assert_ok!(RuntimeCall::from(UtilityCall::batch {
+			calls: vec![
+				crate::Call::register_remote_proxy_proof {
+					proof: RemoteProxyProof::V1 {
+						proof: proof.clone().into_iter_nodes().collect(),
+						block: 1
+					}
+				}
+				.into(),
+				UtilityCall::batch {
+					calls: vec![crate::Call::remote_proxy_with_registered_proof {
+						real: anon,
+						force_proxy_type: None,
+						call: call.clone(),
+					}
+					.into()]
+				}
+				.into()
+			]
+		})
+		.dispatch(RuntimeOrigin::signed(1)));
+
+		System::assert_has_event(ProxyEvent::ProxyExecuted { result: Ok(()) }.into());
+		assert_eq!(Balances::free_balance(6), 2);
+
+		assert_err!(
+			RuntimeCall::from(UtilityCall::batch_all {
+				calls: vec![
+					crate::Call::register_remote_proxy_proof {
+						proof: RemoteProxyProof::V1 {
+							proof: proof.clone().into_iter_nodes().collect(),
+							block: 1
+						}
+					}
+					.into(),
+					crate::Call::remote_proxy_with_registered_proof {
+						real: anon,
+						force_proxy_type: None,
+						call: call.clone(),
+					}
+					.into(),
+					crate::Call::remote_proxy_with_registered_proof {
+						real: anon,
+						force_proxy_type: None,
+						call: call.clone(),
+					}
+					.into()
+				]
+			})
+			.dispatch(RuntimeOrigin::signed(1))
+			.map_err(|e| e.error),
+			Error::<Test>::ProxyProofNotRegistered
+		);
+	});
+}
 					call,
 				}
 				.into()
