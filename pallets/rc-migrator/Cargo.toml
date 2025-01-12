@@ -12,7 +12,6 @@ codec = { workspace = true, features = ["max-encoded-len"] }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
 log = { workspace = true }
-
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -20,10 +19,9 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
-
 pallet-balances = { workspace = true }
 pallet-staking = { workspace = true }
-
+pallet-multisig = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
@@ -39,6 +37,7 @@ std = [
 	"frame-system/std",
 	"log/std",
 	"pallet-balances/std",
+	"pallet-multisig/std",
 	"pallet-staking/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
@@ -56,6 +55,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
@@ -66,6 +66,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-multisig/try-runtime",
 	"pallet-staking/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",

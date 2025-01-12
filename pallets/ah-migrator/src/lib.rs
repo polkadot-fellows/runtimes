@@ -31,6 +31,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod account;
+pub mod multisig;
 pub mod types;
 pub use pallet::*;
 
@@ -44,7 +46,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::accounts::Account as RcAccount;
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*};
 use sp_application_crypto::Ss58Codec;
 use sp_runtime::{traits::Convert, AccountId32};
 use sp_std::prelude::*;
@@ -62,6 +64,7 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
+		+ pallet_multisig::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -91,10 +94,21 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	//#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// TODO
 		TODO,
+		/// We received a batch of multisigs that we are going to integrate.
+		MultisigBatchReceived {
+			/// How many multisigs are in the batch.
+			count: u32,
+		},
+		MultisigBatchProcessed {
+			/// How many multisigs were successfully integrated.
+			count_good: u32,
+			/// How many multisigs failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -109,7 +123,6 @@ pub mod pallet {
 		///
 		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
-		#[pallet::weight({1})]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
@@ -121,96 +134,20 @@ pub mod pallet {
 
 			Ok(())
 		}
-	}
 
-	impl<T: Config> Pallet<T> {
-		fn do_receive_accounts(
-			accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
-		) -> Result<(), Error<T>> {
-			log::debug!(target: LOG_TARGET, "Integrating {} accounts", accounts.len());
+		/// Receive multisigs from the Relay Chain.
+		///
+		/// This will be called from an XCM `Transact` inside a DMP from the relay chain. The
+		/// multisigs were prepared by
+		/// `pallet_rc_migrator::multisig::MultisigMigrator::migrate_many`.
+		#[pallet::call_index(1)]
+		pub fn receive_multisigs(
+			origin: OriginFor<T>,
+			accounts: Vec<RcMultisigOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
 
-			for account in accounts {
-				let _: Result<(), ()> = with_transaction_opaque_err::<(), (), _>(|| {
-					match Self::do_receive_account(account) {
-						Ok(()) => TransactionOutcome::Commit(Ok(())),
-						Err(_) => TransactionOutcome::Rollback(Ok(())),
-					}
-				})
-				.expect("Always returning Ok; qed");
-			}
-
-			Ok(())
-		}
-
-		/// MAY CHANGED STORAGE ON ERROR RETURN
-		fn do_receive_account(
-			account: RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
-		) -> Result<(), Error<T>> {
-			let who = account.who;
-			let total_balance = account.free + account.reserved;
-			let minted = match T::Currency::mint_into(&who, total_balance) {
-				Ok(minted) => minted,
-				Err(e) => {
-					log::error!(target: LOG_TARGET, "Failed to mint into account {}: {:?}", who.to_ss58check(), e);
-					return Err(Error::<T>::TODO);
-				},
-			};
-			debug_assert!(minted == total_balance);
-
-			for hold in account.holds {
-				if let Err(e) =
-					T::Currency::hold(&T::RcToAhHoldReason::convert(hold.id), &who, hold.amount)
-				{
-					log::error!(target: LOG_TARGET, "Failed to hold into account {}: {:?}", who.to_ss58check(), e);
-					return Err(Error::<T>::TODO);
-				}
-			}
-
-			if let Err(e) = T::Currency::reserve(&who, account.unnamed_reserve) {
-				log::error!(target: LOG_TARGET, "Failed to reserve into account {}: {:?}", who.to_ss58check(), e);
-				return Err(Error::<T>::TODO);
-			}
-
-			for freeze in account.freezes {
-				if let Err(e) = T::Currency::set_freeze(
-					&T::RcToAhFreezeReason::convert(freeze.id),
-					&who,
-					freeze.amount,
-				) {
-					log::error!(target: LOG_TARGET, "Failed to freeze into account {}: {:?}", who.to_ss58check(), e);
-					return Err(Error::<T>::TODO);
-				}
-			}
-
-			for lock in account.locks {
-				T::Currency::set_lock(
-					lock.id,
-					&who,
-					lock.amount,
-					types::map_lock_reason(lock.reasons),
-				);
-			}
-
-			log::debug!(
-				target: LOG_TARGET,
-				"Integrating account: {}", who.to_ss58check(),
-			);
-
-			// TODO run some post-migration sanity checks
-
-			// Apply all additional consumers that were excluded from the balance stuff above:
-			for _ in 0..account.consumers {
-				if let Err(e) = frame_system::Pallet::<T>::inc_consumers(&who) {
-					log::error!(target: LOG_TARGET, "Failed to inc consumers for account {}: {:?}", who.to_ss58check(), e);
-					return Err(Error::<T>::TODO);
-				}
-			}
-			for _ in 0..account.providers {
-				frame_system::Pallet::<T>::inc_providers(&who);
-			}
-
-			// TODO: publish event
-			Ok(())
+			Self::do_receive_multisigs(accounts).map_err(Into::into)
 		}
 	}
 

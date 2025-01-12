@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
+pub mod multisig;
 pub mod types;
 mod weights;
 pub use pallet::*;
@@ -60,6 +61,9 @@ use types::AhWeightInfo;
 use weights::WeightInfo;
 use xcm::prelude::*;
 
+use multisig::MultisigMigrator;
+use types::PalletMigration;
+
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
 
@@ -69,13 +73,27 @@ pub enum MigrationStage<AccountId> {
 	#[default]
 	Pending,
 	/// Initializing the account migration process.
-	InitAccountMigration,
+	AccountsMigrationInit,
 	// TODO: Initializing?
 	/// Migrating account balances.
-	MigratingAccounts {
+	AccountsMigrationOngoing {
 		// Last migrated account
-		last_key: Option<AccountId>,
+		last_key: AccountId,
 	},
+	/// Accounts migration is done. Ready to go to the next one.
+	///
+	/// Note that this stage does not have any logic attached to itself. It just exists to make it
+	/// easier to swap out what stage should run next for testing.
+	AccountsMigrationDone,
+	MultisigMigrationInit,
+	MultiSigMigrationOngoing {
+		/// Last migrated key of the `Multisigs` double map.
+		///
+		/// The MEL bound must be able to hold an `AccountId32` and a 32 byte hash. TODO 1024 is
+		/// probably overkill, but we can optimize later.
+		last_key: BoundedVec<u8, ConstU32<1024>>,
+	},
+	MultisigMigrationDone,
 	/// Some next stage
 	TODO,
 }
@@ -98,6 +116,7 @@ pub mod pallet {
 		+ pallet_balances::Config<Balance = u128>
 		+ hrmp::Config
 		+ paras_registrar::Config
+		+ pallet_multisig::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -176,14 +195,6 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
-		fn transition(new_stage: MigrationStage<T::AccountId>) {
-			let old = RcMigrationStage::<T>::get();
-			RcMigrationStage::<T>::put(&new_stage);
-			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), old, new_stage);
-		}
-	}
-
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
@@ -191,58 +202,125 @@ pub mod pallet {
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
-			if stage == MigrationStage::Pending {
-				// TODO: not complete
+			match stage {
+				MigrationStage::Pending => {
+					// TODO: not complete
 
-				let _ = Self::obtain_rc_accounts();
-				Self::transition(MigrationStage::InitAccountMigration);
+					let _ = Self::obtain_rc_accounts();
+					Self::transition(MigrationStage::AccountsMigrationInit);
+					//Self::transition(MigrationStage::MultisigMigrationInit);
+				},
+				MigrationStage::AccountsMigrationInit => {
+					let first_acc = match Self::first_account(&mut weight_counter).defensive() {
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Error while obtaining first account: {:?}. Retrying with higher weight.", e);
+							Self::first_account(&mut WeightMeter::new()).unwrap_or_default()
+						},
+						Ok(acc) => acc,
+					};
 
-				return weight_counter.consumed();
-			}
-
-			if stage == MigrationStage::InitAccountMigration {
-				let first_acc = match Self::first_account(&mut weight_counter).defensive() {
-					Err(e) => {
-						log::error!(target: LOG_TARGET, "Error while obtaining first account: {:?}. Retrying with higher weight.", e);
-						Self::first_account(&mut WeightMeter::new()).unwrap_or_default()
-					},
-					Ok(acc) => acc,
-				};
-
-				Self::transition(MigrationStage::MigratingAccounts { last_key: first_acc });
-				return weight_counter.consumed();
-			}
-
-			if let MigrationStage::MigratingAccounts { last_key } = stage {
-				let res = with_transaction_opaque_err::<Option<T::AccountId>, Error<T>, _>(|| {
-					TransactionOutcome::Commit(Self::migrate_accounts(
-						last_key,
-						&mut weight_counter,
-					))
-				})
-				.expect("Always returning Ok; qed");
-
-				match res {
-					Ok(None) => {
-						// accounts migration is completed
-						// TODO publish event
-						Self::transition(MigrationStage::TODO);
-					},
-					Ok(Some(last_key)) => {
-						// accounts migration continues with the next block
-						// TODO publish event
-						Self::transition(MigrationStage::MigratingAccounts {
-							last_key: Some(last_key),
+					if let Some(first_acc) = first_acc {
+						Self::transition(MigrationStage::AccountsMigrationOngoing {
+							last_key: first_acc,
 						});
-					},
-					_ => {
-						// TODO handle error
-					},
-				}
-				return weight_counter.consumed();
+					} else {
+						// No keys to migrate at all.
+						Self::transition(MigrationStage::AccountsMigrationDone);
+					}
+				},
+
+				MigrationStage::AccountsMigrationOngoing { last_key } => {
+					let res =
+						with_transaction_opaque_err::<Option<T::AccountId>, Error<T>, _>(|| {
+							TransactionOutcome::Commit(Self::migrate_accounts(
+								last_key,
+								&mut weight_counter,
+							))
+						})
+						.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							// accounts migration is completed
+							// TODO publish event
+							Self::transition(MigrationStage::AccountsMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							// accounts migration continues with the next block
+							// TODO publish event
+							Self::transition(MigrationStage::AccountsMigrationOngoing { last_key });
+						},
+						_ => {
+							// TODO handle error
+						},
+					}
+				},
+				MigrationStage::AccountsMigrationDone => {
+					// Note: swap this out for faster testing
+					Self::transition(MigrationStage::MultisigMigrationInit);
+				},
+				MigrationStage::MultisigMigrationInit => {
+					let first_key = match MultisigMigrator::<T>::first_key(&mut weight_counter)
+						.defensive()
+					{
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Error while obtaining first multisig: {:?}. Retrying with higher weight.", e);
+							MultisigMigrator::<T>::first_key(&mut WeightMeter::new())
+								.unwrap_or_default()
+						},
+						Ok(key) => key,
+					};
+
+					if let Some(first_key) = first_key {
+						Self::transition(MigrationStage::MultiSigMigrationOngoing {
+							last_key: first_key,
+						});
+					} else {
+						// No keys to migrate at all.
+						Self::transition(MigrationStage::MultisigMigrationDone);
+					}
+				},
+				MigrationStage::MultiSigMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(MultisigMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							// multisig migration is completed
+							// TODO publish event
+							Self::transition(MigrationStage::MultisigMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							// multisig migration continues with the next block
+							// TODO publish event
+							Self::transition(MigrationStage::MultiSigMigrationOngoing { last_key });
+						},
+						_ => {
+							// TODO handle error
+						},
+					}
+				},
+				MigrationStage::MultisigMigrationDone => {},
+				MigrationStage::TODO => {
+					todo!()
+				},
 			};
 
 			weight_counter.consumed()
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		/// Execute a stage transition and log it.
+		fn transition(new_stage: MigrationStage<T::AccountId>) {
+			let old = RcMigrationStage::<T>::get();
+			RcMigrationStage::<T>::put(&new_stage);
+			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), old, new_stage);
 		}
 	}
 }

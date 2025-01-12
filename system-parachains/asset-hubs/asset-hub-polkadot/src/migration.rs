@@ -49,8 +49,7 @@ pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, ()> for RcToAhFreezeReason {
 	fn convert(a: RcFreezeReason) {
 		match a {
-			// TODO mapping
-			_ => (),
+			_TODO => (),
 		}
 	}
 }

@@ -18,6 +18,8 @@
 
 use super::*;
 
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+
 /// Relay Chain Freeze Reason
 #[derive(Encode, Decode)]
 pub enum AssetHubPalletConfig<T: Config> {
@@ -30,6 +32,8 @@ pub enum AssetHubPalletConfig<T: Config> {
 pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 0)]
 	ReceiveAccounts { accounts: Vec<accounts::AccountFor<T>> },
+	#[codec(index = 1)]
+	ReceiveMultisigs { multisigs: Vec<multisig::RcMultisigOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -56,4 +60,15 @@ impl AhWeightInfo for () {
 	fn migrate_account() -> Weight {
 		Weight::from_all(1)
 	}
+}
+
+pub trait PalletMigration {
+	type Key;
+	type Error;
+
+	fn first_key(weight: &mut WeightMeter) -> Result<Option<Self::Key>, Self::Error>;
+	fn migrate_many(
+		maybe_last_key: Self::Key,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error>;
 }
