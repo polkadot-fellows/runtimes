@@ -988,7 +988,7 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			let latest_asset_id: Result<XcmAssetId, ()> = asset.clone().try_into();
 			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::KsmLocation::get() => {
 					// for native token
