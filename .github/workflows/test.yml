@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-v1.13.0
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
 
 # cancel previous runs
 concurrency:
@@ -102,6 +102,8 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+          WS: ${{ matrix.runtime.uri }}
+          RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
