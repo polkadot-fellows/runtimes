@@ -913,6 +913,7 @@ impl_runtime_apis! {
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use sp_storage::TrackedStorageKey;
+			use pallet_broker::CoreMask;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {
@@ -980,7 +981,7 @@ impl_runtime_apis! {
 					let begin = 0;
 					let end = 42;
 
-					let region_id = pallet_broker::Pallet::<Runtime>::issue(core, begin, end, None, None);
+					let region_id = pallet_broker::Pallet::<Runtime>::issue(core, begin, CoreMask::complete(), end, None, None);
 					Some((
 						Asset {
 							fun: NonFungible(Index(region_id.into())),
