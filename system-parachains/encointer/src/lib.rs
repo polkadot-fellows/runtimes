@@ -562,6 +562,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
+	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
 }
 
 impl pallet_aura::Config for Runtime {
