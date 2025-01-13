@@ -188,7 +188,7 @@ fn call_transfer(dest: u64, value: u64) -> RuntimeCall {
 fn remote_proxy_works() {
 	let mut ext = new_test_ext();
 
-	ext.execute_with(|| {
+	let anon = ext.execute_with(|| {
 		Balances::make_free_balance_be(&1, 11); // An extra one for the ED.
 		assert_ok!(Proxy::create_pure(RuntimeOrigin::signed(1), ProxyType::Any, 0, 0));
 		let anon = Proxy::pure_account(&1, &ProxyType::Any, 0, None);
@@ -201,17 +201,17 @@ fn remote_proxy_works() {
 			}
 			.into(),
 		);
+		anon
 	});
 
 	let proof = sp_state_machine::prove_read(
 		ext.as_backend(),
-		[pallet_proxy::Proxies::<Test>::hashed_key_for(&1)],
+		[pallet_proxy::Proxies::<Test>::hashed_key_for(anon)],
 	)
 	.unwrap();
 	let root = *ext.as_backend().root();
 
 	new_test_ext().execute_with(|| {
-		let anon = Proxy::pure_account(&1, &ProxyType::Any, 0, None);
 		let call = Box::new(call_transfer(6, 1));
 		assert_ok!(Balances::transfer_allow_death(RuntimeOrigin::signed(3), anon, 5));
 		assert_eq!(Balances::free_balance(6), 0);
@@ -266,7 +266,7 @@ fn remote_proxy_works() {
 fn remote_proxy_register_works() {
 	let mut ext = new_test_ext();
 
-	ext.execute_with(|| {
+	let anon = ext.execute_with(|| {
 		Balances::make_free_balance_be(&1, 11); // An extra one for the ED.
 		assert_ok!(Proxy::create_pure(RuntimeOrigin::signed(1), ProxyType::Any, 0, 0));
 		let anon = Proxy::pure_account(&1, &ProxyType::Any, 0, None);
@@ -279,17 +279,17 @@ fn remote_proxy_register_works() {
 			}
 			.into(),
 		);
+		anon
 	});
 
 	let proof = sp_state_machine::prove_read(
 		ext.as_backend(),
-		[pallet_proxy::Proxies::<Test>::hashed_key_for(&1)],
+		[pallet_proxy::Proxies::<Test>::hashed_key_for(anon)],
 	)
 	.unwrap();
 	let root = *ext.as_backend().root();
 
 	new_test_ext().execute_with(|| {
-		let anon = Proxy::pure_account(&1, &ProxyType::Any, 0, None);
 		let call = Box::new(call_transfer(6, 1));
 		assert_ok!(Balances::transfer_allow_death(RuntimeOrigin::signed(3), anon, 5));
 		assert_eq!(Balances::free_balance(6), 0);
@@ -383,7 +383,98 @@ fn remote_proxy_register_works() {
 		);
 	});
 }
-					call,
+
+#[test]
+fn remote_proxy_multiple_register_works() {
+	let mut ext = new_test_ext();
+
+	let (anon, anon2) = ext.execute_with(|| {
+		Balances::make_free_balance_be(&1, 11); // An extra one for the ED.
+		assert_ok!(Proxy::create_pure(RuntimeOrigin::signed(1), ProxyType::Any, 0, 0));
+		let anon = Proxy::pure_account(&1, &ProxyType::Any, 0, None);
+		System::assert_last_event(
+			ProxyEvent::PureCreated {
+				pure: anon,
+				who: 1,
+				proxy_type: ProxyType::Any,
+				disambiguation_index: 0,
+			}
+			.into(),
+		);
+
+		Balances::make_free_balance_be(&2, 11); // An extra one for the ED.
+		assert_ok!(Proxy::create_pure(RuntimeOrigin::signed(1), ProxyType::Any, 0, 1));
+		let anon2 = Proxy::pure_account(&1, &ProxyType::Any, 1, None);
+		System::assert_last_event(
+			ProxyEvent::PureCreated {
+				pure: anon2,
+				who: 1,
+				proxy_type: ProxyType::Any,
+				disambiguation_index: 1,
+			}
+			.into(),
+		);
+
+		(anon, anon2)
+	});
+
+	let proof = sp_state_machine::prove_read(
+		ext.as_backend(),
+		[pallet_proxy::Proxies::<Test>::hashed_key_for(anon)],
+	)
+	.unwrap();
+
+	let proof2 = sp_state_machine::prove_read(
+		ext.as_backend(),
+		[pallet_proxy::Proxies::<Test>::hashed_key_for(anon2)],
+	)
+	.unwrap();
+
+	let root = *ext.as_backend().root();
+
+	new_test_ext().execute_with(|| {
+		let call = Box::new(call_transfer(6, 1));
+		assert_ok!(Balances::transfer_allow_death(RuntimeOrigin::signed(3), anon, 5));
+		assert_ok!(Balances::transfer_allow_death(RuntimeOrigin::signed(4), anon2, 5));
+		assert_eq!(Balances::free_balance(6), 0);
+		assert_err!(
+			Proxy::proxy(RuntimeOrigin::signed(1), anon, None, call.clone()),
+			ProxyError::<Test>::NotProxy
+		);
+		assert_eq!(Balances::free_balance(6), 0);
+
+		RemoteProxy::on_validation_data(&PersistedValidationData {
+			parent_head: vec![].into(),
+			relay_parent_number: 1,
+			relay_parent_storage_root: root,
+			max_pov_size: 5000000,
+		});
+		assert_ok!(RuntimeCall::from(UtilityCall::batch {
+			calls: vec![
+				crate::Call::register_remote_proxy_proof {
+					proof: RemoteProxyProof::V1 {
+						proof: proof.clone().into_iter_nodes().collect(),
+						block: 1
+					}
+				}
+				.into(),
+				crate::Call::remote_proxy_with_registered_proof {
+					real: anon,
+					force_proxy_type: None,
+					call: call.clone(),
+				}
+				.into(),
+				crate::Call::register_remote_proxy_proof {
+					proof: RemoteProxyProof::V1 {
+						proof: proof2.clone().into_iter_nodes().collect(),
+						block: 1
+					}
+				}
+				.into(),
+				crate::Call::remote_proxy_with_registered_proof {
+					real: anon2,
+					force_proxy_type: None,
+					call: call.clone(),
 				}
 				.into()
 			]
@@ -391,6 +482,73 @@ fn remote_proxy_register_works() {
 		.dispatch(RuntimeOrigin::signed(1)));
 
 		System::assert_has_event(ProxyEvent::ProxyExecuted { result: Ok(()) }.into());
-		assert_eq!(Balances::free_balance(6), 1);
+		System::reset_events();
+		assert_eq!(Balances::free_balance(6), 2);
+
+		assert_ok!(RuntimeCall::from(UtilityCall::batch {
+			calls: vec![
+				crate::Call::register_remote_proxy_proof {
+					proof: RemoteProxyProof::V1 {
+						proof: proof.clone().into_iter_nodes().collect(),
+						block: 1
+					}
+				}
+				.into(),
+				crate::Call::register_remote_proxy_proof {
+					proof: RemoteProxyProof::V1 {
+						proof: proof2.clone().into_iter_nodes().collect(),
+						block: 1
+					}
+				}
+				.into(),
+				crate::Call::remote_proxy_with_registered_proof {
+					real: anon2,
+					force_proxy_type: None,
+					call: call.clone(),
+				}
+				.into(),
+				crate::Call::remote_proxy_with_registered_proof {
+					real: anon,
+					force_proxy_type: None,
+					call: call.clone(),
+				}
+				.into()
+			]
+		})
+		.dispatch(RuntimeOrigin::signed(1)));
+
+		System::assert_has_event(ProxyEvent::ProxyExecuted { result: Ok(()) }.into());
+		System::reset_events();
+		assert_eq!(Balances::free_balance(6), 4);
+
+		assert_err!(
+			RuntimeCall::from(UtilityCall::batch_all {
+				calls: vec![
+					crate::Call::register_remote_proxy_proof {
+						proof: RemoteProxyProof::V1 {
+							proof: proof.clone().into_iter_nodes().collect(),
+							block: 1
+						}
+					}
+					.into(),
+					crate::Call::register_remote_proxy_proof {
+						proof: RemoteProxyProof::V1 {
+							proof: proof2.clone().into_iter_nodes().collect(),
+							block: 1
+						}
+					}
+					.into(),
+					crate::Call::remote_proxy_with_registered_proof {
+						real: anon,
+						force_proxy_type: None,
+						call: call.clone(),
+					}
+					.into(),
+				]
+			})
+			.dispatch(RuntimeOrigin::signed(1))
+			.map_err(|e| e.error),
+			Error::<Test>::InvalidProof
+		);
 	});
 }
