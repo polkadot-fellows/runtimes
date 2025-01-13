@@ -16,11 +16,11 @@
 // limitations under the License.
 
 use crate::{types::*, *};
-use sp_runtime::BoundedSlice;
+use sp_runtime::{traits::Zero, BoundedSlice};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::ProxyBatchReceived { count: proxies.len() as u32 });
+		Self::deposit_event(Event::ProxyProxiesBatchReceived { count: proxies.len() as u32 });
 		let (mut count_good, mut count_bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} proxies", proxies.len());
 
@@ -33,7 +33,7 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		Self::deposit_event(Event::ProxyBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::ProxyProxiesBatchProcessed { count_good, count_bad });
 
 		Ok(())
 	}
@@ -77,6 +77,46 @@ impl<T: Config> Pallet<T> {
 
 		// Add the proxies
 		pallet_proxy::Proxies::<T>::insert(proxy.delegator, (bounded_proxies, proxy.deposit));
+
+		Ok(())
+	}
+
+	pub fn do_receive_proxy_announcements(
+		announcements: Vec<RcProxyAnnouncementOf<T>>,
+	) -> Result<(), Error<T>> {
+		Self::deposit_event(Event::ProxyAnnouncementsBatchReceived {
+			count: announcements.len() as u32,
+		});
+
+		let (mut count_good, mut count_bad) = (0, 0);
+		log::info!(target: LOG_TARGET, "Integrating {} proxy announcements", announcements.len());
+
+		for announcement in announcements {
+			match Self::do_receive_proxy_announcement(announcement) {
+				Ok(()) => count_good += 1,
+				Err(e) => {
+					count_bad += 1;
+					log::error!(target: LOG_TARGET, "Error while integrating proxy announcement: {:?}", e);
+				},
+			}
+		}
+
+		Self::deposit_event(Event::ProxyAnnouncementsBatchProcessed { count_good, count_bad });
+
+		Ok(())
+	}
+
+	pub fn do_receive_proxy_announcement(
+		announcement: RcProxyAnnouncementOf<T>,
+	) -> Result<(), Error<T>> {
+		let missing = <T as pallet_proxy::Config>::Currency::unreserve(
+			&announcement.depositor,
+			announcement.deposit,
+		);
+
+		if !missing.is_zero() {
+			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, missing {:?}", announcement.depositor.to_ss58check(), missing);
+		}
 
 		Ok(())
 	}

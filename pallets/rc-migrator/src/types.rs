@@ -35,7 +35,9 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 1)]
 	ReceiveMultisigs { multisigs: Vec<multisig::RcMultisigOf<T>> },
 	#[codec(index = 2)]
-	ReceiveProxies { proxies: Vec<proxy::RcProxyLocalOf<T>> },
+	ReceiveProxyProxies { proxies: Vec<proxy::RcProxyLocalOf<T>> },
+	#[codec(index = 3)]
+	ReceiveProxyAnnouncements { announcements: Vec<RcProxyAnnouncementOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

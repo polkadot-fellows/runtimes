@@ -94,8 +94,13 @@ pub enum MigrationStage<AccountId> {
 	},
 	MultisigMigrationDone,
 	ProxyMigrationInit,
-	ProxyMigrationOngoing {
-		last_key: Option<AccountId32>,
+	/// Currently migrating the proxies of the proxy pallet.
+	ProxyMigrationProxies {
+		last_key: Option<AccountId>,
+	},
+	/// Currently migrating the announcements of the proxy pallet.
+	ProxyMigrationAnnouncements {
+		last_key: Option<AccountId>,
 	},
 	ProxyMigrationDone,
 }
@@ -296,11 +301,37 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
-					Self::transition(MigrationStage::ProxyMigrationOngoing { last_key: None });
+					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
 				},
-				MigrationStage::ProxyMigrationOngoing { last_key } => {
+				MigrationStage::ProxyMigrationProxies { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(ProxyMigrator::<T>::migrate_many(
+						TransactionOutcome::Commit(ProxyProxiesMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
+								last_key: None,
+							});
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::ProxyMigrationProxies {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating proxies: {:?}", e);
+							defensive!("Error while migrating proxies");
+						},
+					}
+				},
+				MigrationStage::ProxyMigrationAnnouncements { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(ProxyAnnouncementMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						))
@@ -312,13 +343,13 @@ pub mod pallet {
 							Self::transition(MigrationStage::ProxyMigrationDone);
 						},
 						Ok(Some(last_key)) => {
-							Self::transition(MigrationStage::ProxyMigrationOngoing {
+							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
 								last_key: Some(last_key),
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating proxies: {:?}", e);
-							defensive!("Error while migrating proxies");
+							log::error!(target: LOG_TARGET, "Error while migrating proxy announcements: {:?}", e);
+							defensive!("Error while migrating proxy announcements");
 						},
 					}
 				},

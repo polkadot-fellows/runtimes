@@ -24,7 +24,11 @@ use crate::{types::*, *};
 use alloc::vec::Vec;
 use sp_core::ByteArray;
 
-pub struct ProxyMigrator<T: Config> {
+pub struct ProxyProxiesMigrator<T: Config> {
+	_marker: sp_std::marker::PhantomData<T>,
+}
+
+pub struct ProxyAnnouncementMigrator<T: Config> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
@@ -48,14 +52,23 @@ pub type RcProxyOf<T, ProxyType> =
 /// A RcProxy in Relay chain format, can only be understood by the RC and must be translated first.
 pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::ProxyType>;
 
-impl<T: Config> PalletMigration for ProxyMigrator<T> {
+/// A deposit that was taken for a proxy announcement.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct RcProxyAnnouncement<AccountId, Balance> {
+	pub depositor: AccountId,
+	pub deposit: Balance,
+}
+
+pub type RcProxyAnnouncementOf<T> = RcProxyAnnouncement<AccountIdOf<T>, BalanceOf<T>>;
+
+impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 	type Key = T::AccountId;
 	type Error = Error<T>;
 
 	fn migrate_many(
-		mut last_key: Option<Self::Key>,
+		mut last_key: Option<AccountIdOf<T>>,
 		weight_counter: &mut WeightMeter,
-	) -> Result<Option<Self::Key>, Self::Error> {
+	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
 		let mut batch = Vec::new();
 
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
@@ -113,7 +126,7 @@ impl<T: Config> PalletMigration for ProxyMigrator<T> {
 	}
 }
 
-impl<T: Config> ProxyMigrator<T> {
+impl<T: Config> ProxyProxiesMigrator<T> {
 	fn migrate_single(
 		acc: AccountIdOf<T>,
 		(proxies, deposit): (
@@ -162,7 +175,93 @@ impl<T: Config> ProxyMigrator<T> {
 
 			log::info!(target: LOG_TARGET, "Sending batch of {} proxies", batch.len());
 			let call = types::AssetHubPalletConfig::<T>::AhmController(
-				types::AhMigratorCall::<T>::ReceiveProxies { proxies: batch },
+				types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
+			);
+
+			let message = Xcm(vec![
+				Instruction::UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Instruction::Transact {
+					origin_kind: OriginKind::Superuser,
+					require_weight_at_most: Weight::from_all(1), // TODO
+					call: call.encode().into(),
+				},
+			]);
+
+			if let Err(err) = send_xcm::<T::SendXcm>(
+				Location::new(0, [Junction::Parachain(1000)]),
+				message.clone(),
+			) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				return Err(Error::TODO);
+			};
+		}
+
+		Ok(())
+	}
+}
+
+impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
+	type Key = T::AccountId;
+	type Error = Error<T>;
+
+	fn migrate_many(
+		last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error> {
+		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+			return Err(Error::<T>::OutOfWeight);
+		}
+
+		let mut batch = Vec::new();
+		let mut iter = if let Some(last_key) = last_key {
+			pallet_proxy::Proxies::<T>::iter_from(pallet_proxy::Proxies::<T>::hashed_key_for(
+				&last_key,
+			))
+		} else {
+			pallet_proxy::Proxies::<T>::iter()
+		};
+
+		while let Some((acc, (_announcements, deposit))) = iter.next() {
+			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+				break;
+			}
+
+			batch.push(RcProxyAnnouncement { depositor: acc, deposit });
+		}
+
+		if !batch.is_empty() {
+			Self::send_batch_xcm(batch)?;
+		}
+
+		Ok(None)
+	}
+}
+
+impl<T: Config> ProxyAnnouncementMigrator<T> {
+	fn send_batch_xcm(mut announcements: Vec<RcProxyAnnouncementOf<T>>) -> Result<(), Error<T>> {
+		const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
+
+		while !announcements.is_empty() {
+			let mut remaining_size: u32 = MAX_MSG_SIZE;
+			let mut batch = Vec::new();
+
+			while !announcements.is_empty() {
+				let announcement = announcements.last().unwrap(); // FAIL-CI no unwrap
+				let msg_size = announcement.encoded_size() as u32;
+				if msg_size > remaining_size {
+					break;
+				}
+				remaining_size -= msg_size;
+
+				batch.push(announcements.pop().unwrap()); // FAIL-CI no unwrap
+			}
+
+			log::info!(target: LOG_TARGET, "Sending batch of {} proxy announcements", batch.len());
+			let call = types::AssetHubPalletConfig::<T>::AhmController(
+				types::AhMigratorCall::<T>::ReceiveProxyAnnouncements { announcements: batch },
 			);
 
 			let message = Xcm(vec![

@@ -125,15 +125,27 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		/// We received a batch of proxies that we are going to integrate.
-		ProxyBatchReceived {
+		ProxyProxiesBatchReceived {
 			/// How many proxies are in the batch.
 			count: u32,
 		},
 		/// We processed a batch of proxies that we received.
-		ProxyBatchProcessed {
+		ProxyProxiesBatchProcessed {
 			/// How many proxies were successfully integrated.
 			count_good: u32,
 			/// How many proxies failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of proxy announcements that we are going to integrate.
+		ProxyAnnouncementsBatchReceived {
+			/// How many proxy announcements are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of proxy announcements that we received.
+		ProxyAnnouncementsBatchProcessed {
+			/// How many proxy announcements were successfully integrated.
+			count_good: u32,
+			/// How many proxy announcements failed to integrate.
 			count_bad: u32,
 		},
 	}
@@ -179,13 +191,23 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
-		pub fn receive_proxies(
+		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			Self::do_receive_proxies(proxies).map_err(Into::into)
+		}
+
+		/// Receive proxy announcements from the Relay Chain.
+		#[pallet::call_index(3)]
+		pub fn receive_proxy_announcements(
+			origin: OriginFor<T>,
+			announcements: Vec<RcProxyAnnouncementOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
 		}
 	}
 
