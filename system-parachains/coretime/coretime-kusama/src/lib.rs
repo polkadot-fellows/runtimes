@@ -244,7 +244,6 @@ impl pallet_authorship::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
-	pub const RandomParaId: ParaId = ParaId::new(43211234);
 }
 
 impl pallet_balances::Config for Runtime {
@@ -937,6 +936,7 @@ impl_runtime_apis! {
 					KsmRelayLocation::get(),
 					ExistentialDeposit::get()
 				).into());
+				pub const RandomParaId: ParaId = ParaId::new(43211234);
 			}
 
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
