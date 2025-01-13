@@ -33,7 +33,9 @@
 
 pub mod account;
 pub mod multisig;
+pub mod proxy;
 pub mod types;
+
 pub use pallet::*;
 
 use frame_support::{
@@ -41,14 +43,17 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
+		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*};
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, proxy::*};
 use sp_application_crypto::Ss58Codec;
-use sp_runtime::{traits::Convert, AccountId32};
+use sp_runtime::{
+	traits::{Convert, TryConvert},
+	AccountId32,
+};
 use sp_std::prelude::*;
 
 /// The log target of this pallet.
@@ -65,6 +70,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
+		+ pallet_proxy::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -85,6 +91,15 @@ pub mod pallet {
 		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping;
 		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
+		/// The abridged Relay Chain Proxy Type.
+		type RcProxyType: Parameter;
+		/// Convert a Relay Chain Proxy Type to a local AH one.
+		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
+		/// Convert a Relay Chain Proxy Delay to a local AH one.
+		///
+		/// Note that we make a simplification here by assuming that both chains have the same block
+		// number type.
+		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
 	}
 
 	#[pallet::error]
@@ -107,6 +122,18 @@ pub mod pallet {
 			/// How many multisigs were successfully integrated.
 			count_good: u32,
 			/// How many multisigs failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of proxies that we are going to integrate.
+		ProxyBatchReceived {
+			/// How many proxies are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of proxies that we received.
+		ProxyBatchProcessed {
+			/// How many proxies were successfully integrated.
+			count_good: u32,
+			/// How many proxies failed to integrate.
 			count_bad: u32,
 		},
 	}
@@ -148,6 +175,17 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_multisigs(accounts).map_err(Into::into)
+		}
+
+		/// Receive proxies from the Relay Chain.
+		#[pallet::call_index(2)]
+		pub fn receive_proxies(
+			origin: OriginFor<T>,
+			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_proxies(proxies).map_err(Into::into)
 		}
 	}
 

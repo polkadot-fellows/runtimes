@@ -465,6 +465,22 @@ pub enum ProxyType {
 	AssetManager,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
+
+	// New variants introduced by the Asset Hub Migration from the Relay Chain.
+	/// Allow to do governance.
+	///
+	/// Contains pallets `Treasury`, `Bounties`, `Utility`, `ChildBounties`, `ConvictionVoting`,
+	/// `Referenda` and `Whitelist`.
+	Governance,
+	/// Allows access to staking related calls.
+	///
+	/// Contains the `Staking`, `Session`, `Utility`, `FastUnstake`, `VoterList`, `NominationPools`
+	/// pallets.
+	Staking,
+	/// Allows access to nomination pools related calls.
+	///
+	/// Contains the `NominationPools` and `Utility` pallets.
+	NominationPools,
 }
 impl Default for ProxyType {
 	fn default() -> Self {
@@ -572,6 +588,30 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
+
+			// New variants introduced by the Asset Hub Migration from the Relay Chain.
+			// TODO: Uncomment once all these pallets are deployed.
+			ProxyType::Governance => matches!(
+				c,
+				//RuntimeCall::Treasury(..) |
+				//RuntimeCall::Bounties(..) |
+				RuntimeCall::Utility(..) /*RuntimeCall::ChildBounties(..) |
+				                          *RuntimeCall::ConvictionVoting(..) |
+				                          *RuntimeCall::Referenda(..) |
+				                          *RuntimeCall::Whitelist(..) */
+			),
+			ProxyType::Staking => {
+				matches!(
+					c,
+					//RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) | RuntimeCall::Utility(..) /*RuntimeCall::FastUnstake(..) |
+					                                                     *RuntimeCall::VoterList(..)
+					                                                     *RuntimeCall::NominationPools(..) */
+				)
+			},
+			ProxyType::NominationPools => {
+				matches!(c, /* RuntimeCall::NominationPools(..) | */ RuntimeCall::Utility(..))
+			},
 		}
 	}
 
@@ -582,7 +622,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(_, ProxyType::Any) => false,
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
-			(ProxyType::NonTransfer, ProxyType::Collator) => true,
+			(
+				ProxyType::NonTransfer,
+				ProxyType::Collator |
+				ProxyType::Governance |
+				ProxyType::Staking |
+				ProxyType::NominationPools,
+			) => true,
 			_ => false,
 		}
 	}
@@ -988,6 +1034,9 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcFreezeReason = migration::RcFreezeReason;
 	type RcToAhHoldReason = RcToAhHoldReason;
 	type RcToAhFreezeReason = RcToAhFreezeReason;
+	type RcProxyType = migration::RcProxyType;
+	type RcToProxyType = migration::RcToProxyType;
+	type RcToProxyDelay = migration::RcToProxyDelay;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

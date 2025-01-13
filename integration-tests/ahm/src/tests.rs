@@ -36,10 +36,8 @@ use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
 use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
-use tokio::sync::mpsc::channel;
 
-use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
-use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime::Runtime as Polkadot;
 
 use super::mock::*;
 
@@ -61,9 +59,9 @@ async fn account_migration_works() {
 			dmps.extend(new_dmps);
 
 			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::MultisigMigrationDone
+				pallet_rc_migrator::MigrationStage::ProxyMigrationDone
 			{
-				log::info!("Multisig migration done");
+				log::info!("Migration done");
 				break dmps;
 			}
 		}
