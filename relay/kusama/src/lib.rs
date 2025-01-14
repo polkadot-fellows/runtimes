@@ -641,16 +641,8 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
-/// Parameters for the `pallet-treasury` burn destination mechanism.
-#[derive(Debug, Encode, Decode, MaxEncodedLen, TypeInfo, Eq, PartialEq, Clone)]
-pub struct TreasuryBurnParameters {
-	/// A fraction of the treasury budget funds that, instead of burning, should be destined to
-	/// some account.
-	fraction: Permill,
-	/// An account for which the surplus funds that otherwise would be burnt should be
-	/// destined to.
-	account: AccountId,
-}
+#[derive(Default, MaxEncodedLen, Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Debug)]
+pub struct BurnDestinationAccount(pub Option<AccountId>);
 
 /// Dynamic params that can be adjusted at runtime.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
@@ -694,10 +686,11 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 1)]
 	pub mod treasury {
-		/// A structure that includes the fraction of treasury surplus to handle instead of
-		/// plainly burning. It is expected that these two values work together.
 		#[codec(index = 0)]
-		pub static BurnParameters: Option<TreasuryBurnParameters> = None;
+		pub static BurnPortion: Permill = Permill::from_percent(0);
+
+		#[codec(index = 1)]
+		pub static BurnDestination: BurnDestinationAccount = Default::default();
 	}
 }
 
@@ -874,9 +867,11 @@ pub struct TreasuryBurnHandler;
 
 impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
-		if let Some(TreasuryBurnParameters { account, .. }) =
-			dynamic_params::treasury::BurnParameters::get()
-		{
+		let portion = dynamic_params::treasury::BurnPortion::get();
+		let account = dynamic_params::treasury::BurnDestination::get();
+
+		if !portion.is_zero() && account.0.is_some() {
+			let account = account.0.expect("given `account.0.is_some`; qed");
 			// Must resolve into existing but better to be safe.
 			Balances::resolve_creating(&account, amount);
 		} else {
@@ -889,9 +884,13 @@ impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 
 impl Get<Permill> for TreasuryBurnHandler {
 	fn get() -> Permill {
-		dynamic_params::treasury::BurnParameters::get()
-			.map(|TreasuryBurnParameters { fraction, .. }| fraction)
-			.unwrap_or(Permill::zero())
+		let account = dynamic_params::treasury::BurnDestination::get();
+
+		if account.0.is_some() {
+			dynamic_params::treasury::BurnPortion::get()
+		} else {
+			Permill::zero()
+		}
 	}
 }
 
