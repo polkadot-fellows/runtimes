@@ -873,7 +873,6 @@ pub struct TreasuryBurnHandler;
 
 impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
-		let portion = dynamic_params::treasury::BurnPortion::get();
 		let destination = dynamic_params::treasury::BurnDestination::get();
 
 		if let BurnDestinationAccount(Some(account)) = destination {
