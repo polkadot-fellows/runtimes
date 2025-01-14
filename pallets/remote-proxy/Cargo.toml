@@ -12,6 +12,7 @@ scale-info = { features = ["derive"], workspace = true }
 
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-proxy = { workspace = true }
@@ -32,10 +33,22 @@ std = [
   "codec/std",
   "cumulus-pallet-parachain-system/std",
   "cumulus-primitives-core/std",
+  "frame-benchmarking/std",
   "frame-support/std",
   "frame-system/std",
   "pallet-proxy/std",
   "sp-core/std",
   "sp-trie/std",
   "sp-runtime/std",
+]
+
+runtime-benchmarks = [
+  "frame-benchmarking/runtime-benchmarks",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "pallet-proxy/runtime-benchmarks",
+  "pallet-balances/runtime-benchmarks",
+  "pallet-utility/runtime-benchmarks",
+  "cumulus-pallet-parachain-system/runtime-benchmarks",
+  "sp-runtime/runtime-benchmarks",
 ]

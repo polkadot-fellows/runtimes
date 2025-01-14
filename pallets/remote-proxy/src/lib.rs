@@ -16,6 +16,8 @@
 
 extern crate alloc;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 #[cfg(test)]
 mod tests;
 
@@ -73,6 +75,16 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 			Self::RemoteBlockNumber,
 		>,
 	) -> Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>>;
+
+	/// Create a remote proxy proof to be used in benchmarking.
+	///
+	/// Returns the `proof`, `block_number` and `storage_root`. The later are required to validate
+	/// the `proof`.
+	#[cfg(feature = "runtime-benchmarks")]
+	fn create_remote_proxy_proof(
+		caller: &AccountId,
+		proxy: &AccountId,
+	) -> (RemoteProxyProof<Self::RemoteBlockNumber>, Self::RemoteBlockNumber, Self::Hash);
 }
 
 #[frame_support::pallet]
