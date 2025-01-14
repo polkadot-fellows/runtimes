@@ -13,13 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use collectives_polkadot_runtime::{
-	Runtime, RuntimeCall, RuntimeOrigin, Block,
-};
+use collectives_polkadot_runtime::{Block, Runtime, RuntimeCall, RuntimeOrigin};
 
 #[test]
 fn xcm_payment_api_works() {
-    parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
+	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
 		Runtime,
 		RuntimeCall,
 		RuntimeOrigin,
