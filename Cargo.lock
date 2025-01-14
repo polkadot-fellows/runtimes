@@ -8661,9 +8661,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools"
-version = "35.0.0"
+version = "35.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c42906923f9f2b65b22f1211136b57c6878296ba6f6228a075c4442cc1fc1659"
+checksum = "50d04f050ab02af6cbe058e101abb8706be7f8ea7958e5bf1d4cd8caa6b66c71"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8701,9 +8701,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-nomination-pools-runtime-api"
-version = "33.0.0"
+version = "33.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a9e1cb89cc2e6df06ce274a7fc814e5e688aad04c43902a10191fa3d2a56a96"
+checksum = "03eea431eba0658ca763a078bd849e0622c37c85eddd011b8e886460b50c0827"
 dependencies = [
  "pallet-nomination-pools",
  "parity-scale-codec",
