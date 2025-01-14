@@ -12,7 +12,7 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "18.0.0" }
+asset-test-utils = { version = "20.0.0" }
 assets-common = { version = "0.18.3", default-features = false }
 authority-discovery-primitives = { version = "34.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.40.0", default-features = false, package = "sp-consensus-babe" }
@@ -173,7 +173,7 @@ pallet-xcm-bridge-hub = { version = "0.13.0", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.15.1", default-features = false }
 parachain-info = { version = "0.17.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "18.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "17.0.0" }
+parachains-runtimes-test-utils = { version = "19.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.25.0" }
@@ -211,7 +211,7 @@ snowbridge-pallet-outbound-queue = { version = "0.10.0", default-features = fals
 snowbridge-pallet-system = { version = "0.10.0", default-features = false }
 snowbridge-router-primitives = { version = "0.16.0", default-features = false }
 snowbridge-runtime-common = { version = "0.10.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.10.0" }
+snowbridge-runtime-test-common = { version = "0.12.0" }
 snowbridge-system-runtime-api = { version = "0.10.0", default-features = false }
 sp-api = { version = "34.0.0", default-features = false }
 sp-application-crypto = { version = "38.0.0", default-features = false }
