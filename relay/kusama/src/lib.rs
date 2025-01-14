@@ -644,6 +644,12 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 #[derive(Default, MaxEncodedLen, Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Debug)]
 pub struct BurnDestinationAccount(pub Option<AccountId>);
 
+impl BurnDestinationAccount {
+	pub fn is_set(&self) -> bool {
+		self.0.is_some()
+	}
+}
+
 /// Dynamic params that can be adjusted at runtime.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
@@ -868,10 +874,9 @@ pub struct TreasuryBurnHandler;
 impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
 		let portion = dynamic_params::treasury::BurnPortion::get();
-		let account = dynamic_params::treasury::BurnDestination::get();
+		let destination = dynamic_params::treasury::BurnDestination::get();
 
-		if !portion.is_zero() && account.0.is_some() {
-			let account = account.0.expect("given `account.0.is_some`; qed");
+		if let BurnDestinationAccount(Some(account)) = destination {
 			// Must resolve into existing but better to be safe.
 			Balances::resolve_creating(&account, amount);
 		} else {
@@ -884,9 +889,9 @@ impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
 
 impl Get<Permill> for TreasuryBurnHandler {
 	fn get() -> Permill {
-		let account = dynamic_params::treasury::BurnDestination::get();
+		let destination = dynamic_params::treasury::BurnDestination::get();
 
-		if account.0.is_some() {
+		if destination.is_set() {
 			dynamic_params::treasury::BurnPortion::get()
 		} else {
 			Permill::zero()
