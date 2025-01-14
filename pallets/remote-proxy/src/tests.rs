@@ -232,7 +232,10 @@ fn remote_proxy_works() {
 			anon,
 			None,
 			call.clone(),
-			RemoteProxyProof::V1 { proof: proof.clone().into_iter_nodes().collect(), block: 1 }
+			RemoteProxyProof::RelayChain {
+				proof: proof.clone().into_iter_nodes().collect(),
+				block: 1
+			}
 		));
 
 		System::assert_last_event(ProxyEvent::ProxyExecuted { result: Ok(()) }.into());
@@ -244,7 +247,7 @@ fn remote_proxy_works() {
 				anon,
 				None,
 				call.clone(),
-				RemoteProxyProof::V1 { proof: proof.into_iter_nodes().collect(), block: 2 }
+				RemoteProxyProof::RelayChain { proof: proof.into_iter_nodes().collect(), block: 2 }
 			),
 			Error::<Test>::UnknownProofAnchorBlock
 		);
@@ -255,7 +258,7 @@ fn remote_proxy_works() {
 				anon,
 				None,
 				call,
-				RemoteProxyProof::V1 { proof: Vec::new(), block: 1 }
+				RemoteProxyProof::RelayChain { proof: Vec::new(), block: 1 }
 			),
 			Error::<Test>::InvalidProof
 		);
@@ -308,7 +311,7 @@ fn remote_proxy_register_works() {
 		assert_ok!(RuntimeCall::from(UtilityCall::batch {
 			calls: vec![
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof.clone().into_iter_nodes().collect(),
 						block: 1
 					}
@@ -331,7 +334,7 @@ fn remote_proxy_register_works() {
 		assert_ok!(RuntimeCall::from(UtilityCall::batch {
 			calls: vec![
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof.clone().into_iter_nodes().collect(),
 						block: 1
 					}
@@ -357,7 +360,7 @@ fn remote_proxy_register_works() {
 			RuntimeCall::from(UtilityCall::batch_all {
 				calls: vec![
 					crate::Call::register_remote_proxy_proof {
-						proof: RemoteProxyProof::V1 {
+						proof: RemoteProxyProof::RelayChain {
 							proof: proof.clone().into_iter_nodes().collect(),
 							block: 1
 						}
@@ -452,7 +455,7 @@ fn remote_proxy_multiple_register_works() {
 		assert_ok!(RuntimeCall::from(UtilityCall::batch {
 			calls: vec![
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof.clone().into_iter_nodes().collect(),
 						block: 1
 					}
@@ -465,7 +468,7 @@ fn remote_proxy_multiple_register_works() {
 				}
 				.into(),
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof2.clone().into_iter_nodes().collect(),
 						block: 1
 					}
@@ -488,14 +491,14 @@ fn remote_proxy_multiple_register_works() {
 		assert_ok!(RuntimeCall::from(UtilityCall::batch {
 			calls: vec![
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof.clone().into_iter_nodes().collect(),
 						block: 1
 					}
 				}
 				.into(),
 				crate::Call::register_remote_proxy_proof {
-					proof: RemoteProxyProof::V1 {
+					proof: RemoteProxyProof::RelayChain {
 						proof: proof2.clone().into_iter_nodes().collect(),
 						block: 1
 					}
@@ -525,14 +528,14 @@ fn remote_proxy_multiple_register_works() {
 			RuntimeCall::from(UtilityCall::batch_all {
 				calls: vec![
 					crate::Call::register_remote_proxy_proof {
-						proof: RemoteProxyProof::V1 {
+						proof: RemoteProxyProof::RelayChain {
 							proof: proof.clone().into_iter_nodes().collect(),
 							block: 1
 						}
 					}
 					.into(),
 					crate::Call::register_remote_proxy_proof {
-						proof: RemoteProxyProof::V1 {
+						proof: RemoteProxyProof::RelayChain {
 							proof: proof2.clone().into_iter_nodes().collect(),
 							block: 1
 						}

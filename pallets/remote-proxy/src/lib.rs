@@ -176,7 +176,7 @@ pub mod pallet {
 	#[derive(core::fmt::Debug, Clone, Decode, Encode, TypeInfo, PartialEq, Eq)]
 	pub enum RemoteProxyProof<RemoteBlockNumber> {
 		/// Assumes the default proxy storage layout.
-		V1 { proof: Vec<Vec<u8>>, block: RemoteBlockNumber },
+		RelayChain { proof: Vec<Vec<u8>>, block: RemoteBlockNumber },
 	}
 
 	#[derive(Default)]
@@ -186,6 +186,16 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+		/// Dispatch the given `call` from an account that the sender is authorised on a remote
+		/// chain.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// Parameters:
+		/// - `real`: The account that the proxy will make a call on behalf of.
+		/// - `force_proxy_type`: Specify the exact proxy type to be used and checked for this call.
+		/// - `call`: The call to be made by the `real` account.
+		/// - `proof`: The proof from the remote chain about the existence of the proof.
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let di = call.get_dispatch_info();
@@ -207,6 +217,19 @@ pub mod pallet {
 			Self::do_remote_proxy(who, real, force_proxy_type, call, proof)
 		}
 
+		/// Register a given remote proxy proof in the current [`dispatch_context`].
+		///
+		/// The registered remote proof can then be used later in the same context to execute a
+		/// remote proxy call. This is for example useful when having a multisig operation. The
+		/// multisig call can use [`Self::remote_proxy_with_registered_proof`] to get an approval by
+		/// the members of the multisig. The final execution of the multisig call should be at least
+		/// a batch of `register_remote_proxy_proof` and the multisig call that uses
+		/// `remote_proxy_with_registered_proof`. This way the final approver can use a recent proof
+		/// to prove the existence of the remote proxy. Otherwise it would require the multisig
+		/// members to approve the call in [`Config::MaxStorageRootsToKeep`] amount of time.
+		///
+		/// It is supported to register multiple proofs, but the proofs need to be consumed in the
+		/// reverse order as they were registered. Basically this means last in, last out.
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		pub fn register_remote_proxy_proof(
@@ -224,6 +247,17 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Dispatch the given `call` from an account that the sender is authorised on a remote
+		/// chain.
+		///
+		/// The dispatch origin for this call must be _Signed_. The difference to
+		/// [`Self::remote_proxy`] is that the proof nees to registered before using
+		/// [`Self::register_remote_proxy_proof`] (see for more information).
+		///
+		/// Parameters:
+		/// - `real`: The account that the proxy will make a call on behalf of.
+		/// - `force_proxy_type`: Specify the exact proxy type to be used and checked for this call.
+		/// - `call`: The call to be made by the `real` account.
 		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		pub fn remote_proxy_with_registered_proof(
@@ -259,7 +293,7 @@ pub mod pallet {
 			};
 
 			let def = match proof {
-				RemoteProxyProof::V1 { proof, block } => {
+				RemoteProxyProof::RelayChain { proof, block } => {
 					let Some(storage_root) = BlockToRoot::<T, I>::get(block) else {
 						return Err(Error::<T, I>::UnknownProofAnchorBlock.into());
 					};
