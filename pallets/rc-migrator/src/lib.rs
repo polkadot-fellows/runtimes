@@ -33,6 +33,7 @@
 
 pub mod accounts;
 pub mod multisig;
+pub mod proxy;
 pub mod types;
 mod weights;
 pub use pallet::*;
@@ -54,7 +55,7 @@ use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::hrmp;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::TryConvert, AccountId32};
 use sp_std::prelude::*;
 use storage::TransactionOutcome;
 use types::AhWeightInfo;
@@ -62,6 +63,7 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
+use proxy::*;
 use types::PalletMigration;
 
 /// The log target of this pallet.
@@ -88,14 +90,19 @@ pub enum MigrationStage<AccountId> {
 	MultisigMigrationInit,
 	MultiSigMigrationOngoing {
 		/// Last migrated key of the `Multisigs` double map.
-		///
-		/// The MEL bound must be able to hold an `AccountId32` and a 32 byte hash. TODO 1024 is
-		/// probably overkill, but we can optimize later.
-		last_key: BoundedVec<u8, ConstU32<1024>>,
+		last_key: Option<(AccountId, [u8; 32])>,
 	},
 	MultisigMigrationDone,
-	/// Some next stage
-	TODO,
+	ProxyMigrationInit,
+	/// Currently migrating the proxies of the proxy pallet.
+	ProxyMigrationProxies {
+		last_key: Option<AccountId>,
+	},
+	/// Currently migrating the announcements of the proxy pallet.
+	ProxyMigrationAnnouncements {
+		last_key: Option<AccountId>,
+	},
+	ProxyMigrationDone,
 }
 
 type AccountInfoFor<T> =
@@ -117,6 +124,7 @@ pub mod pallet {
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
+		+ pallet_proxy::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -208,7 +216,7 @@ pub mod pallet {
 
 					let _ = Self::obtain_rc_accounts();
 					Self::transition(MigrationStage::AccountsMigrationInit);
-					//Self::transition(MigrationStage::MultisigMigrationInit);
+					//Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let first_acc = match Self::first_account(&mut weight_counter).defensive() {
@@ -228,7 +236,6 @@ pub mod pallet {
 						Self::transition(MigrationStage::AccountsMigrationDone);
 					}
 				},
-
 				MigrationStage::AccountsMigrationOngoing { last_key } => {
 					let res =
 						with_transaction_opaque_err::<Option<T::AccountId>, Error<T>, _>(|| {
@@ -256,29 +263,11 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AccountsMigrationDone => {
-					// Note: swap this out for faster testing
+					// Note: swap this out for faster testing to skip some migrations
 					Self::transition(MigrationStage::MultisigMigrationInit);
 				},
 				MigrationStage::MultisigMigrationInit => {
-					let first_key = match MultisigMigrator::<T>::first_key(&mut weight_counter)
-						.defensive()
-					{
-						Err(e) => {
-							log::error!(target: LOG_TARGET, "Error while obtaining first multisig: {:?}. Retrying with higher weight.", e);
-							MultisigMigrator::<T>::first_key(&mut WeightMeter::new())
-								.unwrap_or_default()
-						},
-						Ok(key) => key,
-					};
-
-					if let Some(first_key) = first_key {
-						Self::transition(MigrationStage::MultiSigMigrationOngoing {
-							last_key: first_key,
-						});
-					} else {
-						// No keys to migrate at all.
-						Self::transition(MigrationStage::MultisigMigrationDone);
-					}
+					Self::transition(MigrationStage::MultiSigMigrationOngoing { last_key: None });
 				},
 				MigrationStage::MultiSigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
@@ -298,16 +287,74 @@ pub mod pallet {
 						Ok(Some(last_key)) => {
 							// multisig migration continues with the next block
 							// TODO publish event
-							Self::transition(MigrationStage::MultiSigMigrationOngoing { last_key });
+							Self::transition(MigrationStage::MultiSigMigrationOngoing {
+								last_key: Some(last_key),
+							});
 						},
-						_ => {
-							// TODO handle error
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating multisigs: {:?}", e);
+							defensive!("Error while migrating multisigs");
 						},
 					}
 				},
-				MigrationStage::MultisigMigrationDone => {},
-				MigrationStage::TODO => {
-					todo!()
+				MigrationStage::MultisigMigrationDone => {
+					Self::transition(MigrationStage::ProxyMigrationInit);
+				},
+				MigrationStage::ProxyMigrationInit => {
+					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
+				},
+				MigrationStage::ProxyMigrationProxies { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(ProxyProxiesMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
+								last_key: None,
+							});
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::ProxyMigrationProxies {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating proxies: {:?}", e);
+							defensive!("Error while migrating proxies");
+						},
+					}
+				},
+				MigrationStage::ProxyMigrationAnnouncements { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(ProxyAnnouncementMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ProxyMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::ProxyMigrationAnnouncements {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating proxy announcements: {:?}", e);
+							defensive!("Error while migrating proxy announcements");
+						},
+					}
+				},
+				MigrationStage::ProxyMigrationDone => {
+					todo!();
 				},
 			};
 

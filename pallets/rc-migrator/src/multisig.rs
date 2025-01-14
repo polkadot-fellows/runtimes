@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![doc = include_str!("multisig.md")]
+
 use frame_support::traits::Currency;
 
 extern crate alloc;
@@ -99,42 +101,38 @@ pub struct MultisigMigrator<T: Config> {
 }
 
 impl<T: Config> PalletMigration for MultisigMigrator<T> {
-	type Key = BoundedVec<u8, ConstU32<1024>>;
+	type Key = (T::AccountId, [u8; 32]);
 	type Error = Error<T>;
 
-	/// The first storage key to migrate.
-	fn first_key(_weight: &mut WeightMeter) -> Result<Option<Self::Key>, Error<T>> {
-		();
-		let Some((k1, k2)) = aliases::Multisigs::<T>::iter_keys().next() else {
-			return Ok(None);
-		};
-		let encoded_key = aliases::Multisigs::<T>::hashed_key_for(k1, k2);
-		let bounded_key = BoundedVec::try_from(encoded_key).defensive().map_err(|_| Error::TODO)?;
-		Ok(Some(bounded_key))
-	}
-
 	/// Migrate until the weight is exhausted. Start at the given key.
+	///
+	/// Storage changes must be rolled back on error.
 	fn migrate_many(
-		last_key: Self::Key,
+		mut last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Error<T>> {
 		let mut batch = Vec::new();
-		let mut iter = aliases::Multisigs::<T>::iter_from(last_key.to_vec().clone());
+		let last_raw_key = last_key
+			.clone()
+			.map(|(k1, k2)| aliases::Multisigs::<T>::hashed_key_for(k1, k2))
+			.unwrap_or_default();
+		let mut iter = aliases::Multisigs::<T>::iter_from(last_raw_key);
 
-		let maybe_last_key = loop {
-			log::debug!("Migrating multisigs from {:?}", last_key);
-
+		loop {
 			let kv = iter.next();
 			let Some((k1, k2, multisig)) = kv else {
-				break None;
+				last_key = None;
+				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
+				break;
 			};
+
+			log::debug!("Migrating multisigs of acc {:?}", k1);
 
 			match Self::migrate_single(k1.clone(), multisig, weight_counter) {
 				Ok(ms) => batch.push(ms), // TODO continue here
 				// Account does not need to be migrated
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if batch.len() > 0 =>
-					break Some(aliases::Multisigs::<T>::hashed_key_for(k1, k2)),
+				Err(Error::OutOfWeight) if batch.len() > 0 => break,
 				// Not enough weight and was unable to make progress, bad.
 				Err(Error::OutOfWeight) if batch.len() == 0 => {
 					defensive!("Not enough weight to migrate a single account");
@@ -147,22 +145,19 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				},
 			}
 
-			// TODO construct XCM
-		};
+			// TODO delete old
+			last_key = Some((k1, k2));
+		}
 
-		if batch.len() > 0 {
+		if !batch.is_empty() {
 			Self::send_batch_xcm(batch)?;
 		}
 
-		let bounded_key = maybe_last_key
-			.map(|k| BoundedVec::try_from(k).defensive().map_err(|_| Error::TODO))
-			.transpose()?;
-		Ok(bounded_key)
+		Ok(last_key)
 	}
 }
 
 impl<T: Config> MultisigMigrator<T> {
-	/// WILL NOT MODIFY STORAGE IN THE ERROR CASE
 	fn migrate_single(
 		k1: AccountIdOf<T>,
 		ms: aliases::MultisigOf<T>,
@@ -173,11 +168,10 @@ impl<T: Config> MultisigMigrator<T> {
 			return Err(Error::<T>::OutOfWeight);
 		}
 
-		// TODO construct XCM
-
 		Ok(RcMultisig { creator: ms.depositor, deposit: ms.deposit, details: Some(k1) })
 	}
 
+	/// Storage changes must be rolled back on error.
 	fn send_batch_xcm(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
 		let call = types::AssetHubPalletConfig::<T>::AhmController(
 			types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs },

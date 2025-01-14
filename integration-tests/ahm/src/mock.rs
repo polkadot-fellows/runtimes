@@ -56,7 +56,7 @@ pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
 
 pub fn next_block_rc() {
 	let now = frame_system::Pallet::<polkadot_runtime::Runtime>::block_number();
-	log::info!(target: LOG_RC, "Next block: {:?}", now + 1);
+	log::debug!(target: LOG_RC, "Next block: {:?}", now + 1);
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
 	frame_system::Pallet::<polkadot_runtime::Runtime>::set_block_number(now + 1);
 	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
@@ -67,7 +67,7 @@ pub fn next_block_rc() {
 
 pub fn next_block_ah() {
 	let now = frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number();
-	log::info!(target: LOG_AH, "Next block: {:?}", now + 1);
+	log::debug!(target: LOG_AH, "Next block: {:?}", now + 1);
 	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(
 		now,
 	);

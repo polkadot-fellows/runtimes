@@ -34,6 +34,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveAccounts { accounts: Vec<accounts::AccountFor<T>> },
 	#[codec(index = 1)]
 	ReceiveMultisigs { multisigs: Vec<multisig::RcMultisigOf<T>> },
+	#[codec(index = 2)]
+	ReceiveProxyProxies { proxies: Vec<proxy::RcProxyLocalOf<T>> },
+	#[codec(index = 3)]
+	ReceiveProxyAnnouncements { announcements: Vec<RcProxyAnnouncementOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -63,12 +67,15 @@ impl AhWeightInfo for () {
 }
 
 pub trait PalletMigration {
-	type Key;
+	type Key: codec::MaxEncodedLen;
 	type Error;
 
-	fn first_key(weight: &mut WeightMeter) -> Result<Option<Self::Key>, Self::Error>;
+	/// Migrate until the weight is exhausted. The give key is the last one that was migrated.
+	///
+	/// Should return the last key that was migrated. This will then be passed back into the next
+	/// call.
 	fn migrate_many(
-		maybe_last_key: Self::Key,
+		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error>;
 }
