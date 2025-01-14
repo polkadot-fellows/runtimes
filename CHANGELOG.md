@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable for fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
 
 - ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
+- Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
 
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
 
