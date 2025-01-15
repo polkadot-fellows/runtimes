@@ -26,7 +26,7 @@ pallet-multisig = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
-
+hex-literal = { workspace = true }
 xcm = { workspace = true }
 
 [features]

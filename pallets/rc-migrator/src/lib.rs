@@ -88,7 +88,7 @@ pub enum MigrationStage<AccountId> {
 	/// easier to swap out what stage should run next for testing.
 	AccountsMigrationDone,
 	MultisigMigrationInit,
-	MultiSigMigrationOngoing {
+	MultisigMigrationOngoing {
 		/// Last migrated key of the `Multisigs` double map.
 		last_key: Option<(AccountId, [u8; 32])>,
 	},
@@ -158,10 +158,15 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	//#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// TODO
-		TODO,
+		/// A stage transition has occurred.
+		StageTransition {
+			/// The old stage before the transition.
+			old: MigrationStage<T::AccountId>,
+			/// The new stage after the transition.
+			new: MigrationStage<T::AccountId>,
+		},
 	}
 
 	/// The Relay Chain migration state.
@@ -267,9 +272,9 @@ pub mod pallet {
 					Self::transition(MigrationStage::MultisigMigrationInit);
 				},
 				MigrationStage::MultisigMigrationInit => {
-					Self::transition(MigrationStage::MultiSigMigrationOngoing { last_key: None });
+					Self::transition(MigrationStage::MultisigMigrationOngoing { last_key: None });
 				},
-				MigrationStage::MultiSigMigrationOngoing { last_key } => {
+				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						TransactionOutcome::Commit(MultisigMigrator::<T>::migrate_many(
 							last_key,
@@ -287,7 +292,7 @@ pub mod pallet {
 						Ok(Some(last_key)) => {
 							// multisig migration continues with the next block
 							// TODO publish event
-							Self::transition(MigrationStage::MultiSigMigrationOngoing {
+							Self::transition(MigrationStage::MultisigMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
@@ -364,10 +369,64 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// Execute a stage transition and log it.
-		fn transition(new_stage: MigrationStage<T::AccountId>) {
+		fn transition(new: MigrationStage<T::AccountId>) {
 			let old = RcMigrationStage::<T>::get();
-			RcMigrationStage::<T>::put(&new_stage);
-			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), old, new_stage);
+			RcMigrationStage::<T>::put(&new);
+			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);
+			Self::deposit_event(Event::StageTransition { old, new });
+		}
+
+		/// Split up the items into chunks of `MAX_MSG_SIZE` and send them as separate XCM
+		/// transacts.
+		///
+		/// This is done to avoid exceeding the XCM message size limit.
+		pub fn send_chunked_xcm<E: Encode>(
+			mut items: Vec<E>,
+			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
+		) -> Result<(), Error<T>> {
+			const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
+
+			while !items.is_empty() {
+				let mut remaining_size: u32 = MAX_MSG_SIZE;
+				let mut batch = Vec::new();
+
+				while !items.is_empty() {
+					// Order does not matter, so we take from the back as optimization
+					let item = items.last().unwrap(); // FAIL-CI no unwrap
+					let msg_size = item.encoded_size() as u32;
+					if msg_size > remaining_size {
+						break;
+					}
+					remaining_size -= msg_size;
+
+					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
+				}
+
+				log::info!(target: LOG_TARGET, "Sending batch of {} proxies", batch.len());
+				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
+
+				let message = Xcm(vec![
+					Instruction::UnpaidExecution {
+						weight_limit: WeightLimit::Unlimited,
+						check_origin: None,
+					},
+					Instruction::Transact {
+						origin_kind: OriginKind::Superuser,
+						require_weight_at_most: Weight::from_all(1), // TODO
+						call: call.encode().into(),
+					},
+				]);
+
+				if let Err(err) = send_xcm::<T::SendXcm>(
+					Location::new(0, [Junction::Parachain(1000)]),
+					message.clone(),
+				) {
+					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+					return Err(Error::TODO);
+				};
+			}
+
+			Ok(())
 		}
 	}
 }

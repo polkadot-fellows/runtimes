@@ -46,7 +46,7 @@ async fn account_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 	let para_id = ParaId::from(1000);
 
-	// Simulate 10 relay blocks and grab the DMP messages
+	// Simulate relay blocks and grab the DMP messages
 	let dmp_messages = rc.execute_with(|| {
 		let mut dmps = Vec::new();
 

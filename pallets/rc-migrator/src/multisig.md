@@ -21,3 +21,7 @@ change the existing one. Both probably not worth it for us now.
 
 The only thing that we should do is to unlock the deposits on the AH since they were migrated to AH
 with the account state.
+
+## TODO
+- Think about what if one of the multisig members' accounts are inaccessible? Like they lost their key or something. Will this impact the possibility of the remaining multisig members to re-create the same multisig on AH?
+	- I think it does not impact it, as the [as_multi call](https://github.com/paritytech/polkadot-sdk/blob/9cdd1178f9e8da9f08a334a8cbbda435d1ffd9dd/substrate/frame/multisig/src/lib.rs#L358-L361) just accepts Account IDs as input that do not need to be accessible.

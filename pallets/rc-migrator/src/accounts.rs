@@ -219,27 +219,11 @@ impl<T: Config> Pallet<T> {
 			}
 		};
 
-		let call = types::AssetHubPalletConfig::<T>::AhmController(
-			types::AhMigratorCall::<T>::ReceiveAccounts { accounts: package },
-		);
-
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Superuser,
-				require_weight_at_most: Weight::from_all(1), // TODO
-				call: call.encode().into(),
-			},
-		]);
-
-		if let Err(_err) =
-			send_xcm::<T::SendXcm>(Location::new(0, [Junction::Parachain(1000)]), message.clone())
-		{
-			return Err(Error::TODO);
-		};
+		if !package.is_empty() {
+			Pallet::<T>::send_chunked_xcm(package, |package| {
+				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: package }
+			})?;
+		}
 
 		Ok(maybe_last_key)
 	}
@@ -402,7 +386,7 @@ impl<T: Config> Pallet<T> {
 	/// Since the `reserved` and `frozen` balances will be known on a receiving side (AH) they will
 	/// be calculated there.
 	pub fn get_consumer_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
-		// TODO: check the pallets for provider references on Relay Chain.
+		// TODO: check the pallets for consumer references on Relay Chain.
 
 		// The following pallets increase consumers and are deployed on (Polkadot, Kusama, Westend):
 		// - `balances`: (P/K/W)
@@ -427,7 +411,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_provider_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
 		// TODO: check the pallets for provider references on Relay Chain.
 
-		// The following pallets increase consumers and are deployed on (Polkadot, Kusama, Westend):
+		// The following pallets increase provider and are deployed on (Polkadot, Kusama, Westend):
 		// - `crowdloan`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/common/src/crowdloan/mod.rs#L416
 		// - `parachains_on_demand`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
 		// - `balances`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/balances/src/lib.rs#L1026
