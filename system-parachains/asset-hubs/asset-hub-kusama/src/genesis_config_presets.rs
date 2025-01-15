@@ -28,42 +28,41 @@ fn asset_hub_kusama_genesis(
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> serde_json::Value {
-	serde_json::json!({
-		"balances": BalancesConfig {
+	let config = RuntimeGenesisConfig {
+		balances: BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
 				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
 				.collect(),
 		},
-		"parachainInfo": ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
-		},
-		"collatorSelection": CollatorSelectionConfig {
+		parachain_info: ParachainInfoConfig { parachain_id: id, ..Default::default() },
+		collator_selection: CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ASSET_HUB_KUSAMA_ED * 16,
 			..Default::default()
 		},
-		"session": SessionConfig {
+		session: SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                         // account id
-						acc,                                 // validator id
-						SessionKeys { aura }, 	// session keys
+						acc.clone(),          // account id
+						acc,                  // validator id
+						SessionKeys { aura }, // session keys
 					)
 				})
 				.collect(),
 			..Default::default()
 		},
-		"polkadotXcm": {
-			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		polkadot_xcm: PolkadotXcmConfig {
+			_config: Default::default(),
+			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this. `aura: Default::default()`
-	})
+		..Default::default()
+	};
+
+	serde_json::to_value(config).expect("Could not build genesis config.")
 }
 
 pub fn asset_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
