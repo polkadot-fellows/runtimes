@@ -2016,7 +2016,7 @@ pub mod restore_corrupt_ledger_2 {
 	impl OnRuntimeUpgrade for Migrate {
 		fn on_runtime_upgrade() -> frame_election_provider_support::Weight {
 			// ensure this only runs once, in the 1.4.0 release
-			if VERSION.spec_version == 1_400_000 {
+			if System::last_runtime_upgrade_spec_version() < 1_400_000 {
 				let _ = pallet_staking::Pallet::<Runtime>::force_unstake(
 					RawOrigin::Root.into(),
 					CorruptStash::get(),
