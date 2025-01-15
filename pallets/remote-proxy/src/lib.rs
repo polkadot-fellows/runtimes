@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 extern crate alloc;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -22,16 +24,16 @@ mod benchmarking;
 mod tests;
 mod weight;
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use codec::{Encode, MaxEncodedLen};
 use frame_support::{storage::storage_prefix, Parameter, StorageHasher, Twox64Concat};
-use pallet_proxy::ProxyDefinition;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
 use sp_runtime::traits::Saturating;
 
 pub use cumulus_primitives_core::PersistedValidationData;
 pub use pallet::*;
+pub use pallet_proxy::ProxyDefinition;
 pub use weight::WeightInfo;
 
 /// The remote proxy interface.

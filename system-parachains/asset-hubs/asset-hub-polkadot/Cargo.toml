@@ -23,6 +23,7 @@ bp-bridge-hub-polkadot = { workspace = true }
 collectives-polkadot-runtime-constants = { workspace = true }
 kusama-runtime-constants = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
+pallet-remote-proxy = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
@@ -133,6 +134,7 @@ runtime-benchmarks = [
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-remote-proxy/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -218,6 +220,7 @@ std = [
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
 	"pallet-proxy/std",
+	"pallet-remote-proxy/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
