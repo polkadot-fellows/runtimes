@@ -197,6 +197,7 @@ impl crate::RemoteProxyInterface<u64, ProxyType, u64> for RemoteProxyImpl {
 impl Config for Test {
 	type MaxStorageRootsToKeep = ConstU64<10>;
 	type RemoteProxy = RemoteProxyImpl;
+	type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> TestExternalities {

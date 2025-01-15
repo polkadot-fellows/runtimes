@@ -18,7 +18,9 @@
 use super::*;
 use crate::Pallet as RemoteProxy;
 use alloc::{boxed::Box, vec};
-use frame_benchmarking::v2::{account, benchmarks, impl_test_function, whitelisted_caller};
+use frame_benchmarking::v2::{
+	account, impl_test_function, instance_benchmarks, whitelisted_caller,
+};
 use frame_support::traits::Currency;
 use frame_system::RawOrigin;
 use sp_runtime::traits::{Bounded, StaticLookup};
@@ -35,7 +37,7 @@ fn assert_last_event<T: pallet_proxy::Config>(
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-#[benchmarks]
+#[instance_benchmarks]
 mod benchmarks {
 	use super::*;
 	use frame_benchmarking::BenchmarkError;
@@ -55,10 +57,72 @@ mod benchmarks {
 			frame_system::Call::<T>::remark { remark: vec![] }.into();
 		let (proof, block_number, storage_root) =
 			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
-		BlockToRoot::<T>::insert(block_number, storage_root);
+		BlockToRoot::<T, I>::insert(block_number, storage_root);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(caller), real_lookup, None, Box::new(call), proof);
+
+		assert_last_event::<T>(pallet_proxy::Event::ProxyExecuted { result: Ok(()) }.into());
+
+		Ok(())
+	}
+
+	#[benchmark]
+	fn register_remote_proxy_proof() -> Result<(), BenchmarkError> {
+		// In this case the caller is the "target" proxy
+		let caller: T::AccountId = account("target", 0, SEED);
+		<T as pallet_proxy::Config>::Currency::make_free_balance_be(
+			&caller,
+			BalanceOf::<T>::max_value() / 2u32.into(),
+		);
+		// ... and "real" is the traditional caller. This is not a typo.
+		let real: T::AccountId = whitelisted_caller();
+		let (proof, block_number, storage_root) =
+			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
+		BlockToRoot::<T, I>::insert(block_number, storage_root);
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(caller), proof);
+
+		Ok(())
+	}
+
+	#[benchmark]
+	fn remote_proxy_with_registered_proof() -> Result<(), BenchmarkError> {
+		// In this case the caller is the "target" proxy
+		let caller: T::AccountId = account("target", 0, SEED);
+		<T as pallet_proxy::Config>::Currency::make_free_balance_be(
+			&caller,
+			BalanceOf::<T>::max_value() / 2u32.into(),
+		);
+		// ... and "real" is the traditional caller. This is not a typo.
+		let real: T::AccountId = whitelisted_caller();
+		let real_lookup = T::Lookup::unlookup(real.clone());
+		let call: <T as pallet_proxy::Config>::RuntimeCall =
+			frame_system::Call::<T>::remark { remark: vec![] }.into();
+		let (proof, block_number, storage_root) =
+			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
+		BlockToRoot::<T, I>::insert(block_number, storage_root);
+
+		#[block]
+		{
+			frame_support::dispatch_context::run_in_context(|| {
+				frame_support::dispatch_context::with_context::<
+					crate::RemoteProxyContext<crate::RemoteBlockNumberOf<T, I>>,
+					_,
+				>(|context| {
+					context.or_default().proofs.push(proof.clone());
+				});
+
+				RemoteProxy::<T, I>::remote_proxy_with_registered_proof(
+					RawOrigin::Signed(caller).into(),
+					real_lookup,
+					None,
+					Box::new(call),
+				)
+				.unwrap()
+			})
+		}
 
 		assert_last_event::<T>(pallet_proxy::Event::ProxyExecuted { result: Ok(()) }.into());
 

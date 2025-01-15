@@ -20,6 +20,7 @@ extern crate alloc;
 mod benchmarking;
 #[cfg(test)]
 mod tests;
+mod weight;
 
 use alloc::vec::Vec;
 use codec::{Encode, MaxEncodedLen};
@@ -31,6 +32,7 @@ use sp_runtime::traits::Saturating;
 
 pub use cumulus_primitives_core::PersistedValidationData;
 pub use pallet::*;
+pub use weight::WeightInfo;
 
 /// The remote proxy interface.
 pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
@@ -98,11 +100,12 @@ pub mod pallet {
 
 	type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 
-	type RemoteBlockNumberOf<T, I> = <<T as Config<I>>::RemoteProxy as RemoteProxyInterface<
-		<T as frame_system::Config>::AccountId,
-		<T as pallet_proxy::Config>::ProxyType,
-		BlockNumberFor<T>,
-	>>::RemoteBlockNumber;
+	pub(crate) type RemoteBlockNumberOf<T, I> =
+		<<T as Config<I>>::RemoteProxy as RemoteProxyInterface<
+			<T as frame_system::Config>::AccountId,
+			<T as pallet_proxy::Config>::ProxyType,
+			BlockNumberFor<T>,
+		>>::RemoteBlockNumber;
 	type RemoteAccountIdOf<T, I> = <<T as Config<I>>::RemoteProxy as RemoteProxyInterface<
 		<T as frame_system::Config>::AccountId,
 		<T as pallet_proxy::Config>::ProxyType,
@@ -123,6 +126,7 @@ pub mod pallet {
 		<T as pallet_proxy::Config>::ProxyType,
 		BlockNumberFor<T>,
 	>>::RemoteProxyType;
+	type WeightInfoOf<T, I> = <T as Config<I>>::WeightInfo;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(_);
@@ -148,6 +152,9 @@ pub mod pallet {
 			Self::ProxyType,
 			BlockNumberFor<Self>,
 		>;
+
+		/// Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	impl<T: Config, I: 'static> OnSystemEvent for Pallet<T, I> {
@@ -191,9 +198,11 @@ pub mod pallet {
 		RelayChain { proof: Vec<Vec<u8>>, block: RemoteBlockNumber },
 	}
 
+	/// The dispatch context to keep track of registered proofs.
 	#[derive(Default)]
-	struct RemoteProxyContext<RemoteBlockNumber> {
-		proofs: Vec<RemoteProxyProof<RemoteBlockNumber>>,
+	pub(crate) struct RemoteProxyContext<RemoteBlockNumber> {
+		/// The registered proofs.
+		pub(crate) proofs: Vec<RemoteProxyProof<RemoteBlockNumber>>,
 	}
 
 	#[pallet::call]
@@ -211,8 +220,9 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let di = call.get_dispatch_info();
-			( // AccountData for inner call origin accountdata.
-				T::DbWeight::get().reads_writes(1, 1)
+			(WeightInfoOf::<T, I>::remote_proxy()
+				// AccountData for inner call origin accountdata.
+				.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				.saturating_add(di.weight),
 			di.class)
 		})]
@@ -243,7 +253,7 @@ pub mod pallet {
 		/// It is supported to register multiple proofs, but the proofs need to be consumed in the
 		/// reverse order as they were registered. Basically this means last in, last out.
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight({(WeightInfoOf::<T, I>::register_remote_proxy_proof(), DispatchClass::Normal)})]
 		pub fn register_remote_proxy_proof(
 			origin: OriginFor<T>,
 			proof: RemoteProxyProof<RemoteBlockNumberOf<T, I>>,
@@ -271,7 +281,14 @@ pub mod pallet {
 		/// - `force_proxy_type`: Specify the exact proxy type to be used and checked for this call.
 		/// - `call`: The call to be made by the `real` account.
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
+		#[pallet::weight({
+			let di = call.get_dispatch_info();
+			(WeightInfoOf::<T, I>::remote_proxy_with_registered_proof()
+				// AccountData for inner call origin accountdata.
+				.saturating_add(T::DbWeight::get().reads_writes(1, 1))
+				.saturating_add(di.weight),
+			di.class)
+		})]
 		pub fn remote_proxy_with_registered_proof(
 			origin: OriginFor<T>,
 			real: AccountIdLookupOf<T>,
