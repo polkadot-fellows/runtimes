@@ -62,7 +62,7 @@ emulated-integration-tests-common = { version = "16.0.0" }
 encointer-balances-tx-payment = { version = "~14.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~14.3.0", default-features = false }
+encointer-primitives = { version = "~14.4.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "38.0.0", default-features = false }
 frame-election-provider-support = { version = "38.0.0", default-features = false }
@@ -109,18 +109,18 @@ pallet-conviction-voting = { version = "38.0.0", default-features = false }
 pallet-core-fellowship = { version = "22.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "37.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "37.0.0", default-features = false }
-pallet-encointer-balances = { version = "~14.1.0", default-features = false }
+pallet-encointer-balances = { version = "~14.2.0", default-features = false }
 pallet-encointer-bazaar = { version = "~14.1.0", default-features = false }
 pallet-encointer-bazaar-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 pallet-encointer-ceremonies = { version = "~14.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 pallet-encointer-communities = { version = "~14.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~14.1.0", default-features = false }
-pallet-encointer-democracy = { version = "~14.3.2", default-features = false }
+pallet-encointer-democracy = { version = "~14.4.0", default-features = false }
 pallet-encointer-faucet = { version = "~14.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~14.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~14.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~14.3.0", default-features = false }
+pallet-encointer-treasuries = { version = "~14.4.1", default-features = false }
 pallet-encointer-treasuries-rpc-runtime-api = { version = "~14.3.0", default-features = false }
 pallet-fast-unstake = { version = "37.0.0", default-features = false }
 pallet-glutton = { version = "24.0.0", default-features = false }
