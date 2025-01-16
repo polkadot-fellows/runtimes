@@ -161,8 +161,7 @@ pub mod pallet {
 
 	impl<T: Config, I: 'static> OnSystemEvent for Pallet<T, I> {
 		fn on_validation_data(validation_data: &PersistedValidationData) {
-			let Some((block, hash)) = T::RemoteProxy::block_to_storage_root(&validation_data)
-			else {
+			let Some((block, hash)) = T::RemoteProxy::block_to_storage_root(validation_data) else {
 				return;
 			};
 
@@ -238,7 +237,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let real = T::Lookup::lookup(real)?;
 
-			Self::do_remote_proxy(who, real, force_proxy_type, call, proof)
+			Self::do_remote_proxy(who, real, force_proxy_type, *call, proof)
 		}
 
 		/// Register a given remote proxy proof in the current [`dispatch_context`].
@@ -305,9 +304,9 @@ pub mod pallet {
 				_,
 			>(|context| context.or_default().proofs.pop())
 			.flatten()
-			.ok_or_else(|| Error::<T, I>::ProxyProofNotRegistered)?;
+			.ok_or(Error::<T, I>::ProxyProofNotRegistered)?;
 
-			Self::do_remote_proxy(who, real, force_proxy_type, call, proof)
+			Self::do_remote_proxy(who, real, force_proxy_type, *call, proof)
 		}
 	}
 
@@ -316,7 +315,7 @@ pub mod pallet {
 			who: T::AccountId,
 			real: T::AccountId,
 			force_proxy_type: Option<T::ProxyType>,
-			call: Box<<T as pallet_proxy::Config>::RuntimeCall>,
+			call: <T as pallet_proxy::Config>::RuntimeCall,
 			proof: RemoteProxyProof<RemoteBlockNumberOf<T, I>>,
 		) -> DispatchResult {
 			let Some(real_remote) = T::RemoteProxy::local_to_remote_account_id(&real) else {
@@ -342,7 +341,7 @@ pub mod pallet {
 					)
 					.ok()
 					.flatten()
-					.ok_or_else(|| Error::<T, I>::InvalidProof)?;
+					.ok_or(Error::<T, I>::InvalidProof)?;
 
 					let proxy_definitions = alloc::vec::Vec::<
 						ProxyDefinition<
@@ -367,13 +366,13 @@ pub mod pallet {
 						.into_iter()
 						.filter_map(|pd| T::RemoteProxy::remote_to_local_proxy_defintion(pd))
 						.find(f)
-						.ok_or_else(|| Error::<T, I>::DidNotFindMatchingProxyDefinition)?
+						.ok_or(Error::<T, I>::DidNotFindMatchingProxyDefinition)?
 				},
 			};
 
 			ensure!(def.delay.is_zero(), Error::<T, I>::Unannounced);
 
-			Self::do_proxy(def, real, *call);
+			Self::do_proxy(def, real, call);
 
 			Ok(())
 		}
