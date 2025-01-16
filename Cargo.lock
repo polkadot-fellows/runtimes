@@ -841,15 +841,16 @@ dependencies = [
 
 [[package]]
 name = "asset-test-utils"
-version = "18.0.0"
+version = "20.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0324df9ce91a9840632e865dd3272bd20162023856f1b189b7ae58afa5c6b61"
+checksum = "9b0a99a8fa37a58ad868fca25530dde06b6582cb46b64bfae808f5b9b87e42ce"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-collator-selection",
@@ -867,6 +868,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -1386,7 +1388,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-std",
+ "sp-core 34.0.0",
  "staging-xcm",
  "system-parachains-constants",
 ]
@@ -1399,7 +1401,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-std",
+ "sp-core 34.0.0",
  "staging-xcm",
  "system-parachains-constants",
 ]
@@ -1640,9 +1642,9 @@ dependencies = [
 
 [[package]]
 name = "bp-xcm-bridge-hub"
-version = "0.4.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6909117ca87cb93703742939d5f0c4c93e9646d9cda22262e9709d68c929999b"
+checksum = "0873c54562b3d492541cbc8a7974c6854a5157d07880a2a71f8ba888a69e17e9"
 dependencies = [
  "bp-messages",
  "bp-runtime",
@@ -1993,9 +1995,9 @@ dependencies = [
 
 [[package]]
 name = "bridge-hub-test-utils"
-version = "0.18.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de0b3aa5fd8481a06ca16e47fd3d2d9c6abe76b27d922ec8980a853f242173b3"
+checksum = "329b98c9cfa8a36beb65eebe197460e06dc3b041baf84d16c2c9862b99d1e7d2"
 dependencies = [
  "asset-test-utils",
  "bp-header-chain",
@@ -2037,9 +2039,9 @@ dependencies = [
 
 [[package]]
 name = "bridge-runtime-common"
-version = "0.18.0"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c639aa22de6e904156a3e8b0e6b9e6af790cb27a1299688cc07997e1ffe5b648"
+checksum = "86cf718057e18ce3e5f2c8e3fc318c38ad71d47ada91dc4b841c0f69c214ef04"
 dependencies = [
  "bp-header-chain",
  "bp-messages",
@@ -3799,9 +3801,9 @@ dependencies = [
 
 [[package]]
 name = "emulated-integration-tests-common"
-version = "14.1.0"
+version = "16.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e02f16722b84c80116230ed1eac5b49356bebeb0589786d9c651e010369f1c95"
+checksum = "8a2fdb16bdf43492ecf4e8ac21efcf140bb9783dded06d33a3f330123301c25b"
 dependencies = [
  "asset-test-utils",
  "bp-messages",
@@ -7962,9 +7964,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge-relayers"
-version = "0.18.0"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2faead05455a965a0a0ec69ffa779933479b599e40bda809c0aa1efa72a39281"
+checksum = "0fe3be7077b7ddee7178b1b12e9171435da73778d093788e10b1bdfad1e10962"
 dependencies = [
  "bp-header-chain",
  "bp-messages",
@@ -8545,9 +8547,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-message-queue"
-version = "41.0.1"
+version = "41.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0faa48b29bf5a178580c164ef00de87319a37da7547a9cd6472dfd160092811a"
+checksum = "983f7d1be18e9a089a3e23670918f5085705b4403acd3fdde31878d57b76a1a8"
 dependencies = [
  "environmental",
  "frame-benchmarking",
@@ -9059,9 +9061,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-transaction-payment"
-version = "38.0.0"
+version = "38.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47b1aa3498107a30237f941b0f02180db3b79012c3488878ff01a4ac3e8ee04e"
+checksum = "6cdb86580c72b58145f9cddba21a0c1814742ca56abc9caac3c1ac72f6bde649"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9168,9 +9170,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "17.0.0"
+version = "17.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b1760b6589e53f4ad82216c72c0e38fcb4df149c37224ab3301dc240c85d1d4"
+checksum = "989676964dbda5f5275650fbdcd3894fe7fac626d113abf89d572b4952adcc36"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -9187,6 +9189,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "tracing",
  "xcm-runtime-apis",
 ]
 
@@ -9211,9 +9214,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-bridge-hub"
-version = "0.13.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5f9670065b7cba92771060a4a3925b6650ff67611443ccfccd5aa356f7d5aac"
+checksum = "f336403f9e9bf22a0e1fdb90aa5093c52599c9a0639591fbcc1e979b58862d1b"
 dependencies = [
  "bp-messages",
  "bp-runtime",
@@ -9234,9 +9237,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-bridge-hub-router"
-version = "0.15.1"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3b5347c826b721098ef39afb0d750e621c77538044fc1e865af1a8747824fdf"
+checksum = "fabf1fdcf451ac79995f11cb9b6a0761924c57bb79442c2d91b3bbefe4dfa081"
 dependencies = [
  "bp-xcm-bridge-hub-router",
  "frame-benchmarking",
@@ -9285,9 +9288,9 @@ dependencies = [
 
 [[package]]
 name = "parachains-runtimes-test-utils"
-version = "17.0.0"
+version = "19.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "287d2db0a2d19466caa579a69f021bfdc6fa352f382c8395dade58d1d0c6adfe"
+checksum = "d37c6a0fe791b244282e445c7ae2534217b05781a7e47ef9e391860cf3412210"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
@@ -9301,6 +9304,7 @@ dependencies = [
  "pallet-session",
  "pallet-timestamp",
  "pallet-xcm",
+ "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "sp-consensus-aura",
@@ -9312,6 +9316,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -13154,9 +13159,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-runtime-test-common"
-version = "0.10.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "893480d6cde2489051c65efb5d27fa87efe047b3b61216d8e27bb2f0509b7faf"
+checksum = "242ad550a31ebd8e29a17beb89f1e5ddf4e657ebdf667fb9e4c0660428de4e9b"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "frame-support",
@@ -14522,9 +14527,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "17.0.1"
+version = "17.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3746adbbae27b1e6763f0cca622e15482ebcb94835a9e078c212dd7be896e35"
+checksum = "b6f7a92cfaec55a5ed0f9cbbb9076aa8ec0aff1ba90b9804cc5c8f2369fde59c"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -16737,9 +16742,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-runtime-apis"
-version = "0.4.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d4473a5d157e4d437d9ebcb1b99f9693a64983877ee57d97005f0167869935"
+checksum = "2f3d96bd7362d9e6884ef6762f08737d89205a358d059a0451353f3e91985ca5"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
