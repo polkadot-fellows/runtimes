@@ -33,9 +33,9 @@
 
 pub mod accounts;
 pub mod multisig;
+pub mod preimage;
 pub mod proxy;
 pub mod types;
-pub mod preimage;
 mod weights;
 pub use pallet::*;
 
@@ -50,13 +50,12 @@ use frame_support::{
 	},
 	weights::WeightMeter,
 };
-use sp_core::H256;
 use frame_system::{pallet_prelude::*, AccountInfo};
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::hrmp;
-use sp_core::crypto::Ss58Codec;
+use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{traits::TryConvert, AccountId32};
 use sp_std::prelude::*;
 use storage::TransactionOutcome;
@@ -65,9 +64,9 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
+use preimage::PreimageChunkMigrator;
 use proxy::*;
 use types::PalletMigration;
-use preimage::PreimageChunkMigrator;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -374,7 +373,9 @@ pub mod pallet {
 					Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::PreimageMigrationInit => {
-					Self::transition(MigrationStage::PreimageMigrationChunksOngoing { last_key: None });
+					Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+						last_key: None,
+					});
 				},
 				MigrationStage::PreimageMigrationChunksOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
@@ -390,7 +391,9 @@ pub mod pallet {
 							Self::transition(MigrationStage::PreimageMigrationDone);
 						},
 						Ok(Some(last_key)) => {
-							Self::transition(MigrationStage::PreimageMigrationChunksOngoing { last_key: Some(last_key) });
+							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+								last_key: Some(last_key),
+							});
 						},
 						e => {
 							log::error!(target: LOG_TARGET, "Error while migrating preimages: {:?}", e);

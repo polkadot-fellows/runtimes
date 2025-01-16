@@ -17,16 +17,14 @@
 
 #![doc = include_str!("multisig.md")]
 
-use crate::{*, types::*};
-use sp_runtime::traits::BlakeTwo256;
-use sp_runtime::traits::Hash;
+use crate::{types::*, *};
+use sp_runtime::traits::{BlakeTwo256, Hash};
 
 pub mod alias {
 	use super::*;
 
+	use frame_support::{traits::Currency, Identity};
 	use sp_core::ConstU32;
-	use frame_support::Identity;
-	use frame_support::traits::Currency;
 
 	pub const MAX_SIZE: u32 = 4 * 1024 * 1024;
 
@@ -35,11 +33,12 @@ pub mod alias {
 	#[derive(Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 	pub enum OldRequestStatus<AccountId, Balance> {
 		/// The associated preimage has not yet been requested by the system. The given deposit (if
-		/// some) is being held until either it becomes requested or the user retracts the preimage.
+		/// some) is being held until either it becomes requested or the user retracts the
+		/// preimage.
 		Unrequested { deposit: (AccountId, Balance), len: u32 },
-		/// There are a non-zero number of outstanding requests for this hash by this chain. If there
-		/// is a preimage registered, then `len` is `Some` and it may be removed iff this counter
-		/// becomes zero.
+		/// There are a non-zero number of outstanding requests for this hash by this chain. If
+		/// there is a preimage registered, then `len` is `Some` and it may be removed iff this
+		/// counter becomes zero.
 		Requested { deposit: Option<(AccountId, Balance)>, count: u32, len: Option<u32> },
 	}
 
@@ -48,31 +47,46 @@ pub mod alias {
 	#[derive(Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 	pub enum RequestStatus<AccountId, Ticket> {
 		/// The associated preimage has not yet been requested by the system. The given deposit (if
-		/// some) is being held until either it becomes requested or the user retracts the preimage.
+		/// some) is being held until either it becomes requested or the user retracts the
+		/// preimage.
 		Unrequested { ticket: (AccountId, Ticket), len: u32 },
-		/// There are a non-zero number of outstanding requests for this hash by this chain. If there
-		/// is a preimage registered, then `len` is `Some` and it may be removed iff this counter
-		/// becomes zero.
+		/// There are a non-zero number of outstanding requests for this hash by this chain. If
+		/// there is a preimage registered, then `len` is `Some` and it may be removed iff this
+		/// counter becomes zero.
 		Requested { maybe_ticket: Option<(AccountId, Ticket)>, count: u32, maybe_len: Option<u32> },
 	}
 
 	// Coped from https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L91-L93
-	type BalanceOf<T> = <<T as pallet_preimage::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type BalanceOf<T> = <<T as pallet_preimage::Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::Balance;
 	type TicketOf<T> = <T as pallet_preimage::Config>::Consideration;
 
 	// Coped from https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L173-L185
 	#[deprecated = "RequestStatusFor"]
 	#[frame_support::storage_alias(pallet_name)]
-	pub type StatusFor<T: pallet_preimage::Config> =
-		StorageMap<pallet_preimage::Pallet<T>, Identity, H256, OldRequestStatus<<T as frame_system::Config>::AccountId, BalanceOf<T>>>;
+	pub type StatusFor<T: pallet_preimage::Config> = StorageMap<
+		pallet_preimage::Pallet<T>,
+		Identity,
+		H256,
+		OldRequestStatus<<T as frame_system::Config>::AccountId, BalanceOf<T>>,
+	>;
 
 	#[frame_support::storage_alias(pallet_name)]
-	pub type RequestStatusFor<T: pallet_preimage::Config> =
-		StorageMap<pallet_preimage::Pallet<T>, Identity, H256, RequestStatus<<T as frame_system::Config>::AccountId, TicketOf<T>>>;
+	pub type RequestStatusFor<T: pallet_preimage::Config> = StorageMap<
+		pallet_preimage::Pallet<T>,
+		Identity,
+		H256,
+		RequestStatus<<T as frame_system::Config>::AccountId, TicketOf<T>>,
+	>;
 
 	#[frame_support::storage_alias(pallet_name)]
-	pub type PreimageFor<T: pallet_preimage::Config> =
-		StorageMap<pallet_preimage::Pallet<T>, Identity, (H256, u32), BoundedVec<u8, ConstU32<MAX_SIZE>>>;
+	pub type PreimageFor<T: pallet_preimage::Config> = StorageMap<
+		pallet_preimage::Pallet<T>,
+		Identity,
+		(H256, u32),
+		BoundedVec<u8, ConstU32<MAX_SIZE>>,
+	>;
 }
 
 pub const CHUNK_SIZE: u32 = 49_900; // about 50KiB
@@ -113,102 +127,100 @@ pub struct PreimageChunkMigrator<T: pallet_preimage::Config> {
 }
 
 impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
-    type Key = (Option<(H256, u32)>, u32);
-    type Error = Error<T>;
+	type Key = (Option<(H256, u32)>, u32);
+	type Error = Error<T>;
 
-    fn migrate_many(
-        mut last_key: Option<Self::Key>,
-        weight_counter: &mut WeightMeter,
-    ) -> Result<Option<Self::Key>, Self::Error> {
-        let (key_iter, mut last_offset) = match last_key {
-            None => (alias::PreimageFor::<T>::iter_keys(), 0),
-            Some((None, offset)) => (alias::PreimageFor::<T>::iter_keys(), offset),
-            Some((Some((hash, len)), offset)) => (
-                alias::PreimageFor::<T>::iter_keys_from(
-                    alias::PreimageFor::<T>::hashed_key_for(&(hash, len))
-                ),
-                offset
-            ),
-        };
+	fn migrate_many(
+		mut last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error> {
+		let (key_iter, mut last_offset) = match last_key {
+			None => (alias::PreimageFor::<T>::iter_keys(), 0),
+			Some((None, offset)) => (alias::PreimageFor::<T>::iter_keys(), offset),
+			Some((Some((hash, len)), offset)) => (
+				alias::PreimageFor::<T>::iter_keys_from(alias::PreimageFor::<T>::hashed_key_for(
+					&(hash, len),
+				)),
+				offset,
+			),
+		};
 
-        let mut batch = Vec::new();
-        let mut current_key = None;
+		let mut batch = Vec::new();
+		let mut current_key = None;
 
-        for kv in key_iter {
-            // If we're starting a new preimage, reset offset
-            if current_key.as_ref() != Some(&kv) {
-                current_key = Some(kv.clone());
-                // Reset offset unless we're resuming this specific hash from a previous attempt
-                let should_reset = last_key
-                    .as_ref()
-                    .and_then(|k| k.0.as_ref())
-                    .map_or(true, |h| h != &kv);
-                
-                if should_reset {
-                    last_offset = 0;
-                }
-            }
+		for kv in key_iter {
+			// If we're starting a new preimage, reset offset
+			if current_key.as_ref() != Some(&kv) {
+				current_key = Some(kv.clone());
+				// Reset offset unless we're resuming this specific hash from a previous attempt
+				let should_reset =
+					last_key.as_ref().and_then(|k| k.0.as_ref()).map_or(true, |h| h != &kv);
 
-            // Get the full preimage data once
-            let full_data = alias::PreimageFor::<T>::get(&kv).unwrap_or_default();
+				if should_reset {
+					last_offset = 0;
+				}
+			}
 
-            // Process chunks while there's still data to process
-            while last_offset < kv.1 {
-                // Calculate how many bytes remain to be processed
-                let remaining_bytes = kv.1.saturating_sub(last_offset);
-                let chunk_size = remaining_bytes.min(CHUNK_SIZE);
-                
-                // Extract the chunk
-                let chunk_bytes: Vec<u8> = full_data
-                    .iter()
-                    .skip(last_offset as usize)
-                    .take(chunk_size as usize)
-                    .cloned()
-                    .collect();
+			// Get the full preimage data once
+			let full_data = alias::PreimageFor::<T>::get(&kv).unwrap_or_default();
 
-                let bounded_chunk_bytes = BoundedVec::try_from(chunk_bytes)
-                    .expect("Chunk size is bounded by CHUNK_SIZE; qed");
-                debug_assert!(bounded_chunk_bytes.len() == chunk_size as usize);
+			// Process chunks while there's still data to process
+			while last_offset < kv.1 {
+				// Calculate how many bytes remain to be processed
+				let remaining_bytes = kv.1.saturating_sub(last_offset);
+				let chunk_size = remaining_bytes.min(CHUNK_SIZE);
 
-                batch.push(RcPreimageChunk {
-                    preimage_hash: kv.0,
-                    preimage_len: kv.1,
-                    chunk_byte_offset: last_offset,
-                    chunk_bytes: bounded_chunk_bytes,
-                });
+				// Extract the chunk
+				let chunk_bytes: Vec<u8> = full_data
+					.iter()
+					.skip(last_offset as usize)
+					.take(chunk_size as usize)
+					.cloned()
+					.collect();
 
-                log::debug!(
-                    target: LOG_TARGET,
-                    "Processed preimage chunk {:?} at offset {}",
-                    kv,
-                    last_offset
-                );
+				let bounded_chunk_bytes = BoundedVec::try_from(chunk_bytes)
+					.expect("Chunk size is bounded by CHUNK_SIZE; qed");
+				debug_assert!(bounded_chunk_bytes.len() == chunk_size as usize);
 
-                last_offset += chunk_size;
+				batch.push(RcPreimageChunk {
+					preimage_hash: kv.0,
+					preimage_len: kv.1,
+					chunk_byte_offset: last_offset,
+					chunk_bytes: bounded_chunk_bytes,
+				});
 
-                // Return after processing 10 chunks, saving our progress
-                if batch.len() >= 10 {
-                    Pallet::<T>::send_chunked_xcm(batch, |batch| {
-                        types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
-                    })?;
-                    return Ok(Some((Some(kv), last_offset)));
-                }
-            }
+				log::debug!(
+					target: LOG_TARGET,
+					"Processed preimage chunk {:?} at offset {}",
+					kv,
+					last_offset
+				);
 
-            // After finishing a preimage, update last_key and reset offset
-            last_key = Some((Some(kv), 0));
-            last_offset = 0;
-        }
+				last_offset += chunk_size;
 
-        // Send any remaining batch before finishing
-        if !batch.is_empty() {
-            Pallet::<T>::send_chunked_xcm(batch, |batch| {
-                types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
-            })?;
-        }
+				// Return after processing 10 chunks, saving our progress
+				if batch.len() >= 10 {
+					Pallet::<T>::send_chunked_xcm(batch, |batch| {
+						types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
+					})?;
+					return Ok(Some((Some(kv), last_offset)));
+				}
+			}
 
-        Ok(None)  // No more preimages to process
-    }
+			// After finishing a preimage, update last_key and reset offset
+			last_key = Some((Some(kv), 0));
+			last_offset = 0;
+		}
+
+		// Send any remaining batch before finishing
+		if !batch.is_empty() {
+			Pallet::<T>::send_chunked_xcm(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
+			})?;
+		}
+
+		Ok(None) // No more preimages to process
+	}
 }
 
 impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {

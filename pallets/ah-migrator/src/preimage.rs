@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
 					None => {
 						defensive!("Preimage too big");
 						return Err(Error::<T>::TODO);
-					}
+					},
 				}
 			},
 			None => {
@@ -69,12 +69,21 @@ impl<T: Config> Pallet<T> {
 					return Err(Error::<T>::TODO);
 				}
 
-				let preimage: BoundedVec<u8, ConstU32<{ pallet_rc_migrator::preimage::CHUNK_SIZE }>> = chunk.chunk_bytes;
-				debug_assert!(pallet_rc_migrator::preimage::CHUNK_SIZE <= pallet_rc_migrator::preimage::alias::MAX_SIZE);
-				let bounded_preimage: BoundedVec<u8, ConstU32<{ pallet_rc_migrator::preimage::alias::MAX_SIZE }>> = preimage.into_inner().try_into().expect("Asserted");
+				let preimage: BoundedVec<
+					u8,
+					ConstU32<{ pallet_rc_migrator::preimage::CHUNK_SIZE }>,
+				> = chunk.chunk_bytes;
+				debug_assert!(
+					pallet_rc_migrator::preimage::CHUNK_SIZE <=
+						pallet_rc_migrator::preimage::alias::MAX_SIZE
+				);
+				let bounded_preimage: BoundedVec<
+					u8,
+					ConstU32<{ pallet_rc_migrator::preimage::alias::MAX_SIZE }>,
+				> = preimage.into_inner().try_into().expect("Asserted");
 				alias::PreimageFor::<T>::insert(key, &bounded_preimage);
 				bounded_preimage
-			}
+			},
 		};
 
 		if preimage.len() == chunk.preimage_len as usize + chunk.chunk_byte_offset as usize {

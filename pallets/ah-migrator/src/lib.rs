@@ -33,9 +33,9 @@
 
 pub mod account;
 pub mod multisig;
+pub mod preimage;
 pub mod proxy;
 pub mod types;
-pub mod preimage;
 
 pub use pallet::*;
 
@@ -49,13 +49,13 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, proxy::*, preimage::*};
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
 use sp_application_crypto::Ss58Codec;
+use sp_core::H256;
 use sp_runtime::{
 	traits::{Convert, TryConvert},
 	AccountId32,
 };
-use sp_core::H256;
 use sp_std::prelude::*;
 
 /// The log target of this pallet.

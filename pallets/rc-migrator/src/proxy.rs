@@ -70,12 +70,12 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
 		let mut batch = Vec::new();
-		
+
 		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
-			pallet_proxy::Proxies::<T>::iter_from(
-				pallet_proxy::Proxies::<T>::hashed_key_for(&last_key)
-			)
+			pallet_proxy::Proxies::<T>::iter_from(pallet_proxy::Proxies::<T>::hashed_key_for(
+				&last_key,
+			))
 		} else {
 			pallet_proxy::Proxies::<T>::iter()
 		};
@@ -87,7 +87,8 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				continue;
 			}
 
-			match Self::migrate_single(acc.clone(), (proxies.into_inner(), deposit), weight_counter) {
+			match Self::migrate_single(acc.clone(), (proxies.into_inner(), deposit), weight_counter)
+			{
 				Ok(proxy) => {
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
@@ -162,11 +163,11 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 		let mut last_processed = None;
-		
+
 		// Get iterator starting after last processed key
 		let mut iter = if let Some(last_key) = last_key {
 			pallet_proxy::Announcements::<T>::iter_from(
-				pallet_proxy::Announcements::<T>::hashed_key_for(&last_key)
+				pallet_proxy::Announcements::<T>::hashed_key_for(&last_key),
 			)
 		} else {
 			pallet_proxy::Announcements::<T>::iter()
