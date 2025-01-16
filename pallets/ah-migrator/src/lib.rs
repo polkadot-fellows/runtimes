@@ -35,6 +35,7 @@ pub mod account;
 pub mod multisig;
 pub mod proxy;
 pub mod types;
+pub mod preimage;
 
 pub use pallet::*;
 
@@ -48,12 +49,13 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, proxy::*};
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, proxy::*, preimage::*};
 use sp_application_crypto::Ss58Codec;
 use sp_runtime::{
 	traits::{Convert, TryConvert},
 	AccountId32,
 };
+use sp_core::H256;
 use sp_std::prelude::*;
 
 /// The log target of this pallet.
@@ -71,6 +73,7 @@ pub mod pallet {
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
+		+ pallet_preimage::Config<Hash = H256>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -148,6 +151,18 @@ pub mod pallet {
 			/// How many proxy announcements failed to integrate.
 			count_bad: u32,
 		},
+		/// Received a batch of `RcPreimageChunk` that are going to be integrated.
+		PreimageChunkBatchReceived {
+			/// How many preimage chunks are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageChunk` that we received.
+		PreimageChunkBatchProcessed {
+			/// How many preimage chunks were successfully integrated.
+			count_good: u32,
+			/// How many preimage chunks failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -207,7 +222,18 @@ pub mod pallet {
 			announcements: Vec<RcProxyAnnouncementOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
+
 			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
+		}
+
+		#[pallet::call_index(4)]
+		pub fn receive_preimage_chunks(
+			origin: OriginFor<T>,
+			chunks: Vec<RcPreimageChunk>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
 		}
 	}
 

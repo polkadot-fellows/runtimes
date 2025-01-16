@@ -23,6 +23,7 @@ pallet-balances = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-preimage = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
@@ -51,6 +52,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+	"pallet-preimage/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -64,6 +66,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"pallet-preimage/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
@@ -75,4 +78,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-preimage/try-runtime"
 ]
