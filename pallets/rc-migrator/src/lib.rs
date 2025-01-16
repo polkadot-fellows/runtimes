@@ -379,19 +379,22 @@ pub mod pallet {
 		/// Split up the items into chunks of `MAX_MSG_SIZE` and send them as separate XCM
 		/// transacts.
 		///
+		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm<E: Encode>(
 			mut items: Vec<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 		) -> Result<(), Error<T>> {
 			const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
+			// Reverse in place so that we can use `pop` later on
+			items.reverse();
 
 			while !items.is_empty() {
 				let mut remaining_size: u32 = MAX_MSG_SIZE;
 				let mut batch = Vec::new();
 
 				while !items.is_empty() {
-					// Order does not matter, so we take from the back as optimization
+					// Taking from the back as optimization is fine since we reversed
 					let item = items.last().unwrap(); // FAIL-CI no unwrap
 					let msg_size = item.encoded_size() as u32;
 					if msg_size > remaining_size {
