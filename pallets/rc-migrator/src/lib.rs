@@ -33,6 +33,7 @@
 
 pub mod accounts;
 pub mod multisig;
+pub mod preimage;
 pub mod proxy;
 pub mod types;
 mod weights;
@@ -54,7 +55,7 @@ use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::hrmp;
-use sp_core::crypto::Ss58Codec;
+use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{traits::TryConvert, AccountId32};
 use sp_std::prelude::*;
 use storage::TransactionOutcome;
@@ -63,6 +64,7 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
+use preimage::PreimageChunkMigrator;
 use proxy::*;
 use types::PalletMigration;
 
@@ -103,6 +105,13 @@ pub enum MigrationStage<AccountId> {
 		last_key: Option<AccountId>,
 	},
 	ProxyMigrationDone,
+	PreimageMigrationInit,
+	PreimageMigrationChunksOngoing {
+		// TODO type
+		last_key: Option<(Option<(H256, u32)>, u32)>,
+	},
+	PreimageMigrationChunksDone,
+	PreimageMigrationDone,
 }
 
 type AccountInfoFor<T> =
@@ -125,6 +134,7 @@ pub mod pallet {
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
+		+ pallet_preimage::Config<Hash = H256>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -220,8 +230,9 @@ pub mod pallet {
 					// TODO: not complete
 
 					let _ = Self::obtain_rc_accounts();
-					Self::transition(MigrationStage::AccountsMigrationInit);
-					//Self::transition(MigrationStage::ProxyMigrationInit);
+					// Swap this out if you want to skip some migrations for faster debugging
+					//Self::transition(MigrationStage::AccountsMigrationInit);
+					Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let first_acc = match Self::first_account(&mut weight_counter).defensive() {
@@ -359,7 +370,42 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ProxyMigrationDone => {
-					todo!();
+					Self::transition(MigrationStage::PreimageMigrationInit);
+				},
+				MigrationStage::PreimageMigrationInit => {
+					Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+						last_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationChunksOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(PreimageChunkMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::PreimageMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating preimages: {:?}", e);
+							defensive!("Error while migrating preimages");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationChunksDone => {
+					Self::transition(MigrationStage::PreimageMigrationDone);
+				},
+				MigrationStage::PreimageMigrationDone => {
+					unimplemented!()
 				},
 			};
 
@@ -405,7 +451,7 @@ pub mod pallet {
 					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
 				}
 
-				log::info!(target: LOG_TARGET, "Sending batch of {} proxies", batch.len());
+				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch.len());
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 
 				let message = Xcm(vec![

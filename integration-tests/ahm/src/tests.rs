@@ -33,7 +33,7 @@
 
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
-use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
+use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
 
@@ -47,8 +47,10 @@ async fn account_migration_works() {
 	let para_id = ParaId::from(1000);
 
 	// Simulate relay blocks and grab the DMP messages
-	let dmp_messages = rc.execute_with(|| {
+	let (dmp_messages, pre_check_payload) = rc.execute_with(|| {
 		let mut dmps = Vec::new();
+		let pre_check_payload =
+			pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::pre_check();
 
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
@@ -59,10 +61,10 @@ async fn account_migration_works() {
 			dmps.extend(new_dmps);
 
 			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::ProxyMigrationDone
+				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
 			{
 				log::info!("Migration done");
-				break dmps;
+				break (dmps, pre_check_payload);
 			}
 		}
 	});
@@ -88,6 +90,10 @@ async fn account_migration_works() {
 			log::debug!("AH DMP messages left: {}", fp.storage.count);
 			next_block_ah();
 		}
+
+		pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
+			pre_check_payload,
+		);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});
