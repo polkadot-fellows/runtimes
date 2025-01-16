@@ -364,7 +364,7 @@ pub mod pallet {
 
 					proxy_definitions
 						.into_iter()
-						.filter_map(|pd| T::RemoteProxy::remote_to_local_proxy_defintion(pd))
+						.filter_map(T::RemoteProxy::remote_to_local_proxy_defintion)
 						.find(f)
 						.ok_or(Error::<T, I>::DidNotFindMatchingProxyDefinition)?
 				},
