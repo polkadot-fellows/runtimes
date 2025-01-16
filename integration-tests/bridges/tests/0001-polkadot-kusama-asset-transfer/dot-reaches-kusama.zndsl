@@ -6,7 +6,7 @@ Creds: config
 asset-hub-kusama-collator-1: run {{ENV_PATH}}/helper.sh with "reserve-transfer-assets-from-asset-hub-polkadot-local 50000000000" within 120 seconds
 
 # check that //Alice received at least 4.8 DOT on Kusama AH
-asset-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/wrapped-assets-balance.js with "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,48000000000,Polkadot" within 300 seconds
+asset-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/wrapped-assets-balance.js with '{ "accountAddress": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "expectedAssetBalance": 48000000000, "expectedAssetId": { "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot" }] }}}' within 300 seconds
 
-# check that the relayer //Charlie is rewarded by Kusama AH
-bridge-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,0x00000001,0x62687064,ThisChain,0" within 30 seconds
+# check that the relayer //Eve is rewarded by Kusama AH
+bridge-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw,0x00000001,0x62687064,ThisChain,0" within 30 seconds

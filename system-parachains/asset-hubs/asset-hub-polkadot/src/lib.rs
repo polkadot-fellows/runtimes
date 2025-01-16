@@ -855,7 +855,6 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type DestinationVersion = PolkadotXcm;
 
 	type SiblingBridgeHubLocation = xcm_config::bridging::SiblingBridgeHub;
-
 	type BridgeHubOrigin =
 		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<Equals<Self::SiblingBridgeHubLocation>>>;
 	type ToBridgeHubSender = XcmpQueue;
