@@ -256,11 +256,12 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 			>(
 				SiblingParachainLocation::get(),
 				BridgedUniversalLocation::get(),
-				|locations, fee| {
+				false,
+				|locations, _fee| {
 					bridge_hub_test_utils::open_bridge_with_storage::<
 						Runtime,
 						XcmOverBridgeHubKusamaInstance
-					>(locations, fee, LegacyLaneId([0, 0, 0, 1]))
+					>(locations, LegacyLaneId([0, 0, 0, 1]))
 				}
 			).1
 			},
@@ -318,11 +319,12 @@ fn relayed_incoming_message_works() {
 			>(
 				SiblingParachainLocation::get(),
 				BridgedUniversalLocation::get(),
-				|locations, fee| {
+				false,
+				|locations, _fee| {
 					bridge_hub_test_utils::open_bridge_with_storage::<
 						Runtime,
 						XcmOverBridgeHubKusamaInstance,
-					>(locations, fee, LegacyLaneId([0, 0, 0, 1]))
+					>(locations, LegacyLaneId([0, 0, 0, 1]))
 				},
 			)
 			.1
@@ -352,11 +354,12 @@ fn free_relay_extrinsic_works() {
 			>(
 				SiblingParachainLocation::get(),
 				BridgedUniversalLocation::get(),
-				|locations, fee| {
+				false,
+				|locations, _fee| {
 					bridge_hub_test_utils::open_bridge_with_storage::<
 						Runtime,
 						XcmOverBridgeHubKusamaInstance,
-					>(locations, fee, LegacyLaneId([0, 0, 0, 1]))
+					>(locations, LegacyLaneId([0, 0, 0, 1]))
 				},
 			)
 			.1

@@ -104,7 +104,7 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
 		InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
@@ -905,7 +905,8 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type DestinationVersion = PolkadotXcm;
 
 	type SiblingBridgeHubLocation = xcm_config::bridging::SiblingBridgeHub;
-
+	type BridgeHubOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<Equals<Self::SiblingBridgeHubLocation>>>;
 	type ToBridgeHubSender = XcmpQueue;
 
 	type ByteFee = xcm_config::bridging::XcmBridgeHubRouterByteFee;

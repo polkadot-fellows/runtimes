@@ -386,7 +386,7 @@ pub mod pallet {
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 		) -> Result<(), Error<T>> {
 			const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
-			// Reverse in place so that we can use `pop` later on
+									 // Reverse in place so that we can use `pop` later on
 			items.reverse();
 
 			while !items.is_empty() {

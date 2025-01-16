@@ -67,8 +67,11 @@ impl ChainWithMessages for BridgeHubPolkadot {
 		WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	/// This constant limits the maximum number of messages in `receive_messages_proof`.
+	/// We need to adjust it from 4096 to 2024 due to the actual weights identified by
+	/// `check_message_lane_weights`. A higher value can be set once we switch
+	/// `max_extrinsic_weight` to `BlockWeightsForAsyncBacking`.
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 2024;
 }
 
 /// Identifier of BridgeHubPolkadot in the Polkadot relay chain.
@@ -91,7 +94,7 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 88_797_450;
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 90_433_350;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_delivery_transaction` + `33%`)

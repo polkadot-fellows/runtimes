@@ -102,6 +102,8 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
           SKIP_WASM_BUILD: 1
+          WS: ${{ matrix.runtime.uri }}
+          RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
