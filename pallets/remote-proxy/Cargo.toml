@@ -47,7 +47,15 @@ std = [
 	"sp-trie/std",
 ]
 
-try-runtime = []
+try-runtime = [
+	"cumulus-pallet-parachain-system/try-runtime",
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-proxy/try-runtime",
+	"pallet-utility/try-runtime",
+	"sp-runtime/try-runtime",
+]
 
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",

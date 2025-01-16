@@ -171,6 +171,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-remote-proxy/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
