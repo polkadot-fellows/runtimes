@@ -149,7 +149,7 @@ impl crate::RemoteProxyInterface<u64, ProxyType, u64> for RemoteProxyImpl {
 	}
 
 	fn local_to_remote_account_id(local: &u64) -> Option<Self::RemoteAccountId> {
-		Some(local.clone())
+		Some(*local)
 	}
 
 	fn remote_to_local_proxy_defintion(
