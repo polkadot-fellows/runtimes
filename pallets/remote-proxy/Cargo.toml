@@ -47,6 +47,8 @@ std = [
 	"sp-trie/std",
 ]
 
+try-runtime = []
+
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
