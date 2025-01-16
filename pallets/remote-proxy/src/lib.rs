@@ -167,7 +167,7 @@ pub mod pallet {
 			};
 
 			// Update the block to root mappings.
-			BlockToRoot::<T>::insert(block.clone(), hash);
+			BlockToRoot::<T>::insert(&block, hash);
 			BlockToRoot::<T>::remove(block.saturating_sub(T::MaxStorageRootsToKeep::get()));
 		}
 
