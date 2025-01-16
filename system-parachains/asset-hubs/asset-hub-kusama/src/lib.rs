@@ -38,12 +38,15 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use kusama_runtime_constants::time::MINUTES;
+use pallet_proxy::ProxyDefinition;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
+		Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
@@ -519,9 +522,11 @@ parameter_types! {
 	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
+	Default,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
@@ -535,11 +540,6 @@ pub enum ProxyType {
 	AssetManager,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -964,6 +964,52 @@ impl pallet_xcm_bridge_hub_router::Config<ToPolkadotXcmRouterInstance> for Runti
 		cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<Runtime>;
 }
 
+/// Converts from the relay chain proxy type to the local proxy type.
+pub struct RelayChainToLocalProxyTypeConverter;
+
+impl
+	Convert<
+		ProxyDefinition<AccountId, kusama_runtime_constants::proxy::ProxyType, BlockNumber>,
+		Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>>,
+	> for RelayChainToLocalProxyTypeConverter
+{
+	fn convert(
+		a: ProxyDefinition<AccountId, kusama_runtime_constants::proxy::ProxyType, BlockNumber>,
+	) -> Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>> {
+		let proxy_type = match a.proxy_type {
+			kusama_runtime_constants::proxy::ProxyType::Any => ProxyType::Any,
+			kusama_runtime_constants::proxy::ProxyType::NonTransfer => ProxyType::NonTransfer,
+			kusama_runtime_constants::proxy::ProxyType::CancelProxy => ProxyType::CancelProxy,
+			// Proxy types that are not supported on AH.
+			kusama_runtime_constants::proxy::ProxyType::Governance |
+			kusama_runtime_constants::proxy::ProxyType::Staking |
+			kusama_runtime_constants::proxy::ProxyType::Auction |
+			kusama_runtime_constants::proxy::ProxyType::Spokesperson |
+			kusama_runtime_constants::proxy::ProxyType::NominationPools |
+			kusama_runtime_constants::proxy::ProxyType::Society |
+			kusama_runtime_constants::proxy::ProxyType::ParaRegistration => return None,
+		};
+
+		Some(ProxyDefinition {
+			delegate: a.delegate,
+			proxy_type,
+			// Delays are currently not supported by the remote proxy pallet, but should be
+			// converted in the future to the block time used by the local proxy pallet.
+			delay: a.delay,
+		})
+	}
+}
+
+impl pallet_remote_proxy::Config for Runtime {
+	type MaxStorageRootsToKeep = ConstU32<{ MINUTES * 20 }>;
+	type RemoteProxy = kusama_runtime_constants::proxy::RemoteProxyInterface<
+		ProxyType,
+		RelayChainToLocalProxyTypeConverter,
+	>;
+	//TODO: Run benchmarks and replace.
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1000,6 +1046,7 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
+		RemoteProxyRelayChain: pallet_remote_proxy = 43,
 
 		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,

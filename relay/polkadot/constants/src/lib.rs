@@ -167,7 +167,7 @@ pub mod proxy {
 		PartialOrd,
 		codec::Encode,
 		codec::Decode,
-		sp_runtime::RuntimeDebug,
+		core::fmt::Debug,
 		codec::MaxEncodedLen,
 		scale_info::TypeInfo,
 		Default,

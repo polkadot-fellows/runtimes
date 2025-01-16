@@ -28,7 +28,7 @@ use frame_support::{
 	traits::EnsureOriginWithArg,
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIMESLICE_PERIOD};
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
@@ -1109,7 +1109,10 @@ parameter_types! {
 	pub const MaxPending: u16 = 32;
 }
 
-/// The type used to represent the kinds of proxying allowed.
+/// Transparent wrapper around the actual [`ProxyType`].
+///
+/// This is done to have [`ProxyType`] declared in a different crate (constants) and being able to
+/// implement [`InstanceFilter`] in this crate.
 #[derive(
 	Copy,
 	Clone,
@@ -1121,41 +1124,21 @@ parameter_types! {
 	Decode,
 	RuntimeDebug,
 	MaxEncodedLen,
-	TypeInfo,
+	Default,
 )]
-pub enum ProxyType {
-	#[codec(index = 0)]
-	Any,
-	#[codec(index = 1)]
-	NonTransfer,
-	#[codec(index = 2)]
-	Governance,
-	#[codec(index = 3)]
-	Staking,
-	// Index 4 skipped. Formerly `IdentityJudgement`.
-	#[codec(index = 5)]
-	CancelProxy,
-	#[codec(index = 6)]
-	Auction,
-	#[codec(index = 7)]
-	Society,
-	#[codec(index = 8)]
-	NominationPools,
-	#[codec(index = 9)]
-	Spokesperson,
-	#[codec(index = 10)]
-	ParaRegistration,
-}
+pub struct TransparentProxyType(ProxyType);
 
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
+impl scale_info::TypeInfo for TransparentProxyType {
+	type Identity = <ProxyType as TypeInfo>::Identity;
+
+	fn type_info() -> scale_info::Type {
+		ProxyType::type_info()
 	}
 }
 
-impl InstanceFilter<RuntimeCall> for ProxyType {
+impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
-		match self {
+		match self.0 {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
@@ -1261,7 +1244,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
+		match (self.0, o.0) {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
@@ -1275,7 +1258,7 @@ impl pallet_proxy::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type ProxyType = ProxyType;
+	type ProxyType = TransparentProxyType;
 	type ProxyDepositBase = ProxyDepositBase;
 	type ProxyDepositFactor = ProxyDepositFactor;
 	type MaxProxies = MaxProxies;

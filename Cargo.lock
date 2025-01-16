@@ -659,6 +659,7 @@ dependencies = [
  "pallet-nfts",
  "pallet-nfts-runtime-api",
  "pallet-proxy",
+ "pallet-remote-proxy",
  "pallet-session",
  "pallet-state-trie-migration",
  "pallet-timestamp",
@@ -676,7 +677,6 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants",
  "primitive-types",
  "scale-info",
  "serde_json",
@@ -6118,8 +6118,11 @@ name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "pallet-remote-proxy",
+ "parity-scale-codec",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime-common",
+ "scale-info",
  "smallvec",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
