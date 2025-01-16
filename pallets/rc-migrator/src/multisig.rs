@@ -150,7 +150,9 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Self::send_batch_xcm(batch)?;
+			Pallet::<T>::send_chunked_xcm(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch }
+			})?;
 		}
 
 		Ok(last_key)
@@ -169,32 +171,5 @@ impl<T: Config> MultisigMigrator<T> {
 		}
 
 		Ok(RcMultisig { creator: ms.depositor, deposit: ms.deposit, details: Some(k1) })
-	}
-
-	/// Storage changes must be rolled back on error.
-	fn send_batch_xcm(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
-		let call = types::AssetHubPalletConfig::<T>::AhmController(
-			types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs },
-		);
-
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Superuser,
-				require_weight_at_most: Weight::from_all(1), // TODO
-				call: call.encode().into(),
-			},
-		]);
-
-		if let Err(_err) =
-			send_xcm::<T::SendXcm>(Location::new(0, [Junction::Parachain(1000)]), message.clone())
-		{
-			return Err(Error::TODO);
-		};
-
-		Ok(())
 	}
 }

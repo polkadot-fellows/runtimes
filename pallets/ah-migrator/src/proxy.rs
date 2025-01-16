@@ -51,6 +51,7 @@ impl<T: Config> Pallet<T> {
 			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type) else {
 				// This is fine, eg. `Auction` proxy is not supported on AH
 				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy at index {} for {}", i, proxy.delegator.to_ss58check());
+				// TODO unreserve deposit
 				return None;
 			};
 
@@ -89,7 +90,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		let (mut count_good, mut count_bad) = (0, 0);
-		log::info!(target: LOG_TARGET, "Integrating {} proxy announcements", announcements.len());
+		log::info!(target: LOG_TARGET, "Unreserving deposits for {} proxy announcements", announcements.len());
 
 		for announcement in announcements {
 			match Self::do_receive_proxy_announcement(announcement) {
@@ -109,13 +110,14 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxy_announcement(
 		announcement: RcProxyAnnouncementOf<T>,
 	) -> Result<(), Error<T>> {
+		let before = frame_system::Account::<T>::get(&announcement.depositor);
 		let missing = <T as pallet_proxy::Config>::Currency::unreserve(
 			&announcement.depositor,
 			announcement.deposit,
 		);
 
 		if !missing.is_zero() {
-			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, missing {:?}", announcement.depositor.to_ss58check(), missing);
+			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, missing {:?}, before {:?}", announcement.depositor.to_ss58check(), missing, before);
 		}
 
 		Ok(())
