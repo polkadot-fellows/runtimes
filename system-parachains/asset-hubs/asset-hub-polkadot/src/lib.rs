@@ -992,7 +992,7 @@ impl
 	}
 }
 
-impl pallet_remote_proxy::Config<pallet_remote_proxy::Instance1> for Runtime {
+impl pallet_remote_proxy::Config for Runtime {
 	type MaxStorageRootsToKeep = ConstU32<{ MINUTES * 20 }>;
 	type RemoteProxy = polkadot_runtime_constants::proxy::RemoteProxyInterface<
 		ProxyType,
@@ -1038,7 +1038,7 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
-		RemoteProxyRelayChain: pallet_remote_proxy::<Instance1> = 43,
+		RemoteProxyRelayChain: pallet_remote_proxy = 43,
 
 		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
