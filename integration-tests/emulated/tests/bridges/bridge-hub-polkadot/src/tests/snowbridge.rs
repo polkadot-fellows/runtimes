@@ -462,11 +462,14 @@ fn send_weth_from_ethereum_to_asset_hub() {
 /// Tests sending ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
+		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
+	);
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
-	let ether_location = (Parent, Parent, ethereum_network).into();
+	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Register ETH
 	BridgeHubPolkadot::execute_with(|| {
@@ -500,6 +503,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
 		));
 
+		let message_id: H256 = [1; 32].into();
 		// Construct SendToken message and sent to inbound queue
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
@@ -524,6 +528,10 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
 			]
 		);
+	});
+
+	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
+		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
 	});
 
 	// Receive ether on Asset Hub.
