@@ -63,7 +63,11 @@ pub use kusama_polkadot_system_emulated_network::{
 		},
 		PenpalAssetOwner, PenpalBParaPallet as PenpalBPallet,
 	},
-	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
+	polkadot_emulated_chain::{
+		genesis::ED as POLKADOT_ED,
+		polkadot_runtime::xcm_config::UniversalLocation as PolkadotRelayUniversalLocation,
+		PolkadotRelayPallet as PolkadotPallet,
+	},
 	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
 	AssetHubKusamaParaSender as AssetHubKusamaSender, AssetHubPolkadotPara as AssetHubPolkadot,
 	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,

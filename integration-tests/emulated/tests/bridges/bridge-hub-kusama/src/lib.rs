@@ -55,7 +55,11 @@ pub use kusama_polkadot_system_emulated_network::{
 	bridge_hub_kusama_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_KUSAMA_ED, BridgeHubKusamaParaPallet as BridgeHubKusamaPallet,
 	},
-	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
+	kusama_emulated_chain::{
+		genesis::ED as KUSAMA_ED,
+		kusama_runtime::xcm_config::UniversalLocation as KusamaRelayUniversalLocation,
+		KusamaRelayPallet as KusamaPallet,
+	},
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
 			CustomizableAssetFromSystemAssetHub as PenpalCustomizableAssetFromSystemAssetHub,
