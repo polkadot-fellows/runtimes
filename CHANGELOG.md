@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
 
+- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
+
 ### Changed
 
 - Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))

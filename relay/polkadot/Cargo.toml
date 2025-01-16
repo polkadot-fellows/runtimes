@@ -214,6 +214,7 @@ std = [
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
+	"sp-trie/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"xcm-builder/std",
