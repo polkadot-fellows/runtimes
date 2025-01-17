@@ -59,6 +59,13 @@ use sp_std::prelude::*;
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
 
+type RcAccountFor<T> = RcAccount<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_balances::Config>::Balance,
+	<T as Config>::RcHoldReason,
+	<T as Config>::RcFreezeReason,
+>;
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -102,17 +109,38 @@ pub mod pallet {
 		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
 	}
 
+	/// RC accounts that failed to migrate when were received on the Asset Hub.
+	///
+	/// This is unlikely to happen, since we dry run the migration, but we keep it for completeness.
+	#[pallet::storage]
+	pub type RcAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, RcAccountFor<T>, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
-		/// TODO
+		/// The error that should to be replaced by something meaningful.
 		TODO,
+		/// Failed to process an account data from RC.
+		FailedToProcessAccount,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// TODO
+		/// The event that should to be replaced by something meaningful.
 		TODO,
+		/// We received a batch of accounts that we are going to integrate.
+		AccountBatchReceived {
+			/// How many accounts are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of accounts that we received.
+		AccountBatchProcessed {
+			/// How many accounts were successfully integrated.
+			count_good: u32,
+			/// How many accounts failed to integrate.
+			count_bad: u32,
+		},
 		/// We received a batch of multisigs that we are going to integrate.
 		MultisigBatchReceived {
 			/// How many multisigs are in the batch.
@@ -164,12 +192,11 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
-			accounts: Vec<RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>>,
+			accounts: Vec<RcAccountFor<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			Self::do_receive_accounts(accounts)?;
-			// TODO: publish event
 
 			Ok(())
 		}
