@@ -156,14 +156,13 @@ pub type AccountFor<T> = Account<
 	<T as pallet_balances::Config>::FreezeIdentifier,
 >;
 
-impl<T: Config> Pallet<T> {
-	/// Get the first account that the migration should begin with.
-	///
-	/// Returns `None` when there are no accounts present.
-	pub fn first_account(_weight: &mut WeightMeter) -> Result<Option<T::AccountId>, Error<T>> {
-		Ok(SystemAccount::<T>::iter_keys().next())
-	}
-	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
+pub struct AccountsMigrator<T: Config> {
+	_phantom: sp_std::marker::PhantomData<T>,
+}
+
+impl<T: Config> PalletMigration for AccountsMigrator<T> {
+	type Key = T::AccountId;
+	type Error = Error<T>;
 
 	/// Migrate accounts from RC to AH.
 	///
@@ -174,64 +173,102 @@ impl<T: Config> Pallet<T> {
 	/// Result:
 	/// - None - no accounts left to be migrated to AH.
 	/// - Some(maybe_last_key) - the last migrated account from RC to AH if
-	pub fn migrate_accounts(
-		last_key: T::AccountId,
+	fn migrate_many(
+		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
-	) -> Result<Option<T::AccountId>, Error<T>> {
+	) -> Result<Option<Self::Key>, Error<T>> {
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
-		// accounts package for the current iteration.
-		let mut package = Vec::new();
+		// accounts batch for the current iteration.
+		let mut batch = Vec::new();
 
-		// TODO transport weight
+		// TODO transport weight. probably we need to leave some buffer since we do not know how
+		// many send batches the one migrate_many will require.
 		let xcm_weight = Weight::from_all(1);
 		if weight_counter.try_consume(xcm_weight).is_err() {
 			return Err(Error::OutOfWeight);
 		}
 
-		let mut iter = SystemAccount::<T>::iter_from_key(last_key);
-		let maybe_last_key = loop {
+		let mut iter = if let Some(ref last_key) = last_key {
+			SystemAccount::<T>::iter_from_key(last_key)
+		} else {
+			SystemAccount::<T>::iter()
+		};
+
+		let mut maybe_last_key = last_key;
+		loop {
 			let Some((who, account_info)) = iter.next() else {
-				break None;
+				maybe_last_key = None;
+				break;
 			};
 
-			match Self::migrate_account(
-				who.clone(),
-				account_info.clone(),
-				weight_counter,
-				&mut ah_weight_counter,
-			) {
+			let withdraw_res =
+				with_transaction_opaque_err::<Option<AccountFor<T>>, Error<T>, _>(|| {
+					match Self::withdraw_account(
+						who.clone(),
+						account_info.clone(),
+						weight_counter,
+						&mut ah_weight_counter,
+					) {
+						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
+						Err(e) => TransactionOutcome::Rollback(Err(e)),
+					}
+				})
+				.expect("Always returning Ok; qed");
+
+			match withdraw_res {
 				// Account does not need to be migrated
-				Ok(None) => continue,
-				Ok(Some(ah_account)) => package.push(ah_account),
+				Ok(None) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who);
+					continue;
+				},
+				Ok(Some(ah_account)) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who);
+					batch.push(ah_account)
+				},
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if !package.is_empty() => break Some(who.clone()),
+				Err(Error::OutOfWeight) if !batch.is_empty() => {
+					break;
+				},
 				// Not enough weight and was unable to make progress, bad.
-				Err(Error::OutOfWeight) if package.is_empty() => {
+				Err(Error::OutOfWeight) if batch.is_empty() => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
 				Err(e) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who.clone());
 					defensive!("Error while migrating account");
-					log::error!(target: LOG_TARGET, "Error while migrating account: {:?}", e);
-					return Err(e);
+					log::error!(
+						target: LOG_TARGET,
+						"Error while migrating account: {:?}, error: {:?}",
+						who.to_ss58check(),
+						e
+					);
+					continue;
 				},
 			}
-		};
+		}
 
-		if !package.is_empty() {
-			Pallet::<T>::send_chunked_xcm(package, |package| {
-				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: package }
+		if batch.is_empty() {
+			Pallet::<T>::send_chunked_xcm(batch, |batch| {
+				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch }
 			})?;
 		}
 
 		Ok(maybe_last_key)
 	}
+}
+
+impl<T: Config> AccountsMigrator<T> {
+	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
 
 	/// Migrate a single account out of the Relay chain and return it.
 	///
 	/// The account on the relay chain is modified as part of this operation.
-	pub fn migrate_account(
+	fn withdraw_account(
 		who: T::AccountId,
 		account_info: AccountInfoFor<T>,
 		rc_weight: &mut WeightMeter,
@@ -287,7 +324,14 @@ impl<T: Config> Pallet<T> {
 			account_data.frozen.is_zero()
 		{
 			if account_info.nonce.is_zero() {
-				log::warn!(target: LOG_TARGET, "Possible system account detected '{}'", who.to_ss58check());
+				log::warn!(
+					target: LOG_TARGET,
+					"Possible system account detected. \
+					Consumer ref: {}, Provider ref: {}, Account: '{}'",
+					account_info.consumers,
+					account_info.providers,
+					who.to_ss58check()
+				);
 			} else {
 				log::warn!(target: LOG_TARGET, "Weird account detected '{}'", who.to_ss58check());
 			}
@@ -298,18 +342,36 @@ impl<T: Config> Pallet<T> {
 			pallet_balances::Freezes::<T>::get(&who).into();
 
 		for freeze in &freezes {
-			<T as Config>::Currency::thaw(&freeze.id, &who)
-				// TODO: handle error
-				.unwrap();
+			if let Err(e) = <T as Config>::Currency::thaw(&freeze.id, &who) {
+				log::error!(target: LOG_TARGET,
+					"Failed to thaw freeze: {:?} \
+					for account: {:?} \
+					with error: {:?}",
+					freeze.id,
+					who.to_ss58check(),
+					e
+				);
+				return Err(Error::FailedToWithdrawAccount);
+			}
 		}
 
 		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {
-			let _ = <T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
-				// TODO: handle error
-				.unwrap();
+			if let Err(e) =
+				<T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
+			{
+				log::error!(target: LOG_TARGET,
+					"Failed to release hold: {:?} \
+					for account: {:?} \
+					with error: {:?}",
+					hold.id,
+					who.to_ss58check(),
+					e
+				);
+				return Err(Error::FailedToWithdrawAccount);
+			}
 		}
 
 		let locks: Vec<BalanceLock<T::Balance>> =
@@ -346,23 +408,42 @@ impl<T: Config> Pallet<T> {
 
 		debug_assert!(total_balance == balance);
 		debug_assert!(total_balance == account_data.free + account_data.reserved);
-		// TODO: total_balance > ED on AH
+		debug_assert!(total_balance >= <T as Config>::AhExistentialDeposit::get());
 
-		let burned = <T as Config>::Currency::burn_from(
+		let burned = match <T as Config>::Currency::burn_from(
 			&who,
 			total_balance,
 			Preservation::Expendable,
 			Precision::Exact,
 			Fortitude::Polite,
-		)
-		// TODO: handle error
-		.unwrap();
+		) {
+			Ok(burned) => burned,
+			Err(e) => {
+				log::error!(
+					target: LOG_TARGET,
+					"Failed to burn balance from account: {}, error: {:?}",
+					who.to_ss58check(),
+					e
+				);
+				return Err(Error::FailedToWithdrawAccount);
+			},
+		};
 
 		debug_assert!(total_balance == burned);
 
-		let minted = <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), total_balance)
-			// TODO: handle error;
-			.unwrap();
+		let minted =
+			match <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), total_balance) {
+				Ok(minted) => minted,
+				Err(e) => {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to mint balance into checking account: {}, error: {:?}",
+						who.to_ss58check(),
+						e
+					);
+					return Err(Error::FailedToWithdrawAccount);
+				},
+			};
 
 		debug_assert!(total_balance == minted);
 
@@ -400,7 +481,7 @@ impl<T: Config> Pallet<T> {
 		// - `session`: (P/K/W)
 		// - `staking`: (P/K/W)
 
-		0 // TODO count them
+		0
 	}
 
 	/// Provider ref count of migrating to Asset Hub pallets except the reference for existential
@@ -419,7 +500,7 @@ impl<T: Config> Pallet<T> {
 		// - `delegate_staking`: (P/K/W)
 		// - `session`: (P/K/W) <- Don't count this one (see https://github.com/paritytech/polkadot-sdk/blob/8d4138f77106a6af49920ad84f3283f696f3f905/substrate/frame/session/src/lib.rs#L462-L465)
 
-		0 // TODO count the ones that we want to migrate
+		0
 	}
 
 	/// The part of the balance of the `who` that must stay on the Relay Chain.
