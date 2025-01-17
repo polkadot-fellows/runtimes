@@ -87,6 +87,7 @@ system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
 collectives-polkadot-runtime-constants = { workspace = true }
+parachains-runtimes-test-utils = { workspace = true }
 sp-io = { workspace = true }
 
 [build-dependencies]
