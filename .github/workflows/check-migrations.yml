@@ -91,6 +91,9 @@ jobs:
       - name: Install updates and dependencies
         run: .github/install-deps.sh
 
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:

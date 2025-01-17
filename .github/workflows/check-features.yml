@@ -18,6 +18,14 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Dont clone historic commits.
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -25,11 +33,6 @@ jobs:
 
       - name: Install Zepter
         run: cargo install --locked -q zepter && zepter --version
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Dont clone historic commits.
 
       - name: Check features
         run: |
