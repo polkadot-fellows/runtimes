@@ -16,7 +16,8 @@
 // limitations under the License.
 
 use crate::{types::*, *};
-use pallet_rc_migrator::preimage::alias;
+use frame_support::traits::{Consideration, Footprint};
+use pallet_rc_migrator::preimage::{chunks::*, *};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_chunks(chunks: Vec<RcPreimageChunk>) -> Result<(), Error<T>> {
@@ -69,14 +70,8 @@ impl<T: Config> Pallet<T> {
 					return Err(Error::<T>::TODO);
 				}
 
-				let preimage: BoundedVec<
-					u8,
-					ConstU32<{ pallet_rc_migrator::preimage::CHUNK_SIZE }>,
-				> = chunk.chunk_bytes;
-				debug_assert!(
-					pallet_rc_migrator::preimage::CHUNK_SIZE <=
-						pallet_rc_migrator::preimage::alias::MAX_SIZE
-				);
+				let preimage: BoundedVec<u8, ConstU32<{ CHUNK_SIZE }>> = chunk.chunk_bytes;
+				debug_assert!(CHUNK_SIZE <= pallet_rc_migrator::preimage::alias::MAX_SIZE);
 				let bounded_preimage: BoundedVec<
 					u8,
 					ConstU32<{ pallet_rc_migrator::preimage::alias::MAX_SIZE }>,
@@ -89,6 +84,85 @@ impl<T: Config> Pallet<T> {
 		if preimage.len() == chunk.preimage_len as usize + chunk.chunk_byte_offset as usize {
 			log::debug!(target: LOG_TARGET, "Preimage complete: {}", chunk.preimage_hash);
 		}
+
+		Ok(())
+	}
+
+	pub fn do_receive_preimage_request_statuses(
+		request_status: Vec<RcPreimageRequestStatusOf<T>>,
+	) -> Result<(), Error<T>> {
+		Self::deposit_event(Event::PreimageRequestStatusBatchReceived {
+			count: request_status.len() as u32,
+		});
+		log::info!(target: LOG_TARGET, "Integrating {} preimage request status", request_status.len());
+		let (mut count_good, mut count_bad) = (0, 0);
+
+		for request_status in request_status {
+			match Self::do_receive_preimage_request_status(request_status) {
+				Ok(()) => count_good += 1,
+				Err(e) => {
+					count_bad += 1;
+					log::error!(target: LOG_TARGET, "Error while integrating preimage request status: {:?}", e);
+				},
+			}
+		}
+
+		Self::deposit_event(Event::PreimageRequestStatusBatchProcessed { count_good, count_bad });
+		Ok(())
+	}
+
+	pub fn do_receive_preimage_request_status(
+		mut request_status: RcPreimageRequestStatusOf<T>,
+	) -> Result<(), Error<T>> {
+		if alias::RequestStatusFor::<T>::contains_key(&request_status.hash) {
+			log::warn!(target: LOG_TARGET, "Request status already migrated: {:?}", request_status.hash);
+			return Ok(());
+		}
+
+		let new_ticket = match request_status.request_status {
+			alias::RequestStatus::Unrequested { ticket: (ref who, ref ticket), len } => {
+				let fp = Footprint::from_parts(1, len as usize);
+				ticket.clone().update(&who, fp).ok()
+			},
+			alias::RequestStatus::Requested {
+				maybe_ticket: Some((ref who, ref ticket)),
+				maybe_len: Some(len),
+				..
+			} => {
+				let fp = Footprint::from_parts(1, len as usize);
+				ticket.clone().update(&who, fp).ok()
+			},
+			alias::RequestStatus::Requested { maybe_ticket: Some(_), maybe_len: None, .. } => {
+				defensive!("Ticket cannot be re-evaluated");
+				// I think this is unreachable, but not exactly sure. Either way, nothing that we
+				// could do about it.
+				None
+			},
+			_ => None,
+		};
+
+		let new_request_status = match (new_ticket, request_status.request_status.clone()) {
+			(
+				Some(new_ticket),
+				alias::RequestStatus::Unrequested { ticket: (who, ref mut ticket), len },
+			) => alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
+			(
+				Some(new_ticket),
+				alias::RequestStatus::Requested {
+					maybe_ticket: Some((who, ref mut ticket)),
+					maybe_len: Some(len),
+					count: count,
+				},
+			) => alias::RequestStatus::Requested {
+				maybe_ticket: Some((who, new_ticket)),
+				maybe_len: Some(len),
+				count,
+			},
+			_ => request_status.request_status,
+		};
+
+		alias::RequestStatusFor::<T>::insert(&request_status.hash, &new_request_status);
+		log::debug!(target: LOG_TARGET, "Integrating preimage request status: {:?}", new_request_status);
 
 		Ok(())
 	}

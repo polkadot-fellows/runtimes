@@ -163,6 +163,18 @@ pub mod pallet {
 			/// How many preimage chunks failed to integrate.
 			count_bad: u32,
 		},
+		/// We received a batch of `RcPreimageRequestStatus` that we are going to integrate.
+		PreimageRequestStatusBatchReceived {
+			/// How many preimage request status are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageRequestStatus` that we received.
+		PreimageRequestStatusBatchProcessed {
+			/// How many preimage request status were successfully integrated.
+			count_good: u32,
+			/// How many preimage request status failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -234,6 +246,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
+		}
+
+		#[pallet::call_index(5)]
+		pub fn receive_preimage_request_status(
+			origin: OriginFor<T>,
+			request_status: Vec<RcPreimageRequestStatusOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
 		}
 	}
 

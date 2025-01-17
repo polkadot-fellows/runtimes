@@ -61,7 +61,7 @@ async fn account_migration_works() {
 			dmps.extend(new_dmps);
 
 			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
+				pallet_rc_migrator::MigrationStage::AllMigrationsDone
 			{
 				log::info!("Migration done");
 				break (dmps, pre_check_payload);

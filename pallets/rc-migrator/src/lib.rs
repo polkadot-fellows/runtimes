@@ -64,7 +64,7 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
-use preimage::PreimageChunkMigrator;
+use preimage::{PreimageChunkMigrator, PreimageRequestStatusMigrator};
 use proxy::*;
 use types::PalletMigration;
 
@@ -108,10 +108,15 @@ pub enum MigrationStage<AccountId> {
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
 		// TODO type
-		last_key: Option<(Option<(H256, u32)>, u32)>,
+		last_key: Option<((H256, u32), u32)>,
 	},
 	PreimageMigrationChunksDone,
+	PreimageMigrationRequestStatusOngoing {
+		next_key: Option<H256>,
+	},
+	PreimageMigrationRequestStatusDone,
 	PreimageMigrationDone,
+	AllMigrationsDone,
 }
 
 type AccountInfoFor<T> =
@@ -388,7 +393,7 @@ pub mod pallet {
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::PreimageMigrationDone);
+							Self::transition(MigrationStage::PreimageMigrationChunksDone);
 						},
 						Ok(Some(last_key)) => {
 							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
@@ -402,11 +407,45 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::PreimageMigrationChunksDone => {
+					Self::transition(MigrationStage::PreimageMigrationRequestStatusOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationRequestStatusOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(
+							PreimageRequestStatusMigrator::<T>::migrate_many(
+								next_key,
+								&mut weight_counter,
+							),
+						)
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::PreimageMigrationRequestStatusDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(
+								MigrationStage::PreimageMigrationRequestStatusOngoing {
+									next_key: Some(next_key),
+								},
+							);
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating preimage request status: {:?}", e);
+							defensive!("Error while migrating preimage request status");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationRequestStatusDone => {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
-					unimplemented!()
+					Self::transition(MigrationStage::AllMigrationsDone);
 				},
+				MigrationStage::AllMigrationsDone => (),
 			};
 
 			weight_counter.consumed()

@@ -40,6 +40,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveProxyAnnouncements { announcements: Vec<RcProxyAnnouncementOf<T>> },
 	#[codec(index = 4)]
 	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
+	#[codec(index = 5)]
+	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
