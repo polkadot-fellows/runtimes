@@ -1,24 +1,24 @@
-// Copyright (C) Parity Technologies (UK) Ltd.
-// This file is part of Cumulus.
+// Copyright (C) Parity Technologies and the various Polkadot contributors, see Contributions.md
+// for a list of specific contributors.
+// SPDX-License-Identifier: Apache-2.0
 
-// Cumulus is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Cumulus is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::{xcm_config::MaxAssetsIntoHolding, Runtime};
-use codec::Encode;
+use frame_support::weights::Weight;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmFungibleWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
 use sp_std::prelude::*;
@@ -28,7 +28,8 @@ trait WeighAssets {
 	fn weigh_assets(&self, weight: Weight) -> Weight;
 }
 
-const MAX_ASSETS: u64 = 100;
+// Collectives only knows about DOT.
+const MAX_ASSETS: u64 = 1;
 
 impl WeighAssets for AssetFilter {
 	fn weigh_assets(&self, weight: Weight) -> Weight {
@@ -56,8 +57,8 @@ impl WeighAssets for Assets {
 	}
 }
 
-pub struct BridgeHubPolkadotXcmWeight<Call>(core::marker::PhantomData<Call>);
-impl<Call> XcmWeightInfo<Call> for BridgeHubPolkadotXcmWeight<Call> {
+pub struct CollectivesWestendXcmWeight<Call>(core::marker::PhantomData<Call>);
+impl<Call> XcmWeightInfo<Call> for CollectivesWestendXcmWeight<Call> {
 	fn withdraw_asset(assets: &Assets) -> Weight {
 		assets.weigh_assets(XcmFungibleWeight::<Runtime>::withdraw_asset())
 	}
@@ -199,9 +200,8 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubPolkadotXcmWeight<Call> {
 	fn universal_origin(_: &Junction) -> Weight {
 		Weight::MAX
 	}
-	fn export_message(_: &NetworkId, _: &Junctions, inner: &Xcm<()>) -> Weight {
-		let inner_encoded_len = inner.encode().len() as u32;
-		XcmGeneric::<Runtime>::export_message(inner_encoded_len)
+	fn export_message(_: &NetworkId, _: &Junctions, _: &Xcm<()>) -> Weight {
+		Weight::MAX
 	}
 	fn lock_asset(_: &Asset, _: &Location) -> Weight {
 		Weight::MAX
