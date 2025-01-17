@@ -189,15 +189,17 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 			return Err(Error::OutOfWeight);
 		}
 
-		let mut iter = if let Some(last_key) = last_key {
+		let mut iter = if let Some(ref last_key) = last_key {
 			SystemAccount::<T>::iter_from_key(last_key)
 		} else {
 			SystemAccount::<T>::iter()
 		};
 
-		let maybe_last_key = loop {
+		let mut maybe_last_key = last_key;
+		loop {
 			let Some((who, account_info)) = iter.next() else {
-				break None;
+				maybe_last_key = None;
+				break;
 			};
 
 			let withdraw_res =
@@ -216,16 +218,28 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 
 			match withdraw_res {
 				// Account does not need to be migrated
-				Ok(None) => continue,
-				Ok(Some(ah_account)) => batch.push(ah_account),
+				Ok(None) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who);
+					continue;
+				},
+				Ok(Some(ah_account)) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who);
+					batch.push(ah_account)
+				},
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if !batch.is_empty() => break Some(who.clone()),
+				Err(Error::OutOfWeight) if !batch.is_empty() => {
+					break;
+				},
 				// Not enough weight and was unable to make progress, bad.
 				Err(Error::OutOfWeight) if batch.is_empty() => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
 				Err(e) => {
+					// if this the last account to handle at this iteration, we skip it next time.
+					maybe_last_key = Some(who.clone());
 					defensive!("Error while migrating account");
 					log::error!(
 						target: LOG_TARGET,
@@ -236,10 +250,9 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 					continue;
 				},
 			}
-		};
+		}
 
-		let batch_size = batch.len() as u32;
-		if batch_size > 0 {
+		if batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm(batch, |batch| {
 				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch }
 			})?;
