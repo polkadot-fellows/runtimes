@@ -93,13 +93,12 @@ jobs:
         with:
           version: "3.6.1"
 
-      - name: Add wasm32-unknown-unknown target
-        run: rustup target add wasm32-unknown-unknown
-        shell: bash
-
-      - name: Add rust-src component
-        run: rustup component add rust-src
-        shell: bash
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         #uses: "paritytech/try-runtime-gha@v0.2.0"

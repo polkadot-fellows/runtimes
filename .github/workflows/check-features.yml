@@ -18,11 +18,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Install stable Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          toolchain: stable
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Install Zepter
         run: cargo install --locked -q zepter && zepter --version

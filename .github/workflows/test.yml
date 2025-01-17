@@ -53,32 +53,21 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: ./github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -132,32 +121,21 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: ./github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -178,32 +156,21 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: ./github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -226,32 +193,21 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: ./github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0

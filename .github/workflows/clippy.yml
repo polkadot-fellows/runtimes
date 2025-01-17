@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: ./github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup toolchain install $RUST_STABLE_VERSION --profile minimal --component clippy
-          cargo --version
-          cargo clippy --version
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: "clippy"
+          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
@@ -37,7 +37,9 @@ jobs:
           shared-key: "fellowship-cache-clippy"
 
       - name: Clippy
-        run: cargo clippy --all-targets --locked -q
+        run: |
+          cargo clippy --version
+          cargo clippy --all-targets --locked -q
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
