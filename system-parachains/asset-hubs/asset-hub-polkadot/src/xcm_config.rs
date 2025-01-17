@@ -207,7 +207,8 @@ pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
 	(
 		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, xcm::v4::Location>,
 		ForeignAssetsConvertedConcreteId,
-		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it explicitly here.
+		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it
+		// explicitly here.
 		MatchedConvertedConcreteId<
 			xcm::v4::Location,
 			Balance,
