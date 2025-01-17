@@ -29,7 +29,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           components: "clippy"
-          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0

@@ -96,7 +96,7 @@ jobs:
         with:
           targets: "wasm32-unknown-unknown"
           components: "rust-src"
-          toolchain: "stable-${{env.RUST_STABLE_VERSION}}"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         #uses: "paritytech/try-runtime-gha@v0.2.0"
