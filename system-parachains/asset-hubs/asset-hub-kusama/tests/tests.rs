@@ -599,11 +599,8 @@ fn report_bridge_status_from_xcm_bridge_router_for_polkadot_works() {
 	>(
 		collator_session_keys(),
 		bridging_to_asset_hub_polkadot,
-		|| Decode::decode(&mut &bp_asset_hub_kusama::CongestedMessage::get().encode()[..]).unwrap(),
-		|| {
-			Decode::decode(&mut &bp_asset_hub_kusama::UncongestedMessage::get().encode()[..])
-				.unwrap()
-		},
+		|| bp_asset_hub_kusama::build_congestion_message(Default::default(), true).into(),
+		|| bp_asset_hub_kusama::build_congestion_message(Default::default(), false).into(),
 	)
 }
 
@@ -632,8 +629,8 @@ fn test_report_bridge_status_call_compatibility() {
 fn check_sane_weight_report_bridge_status() {
 	use pallet_xcm_bridge_hub_router::WeightInfo;
 	let actual = <Runtime as pallet_xcm_bridge_hub_router::Config<
-			ToPolkadotXcmRouterInstance,
-		>>::WeightInfo::report_bridge_status();
+		ToPolkadotXcmRouterInstance,
+	>>::WeightInfo::report_bridge_status();
 	let max_weight = bp_asset_hub_kusama::XcmBridgeHubRouterTransactCallMaxWeight::get();
 	assert!(
 		actual.all_lte(max_weight),

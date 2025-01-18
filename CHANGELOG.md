@@ -1,14 +1,57 @@
 # Changelog
 
+Changelog for the runtimes governed by the Polkadot Fellowship.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
 ## [Unreleased]
+
+### Fixed
+
+- Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
+- Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
+
+### Fixed
+
+- Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
 
 ### Added
 
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
 
-Changelog for the runtimes governed by the Polkadot Fellowship.
+- ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
+- Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+- Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
+
+### Changed
+
+- Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))
+- Kusama Treasury: allow burn parameters to be set via OpenGov ([polkadot-fellows/runtimes#511](https://github.com/polkadot-fellows/runtimes/pull/511))
+- Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
+
+#### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
+
+- Transfer Polkadot-native assets to Ethereum ([SDK `stable2409` #5710](https://github.com/paritytech/polkadot-sdk/pull/5710), [SDK #5546](https://github.com/paritytech/polkadot-sdk/pull/5546))
+- Add possibility to inject non-authorities session-keys in genesis ([SDK `stable2409` #5078](https://github.com/paritytech/polkadot-sdk/pull/5078))
+- \[bridges-v2\] Permissionless lanes ([SDK `stable2409` #4949](https://github.com/paritytech/polkadot-sdk/pull/4949))
+- \[Assets\] Call implementation for `transfer_all` ([SDK `stable2409` #4527](https://github.com/paritytech/polkadot-sdk/pull/4527))
+- Tx Payment: drop ED requirements for tx payments with exchangeable asset ([SDK `stable2409` #4488](https://github.com/paritytech/polkadot-sdk/pull/4488))
+- Coretime auto-renew ([SDK `stable2409` #4424](https://github.com/paritytech/polkadot-sdk/pull/4424))
+- Initialises pallet-delegated-staking ([SDK `v1.12.0` #3904](https://github.com/paritytech/polkadot-sdk/pull/3904))
+
+### Changed
+
+#### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
+
+- Polkadot Primitives v8 ([SDK v1.16 #5525](https://github.com/paritytech/polkadot-sdk/pull/5525)).
+- Relax `XcmFeeToAccount` trait bound on `AccountId` ([SDK v1.16 #4959](https://github.com/paritytech/polkadot-sdk/pull/4959))
+- Bridges V2 refactoring backport and `pallet_bridge_messages` simplifications ([SDK `stable2407` #4935](https://github.com/paritytech/polkadot-sdk/pull/4935))
+- Renamed `assigner_on_demand` to `on_demand` ([SDK `stable2409` #4706](https://github.com/paritytech/polkadot-sdk/pull/4706)).
+- \[BEEFY\] Add runtime support for reporting fork voting ([SDK `stable2407` #4522](https://github.com/paritytech/polkadot-sdk/pull/4522)).
+- Migrates Nomination Pool to use delegated staking: i.e. allowing delegated funds to be held in member's own account
+  instead of the pool account. This would enable pool member funds to be used for voting in opengov.
+  ([SDK `v1.13.0` #3905](https://github.com/paritytech/polkadot-sdk/pull/3905))
 
 ## [1.3.4] 01.11.2024
 
@@ -75,7 +118,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama: Make the current inflation formula adjustable ([polkadot-fellows/runtimes#364](https://github.com/polkadot-fellows/runtimes/pull/364))
 - Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
 
-#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322)
 
 - Add `claim_assets` extrinsic to `pallet-xcm` ([SDK v1.9 #3403](https://github.com/paritytech/polkadot-sdk/pull/3403)).
 - Add `Deposited`/`Withdrawn` events for `pallet-assets` ([SDK v1.12 #4312](https://github.com/paritytech/polkadot-sdk/pull/4312)).
@@ -109,7 +152,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Upgrade dependencies to the [polkadot-sdk@1.13.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.13.0) release ([polkadot-fellows/runtimes#332](https://github.com/polkadot-fellows/runtimes/pull/332)).
 - Filter `interlace` calls on the Polkadot Coretime Chain until the Relay chain implementation is more mature ([polkadot-fellows/runtimes#438](https://github.com/polkadot-fellows/runtimes/pull/438)).
 
-#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322)
 
 - The `MessageQueue` also runs "on idle", this causes `MessageQueue::Processed` events to be emitted in other phases than just initialization ([SDK v1.13 #3844](https://github.com/paritytech/polkadot-sdk/pull/3844)).
 - AdaptPrice trait is now price controlled ([SDK v1.13 #4521](https://github.com/paritytech/polkadot-sdk/pull/4521)).
@@ -130,10 +173,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix claim queue size ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4691](https://github.com/paritytech/polkadot-sdk/pull/4691)).
 - `pallet-referenda`: Ensure to schedule referenda earliest at the next block ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4823](https://github.com/paritytech/polkadot-sdk/pull/4823)).
 - Don't partially modify HRMP pages ([runtimes#381](https://github.com/polkadot-fellows/runtimes/pull/381), [SDK v1.14 #4710](https://github.com/paritytech/polkadot-sdk/pull/4710)).
-- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434][https://github.com/polkadot-fellows/runtimes/pull/434]).
+- Coretime Chain: mitigate behaviour with many assignments on one core ([runtimes#434](https://github.com/polkadot-fellows/runtimes/pull/434)).
 - Port Agile Coretime migration from polkadot-sdk in order to fix leases with gaps handling([polkadot-fellows/runtimes#426](https://github.com/polkadot-fellows/runtimes/pull/426))
 
-#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322)
 
 - CheckWeight checks for combined extrinsic length and proof size ([SDK v1.12 #4326](https://github.com/paritytech/polkadot-sdk/pull/4326)).
 - Decrement total_deposit when clearing collection metadata ([SDK v1.11 #3976](https://github.com/paritytech/polkadot-sdk/pull/3976)).
@@ -173,7 +216,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama: Remove unused Snowbridge code and configs ([polkadot-fellows/runtimes#411](https://github.com/polkadot-fellows/runtimes/pull/411)).
 - Remove the identity ops pallet after the invalid judgments have been cleared ([polkadot-fellows/runtimes#408](https://github.com/polkadot-fellows/runtimes/pull/408)).
 
-#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322):
+#### From [#322](https://github.com/polkadot-fellows/runtimes/pull/322)
 
 - Deprecate dmp-queue pallet ([SDK v1.13 #4475](https://github.com/paritytech/polkadot-sdk/pull/4475)).
 - Deprecate XCMv2 ([SDK v1.13 #4131](https://github.com/paritytech/polkadot-sdk/pull/4131)).
@@ -378,7 +421,7 @@ Note: This release only affects the following runtimes and is not a full system 
 - Upgrade Preimage pallet's config implementations to adapt the new `Consideration` API ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
 - Remove `experimental` feature flag for `pallet-society`, `pallet-xcm`, and `runtime-common` crates imports ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
 - Election provider: use a geometric deposit base calculation for EPM signed submissions in Polkadot and Kusama ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
-- Make `IdentityInfo` generic in `pallet-identity` ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1661
+- Make `IdentityInfo` generic in `pallet-identity` ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1661>
 - Whitelist `force_default_xcm_version` in XCM call filter ([polkadot-fellows/runtimes#45](https://github.com/polkadot-fellows/runtimes/pull/45))
 - Update the fellowship salary budget amount in alignment with the Fellowship Salary [RFC](https://github.com/polkadot-fellows/RFCs/pull/50) ([polkadot-fellows/runtimes#121](https://github.com/polkadot-fellows/runtimes/pull/121))
 - Set up an account ID for the local root location on Polkadot Collectives ([polkadot-fellows/runtimes#125](https://github.com/polkadot-fellows/runtimes/pull/125))
@@ -387,10 +430,10 @@ Note: This release only affects the following runtimes and is not a full system 
 
 ### Added
 
-- Enable async backing on Kusama ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1543
-- Implemented GenesisBuilder API for all runtimes ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1492
-- XCM transport fees are now exponential and are sent to a treasury account ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1234
-- System parachains are now trusted teleporters of each other ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1368
+- Enable async backing on Kusama ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1543>
+- Implemented GenesisBuilder API for all runtimes ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1492>
+- XCM transport fees are now exponential and are sent to a treasury account ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1234>
+- System parachains are now trusted teleporters of each other ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1368>
 - Treasury is able to spend various asset kinds ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87))
 - Add BEEFY to Polkadot ([polkadot-fellows/runtimes#65](https://github.com/polkadot-fellows/runtimes/pull/65))
 - Fellowship Treasury pallet on Polkadot Collectives ([polkadot-fellows/runtimes#109](https://github.com/polkadot-fellows/runtimes/pull/109))
@@ -399,7 +442,7 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Fixed
 
 - Add missing weight functions for `runtime_parachains_hrmp` and `preimage` pallets ([polkadot-fellows/runtimes#56](https://github.com/polkadot-fellows/runtimes/pull/56))
-- Fix for Reward Deficit in the pool ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: https://github.com/paritytech/polkadot-sdk/pull/1255
+- Fix for Reward Deficit in the pool ([polkadot-fellows/runtimes#87](https://github.com/polkadot-fellows/runtimes/pull/87)). Context: <https://github.com/paritytech/polkadot-sdk/pull/1255>
 
 ## [1.0.1] 14.11.2023
 
