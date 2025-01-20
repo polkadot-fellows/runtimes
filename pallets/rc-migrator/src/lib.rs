@@ -272,6 +272,7 @@ pub mod pallet {
 					// TODO: not complete
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
+					// toggle for testing
 					//Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
@@ -320,10 +321,10 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(MultisigMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						))
+						match MultisigMigrator::<T>::migrate_many(last_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -354,10 +355,11 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(ProxyProxiesMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						))
+						match ProxyProxiesMigrator::<T>::migrate_many(last_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -380,10 +382,13 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyMigrationAnnouncements { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(ProxyAnnouncementMigrator::<T>::migrate_many(
+						match ProxyAnnouncementMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
-						))
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -412,10 +417,13 @@ pub mod pallet {
 				},
 				MigrationStage::PreimageMigrationChunksOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(PreimageChunkMigrator::<T>::migrate_many(
+						match PreimageChunkMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
-						))
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -441,12 +449,13 @@ pub mod pallet {
 				},
 				MigrationStage::PreimageMigrationRequestStatusOngoing { next_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(
-							PreimageRequestStatusMigrator::<T>::migrate_many(
-								next_key,
-								&mut weight_counter,
-							),
-						)
+						match PreimageRequestStatusMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -477,18 +486,21 @@ pub mod pallet {
 				},
 				MigrationStage::PreimageMigrationLegacyRequestStatusOngoing { next_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(
-							PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
-								next_key,
-								&mut weight_counter,
-							),
-						)
+						match PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::PreimageMigrationDone);
+							Self::transition(
+								MigrationStage::PreimageMigrationLegacyRequestStatusDone,
+							);
 						},
 						Ok(Some(next_key)) => {
 							Self::transition(
