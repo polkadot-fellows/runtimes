@@ -22,8 +22,6 @@
 
 extern crate alloc;
 
-use core::marker::PhantomData;
-
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
@@ -1908,11 +1906,8 @@ parameter_types! {
 
 const NEW_MAX_POV: u32 = 10 * 1024 * 1024;
 
-pub struct Activate10MbPovs<T>(PhantomData<T>);
-impl<T> OnRuntimeUpgrade for Activate10MbPovs<T>
-where
-	T: parachains_configuration::Config,
-{
+pub struct Activate10MbPovs;
+impl OnRuntimeUpgrade for Activate10MbPovs {
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
 		// The pre-upgrade state doesn't matter
@@ -1920,12 +1915,12 @@ where
 	}
 
 	fn on_runtime_upgrade() -> Weight {
-		match parachains_configuration::Pallet::<T>::set_max_pov_size(
+		match parachains_configuration::Pallet::<Runtime>::set_max_pov_size(
 			frame_system::RawOrigin::Root.into(),
 			NEW_MAX_POV,
 		) {
 			Ok(()) =>
-				weights::runtime_parachains_configuration::WeightInfo::<T>::set_config_with_u32(),
+				weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_config_with_u32(),
 			Err(e) => {
 				log::warn!(
 					target: LOG_TARGET,
@@ -1938,7 +1933,7 @@ where
 
 	#[cfg(feature = "try-runtime")]
 	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		let pending = parachains_configuration::PendingConfigs::<T>::get();
+		let pending = parachains_configuration::PendingConfigs::<Runtime>::get();
 		let Some((_, last_pending)) = pending.last() else {
 			return Err(sp_runtime::TryRuntimeError::CannotLookup);
 		};
@@ -1973,7 +1968,7 @@ pub mod migrations {
 			Runtime,
 			MaxPoolsToMigrate,
 		>,
-		Activate10MbPovs<Runtime>,
+		Activate10MbPovs,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
