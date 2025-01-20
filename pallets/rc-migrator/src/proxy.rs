@@ -93,18 +93,13 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
 				},
-				Err(Error::OutOfWeight) if !batch.is_empty() => {
+				Err(OutOfWeightError) if !batch.is_empty() => {
 					// We have items to process but ran out of weight
 					break;
 				},
-				Err(Error::OutOfWeight) => {
+				Err(OutOfWeightError) => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
-				},
-				Err(e) => {
-					defensive!("Error while migrating account");
-					log::error!(target: LOG_TARGET, "Error while migrating account: {:?}", e);
-					return Err(e);
 				},
 			}
 		}
@@ -133,9 +128,9 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
-	) -> Result<RcProxyLocalOf<T>, Error<T>> {
+	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(Error::<T>::OutOfWeight);
+			return Err(OutOfWeightError::new());
 		}
 
 		let translated_proxies = proxies

@@ -81,6 +81,21 @@ pub const LOG_TARGET: &str = "runtime::rc-migrator";
 /// confirmed to work.
 pub const MAX_XCM_SIZE: u32 = 50_000;
 
+/// Out of weight Error. Can be converted to a pallet error for convenience.
+pub struct OutOfWeightError;
+
+impl OutOfWeightError {
+	pub fn new() -> Self {
+		Self
+	}
+}
+
+impl<T: Config> From<OutOfWeightError> for Error<T> {
+	fn from(_: OutOfWeightError) -> Self {
+		Self::OutOfWeight
+	}
+}
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started but will start in the next block.
@@ -131,7 +146,6 @@ pub enum MigrationStage<AccountId> {
 	},
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
-	AllMigrationsDone,
 	MigrationDone,
 }
 
@@ -493,9 +507,9 @@ pub mod pallet {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
-					Self::transition(MigrationStage::AllMigrationsDone);
+					Self::transition(MigrationStage::MigrationDone);
 				},
-				MigrationStage::AllMigrationsDone => (),
+				MigrationStage::MigrationDone => (),
 			};
 
 			weight_counter.consumed()
