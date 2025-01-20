@@ -17,6 +17,9 @@
 
 use crate::{preimage::*, types::*, *};
 
+/// Max size that we want a preimage chunk to be.
+///
+/// The -100 is to account for the encoding overhead and additional fields.
 pub const CHUNK_SIZE: u32 = MAX_XCM_SIZE - 100;
 
 /// A chunk of a preimage that was migrated out of the Relay and can be integrated into AH.
