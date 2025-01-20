@@ -38,6 +38,7 @@ use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
 
 use polkadot_runtime::Runtime as Polkadot;
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
 
 use super::mock::*;
 
@@ -73,6 +74,8 @@ async fn account_migration_works() {
 
 	// Inject the DMP messages into the Asset Hub
 	ah.execute_with(|| {
+		let ah_pre_check_payload =
+			pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::pre_check();
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
 		enqueue_dmp(dmp_messages);
@@ -93,6 +96,9 @@ async fn account_migration_works() {
 
 		pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
 			pre_check_payload,
+		);
+		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(
+			ah_pre_check_payload,
 		);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.

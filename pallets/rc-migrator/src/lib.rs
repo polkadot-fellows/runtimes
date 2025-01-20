@@ -64,12 +64,19 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
-use preimage::{PreimageChunkMigrator, PreimageRequestStatusMigrator};
+use preimage::{PreimageChunkMigrator, PreimageRequestStatusMigrator, PreimageLegacyRequestStatusMigrator};
 use proxy::*;
 use types::PalletMigration;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
+
+/// Soft limit on the DMP message size.
+///
+/// The hard limit should be about 64KiB (TODO test) which means that we stay well below that to
+/// avoid any trouble. We can raise this as final preparation for the migration once everything is
+/// confirmed to work.
+pub const MAX_XCM_SIZE: u32 = 50_000;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum MigrationStage<AccountId> {
@@ -115,6 +122,11 @@ pub enum MigrationStage<AccountId> {
 		next_key: Option<H256>,
 	},
 	PreimageMigrationRequestStatusDone,
+	PreimageMigrationLegacyRequestStatusInit,
+	PreimageMigrationLegacyRequestStatusOngoing {
+		next_key: Option<H256>,
+	},
+	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
 	AllMigrationsDone,
 }
@@ -236,8 +248,8 @@ pub mod pallet {
 
 					let _ = Self::obtain_rc_accounts();
 					// Swap this out if you want to skip some migrations for faster debugging
-					//Self::transition(MigrationStage::AccountsMigrationInit);
-					Self::transition(MigrationStage::PreimageMigrationInit);
+					Self::transition(MigrationStage::AccountsMigrationInit);
+					//Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let first_acc = match Self::first_account(&mut weight_counter).defensive() {
@@ -440,6 +452,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::PreimageMigrationRequestStatusDone => {
+					Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusInit);
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusInit => {
+					Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						TransactionOutcome::Commit(PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						))
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::PreimageMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating legacy preimage request status: {:?}", e);
+							defensive!("Error while migrating legacy preimage request status");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusDone => {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
@@ -461,7 +505,7 @@ pub mod pallet {
 			Self::deposit_event(Event::StageTransition { old, new });
 		}
 
-		/// Split up the items into chunks of `MAX_MSG_SIZE` and send them as separate XCM
+		/// Split up the items into chunks of `MAX_XCM_SIZE` and send them as separate XCM
 		/// transacts.
 		///
 		/// Will modify storage in the error path.
@@ -470,12 +514,10 @@ pub mod pallet {
 			mut items: Vec<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 		) -> Result<(), Error<T>> {
-			const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
-									 // Reverse in place so that we can use `pop` later on
 			items.reverse();
 
 			while !items.is_empty() {
-				let mut remaining_size: u32 = MAX_MSG_SIZE;
+				let mut remaining_size: u32 = MAX_XCM_SIZE;
 				let mut batch = Vec::new();
 
 				while !items.is_empty() {

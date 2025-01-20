@@ -57,6 +57,7 @@ impl<T: Config> Pallet<T> {
 			&multisig.creator,
 			multisig.deposit,
 		);
+
 		if missing != Default::default() {
 			if KNOWN_BAD_MULTISIGS.contains(&multisig.creator) {
 				log::warn!(target: LOG_TARGET, "Failed to unreserve deposit for known bad multisig {}, missing: {:?}", multisig.creator.to_ss58check(), missing);
@@ -65,6 +66,8 @@ impl<T: Config> Pallet<T> {
 			} else {
 				log::error!(target: LOG_TARGET, "Failed to unreserve deposit for multisig {} missing {:?}, details: {:?}", multisig.creator.to_ss58check(), missing, multisig.details);
 			}
+
+			return Err(Error::<T>::FailedToUnreserveDeposit);
 		}
 
 		Ok(())

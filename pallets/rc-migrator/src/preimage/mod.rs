@@ -19,9 +19,11 @@
 
 pub mod chunks;
 pub mod request_status;
+pub mod legacy_request_status;
 
 pub use chunks::{PreimageChunkMigrator, RcPreimageChunk};
 pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
+pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
 
 use crate::{types::*, *};
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -63,7 +65,7 @@ pub mod alias {
 	}
 
 	// Coped from https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L91-L93
-	type BalanceOf<T> = <<T as pallet_preimage::Config>::Currency as Currency<
+	pub type BalanceOf<T> = <<T as pallet_preimage::Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
 	>>::Balance;
 	pub type TicketOf<T> = <T as pallet_preimage::Config>::Consideration;
@@ -93,13 +95,4 @@ pub mod alias {
 		(H256, u32),
 		BoundedVec<u8, ConstU32<MAX_SIZE>>,
 	>;
-}
-
-/// An entry of the `StatusFor` storage map. Should only be used to unreserve funds on AH.
-#[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
-pub struct RcPreimageLegacyStatus<AccountId, Balance> {
-	/// The hash of the original preimage.
-	pub hash: H256,
-	/// The request status of the original preimage.
-	pub request_status: alias::OldRequestStatus<AccountId, Balance>,
 }

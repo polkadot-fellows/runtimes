@@ -17,23 +17,27 @@
 
 use crate::{preimage::*, types::*, *};
 
-/// An entry of the `RequestStatusFor` storage map.
+/// An entry of the `StatusFor` storage map. Should only be used to unreserve funds on AH.
 #[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
-pub struct RcPreimageRequestStatus<AccountId, Ticket> {
+pub struct RcPreimageLegacyStatus<AccountId, Balance> {
 	/// The hash of the original preimage.
+	///
+	/// This is not really needed by AH, just here to make debugging easier.
 	pub hash: H256,
-	/// The request status of the original preimage.
-	pub request_status: alias::RequestStatus<AccountId, Ticket>,
+	/// The account that made the deposit.
+	pub depositor: AccountId,
+	/// The amount of the storage deposit.
+	pub deposit: Balance,
 }
 
-pub type RcPreimageRequestStatusOf<T> =
-	RcPreimageRequestStatus<<T as frame_system::Config>::AccountId, super::alias::TicketOf<T>>;
+pub type RcPreimageLegacyStatusOf<T> =
+	RcPreimageLegacyStatus<<T as frame_system::Config>::AccountId, super::alias::BalanceOf<T>>;
 
-pub struct PreimageRequestStatusMigrator<T: pallet_preimage::Config> {
+pub struct PreimageLegacyRequestStatusMigrator<T: Config> {
 	_phantom: PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
+impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 	type Key = H256;
 	type Error = Error<T>;
 
@@ -54,15 +58,23 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				},
 			};
 
-			let Some(request_status) = alias::RequestStatusFor::<T>::get(&next_key_inner) else {
+			let Some(request_status) = alias::StatusFor::<T>::get(&next_key_inner) else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner));
 				continue;
 			};
 
-			batch.push(RcPreimageRequestStatus { hash: next_key_inner, request_status });
-			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
-
+			match request_status {
+				alias::OldRequestStatus::Unrequested{ deposit: (depositor, deposit), .. } => {
+					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
+				},
+				alias::OldRequestStatus::Requested{ deposit: Some((depositor, deposit)), .. } => {
+					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
+				},
+				_ => {}
+			}
+			
+			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {:?}", next_key_inner);
 			next_key = Self::next_key(Some(next_key_inner));
 
 			if batch.len() >= 10 || next_key.is_none() {
@@ -73,7 +85,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageRequestStatus { request_status: batch }
+				types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus { legacy_status: batch }
 			})?;
 		}
 
@@ -81,13 +93,13 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 	}
 }
 
-impl<T: Config> PreimageRequestStatusMigrator<T> {
+impl<T: Config> PreimageLegacyRequestStatusMigrator<T> {
 	/// Get the next key after the given one or the first one for `None`.
 	pub fn next_key(key: Option<H256>) -> Option<H256> {
 		match key {
-			None => alias::RequestStatusFor::<T>::iter_keys().next(),
-			Some(key) => alias::RequestStatusFor::<T>::iter_keys_from(
-				alias::RequestStatusFor::<T>::hashed_key_for(&key),
+			None => alias::StatusFor::<T>::iter_keys().next(),
+			Some(key) => alias::StatusFor::<T>::iter_keys_from(
+				alias::StatusFor::<T>::hashed_key_for(&key),
 			)
 			.next(),
 		}

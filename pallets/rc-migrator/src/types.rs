@@ -42,6 +42,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
 	#[codec(index = 5)]
 	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
+	#[codec(index = 6)]
+	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

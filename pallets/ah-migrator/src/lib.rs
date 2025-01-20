@@ -109,6 +109,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// TODO
 		TODO,
+		FailedToUnreserveDeposit,
 	}
 
 	#[pallet::event]
@@ -173,6 +174,18 @@ pub mod pallet {
 			/// How many preimage request status were successfully integrated.
 			count_good: u32,
 			/// How many preimage request status failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of `RcPreimageLegacyStatus` that we are going to integrate.
+		PreimageLegacyStatusBatchReceived {
+			/// How many preimage legacy status are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageLegacyStatus` that we received.
+		PreimageLegacyStatusBatchProcessed {
+			/// How many preimage legacy status were successfully integrated.
+			count_good: u32,
+			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
 	}
@@ -256,6 +269,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
+		}
+
+		#[pallet::call_index(6)]
+		pub fn receive_preimage_legacy_status(
+			origin: OriginFor<T>,
+			legacy_status: Vec<RcPreimageLegacyStatusOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
 		}
 	}
 

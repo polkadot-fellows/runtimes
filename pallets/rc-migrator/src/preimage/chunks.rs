@@ -17,7 +17,7 @@
 
 use crate::{preimage::*, types::*, *};
 
-pub const CHUNK_SIZE: u32 = 49_900; // about 50KiB
+pub const CHUNK_SIZE: u32 = MAX_XCM_SIZE - 100;
 
 /// A chunk of a preimage that was migrated out of the Relay and can be integrated into AH.
 #[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
@@ -130,12 +130,25 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 impl<T: Config> PreimageChunkMigrator<T> {
 	fn next_key(key: Option<(H256, u32)>) -> Option<(H256, u32)> {
 		match key {
-			None => alias::PreimageFor::<T>::iter_keys().next(),
-			Some((hash, len)) => alias::PreimageFor::<T>::iter_keys_from(
-				alias::PreimageFor::<T>::hashed_key_for(&(hash, len)),
-			)
-			.next(),
-		}
+			None => alias::PreimageFor::<T>::iter_keys(),
+			Some((hash, len)) =>
+				alias::PreimageFor::<T>::iter_keys_from(
+					alias::PreimageFor::<T>::hashed_key_for(&(hash, len)),
+				),
+			}
+			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
+			// loop, but it cannot be exploited since the pallet does not allow to add more items to
+			// the `StatusFor` map anymore.
+			.skip_while(|(hash, _)| {
+				if !alias::RequestStatusFor::<T>::contains_key(hash) {
+					log::info!("Ignoring old preimage that is not in the request status map: {:?}", hash);
+					debug_assert!(alias::StatusFor::<T>::contains_key(hash), "Preimage must be tracked somewhere");
+					true
+				} else {
+					false
+				}
+			})
+			.next()
 	}
 }
 
@@ -143,7 +156,7 @@ impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {
 	type Payload = Vec<(H256, u32)>;
 
 	fn pre_check() -> Self::Payload {
-		alias::PreimageFor::<T>::iter_keys().collect()
+		alias::PreimageFor::<T>::iter_keys().filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash)).collect()
 	}
 
 	fn post_check(keys: Self::Payload) {
@@ -151,6 +164,7 @@ impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {
 		for (hash, len) in keys {
 			assert!(alias::PreimageFor::<T>::contains_key(&(hash, len)));
 		}
+
 		// Integrity check that all preimages have the correct hash and length
 		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
 			let preimage = alias::PreimageFor::<T>::get(&(hash, len)).expect("Storage corrupted");
