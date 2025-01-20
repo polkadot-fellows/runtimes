@@ -70,6 +70,8 @@ async fn account_migration_works() {
 		}
 	});
 	rc.commit_all().unwrap();
+	// TODO: for some reason this prints some small value (2947), but logs on XCM send and receive
+	// show more iteration.
 	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
 
 	// Inject the DMP messages into the Asset Hub

@@ -63,6 +63,7 @@ use types::AhWeightInfo;
 use weights::WeightInfo;
 use xcm::prelude::*;
 
+use accounts::AccountsMigrator;
 use multisig::MultisigMigrator;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
@@ -91,7 +92,7 @@ pub enum MigrationStage<AccountId> {
 	/// Migrating account balances.
 	AccountsMigrationOngoing {
 		// Last migrated account
-		last_key: AccountId,
+		last_key: Option<AccountId>,
 	},
 	/// Accounts migration is done. Ready to go to the next one.
 	///
@@ -131,6 +132,7 @@ pub enum MigrationStage<AccountId> {
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
 	AllMigrationsDone,
+	MigrationDone,
 }
 
 type AccountInfoFor<T> =
@@ -178,12 +180,19 @@ pub mod pallet {
 		type RcWeightInfo: WeightInfo;
 		/// Weight information for the processing the packages from this pallet on the Asset Hub.
 		type AhWeightInfo: AhWeightInfo;
+		/// The existential deposit on the Asset Hub.
+		type AhExistentialDeposit: Get<<Self as pallet_balances::Config>::Balance>;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// The error that should to be replaced by something meaningful.
 		TODO,
 		OutOfWeight,
+		/// Failed to send XCM message to AH.
+		XcmError,
+		/// Failed to withdraw account from RC for migration to AH.
+		FailedToWithdrawAccount,
 	}
 
 	#[pallet::event]
@@ -248,36 +257,23 @@ pub mod pallet {
 				MigrationStage::Pending => {
 					// TODO: not complete
 
-					let _ = Self::obtain_rc_accounts();
-					// Swap this out if you want to skip some migrations for faster debugging
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					//Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
-					let first_acc = match Self::first_account(&mut weight_counter).defensive() {
-						Err(e) => {
-							log::error!(target: LOG_TARGET, "Error while obtaining first account: {:?}. Retrying with higher weight.", e);
-							Self::first_account(&mut WeightMeter::new()).unwrap_or_default()
-						},
-						Ok(acc) => acc,
-					};
+					// TODO: weights
+					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
 
-					if let Some(first_acc) = first_acc {
-						Self::transition(MigrationStage::AccountsMigrationOngoing {
-							last_key: first_acc,
-						});
-					} else {
-						// No keys to migrate at all.
-						Self::transition(MigrationStage::AccountsMigrationDone);
-					}
+					Self::transition(MigrationStage::AccountsMigrationOngoing { last_key: None });
 				},
 				MigrationStage::AccountsMigrationOngoing { last_key } => {
 					let res =
 						with_transaction_opaque_err::<Option<T::AccountId>, Error<T>, _>(|| {
-							TransactionOutcome::Commit(Self::migrate_accounts(
-								last_key,
-								&mut weight_counter,
-							))
+							match AccountsMigrator::<T>::migrate_many(last_key, &mut weight_counter)
+							{
+								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+								Err(e) => TransactionOutcome::Rollback(Err(e)),
+							}
 						})
 						.expect("Always returning Ok; qed");
 
@@ -290,10 +286,14 @@ pub mod pallet {
 						Ok(Some(last_key)) => {
 							// accounts migration continues with the next block
 							// TODO publish event
-							Self::transition(MigrationStage::AccountsMigrationOngoing { last_key });
+							Self::transition(MigrationStage::AccountsMigrationOngoing {
+								last_key: Some(last_key),
+							});
 						},
-						_ => {
-							// TODO handle error
+						Err(err) => {
+							defensive!("Error while migrating accounts: {:?}", err);
+							log::error!(target: LOG_TARGET, "Error while migrating accounts: {:?}", err);
+							// stage unchanged, retry.
 						},
 					}
 				},
@@ -520,6 +520,7 @@ pub mod pallet {
 			mut items: Vec<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 		) -> Result<(), Error<T>> {
+			log::info!(target: LOG_TARGET, "Received {} items to batch send via XCM", items.len());
 			items.reverse();
 
 			while !items.is_empty() {
@@ -558,7 +559,7 @@ pub mod pallet {
 					message.clone(),
 				) {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
-					return Err(Error::TODO);
+					return Err(Error::XcmError);
 				};
 			}
 

@@ -25,16 +25,30 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating {} accounts", accounts.len());
 
+		Self::deposit_event(Event::<T>::AccountBatchReceived { count: accounts.len() as u32 });
+		let (mut count_good, mut count_bad) = (0, 0);
+
 		for account in accounts {
-			let _: Result<(), ()> = with_transaction_opaque_err::<(), (), _>(|| {
-				match Self::do_receive_account(account) {
+			let res = with_transaction_opaque_err::<(), RcAccountFor<T>, _>(|| {
+				match Self::do_receive_account(account.clone()) {
 					Ok(()) => TransactionOutcome::Commit(Ok(())),
-					Err(_) => TransactionOutcome::Rollback(Ok(())),
+					Err(_) => TransactionOutcome::Rollback(Err(account)),
 				}
 			})
 			.expect("Always returning Ok; qed");
-		}
 
+			if let Err(account) = res {
+				// unlikely to happen cause we dry run migration, but we keep it for completeness.
+				count_bad += 1;
+				let who = account.who.clone();
+				log::error!(target: LOG_TARGET, "Saving the failed account data: {:?}", who.to_ss58check());
+				RcAccounts::<T>::insert(&who, account);
+			} else {
+				count_good += 1;
+			}
+		}
+		count_good = count_good - count_bad;
+		Self::deposit_event(Event::<T>::AccountBatchProcessed { count_good, count_bad });
 		Ok(())
 	}
 
@@ -48,7 +62,7 @@ impl<T: Config> Pallet<T> {
 			Ok(minted) => minted,
 			Err(e) => {
 				log::error!(target: LOG_TARGET, "Failed to mint into account {}: {:?}", who.to_ss58check(), e);
-				return Err(Error::<T>::TODO);
+				return Err(Error::<T>::FailedToProcessAccount);
 			},
 		};
 		debug_assert!(minted == total_balance);
@@ -60,13 +74,13 @@ impl<T: Config> Pallet<T> {
 				hold.amount,
 			) {
 				log::error!(target: LOG_TARGET, "Failed to hold into account {}: {:?}", who.to_ss58check(), e);
-				return Err(Error::<T>::TODO);
+				return Err(Error::<T>::FailedToProcessAccount);
 			}
 		}
 
 		if let Err(e) = <T as pallet::Config>::Currency::reserve(&who, account.unnamed_reserve) {
 			log::error!(target: LOG_TARGET, "Failed to reserve into account {}: {:?}", who.to_ss58check(), e);
-			return Err(Error::<T>::TODO);
+			return Err(Error::<T>::FailedToProcessAccount);
 		}
 
 		for freeze in account.freezes {
@@ -76,7 +90,7 @@ impl<T: Config> Pallet<T> {
 				freeze.amount,
 			) {
 				log::error!(target: LOG_TARGET, "Failed to freeze into account {}: {:?}", who.to_ss58check(), e);
-				return Err(Error::<T>::TODO);
+				return Err(Error::<T>::FailedToProcessAccount);
 			}
 		}
 
@@ -100,14 +114,13 @@ impl<T: Config> Pallet<T> {
 		for _ in 0..account.consumers {
 			if let Err(e) = frame_system::Pallet::<T>::inc_consumers(&who) {
 				log::error!(target: LOG_TARGET, "Failed to inc consumers for account {}: {:?}", who.to_ss58check(), e);
-				return Err(Error::<T>::TODO);
+				return Err(Error::<T>::FailedToProcessAccount);
 			}
 		}
 		for _ in 0..account.providers {
 			frame_system::Pallet::<T>::inc_providers(&who);
 		}
 
-		// TODO: publish event
 		Ok(())
 	}
 }
