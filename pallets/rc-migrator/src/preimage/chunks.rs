@@ -131,24 +131,29 @@ impl<T: Config> PreimageChunkMigrator<T> {
 	fn next_key(key: Option<(H256, u32)>) -> Option<(H256, u32)> {
 		match key {
 			None => alias::PreimageFor::<T>::iter_keys(),
-			Some((hash, len)) =>
-				alias::PreimageFor::<T>::iter_keys_from(
-					alias::PreimageFor::<T>::hashed_key_for(&(hash, len)),
-				),
+			Some((hash, len)) => alias::PreimageFor::<T>::iter_keys_from(
+				alias::PreimageFor::<T>::hashed_key_for(&(hash, len)),
+			),
+		}
+		// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
+		// loop, but it cannot be exploited since the pallet does not allow to add more items to
+		// the `StatusFor` map anymore.
+		.skip_while(|(hash, _)| {
+			if !alias::RequestStatusFor::<T>::contains_key(hash) {
+				log::info!(
+					"Ignoring old preimage that is not in the request status map: {:?}",
+					hash
+				);
+				debug_assert!(
+					alias::StatusFor::<T>::contains_key(hash),
+					"Preimage must be tracked somewhere"
+				);
+				true
+			} else {
+				false
 			}
-			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
-			// loop, but it cannot be exploited since the pallet does not allow to add more items to
-			// the `StatusFor` map anymore.
-			.skip_while(|(hash, _)| {
-				if !alias::RequestStatusFor::<T>::contains_key(hash) {
-					log::info!("Ignoring old preimage that is not in the request status map: {:?}", hash);
-					debug_assert!(alias::StatusFor::<T>::contains_key(hash), "Preimage must be tracked somewhere");
-					true
-				} else {
-					false
-				}
-			})
-			.next()
+		})
+		.next()
 	}
 }
 
@@ -156,7 +161,9 @@ impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {
 	type Payload = Vec<(H256, u32)>;
 
 	fn pre_check() -> Self::Payload {
-		alias::PreimageFor::<T>::iter_keys().filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash)).collect()
+		alias::PreimageFor::<T>::iter_keys()
+			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
+			.collect()
 	}
 
 	fn post_check(keys: Self::Payload) {

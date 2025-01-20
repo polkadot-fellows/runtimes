@@ -65,15 +65,17 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 			};
 
 			match request_status {
-				alias::OldRequestStatus::Unrequested{ deposit: (depositor, deposit), .. } => {
+				alias::OldRequestStatus::Unrequested { deposit: (depositor, deposit), .. } => {
 					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
 				},
-				alias::OldRequestStatus::Requested{ deposit: Some((depositor, deposit)), .. } => {
+				alias::OldRequestStatus::Requested {
+					deposit: Some((depositor, deposit)), ..
+				} => {
 					batch.push(RcPreimageLegacyStatus { hash: next_key_inner, depositor, deposit });
 				},
-				_ => {}
+				_ => {},
 			}
-			
+
 			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {:?}", next_key_inner);
 			next_key = Self::next_key(Some(next_key_inner));
 
@@ -98,10 +100,9 @@ impl<T: Config> PreimageLegacyRequestStatusMigrator<T> {
 	pub fn next_key(key: Option<H256>) -> Option<H256> {
 		match key {
 			None => alias::StatusFor::<T>::iter_keys().next(),
-			Some(key) => alias::StatusFor::<T>::iter_keys_from(
-				alias::StatusFor::<T>::hashed_key_for(&key),
-			)
-			.next(),
+			Some(key) =>
+				alias::StatusFor::<T>::iter_keys_from(alias::StatusFor::<T>::hashed_key_for(&key))
+					.next(),
 		}
 	}
 }

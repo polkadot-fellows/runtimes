@@ -64,7 +64,9 @@ use weights::WeightInfo;
 use xcm::prelude::*;
 
 use multisig::MultisigMigrator;
-use preimage::{PreimageChunkMigrator, PreimageRequestStatusMigrator, PreimageLegacyRequestStatusMigrator};
+use preimage::{
+	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
+};
 use proxy::*;
 use types::PalletMigration;
 
@@ -461,10 +463,12 @@ pub mod pallet {
 				},
 				MigrationStage::PreimageMigrationLegacyRequestStatusOngoing { next_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
-							next_key,
-							&mut weight_counter,
-						))
+						TransactionOutcome::Commit(
+							PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
+								next_key,
+								&mut weight_counter,
+							),
+						)
 					})
 					.expect("Always returning Ok; qed");
 
@@ -473,9 +477,11 @@ pub mod pallet {
 							Self::transition(MigrationStage::PreimageMigrationDone);
 						},
 						Ok(Some(next_key)) => {
-							Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
-								next_key: Some(next_key),
-							});
+							Self::transition(
+								MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
+									next_key: Some(next_key),
+								},
+							);
 						},
 						e => {
 							log::error!(target: LOG_TARGET, "Error while migrating legacy preimage request status: {:?}", e);

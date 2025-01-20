@@ -37,8 +37,8 @@ use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrati
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
 
-use polkadot_runtime::Runtime as Polkadot;
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use polkadot_runtime::Runtime as Polkadot;
 
 use super::mock::*;
 

@@ -168,7 +168,9 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_receive_preimage_legacy_statuses(statuses: Vec<RcPreimageLegacyStatusOf<T>>) -> Result<(), Error<T>> {
+	pub fn do_receive_preimage_legacy_statuses(
+		statuses: Vec<RcPreimageLegacyStatusOf<T>>,
+	) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::PreimageLegacyStatusBatchReceived {
 			count: statuses.len() as u32,
 		});
@@ -188,9 +190,12 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_receive_preimage_legacy_status(status: RcPreimageLegacyStatusOf<T>) -> Result<(), Error<T>> {
+	pub fn do_receive_preimage_legacy_status(
+		status: RcPreimageLegacyStatusOf<T>,
+	) -> Result<(), Error<T>> {
 		// Unreserve the deposit
-		let missing = <T as pallet_preimage::Config>::Currency::unreserve(&status.depositor, status.deposit);
+		let missing =
+			<T as pallet_preimage::Config>::Currency::unreserve(&status.depositor, status.deposit);
 
 		if missing != Default::default() {
 			log::error!(target: LOG_TARGET, "Failed to unreserve deposit for preimage legacy status {:?}, who: {}, missing {:?}", status.hash,status.depositor.to_ss58check(), missing);
@@ -203,7 +208,8 @@ impl<T: Config> Pallet<T> {
 
 /// Check that the `pallet-preimage` post-state is sane.
 ///
-/// This is not running exhaustive checks. It just does some basic checks and assumes that there are further downstream checks to catch everything.
+/// This is not running exhaustive checks. It just does some basic checks and assumes that there are
+/// further downstream checks to catch everything.
 pub struct PreimageMigrationCheck<T: Config>(PhantomData<T>);
 
 impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMigrationCheck<T> {
@@ -212,33 +218,61 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 	fn pre_check() -> Self::Payload {
 		// AH does not have a preimage pallet, therefore must be empty.
 
-		assert!(alias::PreimageFor::<T>::iter_keys().next().is_none(), "Preimage::PreimageFor is not empty");
-		assert!(alias::RequestStatusFor::<T>::iter_keys().next().is_none(), "Preimage::RequestStatusFor is not empty");
+		assert!(
+			alias::PreimageFor::<T>::iter_keys().next().is_none(),
+			"Preimage::PreimageFor is not empty"
+		);
+		assert!(
+			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
+			"Preimage::RequestStatusFor is not empty"
+		);
 	}
 
 	fn post_check(payload: Self::Payload) {
 		// There are at least 10 preimages present (sanity check).
-		assert!(alias::PreimageFor::<T>::iter_keys().count() > 10, "Preimage::PreimageFor is empty");
-		assert_eq!(alias::PreimageFor::<T>::iter_keys().count(), alias::RequestStatusFor::<T>::iter_keys().count(), "Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths");
+		assert!(
+			alias::PreimageFor::<T>::iter_keys().count() > 10,
+			"Preimage::PreimageFor is empty"
+		);
+		assert_eq!(
+			alias::PreimageFor::<T>::iter_keys().count(),
+			alias::RequestStatusFor::<T>::iter_keys().count(),
+			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
+		);
 
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
 			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
-			assert!(preimage.len() <= 4*1024*1024 as usize, "Preimage::PreimageFor is too big");
-			assert!(preimage.len() == key.1 as usize, "Preimage::PreimageFor is not the correct length");
-			assert!(<T as frame_system::Config>::Hashing::hash(&preimage) == key.0, "Preimage::PreimageFor hash mismatch");
-			assert!(alias::RequestStatusFor::<T>::contains_key(&key.0), "Preimage::RequestStatusFor is missing");
+			assert!(preimage.len() <= 4 * 1024 * 1024 as usize, "Preimage::PreimageFor is too big");
+			assert!(
+				preimage.len() == key.1 as usize,
+				"Preimage::PreimageFor is not the correct length"
+			);
+			assert!(
+				<T as frame_system::Config>::Hashing::hash(&preimage) == key.0,
+				"Preimage::PreimageFor hash mismatch"
+			);
+			assert!(
+				alias::RequestStatusFor::<T>::contains_key(&key.0),
+				"Preimage::RequestStatusFor is missing"
+			);
 		}
 
 		for (hash, status) in alias::RequestStatusFor::<T>::iter() {
 			match status {
 				alias::RequestStatus::Unrequested { len, .. } => {
-					assert!(alias::PreimageFor::<T>::contains_key(&(hash, len)), "Preimage::RequestStatusFor is missing preimage");
+					assert!(
+						alias::PreimageFor::<T>::contains_key(&(hash, len)),
+						"Preimage::RequestStatusFor is missing preimage"
+					);
 				},
 				alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
-					assert!(alias::PreimageFor::<T>::contains_key(&(hash, len)), "Preimage::RequestStatusFor is missing preimage");
+					assert!(
+						alias::PreimageFor::<T>::contains_key(&(hash, len)),
+						"Preimage::RequestStatusFor is missing preimage"
+					);
 				},
-				_ => {}
+				_ => {},
 			}
 		}
 	}

@@ -18,12 +18,12 @@
 #![doc = include_str!("preimage.md")]
 
 pub mod chunks;
-pub mod request_status;
 pub mod legacy_request_status;
+pub mod request_status;
 
 pub use chunks::{PreimageChunkMigrator, RcPreimageChunk};
-pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
 pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
+pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
 
 use crate::{types::*, *};
 use sp_runtime::traits::{BlakeTwo256, Hash};
