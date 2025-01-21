@@ -33,10 +33,11 @@
 
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
-use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
+use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
 
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
 
 use super::mock::*;
@@ -47,8 +48,10 @@ async fn account_migration_works() {
 	let para_id = ParaId::from(1000);
 
 	// Simulate relay blocks and grab the DMP messages
-	let dmp_messages = rc.execute_with(|| {
+	let (dmp_messages, pre_check_payload) = rc.execute_with(|| {
 		let mut dmps = Vec::new();
+		let pre_check_payload =
+			pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::pre_check();
 
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
@@ -62,7 +65,7 @@ async fn account_migration_works() {
 				pallet_rc_migrator::MigrationStage::MigrationDone
 			{
 				log::info!("Migration done");
-				break dmps;
+				break (dmps, pre_check_payload);
 			}
 		}
 	});
@@ -73,6 +76,8 @@ async fn account_migration_works() {
 
 	// Inject the DMP messages into the Asset Hub
 	ah.execute_with(|| {
+		let ah_pre_check_payload =
+			pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::pre_check();
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
 		enqueue_dmp(dmp_messages);
@@ -90,6 +95,13 @@ async fn account_migration_works() {
 			log::debug!("AH DMP messages left: {}", fp.storage.count);
 			next_block_ah();
 		}
+
+		pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
+			pre_check_payload,
+		);
+		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(
+			ah_pre_check_payload,
+		);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});

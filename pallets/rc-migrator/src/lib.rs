@@ -33,6 +33,7 @@
 
 pub mod accounts;
 pub mod multisig;
+pub mod preimage;
 pub mod proxy;
 pub mod types;
 mod weights;
@@ -54,7 +55,7 @@ use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::hrmp;
-use sp_core::crypto::Ss58Codec;
+use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::{traits::TryConvert, AccountId32};
 use sp_std::prelude::*;
 use storage::TransactionOutcome;
@@ -64,11 +65,36 @@ use xcm::prelude::*;
 
 use accounts::AccountsMigrator;
 use multisig::MultisigMigrator;
+use preimage::{
+	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
+};
 use proxy::*;
 use types::PalletMigration;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
+
+/// Soft limit on the DMP message size.
+///
+/// The hard limit should be about 64KiB (TODO test) which means that we stay well below that to
+/// avoid any trouble. We can raise this as final preparation for the migration once everything is
+/// confirmed to work.
+pub const MAX_XCM_SIZE: u32 = 50_000;
+
+/// Out of weight Error. Can be converted to a pallet error for convenience.
+pub struct OutOfWeightError;
+
+impl OutOfWeightError {
+	pub fn new() -> Self {
+		Self
+	}
+}
+
+impl<T: Config> From<OutOfWeightError> for Error<T> {
+	fn from(_: OutOfWeightError) -> Self {
+		Self::OutOfWeight
+	}
+}
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum MigrationStage<AccountId> {
@@ -104,6 +130,22 @@ pub enum MigrationStage<AccountId> {
 		last_key: Option<AccountId>,
 	},
 	ProxyMigrationDone,
+	PreimageMigrationInit,
+	PreimageMigrationChunksOngoing {
+		// TODO type
+		last_key: Option<((H256, u32), u32)>,
+	},
+	PreimageMigrationChunksDone,
+	PreimageMigrationRequestStatusOngoing {
+		next_key: Option<H256>,
+	},
+	PreimageMigrationRequestStatusDone,
+	PreimageMigrationLegacyRequestStatusInit,
+	PreimageMigrationLegacyRequestStatusOngoing {
+		next_key: Option<H256>,
+	},
+	PreimageMigrationLegacyRequestStatusDone,
+	PreimageMigrationDone,
 	MigrationDone,
 }
 
@@ -127,6 +169,7 @@ pub mod pallet {
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
+		+ pallet_preimage::Config<Hash = H256>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -229,7 +272,8 @@ pub mod pallet {
 					// TODO: not complete
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
-					//Self::transition(MigrationStage::ProxyMigrationInit);
+					// toggle for testing
+					//Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -277,10 +321,10 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(MultisigMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						))
+						match MultisigMigrator::<T>::migrate_many(last_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -311,10 +355,11 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyMigrationProxies { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(ProxyProxiesMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						))
+						match ProxyProxiesMigrator::<T>::migrate_many(last_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -337,10 +382,13 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyMigrationAnnouncements { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						TransactionOutcome::Commit(ProxyAnnouncementMigrator::<T>::migrate_many(
+						match ProxyAnnouncementMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
-						))
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
 					})
 					.expect("Always returning Ok; qed");
 
@@ -360,11 +408,120 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ProxyMigrationDone => {
+					Self::transition(MigrationStage::PreimageMigrationInit);
+				},
+				MigrationStage::PreimageMigrationInit => {
+					Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+						last_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationChunksOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match PreimageChunkMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::PreimageMigrationChunksDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating preimages: {:?}", e);
+							defensive!("Error while migrating preimages");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationChunksDone => {
+					Self::transition(MigrationStage::PreimageMigrationRequestStatusOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationRequestStatusOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match PreimageRequestStatusMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::PreimageMigrationRequestStatusDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(
+								MigrationStage::PreimageMigrationRequestStatusOngoing {
+									next_key: Some(next_key),
+								},
+							);
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating preimage request status: {:?}", e);
+							defensive!("Error while migrating preimage request status");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationRequestStatusDone => {
+					Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusInit);
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusInit => {
+					Self::transition(MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match PreimageLegacyRequestStatusMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(
+								MigrationStage::PreimageMigrationLegacyRequestStatusDone,
+							);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(
+								MigrationStage::PreimageMigrationLegacyRequestStatusOngoing {
+									next_key: Some(next_key),
+								},
+							);
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating legacy preimage request status: {:?}", e);
+							defensive!("Error while migrating legacy preimage request status");
+						},
+					}
+				},
+				MigrationStage::PreimageMigrationLegacyRequestStatusDone => {
+					Self::transition(MigrationStage::PreimageMigrationDone);
+				},
+				MigrationStage::PreimageMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
-				MigrationStage::MigrationDone => {
-					todo!()
-				},
+				MigrationStage::MigrationDone => (),
 			};
 
 			weight_counter.consumed()
@@ -380,7 +537,7 @@ pub mod pallet {
 			Self::deposit_event(Event::StageTransition { old, new });
 		}
 
-		/// Split up the items into chunks of `MAX_MSG_SIZE` and send them as separate XCM
+		/// Split up the items into chunks of `MAX_XCM_SIZE` and send them as separate XCM
 		/// transacts.
 		///
 		/// Will modify storage in the error path.
@@ -390,13 +547,10 @@ pub mod pallet {
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 		) -> Result<(), Error<T>> {
 			log::info!(target: LOG_TARGET, "Received {} items to batch send via XCM", items.len());
-
-			const MAX_MSG_SIZE: u32 = 50_000; // Soft message size limit. Hard limit is about 64KiB
-									 // Reverse in place so that we can use `pop` later on
 			items.reverse();
 
 			while !items.is_empty() {
-				let mut remaining_size: u32 = MAX_MSG_SIZE;
+				let mut remaining_size: u32 = MAX_XCM_SIZE;
 				let mut batch = Vec::new();
 
 				while !items.is_empty() {
@@ -411,7 +565,7 @@ pub mod pallet {
 					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
 				}
 
-				log::info!(target: LOG_TARGET, "Sending batch of {} proxies", batch.len());
+				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch.len());
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 
 				let message = Xcm(vec![

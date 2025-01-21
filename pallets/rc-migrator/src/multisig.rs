@@ -132,16 +132,11 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				Ok(ms) => batch.push(ms), // TODO continue here
 				// Account does not need to be migrated
 				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(Error::OutOfWeight) if batch.len() > 0 => break,
+				Err(OutOfWeightError) if !batch.is_empty() => break,
 				// Not enough weight and was unable to make progress, bad.
-				Err(Error::OutOfWeight) if batch.len() == 0 => {
+				Err(OutOfWeightError) => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
-				},
-				Err(e) => {
-					defensive!("Error while migrating account");
-					log::error!(target: LOG_TARGET, "Error while migrating account: {:?}", e);
-					return Err(e);
 				},
 			}
 
@@ -164,10 +159,10 @@ impl<T: Config> MultisigMigrator<T> {
 		k1: AccountIdOf<T>,
 		ms: aliases::MultisigOf<T>,
 		weight_counter: &mut WeightMeter,
-	) -> Result<RcMultisigOf<T>, Error<T>> {
+	) -> Result<RcMultisigOf<T>, OutOfWeightError> {
 		// TODO weight
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(Error::<T>::OutOfWeight);
+			return Err(OutOfWeightError);
 		}
 
 		Ok(RcMultisig { creator: ms.depositor, deposit: ms.deposit, details: Some(k1) })

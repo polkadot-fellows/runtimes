@@ -2,7 +2,8 @@ The preimage pallet consists of three storage maps, one of which is a legacy ite
 
 ## Storage: PreimageFor
 
-[Maps](https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L185) a hash and the length of a preimage to its preimage data. Preimages can be migrated rather easily by sending them in chunks from the Relay and appending them on the Asset Hub. The preimages are often used to store large governance calls.
+[Maps](https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L185) a hash and the length of a preimage to its preimage data. Preimages can be migrated rather easily by sending them in chunks from the Relay and appending them on the Asset Hub. The preimages are often used to store large governance calls.  
+Only the preimages that are referenced by the `RequestStatusFor` map are migrated. All others must be referenced by the outdated `StatusFor` page and will be left on the Relay for final cleanup.
 
 Q: One question here would be whether or not we want to translate these calls. I think we can and should. But I am not sure about the best time point to do so.  
 We can translate the preimages calls upon arrival on the Asset Hub, although there is a small change that a preimage that was not intended to be decoded as a call would be translated.  
@@ -23,7 +24,7 @@ Deprecated. Will not be migrated but funds will be unreserved.
 
 For anyone who has registered a preimage:
 - If the preimage was in the new RequestStatusFor: Some unlocked funds 😎. We cannot calculate a list of affected accounts in advance since users can still influence this.
-- If the preimage was in the old StatusFor: will be removed and funds unlocked. Exhaustive list of all 166 Polkadot accounts that are affected by this and will have **UP TO** these funds unlocked (not a legally binding statement):
+- If the preimage was in the old StatusFor: will be removed and funds unlocked. [Exhaustive list](https://github.com/ggwpez/substrate-scripts/blob/master/ahm-preimage-statusfor-accounts.py) of all 166 Polkadot accounts that are affected by this and will have **UP TO** these funds unlocked (not a legally binding statement):
   
 - `16LKv69ct6xDzSiUjuz154vCg62dkyysektHFCeJe85xb6X`: 1256.897 DOT
 - `15ynbcMgPf7HbQErRz66RDLMuBVdcWVuURhR4SLPiqa6B8jx`: 633.121 DOT

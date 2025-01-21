@@ -38,6 +38,12 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveProxyProxies { proxies: Vec<proxy::RcProxyLocalOf<T>> },
 	#[codec(index = 3)]
 	ReceiveProxyAnnouncements { announcements: Vec<RcProxyAnnouncementOf<T>> },
+	#[codec(index = 4)]
+	ReceivePreimageChunks { chunks: Vec<preimage::RcPreimageChunk> },
+	#[codec(index = 5)]
+	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
+	#[codec(index = 6)]
+	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -78,4 +84,17 @@ pub trait PalletMigration {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error>;
+}
+
+/// Trait to run some checks before and after a pallet migration.
+///
+/// This needs to be called by the test harness.
+pub trait PalletMigrationChecks {
+	type Payload;
+
+	/// Run some checks before the migration and store intermediate payload.
+	fn pre_check() -> Self::Payload;
+
+	/// Run some checks after the migration and use the intermediate payload.
+	fn post_check(payload: Self::Payload);
 }

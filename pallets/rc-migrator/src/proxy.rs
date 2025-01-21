@@ -71,59 +71,52 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
 		let mut batch = Vec::new();
 
+		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
-			pallet_proxy::Proxies::<T>::iter_keys_from(pallet_proxy::Proxies::<T>::hashed_key_for(
+			pallet_proxy::Proxies::<T>::iter_from(pallet_proxy::Proxies::<T>::hashed_key_for(
 				&last_key,
 			))
 		} else {
-			pallet_proxy::Proxies::<T>::iter_keys()
+			pallet_proxy::Proxies::<T>::iter()
 		};
 
-		loop {
-			let Some(acc) = key_iter.next() else {
-				last_key = None;
-				log::info!(target: LOG_TARGET, "No more proxies to migrate, last key: {:?}", &last_key);
-				break;
-			};
-			log::debug!("Migrating proxies of acc {:?}", acc);
-
-			let (proxies, deposit) = pallet_proxy::Proxies::<T>::get(&acc);
-
+		// Process accounts until we run out of weight or accounts
+		while let Some((acc, (proxies, deposit))) = key_iter.next() {
 			if proxies.is_empty() {
 				defensive!("The proxy pallet disallows empty proxy lists");
 				continue;
-			};
+			}
 
 			match Self::migrate_single(acc.clone(), (proxies.into_inner(), deposit), weight_counter)
 			{
-				Ok(proxy) => batch.push(proxy),
-				Err(Error::OutOfWeight) if batch.len() > 0 => {
-					log::info!(target: LOG_TARGET, "Out of weight, continuing with next batch");
+				Ok(proxy) => {
+					batch.push(proxy);
+					last_key = Some(acc); // Update last processed key
+				},
+				Err(OutOfWeightError) if !batch.is_empty() => {
+					// We have items to process but ran out of weight
 					break;
 				},
-				Err(Error::OutOfWeight) if batch.len() == 0 => {
+				Err(OutOfWeightError) => {
 					defensive!("Not enough weight to migrate a single account");
 					return Err(Error::OutOfWeight);
 				},
-				Err(e) => {
-					defensive!("Error while migrating account");
-					log::error!(target: LOG_TARGET, "Error while migrating account: {:?}", e);
-					return Err(e);
-				},
 			}
-
-			last_key = Some(acc); // Mark as successfully migrated
 		}
 
-		// TODO send xcm
+		// Send batch if we have any items
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm(batch, |batch| {
 				types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch }
 			})?;
 		}
-		log::info!(target: LOG_TARGET, "Last key: {:?}", &last_key);
 
-		Ok(last_key)
+		// Return last processed key if there are more items, None if we're done
+		if key_iter.next().is_some() {
+			Ok(last_key)
+		} else {
+			Ok(None)
+		}
 	}
 }
 
@@ -135,9 +128,9 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
-	) -> Result<RcProxyLocalOf<T>, Error<T>> {
+	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(Error::<T>::OutOfWeight);
+			return Err(OutOfWeightError::new());
 		}
 
 		let translated_proxies = proxies
@@ -163,11 +156,10 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(Error::<T>::OutOfWeight);
-		}
-
 		let mut batch = Vec::new();
+		let mut last_processed = None;
+
+		// Get iterator starting after last processed key
 		let mut iter = if let Some(last_key) = last_key {
 			pallet_proxy::Announcements::<T>::iter_from(
 				pallet_proxy::Announcements::<T>::hashed_key_for(&last_key),
@@ -176,20 +168,28 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			pallet_proxy::Announcements::<T>::iter()
 		};
 
-		while let Some((acc, (_announcements, deposit))) = iter.next() {
+		// Process announcements until we run out of weight
+		while let Some((acc, (announcements, deposit))) = iter.next() {
 			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
 				break;
 			}
 
-			batch.push(RcProxyAnnouncement { depositor: acc, deposit });
+			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
+			last_processed = Some(acc);
 		}
 
+		// Send batch if we have any items
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm(batch, |batch| {
 				types::AhMigratorCall::<T>::ReceiveProxyAnnouncements { announcements: batch }
 			})?;
 		}
 
-		Ok(None)
+		// Return last processed key if there are more items, None if we're done
+		if iter.next().is_some() {
+			Ok(last_processed)
+		} else {
+			Ok(None)
+		}
 	}
 }

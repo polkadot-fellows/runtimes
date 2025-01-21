@@ -33,6 +33,7 @@
 
 pub mod account;
 pub mod multisig;
+pub mod preimage;
 pub mod proxy;
 pub mod types;
 
@@ -48,8 +49,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, proxy::*};
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
 use sp_application_crypto::Ss58Codec;
+use sp_core::H256;
 use sp_runtime::{
 	traits::{Convert, TryConvert},
 	AccountId32,
@@ -78,6 +80,7 @@ pub mod pallet {
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
+		+ pallet_preimage::Config<Hash = H256>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -120,6 +123,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.
 		TODO,
+		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
 	}
@@ -174,6 +178,42 @@ pub mod pallet {
 			/// How many proxy announcements were successfully integrated.
 			count_good: u32,
 			/// How many proxy announcements failed to integrate.
+			count_bad: u32,
+		},
+		/// Received a batch of `RcPreimageChunk` that are going to be integrated.
+		PreimageChunkBatchReceived {
+			/// How many preimage chunks are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageChunk` that we received.
+		PreimageChunkBatchProcessed {
+			/// How many preimage chunks were successfully integrated.
+			count_good: u32,
+			/// How many preimage chunks failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of `RcPreimageRequestStatus` that we are going to integrate.
+		PreimageRequestStatusBatchReceived {
+			/// How many preimage request status are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageRequestStatus` that we received.
+		PreimageRequestStatusBatchProcessed {
+			/// How many preimage request status were successfully integrated.
+			count_good: u32,
+			/// How many preimage request status failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of `RcPreimageLegacyStatus` that we are going to integrate.
+		PreimageLegacyStatusBatchReceived {
+			/// How many preimage legacy status are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of `RcPreimageLegacyStatus` that we received.
+		PreimageLegacyStatusBatchProcessed {
+			/// How many preimage legacy status were successfully integrated.
+			count_good: u32,
+			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
 	}
@@ -234,7 +274,38 @@ pub mod pallet {
 			announcements: Vec<RcProxyAnnouncementOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
+
 			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
+		}
+
+		#[pallet::call_index(4)]
+		pub fn receive_preimage_chunks(
+			origin: OriginFor<T>,
+			chunks: Vec<RcPreimageChunk>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
+		}
+
+		#[pallet::call_index(5)]
+		pub fn receive_preimage_request_status(
+			origin: OriginFor<T>,
+			request_status: Vec<RcPreimageRequestStatusOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
+		}
+
+		#[pallet::call_index(6)]
+		pub fn receive_preimage_legacy_status(
+			origin: OriginFor<T>,
+			legacy_status: Vec<RcPreimageLegacyStatusOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
 		}
 	}
 
