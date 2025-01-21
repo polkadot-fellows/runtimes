@@ -28,7 +28,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
 };
-use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
+use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating, StateVersion};
 
 /// BridgeHubKusama parachain.
 #[derive(RuntimeDebug)]
@@ -36,6 +36,7 @@ pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {
 	const ID: ChainId = *b"bhks";
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
@@ -69,8 +70,11 @@ impl ChainWithMessages for BridgeHubKusama {
 		WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	/// This constant limits the maximum number of messages in `receive_messages_proof`.
+	/// We need to adjust it from 4096 to 2024 due to the actual weights identified by
+	/// `check_message_lane_weights`. A higher value can be set once we switch
+	/// `max_extrinsic_weight` to `BlockWeightsForAsyncBacking`.
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 2024;
 }
 
 /// Public key of the chain account that may be used to verify signatures.
@@ -93,21 +97,21 @@ pub const WITH_BRIDGE_HUB_KUSAMA_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
 pub const WITH_BRIDGE_KUSAMA_TO_POLKADOT_MESSAGES_PALLET_INDEX: u8 = 53;
 
 decl_bridge_finality_runtime_apis!(bridge_hub_kusama);
-decl_bridge_messages_runtime_apis!(bridge_hub_kusama);
+decl_bridge_messages_runtime_apis!(bridge_hub_kusama, LegacyLaneId);
 
 frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Kusama
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 590_387_000;
+	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 601_115_666;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_140_827_287;
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_142_112_953;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 574_592_739;
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 575_036_072;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending

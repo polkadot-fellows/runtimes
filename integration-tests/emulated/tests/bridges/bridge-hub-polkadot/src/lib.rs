@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // Substrate
+pub use codec::Encode;
 pub use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResult};
 pub use sp_runtime::DispatchError;
 
@@ -21,7 +22,7 @@ pub use sp_runtime::DispatchError;
 pub use xcm::{
 	latest::ParentThen,
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v3::{
+	v4::{
 		self, Error,
 		NetworkId::{Kusama as KusamaId, Polkadot as PolkadotId},
 	},
@@ -29,7 +30,7 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Bridges
-pub use bp_messages::LaneId;
+pub use bp_messages::LegacyLaneId;
 
 // Cumulus
 pub use emulated_integration_tests_common::{
@@ -41,7 +42,7 @@ pub use emulated_integration_tests_common::{
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
 	},
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
-	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
+	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{

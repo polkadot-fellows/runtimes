@@ -22,7 +22,7 @@ mod send_xcm;
 mod teleport;
 
 mod snowbridge {
-	pub const CHAIN_ID: u64 = 11155111;
+	pub const CHAIN_ID: u64 = 1;
 	pub const WETH: [u8; 20] = hex_literal::hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
 }
 
@@ -75,7 +75,7 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 }
 
 pub(crate) fn create_foreign_on_ah_kusama(
-	id: v3::Location,
+	id: v4::Location,
 	sufficient: bool,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
@@ -84,18 +84,18 @@ pub(crate) fn create_foreign_on_ah_kusama(
 	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
 }
 
-pub(crate) fn create_foreign_on_ah_polkadot(id: v3::Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_polkadot(id: v4::Location, sufficient: bool) {
 	let owner = AssetHubPolkadot::account_id_of(ALICE);
 	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
-pub(crate) fn foreign_balance_on_ah_kusama(id: v3::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_kusama(id: v4::Location, who: &AccountId) -> u128 {
 	AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
-pub(crate) fn foreign_balance_on_ah_polkadot(id: v3::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_polkadot(id: v4::Location, who: &AccountId) -> u128 {
 	AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
@@ -103,8 +103,8 @@ pub(crate) fn foreign_balance_on_ah_polkadot(id: v3::Location, who: &AccountId) 
 }
 
 // set up pool
-pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v3::Location, is_foreign: bool) {
-	let dot: v3::Location = v3::Parent.into();
+pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v4::Location, is_foreign: bool) {
+	let dot: v4::Location = v4::Parent.into();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		let owner = AssetHubPolkadotSender::get();
@@ -113,13 +113,13 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v3::Location, is_foreig
 		if is_foreign {
 			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::mint(
 				signed_owner.clone(),
-				asset,
+				asset.clone(),
 				owner.clone().into(),
 				3_000_000_000_000,
 			));
 		} else {
 			let asset_id = match asset.interior.last() {
-				Some(v3::Junction::GeneralIndex(id)) => *id as u32,
+				Some(v4::Junction::GeneralIndex(id)) => *id as u32,
 				_ => unreachable!(),
 			};
 			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(
@@ -131,8 +131,8 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: v3::Location, is_foreig
 		}
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::AssetConversion::create_pool(
 			signed_owner.clone(),
-			Box::new(dot),
-			Box::new(asset),
+			Box::new(dot.clone()),
+			Box::new(asset.clone()),
 		));
 		assert_expected_events!(
 			AssetHubPolkadot,
