@@ -59,6 +59,8 @@ jobs:
 
       - name: Build EXTRA_FLAGS
         run: |
+          sudo apt install python3
+
           # When running on relay, we don't need weight checks.
           EXTRA_FLAGS="${{ matrix.runtime.extra_args }}"
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
