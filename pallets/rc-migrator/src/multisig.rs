@@ -100,7 +100,7 @@ pub struct MultisigMigrator<T: Config> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for MultisigMigrator<T> {
+impl<T: Config> MultiBlockMigration for MultisigMigrator<T> {
 	type Key = (T::AccountId, [u8; 32]);
 	type Error = Error<T>;
 

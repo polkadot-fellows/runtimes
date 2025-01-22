@@ -61,7 +61,7 @@ pub struct RcProxyAnnouncement<AccountId, Balance> {
 
 pub type RcProxyAnnouncementOf<T> = RcProxyAnnouncement<AccountIdOf<T>, BalanceOf<T>>;
 
-impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
+impl<T: Config> MultiBlockMigration for ProxyProxiesMigrator<T> {
 	type Key = T::AccountId;
 	type Error = Error<T>;
 
@@ -148,7 +148,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 	}
 }
 
-impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
+impl<T: Config> MultiBlockMigration for ProxyAnnouncementMigrator<T> {
 	type Key = T::AccountId;
 	type Error = Error<T>;
 

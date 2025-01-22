@@ -33,7 +33,7 @@ pub struct PreimageRequestStatusMigrator<T: pallet_preimage::Config> {
 	_phantom: PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
+impl<T: Config> MultiBlockMigration for PreimageRequestStatusMigrator<T> {
 	type Key = H256;
 	type Error = Error<T>;
 

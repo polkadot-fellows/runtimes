@@ -18,7 +18,7 @@ frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
-pallet-rc-migrator = { workspace = true, default-features = true }
+pallet-rc-migrator = { workspace = true, features = ["std"]}
 pallet-ah-migrator = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }

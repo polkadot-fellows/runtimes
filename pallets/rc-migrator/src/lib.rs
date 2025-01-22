@@ -35,6 +35,7 @@ pub mod accounts;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+pub mod referenda;
 pub mod types;
 mod weights;
 pub use pallet::*;
@@ -69,7 +70,7 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
-use types::PalletMigration;
+use types::{MultiBlockMigration, SingleBlockMigration};
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -146,8 +147,16 @@ pub enum MigrationStage<AccountId> {
 	},
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
+	ReferendaMigrationInit,
+	ReferendumMigrationOngoing {
+		last_key: Option<u32>,
+	},
+	ReferendaMigrationOngoing,
+	ReferendaMigrationDone,
 	MigrationDone,
 }
+
+pub type MigrationStageFor<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
 
 type AccountInfoFor<T> =
 	AccountInfo<<T as frame_system::Config>::Nonce, <T as frame_system::Config>::AccountData>;
@@ -170,6 +179,7 @@ pub mod pallet {
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_referenda::Config<Votes = u128>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -519,6 +529,66 @@ pub mod pallet {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
+					Self::transition(MigrationStage::ReferendaMigrationInit);
+				},
+				MigrationStage::ReferendaMigrationInit => {
+					Self::transition(MigrationStage::ReferendumMigrationOngoing { last_key: None });
+				},
+				MigrationStage::ReferendumMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<u32>, Error<T>, _>(|| {
+						match referenda::ReferendumInfoMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							// accounts migration is completed
+							// TODO publish event
+							Self::transition(MigrationStage::ReferendaMigrationOngoing);
+						},
+						Ok(Some(last_key)) => {
+							// accounts migration continues with the next block
+							// TODO publish event
+							Self::transition(MigrationStage::ReferendumMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating referendums: {:?}", err);
+							log::error!(target: LOG_TARGET, "Error while migrating referendums: {:?}", err);
+							// stage unchanged, retry.
+						},
+					}
+				},
+				MigrationStage::ReferendaMigrationOngoing => {
+					let res = with_transaction_opaque_err::<(), Error<T>, _>(|| {
+						match referenda::ReferendaMigrator::<T>::migrate(&mut weight_counter) {
+							Ok(()) => TransactionOutcome::Commit(Ok(())),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(()) => {
+							// accounts migration is completed
+							// TODO publish event
+							Self::transition(MigrationStage::ReferendaMigrationDone);
+						},
+						Err(err) => {
+							defensive!("Error while migrating referendums: {:?}", err);
+							log::error!(target: LOG_TARGET, "Error while migrating referendums: {:?}", err);
+							// stage unchanged, retry.
+						},
+					}
+				},
+				MigrationStage::ReferendaMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
@@ -588,6 +658,35 @@ pub mod pallet {
 					return Err(Error::XcmError);
 				};
 			}
+
+			Ok(())
+		}
+
+		/// Send a single XCM message.
+		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
+			log::info!(target: LOG_TARGET, "Sending XCM message");
+
+			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
+
+			let message = Xcm(vec![
+				Instruction::UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Instruction::Transact {
+					origin_kind: OriginKind::Superuser,
+					require_weight_at_most: Weight::from_all(1), // TODO
+					call: call.encode().into(),
+				},
+			]);
+
+			if let Err(err) = send_xcm::<T::SendXcm>(
+				Location::new(0, [Junction::Parachain(1000)]),
+				message.clone(),
+			) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				return Err(Error::XcmError);
+			};
 
 			Ok(())
 		}

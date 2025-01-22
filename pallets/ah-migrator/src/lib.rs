@@ -35,6 +35,7 @@ pub mod account;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+pub mod referenda;
 pub mod types;
 
 pub use pallet::*;
@@ -44,12 +45,14 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
+		Defensive, DefensiveResult, LockableCurrency, ReservableCurrency,
+		WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
+use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -81,6 +84,7 @@ pub mod pallet {
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_referenda::Config<Votes = u128>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -216,6 +220,19 @@ pub mod pallet {
 			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
+		/// We received a batch of referendums that we are going to integrate.
+		ReferendumsBatchReceived {
+			/// How many referendums are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of referendums that we received.
+		ReferendumsBatchProcessed {
+			/// How many referendums were successfully integrated.
+			count_good: u32,
+			/// How many referendums failed to integrate.
+			count_bad: u32,
+		},
+		ReferendaProcessed,
 	}
 
 	#[pallet::pallet]
@@ -306,6 +323,33 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
+		}
+
+		/// Receive referendums from the Relay Chain.
+		#[pallet::call_index(7)]
+		pub fn receive_referendums(
+			origin: OriginFor<T>,
+			referendums: Vec<(u32, ReferendumInfoOf<T, ()>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+
+		/// Receive referendum counts, deciding counts, votes for the track queue.
+		#[pallet::call_index(8)]
+		pub fn receive_referenda(
+			origin: OriginFor<T>,
+			referendum_count: u32,
+			// track_id, count
+			deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+			// referendum_id, votes
+			track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_referenda(referendum_count, deciding_count, track_queue)
+				.map_err(Into::into)
 		}
 	}
 

@@ -39,7 +39,7 @@ pub struct PreimageChunkMigrator<T: pallet_preimage::Config> {
 	_phantom: PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
+impl<T: Config> MultiBlockMigration for PreimageChunkMigrator<T> {
 	type Key = ((H256, u32), u32);
 	type Error = Error<T>;
 

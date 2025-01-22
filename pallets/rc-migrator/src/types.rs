@@ -17,6 +17,7 @@
 //! Types
 
 use super::*;
+use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -44,6 +45,14 @@ pub enum AhMigratorCall<T: Config> {
 	ReceivePreimageRequestStatus { request_status: Vec<preimage::RcPreimageRequestStatusOf<T>> },
 	#[codec(index = 6)]
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
+	#[codec(index = 7)]
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
+	#[codec(index = 8)]
+	ReceiveReferenda {
+		referendum_count: u32,
+		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+	},
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -72,7 +81,7 @@ impl AhWeightInfo for () {
 	}
 }
 
-pub trait PalletMigration {
+pub trait MultiBlockMigration {
 	type Key: codec::MaxEncodedLen;
 	type Error;
 
@@ -84,6 +93,12 @@ pub trait PalletMigration {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error>;
+}
+
+pub trait SingleBlockMigration {
+	type Error;
+	/// Migrates pallet data that can be completed within a single block on RC and AH.
+	fn migrate(weight_counter: &mut WeightMeter) -> Result<(), Self::Error>;
 }
 
 /// Trait to run some checks before and after a pallet migration.

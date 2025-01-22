@@ -160,7 +160,7 @@ pub struct AccountsMigrator<T: Config> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for AccountsMigrator<T> {
+impl<T: Config> MultiBlockMigration for AccountsMigrator<T> {
 	type Key = T::AccountId;
 	type Error = Error<T>;
 
