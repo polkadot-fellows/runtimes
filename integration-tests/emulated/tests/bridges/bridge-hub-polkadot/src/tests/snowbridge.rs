@@ -57,8 +57,9 @@ pub const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301C
 const INITIAL_FUND: u128 = 5_000_000_000 * POLKADOT_ED;
 const INSUFFICIENT_XCM_FEE: u128 = 1000;
 const XCM_FEE: u128 = 4_000_000_000;
-const TOKEN_AMOUNT: u128 = 100_000_000_000;
+const TOKEN_AMOUNT: u128 = 100_000_000;
 const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
+const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum ControlCall {
@@ -465,25 +466,35 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
-	// Fund ethereum sovereign account on AssetHub.
-	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
+
+	BridgeHubPolkadot::fund_accounts(vec![
+		(assethub_sovereign.clone(), INITIAL_FUND),
+		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
+	]);
+	AssetHubPolkadot::fund_accounts(vec![
+		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
+		(ethereum_sovereign_account(), INITIAL_FUND),
+	]);
 
 	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
-	// Register ETH
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
-		let min_balance = 15_000_000_000_000;
+		// Set base transfer fee to Ethereum on AH.
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
+		));
 
+		// Register ETH
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
 			ether_location.clone(),
 			ethereum_sovereign_account().into(),
 			true,
-			min_balance,
+			MIN_ETHER_BALANCE,
 		));
 
 		assert_expected_events!(
@@ -512,7 +523,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 				destination: Destination::AccountId32 {
 					id: AssetHubPolkadotReceiver::get().into(),
 				},
-				amount: TOKEN_AMOUNT,
+				amount: MIN_ETHER_BALANCE + TOKEN_AMOUNT,
 				fee: XCM_FEE,
 			},
 		});
@@ -530,10 +541,6 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
-	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
-		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
-	});
-
 	// Receive ether on Asset Hub.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -547,18 +554,14 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
+	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
+		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
+	});
+
 	// Send ether from Asset Hub.
 	AssetHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Check that AssetHub has issued the foreign asset
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
-			]
-		);
 		let assets = vec![Asset { id: AssetId(ether_location), fun: Fungible(TOKEN_AMOUNT) }];
 		let versioned_assets = VersionedAssets::from(Assets::from(assets));
 
