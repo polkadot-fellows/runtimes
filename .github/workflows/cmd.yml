@@ -125,6 +125,7 @@ jobs:
           CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
           echo 'help<<EOF' >> $GITHUB_OUTPUT
+          sudo apt install python3
           python3 .github/scripts/cmd/cmd.py $CMD >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
@@ -217,14 +218,8 @@ jobs:
     env:
       JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
-    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'gitrun-001' || 'ubuntu-22.04' }}
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'self-hosted' || 'ubuntu-22.04' }}
     steps:
-      - name: Install updates and protobuf-compiler
-        if: startsWith(github.event.comment.body, '/cmd bench')
-        run: |
-          sudo apt update && sudo apt install --assume-yes \
-            openssl pkg-config g++ make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev git jq
-
       - name: Get command
         uses: actions-ecosystem/action-regex-match@v2
         id: get-pr-comment
@@ -274,14 +269,19 @@ jobs:
           repository: ${{ needs.get-pr-branch.outputs.repo }}
           ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
+      - name: Install updates and dependencies
+        if: startsWith(github.event.comment.body, '/cmd bench')
+        run: .github/install-deps.sh
+
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
-      - name: Install Rust
+      - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@master
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt') || startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         with:
-          targets: "wasm32-unknown-unknown,x86_64-unknown-linux-musl"
-          components: "rust-src rustfmt clippy"
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src, rustfmt"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
       - name: Install dependencies for bench
@@ -294,9 +294,10 @@ jobs:
 
       - name: Setup Cache
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cmd"
+          shared-key: "fellowship-cache-cmd"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Run cmd
         id: cmd
@@ -306,6 +307,7 @@ jobs:
           echo "github.ref: ${{ github.ref }}"
           echo "Running command: $CMD on branch ${{ needs.get-pr-branch.outputs.pr-branch }}"
           git remote -v
+          sudo apt install python3
           python3 .github/scripts/cmd/cmd.py $CMD
           git status
           git diff
