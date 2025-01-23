@@ -31,11 +31,12 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use cumulus_primitives_core::ParaId;
 use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
+use runtime_parachains::inclusion::AggregateMessageOrigin;
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
@@ -78,14 +79,16 @@ async fn account_migration_works() {
 	ah.execute_with(|| {
 		let ah_pre_check_payload =
 			pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::pre_check();
-		let mut fp =
-			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+		let mut fp = asset_hub_polkadot_runtime::MessageQueue::footprint(
+			cumulus_primitives_core::AggregateMessageOrigin::Parent,
+		);
 		enqueue_dmp(dmp_messages);
 
 		// Loop until no more DMPs are queued
 		loop {
-			let new_fp =
-				asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+			let new_fp = asset_hub_polkadot_runtime::MessageQueue::footprint(
+				cumulus_primitives_core::AggregateMessageOrigin::Parent,
+			);
 			if fp == new_fp {
 				log::info!("AH DMP messages left: {}", fp.storage.count);
 				break;

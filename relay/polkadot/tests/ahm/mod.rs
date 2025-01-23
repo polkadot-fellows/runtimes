@@ -18,12 +18,13 @@
 
 mod accounts;
 
-// Runtime specific imports
-// Use general aliases for the imports to make it easier to copy&paste the tests for other runtimes.
-use polkadot_runtime::{Block, RcMigrator, Runtime as T, System, *};
-
-// General imports
+use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};
+use pallet_rc_migrator::*;
+use polkadot_primitives::Id as ParaId;
+use polkadot_runtime::{Block, BuildStorage, RcMigrator, Runtime as T, RuntimeOrigin, System, *};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
+use runtime_parachains::inclusion::AggregateMessageOrigin;
+use sp_runtime::AccountId32;
 
 /// Create externalities that have their state initialized from a snapshot.
 ///
@@ -47,4 +48,102 @@ async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 		.unwrap();
 
 	Some(ext)
+}
+
+#[test]
+fn call_filter_works() {
+	let mut t: sp_io::TestExternalities =
+		frame_system::GenesisConfig::<T>::default().build_storage().unwrap().into();
+
+	// MQ calls are never filtered:
+	let mq_call =
+		polkadot_runtime::RuntimeCall::MessageQueue(pallet_message_queue::Call::<T>::reap_page {
+			message_origin: AggregateMessageOrigin::Ump(
+				runtime_parachains::inclusion::UmpQueueId::Para(ParaId::from(1000)),
+			),
+			page_index: 0,
+		});
+	// System calls are filtered during the migration:
+	let system_call =
+		polkadot_runtime::RuntimeCall::System(frame_system::Call::<T>::remark { remark: vec![] });
+	// Indices calls are filtered during and after the migration:
+	let indices_call =
+		polkadot_runtime::RuntimeCall::Indices(pallet_indices::Call::<T>::claim { index: 0 });
+
+	let is_allowed = |call: &polkadot_runtime::RuntimeCall| Pallet::<T>::contains(call);
+
+	// Try the BaseCallFilter
+	t.execute_with(|| {
+		// Before the migration starts
+		{
+			RcMigrationStage::<T>::put(MigrationStage::Pending);
+
+			assert!(is_allowed(&mq_call));
+			assert!(is_allowed(&system_call));
+			assert!(is_allowed(&indices_call));
+		}
+
+		// During the migration
+		{
+			RcMigrationStage::<T>::put(MigrationStage::ProxyMigrationInit);
+
+			assert!(is_allowed(&mq_call));
+			assert!(!is_allowed(&system_call));
+			assert!(!is_allowed(&indices_call));
+		}
+
+		// After the migration
+		{
+			RcMigrationStage::<T>::put(MigrationStage::MigrationDone);
+
+			assert!(is_allowed(&mq_call));
+			assert!(is_allowed(&system_call));
+			assert!(!is_allowed(&indices_call));
+		}
+	});
+
+	// Try to actually dispatch the calls
+	t.execute_with(|| {
+		let alice = AccountId32::from([0; 32]);
+		<pallet_balances::Pallet<T> as frame_support::traits::Currency<_>>::deposit_creating(
+			&alice,
+			u64::MAX.into(),
+		);
+
+		// Before the migration starts
+		{
+			RcMigrationStage::<T>::put(MigrationStage::Pending);
+
+			assert!(!is_forbidden(&mq_call));
+			assert!(!is_forbidden(&system_call));
+			assert!(!is_forbidden(&indices_call));
+		}
+
+		// During the migration
+		{
+			RcMigrationStage::<T>::put(MigrationStage::ProxyMigrationInit);
+
+			assert!(!is_forbidden(&mq_call));
+			assert!(is_forbidden(&system_call));
+			assert!(is_forbidden(&indices_call));
+		}
+
+		// After the migration
+		{
+			RcMigrationStage::<T>::put(MigrationStage::MigrationDone);
+
+			assert!(!is_forbidden(&mq_call));
+			assert!(!is_forbidden(&system_call));
+			assert!(is_forbidden(&indices_call));
+		}
+	});
+}
+
+fn is_forbidden(call: &polkadot_runtime::RuntimeCall) -> bool {
+	let Err(err) = call.clone().dispatch(RuntimeOrigin::signed(AccountId32::from([0; 32]))) else {
+		return false;
+	};
+
+	let runtime_err: sp_runtime::DispatchError = frame_system::Error::<T>::CallFiltered.into();
+	err.error == runtime_err
 }

@@ -67,7 +67,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
 		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
@@ -190,7 +190,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = RcMigrator;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -1576,6 +1576,113 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhExistentialDeposit = AhExistentialDeposit;
 	type RcWeightInfo = ();
 	type AhWeightInfo = ();
+	type RcCallEnabledDuringMigration = CallsEnabledDuringMigration;
+	type RcCallEnabledAfterMigration = CallsEnabledAfterMigration;
+}
+
+/// Contains all calls that are enabled during the migration.
+pub struct CallsEnabledDuringMigration;
+impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDuringMigration {
+	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
+		let (during, _after) = call_disable_status(call);
+		!during
+	}
+}
+
+/// Contains all calls that are enabled after the migration.
+pub struct CallsEnabledAfterMigration;
+impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAfterMigration {
+	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
+		let (_during, after) = call_disable_status(call);
+		!after
+	}
+}
+
+/// Return whether a call should be disabled during and/or after the migration.
+///
+/// Time line looks like this:
+///
+/// --------|-----------|--------->
+///       Start        End
+///
+/// We now define 2 periods:
+///
+/// 1. During the migration: [Start, End]
+/// 2. After the migration: (End, ∞)
+///
+/// Visually:
+///
+/// 		|-----1-----|
+///                      |---2---->
+/// --------|-----------|--------->
+///       Start        End
+///
+/// This call returns a 2-tuple to indicate whether a call is disabled during these periods.
+pub fn call_disable_status(call: &<Runtime as frame_system::Config>::RuntimeCall) -> (bool, bool) {
+	use RuntimeCall::*;
+	const ON: bool = false;
+	const OFF: bool = true;
+
+	match call {
+		System(..) => (OFF, ON),
+		Scheduler(..) => (OFF, OFF),
+		Preimage(..) => (OFF, OFF),
+		Babe(..) => todo!(),
+		Timestamp(..) => (OFF, OFF),
+		Indices(..) => (OFF, OFF),
+		Balances(..) => (OFF, ON),
+		// TransactionPayment has no calls
+		// Authorship has no calls
+		Staking(..) => (OFF, OFF),
+		// Offences has no calls
+		// Historical has no calls
+		Session(..) => (OFF, OFF),
+		Grandpa(..) => todo!(),
+		// AuthorityDiscovery has no calls
+		Treasury(..) => (OFF, OFF),
+		ConvictionVoting(..) => (OFF, OFF),
+		Referenda(..) => (OFF, OFF),
+		// Origins has no calls
+		Whitelist(..) => (OFF, OFF),
+		Claims(..) => (OFF, OFF),
+		Vesting(..) => (OFF, OFF),
+		Utility(..) => (OFF, ON), // batching etc
+		Proxy(..) => (OFF, ON),
+		Multisig(..) => (OFF, ON),
+		Bounties(..) => (OFF, OFF),
+		ChildBounties(..) => (OFF, OFF),
+		ElectionProviderMultiPhase(..) => (OFF, OFF),
+		VoterList(..) => (OFF, OFF),
+		NominationPools(..) => (OFF, OFF),
+		FastUnstake(..) => (OFF, OFF),
+		// DelegatedStaking has on calls
+		// ParachainsOrigin has no calls
+		Configuration(..) => (OFF, ON),
+		ParasShared(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/ee803b74056fac5101c06ec5998586fa6eaac470/polkadot/runtime/parachains/src/shared.rs#L185-L186 */
+		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
+		ParaInherent(..) => (ON, ON),    // only inherents
+		// ParaScheduler has no calls
+		Paras(..) => (OFF, ON), // TODO only root so could think about keeping it on
+		Initializer(..) => (OFF, ON), // only root so could think about keeping it on
+		// Dmp // has no calls and deprecated
+		Hrmp(..) => (OFF, OFF),
+		// ParaSessionInfo has no calls
+		ParasDisputes(..) => (OFF, ON), // TODO check with security
+		ParasSlashing(..) => (OFF, ON), // TODO check with security
+		OnDemand(..) => (OFF, ON),
+		// CoretimeAssignmentProvider has no calls
+		Registrar(..) => (OFF, ON),
+		Slots(..) => (OFF, ON), // TODO not sure
+		Auctions(..) => (OFF, OFF),
+		Crowdloan(..) => (OFF, ON), // TODO maybe only payouts
+		Coretime(..) => (OFF, ON),
+		StateTrieMigration(..) => (OFF, OFF), // Deprecated
+		XcmPallet(..) => (OFF, ON),
+		MessageQueue(..) => (ON, ON), // TODO think about this
+		AssetRate(..) => (OFF, OFF),  // TODO @muharem
+		Beefy(..) => (OFF, ON),       /* TODO @claravanstaden @bkontur
+		                                * RcMigrator has no calls currently */
+	}
 }
 
 construct_runtime! {
