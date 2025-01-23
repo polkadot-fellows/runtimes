@@ -1612,7 +1612,7 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 ///
 /// Visually:
 ///
-/// 		|-----1-----|
+///         |-----1-----|
 ///                      |---2---->
 /// --------|-----------|--------->
 ///       Start        End
