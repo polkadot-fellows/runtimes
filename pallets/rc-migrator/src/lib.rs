@@ -208,15 +208,12 @@ pub mod pallet {
 		type AhWeightInfo: AhWeightInfo;
 		/// The existential deposit on the Asset Hub.
 		type AhExistentialDeposit: Get<<Self as pallet_balances::Config>::Balance>;
-		/// Whether this call is permanently disabled on the Relay Chain.
-		///
-		/// This includes all pallets that will be moved to the Asset Hub and we dont want anyone to
-		/// keep using them.
-		type RcCallEnabledAfterMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
-		/// Whether this Relay Chain call is disabled temporarily during the migration.
+		/// Contains all calls that are allowed during the migration.
 		///
 		/// The calls in here will be available again after the migration.
 		type RcCallEnabledDuringMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		/// Contains all calls that are allowed after the migration finished.
+		type RcCallEnabledAfterMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::error]
