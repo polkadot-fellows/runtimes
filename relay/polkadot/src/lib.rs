@@ -1627,7 +1627,7 @@ pub fn call_disable_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		System(..) => (OFF, ON),
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
-		Babe(..) => todo!(),
+		Babe(..) => todo!("FAIL-CI"),
 		Timestamp(..) => (OFF, OFF),
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
@@ -1637,7 +1637,7 @@ pub fn call_disable_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		// Offences has no calls
 		// Historical has no calls
 		Session(..) => (OFF, OFF),
-		Grandpa(..) => todo!(),
+		Grandpa(..) => todo!("FAIL-CI"),
 		// AuthorityDiscovery has no calls
 		Treasury(..) => (OFF, OFF),
 		ConvictionVoting(..) => (OFF, OFF),

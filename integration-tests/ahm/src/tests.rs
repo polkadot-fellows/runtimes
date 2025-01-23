@@ -36,7 +36,6 @@ use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
 use polkadot_primitives::InboundDownwardMessage;
 use remote_externalities::RemoteExternalities;
-use runtime_parachains::inclusion::AggregateMessageOrigin;
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
