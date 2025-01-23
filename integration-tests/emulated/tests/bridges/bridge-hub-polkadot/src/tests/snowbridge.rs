@@ -472,7 +472,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
 	// Register ETH
-	BridgeHubPolkadot::execute_with(|| {
+	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
