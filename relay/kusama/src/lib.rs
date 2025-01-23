@@ -25,7 +25,7 @@ extern crate alloc;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
-	traits::{EnsureOrigin, EnsureOriginWithArg},
+	traits::{EnsureOrigin, EnsureOriginWithArg, OnRuntimeUpgrade},
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
@@ -57,12 +57,14 @@ use sp_std::{
 };
 
 use runtime_parachains::{
-	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
-	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
-	coretime, disputes as parachains_disputes,
-	disputes::slashing as parachains_slashing,
-	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
-	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	assigner_coretime as parachains_assigner_coretime,
+	configuration::{
+		self as parachains_configuration, ActiveConfigHrmpChannelSizeAndCapacityRatio, WeightInfo,
+	},
+	coretime,
+	disputes::{self as parachains_disputes, slashing as parachains_slashing},
+	dmp as parachains_dmp, hrmp as parachains_hrmp,
+	inclusion::{self as parachains_inclusion, AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
@@ -1902,6 +1904,47 @@ parameter_types! {
 	pub const MaxPoolsToMigrate: u32 = 500;
 }
 
+const NEW_MAX_POV: u32 = 10 * 1024 * 1024;
+
+pub struct Activate10MbPovs;
+impl OnRuntimeUpgrade for Activate10MbPovs {
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+		// The pre-upgrade state doesn't matter
+		Ok(vec![])
+	}
+
+	fn on_runtime_upgrade() -> Weight {
+		match parachains_configuration::Pallet::<Runtime>::set_max_pov_size(
+			frame_system::RawOrigin::Root.into(),
+			NEW_MAX_POV,
+		) {
+			Ok(()) =>
+				weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_config_with_u32(),
+			Err(e) => {
+				log::warn!(
+					target: LOG_TARGET,
+					"Failed to set max PoV size. Error: {e:?}"
+				);
+				Weight::zero()
+			},
+		}
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		let pending = parachains_configuration::PendingConfigs::<Runtime>::get();
+		let Some((_, last_pending)) = pending.last() else {
+			return Err(sp_runtime::TryRuntimeError::CannotLookup);
+		};
+		frame_support::ensure!(
+			last_pending.max_pov_size == NEW_MAX_POV,
+			"Setting max PoV size to 10 Mb should be pending"
+		);
+		Ok(())
+	}
+}
+
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1925,6 +1968,7 @@ pub mod migrations {
 			Runtime,
 			MaxPoolsToMigrate,
 		>,
+		Activate10MbPovs,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
