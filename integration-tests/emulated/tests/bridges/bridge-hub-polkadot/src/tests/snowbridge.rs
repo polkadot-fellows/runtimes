@@ -489,7 +489,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
 		));
 
-		// Register ETH
+		// Register Ether
 		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
 			RuntimeOrigin::root(),
 			ether_location.clone(),
@@ -506,7 +506,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
-	// Send ether from Bridge Hub
+	// Send Ether from Bridge Hub
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
@@ -559,7 +559,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
 	});
 
-	// Send ether from Asset Hub.
+	// Send Ether from Asset Hub.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
@@ -580,7 +580,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
 				AssetHubPolkadotReceiver::get(),
 			);
-		// Send the Weth back to Ethereum
+		// Send the Ether back to Ethereum
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
 				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
@@ -601,7 +601,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		assert!(free_balance_diff > AH_BASE_FEE);
 	});
 
-	// Recieve ether on Bridge Hub and dispatch
+	// Recieve Ether on Bridge Hub and dispatch
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 		// Check that the transfer token back to Ethereum message was queue in the Ethereum
