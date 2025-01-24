@@ -873,9 +873,9 @@ dependencies = [
 
 [[package]]
 name = "assets-common"
-version = "0.18.0"
+version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4556e56f9206b129c3f96249cd907b76e8d7ad5265fe368c228c708789a451a3"
+checksum = "c540587f89a03003946b14decef4fcadb083edc4e62f968de245b82e5402e923"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -2468,6 +2468,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -9666,6 +9667,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
@@ -9774,6 +9776,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
