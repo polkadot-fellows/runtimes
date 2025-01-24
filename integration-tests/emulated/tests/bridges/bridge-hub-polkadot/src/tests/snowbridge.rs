@@ -679,6 +679,9 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
+	// Register WETH on Asset Hub
+	register_weth_token_from_ethereum_to_asset_hub();
+
 	let weth_location: Location =
 		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
 	// Perform a roundtrip transfer of WETH
