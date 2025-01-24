@@ -562,6 +562,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
+	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -849,6 +850,7 @@ mod benches {
 		[pallet_encointer_faucet, EncointerFaucet]
 		[pallet_encointer_reputation_commitments, EncointerReputationCommitments]
 		[pallet_encointer_scheduler, EncointerScheduler]
+		[pallet_encointer_treasuries, EncointerTreasuries]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		// XCM
@@ -988,7 +990,8 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<XcmAssetId>() {
+			let latest_asset_id: Result<XcmAssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::KsmLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))

@@ -43,7 +43,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify
-        run: .github/changelog-processor.py CHANGELOG.md --validate-changelog
+        run: |
+          sudo apt install python3
+          .github/changelog-processor.py CHANGELOG.md --validate-changelog
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)

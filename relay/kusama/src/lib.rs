@@ -25,7 +25,7 @@ extern crate alloc;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
-	traits::EnsureOriginWithArg,
+	traits::{EnsureOrigin, EnsureOriginWithArg, OnRuntimeUpgrade},
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
@@ -57,12 +57,14 @@ use sp_std::{
 };
 
 use runtime_parachains::{
-	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
-	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
-	coretime, disputes as parachains_disputes,
-	disputes::slashing as parachains_slashing,
-	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
-	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	assigner_coretime as parachains_assigner_coretime,
+	configuration::{
+		self as parachains_configuration, ActiveConfigHrmpChannelSizeAndCapacityRatio, WeightInfo,
+	},
+	coretime,
+	disputes::{self as parachains_disputes, slashing as parachains_slashing},
+	dmp as parachains_dmp, hrmp as parachains_hrmp,
+	inclusion::{self as parachains_inclusion, AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
@@ -641,6 +643,15 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
+#[derive(Default, MaxEncodedLen, Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Debug)]
+pub struct BurnDestinationAccount(pub Option<AccountId>);
+
+impl BurnDestinationAccount {
+	pub fn is_set(&self) -> bool {
+		self.0.is_some()
+	}
+}
+
 /// Dynamic params that can be adjusted at runtime.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
@@ -678,6 +689,17 @@ pub mod dynamic_params {
 		#[codec(index = 4)]
 		pub static UseAuctionSlots: bool = true;
 	}
+
+	/// Parameters used by `pallet-treasury` to handle the burn process.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod treasury {
+		#[codec(index = 0)]
+		pub static BurnPortion: Permill = Permill::from_percent(0);
+
+		#[codec(index = 1)]
+		pub static BurnDestination: BurnDestinationAccount = Default::default();
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -703,6 +725,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 
 		match key {
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
@@ -807,7 +831,7 @@ impl pallet_staking::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
-	type EventListeners = NominationPools;
+	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 }
@@ -828,7 +852,6 @@ parameter_types! {
 	pub const ProposalBondMinimum: Balance = 2000 * CENTS;
 	pub const ProposalBondMaximum: Balance = GRAND;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const Burn: Permill = Permill::zero();
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
@@ -845,14 +868,46 @@ parameter_types! {
 	pub const MaxPeerInHeartbeats: u32 = 10_000;
 }
 
+use frame_support::traits::{Currency, OnUnbalanced};
+
+pub type BalancesNegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+pub struct TreasuryBurnHandler;
+
+impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
+	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if let BurnDestinationAccount(Some(account)) = destination {
+			// Must resolve into existing but better to be safe.
+			Balances::resolve_creating(&account, amount);
+		} else {
+			// If no account to destinate the funds to, just drop the
+			// imbalance.
+			<() as OnUnbalanced<_>>::on_nonzero_unbalanced(amount)
+		}
+	}
+}
+
+impl Get<Permill> for TreasuryBurnHandler {
+	fn get() -> Permill {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if destination.is_set() {
+			dynamic_params::treasury::BurnPortion::get()
+		} else {
+			Permill::zero()
+		}
+	}
+}
+
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = SpendPeriod;
-	type Burn = Burn;
-	type BurnDestination = ();
+	type Burn = TreasuryBurnHandler;
+	type BurnDestination = TreasuryBurnHandler;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendFunds = Bounties;
@@ -1626,7 +1681,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
-	type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
+	type StakeAdapter =
+		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1841,6 +1897,54 @@ impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
 	}
 }
 
+parameter_types! {
+	// This is used to limit max pools that migrates in the runtime upgrade. This is set to
+	// ~existing_pool_count * 2 to also account for any new pools getting created before the
+	// migration is actually executed.
+	pub const MaxPoolsToMigrate: u32 = 500;
+}
+
+const NEW_MAX_POV: u32 = 10 * 1024 * 1024;
+
+pub struct Activate10MbPovs;
+impl OnRuntimeUpgrade for Activate10MbPovs {
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+		// The pre-upgrade state doesn't matter
+		Ok(vec![])
+	}
+
+	fn on_runtime_upgrade() -> Weight {
+		match parachains_configuration::Pallet::<Runtime>::set_max_pov_size(
+			frame_system::RawOrigin::Root.into(),
+			NEW_MAX_POV,
+		) {
+			Ok(()) =>
+				weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_config_with_u32(),
+			Err(e) => {
+				log::warn!(
+					target: LOG_TARGET,
+					"Failed to set max PoV size. Error: {e:?}"
+				);
+				Weight::zero()
+			},
+		}
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		let pending = parachains_configuration::PendingConfigs::<Runtime>::get();
+		let Some((_, last_pending)) = pending.last() else {
+			return Err(sp_runtime::TryRuntimeError::CannotLookup);
+		};
+		frame_support::ensure!(
+			last_pending.max_pov_size == NEW_MAX_POV,
+			"Setting max PoV size to 10 Mb should be pending"
+		);
+		Ok(())
+	}
+}
+
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1859,6 +1963,12 @@ pub mod migrations {
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		parachains_on_demand::migration::MigrateV0ToV1<Runtime>,
 		restore_corrupted_ledgers::Migrate<Runtime>,
+		// Migrate NominationPools to `DelegateStake` adapter. This is an unversioned upgrade.
+		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
+			Runtime,
+			MaxPoolsToMigrate,
+		>,
+		Activate10MbPovs,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2038,12 +2148,13 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
-		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::on_demand, OnDemandAssignmentProvider]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
 		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
+		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
@@ -2625,7 +2736,8 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::TokenLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))

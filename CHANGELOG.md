@@ -11,21 +11,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
 - Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
 - Coretime chain: allow cross-chain region transfers ([polkadot-fellows/runtimes/pull/483](https://github.com/polkadot-fellows/runtimes/pull/483))
-
-### Fixed
-
+- Unstake the last remaining corrupt ledger ([polkadot-fellows/runtimes/pull/538](https://github.com/polkadot-fellows/runtimes/pull/538))
 - Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
 
 ### Added
 
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
+- Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable as fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
 
 - ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
+- Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
+
+- Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
 
 ### Changed
 
 - Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))
+- Kusama Treasury: allow burn parameters to be set via OpenGov ([polkadot-fellows/runtimes#511](https://github.com/polkadot-fellows/runtimes/pull/511))
 - Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
+- Update the XCM `Weigher` from `FixedWeightBounds` to `WeightInfoBounds` with benchmarked weights for Polkadot Collectives ([polkadot-fellows/runtimes#547](https://github.com/polkadot-fellows/runtimes/pull/547))
+- Increase max PoV size to 10Mib on Kusama ([polkadot-fellows/runtimes#553](https://github.com/polkadot-fellows/runtimes/pull/553))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 

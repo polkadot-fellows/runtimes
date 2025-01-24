@@ -100,7 +100,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
-		ConstU32, ConstU64, ConstU8, EitherOfDiverse, InstanceFilter, NeverEnsureOrigin,
+		ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter, NeverEnsureOrigin,
 		TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
@@ -855,7 +855,8 @@ impl pallet_xcm_bridge_hub_router::Config<ToKusamaXcmRouterInstance> for Runtime
 	type DestinationVersion = PolkadotXcm;
 
 	type SiblingBridgeHubLocation = xcm_config::bridging::SiblingBridgeHub;
-
+	type BridgeHubOrigin =
+		EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<Equals<Self::SiblingBridgeHubLocation>>>;
 	type ToBridgeHubSender = XcmpQueue;
 
 	type ByteFee = xcm_config::bridging::XcmBridgeHubRouterByteFee;
@@ -1230,19 +1231,39 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let acceptable_assets = vec![AssetId(xcm_config::DotLocation::get())];
+			let native_asset = xcm_config::DotLocation::get();
+			// We accept the native asset to pay fees.
+			let mut acceptable_assets = vec![AssetId(native_asset.clone())];
+			// We also accept all assets in a pool with the native token.
+			acceptable_assets.extend(
+				assets_common::PoolAdapter::<Runtime>::get_assets_in_pool_with(native_asset)
+				.map_err(|()| XcmPaymentApiError::VersionedConversionFailed)?
+			);
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
-				Ok(asset_id) if asset_id.0 == xcm_config::DotLocation::get() => {
-					// for native token
-					Ok(WeightToFee::weight_to_fee(&weight))
+			let native_asset = xcm_config::DotLocation::get();
+			let fee_in_native = WeightToFee::weight_to_fee(&weight);
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
+				Ok(asset_id) if asset_id.0 == native_asset => {
+					// for native asset
+					Ok(fee_in_native)
 				},
 				Ok(asset_id) => {
-					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
-					Err(XcmPaymentApiError::AssetNotFound)
+					// Try to get current price of `asset_id` in `native_asset`.
+					if let Ok(Some(swapped_in_native)) = assets_common::PoolAdapter::<Runtime>::quote_price_tokens_for_exact_tokens(
+							asset_id.0.clone(),
+							native_asset,
+							fee_in_native,
+							true, // We include the fee.
+						) {
+						Ok(swapped_in_native)
+					} else {
+						log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
+						Err(XcmPaymentApiError::AssetNotFound)
+					}
 				},
 				Err(_) => {
 					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
