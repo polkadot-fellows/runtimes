@@ -60,6 +60,7 @@ const XCM_FEE: u128 = 4_000_000_000;
 const TOKEN_AMOUNT: u128 = 100_000_000_000;
 const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
 const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
+const ETHER_TOKEN_ADDRESS: [u8; 20] = [0; 20];
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum ControlCall {
@@ -519,7 +520,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
 			command: Command::SendToken {
-				token: [0; 20].into(),
+				token: ETHER_TOKEN_ADDRESS.into(),
 				destination: Destination::AccountId32 {
 					id: AssetHubPolkadotReceiver::get().into(),
 				},
