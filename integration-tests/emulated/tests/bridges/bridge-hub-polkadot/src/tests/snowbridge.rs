@@ -479,6 +479,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 
 	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
 
+	// Register Ether as foreign asset on AH.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
@@ -506,7 +507,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
-	// Send Ether from Bridge Hub
+	// Send Ether from Bridge Hub (simulates received Command from Ethereum)
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
@@ -542,7 +543,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
-	// Receive ether on Asset Hub.
+	// Receive Ether on Asset Hub.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
@@ -559,7 +560,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
 	});
 
-	// Send Ether from Asset Hub.
+	// Send Ether from Asset Hub back to Ethereum.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
@@ -601,11 +602,10 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 		assert!(free_balance_diff > AH_BASE_FEE);
 	});
 
-	// Recieve Ether on Bridge Hub and dispatch
+	// Check that message with Ether was queued on the BridgeHub
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		// Check that the transfer token back to Ethereum message was queue in the Ethereum
-		// Outbound Queue
+		// check the outbound queue
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
