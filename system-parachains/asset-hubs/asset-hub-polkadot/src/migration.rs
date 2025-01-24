@@ -47,11 +47,9 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 }
 
 pub struct RcToAhFreezeReason;
-impl Convert<RcFreezeReason, ()> for RcToAhFreezeReason {
-	fn convert(a: RcFreezeReason) {
-		match a {
-			_TODO => (),
-		}
+impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
+	fn convert(a: RcFreezeReason) -> RuntimeFreezeReason {
+		todo!()
 	}
 }
 /// Relay Chain Proxy Type

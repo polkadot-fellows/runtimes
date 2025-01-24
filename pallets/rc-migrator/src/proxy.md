@@ -30,6 +30,7 @@ We therefore do not migrate the announcements.
 ## User Impact
 - Announcements need to be re-created
 - Proxies of type `Auction` are not migrated and need to be re-created on the Relay
+- Existing proxies on Asset Hub will now have more permissions and will be able to access the new pallets as well. For example the `NonTransfer` proxy will also be able to use nomination pools.
 
 ## TODO
 - What if the owner of a proxy is lost? Then it cannot be re-created by them on the relay.

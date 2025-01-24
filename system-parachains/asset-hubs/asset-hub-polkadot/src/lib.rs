@@ -63,6 +63,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 pub mod genesis_config_presets;
 mod impls;
 mod migration;
+pub mod staking;
 mod weights;
 pub mod xcm_config;
 
@@ -263,7 +264,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
+	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -493,7 +494,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => !matches!(
-				c,
+				c, // TODO oty ggwpez
 				RuntimeCall::Balances { .. } |
 					RuntimeCall::Assets { .. } |
 					RuntimeCall::Nfts { .. } |
@@ -604,9 +605,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) | RuntimeCall::Utility(..) /*RuntimeCall::FastUnstake(..) |
+					RuntimeCall::Session(..) | RuntimeCall::Utility(..) //| RuntimeCall::NominationPools(..)
+																/*RuntimeCall::FastUnstake(..) |
 					                                                     *RuntimeCall::VoterList(..)
-					                                                     *RuntimeCall::NominationPools(..) */
+					                                                      */
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1078,13 +1080,15 @@ construct_runtime!(
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
 
-		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
 		Uniques: pallet_uniques = 51,
 		Nfts: pallet_nfts = 52,
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+
+		// Staking 60s
+		NominationPools: pallet_nomination_pools = 60,
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,
