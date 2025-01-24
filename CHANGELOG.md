@@ -10,9 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
 - Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
-
-### Fixed
-
+- Unstake the last remaining corrupt ledger ([polkadot-fellows/runtimes/pull/538](https://github.com/polkadot-fellows/runtimes/pull/538))
 - Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
 
 ### Added
@@ -30,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))
 - Kusama Treasury: allow burn parameters to be set via OpenGov ([polkadot-fellows/runtimes#511](https://github.com/polkadot-fellows/runtimes/pull/511))
 - Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
+- Update the XCM `Weigher` from `FixedWeightBounds` to `WeightInfoBounds` with benchmarked weights for Polkadot Collectives ([polkadot-fellows/runtimes#547](https://github.com/polkadot-fellows/runtimes/pull/547))
 - Increase max PoV size to 10Mib on Kusama ([polkadot-fellows/runtimes#553](https://github.com/polkadot-fellows/runtimes/pull/553))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
