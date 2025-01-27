@@ -48,7 +48,6 @@ use frame_support::{
 		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
 	},
 };
-use sp_runtime::traits::BlockNumberProvider;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
@@ -57,7 +56,7 @@ use pallet_rc_migrator::{
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{Convert, TryConvert},
+	traits::{BlockNumberProvider, Convert, TryConvert},
 	AccountId32,
 };
 use sp_std::prelude::*;

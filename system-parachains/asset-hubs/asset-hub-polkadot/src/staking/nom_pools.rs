@@ -178,7 +178,11 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!()
 	}
 
-	fn bond(_stash: &Self::AccountId, _value: Self::Balance, _: &Self::AccountId) -> DispatchResult {
+	fn bond(
+		_stash: &Self::AccountId,
+		_value: Self::Balance,
+		_: &Self::AccountId,
+	) -> DispatchResult {
 		unimplemented!()
 	}
 

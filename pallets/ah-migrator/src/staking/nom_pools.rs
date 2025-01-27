@@ -16,11 +16,12 @@
 // limitations under the License.
 
 use crate::{types::*, *};
-use pallet_nomination_pools::BondedPoolInner;
-use sp_runtime::Saturating;
 use frame_support::traits::DefensiveSaturating;
-use sp_runtime::traits::CheckedSub;
-use sp_runtime::traits::One;
+use pallet_nomination_pools::BondedPoolInner;
+use sp_runtime::{
+	traits::{CheckedSub, One},
+	Saturating,
+};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
@@ -61,7 +62,10 @@ impl<T: Config> Pallet<T> {
 			RcNomPoolsMessage::BondedPools { pool } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(&pool.0));
 				log::debug!("Received NomPoolsBondedPool: {}", &pool.0);
-				pallet_nomination_pools::BondedPools::<T>::insert(pool.0, Self::rc_to_ah_bonded_pool(pool.1));
+				pallet_nomination_pools::BondedPools::<T>::insert(
+					pool.0,
+					Self::rc_to_ah_bonded_pool(pool.1),
+				);
 				Ok(())
 			},
 			RcNomPoolsMessage::RewardPools { rewards } => {
@@ -109,15 +113,16 @@ impl<T: Config> Pallet<T> {
 		if let Some(ref mut change_rate) = pool.commission.change_rate {
 			// We cannot assume how this conversion works, but adding one will ensure that we err on
 			// the side of pool-member safety in case of rounding.
-			change_rate.min_delay = T::RcToProxyDelay::convert(change_rate.min_delay).saturating_add(One::one());
+			change_rate.min_delay =
+				T::RcToProxyDelay::convert(change_rate.min_delay).saturating_add(One::one());
 		}
-		
+
 		pool
 	}
 
 	/// Convert an absolute RC timepoint to an AH one.
 	///
-	///  This works by re-anchoring the timepoint to 
+	///  This works by re-anchoring the timepoint to
 	pub fn rc_to_ah_timepoint(rc_timepoint: BlockNumberFor<T>) -> BlockNumberFor<T> {
 		let rc_now = T::RcBlockNumberProvider::current_block_number();
 		let ah_now = frame_system::Pallet::<T>::block_number();
@@ -125,7 +130,9 @@ impl<T: Config> Pallet<T> {
 		if let Some(rc_since) = rc_now.checked_sub(&rc_timepoint) {
 			ah_now.saturating_sub(T::RcToProxyDelay::convert(rc_since)) // TODO rename
 		} else {
-			ah_now.saturating_add(T::RcToProxyDelay::convert(rc_timepoint.defensive_saturating_sub(rc_now)))
+			ah_now.saturating_add(T::RcToProxyDelay::convert(
+				rc_timepoint.defensive_saturating_sub(rc_now),
+			))
 		}
 	}
 }
