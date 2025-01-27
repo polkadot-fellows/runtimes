@@ -86,12 +86,12 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 /// Convert a Relay Chain Proxy Delay to a local AH one.
 // NOTE we assume Relay Chain and AH to have the same block type
 pub struct RcToProxyDelay;
-impl TryConvert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToProxyDelay {
-	fn try_convert(
+impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToProxyDelay {
+	fn convert(
 		rc: BlockNumberFor<Runtime>,
-	) -> Result<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> {
+	) -> BlockNumberFor<Runtime> {
 		// Polkadot Relay chain: 6 seconds per block
 		// Asset Hub: 12 seconds per block
-		Ok(rc / 2)
+		rc / 2
 	}
 }

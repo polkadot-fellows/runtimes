@@ -38,7 +38,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
-	type MaxUnbonding = ConstU32<10>; // FAIL-CI <Self as pallet_staking::Config>::MaxUnlockingChunks;
+	type MaxUnbonding = ConstU32<32>; // FAIL-CI <Self as pallet_staking::Config>::MaxUnlockingChunks;
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = (); // FAIL-CI weights::pallet_nomination_pools::WeightInfo<Self>;
@@ -56,8 +56,8 @@ impl StakeStrategy for MockStakeAdapter {
 	}
 
 	fn transferable_balance(
-		pool_account: Pool<Self::AccountId>,
-		member_account: Member<Self::AccountId>,
+		_pool_account: Pool<Self::AccountId>,
+		_member_account: Member<Self::AccountId>,
 	) -> Self::Balance {
 		unimplemented!()
 	}
@@ -71,52 +71,52 @@ impl StakeStrategy for MockStakeAdapter {
 	}
 
 	fn pledge_bond(
-		who: Member<Self::AccountId>,
-		pool_account: Pool<Self::AccountId>,
-		reward_account: &Self::AccountId,
-		amount: Self::Balance,
-		bond_type: BondType,
+		_who: Member<Self::AccountId>,
+		_pool_account: Pool<Self::AccountId>,
+		_reward_account: &Self::AccountId,
+		_amount: Self::Balance,
+		_bond_type: BondType,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
 	fn member_withdraw(
-		who: Member<Self::AccountId>,
-		pool_account: Pool<Self::AccountId>,
-		amount: Self::Balance,
-		num_slashing_spans: u32,
+		_who: Member<Self::AccountId>,
+		_pool_account: Pool<Self::AccountId>,
+		_amount: Self::Balance,
+		_num_slashing_spans: u32,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn dissolve(pool_account: Pool<Self::AccountId>) -> DispatchResult {
+	fn dissolve(_pool_account: Pool<Self::AccountId>) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn pending_slash(pool_account: Pool<Self::AccountId>) -> Self::Balance {
+	fn pending_slash(_pool_account: Pool<Self::AccountId>) -> Self::Balance {
 		unimplemented!()
 	}
 
 	fn member_slash(
-		who: Member<Self::AccountId>,
-		pool_account: Pool<Self::AccountId>,
-		amount: Self::Balance,
-		maybe_reporter: Option<Self::AccountId>,
+		_who: Member<Self::AccountId>,
+		_pool_account: Pool<Self::AccountId>,
+		_amount: Self::Balance,
+		_maybe_reporter: Option<Self::AccountId>,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
 	fn migrate_nominator_to_agent(
-		agent: Pool<Self::AccountId>,
-		reward_account: &Self::AccountId,
+		_agent: Pool<Self::AccountId>,
+		_reward_account: &Self::AccountId,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
 	fn migrate_delegation(
-		agent: Pool<Self::AccountId>,
-		delegator: Member<Self::AccountId>,
-		value: Self::Balance,
+		_agent: Pool<Self::AccountId>,
+		_delegator: Member<Self::AccountId>,
+		_value: Self::Balance,
 	) -> DispatchResult {
 		unimplemented!()
 	}
@@ -154,15 +154,15 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!()
 	}
 
-	fn is_virtual_staker(who: &Self::AccountId) -> bool {
+	fn is_virtual_staker(_who: &Self::AccountId) -> bool {
 		unimplemented!()
 	}
 
-	fn bond_extra(who: &Self::AccountId, extra: Self::Balance) -> DispatchResult {
+	fn bond_extra(_who: &Self::AccountId, _extra: Self::Balance) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn unbond(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult {
+	fn unbond(_who: &Self::AccountId, _amount: Self::Balance) -> DispatchResult {
 		unimplemented!()
 	}
 
@@ -174,15 +174,15 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!()
 	}
 
-	fn withdraw_unbonded(who: Self::AccountId, _: u32) -> Result<bool, DispatchError> {
+	fn withdraw_unbonded(_who: Self::AccountId, _: u32) -> Result<bool, DispatchError> {
 		unimplemented!()
 	}
 
-	fn bond(stash: &Self::AccountId, value: Self::Balance, _: &Self::AccountId) -> DispatchResult {
+	fn bond(_stash: &Self::AccountId, _value: Self::Balance, _: &Self::AccountId) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn nominate(_: &Self::AccountId, nominations: Vec<Self::AccountId>) -> DispatchResult {
+	fn nominate(_: &Self::AccountId, _nominations: Vec<Self::AccountId>) -> DispatchResult {
 		unimplemented!()
 	}
 
@@ -195,7 +195,7 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!()
 	}
 
-	fn stake(who: &Self::AccountId) -> Result<Stake<Balance>, DispatchError> {
+	fn stake(_who: &Self::AccountId) -> Result<Stake<Balance>, DispatchError> {
 		unimplemented!()
 	}
 

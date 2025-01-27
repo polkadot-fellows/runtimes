@@ -48,6 +48,7 @@ use frame_support::{
 		Defensive, LockableCurrency, ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
 	},
 };
+use sp_runtime::traits::BlockNumberProvider;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
@@ -113,7 +114,8 @@ pub mod pallet {
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
 		// number type.
-		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		type RcToProxyDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.

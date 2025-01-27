@@ -121,6 +121,7 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
@@ -1040,6 +1041,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
 	type RcToProxyDelay = migration::RcToProxyDelay;
+	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
