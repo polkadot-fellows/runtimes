@@ -794,7 +794,6 @@ dependencies = [
  "pallet-nfts",
  "pallet-nfts-runtime-api",
  "pallet-proxy",
- "pallet-remote-proxy",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",

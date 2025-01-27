@@ -958,50 +958,6 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 }
 
-/// Converts from the relay chain proxy type to the local proxy type.
-pub struct RelayChainToLocalProxyTypeConverter;
-
-impl
-	Convert<
-		ProxyDefinition<AccountId, polkadot_runtime_constants::proxy::ProxyType, BlockNumber>,
-		Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>>,
-	> for RelayChainToLocalProxyTypeConverter
-{
-	fn convert(
-		a: ProxyDefinition<AccountId, polkadot_runtime_constants::proxy::ProxyType, BlockNumber>,
-	) -> Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>> {
-		let proxy_type = match a.proxy_type {
-			polkadot_runtime_constants::proxy::ProxyType::Any => ProxyType::Any,
-			polkadot_runtime_constants::proxy::ProxyType::NonTransfer => ProxyType::NonTransfer,
-			// Proxy types that are not supported on AH.
-			polkadot_runtime_constants::proxy::ProxyType::Governance |
-			polkadot_runtime_constants::proxy::ProxyType::Staking |
-			polkadot_runtime_constants::proxy::ProxyType::CancelProxy |
-			polkadot_runtime_constants::proxy::ProxyType::Auction |
-			polkadot_runtime_constants::proxy::ProxyType::NominationPools |
-			polkadot_runtime_constants::proxy::ProxyType::ParaRegistration => return None,
-		};
-
-		Some(ProxyDefinition {
-			delegate: a.delegate,
-			proxy_type,
-			// Delays are currently not supported by the remote proxy pallet, but should be
-			// converted in the future to the block time used by the local proxy pallet.
-			delay: a.delay,
-		})
-	}
-}
-
-impl pallet_remote_proxy::Config for Runtime {
-	type MaxStorageRootsToKeep = ConstU32<{ MINUTES * 20 }>;
-	type RemoteProxy = polkadot_runtime_constants::proxy::RemoteProxyInterface<
-		ProxyType,
-		RelayChainToLocalProxyTypeConverter,
-	>;
-	//TODO: Run benchmarks and replace.
-	type WeightInfo = ();
-}
-
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1038,7 +994,6 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
-		RemoteProxyRelayChain: pallet_remote_proxy = 43,
 
 		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
