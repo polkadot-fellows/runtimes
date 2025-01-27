@@ -8867,6 +8867,7 @@ dependencies = [
  "log",
  "pallet-balances",
  "pallet-multisig",
+ "pallet-nomination-pools",
  "pallet-preimage",
  "pallet-proxy",
  "pallet-staking",
@@ -8879,6 +8880,7 @@ dependencies = [
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
+ "sp-staking 36.0.0",
  "sp-std",
  "staging-xcm",
 ]

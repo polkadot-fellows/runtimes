@@ -1,0 +1,229 @@
+// Copyright (C) Parity Technologies (UK) Ltd.
+// This file is part of Polkadot.
+
+// Polkadot is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Polkadot is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Nomination pools data migrator module.
+
+use crate::{types::*, *};
+use pallet_nomination_pools::{PoolId, PoolMember, BondedPoolInner, ClaimPermission};
+use sp_runtime::Perbill;
+use super::nom_pools_alias::{RewardPool, SubPools};
+
+/// The stages of the nomination pools pallet migration.
+///
+/// They advance in a linear fashion.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum NomPoolsStage<AccountId> {
+	/// Migrate the storage values.
+	StorageValues,
+	/// Migrate the `PoolMembers` storage map.
+	PoolMembers(Option<AccountId>),
+	/// Migrate the `BondedPools` storage map.
+	BondedPools(Option<PoolId>),
+	/// Migrate the `RewardsPools` storage map.
+	RewardsPools(Option<PoolId>),
+	/// Migrate the `SubPoolsStorage` storage map.
+	SubPoolsStorage(Option<PoolId>),
+	/// Migrate the `Metadata` storage map.
+	Metadata(Option<PoolId>),
+	/// Migrate the `ReversePoolIdLookup` storage map.
+	ReversePoolIdLookup(Option<AccountId>),
+	/// Migrate the `ClaimPermissions` storage map.
+	ClaimPermissions(Option<AccountId>),
+	Finished,
+}
+
+/// All the `StorageValues` from the nominations pools pallet.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub struct NomPoolsStorageValues<Balance> {
+	/// The sum of funds across all pools
+	pub total_value_locked: Balance,
+	/// Minimum amount to bond to join a pool
+	pub min_join_bond: Balance,
+	/// Minimum bond required to create a pool
+	pub min_create_bond: Balance,
+	/// Maximum number of nomination pools that can exist
+	pub max_pools: Option<u32>,
+	/// Maximum number of members that can exist in the system
+	pub max_pool_members: Option<u32>,
+	/// Maximum number of members that may belong to pool
+	pub max_pool_members_per_pool: Option<u32>,
+	/// The maximum commission that can be charged by a pool
+	pub global_max_commission: Option<Perbill>,
+	/// Ever increasing number of all pools created so far
+	pub last_pool_id: u32,
+}
+
+/// A message from RC to AH to migrate some nomination pools data.
+#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, CloneNoBound, PartialEqNoBound, EqNoBound)]
+#[codec(mel_bound(T: Config))]
+#[scale_info(skip_type_params(T))]
+pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
+	/// All `StorageValues` that can be migrated at once.
+	StorageValues { values: NomPoolsStorageValuesOf<T> },
+	/// Entry of the `PoolMembers` map.
+	PoolMembers { member: (T::AccountId, PoolMember<T>), },
+	/// Entry of the `BondedPools` map.
+	BondedPools { pool: (PoolId, BondedPoolInner<T>), },
+	/// Entry of the `RewardsPools` map.
+	RewardPools { rewards: (PoolId, RewardPool<T>), },
+	/// Entry of the `SubPoolsStorage` map.
+	SubPoolsStorage { sub_pools: (PoolId, SubPools<T>), },
+	/// Entry of the `Metadata` map.
+	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>), },
+	/// Entry of the `ReversePoolIdLookup` map.
+	// TODO check if inserting None into an option map is the same as deleting the key
+	ReversePoolIdLookup { lookups: (PoolId, T::AccountId), },
+	/// Entry of the `ClaimPermissions` map.
+	ClaimPermissions { perms: (T::AccountId, ClaimPermission), },
+}
+
+/// Migrate the nomination pools pallet.
+pub struct NomPoolsMigrator<T> {
+    _phantom: PhantomData<T>,
+}
+
+impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
+    type Key = NomPoolsStage<T::AccountId>;
+    type Error = Error<T>;
+
+	fn migrate_many(
+		mut current_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error> {
+		let mut inner_key = current_key.unwrap_or(NomPoolsStage::StorageValues);
+		let mut messages = Vec::new();
+
+		loop {
+			if weight_counter.try_consume(Weight::from_all(1)).is_err() {
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if messages.len() > 10_000 {
+				log::warn!("Safety trigger, let's not get this message too big");
+				break;
+			}
+			
+			inner_key = match inner_key {				
+				NomPoolsStage::StorageValues => {
+					Self::do_migrate_values()?;
+					NomPoolsStage::<T::AccountId>::PoolMembers(None)
+				}
+				NomPoolsStage::PoolMembers(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) => pallet_nomination_pools::PoolMembers::<T>::iter_from(
+							pallet_nomination_pools::PoolMembers::<T>::hashed_key_for(pool_iter)
+						),
+						None => pallet_nomination_pools::PoolMembers::<T>::iter(),
+					};
+					
+					match new_pool_iter.next() {
+						Some((key, member)) => {
+							pallet_nomination_pools::PoolMembers::<T>::remove(&key);
+							messages.push(RcNomPoolsMessage::PoolMembers { member: (key.clone(), member) });
+							NomPoolsStage::PoolMembers(Some(key))
+						},
+						None => {
+							NomPoolsStage::BondedPools(None)
+						}
+					}
+				},
+				NomPoolsStage::Finished => {
+					defensive!("Should not be passed as argument");
+					break;
+				},
+				_ => todo!("Done with PoolMembers")
+			};
+		};
+
+		Pallet::<T>::send_chunked_xcm(messages, |messages| {
+			types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages }
+		})?;
+
+		Ok(Some(inner_key))
+	}
+}
+
+
+pub type NomPoolsStorageValuesOf<T> = NomPoolsStorageValues<pallet_nomination_pools::BalanceOf<T>>;
+
+impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
+	/// Take and remove all `StorageValues` from the nomination pools pallet.
+	///
+	/// Called by the relay chain.
+	fn take_values() -> NomPoolsStorageValuesOf<T> {
+		use pallet_nomination_pools::*;
+		NomPoolsStorageValues {
+			total_value_locked: TotalValueLocked::<T>::take(),
+			min_join_bond: MinJoinBond::<T>::take(),
+			min_create_bond: MinCreateBond::<T>::take(),
+			max_pools: MaxPools::<T>::take(),
+			max_pool_members: MaxPoolMembers::<T>::take(),
+			max_pool_members_per_pool: MaxPoolMembersPerPool::<T>::take(),
+			global_max_commission: GlobalMaxCommission::<T>::take(),
+			last_pool_id: LastPoolId::<T>::take(),
+		}
+	}
+
+	/// Put the values back into storage.
+	///
+	/// Called by the Asset Hub after receiving the values.
+	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
+		use pallet_nomination_pools::*;
+		
+		TotalValueLocked::<T>::put(values.total_value_locked);
+		MinJoinBond::<T>::put(values.min_join_bond);
+		MinCreateBond::<T>::put(values.min_create_bond);
+		MaxPools::<T>::set(values.max_pools);
+		MaxPoolMembers::<T>::set(values.max_pool_members);
+		MaxPoolMembersPerPool::<T>::set(values.max_pool_members_per_pool);
+		GlobalMaxCommission::<T>::set(values.global_max_commission);
+		LastPoolId::<T>::put(values.last_pool_id);
+	}
+}
+
+impl<T: Config> NomPoolsMigrator<T> {
+	fn do_migrate_values() -> Result<(), <Self as PalletMigration>::Error> {
+		let values = Self::take_values();
+
+		// TODO factor out
+		let call = types::AssetHubPalletConfig::<T>::AhmController(types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages: vec![RcNomPoolsMessage::StorageValues { values }] });
+
+		let message = Xcm(vec![
+			Instruction::UnpaidExecution {
+				weight_limit: WeightLimit::Unlimited,
+				check_origin: None,
+			},
+			Instruction::Transact {
+				origin_kind: OriginKind::Superuser,
+				require_weight_at_most: Weight::from_all(1), // TODO
+				call: call.encode().into(),
+			},
+		]);
+
+		if let Err(err) = send_xcm::<T::SendXcm>(
+			Location::new(0, [Junction::Parachain(1000)]),
+			message.clone(),
+		) {
+			log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+			return Err(Error::XcmError);
+		};
+
+		Ok(())
+	}
+}

@@ -24,11 +24,13 @@ pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-nomination-pools = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 hex-literal = { workspace = true }
 xcm = { workspace = true }
+sp-staking = { workspace = true }
 
 [features]
 default = ["std"]

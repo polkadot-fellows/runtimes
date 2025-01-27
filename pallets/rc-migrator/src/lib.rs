@@ -35,6 +35,7 @@ pub mod accounts;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
@@ -69,6 +70,7 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
+use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
 use types::PalletMigration;
 
 /// The log target of this pallet.
@@ -146,6 +148,11 @@ pub enum MigrationStage<AccountId> {
 	},
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
+	NomPoolsMigrationInit,
+	NomPoolsMigrationOngoing {
+		next_key: Option<NomPoolsStage<AccountId>>,
+	},
+	NomPoolsMigrationDone,
 	MigrationDone,
 }
 
@@ -170,6 +177,7 @@ pub mod pallet {
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_nomination_pools::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -273,7 +281,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					//Self::transition(MigrationStage::PreimageMigrationInit);
+					Self::transition(MigrationStage::NomPoolsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -519,6 +527,38 @@ pub mod pallet {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
+					Self::transition(MigrationStage::NomPoolsMigrationInit);
+				},
+				MigrationStage::NomPoolsMigrationInit => {
+					Self::transition(MigrationStage::NomPoolsMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::NomPoolsMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match NomPoolsMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::NomPoolsMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::NomPoolsMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating nom pools: {:?}", e);
+							defensive!("Error while migrating nom pools");
+						},
+					}
+				},
+				MigrationStage::NomPoolsMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),

@@ -35,6 +35,7 @@ pub mod account;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+pub mod staking;
 pub mod types;
 
 pub use pallet::*;
@@ -49,7 +50,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
+use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*};
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -81,6 +82,7 @@ pub mod pallet {
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_nomination_pools::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -216,6 +218,8 @@ pub mod pallet {
 			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
+		/// We received and integrated the `NomPoolsStorageValues`. Infallible.
+		NomPoolsStorageValuesProcessed,
 	}
 
 	#[pallet::pallet]
@@ -306,6 +310,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
+		}
+
+		#[pallet::call_index(7)]
+		pub fn receive_nom_pools_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcNomPoolsMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 	}
 
