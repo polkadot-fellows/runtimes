@@ -19,7 +19,7 @@ Relay chain side since we have more compute power there but it is not possible s
 translation depends on the Relay number upon arrival on Asset Hub.
 
 The timestamp is translated in
-[rc_to_ah_timestamp](https://github.com/polkadot-fellows/runtimes/blob/baedc4ad7b9a148a80105d8e282096ec193ea7de/pallets/ah-migrator/src/staking/nom_pools.rs#L119)
+[rc_to_ah_timestamp](https://github.com/polkadot-fellows/runtimes/blob/5af776e1443b5e7eb17b6e9d87ef40311afaf6f9/pallets/ah-migrator/src/staking/nom_pools.rs#L127)
 and the `min_delay` is directly passed to `RcToAhDelay`.
 
 The other five storage maps are migrated as it.
