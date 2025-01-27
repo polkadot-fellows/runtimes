@@ -221,10 +221,12 @@ pub mod pallet {
 			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
+		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
 		NomPoolsMessagesBatchReceived {
 			/// How many nom pools messages are in the batch.
 			count: u32,
 		},
+		/// Processed a batch of `RcNomPoolsMessage` that we received.
 		NomPoolsMessagesBatchProcessed {
 			/// How many nom pools messages were successfully integrated.
 			count_good: u32,

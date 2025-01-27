@@ -27,84 +27,72 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
 		messages: Vec<RcNomPoolsMessage<T>>,
 	) -> Result<(), Error<T>> {
-		let (mut good, mut bad) = (0, 0);
-		log::info!("Received {} NomPoolsMessages", messages.len());
+		let mut good = 0;
+		log::info!("Integrating {} NomPoolsMessages", messages.len());
 		Self::deposit_event(Event::NomPoolsMessagesBatchReceived { count: messages.len() as u32 });
 
 		for message in messages {
-			if Self::do_receive_nom_pools_message(message).is_ok() {
-				good += 1;
-			} else {
-				bad += 1;
-			}
+			Self::do_receive_nom_pools_message(message);
+			good += 1;
 		}
 
 		Self::deposit_event(Event::NomPoolsMessagesBatchProcessed {
 			count_good: good as u32,
-			count_bad: bad as u32,
+			count_bad: 0,
 		});
 		Ok(())
 	}
 
-	pub fn do_receive_nom_pools_message(message: RcNomPoolsMessage<T>) -> Result<(), ()> {
+	pub fn do_receive_nom_pools_message(message: RcNomPoolsMessage<T>) {
 		match message {
 			RcNomPoolsMessage::StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
-				log::debug!("Received NomPoolsStorageValues");
-				Ok(())
+				log::debug!("Integrating NomPoolsStorageValues");
 			},
 			RcNomPoolsMessage::PoolMembers { member } => {
 				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(&member.0));
-				log::debug!("Received NomPoolsPoolMember: {:?}", &member.0);
+				log::debug!("Integrating NomPoolsPoolMember: {:?}", &member.0);
 				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
-				Ok(())
 			},
 			RcNomPoolsMessage::BondedPools { pool } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(&pool.0));
-				log::debug!("Received NomPoolsBondedPool: {}", &pool.0);
+				log::debug!("Integrating NomPoolsBondedPool: {}", &pool.0);
 				pallet_nomination_pools::BondedPools::<T>::insert(
 					pool.0,
 					Self::rc_to_ah_bonded_pool(pool.1),
 				);
-				Ok(())
 			},
 			RcNomPoolsMessage::RewardPools { rewards } => {
-				log::debug!("Received NomPoolsRewardPool: {:?}", &rewards.0);
+				log::debug!("Integrating NomPoolsRewardPool: {:?}", &rewards.0);
 				// Not sure if it is the best to use the alias here, but it is the easiest...
 				pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::insert(
 					rewards.0, rewards.1,
 				);
-				Ok(())
 			},
 			RcNomPoolsMessage::SubPoolsStorage { sub_pools } => {
-				log::debug!("Received NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
+				log::debug!("Integrating NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
 				pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::insert(
 					sub_pools.0,
 					sub_pools.1,
 				);
-				Ok(())
 			},
 			RcNomPoolsMessage::Metadata { meta } => {
-				log::debug!("Received NomPoolsMetadata: {:?}", &meta.0);
+				log::debug!("Integrating NomPoolsMetadata: {:?}", &meta.0);
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
-				Ok(())
 			},
 			RcNomPoolsMessage::ReversePoolIdLookup { lookups } => {
-				log::debug!("Received NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
+				log::debug!("Integrating NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
 				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(lookups.0, lookups.1);
-				Ok(())
 			},
 			RcNomPoolsMessage::ClaimPermissions { perms } => {
-				log::debug!("Received NomPoolsClaimPermissions: {:?}", &perms.0);
+				log::debug!("Integrating NomPoolsClaimPermissions: {:?}", &perms.0);
 				pallet_nomination_pools::ClaimPermissions::<T>::insert(perms.0, perms.1);
-				Ok(())
 			},
 		}
 	}
 
 	/// Translate a bonded RC pool to an AH one.
 	pub fn rc_to_ah_bonded_pool(mut pool: BondedPoolInner<T>) -> BondedPoolInner<T> {
-		log::info!("Translating BondedPool: {:?}", &pool);
 		if let Some(ref mut throttle_from) = pool.commission.throttle_from {
 			// Plus one here to be safe for the pool member just in case that the pool operator
 			// would like to enact commission rate changes immediately.
