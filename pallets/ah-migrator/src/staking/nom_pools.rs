@@ -44,17 +44,18 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_nom_pools_message(message: RcNomPoolsMessage<T>) {
+		use RcNomPoolsMessage::*;
 		match message {
-			RcNomPoolsMessage::StorageValues { values } => {
+			StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
 				log::debug!("Integrating NomPoolsStorageValues");
 			},
-			RcNomPoolsMessage::PoolMembers { member } => {
+			PoolMembers { member } => {
 				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(&member.0));
 				log::debug!("Integrating NomPoolsPoolMember: {:?}", &member.0);
 				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
 			},
-			RcNomPoolsMessage::BondedPools { pool } => {
+			BondedPools { pool } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(&pool.0));
 				log::debug!("Integrating NomPoolsBondedPool: {}", &pool.0);
 				pallet_nomination_pools::BondedPools::<T>::insert(
@@ -62,29 +63,29 @@ impl<T: Config> Pallet<T> {
 					Self::rc_to_ah_bonded_pool(pool.1),
 				);
 			},
-			RcNomPoolsMessage::RewardPools { rewards } => {
+			RewardPools { rewards } => {
 				log::debug!("Integrating NomPoolsRewardPool: {:?}", &rewards.0);
 				// Not sure if it is the best to use the alias here, but it is the easiest...
 				pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::insert(
 					rewards.0, rewards.1,
 				);
 			},
-			RcNomPoolsMessage::SubPoolsStorage { sub_pools } => {
+			SubPoolsStorage { sub_pools } => {
 				log::debug!("Integrating NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
 				pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::insert(
 					sub_pools.0,
 					sub_pools.1,
 				);
 			},
-			RcNomPoolsMessage::Metadata { meta } => {
+			Metadata { meta } => {
 				log::debug!("Integrating NomPoolsMetadata: {:?}", &meta.0);
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 			},
-			RcNomPoolsMessage::ReversePoolIdLookup { lookups } => {
+			ReversePoolIdLookup { lookups } => {
 				log::debug!("Integrating NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
 				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(lookups.0, lookups.1);
 			},
-			RcNomPoolsMessage::ClaimPermissions { perms } => {
+			ClaimPermissions { perms } => {
 				log::debug!("Integrating NomPoolsClaimPermissions: {:?}", &perms.0);
 				pallet_nomination_pools::ClaimPermissions::<T>::insert(perms.0, perms.1);
 			},
@@ -108,9 +109,21 @@ impl<T: Config> Pallet<T> {
 		pool
 	}
 
-	/// Convert an absolute RC timepoint to an AH one.
+	/// Convert an absolute RC time point to an AH one.
 	///
-	///  This works by re-anchoring the timepoint to
+	/// This works by re-anchoring the time point to. For example:
+	///
+	/// - RC now: 100
+	/// - AH now: 75
+	/// - RC time point: 50
+	/// - Result: 75 - (100 - 50) / 2 = 50
+	///
+	/// Other example:
+	///
+	/// - RC now: 100
+	/// - AH now: 75
+	/// - RC time point: 150
+	/// - Result: 75 + (150 - 100) / 2 = 100
 	pub fn rc_to_ah_timepoint(rc_timepoint: BlockNumberFor<T>) -> BlockNumberFor<T> {
 		let rc_now = T::RcBlockNumberProvider::current_block_number();
 		let ah_now = frame_system::Pallet::<T>::block_number();

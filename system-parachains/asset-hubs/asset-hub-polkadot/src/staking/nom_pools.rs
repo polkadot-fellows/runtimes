@@ -45,6 +45,9 @@ impl pallet_nomination_pools::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>; // FAIL-CI EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 }
 
+// Mocks to make it compile, can be deleted once we have the Staking pallet migrated:
+
+/// Mock do not use.
 pub struct MockStakeAdapter;
 impl StakeStrategy for MockStakeAdapter {
 	type Balance = crate::Balance;
@@ -122,8 +125,8 @@ impl StakeStrategy for MockStakeAdapter {
 	}
 }
 
+/// Mock do not use.
 pub struct StakingMock;
-
 impl sp_staking::StakingInterface for StakingMock {
 	type Balance = crate::Balance;
 	type AccountId = <Runtime as frame_system::Config>::AccountId;

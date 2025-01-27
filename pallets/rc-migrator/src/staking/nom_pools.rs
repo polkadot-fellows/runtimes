@@ -43,27 +43,20 @@ pub enum NomPoolsStage<AccountId> {
 	ReversePoolIdLookup(Option<AccountId>),
 	/// Migrate the `ClaimPermissions` storage map.
 	ClaimPermissions(Option<AccountId>),
+	/// All done.
 	Finished,
 }
 
 /// All the `StorageValues` from the nominations pools pallet.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct NomPoolsStorageValues<Balance> {
-	/// The sum of funds across all pools
 	pub total_value_locked: Balance,
-	/// Minimum amount to bond to join a pool
 	pub min_join_bond: Balance,
-	/// Minimum bond required to create a pool
 	pub min_create_bond: Balance,
-	/// Maximum number of nomination pools that can exist
 	pub max_pools: Option<u32>,
-	/// Maximum number of members that can exist in the system
 	pub max_pool_members: Option<u32>,
-	/// Maximum number of members that may belong to pool
 	pub max_pool_members_per_pool: Option<u32>,
-	/// The maximum commission that can be charged by a pool
 	pub global_max_commission: Option<Perbill>,
-	/// Ever increasing number of all pools created so far
 	pub last_pool_id: u32,
 }
 
@@ -125,15 +118,17 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				}
 			}
 			if messages.len() > 10_000 {
-				log::warn!("Safety trigger, let's not get this message too big");
+				log::warn!("Weight allowed very big batch, stopping");
 				break;
 			}
 
 			inner_key = match inner_key {
 				NomPoolsStage::StorageValues => {
-					Self::do_migrate_values()?;
+					let values = Self::take_values();
+					messages.push(RcNomPoolsMessage::StorageValues { values });
 					NomPoolsStage::<T::AccountId>::PoolMembers(None)
 				},
+				// Bunch of copy & paste code
 				NomPoolsStage::PoolMembers(pool_iter) => {
 					let mut new_pool_iter = match pool_iter.clone() {
 						Some(pool_iter) => pallet_nomination_pools::PoolMembers::<T>::iter_from(
@@ -292,11 +287,12 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 pub type NomPoolsStorageValuesOf<T> = NomPoolsStorageValues<pallet_nomination_pools::BalanceOf<T>>;
 
 impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
-	/// Take and remove all `StorageValues` from the nomination pools pallet.
+	/// Return and remove all `StorageValues` from the nomination pools pallet.
 	///
 	/// Called by the relay chain.
 	fn take_values() -> NomPoolsStorageValuesOf<T> {
 		use pallet_nomination_pools::*;
+
 		NomPoolsStorageValues {
 			total_value_locked: TotalValueLocked::<T>::take(),
 			min_join_bond: MinJoinBond::<T>::take(),
@@ -309,9 +305,9 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 		}
 	}
 
-	/// Put the values back into storage.
+	/// Put all `StorageValues` into storage.
 	///
-	/// Called by the Asset Hub after receiving the values.
+	/// Called by Asset Hub after receiving the values.
 	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
 		use pallet_nomination_pools::*;
 
@@ -323,39 +319,5 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 		MaxPoolMembersPerPool::<T>::set(values.max_pool_members_per_pool);
 		GlobalMaxCommission::<T>::set(values.global_max_commission);
 		LastPoolId::<T>::put(values.last_pool_id);
-	}
-}
-
-impl<T: Config> NomPoolsMigrator<T> {
-	fn do_migrate_values() -> Result<(), <Self as PalletMigration>::Error> {
-		let values = Self::take_values();
-
-		// TODO factor out
-		let call = types::AssetHubPalletConfig::<T>::AhmController(
-			types::AhMigratorCall::<T>::ReceiveNomPoolsMessages {
-				messages: vec![RcNomPoolsMessage::StorageValues { values }],
-			},
-		);
-
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Superuser,
-				require_weight_at_most: Weight::from_all(1), // TODO
-				call: call.encode().into(),
-			},
-		]);
-
-		if let Err(err) =
-			send_xcm::<T::SendXcm>(Location::new(0, [Junction::Parachain(1000)]), message.clone())
-		{
-			log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
-			return Err(Error::XcmError);
-		};
-
-		Ok(())
 	}
 }

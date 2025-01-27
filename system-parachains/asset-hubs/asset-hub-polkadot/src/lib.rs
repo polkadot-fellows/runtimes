@@ -495,7 +495,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => !matches!(
-				c, // TODO oty ggwpez
+				c,
 				RuntimeCall::Balances { .. } |
 					RuntimeCall::Assets { .. } |
 					RuntimeCall::Nfts { .. } |
@@ -606,10 +606,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) | RuntimeCall::Utility(..) //| RuntimeCall::NominationPools(..)
-																/*RuntimeCall::FastUnstake(..) |
-					                                                     *RuntimeCall::VoterList(..)
-					                                                      */
+					RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
+					                                   *RuntimeCall::VoterList(..)
+					                                   */
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1089,7 +1090,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
 
-		// Staking 60s
+		// Staking in 60s
 		NominationPools: pallet_nomination_pools = 60,
 
 		// Asset Hub Migrator
