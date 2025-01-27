@@ -156,6 +156,8 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"pallet-nomination-pools/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -191,6 +193,7 @@ try-runtime = [
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-nomination-pools/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -273,6 +276,8 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-nomination-pools/std",
+	"sp-staking/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
