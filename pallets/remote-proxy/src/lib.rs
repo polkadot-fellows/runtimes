@@ -14,6 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
+//! Remote proxy pallet
+//!
+//! The pallet provides the functionality for using a proxy on a remote chain. The exact remote
+//! location of the proxy depends on the [`RemoteProxyInterface`] implementation provided to this
+//! pallet. The underlying implementation works by verifying proofs from the remote location that
+//! prove the existence of a proxy. The remote proof is verified against a storage root from the
+//! remote location. These storage roots are extracted from the relay chain. So, the security
+//! of the proxy depends on the remote location. This means that the remote location should be a
+//! trusted chain that for example doesn't create fake proxies.
+//!
+//! ## Functions
+//!
+//! The pallet provides the following functions:
+//!
+//! - [`Pallet::remote_proxy`]: Dispatch a wrapped call using the given proof over the existence of
+//!   a remote proxy.
+//!
+//! - [`Pallet::register_remote_proxy_proof`]: Register the given `proof` in the current dispatch.
+//!
+//! - [`Pallet::remote_proxy_with_registered_proof`]: Use a previously registered `proof` to
+//!   dispatch the wrapped call.
+//!
+//! ## Security considerations
+//!
+//! As explained above the security of the proxy depends on the remote location. So, if the remote
+//! location is not trusted, it should not be configured as remote location. When configuring
+//! [`MaxStorageRootsToKeep`](Config::MaxStorageRootsToKeep) it should be considered that the
+//! lifetime of a proxy will be [`MaxStorageRootsToKeep`](Config::MaxStorageRootsToKeep) in the
+//! past. This means when deleting a proxy at the remote location at X, it will take
+//! [`MaxStorageRootsToKeep`](Config::MaxStorageRootsToKeep) time until the proxy can not be used
+//! anymore. The reason for this is that the caller will be able to provide an old `proof` at which
+//! the proxy was still available.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
@@ -253,6 +286,23 @@ pub mod pallet {
 		///
 		/// It is supported to register multiple proofs, but the proofs need to be consumed in the
 		/// reverse order as they were registered. Basically this means last in, last out.
+		///
+		/// The [`dispatch_context`] spans the entire lifetime of a transaction and every call in
+		/// the transaction gets access to the same context.
+		///
+		/// # Example
+		///
+		/// ```
+		/// batch([
+		///     register_remote_proxy_proof,
+		///     as_multisig(remote_proxy_with_registered_proof(transfer))
+		/// ])
+		/// ```
+		///
+		/// As `proofs` can not be verified indefinitely (the time the storage roots are stored is
+		/// limited) this function provides the possibility to provide a "fresh proof" at time of
+		/// dispatch. As in the example above, this could be useful for multisig operation that
+		/// depend on multiple members to approve a certain action, which can take multiple days.
 		#[pallet::call_index(1)]
 		#[pallet::weight({(WeightInfoOf::<T, I>::register_remote_proxy_proof(), DispatchClass::Normal)})]
 		pub fn register_remote_proxy_proof(
