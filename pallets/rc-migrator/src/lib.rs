@@ -211,9 +211,9 @@ pub mod pallet {
 		/// Contains all calls that are allowed during the migration.
 		///
 		/// The calls in here will be available again after the migration.
-		type RcCallEnabledDuringMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		type RcCallsEnabledDuringMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
 		/// Contains all calls that are allowed after the migration finished.
-		type RcCallEnabledAfterMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		type RcCallsEnabledAfterMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::error]

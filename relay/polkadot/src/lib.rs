@@ -1662,8 +1662,8 @@ pub fn call_disable_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
 		ParaInherent(..) => (ON, ON),    // only inherents
 		// ParaScheduler has no calls
-		Paras(..) => (OFF, ON), // TODO only root so could think about keeping it on
-		Initializer(..) => (OFF, ON), // only root so could think about keeping it on
+		Paras(..) => (ON, ON),
+		Initializer(..) => (ON, ON),
 		// Dmp // has no calls and deprecated
 		Hrmp(..) => (OFF, OFF),
 		// ParaSessionInfo has no calls
@@ -1672,7 +1672,7 @@ pub fn call_disable_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		OnDemand(..) => (OFF, ON),
 		// CoretimeAssignmentProvider has no calls
 		Registrar(..) => (OFF, ON),
-		Slots(..) => (OFF, ON), // TODO not sure
+		Slots(..) => (OFF, OFF),
 		Auctions(..) => (OFF, OFF),
 		Crowdloan(..) => (OFF, ON), // TODO maybe only payouts
 		Coretime(..) => (OFF, ON),
