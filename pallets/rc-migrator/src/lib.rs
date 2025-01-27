@@ -47,7 +47,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Defensive, LockableCurrency, ReservableCurrency,
+		Contains, Defensive, LockableCurrency, ReservableCurrency,
 	},
 	weights::WeightMeter,
 };
@@ -98,7 +98,19 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[derive(
+	Encode,
+	Decode,
+	Clone,
+	PartialEq,
+	Eq,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialOrd,
+	Ord,
+)]
 pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
@@ -204,6 +216,12 @@ pub mod pallet {
 		type AhWeightInfo: AhWeightInfo;
 		/// The existential deposit on the Asset Hub.
 		type AhExistentialDeposit: Get<<Self as pallet_balances::Config>::Balance>;
+		/// Contains all calls that are allowed during the migration.
+		///
+		/// The calls in here will be available again after the migration.
+		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		/// Contains all calls that are allowed after the migration finished.
+		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::error]
@@ -257,16 +275,6 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
-
-	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-		/// TODO
-		#[pallet::call_index(0)]
-		#[pallet::weight({1})]
-		pub fn do_something(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			Ok(().into())
-		}
-	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
@@ -631,5 +639,27 @@ pub mod pallet {
 
 			Ok(())
 		}
+	}
+}
+
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = RcMigrationStage::<T>::get();
+		let is_finished = stage >= MigrationStage::MigrationDone;
+		let is_ongoing = stage > MigrationStage::Pending && !is_finished;
+
+		// We have to return whether the call is allowed:
+		const ALLOWED: bool = true;
+		const FORBIDDEN: bool = false;
+
+		if is_finished && !T::RcIntraMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		if is_ongoing && !T::RcPostMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		ALLOWED
 	}
 }

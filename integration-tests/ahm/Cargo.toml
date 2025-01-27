@@ -20,6 +20,8 @@ grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
 pallet-rc-migrator = { workspace = true, default-features = true }
 pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-indices = { workspace = true, default-features = true }
+pallet-message-queue = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }

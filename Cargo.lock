@@ -10043,6 +10043,8 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-ah-migrator",
+ "pallet-indices",
+ "pallet-message-queue",
  "pallet-rc-migrator",
  "parachains-common",
  "polkadot-parachain-primitives",
