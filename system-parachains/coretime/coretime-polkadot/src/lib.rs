@@ -184,16 +184,13 @@ parameter_types! {
 /// - Credit purchase calls until the credit system is implemented. Otherwise, users may have chance
 ///   of locking their funds forever on purchased credits they cannot use.
 /// - The interlace call until the relay can support this fully
-/// - Auto-renew functionality until resolution of polkadot-sdk issue [#6474](https://github.com/paritytech/polkadot-sdk/issues/6474)
 pub struct IsFilteredBrokerCall;
 impl Contains<RuntimeCall> for IsFilteredBrokerCall {
 	fn contains(c: &RuntimeCall) -> bool {
 		matches!(
 			c,
 			RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::interlace { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::enable_auto_renew { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::disable_auto_renew { .. })
+				RuntimeCall::Broker(pallet_broker::Call::interlace { .. })
 		)
 	}
 }
@@ -814,7 +811,8 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::DotRelayLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))

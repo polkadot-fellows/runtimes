@@ -1007,6 +1007,7 @@ pub enum ProxyType {
 	CancelProxy = 6,
 	Auction = 7,
 	NominationPools = 8,
+	ParaRegistration = 9,
 }
 
 #[cfg(test)]
@@ -1120,6 +1121,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Crowdloan(..) |
 					RuntimeCall::Registrar(..) |
 					RuntimeCall::Slots(..)
+			),
+			ProxyType::ParaRegistration => matches!(
+				c,
+				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. }) |
+					RuntimeCall::Registrar(paras_registrar::Call::register { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. }) |
+					RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
 			),
 		}
 	}
@@ -1469,30 +1479,6 @@ impl pallet_delegated_staking::Config for Runtime {
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
-}
-
-pub struct InitiateNominationPools;
-impl frame_support::traits::OnRuntimeUpgrade for InitiateNominationPools {
-	fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		// we use one as an indicator if this has already been set.
-		if pallet_nomination_pools::MaxPools::<Runtime>::get().is_none() {
-			// 5 DOT to join a pool.
-			pallet_nomination_pools::MinJoinBond::<Runtime>::put(5 * UNITS);
-			// 100 DOT to create a pool.
-			pallet_nomination_pools::MinCreateBond::<Runtime>::put(100 * UNITS);
-
-			// Initialize with limits for now.
-			pallet_nomination_pools::MaxPools::<Runtime>::put(0);
-			pallet_nomination_pools::MaxPoolMembersPerPool::<Runtime>::put(0);
-			pallet_nomination_pools::MaxPoolMembers::<Runtime>::put(0);
-
-			log::info!(target: LOG_TARGET, "pools config initiated 🎉");
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(1, 5)
-		} else {
-			log::info!(target: LOG_TARGET, "pools config already initiated 😏");
-			<Runtime as frame_system::Config>::DbWeight::get().reads(1)
-		}
-	}
 }
 
 parameter_types! {
@@ -2003,158 +1989,61 @@ pub mod migrations {
 			GetLegacyLeaseImpl,
 		>,
 		CancelAuctions,
-		restore_corrupted_ledgers::Migrate<Runtime>,
 		// Migrate NominationPools to `DelegateStake` adapter.
 		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
 			Runtime,
 			MaxPoolsToMigrate,
 		>,
+		restore_corrupt_ledger_2::Migrate,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
 }
 
-/// Migration to fix current corrupted staking ledgers in Polkadot.
-///
-/// It consists of:
-/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
-///   * Root origin;
-///   * Default `None` paramters.
-/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
-///   stash's free balance.
-///
-/// The stashes associated with corrupted ledgers that will be "migrated" are set in
-/// [`CorruptedStashes`].
-///
-/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
-/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
-pub(crate) mod restore_corrupted_ledgers {
+pub mod restore_corrupt_ledger_2 {
 	use super::*;
-
-	use frame_support::traits::Currency;
 	use frame_system::RawOrigin;
-
 	use pallet_staking::WeightInfo;
-	use sp_staking::StakingAccount;
 
 	parameter_types! {
-		pub CorruptedStashes: Vec<AccountId> = vec![
-			// stash account 138fZsNu67JFtiiWc1eWK2Ev5jCYT6ZirZM288tf99CUHk8K
-			hex_literal::hex!["5e510306a89f40e5520ae46adcc7a4a1bbacf27c86c163b0691bbbd7b5ef9c10"].into(),
-			// stash account 14kwUJW6rtjTVW3RusMecvTfDqjEMAt8W159jAGBJqPrwwvC
-			hex_literal::hex!["a6379e16c5dab15e384c71024e3c6667356a5487127c291e61eed3d8d6b335dd"].into(),
-			// stash account 13SvkXXNbFJ74pHDrkEnUw6AE8TVkLRRkUm2CMXsQtd4ibwq
-			hex_literal::hex!["6c3e8acb9225c2a6d22539e2c268c8721b016be1558b4aad4bed220dfbf01fea"].into(),
-			// stash account 12YcbjN5cvqM63oK7WMhNtpTQhtCrrUr4ntzqqrJ4EijvDE8
-			hex_literal::hex!["4458ad5f0c082da64610607beb9d3164a77f1ef7964b7871c1de182ea7213783"].into(),
-		];
+		// see https://polkadot.subscan.io/tools/format_transform, this is the public key of
+		// 12gmcL9eej9jRBFT26vZLF4b7aAe4P9aEYHGHFzJdmf5arPi
+		pub CorruptStash: AccountId = hex_literal::hex!(
+			"4a90f8d375290b428e580408f18359f66ef367f0f8d1d56c5d3e002ad29c8e00"
+		).into();
 	}
-
-	pub struct Migrate<T>(sp_std::marker::PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
-		fn on_runtime_upgrade() -> Weight {
-			let mut total_weight: Weight = Default::default();
-			let mut ok_migration = 0;
-			let mut err_migration = 0;
-
-			for stash in CorruptedStashes::get().into_iter() {
-				let stash_account: T::AccountId = if let Ok(stash_account) =
-					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
-				{
-					stash_account
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
-						stash.clone(),
-					);
-					err_migration += 1;
-					continue
-				};
-
-				// restore currupted ledger.
-				match pallet_staking::Pallet::<T>::restore_ledger(
+	pub struct Migrate;
+	impl OnRuntimeUpgrade for Migrate {
+		fn on_runtime_upgrade() -> frame_election_provider_support::Weight {
+			// ensure this only runs once, in the 1.4.0 release
+			if System::last_runtime_upgrade_spec_version() < 1_400_000 {
+				let _ = pallet_staking::Pallet::<Runtime>::force_unstake(
 					RawOrigin::Root.into(),
-					stash_account.clone(),
-					None,
-					None,
-					None,
-				) {
-					Ok(_) => (), // proceed.
-					Err(err) => {
-						// note: after first migration run, restoring ledger will fail with
-						// `staking::pallet::Error::<T>CannotRestoreLedger`.
-						log::error!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
-							err
-						);
-						continue
-					},
-				};
-
-				// check if restored ledger total is higher than the stash's free balance. If
-				// that's the case, force unstake the ledger.
-				let weight = if let Ok(ledger) = pallet_staking::Pallet::<T>::ledger(
-					StakingAccount::Stash(stash_account.clone()),
-				) {
-					// force unstake the ledger.
-					if ledger.total > T::Currency::free_balance(&stash_account) {
-						let slashing_spans = 10; // default slashing spans for migration.
-						let _ = pallet_staking::Pallet::<T>::force_unstake(
-							RawOrigin::Root.into(),
-							stash_account.clone(),
-							slashing_spans,
-						)
-						.inspect_err(|err| {
-							log::error!(
-								target: LOG_TARGET,
-								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
-								err
-							);
-							err_migration += 1;
-						});
-
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
-							stash_account,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
-					} else {
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored.",
-							stash,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-					}
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
-					);
-					err_migration += 1;
-					<T::WeightInfo>::restore_ledger()
-				};
-
-				total_weight.saturating_accrue(weight);
+					CorruptStash::get(),
+					0,
+				);
+				log::info!(
+					target: LOG_TARGET,
+					"migrations: force unstaked {:?}",
+					CorruptStash::get()
+				);
+				<Runtime as pallet_staking::Config>::WeightInfo::force_unstake(0)
+			} else {
+				Default::default()
 			}
+		}
 
-			log::info!(
-				target: LOG_TARGET,
-				"migrations::corrupted_ledgers: done. success: {}, error: {}",
-				ok_migration,
-				err_migration
-			);
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_some());
+			Ok(Default::default())
+		}
 
-			total_weight
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_none());
+			Ok(())
 		}
 	}
 }
@@ -2197,6 +2086,7 @@ mod benches {
 		// Substrate
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
+		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
@@ -2819,7 +2709,8 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::TokenLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))

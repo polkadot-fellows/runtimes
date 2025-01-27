@@ -24,18 +24,19 @@ use asset_hub_kusama_runtime::{
 		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, ExistentialDeposit,
-	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
+	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
+	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, SessionKeys, ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
+	SLOT_DURATION,
 };
 use asset_test_utils::{
-	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys, ExtBuilder,
+	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys,
+	ExtBuilder, SlotDurations,
 };
 use codec::{Decode, Encode};
 use frame_support::{assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
-use parachains_runtimes_test_utils::SlotDurations;
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::traits::MaybeEquivalence;
@@ -585,6 +586,58 @@ fn reserve_transfer_native_asset_to_non_teleport_para_works() {
 			}
 		}),
 		WeightLimit::Unlimited,
+	);
+}
+
+#[test]
+fn report_bridge_status_from_xcm_bridge_router_for_polkadot_works() {
+	asset_test_utils::test_cases_over_bridge::report_bridge_status_from_xcm_bridge_router_works::<
+		Runtime,
+		AllPalletsWithoutSystem,
+		XcmConfig,
+		LocationToAccountId,
+		ToPolkadotXcmRouterInstance,
+	>(
+		collator_session_keys(),
+		bridging_to_asset_hub_polkadot,
+		|| bp_asset_hub_kusama::build_congestion_message(Default::default(), true).into(),
+		|| bp_asset_hub_kusama::build_congestion_message(Default::default(), false).into(),
+	)
+}
+
+#[test]
+fn test_report_bridge_status_call_compatibility() {
+	// if this test fails, make sure `bp_asset_hub_polkadot` has valid encoding
+	assert_eq!(
+		RuntimeCall::ToPolkadotXcmRouter(
+			pallet_xcm_bridge_hub_router::Call::report_bridge_status {
+				bridge_id: Default::default(),
+				is_congested: true,
+			}
+		)
+		.encode(),
+		bp_asset_hub_kusama::Call::ToPolkadotXcmRouter(
+			bp_asset_hub_kusama::XcmBridgeHubRouterCall::report_bridge_status {
+				bridge_id: Default::default(),
+				is_congested: true,
+			}
+		)
+		.encode()
+	)
+}
+
+#[test]
+fn check_sane_weight_report_bridge_status() {
+	use pallet_xcm_bridge_hub_router::WeightInfo;
+	let actual = <Runtime as pallet_xcm_bridge_hub_router::Config<
+		ToPolkadotXcmRouterInstance,
+	>>::WeightInfo::report_bridge_status();
+	let max_weight = bp_asset_hub_kusama::XcmBridgeHubRouterTransactCallMaxWeight::get();
+	assert!(
+		actual.all_lte(max_weight),
+		"max_weight: {:?} should be adjusted to actual {:?}",
+		max_weight,
+		actual
 	);
 }
 
@@ -1350,4 +1403,20 @@ fn location_conversion_works() {
 
 		assert_eq!(got, expected, "{}", tc.description);
 	}
+}
+
+#[test]
+fn xcm_payment_api_works() {
+	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		Block,
+	>();
+	asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		Block,
+	>();
 }
