@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Asset Hub Migrator tests.
+//! Asset Hub Migration tests.
 
 mod accounts;
 
@@ -50,6 +50,7 @@ async fn remote_ext_test_setup() -> Option<RemoteExternalities<Block>> {
 	Some(ext)
 }
 
+/// Check that the call filtering mechanism works.
 #[test]
 fn call_filter_works() {
 	let mut t: sp_io::TestExternalities =
@@ -104,9 +105,8 @@ fn call_filter_works() {
 
 	// Try to actually dispatch the calls
 	t.execute_with(|| {
-		let alice = AccountId32::from([0; 32]);
 		<pallet_balances::Pallet<T> as frame_support::traits::Currency<_>>::deposit_creating(
-			&alice,
+			&AccountId32::from([0; 32]),
 			u64::MAX.into(),
 		);
 
@@ -139,11 +139,12 @@ fn call_filter_works() {
 	});
 }
 
+/// Whether a call is forbidden by the call filter.
 fn is_forbidden(call: &polkadot_runtime::RuntimeCall) -> bool {
 	let Err(err) = call.clone().dispatch(RuntimeOrigin::signed(AccountId32::from([0; 32]))) else {
 		return false;
 	};
 
-	let runtime_err: sp_runtime::DispatchError = frame_system::Error::<T>::CallFiltered.into();
-	err.error == runtime_err
+	let filtered_err: sp_runtime::DispatchError = frame_system::Error::<T>::CallFiltered.into();
+	err.error == filtered_err
 }

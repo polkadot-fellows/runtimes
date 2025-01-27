@@ -211,9 +211,9 @@ pub mod pallet {
 		/// Contains all calls that are allowed during the migration.
 		///
 		/// The calls in here will be available again after the migration.
-		type RcCallsEnabledDuringMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 		/// Contains all calls that are allowed after the migration finished.
-		type RcCallsEnabledAfterMigration: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::error]
@@ -612,11 +612,11 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
 
-		if is_finished && !T::RcCallEnabledAfterMigration::contains(call) {
+		if is_finished && !T::RcIntraMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
-		if is_ongoing && !T::RcCallEnabledDuringMigration::contains(call) {
+		if is_ongoing && !T::RcPostMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
