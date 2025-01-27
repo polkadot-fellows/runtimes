@@ -98,19 +98,7 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-#[derive(
-	Encode,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Default,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialOrd,
-	Ord,
-)]
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
@@ -166,6 +154,22 @@ pub enum MigrationStage<AccountId> {
 	},
 	NomPoolsMigrationDone,
 	MigrationDone,
+}
+
+impl<T> MigrationStage<T> {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()`.
+	pub fn is_finished(&self) -> bool {
+		matches!(self, MigrationStage::MigrationDone)
+	}
+
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()`.
+	pub fn is_ongoing(&self) -> bool {
+		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
 }
 
 type AccountInfoFor<T> =
@@ -538,9 +542,7 @@ pub mod pallet {
 					Self::transition(MigrationStage::NomPoolsMigrationInit);
 				},
 				MigrationStage::NomPoolsMigrationInit => {
-					Self::transition(MigrationStage::NomPoolsMigrationOngoing {
-						next_key: None,
-					});
+					Self::transition(MigrationStage::NomPoolsMigrationOngoing { next_key: None });
 				},
 				MigrationStage::NomPoolsMigrationOngoing { next_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
@@ -645,18 +647,16 @@ pub mod pallet {
 impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
 	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
 		let stage = RcMigrationStage::<T>::get();
-		let is_finished = stage >= MigrationStage::MigrationDone;
-		let is_ongoing = stage > MigrationStage::Pending && !is_finished;
 
 		// We have to return whether the call is allowed:
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
 
-		if is_finished && !T::RcIntraMigrationCalls::contains(call) {
+		if stage.is_finished() && !T::RcIntraMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
-		if is_ongoing && !T::RcPostMigrationCalls::contains(call) {
+		if stage.is_ongoing() && !T::RcPostMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 

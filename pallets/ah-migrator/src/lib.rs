@@ -50,7 +50,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*};
+use pallet_rc_migrator::{
+	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+};
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -218,8 +220,16 @@ pub mod pallet {
 			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
-		/// We received and integrated the `NomPoolsStorageValues`. Infallible.
-		NomPoolsStorageValuesProcessed,
+		NomPoolsMessagesBatchReceived {
+			/// How many nom pools messages are in the batch.
+			count: u32,
+		},
+		NomPoolsMessagesBatchProcessed {
+			/// How many nom pools messages were successfully integrated.
+			count_good: u32,
+			/// How many nom pools messages failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]

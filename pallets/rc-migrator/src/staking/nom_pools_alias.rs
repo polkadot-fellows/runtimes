@@ -2,12 +2,20 @@
 //! TODO delete once we integrated the changes into the SDK.
 
 use crate::*;
-use pallet_nomination_pools::BalanceOf;
+use pallet_nomination_pools::{BalanceOf, PoolId, TotalUnbondingPools};
 use sp_staking::EraIndex;
-use pallet_nomination_pools::TotalUnbondingPools;
 
 // From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1301
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, CloneNoBound, PartialEqNoBound, EqNoBound, RuntimeDebugNoBound)]
+#[derive(
+	Encode,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+	RuntimeDebugNoBound,
+)]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
 pub struct RewardPool<T: pallet_nomination_pools::Config> {
@@ -31,7 +39,16 @@ pub struct RewardPool<T: pallet_nomination_pools::Config> {
 }
 
 // From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1503
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, CloneNoBound, PartialEqNoBound, EqNoBound)]
+#[derive(
+	Encode,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebugNoBound,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+)]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
 pub struct SubPools<T: pallet_nomination_pools::Config> {
@@ -44,7 +61,16 @@ pub struct SubPools<T: pallet_nomination_pools::Config> {
 }
 
 // From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1461
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, CloneNoBound, PartialEqNoBound, EqNoBound)]
+#[derive(
+	Encode,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebugNoBound,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+)]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
 pub struct UnbondPool<T: pallet_nomination_pools::Config> {
@@ -53,3 +79,13 @@ pub struct UnbondPool<T: pallet_nomination_pools::Config> {
 	/// The funds in the pool.
 	pub balance: BalanceOf<T>,
 }
+
+// From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1718-L1719
+#[frame_support::storage_alias(pallet_name)]
+pub type SubPoolsStorage<T: pallet_nomination_pools::Config> =
+	CountedStorageMap<pallet_nomination_pools::Pallet<T>, Twox64Concat, PoolId, SubPools<T>>;
+
+// From https://github.com/paritytech/polkadot-sdk/blob/bf20a9ee18f7215210bbbabf79e955c8c35b3360/substrate/frame/nomination-pools/src/lib.rs#L1713-L1714
+#[frame_support::storage_alias(pallet_name)]
+pub type RewardPools<T: pallet_nomination_pools::Config> =
+	CountedStorageMap<pallet_nomination_pools::Pallet<T>, Twox64Concat, PoolId, RewardPool<T>>;

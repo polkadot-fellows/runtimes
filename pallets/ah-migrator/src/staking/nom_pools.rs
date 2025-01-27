@@ -21,32 +21,69 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
 		messages: Vec<RcNomPoolsMessage<T>>,
 	) -> Result<(), Error<T>> {
+		let (mut good, mut bad) = (0, 0);
+		log::info!("Received {} NomPoolsMessages", messages.len());
+		Self::deposit_event(Event::NomPoolsMessagesBatchReceived { count: messages.len() as u32 });
+
 		for message in messages {
-			Self::do_receive_nom_pools_message(message)?;
+			if Self::do_receive_nom_pools_message(message).is_ok() {
+				good += 1;
+			} else {
+				bad += 1;
+			}
 		}
+
+		Self::deposit_event(Event::NomPoolsMessagesBatchProcessed {
+			count_good: good as u32,
+			count_bad: bad as u32,
+		});
 		Ok(())
 	}
 
-	pub fn do_receive_nom_pools_message(
-		message: RcNomPoolsMessage<T>,
-	) -> Result<(), Error<T>> {
+	pub fn do_receive_nom_pools_message(message: RcNomPoolsMessage<T>) -> Result<(), ()> {
 		match message {
 			RcNomPoolsMessage::StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
-				//Self::deposit_event(Event::NomPoolsStoragesProcessed);
-				log::info!("Received NomPoolsStorageValues");
+				log::debug!("Received NomPoolsStorageValues");
 				Ok(())
 			},
 			RcNomPoolsMessage::PoolMembers { member } => {
 				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(&member.0));
+				log::debug!("Received NomPoolsPoolMember: {:?}", &member.0);
 				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
-				log::info!("Received NomPoolsPoolMembers");
+				Ok(())
+			},
+			RcNomPoolsMessage::BondedPools { pool } => {
+				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(&pool.0));
+				log::debug!("Received NomPoolsBondedPool: {}", &pool.0);
+				pallet_nomination_pools::BondedPools::<T>::insert(pool.0, pool.1);
+				Ok(())
+			},
+			RcNomPoolsMessage::RewardPools { rewards } => {
+				log::debug!("Received NomPoolsRewardPool: {:?}", &rewards.0);
+				// Not sure if it is the best to use the alias here, but it is the easiest...
+				pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::insert(
+					rewards.0, rewards.1,
+				);
+				Ok(())
+			},
+			RcNomPoolsMessage::SubPoolsStorage { sub_pools } => {
+				log::debug!("Received NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
+				pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::insert(
+					sub_pools.0,
+					sub_pools.1,
+				);
+				Ok(())
+			},
+			RcNomPoolsMessage::Metadata { meta } => {
+				log::debug!("Received NomPoolsMetadata: {:?}", &meta.0);
+				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 				Ok(())
 			},
 			_ => {
 				defensive!("Unknown message type");
-				Ok(())
-			}
+				Err(())
+			},
 		}
 	}
 }

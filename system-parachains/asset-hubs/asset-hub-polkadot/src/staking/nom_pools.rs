@@ -145,7 +145,7 @@ impl sp_staking::StakingInterface for StakingMock {
 	}
 
 	fn bonding_duration() -> EraIndex {
-		unimplemented!()
+		28 // TODO FAIL-CI this is wrong, but we need it to decode the incoming nom-pool messages
 	}
 
 	fn status(

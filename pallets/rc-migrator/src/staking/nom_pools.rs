@@ -16,10 +16,11 @@
 
 //! Nomination pools data migrator module.
 
+use super::nom_pools_alias as alias;
 use crate::{types::*, *};
-use pallet_nomination_pools::{PoolId, PoolMember, BondedPoolInner, ClaimPermission};
+use alias::{RewardPool, SubPools};
+use pallet_nomination_pools::{BondedPoolInner, ClaimPermission, PoolId, PoolMember};
 use sp_runtime::Perbill;
-use super::nom_pools_alias::{RewardPool, SubPools};
 
 /// The stages of the nomination pools pallet migration.
 ///
@@ -32,8 +33,8 @@ pub enum NomPoolsStage<AccountId> {
 	PoolMembers(Option<AccountId>),
 	/// Migrate the `BondedPools` storage map.
 	BondedPools(Option<PoolId>),
-	/// Migrate the `RewardsPools` storage map.
-	RewardsPools(Option<PoolId>),
+	/// Migrate the `RewardPools` storage map.
+	RewardPools(Option<PoolId>),
 	/// Migrate the `SubPoolsStorage` storage map.
 	SubPoolsStorage(Option<PoolId>),
 	/// Migrate the `Metadata` storage map.
@@ -67,37 +68,46 @@ pub struct NomPoolsStorageValues<Balance> {
 }
 
 /// A message from RC to AH to migrate some nomination pools data.
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebugNoBound, CloneNoBound, PartialEqNoBound, EqNoBound)]
+#[derive(
+	Encode,
+	Decode,
+	MaxEncodedLen,
+	TypeInfo,
+	RuntimeDebugNoBound,
+	CloneNoBound,
+	PartialEqNoBound,
+	EqNoBound,
+)]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
 pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// All `StorageValues` that can be migrated at once.
 	StorageValues { values: NomPoolsStorageValuesOf<T> },
 	/// Entry of the `PoolMembers` map.
-	PoolMembers { member: (T::AccountId, PoolMember<T>), },
+	PoolMembers { member: (T::AccountId, PoolMember<T>) },
 	/// Entry of the `BondedPools` map.
-	BondedPools { pool: (PoolId, BondedPoolInner<T>), },
-	/// Entry of the `RewardsPools` map.
-	RewardPools { rewards: (PoolId, RewardPool<T>), },
+	BondedPools { pool: (PoolId, BondedPoolInner<T>) },
+	/// Entry of the `RewardPools` map.
+	RewardPools { rewards: (PoolId, RewardPool<T>) },
 	/// Entry of the `SubPoolsStorage` map.
-	SubPoolsStorage { sub_pools: (PoolId, SubPools<T>), },
+	SubPoolsStorage { sub_pools: (PoolId, SubPools<T>) },
 	/// Entry of the `Metadata` map.
-	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>), },
+	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>) },
 	/// Entry of the `ReversePoolIdLookup` map.
 	// TODO check if inserting None into an option map is the same as deleting the key
-	ReversePoolIdLookup { lookups: (PoolId, T::AccountId), },
+	ReversePoolIdLookup { lookups: (PoolId, T::AccountId) },
 	/// Entry of the `ClaimPermissions` map.
-	ClaimPermissions { perms: (T::AccountId, ClaimPermission), },
+	ClaimPermissions { perms: (T::AccountId, ClaimPermission) },
 }
 
 /// Migrate the nomination pools pallet.
 pub struct NomPoolsMigrator<T> {
-    _phantom: PhantomData<T>,
+	_phantom: PhantomData<T>,
 }
 
 impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
-    type Key = NomPoolsStage<T::AccountId>;
-    type Error = Error<T>;
+	type Key = NomPoolsStage<T::AccountId>;
+	type Error = Error<T>;
 
 	fn migrate_many(
 		mut current_key: Option<Self::Key>,
@@ -118,47 +128,123 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 				log::warn!("Safety trigger, let's not get this message too big");
 				break;
 			}
-			
-			inner_key = match inner_key {				
+
+			inner_key = match inner_key {
 				NomPoolsStage::StorageValues => {
 					Self::do_migrate_values()?;
 					NomPoolsStage::<T::AccountId>::PoolMembers(None)
-				}
+				},
 				NomPoolsStage::PoolMembers(pool_iter) => {
 					let mut new_pool_iter = match pool_iter.clone() {
 						Some(pool_iter) => pallet_nomination_pools::PoolMembers::<T>::iter_from(
-							pallet_nomination_pools::PoolMembers::<T>::hashed_key_for(pool_iter)
+							pallet_nomination_pools::PoolMembers::<T>::hashed_key_for(pool_iter),
 						),
 						None => pallet_nomination_pools::PoolMembers::<T>::iter(),
 					};
-					
+
 					match new_pool_iter.next() {
 						Some((key, member)) => {
 							pallet_nomination_pools::PoolMembers::<T>::remove(&key);
-							messages.push(RcNomPoolsMessage::PoolMembers { member: (key.clone(), member) });
+							messages.push(RcNomPoolsMessage::PoolMembers {
+								member: (key.clone(), member),
+							});
 							NomPoolsStage::PoolMembers(Some(key))
 						},
-						None => {
-							NomPoolsStage::BondedPools(None)
-						}
+						None => NomPoolsStage::BondedPools(None),
+					}
+				},
+				NomPoolsStage::BondedPools(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) => pallet_nomination_pools::BondedPools::<T>::iter_from(
+							pallet_nomination_pools::BondedPools::<T>::hashed_key_for(pool_iter),
+						),
+						None => pallet_nomination_pools::BondedPools::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, pool)) => {
+							pallet_nomination_pools::BondedPools::<T>::remove(&key);
+							messages
+								.push(RcNomPoolsMessage::BondedPools { pool: (key.clone(), pool) });
+							NomPoolsStage::BondedPools(Some(key))
+						},
+						None => NomPoolsStage::RewardPools(None),
+					}
+				},
+				NomPoolsStage::RewardPools(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) => alias::RewardPools::<T>::iter_from(
+							alias::RewardPools::<T>::hashed_key_for(pool_iter),
+						),
+						None => alias::RewardPools::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, rewards)) => {
+							alias::RewardPools::<T>::remove(&key);
+							messages.push(RcNomPoolsMessage::RewardPools {
+								rewards: (key.clone(), rewards),
+							});
+							NomPoolsStage::RewardPools(Some(key))
+						},
+						None => NomPoolsStage::SubPoolsStorage(None),
+					}
+				},
+				NomPoolsStage::SubPoolsStorage(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) => alias::SubPoolsStorage::<T>::iter_from(
+							alias::SubPoolsStorage::<T>::hashed_key_for(pool_iter),
+						),
+						None => alias::SubPoolsStorage::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, sub_pools)) => {
+							alias::SubPoolsStorage::<T>::remove(&key);
+							messages.push(RcNomPoolsMessage::SubPoolsStorage {
+								sub_pools: (key.clone(), sub_pools),
+							});
+							NomPoolsStage::SubPoolsStorage(Some(key))
+						},
+						None => NomPoolsStage::Metadata(None),
+					}
+				},
+				NomPoolsStage::Metadata(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) => pallet_nomination_pools::Metadata::<T>::iter_from(
+							pallet_nomination_pools::Metadata::<T>::hashed_key_for(pool_iter),
+						),
+						None => pallet_nomination_pools::Metadata::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, meta)) => {
+							pallet_nomination_pools::Metadata::<T>::remove(&key);
+							messages
+								.push(RcNomPoolsMessage::Metadata { meta: (key.clone(), meta) });
+							NomPoolsStage::Metadata(Some(key))
+						},
+						None => NomPoolsStage::ReversePoolIdLookup(None),
 					}
 				},
 				NomPoolsStage::Finished => {
-					defensive!("Should not be passed as argument");
 					break;
 				},
-				_ => todo!("Done with PoolMembers")
+				_ => NomPoolsStage::Finished,
 			};
-		};
+		}
 
 		Pallet::<T>::send_chunked_xcm(messages, |messages| {
 			types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages }
 		})?;
 
-		Ok(Some(inner_key))
+		if inner_key == NomPoolsStage::Finished {
+			Ok(None)
+		} else {
+			Ok(Some(inner_key))
+		}
 	}
 }
-
 
 pub type NomPoolsStorageValuesOf<T> = NomPoolsStorageValues<pallet_nomination_pools::BalanceOf<T>>;
 
@@ -185,7 +271,7 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 	/// Called by the Asset Hub after receiving the values.
 	pub fn put_values(values: NomPoolsStorageValuesOf<T>) {
 		use pallet_nomination_pools::*;
-		
+
 		TotalValueLocked::<T>::put(values.total_value_locked);
 		MinJoinBond::<T>::put(values.min_join_bond);
 		MinCreateBond::<T>::put(values.min_create_bond);
@@ -202,7 +288,11 @@ impl<T: Config> NomPoolsMigrator<T> {
 		let values = Self::take_values();
 
 		// TODO factor out
-		let call = types::AssetHubPalletConfig::<T>::AhmController(types::AhMigratorCall::<T>::ReceiveNomPoolsMessages { messages: vec![RcNomPoolsMessage::StorageValues { values }] });
+		let call = types::AssetHubPalletConfig::<T>::AhmController(
+			types::AhMigratorCall::<T>::ReceiveNomPoolsMessages {
+				messages: vec![RcNomPoolsMessage::StorageValues { values }],
+			},
+		);
 
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
@@ -216,10 +306,9 @@ impl<T: Config> NomPoolsMigrator<T> {
 			},
 		]);
 
-		if let Err(err) = send_xcm::<T::SendXcm>(
-			Location::new(0, [Junction::Parachain(1000)]),
-			message.clone(),
-		) {
+		if let Err(err) =
+			send_xcm::<T::SendXcm>(Location::new(0, [Junction::Parachain(1000)]), message.clone())
+		{
 			log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 			return Err(Error::XcmError);
 		};
