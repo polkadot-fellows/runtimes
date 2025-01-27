@@ -80,9 +80,15 @@ impl<T: Config> Pallet<T> {
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 				Ok(())
 			},
-			_ => {
-				defensive!("Unknown message type");
-				Err(())
+			RcNomPoolsMessage::ReversePoolIdLookup { lookups } => {
+				log::debug!("Received NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
+				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(lookups.0, lookups.1);
+				Ok(())
+			},
+			RcNomPoolsMessage::ClaimPermissions { perms } => {
+				log::debug!("Received NomPoolsClaimPermissions: {:?}", &perms.0);
+				pallet_nomination_pools::ClaimPermissions::<T>::insert(perms.0, perms.1);
+				Ok(())
 			},
 		}
 	}

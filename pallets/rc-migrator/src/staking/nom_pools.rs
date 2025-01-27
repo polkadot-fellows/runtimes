@@ -95,7 +95,7 @@ pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	Metadata { meta: (PoolId, BoundedVec<u8, T::MaxMetadataLen>) },
 	/// Entry of the `ReversePoolIdLookup` map.
 	// TODO check if inserting None into an option map is the same as deleting the key
-	ReversePoolIdLookup { lookups: (PoolId, T::AccountId) },
+	ReversePoolIdLookup { lookups: (T::AccountId, PoolId) },
 	/// Entry of the `ClaimPermissions` map.
 	ClaimPermissions { perms: (T::AccountId, ClaimPermission) },
 }
@@ -227,10 +227,53 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 						None => NomPoolsStage::ReversePoolIdLookup(None),
 					}
 				},
+				NomPoolsStage::ReversePoolIdLookup(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) =>
+							pallet_nomination_pools::ReversePoolIdLookup::<T>::iter_from(
+								pallet_nomination_pools::ReversePoolIdLookup::<T>::hashed_key_for(
+									pool_iter,
+								),
+							),
+						None => pallet_nomination_pools::ReversePoolIdLookup::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, lookup)) => {
+							pallet_nomination_pools::ReversePoolIdLookup::<T>::remove(&key);
+							messages.push(RcNomPoolsMessage::ReversePoolIdLookup {
+								lookups: (key.clone(), lookup),
+							});
+							NomPoolsStage::ReversePoolIdLookup(Some(key))
+						},
+						None => NomPoolsStage::ClaimPermissions(None),
+					}
+				},
+				NomPoolsStage::ClaimPermissions(pool_iter) => {
+					let mut new_pool_iter = match pool_iter.clone() {
+						Some(pool_iter) =>
+							pallet_nomination_pools::ClaimPermissions::<T>::iter_from(
+								pallet_nomination_pools::ClaimPermissions::<T>::hashed_key_for(
+									pool_iter,
+								),
+							),
+						None => pallet_nomination_pools::ClaimPermissions::<T>::iter(),
+					};
+
+					match new_pool_iter.next() {
+						Some((key, perm)) => {
+							pallet_nomination_pools::ClaimPermissions::<T>::remove(&key);
+							messages.push(RcNomPoolsMessage::ClaimPermissions {
+								perms: (key.clone(), perm),
+							});
+							NomPoolsStage::ClaimPermissions(Some(key))
+						},
+						None => NomPoolsStage::Finished,
+					}
+				},
 				NomPoolsStage::Finished => {
 					break;
 				},
-				_ => NomPoolsStage::Finished,
 			};
 		}
 
