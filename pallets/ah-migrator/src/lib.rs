@@ -114,6 +114,7 @@ pub mod pallet {
 		/// Note that we make a simplification here by assuming that both chains have the same block
 		/// number type.
 		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 	}
 
