@@ -64,9 +64,12 @@ fn call_filter_works() {
 			),
 			page_index: 0,
 		});
-	// System calls are filtered during the migration:
-	let system_call =
-		polkadot_runtime::RuntimeCall::System(frame_system::Call::<T>::remark { remark: vec![] });
+	// Balances calls are filtered during the migration:
+	let balances_call =
+		polkadot_runtime::RuntimeCall::Balances(pallet_balances::Call::<T>::transfer_all {
+			dest: AccountId32::from([0; 32]).into(),
+			keep_alive: false,
+		});
 	// Indices calls are filtered during and after the migration:
 	let indices_call =
 		polkadot_runtime::RuntimeCall::Indices(pallet_indices::Call::<T>::claim { index: 0 });
@@ -80,7 +83,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::Pending);
 
 			assert!(is_allowed(&mq_call));
-			assert!(is_allowed(&system_call));
+			assert!(is_allowed(&balances_call));
 			assert!(is_allowed(&indices_call));
 		}
 
@@ -89,7 +92,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::ProxyMigrationInit);
 
 			assert!(is_allowed(&mq_call));
-			assert!(!is_allowed(&system_call));
+			assert!(!is_allowed(&balances_call));
 			assert!(!is_allowed(&indices_call));
 		}
 
@@ -98,7 +101,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::MigrationDone);
 
 			assert!(is_allowed(&mq_call));
-			assert!(is_allowed(&system_call));
+			assert!(is_allowed(&balances_call));
 			assert!(!is_allowed(&indices_call));
 		}
 	});
@@ -115,7 +118,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::Pending);
 
 			assert!(!is_forbidden(&mq_call));
-			assert!(!is_forbidden(&system_call));
+			assert!(!is_forbidden(&balances_call));
 			assert!(!is_forbidden(&indices_call));
 		}
 
@@ -124,7 +127,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::ProxyMigrationInit);
 
 			assert!(!is_forbidden(&mq_call));
-			assert!(is_forbidden(&system_call));
+			assert!(is_forbidden(&balances_call));
 			assert!(is_forbidden(&indices_call));
 		}
 
@@ -133,7 +136,7 @@ fn call_filter_works() {
 			RcMigrationStage::<T>::put(MigrationStage::MigrationDone);
 
 			assert!(!is_forbidden(&mq_call));
-			assert!(!is_forbidden(&system_call));
+			assert!(!is_forbidden(&balances_call));
 			assert!(is_forbidden(&indices_call));
 		}
 	});

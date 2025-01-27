@@ -50,6 +50,7 @@ use runtime_parachains::{
 	shared as parachains_shared,
 };
 
+use ah_migration::phase1 as ahm_phase1;
 use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use beefy_primitives::{
 	ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -138,6 +139,7 @@ mod bag_thresholds;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 // Governance configurations.
+pub mod ah_migration;
 pub mod governance;
 use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
@@ -1576,120 +1578,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhExistentialDeposit = AhExistentialDeposit;
 	type RcWeightInfo = ();
 	type AhWeightInfo = ();
-	type RcPostMigrationCalls = CallsEnabledDuringMigration;
-	type RcIntraMigrationCalls = CallsEnabledAfterMigration;
-}
-
-/// Contains all calls that are enabled during the migration.
-pub struct CallsEnabledDuringMigration;
-impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDuringMigration {
-	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
-		let (during, _after) = call_allowed_status(call);
-		during
-	}
-}
-
-/// Contains all calls that are enabled after the migration.
-pub struct CallsEnabledAfterMigration;
-impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAfterMigration {
-	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
-		let (_during, after) = call_allowed_status(call);
-		after
-	}
-}
-
-/// Return whether a call should be enabled during and/or after the migration.
-///
-/// Time line of the migration looks like this:
-///
-/// --------|-----------|--------->
-///       Start        End
-///
-/// We now define 2 periods:
-///
-/// 1. During the migration: [Start, End]
-/// 2. After the migration: (End, ∞)
-///
-/// Visually:
-///
-///         |-----1-----|
-///                      |---2---->
-/// --------|-----------|--------->
-///       Start        End
-///
-/// This call returns a 2-tuple to indicate whether a call is enabled during these periods.
-pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall) -> (bool, bool) {
-	use RuntimeCall::*;
-	const ON: bool = true;
-	const OFF: bool = false;
-
-	match call {
-		System(..) => (ON, ON),
-		Scheduler(..) => (OFF, OFF),
-		Preimage(..) => (OFF, OFF),
-		Babe(..) => (ON, ON), // TODO double check
-		Timestamp(..) => (OFF, OFF),
-		Indices(..) => (OFF, OFF),
-		Balances(..) => (OFF, ON),
-		// TransactionPayment has no calls
-		// Authorship has no calls
-		Staking(..) => (OFF, OFF),
-		// Offences has no calls
-		// Historical has no calls
-		Session(..) => (OFF, OFF),
-		Grandpa(..) => (ON, ON), // TODO double check
-		// AuthorityDiscovery has no calls
-		Treasury(..) => (OFF, OFF),
-		ConvictionVoting(..) => (OFF, OFF),
-		Referenda(..) => (OFF, OFF),
-		// Origins has no calls
-		Whitelist(..) => (OFF, OFF),
-		Claims(..) => (OFF, OFF),
-		Vesting(..) => (OFF, OFF),
-		Utility(..) => (OFF, ON), // batching etc
-		Proxy(..) => (OFF, ON),
-		Multisig(..) => (OFF, ON),
-		Bounties(..) => (OFF, OFF),
-		ChildBounties(..) => (OFF, OFF),
-		ElectionProviderMultiPhase(..) => (OFF, OFF),
-		VoterList(..) => (OFF, OFF),
-		NominationPools(..) => (OFF, OFF),
-		FastUnstake(..) => (OFF, OFF),
-		// DelegatedStaking has on calls
-		// ParachainsOrigin has no calls
-		Configuration(..) => (ON, ON), /* TODO allow this to be called by fellow origin during the migration https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928794490 */
-		ParasShared(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/ee803b74056fac5101c06ec5998586fa6eaac470/polkadot/runtime/parachains/src/shared.rs#L185-L186 */
-		ParaInclusion(..) => (OFF, OFF), /* Has no calls but a call enum https://github.com/paritytech/polkadot-sdk/blob/74ec1ee226ace087748f38dfeffc869cd5534ac8/polkadot/runtime/parachains/src/inclusion/mod.rs#L352-L353 */
-		ParaInherent(..) => (ON, ON),    // only inherents
-		// ParaScheduler has no calls
-		Paras(..) => (ON, ON),
-		Initializer(..) => (ON, ON),
-		// Dmp has no calls and deprecated
-		Hrmp(..) => (OFF, OFF),
-		// ParaSessionInfo has no calls
-		ParasDisputes(..) => (OFF, ON), // TODO check with security
-		ParasSlashing(..) => (OFF, ON), // TODO check with security
-		OnDemand(..) => (OFF, ON),
-		// CoretimeAssignmentProvider has no calls
-		Registrar(..) => (OFF, ON),
-		Slots(..) => (OFF, OFF),
-		Auctions(..) => (OFF, OFF),
-		Crowdloan(
-			crowdloan::Call::<Runtime>::dissolve { .. } |
-			crowdloan::Call::<Runtime>::refund { .. } |
-			crowdloan::Call::<Runtime>::dissolve { .. },
-		) => (OFF, ON),
-		Crowdloan(..) => (OFF, OFF),
-		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
-		Coretime(..) => (ON, ON),
-		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (OFF, ON), /* TODO allow para origins and root to call this during the migration, see https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928789463 */
-		MessageQueue(..) => (ON, ON), // TODO think about this
-		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur
-		                         * RcMigrator has no calls currently
-		                         * Exhaustive match. Compiler ensures that we did not miss any. */
-	}
+	type RcPostMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
+	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
 
 construct_runtime! {
