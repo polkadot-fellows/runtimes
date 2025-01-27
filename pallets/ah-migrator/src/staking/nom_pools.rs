@@ -114,7 +114,7 @@ impl<T: Config> Pallet<T> {
 			// We cannot assume how this conversion works, but adding one will ensure that we err on
 			// the side of pool-member safety in case of rounding.
 			change_rate.min_delay =
-				T::RcToProxyDelay::convert(change_rate.min_delay).saturating_add(One::one());
+				T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
 		}
 
 		pool
@@ -128,9 +128,9 @@ impl<T: Config> Pallet<T> {
 		let ah_now = frame_system::Pallet::<T>::block_number();
 
 		if let Some(rc_since) = rc_now.checked_sub(&rc_timepoint) {
-			ah_now.saturating_sub(T::RcToProxyDelay::convert(rc_since)) // TODO rename
+			ah_now.saturating_sub(T::RcToAhDelay::convert(rc_since)) // TODO rename
 		} else {
-			ah_now.saturating_add(T::RcToProxyDelay::convert(
+			ah_now.saturating_add(T::RcToAhDelay::convert(
 				rc_timepoint.defensive_saturating_sub(rc_now),
 			))
 		}

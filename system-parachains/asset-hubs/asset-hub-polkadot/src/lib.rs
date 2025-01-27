@@ -1040,7 +1040,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
-	type RcToProxyDelay = migration::RcToProxyDelay;
+	type RcToAhDelay = migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 

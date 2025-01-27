@@ -109,11 +109,11 @@ pub mod pallet {
 		type RcProxyType: Parameter;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
-		/// Convert a Relay Chain Proxy Delay to a local AH one.
+		/// Convert a Relay Chain block number delay to an Asset Hub one.
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
-		// number type.
-		type RcToProxyDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// number type.
+		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 	}
 
