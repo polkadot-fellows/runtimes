@@ -12,8 +12,8 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "18.0.0" }
-assets-common = { version = "0.18.0", default-features = false }
+asset-test-utils = { version = "20.0.0" }
+assets-common = { version = "0.18.3", default-features = false }
 authority-discovery-primitives = { version = "34.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.40.0", default-features = false, package = "sp-consensus-babe" }
 beefy-primitives = { version = "22.1.0", default-features = false, package = "sp-consensus-beefy" }
@@ -32,14 +32,14 @@ bp-polkadot-bulletin = { version = "0.15.0", default-features = false }
 bp-polkadot-core = { version = "0.18.0", default-features = false }
 bp-relayers = { version = "0.18.0", default-features = false }
 bp-runtime = { version = "0.18.0", default-features = false }
-bp-xcm-bridge-hub = { version = "0.4.0", default-features = false }
+bp-xcm-bridge-hub = { version = "0.4.2", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.14.1", default-features = false }
 bridge-hub-common = { version = "0.10.0", default-features = false }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
 bridge-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot" }
 bridge-hub-polkadot-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-test-utils = { version = "0.18.0" }
+bridge-hub-test-utils = { version = "0.20.0" }
 bridge-runtime-common = { version = "0.18.0", default-features = false }
 clap = { version = "4.5.0" }
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
@@ -58,11 +58,11 @@ cumulus-pallet-xcmp-queue = { version = "0.17.0", default-features = false }
 cumulus-primitives-aura = { version = "0.15.0", default-features = false }
 cumulus-primitives-core = { version = "0.16.0", default-features = false }
 cumulus-primitives-utility = { version = "0.17.0", default-features = false }
-emulated-integration-tests-common = { version = "14.1.0" }
+emulated-integration-tests-common = { version = "16.0.0" }
 encointer-balances-tx-payment = { version = "~14.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
-encointer-primitives = { version = "~14.3.0", default-features = false }
+encointer-primitives = { version = "~14.4.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "38.0.0", default-features = false }
 frame-election-provider-support = { version = "38.0.0", default-features = false }
@@ -109,18 +109,18 @@ pallet-conviction-voting = { version = "38.0.0", default-features = false }
 pallet-core-fellowship = { version = "22.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "37.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "37.0.0", default-features = false }
-pallet-encointer-balances = { version = "~14.1.0", default-features = false }
+pallet-encointer-balances = { version = "~14.2.0", default-features = false }
 pallet-encointer-bazaar = { version = "~14.1.0", default-features = false }
 pallet-encointer-bazaar-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 pallet-encointer-ceremonies = { version = "~14.1.0", default-features = false }
 pallet-encointer-ceremonies-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 pallet-encointer-communities = { version = "~14.1.0", default-features = false }
 pallet-encointer-communities-rpc-runtime-api = { version = "~14.1.0", default-features = false }
-pallet-encointer-democracy = { version = "~14.3.2", default-features = false }
+pallet-encointer-democracy = { version = "~14.4.0", default-features = false }
 pallet-encointer-faucet = { version = "~14.2.0", default-features = false }
 pallet-encointer-reputation-commitments = { version = "~14.1.0", default-features = false }
 pallet-encointer-scheduler = { version = "~14.1.0", default-features = false }
-pallet-encointer-treasuries = { version = "~14.3.0", default-features = false }
+pallet-encointer-treasuries = { version = "~14.4.1", default-features = false }
 pallet-encointer-treasuries-rpc-runtime-api = { version = "~14.3.0", default-features = false }
 pallet-fast-unstake = { version = "37.0.0", default-features = false }
 pallet-glutton = { version = "24.0.0", default-features = false }
@@ -136,9 +136,9 @@ pallet-nft-fractionalization = { version = "21.0.0", default-features = false }
 pallet-nfts = { version = "32.0.0", default-features = false }
 pallet-nfts-runtime-api = { version = "24.0.0", default-features = false }
 pallet-nis = { version = "38.0.0", default-features = false }
-pallet-nomination-pools = { version = "35.0.0", default-features = false }
+pallet-nomination-pools = { version = "35.0.2", default-features = false }
 pallet-nomination-pools-benchmarking = { version = "36.0.0", default-features = false }
-pallet-nomination-pools-runtime-api = { version = "33.0.0", default-features = false }
+pallet-nomination-pools-runtime-api = { version = "33.0.2", default-features = false }
 pallet-offences = { version = "37.0.0", default-features = false }
 pallet-offences-benchmarking = { version = "38.0.0", default-features = false }
 pallet-parameters = { version = "0.9.0", default-features = false }
@@ -170,11 +170,11 @@ pallet-vesting = { version = "38.0.0", default-features = false }
 pallet-whitelist = { version = "37.0.0", default-features = false }
 pallet-xcm = { version = "17.0.0", default-features = false }
 pallet-xcm-benchmarks = { version = "17.0.0", default-features = false }
-pallet-xcm-bridge-hub = { version = "0.13.0", default-features = false }
-pallet-xcm-bridge-hub-router = { version = "0.15.1", default-features = false }
+pallet-xcm-bridge-hub = { version = "0.13.2", default-features = false }
+pallet-xcm-bridge-hub-router = { version = "0.15.3", default-features = false }
 parachain-info = { version = "0.17.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "18.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "17.0.0" }
+parachains-runtimes-test-utils = { version = "19.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.25.0" }
@@ -212,7 +212,7 @@ snowbridge-pallet-outbound-queue = { version = "0.10.0", default-features = fals
 snowbridge-pallet-system = { version = "0.10.0", default-features = false }
 snowbridge-router-primitives = { version = "0.16.0", default-features = false }
 snowbridge-runtime-common = { version = "0.10.0", default-features = false }
-snowbridge-runtime-test-common = { version = "0.10.0" }
+snowbridge-runtime-test-common = { version = "0.12.0" }
 snowbridge-system-runtime-api = { version = "0.10.0", default-features = false }
 sp-api = { version = "34.0.0", default-features = false }
 sp-application-crypto = { version = "38.0.0", default-features = false }

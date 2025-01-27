@@ -492,7 +492,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				c,
 				RuntimeCall::Balances { .. } |
 				// `request_judgement` puts up a deposit to transfer to a registrar
-				RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. })
+				RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. }) |
+				// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
+				// account, should not be allowed.
+				RuntimeCall::Identity(pallet_identity::Call::add_sub { .. }) |
+				RuntimeCall::Identity(pallet_identity::Call::set_subs { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -785,7 +789,8 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::RelayLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))

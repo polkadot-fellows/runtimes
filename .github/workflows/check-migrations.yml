@@ -44,17 +44,23 @@ jobs:
   # if they all pass, that job will pass too.
   check-migrations:
     needs: [runtime-matrix]
-    continue-on-error: true
     runs-on: ubuntu-latest
     strategy:
+      # Ensure the other jobs continue
+      fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
       - name: Build EXTRA_FLAGS
         run: |
+          sudo apt install python3
+
           # When running on relay, we don't need weight checks.
           EXTRA_FLAGS="${{ matrix.runtime.extra_args }}"
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
@@ -87,18 +93,15 @@ jobs:
           echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1.3.0
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
-          version: "3.6.1"
-
-      - name: Add wasm32-unknown-unknown target
-        run: rustup target add wasm32-unknown-unknown
-        shell: bash
-
-      - name: Add rust-src component
-        run: rustup component add rust-src
-        shell: bash
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Run ${{ matrix.runtime.name }} Runtime Checks
         #uses: "paritytech/try-runtime-gha@v0.2.0"

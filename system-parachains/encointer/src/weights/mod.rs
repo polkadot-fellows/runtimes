@@ -35,6 +35,7 @@ pub mod pallet_encointer_democracy;
 pub mod pallet_encointer_faucet;
 pub mod pallet_encointer_reputation_commitments;
 pub mod pallet_encointer_scheduler;
+pub mod pallet_encointer_treasuries;
 pub mod pallet_membership;
 pub mod pallet_message_queue;
 pub mod pallet_proxy;

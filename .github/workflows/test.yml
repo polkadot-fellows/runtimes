@@ -53,37 +53,27 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-runtime-tests"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Download frame-omni-bencher
         run: |
@@ -102,6 +92,8 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+          WS: ${{ matrix.runtime.uri }}
+          RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
@@ -130,37 +122,27 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-integration-tests"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
@@ -176,37 +158,27 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-chain-spec-tests"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build
         run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
@@ -224,37 +196,27 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-integration-tests"
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build
         run: |
