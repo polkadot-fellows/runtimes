@@ -52,11 +52,11 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_referenda::TrackIdOf;
-use referenda::RcReferendumInfoOf;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
 };
+use pallet_referenda::TrackIdOf;
+use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -117,8 +117,8 @@ pub mod pallet {
 		/// Convert a Relay Chain block number delay to an Asset Hub one.
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
-		// number type.
-		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// number type.
+		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
 		/// Some part of the Relay Chain origins used in Governance.
 		type RcPalletsOrigin: Parameter;
 		/// Convert a Relay Chain origin to an Asset Hub one.
@@ -130,8 +130,6 @@ pub mod pallet {
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing>;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
-		/// number type.
-		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 	}

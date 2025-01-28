@@ -64,8 +64,8 @@ pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
 mod migration;
-pub mod treasury;
 pub mod staking;
+pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
@@ -1098,7 +1098,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
-	type RcToProxyDelay = migration::RcToProxyDelay;
 	type RcToAhCall = migration::RcToAhCall;
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;

@@ -71,8 +71,8 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
-use types::{MultiBlockMigration, PalletMigration, SingleBlockMigration};
 use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
+use types::{MultiBlockMigration, SingleBlockMigration};
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -98,6 +98,8 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 		Self::OutOfWeight
 	}
 }
+
+pub type MigrationStageOf<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId> {
@@ -155,10 +157,6 @@ pub enum MigrationStage<AccountId> {
 	},
 	ReferendaMigrationOngoing,
 	ReferendaMigrationDone,
-	MigrationDone,
-}
-
-pub type MigrationStageFor<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
 	NomPoolsMigrationInit,
 	NomPoolsMigrationOngoing {
 		next_key: Option<NomPoolsStage<AccountId>>,
