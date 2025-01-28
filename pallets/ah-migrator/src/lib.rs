@@ -36,6 +36,7 @@ pub mod multisig;
 pub mod preimage;
 pub mod proxy;
 pub mod referenda;
+pub mod staking;
 pub mod types;
 
 pub use pallet::*;
@@ -51,13 +52,15 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
 use pallet_referenda::TrackIdOf;
 use referenda::RcReferendumInfoOf;
+use pallet_rc_migrator::{
+	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+};
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{Convert, TryConvert},
+	traits::{BlockNumberProvider, Convert, TryConvert},
 	AccountId32,
 };
 use sp_std::prelude::*;
@@ -86,6 +89,7 @@ pub mod pallet {
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
+		+ pallet_nomination_pools::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -110,7 +114,7 @@ pub mod pallet {
 		type RcProxyType: Parameter;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
-		/// Convert a Relay Chain Proxy Delay to a local AH one.
+		/// Convert a Relay Chain block number delay to an Asset Hub one.
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
 		// number type.
@@ -126,6 +130,10 @@ pub mod pallet {
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing>;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
+		/// number type.
+		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// Access the block number of the Relay Chain.
+		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -249,6 +257,18 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		ReferendaProcessed,
+		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
+		NomPoolsMessagesBatchReceived {
+			/// How many nom pools messages are in the batch.
+			count: u32,
+		},
+		/// Processed a batch of `RcNomPoolsMessage` that we received.
+		NomPoolsMessagesBatchProcessed {
+			/// How many nom pools messages were successfully integrated.
+			count_good: u32,
+			/// How many nom pools messages failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -366,6 +386,16 @@ pub mod pallet {
 
 			Self::do_receive_referenda(referendum_count, deciding_count, track_queue)
 				.map_err(Into::into)
+		}
+
+		#[pallet::call_index(9)]
+		pub fn receive_nom_pools_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcNomPoolsMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 	}
 

@@ -50,6 +50,7 @@ use runtime_parachains::{
 	shared as parachains_shared,
 };
 
+use ah_migration::phase1 as ahm_phase1;
 use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use beefy_primitives::{
 	ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -67,7 +68,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
 		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
@@ -138,6 +139,7 @@ mod bag_thresholds;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 // Governance configurations.
+pub mod ah_migration;
 pub mod governance;
 use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
@@ -190,7 +192,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = RcMigrator;
 	type BlockWeights = BlockWeights;
 	type BlockLength = BlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
@@ -1576,6 +1578,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhExistentialDeposit = AhExistentialDeposit;
 	type RcWeightInfo = ();
 	type AhWeightInfo = ();
+	type RcPostMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
+	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
 
 construct_runtime! {

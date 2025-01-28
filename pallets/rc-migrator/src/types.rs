@@ -53,6 +53,8 @@ pub enum AhMigratorCall<T: Config> {
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	},
+	#[codec(index = 9)]
+	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

@@ -54,10 +54,7 @@ impl<T: Config> Pallet<T> {
 				// TODO unreserve deposit
 				return None;
 			};
-
-			let Ok(delay) = T::RcToProxyDelay::try_convert(p.delay).defensive() else {
-				return None;
-			};
+			let delay = T::RcToAhDelay::convert(p.delay);
 
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
