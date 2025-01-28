@@ -51,7 +51,14 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+	accounts::Account as RcAccount,
+	multisig::*,
+	preimage::*,
+	proxy::*,
+	staking::{
+		fast_unstake::{FastUnstakeMigrator, FastUnstakeStorageValues, RcFastUnstakeMessage},
+		nom_pools::*,
+	},
 };
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
@@ -71,6 +78,11 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum PalletEventName {
+	FastUnstake,
+}
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -85,6 +97,7 @@ pub mod pallet {
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_nomination_pools::Config
+		+ pallet_fast_unstake::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -132,6 +145,8 @@ pub mod pallet {
 		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
+		/// Some item could not be inserted because it already exists.
+		InsertConflict,
 	}
 
 	#[pallet::event]
@@ -234,6 +249,10 @@ pub mod pallet {
 			/// How many nom pools messages failed to integrate.
 			count_bad: u32,
 		},
+		/// We received a batch of messages that will be integrated into a pallet.
+		BatchReceived { pallet: PalletEventName, count: u32 },
+		/// We processed a batch of messages for this pallet.
+		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::pallet]
@@ -334,6 +353,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(8)]
+		pub fn receive_fast_unstake_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcFastUnstakeMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
 		}
 	}
 

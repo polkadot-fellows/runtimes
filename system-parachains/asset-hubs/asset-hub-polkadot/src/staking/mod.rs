@@ -17,3 +17,16 @@
 //! Staking related config of the Asset Hub.
 
 pub mod nom_pools;
+
+use crate::*;
+
+impl pallet_fast_unstake::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BatchSize = frame_support::traits::ConstU32<16>;
+	type Deposit = frame_support::traits::ConstU128<{ UNITS }>;
+	type ControlOrigin = EnsureRoot<AccountId>;
+	type Staking = nom_pools::StakingMock;
+	type MaxErasToCheckPerBlock = ConstU32<1>;
+	type WeightInfo = (); // TODO weights::pallet_fast_unstake::WeightInfo<Runtime>;
+}

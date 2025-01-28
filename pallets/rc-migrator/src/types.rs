@@ -46,6 +46,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 	#[codec(index = 7)]
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
+	#[codec(index = 8)]
+	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

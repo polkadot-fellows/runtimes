@@ -70,7 +70,10 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
-use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
+use staking::{
+	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
+	nom_pools::{NomPoolsMigrator, NomPoolsStage},
+};
 use types::PalletMigration;
 
 /// The log target of this pallet.
@@ -153,6 +156,11 @@ pub enum MigrationStage<AccountId> {
 		next_key: Option<NomPoolsStage<AccountId>>,
 	},
 	NomPoolsMigrationDone,
+	FastUnstakeMigrationInit,
+	FastUnstakeMigrationOngoing {
+		next_key: Option<FastUnstakeStage<AccountId>>,
+	},
+	FastUnstakeMigrationDone,
 	MigrationDone,
 }
 
@@ -194,6 +202,7 @@ pub mod pallet {
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_nomination_pools::Config
+		+ pallet_fast_unstake::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -569,6 +578,39 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::NomPoolsMigrationDone => {
+					Self::transition(MigrationStage::FastUnstakeMigrationInit);
+				},
+				MigrationStage::FastUnstakeMigrationInit => {
+					Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::FastUnstakeMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match FastUnstakeMigrator::<T>::migrate_many(next_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::FastUnstakeMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating fast unstake: {:?}", e);
+							defensive!("Error while migrating fast unstake");
+						},
+					}
+				},
+				MigrationStage::FastUnstakeMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),

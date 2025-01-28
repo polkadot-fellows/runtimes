@@ -17,4 +17,5 @@
 
 //! Staking migration logic.
 
+pub mod fast_unstake;
 pub mod nom_pools;
