@@ -285,7 +285,7 @@ pub mod pallet {
 		/// members to approve the call in [`Config::MaxStorageRootsToKeep`] amount of time.
 		///
 		/// It is supported to register multiple proofs, but the proofs need to be consumed in the
-		/// reverse order as they were registered. Basically this means last in, last out.
+		/// reverse order as they were registered. Basically this means last in, first out.
 		///
 		/// The [`dispatch_context`] spans the entire lifetime of a transaction and every call in
 		/// the transaction gets access to the same context.
