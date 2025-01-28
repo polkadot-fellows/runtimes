@@ -1090,8 +1090,8 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
 
-		// Staking in 60s
-		NominationPools: pallet_nomination_pools = 60,
+		// Staking in the 70s
+		NominationPools: pallet_nomination_pools = 70,
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,

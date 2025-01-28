@@ -111,7 +111,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 
 		loop {
 			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::reads_writes(1, 1))
+				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
 				if messages.is_empty() {
