@@ -45,14 +45,15 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, DefensiveResult, LockableCurrency, ReservableCurrency,
-		WithdrawReasons as LockWithdrawReasons,
+		Defensive, DefensiveResult, LockableCurrency, OriginTrait, QueryPreimage,
+		ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
-use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use pallet_referenda::TrackIdOf;
+use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -114,6 +115,17 @@ pub mod pallet {
 		/// Note that we make a simplification here by assuming that both chains have the same block
 		// number type.
 		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// Some part of the Relay Chain origins used in Governance.
+		type RcPalletsOrigin: Parameter;
+		/// Convert a Relay Chain origin to an Asset Hub one.
+		type RcToAhPalletsOrigin: TryConvert<
+			Self::RcPalletsOrigin,
+			<Self::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+		>;
+		/// Preimage registry.
+		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing>;
+		/// Convert a Relay Chain Call to a local AH one.
+		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -130,6 +142,10 @@ pub mod pallet {
 		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
+		/// Failed to convert RC type to AH type.
+		FailedToConvertType,
+		/// Failed to fetch preimage.
+		PreimageNotFound,
 	}
 
 	#[pallet::event]
@@ -329,7 +345,7 @@ pub mod pallet {
 		#[pallet::call_index(7)]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
-			referendums: Vec<(u32, ReferendumInfoOf<T, ()>)>,
+			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

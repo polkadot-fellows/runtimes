@@ -64,6 +64,7 @@ pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
 mod migration;
+pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
@@ -77,14 +78,14 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use governance::{pallet_custom_origins, Treasurer};
+use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
 use migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
@@ -108,7 +109,10 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::imbalance::ResolveAssetTo,
+		tokens::{
+			imbalance::ResolveAssetTo, pay::PayAssetFromAccount, PayFromAccount,
+			UnityAssetBalanceConversion,
+		},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
 		TransformOrigin, WithdrawReasons,
@@ -505,6 +509,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Nfts { .. } |
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
+					RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
 					RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. }) |
@@ -603,13 +610,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			// TODO: Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
-				//RuntimeCall::Treasury(..) |
-				//RuntimeCall::Bounties(..) |
-				RuntimeCall::Utility(..) |
-				/*RuntimeCall::ChildBounties(..) |*/
-				RuntimeCall::ConvictionVoting(..) |
-				RuntimeCall::Referenda(..) |
-				RuntimeCall::Whitelist(..)
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
 			ProxyType::Staking => {
 				matches!(
@@ -690,8 +697,8 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 impl parachain_info::Config for Runtime {}
 
 parameter_types! {
-	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
-	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_message_queue::Config for Runtime {
@@ -1088,6 +1095,10 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
 	type RcToProxyDelay = migration::RcToProxyDelay;
+	type RcToAhCall = migration::RcToAhCall;
+	type RcPalletsOrigin = migration::RcPalletsOrigin;
+	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
+	type Preimage = Preimage;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1138,11 +1149,13 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 55,
 
 		// OpenGov stuff.
-		// Treasury: pallet_treasury = 60,
+		Treasury: pallet_treasury = 60,
 		ConvictionVoting: pallet_conviction_voting = 61,
 		Referenda: pallet_referenda = 62,
 		Origins: pallet_custom_origins = 63,
 		Whitelist: pallet_whitelist = 64,
+		Bounties: pallet_bounties = 65,
+		ChildBounties: pallet_child_bounties = 66,
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,
@@ -1216,12 +1229,15 @@ mod benches {
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
 		[pallet_timestamp, Timestamp]
+		[pallet_treasury, Treasury]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
+		[pallet_bounties, Bounties]
+		[pallet_child_bounties, ChildBounties]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

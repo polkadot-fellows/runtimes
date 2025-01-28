@@ -532,6 +532,8 @@ pub mod pallet {
 					Self::transition(MigrationStage::ReferendaMigrationInit);
 				},
 				MigrationStage::ReferendaMigrationInit => {
+					let count = pallet_referenda::ReferendumInfoFor::<T, ()>::iter_keys().count();
+					log::info!(target: LOG_TARGET, "Referenda count: {}", count);
 					Self::transition(MigrationStage::ReferendumMigrationOngoing { last_key: None });
 				},
 				MigrationStage::ReferendumMigrationOngoing { last_key } => {

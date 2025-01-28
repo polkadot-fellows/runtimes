@@ -789,6 +789,8 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bounties",
+ "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-conviction-voting",
  "pallet-message-queue",
@@ -803,6 +805,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
@@ -842,6 +845,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "system-parachains-common",
  "system-parachains-constants",
  "xcm-runtime-apis",
 ]
@@ -7646,6 +7650,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-referenda",
+ "pallet-scheduler",
  "pallet-staking",
  "pallet-state-trie-migration",
  "parity-scale-codec",
@@ -15088,6 +15093,20 @@ checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "system-parachains-common"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "polkadot-runtime-common",
+ "scale-info",
+ "sp-api",
+ "sp-runtime 39.0.5",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
