@@ -115,7 +115,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Crowdloan(
 			crowdloan::Call::<Runtime>::dissolve { .. } |
 			crowdloan::Call::<Runtime>::refund { .. } |
-			crowdloan::Call::<Runtime>::dissolve { .. },
+			crowdloan::Call::<Runtime>::withdraw { .. },
 		) => (OFF, ON),
 		Crowdloan(..) => (OFF, OFF),
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),

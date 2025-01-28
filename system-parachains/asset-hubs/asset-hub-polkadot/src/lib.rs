@@ -63,6 +63,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 pub mod genesis_config_presets;
 mod impls;
 mod migration;
+pub mod staking;
 mod weights;
 pub mod xcm_config;
 
@@ -120,6 +121,7 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
@@ -263,7 +265,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
+	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -604,9 +606,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) | RuntimeCall::Utility(..) /*RuntimeCall::FastUnstake(..) |
-					                                                     *RuntimeCall::VoterList(..)
-					                                                     *RuntimeCall::NominationPools(..) */
+					RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
+					                                   *RuntimeCall::VoterList(..)
+					                                   */
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1037,7 +1041,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
-	type RcToProxyDelay = migration::RcToProxyDelay;
+	type RcToAhDelay = migration::RcToAhDelay;
+	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1078,13 +1083,15 @@ construct_runtime!(
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
 
-		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
 		Uniques: pallet_uniques = 51,
 		Nfts: pallet_nfts = 52,
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+
+		// Staking in the 70s
+		NominationPools: pallet_nomination_pools = 70,
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,

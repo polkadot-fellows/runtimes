@@ -35,6 +35,7 @@ pub mod accounts;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
+pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
@@ -69,6 +70,7 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
+use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
 use types::PalletMigration;
 
 /// The log target of this pallet.
@@ -96,19 +98,7 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-#[derive(
-	Encode,
-	Decode,
-	Clone,
-	PartialEq,
-	Eq,
-	Default,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialOrd,
-	Ord,
-)]
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
@@ -158,7 +148,28 @@ pub enum MigrationStage<AccountId> {
 	},
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
+	NomPoolsMigrationInit,
+	NomPoolsMigrationOngoing {
+		next_key: Option<NomPoolsStage<AccountId>>,
+	},
+	NomPoolsMigrationDone,
 	MigrationDone,
+}
+
+impl<T> MigrationStage<T> {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()`.
+	pub fn is_finished(&self) -> bool {
+		matches!(self, MigrationStage::MigrationDone)
+	}
+
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()`.
+	pub fn is_ongoing(&self) -> bool {
+		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
 }
 
 type AccountInfoFor<T> =
@@ -182,6 +193,7 @@ pub mod pallet {
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
+		+ pallet_nomination_pools::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -281,7 +293,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					//Self::transition(MigrationStage::PreimageMigrationInit);
+					//Self::transition(MigrationStage::NomPoolsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -527,6 +539,36 @@ pub mod pallet {
 					Self::transition(MigrationStage::PreimageMigrationDone);
 				},
 				MigrationStage::PreimageMigrationDone => {
+					Self::transition(MigrationStage::NomPoolsMigrationInit);
+				},
+				MigrationStage::NomPoolsMigrationInit => {
+					Self::transition(MigrationStage::NomPoolsMigrationOngoing { next_key: None });
+				},
+				MigrationStage::NomPoolsMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match NomPoolsMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::NomPoolsMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::NomPoolsMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating nom pools: {:?}", e);
+							defensive!("Error while migrating nom pools");
+						},
+					}
+				},
+				MigrationStage::NomPoolsMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
@@ -605,18 +647,16 @@ pub mod pallet {
 impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
 	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
 		let stage = RcMigrationStage::<T>::get();
-		let is_finished = stage >= MigrationStage::MigrationDone;
-		let is_ongoing = stage > MigrationStage::Pending && !is_finished;
 
 		// We have to return whether the call is allowed:
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
 
-		if is_finished && !T::RcIntraMigrationCalls::contains(call) {
+		if stage.is_finished() && !T::RcIntraMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
-		if is_ongoing && !T::RcPostMigrationCalls::contains(call) {
+		if stage.is_ongoing() && !T::RcPostMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 

@@ -31,12 +31,14 @@ frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true }
+sp-staking = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-conversion = { workspace = true }
+pallet-nomination-pools = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
@@ -137,6 +139,7 @@ runtime-benchmarks = [
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
+	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
@@ -151,6 +154,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
@@ -176,6 +180,7 @@ try-runtime = [
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
+	"pallet-nomination-pools/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-session/try-runtime",
@@ -228,6 +233,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
+	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-session/std",
@@ -260,6 +266,7 @@ std = [
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
+	"sp-staking/std",
 	"sp-std/std",
 	"sp-storage/std",
 	"sp-transaction-pool/std",
