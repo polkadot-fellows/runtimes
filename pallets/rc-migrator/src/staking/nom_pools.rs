@@ -110,7 +110,10 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 		let mut messages = Vec::new();
 
 		loop {
-			if weight_counter.try_consume(Weight::from_all(1)).is_err() {
+			if weight_counter
+				.try_consume(<T as frame_system::Config>::DbWeight::reads_writes(1, 1))
+				.is_err()
+			{
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
