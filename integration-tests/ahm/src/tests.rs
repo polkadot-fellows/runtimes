@@ -115,7 +115,7 @@ async fn account_migration_works() {
 
 pub fn state_from_str<T: pallet_rc_migrator::Config>(
 	s: &str,
-) -> pallet_rc_migrator::MigrationStageFor<T> {
+) -> pallet_rc_migrator::MigrationStageOf<T> {
 	use pallet_rc_migrator::MigrationStage;
 	match s {
 		"preimage" => MigrationStage::PreimageMigrationInit,

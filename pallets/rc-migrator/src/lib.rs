@@ -100,6 +100,8 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
+pub type MigrationStageOf<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
+
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId> {
 	/// The migration has not yet started but will start in the next block.

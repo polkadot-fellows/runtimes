@@ -197,11 +197,11 @@ pub enum RcUtilityCall {
 	force_batch { calls: Vec<RcRuntimeCall> },
 }
 
-/// Convert a Relay Chain Call to a local AH one.
+/// Convert an encoded Relay Chain Call to a local AH one.
 pub struct RcToAhCall;
 impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 	fn try_convert(mut a: &'a [u8]) -> Result<RuntimeCall, &'a [u8]> {
-		let rc_call = match RcRuntimeCall::decode(&mut a) {
+		let rc_call = match RcRuntimeCall::decode_all(&mut a) {
 			Ok(rc_call) => rc_call,
 			Err(e) => {
 				log::error!("Failed to decode RC call with error: {:?}", e);
