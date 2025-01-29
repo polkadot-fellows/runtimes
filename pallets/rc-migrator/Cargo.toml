@@ -24,6 +24,7 @@ pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-referenda = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
@@ -45,6 +46,7 @@ std = [
 	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
+	"pallet-referenda/std",
 	"pallet-staking/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
@@ -67,6 +69,7 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
@@ -82,6 +85,7 @@ try-runtime = [
 	"pallet-nomination-pools/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-referenda/try-runtime",
 	"pallet-staking/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",

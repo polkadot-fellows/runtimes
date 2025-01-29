@@ -61,11 +61,15 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod governance;
 mod impls;
 mod migration;
 pub mod staking;
+pub mod treasury;
 mod weights;
 pub mod xcm_config;
+
+use core::cmp::Ordering;
 
 use assets_common::{
 	foreign_creators::ForeignCreators,
@@ -75,12 +79,14 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
 use migration::{RcToAhFreezeReason, RcToAhHoldReason};
+use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
@@ -104,9 +110,13 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::imbalance::ResolveAssetTo,
-		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals,
-		InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, TransformOrigin, WithdrawReasons,
+		tokens::{
+			imbalance::ResolveAssetTo, pay::PayAssetFromAccount, PayFromAccount,
+			UnityAssetBalanceConversion,
+		},
+		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
+		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
+		TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -143,7 +153,7 @@ pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -500,9 +510,16 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Assets { .. } |
 					RuntimeCall::Nfts { .. } |
 					RuntimeCall::Uniques { .. } |
+					RuntimeCall::Scheduler(..) |
+					RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. })
+					RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. }) |
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -595,12 +612,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			// TODO: Uncomment once all these pallets are deployed.
 			ProxyType::Governance => matches!(
 				c,
-				//RuntimeCall::Treasury(..) |
-				//RuntimeCall::Bounties(..) |
-				RuntimeCall::Utility(..) /*RuntimeCall::ChildBounties(..) |
-				                          *RuntimeCall::ConvictionVoting(..) |
-				                          *RuntimeCall::Referenda(..) |
-				                          *RuntimeCall::Whitelist(..) */
+				RuntimeCall::Treasury(..) |
+					RuntimeCall::Bounties(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::ChildBounties(..) |
+					RuntimeCall::ConvictionVoting(..) |
+					RuntimeCall::Referenda(..) |
+					RuntimeCall::Whitelist(..)
 			),
 			ProxyType::Staking => {
 				matches!(
@@ -683,8 +701,8 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 impl parachain_info::Config for Runtime {}
 
 parameter_types! {
-	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(35) * RuntimeBlockWeights::get().max_block;
-	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
+	pub MessageQueueIdleServiceWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_message_queue::Config for Runtime {
@@ -1031,6 +1049,45 @@ impl pallet_preimage::Config for Runtime {
 	>;
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		RuntimeBlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+	pub const NoPreimagePostponement: Option<u32> = Some(10);
+}
+
+/// Used the compare the privilege of an origin inside the scheduler.
+pub struct OriginPrivilegeCmp;
+
+impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
+	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
+		if left == right {
+			return Some(Ordering::Equal)
+		}
+
+		match (left, right) {
+			// Root is greater than anything.
+			(OriginCaller::system(frame_system::RawOrigin::Root), _) => Some(Ordering::Greater),
+			// For every other origin we don't care, as they are not used for `ScheduleOrigin`.
+			_ => None,
+		}
+	}
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	// Also allow Treasurer to schedule recurring payments.
+	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = (); // TODO: weights::pallet_scheduler::WeightInfo<Runtime>;
+	type OriginPrivilegeCmp = OriginPrivilegeCmp;
+	type Preimages = Preimage;
+}
+
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1043,6 +1100,10 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToProxyType = migration::RcToProxyType;
 	type RcToAhDelay = migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type RcToAhCall = migration::RcToAhCall;
+	type RcPalletsOrigin = migration::RcPalletsOrigin;
+	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
+	type Preimage = Preimage;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1056,6 +1117,7 @@ construct_runtime!(
 		Timestamp: pallet_timestamp = 3,
 		ParachainInfo: parachain_info = 4,
 		Preimage: pallet_preimage = 5,
+		Scheduler: pallet_scheduler = 6,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -1089,6 +1151,15 @@ construct_runtime!(
 		ForeignAssets: pallet_assets::<Instance2> = 53,
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
+
+		// OpenGov stuff.
+		Treasury: pallet_treasury = 60,
+		ConvictionVoting: pallet_conviction_voting = 61,
+		Referenda: pallet_referenda = 62,
+		Origins: pallet_custom_origins = 63,
+		Whitelist: pallet_whitelist = 64,
+		Bounties: pallet_bounties = 65,
+		ChildBounties: pallet_child_bounties = 66,
 
 		// Staking in the 70s
 		NominationPools: pallet_nomination_pools = 70,
@@ -1157,15 +1228,23 @@ mod benches {
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_nfts, Nfts]
+		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
+		[pallet_scheduler, Scheduler]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
 		[pallet_timestamp, Timestamp]
+		[pallet_treasury, Treasury]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[pallet_conviction_voting, ConvictionVoting]
+		[pallet_referenda, Referenda]
+		[pallet_whitelist, Whitelist]
+		[pallet_bounties, Bounties]
+		[pallet_child_bounties, ChildBounties]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

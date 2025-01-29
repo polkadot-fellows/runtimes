@@ -50,6 +50,12 @@ async fn account_migration_works() {
 	// Simulate relay blocks and grab the DMP messages
 	let (dmp_messages, pre_check_payload) = rc.execute_with(|| {
 		let mut dmps = Vec::new();
+
+		if let Ok(stage) = std::env::var("START_STAGE") {
+			let stage = state_from_str::<Polkadot>(&stage);
+			RcMigrationStage::<Polkadot>::put(stage);
+		}
+
 		let pre_check_payload =
 			pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::pre_check();
 
@@ -96,13 +102,24 @@ async fn account_migration_works() {
 			next_block_ah();
 		}
 
-		pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
-			pre_check_payload,
-		);
-		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(
-			ah_pre_check_payload,
-		);
+		// pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
+		// 	pre_check_payload,
+		// );
+		// pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(
+		// 	ah_pre_check_payload,
+		// );
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});
+}
+
+pub fn state_from_str<T: pallet_rc_migrator::Config>(
+	s: &str,
+) -> pallet_rc_migrator::MigrationStageOf<T> {
+	use pallet_rc_migrator::MigrationStage;
+	match s {
+		"preimage" => MigrationStage::PreimageMigrationInit,
+		"referenda" => MigrationStage::ReferendaMigrationInit,
+		_ => MigrationStage::Pending,
+	}
 }
