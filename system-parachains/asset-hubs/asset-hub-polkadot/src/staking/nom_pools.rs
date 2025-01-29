@@ -243,3 +243,17 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!()
 	}
 }
+
+impl frame_election_provider_support::ScoreProvider<AccountId> for StakingMock {
+	type Score = sp_npos_elections::VoteWeight;
+
+	fn score(_id: &AccountId) -> Self::Score {
+		unimplemented!()
+	}
+
+	/* TODO frame_election_provider_support::runtime_benchmarks_or_std_enabled! {
+		fn set_score_of(id: &AccountId, weight: Self::Score) {
+			unimplemented!()
+		}
+	}*/
+}

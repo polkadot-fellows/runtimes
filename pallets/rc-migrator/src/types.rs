@@ -57,6 +57,8 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 10)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
+	#[codec(index = 11)]
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

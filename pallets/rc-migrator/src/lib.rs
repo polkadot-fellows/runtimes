@@ -71,11 +71,12 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
+use referenda::ReferendaStage;
 use staking::{
+	bags_list::{BagsListMigrator, BagsListStage},
 	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
-use referenda::ReferendaStage;
 use types::PalletMigration;
 
 /// The log target of this pallet.
@@ -97,10 +98,13 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-pub type MigrationStageOf<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
+pub type MigrationStageOf<T> = MigrationStage<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+>;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId> {
+pub enum MigrationStage<AccountId, BagsListScore> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -164,12 +168,20 @@ pub enum MigrationStage<AccountId> {
 		last_key: Option<ReferendaStage>,
 	},
 	ReferendaMigrationDone,
+	BagsListMigrationInit,
+	BagsListMigrationOngoing {
+		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
+	},
+	BagsListMigrationDone,
 	MigrationDone,
 }
 
-pub type MigrationStageFor<T> = MigrationStage<<T as frame_system::Config>::AccountId>;
+pub type MigrationStageFor<T> = MigrationStage<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+>;
 
-impl<T> MigrationStage<T> {
+impl<AccountId, BagsListScore> MigrationStage<AccountId, BagsListScore> {
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()`.
@@ -209,6 +221,7 @@ pub mod pallet {
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -260,16 +273,15 @@ pub mod pallet {
 		/// A stage transition has occurred.
 		StageTransition {
 			/// The old stage before the transition.
-			old: MigrationStage<T::AccountId>,
+			old: MigrationStageFor<T>,
 			/// The new stage after the transition.
-			new: MigrationStage<T::AccountId>,
+			new: MigrationStageFor<T>,
 		},
 	}
 
 	/// The Relay Chain migration state.
 	#[pallet::storage]
-	pub type RcMigrationStage<T: Config> =
-		StorageValue<_, MigrationStage<T::AccountId>, ValueQuery>;
+	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageFor<T>, ValueQuery>;
 
 	/// Helper storage item to obtain and store the known accounts that should be kept partially on
 	/// fully on Relay Chain.
@@ -308,7 +320,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					Self::transition(MigrationStage::ProxyMigrationInit);
+					//Self::transition(MigrationStage::BagsListMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -653,6 +665,36 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ReferendaMigrationDone => {
+					Self::transition(MigrationStage::BagsListMigrationInit);
+				},
+				MigrationStage::BagsListMigrationInit => {
+					Self::transition(MigrationStage::BagsListMigrationOngoing { next_key: None });
+				},
+				MigrationStage::BagsListMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match BagsListMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::BagsListMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::BagsListMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating bags list: {:?}", e);
+							defensive!("Error while migrating bags list");
+						},
+					}
+				},
+				MigrationStage::BagsListMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
@@ -664,7 +706,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// Execute a stage transition and log it.
-		fn transition(new: MigrationStage<T::AccountId>) {
+		fn transition(new: MigrationStageFor<T>) {
 			let old = RcMigrationStage::<T>::get();
 			RcMigrationStage::<T>::put(&new);
 			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);

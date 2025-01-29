@@ -25,7 +25,10 @@ pub enum BagsListStage<AccountId, Score> {
 	Finished,
 }
 
-pub type BagsListStageOf<T> = BagsListStage<<T as frame_system::Config>::AccountId, <T as pallet_bags_list::Config>::Score>;
+pub type BagsListStageOf<T> = BagsListStage<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+>;
 
 #[derive(
 	Encode,
@@ -39,9 +42,9 @@ pub type BagsListStageOf<T> = BagsListStage<<T as frame_system::Config>::Account
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
-pub enum RcBagsListMessage<T: pallet_bags_list::Config> {
-	Node { node: alias::NodeOf<T> },
-	Bag { bag: alias::BagOf<T> },
+pub enum RcBagsListMessage<T: pallet_bags_list::Config<pallet_bags_list::Instance1>> {
+	Node { id: T::AccountId, node: alias::NodeOf<T> },
+	Bag { score: T::Score, bag: alias::BagOf<T> },
 }
 
 pub struct BagsListMigrator<T> {
@@ -78,30 +81,34 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 			inner_key = match inner_key {
 				BagsListStage::ListNodes(next) => {
 					let mut iter = match next {
-						Some(next) => alias::ListNodes::<T>::iter_from(alias::ListNodes::<T>::hashed_key_for(next)),
+						Some(next) => alias::ListNodes::<T>::iter_from(
+							alias::ListNodes::<T>::hashed_key_for(next),
+						),
 						None => alias::ListNodes::<T>::iter(),
 					};
-					
+
 					match iter.next() {
-						Some((key, node)) => {
-							alias::ListNodes::<T>::remove(&key);
-							messages.push(RcBagsListMessage::Node { node });
-							BagsListStage::ListNodes(Some(key))
+						Some((id, node)) => {
+							alias::ListNodes::<T>::remove(&id);
+							messages.push(RcBagsListMessage::Node { id: id.clone(), node });
+							BagsListStage::ListNodes(Some(id))
 						},
 						None => BagsListStage::ListBags(None),
 					}
 				},
 				BagsListStage::ListBags(next) => {
 					let mut iter = match next {
-						Some(next) => alias::ListBags::<T>::iter_from(alias::ListBags::<T>::hashed_key_for(next)),
+						Some(next) => alias::ListBags::<T>::iter_from(
+							alias::ListBags::<T>::hashed_key_for(next),
+						),
 						None => alias::ListBags::<T>::iter(),
 					};
 
 					match iter.next() {
-						Some((key, bag)) => {
-							alias::ListBags::<T>::remove(&key);
-							messages.push(RcBagsListMessage::Bag { bag });
-							BagsListStage::ListBags(Some(key))
+						Some((score, bag)) => {
+							alias::ListBags::<T>::remove(&score);
+							messages.push(RcBagsListMessage::Bag { score: score.clone(), bag });
+							BagsListStage::ListBags(Some(score))
 						},
 						None => BagsListStage::Finished,
 					}
@@ -138,7 +145,10 @@ pub mod alias {
 		pub bag_upper: Score,
 		pub score: Score,
 	}
-	pub type NodeOf<T> = Node<<T as frame_system::Config>::AccountId, <T as pallet_bags_list::Config>::Score>;
+	pub type NodeOf<T> = Node<
+		<T as frame_system::Config>::AccountId,
+		<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+	>;
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/bags-list/src/list/mod.rs#L622-L630
 	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -150,11 +160,20 @@ pub mod alias {
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/frame/bags-list/src/lib.rs#L255-L257
 	#[frame_support::storage_alias(pallet_name)]
-	pub type ListNodes<T: Config> =
-		CountedStorageMap<pallet_bags_list::Pallet<T, ()>, Twox64Concat, <T as frame_system::Config>::AccountId, NodeOf<T>>;
+	pub type ListNodes<T: pallet_bags_list::Config<pallet_bags_list::Instance1>> =
+		CountedStorageMap<
+			pallet_bags_list::Pallet<T, pallet_bags_list::Instance1>,
+			Twox64Concat,
+			<T as frame_system::Config>::AccountId,
+			NodeOf<T>,
+		>;
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/frame/bags-list/src/lib.rs#L262-L264
 	#[frame_support::storage_alias(pallet_name)]
-	pub type ListBags<T: Config> =
-		StorageMap<pallet_bags_list::Pallet<T, ()>, Twox64Concat, <T as pallet_bags_list::Config>::Score, BagOf<T>>;
+	pub type ListBags<T: pallet_bags_list::Config<pallet_bags_list::Instance1>> = StorageMap<
+		pallet_bags_list::Pallet<T, pallet_bags_list::Instance1>,
+		Twox64Concat,
+		<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+		BagOf<T>,
+	>;
 }

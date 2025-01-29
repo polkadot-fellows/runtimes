@@ -58,6 +58,7 @@ use pallet_rc_migrator::{
 	preimage::*,
 	proxy::*,
 	staking::{
+		bags_list::RcBagsListMessage,
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
@@ -85,6 +86,7 @@ type RcAccountFor<T> = RcAccount<
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum PalletEventName {
 	FastUnstake,
+	BagsList,
 }
 
 #[frame_support::pallet(dev_mode)]
@@ -103,6 +105,7 @@ pub mod pallet {
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -270,9 +273,16 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		/// We received a batch of messages that will be integrated into a pallet.
-		BatchReceived { pallet: PalletEventName, count: u32 },
+		BatchReceived {
+			pallet: PalletEventName,
+			count: u32,
+		},
 		/// We processed a batch of messages for this pallet.
-		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
+		BatchProcessed {
+			pallet: PalletEventName,
+			count_good: u32,
+			count_bad: u32,
+		},
 		/// We received a batch of referendums that we are going to integrate.
 		ReferendumsBatchReceived {
 			/// How many referendums are in the batch.
@@ -423,6 +433,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+
+		#[pallet::call_index(11)]
+		pub fn receive_bags_list_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcBagsListMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 	}
 
