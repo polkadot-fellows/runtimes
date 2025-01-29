@@ -39,7 +39,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		weight_counter: &mut WeightMeter,
+		_weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 
@@ -54,7 +54,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				},
 			};
 
-			let Some(request_status) = alias::RequestStatusFor::<T>::get(&next_key_inner) else {
+			let Some(request_status) = alias::RequestStatusFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner));
 				continue;
@@ -87,7 +87,7 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 		match key {
 			None => alias::RequestStatusFor::<T>::iter_keys().next(),
 			Some(key) => alias::RequestStatusFor::<T>::iter_keys_from(
-				alias::RequestStatusFor::<T>::hashed_key_for(&key),
+				alias::RequestStatusFor::<T>::hashed_key_for(key),
 			)
 			.next(),
 		}

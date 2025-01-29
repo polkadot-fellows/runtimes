@@ -20,6 +20,8 @@ pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-rc-migrator = { workspace = true }
+pallet-referenda = { workspace = true }
+pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
@@ -33,6 +35,7 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
+hex = { workspace = true }
 
 [features]
 default = ["std"]
@@ -41,6 +44,7 @@ std = [
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
+	"hex/std",
 	"log/std",
 	"pallet-balances/std",
 	"pallet-multisig/std",
@@ -48,6 +52,8 @@ std = [
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-rc-migrator/std",
+	"pallet-referenda/std",
+	"pallet-scheduler/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
 	"polkadot-parachain-primitives/std",
@@ -71,6 +77,8 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-referenda/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -87,6 +95,8 @@ try-runtime = [
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-referenda/try-runtime",
+	"pallet-scheduler/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"polkadot-runtime-common/try-runtime",

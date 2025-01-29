@@ -77,6 +77,7 @@ frame-try-runtime = { version = "0.44.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.30.0", package = "sc-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
+hex = { version = "0.4.1", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
 kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
@@ -241,6 +242,7 @@ sp-weights = { version = "31.0.0", default-features = false }
 static_assertions = { version = "1.1.0" }
 substrate-wasm-builder = { version = "24.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
+system-parachains-common = { path = "system-parachains/common", default-features = false }
 tokio = { version = "1.36.0" }
 xcm = { version = "14.2.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "17.0.1", default-features = false, package = "staging-xcm-builder" }

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{types::*, *};
+use crate::*;
 use sp_runtime::{traits::Zero, BoundedSlice};
 
 impl<T: Config> Pallet<T> {
@@ -58,7 +58,7 @@ impl<T: Config> Pallet<T> {
 
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
-				delay: delay,
+				delay,
 				proxy_type,
 			})
 		})

@@ -22,7 +22,6 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
-use sp_core::ByteArray;
 
 pub struct ProxyProxiesMigrator<T: Config> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -81,7 +80,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		};
 
 		// Process accounts until we run out of weight or accounts
-		while let Some((acc, (proxies, deposit))) = key_iter.next() {
+		for (acc, (proxies, deposit)) in key_iter.by_ref() {
 			if proxies.is_empty() {
 				defensive!("The proxy pallet disallows empty proxy lists");
 				continue;
@@ -130,7 +129,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(OutOfWeightError::new());
+			return Err(OutOfWeightError);
 		}
 
 		let translated_proxies = proxies
@@ -169,7 +168,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		};
 
 		// Process announcements until we run out of weight
-		while let Some((acc, (announcements, deposit))) = iter.next() {
+		for (acc, (_announcements, deposit)) in iter.by_ref() {
 			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
 				break;
 			}

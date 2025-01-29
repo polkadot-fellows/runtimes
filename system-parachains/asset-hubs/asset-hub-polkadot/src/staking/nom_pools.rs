@@ -65,11 +65,13 @@ impl StakeStrategy for MockStakeAdapter {
 		unimplemented!()
 	}
 
-	fn total_balance(pool_account: Pool<Self::AccountId>) -> Option<Self::Balance> {
+	fn total_balance(_pool_account: Pool<Self::AccountId>) -> Option<Self::Balance> {
 		unimplemented!()
 	}
 
-	fn member_delegation_balance(member_account: Member<Self::AccountId>) -> Option<Self::Balance> {
+	fn member_delegation_balance(
+		_member_account: Member<Self::AccountId>,
+	) -> Option<Self::Balance> {
 		unimplemented!()
 	}
 

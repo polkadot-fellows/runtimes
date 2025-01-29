@@ -17,6 +17,7 @@
 //! Types
 
 use super::*;
+use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -48,6 +49,14 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
 	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
+	#[codec(index = 9)]
+	ReceiveReferendaValues {
+		referendum_count: u32,
+		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
+	},
+	#[codec(index = 10)]
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
