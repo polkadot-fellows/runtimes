@@ -46,8 +46,10 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 6)]
 	ReceivePreimageLegacyStatus { legacy_status: Vec<preimage::RcPreimageLegacyStatusOf<T>> },
 	#[codec(index = 7)]
-	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
+	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
+	#[codec(index = 9)]
 	ReceiveReferenda {
 		referendum_count: u32,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,

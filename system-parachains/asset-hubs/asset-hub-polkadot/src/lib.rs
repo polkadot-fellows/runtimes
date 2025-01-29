@@ -64,6 +64,7 @@ pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
 mod migration;
+pub mod staking;
 pub mod treasury;
 mod weights;
 pub mod xcm_config;
@@ -130,6 +131,7 @@ use parachains_common::{
 	Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
 use system_parachains_constants::{
@@ -273,7 +275,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
+	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -622,9 +624,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				matches!(
 					c,
 					//RuntimeCall::Staking(..) |
-					RuntimeCall::Session(..) | RuntimeCall::Utility(..) /*RuntimeCall::FastUnstake(..) |
-					                                                     *RuntimeCall::VoterList(..)
-					                                                     *RuntimeCall::NominationPools(..) */
+					RuntimeCall::Session(..) |
+						RuntimeCall::Utility(..) |
+						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
+					                                   *RuntimeCall::VoterList(..)
+					                                   */
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1094,6 +1098,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhFreezeReason = RcToAhFreezeReason;
 	type RcProxyType = migration::RcProxyType;
 	type RcToProxyType = migration::RcToProxyType;
+	type RcToAhDelay = migration::RcToAhDelay;
+	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type RcToProxyDelay = migration::RcToProxyDelay;
 	type RcToAhCall = migration::RcToAhCall;
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
@@ -1140,7 +1146,6 @@ construct_runtime!(
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
 
-		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
 		Uniques: pallet_uniques = 51,
 		Nfts: pallet_nfts = 52,
@@ -1156,6 +1161,9 @@ construct_runtime!(
 		Whitelist: pallet_whitelist = 64,
 		Bounties: pallet_bounties = 65,
 		ChildBounties: pallet_child_bounties = 66,
+
+		// Staking in the 70s
+		NominationPools: pallet_nomination_pools = 70,
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,

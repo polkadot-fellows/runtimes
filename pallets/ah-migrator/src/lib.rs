@@ -36,6 +36,7 @@ pub mod multisig;
 pub mod preimage;
 pub mod proxy;
 pub mod referenda;
+pub mod staking;
 pub mod types;
 
 pub use pallet::*;
@@ -51,13 +52,15 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-use pallet_rc_migrator::{accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*};
+use pallet_rc_migrator::{
+	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+};
 use pallet_referenda::TrackIdOf;
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{Convert, TryConvert},
+	traits::{BlockNumberProvider, Convert, TryConvert},
 	AccountId32,
 };
 use sp_std::prelude::*;
@@ -86,6 +89,7 @@ pub mod pallet {
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
+		+ pallet_nomination_pools::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -110,11 +114,13 @@ pub mod pallet {
 		type RcProxyType: Parameter;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
-		/// Convert a Relay Chain Proxy Delay to a local AH one.
+		/// Convert a Relay Chain block number delay to an Asset Hub one.
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
-		// number type.
-		type RcToProxyDelay: TryConvert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// number type.
+		type RcToAhDelay: Convert<BlockNumberFor<Self>, BlockNumberFor<Self>>;
+		/// Access the block number of the Relay Chain.
+		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 		/// Some part of the Relay Chain origins used in Governance.
 		type RcPalletsOrigin: Parameter;
 		/// Convert a Relay Chain origin to an Asset Hub one.
@@ -249,6 +255,18 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		ReferendaProcessed,
+		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
+		NomPoolsMessagesBatchReceived {
+			/// How many nom pools messages are in the batch.
+			count: u32,
+		},
+		/// Processed a batch of `RcNomPoolsMessage` that we received.
+		NomPoolsMessagesBatchProcessed {
+			/// How many nom pools messages were successfully integrated.
+			count_good: u32,
+			/// How many nom pools messages failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -341,8 +359,18 @@ pub mod pallet {
 			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
 		}
 
-		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(7)]
+		pub fn receive_nom_pools_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcNomPoolsMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
+		}
+
+		/// Receive referendums from the Relay Chain.
+		#[pallet::call_index(8)]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -353,7 +381,7 @@ pub mod pallet {
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
-		#[pallet::call_index(8)]
+		#[pallet::call_index(9)]
 		pub fn receive_referenda(
 			origin: OriginFor<T>,
 			referendum_count: u32,
