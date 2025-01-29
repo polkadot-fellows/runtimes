@@ -14,29 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::{pallet_prelude::*, traits::*, weights::WeightMeter};
-use sp_core::H256;
-use sp_io::TestExternalities;
-use sp_storage::StateVersion;
-
-use std::cell::OnceCell;
+use frame_support::{pallet_prelude::*, traits::*};
 
 use super::*;
 use pallet_rc_migrator::RcMigrationStage;
 
 #[tokio::test]
 async fn account_test() {
-	remote_ext_test_setup().await.map(|mut e| {
+	if let Some(mut e) = remote_ext_test_setup().await {
 		e.execute_with(|| {
 			//let _ = RcMigrator::obtain_rc_accounts();
 			//let _ = RcMigrator::migrate_accounts(None, &mut WeightMeter::new()).unwrap();
 		})
-	});
+	}
 }
 
 #[tokio::test]
 async fn on_initialize_works() {
-	remote_ext_test_setup().await.map(|mut e| {
+	if let Some(mut e) = remote_ext_test_setup().await {
 		e.execute_with(|| {
 			for _ in 0..10 {
 				log::debug!(target: LOG_TARGET, "Stage: {:?}", RcMigrationStage::<T>::get());
@@ -48,7 +43,7 @@ async fn on_initialize_works() {
 			let msg_count = runtime_parachains::dmp::DownwardMessageQueues::<T>::get(para_id).len();
 			log::debug!(target: LOG_TARGET, "DMP message count for para 1000: {msg_count}");
 		})
-	});
+	}
 }
 
 fn next_block() {

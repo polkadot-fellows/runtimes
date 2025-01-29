@@ -21,7 +21,7 @@ mod accounts;
 use frame_support::{sp_runtime::traits::Dispatchable, traits::Contains};
 use pallet_rc_migrator::*;
 use polkadot_primitives::Id as ParaId;
-use polkadot_runtime::{Block, BuildStorage, RcMigrator, Runtime as T, RuntimeOrigin, System, *};
+use polkadot_runtime::{Block, BuildStorage, RcMigrator, Runtime as T, RuntimeOrigin, System};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use runtime_parachains::inclusion::AggregateMessageOrigin;
 use sp_runtime::AccountId32;

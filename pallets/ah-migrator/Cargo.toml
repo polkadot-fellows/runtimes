@@ -34,6 +34,7 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
+hex = { workspace = true }
 
 [features]
 default = ["std"]
@@ -42,6 +43,7 @@ std = [
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
+	"hex/std",
 	"log/std",
 	"pallet-balances/std",
 	"pallet-multisig/std",

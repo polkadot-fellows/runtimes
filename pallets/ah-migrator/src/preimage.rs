@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{types::*, *};
+use crate::*;
 use frame_support::traits::{Consideration, Footprint};
 use pallet_rc_migrator::preimage::{chunks::*, *};
 use sp_runtime::traits::Hash;
@@ -45,8 +45,8 @@ impl<T: Config> Pallet<T> {
 		let key = (chunk.preimage_hash, chunk.preimage_len);
 
 		// First check that we did not miss a chunk
-		let preimage = match alias::PreimageFor::<T>::get(&key) {
-			Some(mut preimage) => {
+		let preimage = match alias::PreimageFor::<T>::get(key) {
+			Some(preimage) => {
 				if preimage.len() != chunk.chunk_byte_offset as usize {
 					defensive!("Preimage chunk missing");
 					return Err(Error::<T>::TODO);
@@ -56,7 +56,7 @@ impl<T: Config> Pallet<T> {
 					p.extend(chunk.chunk_bytes.clone());
 				}) {
 					Some(preimage) => {
-						alias::PreimageFor::<T>::insert(&key, &preimage);
+						alias::PreimageFor::<T>::insert(key, &preimage);
 						preimage
 					},
 					None => {
@@ -113,9 +113,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_receive_preimage_request_status(
-		mut request_status: RcPreimageRequestStatusOf<T>,
+		request_status: RcPreimageRequestStatusOf<T>,
 	) -> Result<(), Error<T>> {
-		if alias::RequestStatusFor::<T>::contains_key(&request_status.hash) {
+		if alias::RequestStatusFor::<T>::contains_key(request_status.hash) {
 			log::warn!(target: LOG_TARGET, "Request status already migrated: {:?}", request_status.hash);
 			return Ok(());
 		}
@@ -123,7 +123,7 @@ impl<T: Config> Pallet<T> {
 		let new_ticket = match request_status.request_status {
 			alias::RequestStatus::Unrequested { ticket: (ref who, ref ticket), len } => {
 				let fp = Footprint::from_parts(1, len as usize);
-				ticket.clone().update(&who, fp).ok()
+				ticket.clone().update(who, fp).ok()
 			},
 			alias::RequestStatus::Requested {
 				maybe_ticket: Some((ref who, ref ticket)),
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
 				..
 			} => {
 				let fp = Footprint::from_parts(1, len as usize);
-				ticket.clone().update(&who, fp).ok()
+				ticket.clone().update(who, fp).ok()
 			},
 			alias::RequestStatus::Requested { maybe_ticket: Some(_), maybe_len: None, .. } => {
 				defensive!("Ticket cannot be re-evaluated");
@@ -143,16 +143,14 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let new_request_status = match (new_ticket, request_status.request_status.clone()) {
-			(
-				Some(new_ticket),
-				alias::RequestStatus::Unrequested { ticket: (who, ref mut ticket), len },
-			) => alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
+			(Some(new_ticket), alias::RequestStatus::Unrequested { ticket: (who, _), len }) =>
+				alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
 			(
 				Some(new_ticket),
 				alias::RequestStatus::Requested {
-					maybe_ticket: Some((who, ref mut ticket)),
+					maybe_ticket: Some((who, _)),
 					maybe_len: Some(len),
-					count: count,
+					count,
 				},
 			) => alias::RequestStatus::Requested {
 				maybe_ticket: Some((who, new_ticket)),
@@ -162,7 +160,7 @@ impl<T: Config> Pallet<T> {
 			_ => request_status.request_status,
 		};
 
-		alias::RequestStatusFor::<T>::insert(&request_status.hash, &new_request_status);
+		alias::RequestStatusFor::<T>::insert(request_status.hash, &new_request_status);
 		log::debug!(target: LOG_TARGET, "Integrating preimage request status: {:?}", new_request_status);
 
 		Ok(())
@@ -180,7 +178,7 @@ impl<T: Config> Pallet<T> {
 		for status in statuses {
 			match Self::do_receive_preimage_legacy_status(status) {
 				Ok(()) => count_good += 1,
-				Err(e) => {
+				Err(_) => {
 					count_bad += 1;
 				},
 			}
@@ -228,7 +226,7 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 		);
 	}
 
-	fn post_check(payload: Self::Payload) {
+	fn post_check(_payload: Self::Payload) {
 		// There are at least 10 preimages present (sanity check).
 		assert!(
 			alias::PreimageFor::<T>::iter_keys().count() > 10,
@@ -243,7 +241,7 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
 			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
-			assert!(preimage.len() <= 4 * 1024 * 1024 as usize, "Preimage::PreimageFor is too big");
+			assert!(preimage.len() <= 4 * 1024 * 1024_usize, "Preimage::PreimageFor is too big");
 			assert!(
 				preimage.len() == key.1 as usize,
 				"Preimage::PreimageFor is not the correct length"
@@ -253,7 +251,7 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 				"Preimage::PreimageFor hash mismatch"
 			);
 			assert!(
-				alias::RequestStatusFor::<T>::contains_key(&key.0),
+				alias::RequestStatusFor::<T>::contains_key(key.0),
 				"Preimage::RequestStatusFor is missing"
 			);
 		}
@@ -262,13 +260,13 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 			match status {
 				alias::RequestStatus::Unrequested { len, .. } => {
 					assert!(
-						alias::PreimageFor::<T>::contains_key(&(hash, len)),
+						alias::PreimageFor::<T>::contains_key((hash, len)),
 						"Preimage::RequestStatusFor is missing preimage"
 					);
 				},
 				alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
 					assert!(
-						alias::PreimageFor::<T>::contains_key(&(hash, len)),
+						alias::PreimageFor::<T>::contains_key((hash, len)),
 						"Preimage::RequestStatusFor is missing preimage"
 					);
 				},

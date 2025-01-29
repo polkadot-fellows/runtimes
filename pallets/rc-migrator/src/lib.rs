@@ -58,7 +58,7 @@ use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::hrmp;
 use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::{traits::TryConvert, AccountId32};
+use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 use storage::TransactionOutcome;
 use types::AhWeightInfo;
@@ -87,12 +87,6 @@ pub const MAX_XCM_SIZE: u32 = 50_000;
 
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
-
-impl OutOfWeightError {
-	pub fn new() -> Self {
-		Self
-	}
-}
 
 impl<T: Config> From<OutOfWeightError> for Error<T> {
 	fn from(_: OutOfWeightError) -> Self {
@@ -305,7 +299,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					//Self::transition(MigrationStage::NomPoolsMigrationInit);
+					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights

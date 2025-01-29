@@ -47,7 +47,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	// This makes the code simpler.
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		weight_counter: &mut WeightMeter,
+		_weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 
@@ -61,7 +61,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 					(next_key, 0)
 				},
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
-				Some(((hash, len), offset)) => {
+				Some(((hash, len), _)) => {
 					// Get the next key
 					let Some(next_key) = Self::next_key(Some((hash, len))) else {
 						break None;
@@ -70,7 +70,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				},
 			};
 			// Load the preimage
-			let Some(preimage) = alias::PreimageFor::<T>::get(&next_key_inner) else {
+			let Some(preimage) = alias::PreimageFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner)).map(|(hash, len)| ((hash, len), 0));
 				continue;
@@ -84,7 +84,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				.take(CHUNK_SIZE as usize)
 				.cloned()
 				.collect();
-			debug_assert!(chunk_bytes.len() > 0);
+			debug_assert!(!chunk_bytes.is_empty());
 
 			let Ok(bounded_chunk) = BoundedVec::try_from(chunk_bytes.clone()).defensive() else {
 				defensive!("Unreachable");
@@ -135,7 +135,7 @@ impl<T: Config> PreimageChunkMigrator<T> {
 		match key {
 			None => alias::PreimageFor::<T>::iter_keys(),
 			Some((hash, len)) => alias::PreimageFor::<T>::iter_keys_from(
-				alias::PreimageFor::<T>::hashed_key_for(&(hash, len)),
+				alias::PreimageFor::<T>::hashed_key_for((hash, len)),
 			),
 		}
 		// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
@@ -172,12 +172,12 @@ impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {
 	fn post_check(keys: Self::Payload) {
 		// Check that all keys are inserted
 		for (hash, len) in keys {
-			assert!(alias::PreimageFor::<T>::contains_key(&(hash, len)));
+			assert!(alias::PreimageFor::<T>::contains_key((hash, len)));
 		}
 
 		// Integrity check that all preimages have the correct hash and length
 		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
-			let preimage = alias::PreimageFor::<T>::get(&(hash, len)).expect("Storage corrupted");
+			let preimage = alias::PreimageFor::<T>::get((hash, len)).expect("Storage corrupted");
 
 			assert_eq!(preimage.len(), len as usize);
 			assert_eq!(BlakeTwo256::hash(preimage.as_slice()), hash);
