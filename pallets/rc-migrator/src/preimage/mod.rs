@@ -25,7 +25,7 @@ pub use chunks::{PreimageChunkMigrator, RcPreimageChunk};
 pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
 pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
 
-use crate::{types::*, *};
+use crate::*;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
 pub mod alias {

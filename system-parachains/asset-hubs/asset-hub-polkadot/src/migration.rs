@@ -39,10 +39,7 @@ pub enum RcFreezeReason {
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 	fn convert(a: RcHoldReason) -> RuntimeHoldReason {
-		match a {
-			// TODO mapping
-			_ => PreimageHoldReason::get(),
-		}
+		PreimageHoldReason::get()
 	}
 }
 

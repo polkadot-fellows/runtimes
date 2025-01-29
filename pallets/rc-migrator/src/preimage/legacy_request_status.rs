@@ -58,7 +58,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				},
 			};
 
-			let Some(request_status) = alias::StatusFor::<T>::get(&next_key_inner) else {
+			let Some(request_status) = alias::StatusFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption");
 				next_key = Self::next_key(Some(next_key_inner));
 				continue;
@@ -101,7 +101,7 @@ impl<T: Config> PreimageLegacyRequestStatusMigrator<T> {
 		match key {
 			None => alias::StatusFor::<T>::iter_keys().next(),
 			Some(key) =>
-				alias::StatusFor::<T>::iter_keys_from(alias::StatusFor::<T>::hashed_key_for(&key))
+				alias::StatusFor::<T>::iter_keys_from(alias::StatusFor::<T>::hashed_key_for(key))
 					.next(),
 		}
 	}

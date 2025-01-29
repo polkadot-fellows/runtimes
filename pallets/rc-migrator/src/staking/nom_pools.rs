@@ -103,7 +103,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 	type Error = Error<T>;
 
 	fn migrate_many(
-		mut current_key: Option<Self::Key>,
+		current_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(NomPoolsStage::StorageValues);
@@ -152,7 +152,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 					}
 				},
 				NomPoolsStage::BondedPools(pool_iter) => {
-					let mut new_pool_iter = match pool_iter.clone() {
+					let mut new_pool_iter = match pool_iter {
 						Some(pool_iter) => pallet_nomination_pools::BondedPools::<T>::iter_from(
 							pallet_nomination_pools::BondedPools::<T>::hashed_key_for(pool_iter),
 						),
@@ -161,16 +161,15 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 
 					match new_pool_iter.next() {
 						Some((key, pool)) => {
-							pallet_nomination_pools::BondedPools::<T>::remove(&key);
-							messages
-								.push(RcNomPoolsMessage::BondedPools { pool: (key.clone(), pool) });
+							pallet_nomination_pools::BondedPools::<T>::remove(key);
+							messages.push(RcNomPoolsMessage::BondedPools { pool: (key, pool) });
 							NomPoolsStage::BondedPools(Some(key))
 						},
 						None => NomPoolsStage::RewardPools(None),
 					}
 				},
 				NomPoolsStage::RewardPools(pool_iter) => {
-					let mut new_pool_iter = match pool_iter.clone() {
+					let mut new_pool_iter = match pool_iter {
 						Some(pool_iter) => alias::RewardPools::<T>::iter_from(
 							alias::RewardPools::<T>::hashed_key_for(pool_iter),
 						),
@@ -179,17 +178,16 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 
 					match new_pool_iter.next() {
 						Some((key, rewards)) => {
-							alias::RewardPools::<T>::remove(&key);
-							messages.push(RcNomPoolsMessage::RewardPools {
-								rewards: (key.clone(), rewards),
-							});
+							alias::RewardPools::<T>::remove(key);
+							messages
+								.push(RcNomPoolsMessage::RewardPools { rewards: (key, rewards) });
 							NomPoolsStage::RewardPools(Some(key))
 						},
 						None => NomPoolsStage::SubPoolsStorage(None),
 					}
 				},
 				NomPoolsStage::SubPoolsStorage(pool_iter) => {
-					let mut new_pool_iter = match pool_iter.clone() {
+					let mut new_pool_iter = match pool_iter {
 						Some(pool_iter) => alias::SubPoolsStorage::<T>::iter_from(
 							alias::SubPoolsStorage::<T>::hashed_key_for(pool_iter),
 						),
@@ -198,9 +196,9 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 
 					match new_pool_iter.next() {
 						Some((key, sub_pools)) => {
-							alias::SubPoolsStorage::<T>::remove(&key);
+							alias::SubPoolsStorage::<T>::remove(key);
 							messages.push(RcNomPoolsMessage::SubPoolsStorage {
-								sub_pools: (key.clone(), sub_pools),
+								sub_pools: (key, sub_pools),
 							});
 							NomPoolsStage::SubPoolsStorage(Some(key))
 						},
@@ -208,7 +206,7 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 					}
 				},
 				NomPoolsStage::Metadata(pool_iter) => {
-					let mut new_pool_iter = match pool_iter.clone() {
+					let mut new_pool_iter = match pool_iter {
 						Some(pool_iter) => pallet_nomination_pools::Metadata::<T>::iter_from(
 							pallet_nomination_pools::Metadata::<T>::hashed_key_for(pool_iter),
 						),
@@ -217,9 +215,8 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 
 					match new_pool_iter.next() {
 						Some((key, meta)) => {
-							pallet_nomination_pools::Metadata::<T>::remove(&key);
-							messages
-								.push(RcNomPoolsMessage::Metadata { meta: (key.clone(), meta) });
+							pallet_nomination_pools::Metadata::<T>::remove(key);
+							messages.push(RcNomPoolsMessage::Metadata { meta: (key, meta) });
 							NomPoolsStage::Metadata(Some(key))
 						},
 						None => NomPoolsStage::ReversePoolIdLookup(None),

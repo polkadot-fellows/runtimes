@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{types::*, *};
+use crate::*;
 use frame_support::traits::DefensiveSaturating;
 use pallet_nomination_pools::BondedPoolInner;
 use sp_runtime::{
@@ -56,7 +56,7 @@ impl<T: Config> Pallet<T> {
 				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
 			},
 			BondedPools { pool } => {
-				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(&pool.0));
+				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool.0));
 				log::debug!("Integrating NomPoolsBondedPool: {}", &pool.0);
 				pallet_nomination_pools::BondedPools::<T>::insert(
 					pool.0,
