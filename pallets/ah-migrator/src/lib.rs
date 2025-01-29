@@ -58,7 +58,7 @@ use pallet_rc_migrator::{
 	preimage::*,
 	proxy::*,
 	staking::{
-		fast_unstake::{FastUnstakeMigrator, FastUnstakeStorageValues, RcFastUnstakeMessage},
+		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
 };

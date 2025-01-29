@@ -17,7 +17,7 @@
 
 //! Fast unstake migration logic.
 
-use crate::{types::*, *};
+use crate::*;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_fast_unstake_messages(

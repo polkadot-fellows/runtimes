@@ -76,7 +76,6 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use referenda::ReferendaStage;
-use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
 use types::PalletMigration;
 
 /// The log target of this pallet.
