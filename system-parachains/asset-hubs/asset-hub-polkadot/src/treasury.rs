@@ -26,8 +26,6 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
-type BlaBla = PayAssetFromAccount<NativeAndAssets, xcm_config::RelayTreasuryLocation>;
-
 impl pallet_treasury::Config for Runtime {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;

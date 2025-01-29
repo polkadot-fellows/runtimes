@@ -111,8 +111,7 @@ use frame_support::{
 		fungible::{self, HoldConsideration},
 		fungibles,
 		tokens::{
-			imbalance::ResolveAssetTo, pay::PayAssetFromAccount, PayFromAccount,
-			UnityAssetBalanceConversion,
+			imbalance::ResolveAssetTo, pay::PayAssetFromAccount, UnityAssetBalanceConversion,
 		},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,

@@ -15,15 +15,9 @@
 
 use super::*;
 use codec::DecodeAll;
-use frame_support::{
-	defensive,
-	pallet_prelude::TypeInfo,
-	traits::{Bounded, QueryPreimage},
-};
+use frame_support::pallet_prelude::TypeInfo;
 use frame_system::pallet_prelude::BlockNumberFor;
-use pallet_referenda::BoundedCallOf;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
-use sp_core::H256;
 use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;

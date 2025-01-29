@@ -95,20 +95,20 @@ where
 		// only applicable for the local accounts
 		let account_id = match who {
 			VersionedLocatableAccount::V3 { location, account_id } if location.is_here() =>
-				&account_id.clone().try_into().map_err(|_| ())?,
+				&(*account_id).try_into().map_err(|_| ())?,
 			VersionedLocatableAccount::V4 { location, account_id } if location.is_here() =>
 				account_id,
 			_ => return Err(()),
 		};
-		C::convert_location(account_id).map(|a| a.clone()).ok_or(())
+		C::convert_location(account_id).ok_or(())
 	}
 	fn match_asset(asset: &VersionedLocatableAsset) -> Result<xcm::v4::Location, ()> {
 		match asset {
 			VersionedLocatableAsset::V3 { location, asset_id } if location.is_here() =>
-				asset_id.clone().try_into().map(|a: xcm::v4::AssetId| a.0).map_err(|_| ()),
+				(*asset_id).try_into().map(|a: xcm::v4::AssetId| a.0).map_err(|_| ()),
 			VersionedLocatableAsset::V4 { location, asset_id } if location.is_here() =>
 				Ok(asset_id.clone().0),
-			_ => return Err(()),
+			_ => Err(()),
 		}
 	}
 }

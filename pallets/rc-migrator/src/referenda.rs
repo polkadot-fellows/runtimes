@@ -15,9 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_referenda::{
-	DecidingCount, MetadataOf, ReferendumCount, ReferendumInfoFor, TrackIdOf, TrackQueue,
-};
+use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumInfoFor, TrackQueue};
 
 /// The stages of the referenda pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
@@ -36,19 +34,17 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 	type Error = Error<T>;
 
 	fn migrate_many(
-		mut last_key: Option<Self::Key>,
+		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let stage = match last_key {
 			None | Some(ReferendaStage::StorageValues) => {
-				let _ = Self::migrate_values(weight_counter)?;
+				Self::migrate_values(weight_counter)?;
 				Some(ReferendaStage::ReferendumInfo(None))
 			},
 			Some(ReferendaStage::ReferendumInfo(last_key)) =>
-				match Self::migrate_many_referendum_info(last_key, weight_counter)? {
-					Some(last_key) => Some(ReferendaStage::ReferendumInfo(Some(last_key))),
-					None => None,
-				},
+				Self::migrate_many_referendum_info(last_key, weight_counter)?
+					.map(|last_key| ReferendaStage::ReferendumInfo(Some(last_key))),
 		};
 		Ok(stage)
 	}
@@ -136,7 +132,7 @@ impl<T: Config> ReferendaMigrator<T> {
 				},
 			};
 
-			let Some(info) = pallet_referenda::ReferendumInfoFor::<T, ()>::take(&next_key) else {
+			let Some(info) = pallet_referenda::ReferendumInfoFor::<T, ()>::take(next_key) else {
 				defensive!("ReferendumInfoFor is empty");
 				last_key = ReferendumInfoFor::<T, ()>::iter_keys_from_key(next_key).next();
 				continue;

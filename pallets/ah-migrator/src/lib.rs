@@ -46,8 +46,8 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, DefensiveResult, LockableCurrency, OriginTrait, QueryPreimage,
-		ReservableCurrency, WithdrawReasons as LockWithdrawReasons,
+		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency,
+		WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;

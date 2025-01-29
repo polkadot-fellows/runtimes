@@ -17,9 +17,9 @@
 use crate::*;
 use frame_support::traits::{schedule::v3::Anon, Bounded, BoundedInline, DefensiveTruncateFrom};
 use pallet_referenda::{
-	BalanceOf, BoundedCallOf, DecidingCount, MetadataOf, ReferendumCount, ReferendumInfo,
-	ReferendumInfoFor, ReferendumInfoOf, ReferendumStatus, ReferendumStatusOf, ScheduleAddressOf,
-	TallyOf, TrackIdOf, TrackQueue,
+	BalanceOf, BoundedCallOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor,
+	ReferendumInfoOf, ReferendumStatus, ReferendumStatusOf, ScheduleAddressOf, TallyOf, TrackIdOf,
+	TrackQueue,
 };
 
 /// ReferendumInfoOf for RC.
