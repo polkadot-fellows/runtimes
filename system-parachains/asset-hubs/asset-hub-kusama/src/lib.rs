@@ -1004,7 +1004,7 @@ impl
 
 impl pallet_remote_proxy::Config for Runtime {
 	// The time between creating a proof and using the proof in a transaction.
-	type MaxStorageRootsToKeep = ConstU32<{ RC_MINUTES * 1 }>;
+	type MaxStorageRootsToKeep = ConstU32<{ RC_MINUTES }>;
 	type RemoteProxy = kusama_runtime_constants::proxy::RemoteProxyInterface<
 		ProxyType,
 		RelayChainToLocalProxyTypeConverter,
