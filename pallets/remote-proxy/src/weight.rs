@@ -25,14 +25,14 @@ pub trait WeightInfo {
 
 impl WeightInfo for () {
 	fn remote_proxy_with_registered_proof() -> Weight {
-		Weight::zero()
+		Weight::MAX
 	}
 
 	fn register_remote_proxy_proof() -> Weight {
-		Weight::zero()
+		Weight::MAX
 	}
 
 	fn remote_proxy() -> Weight {
-		Weight::zero()
+		Weight::MAX
 	}
 }

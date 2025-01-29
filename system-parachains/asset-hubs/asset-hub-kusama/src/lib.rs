@@ -38,7 +38,7 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use kusama_runtime_constants::time::MINUTES;
+use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -1003,7 +1003,8 @@ impl
 }
 
 impl pallet_remote_proxy::Config for Runtime {
-	type MaxStorageRootsToKeep = ConstU32<{ MINUTES * 20 }>;
+	// The time between creating a proof and using the proof in a transaction.
+	type MaxStorageRootsToKeep = ConstU32<{ RC_MINUTES * 1 }>;
 	type RemoteProxy = kusama_runtime_constants::proxy::RemoteProxyInterface<
 		ProxyType,
 		RelayChainToLocalProxyTypeConverter,
