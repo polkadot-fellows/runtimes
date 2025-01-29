@@ -2043,7 +2043,8 @@ pub mod restore_corrupt_ledger_2 {
 
 		#[cfg(feature = "try-runtime")]
 		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			let found_corrupted: bool = Decode::decode(&mut &state[..])?;
+			let found_corrupted: bool = Decode::decode(&mut &state[..])
+				.map_err(|_| sp_runtime::TryRuntimeError::Corruption)?;
 			if found_corrupted {
 				assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_none());
 			}
