@@ -19,18 +19,81 @@ use pallet_referenda::{
 	DecidingCount, MetadataOf, ReferendumCount, ReferendumInfoFor, TrackIdOf, TrackQueue,
 };
 
-pub struct ReferendumInfoMigrator<T: Config> {
+/// The stages of the referenda pallet migration.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+pub enum ReferendaStage {
+	#[default]
+	StorageValues,
+	ReferendumInfo(Option<u32>),
+}
+
+pub struct ReferendaMigrator<T: Config> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
-impl<T: Config> MultiBlockMigration for ReferendumInfoMigrator<T> {
-	type Key = u32;
+impl<T: Config> PalletMigration for ReferendaMigrator<T> {
+	type Key = ReferendaStage;
 	type Error = Error<T>;
 
 	fn migrate_many(
 		mut last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
+		let stage = match last_key {
+			None | Some(ReferendaStage::StorageValues) => {
+				let _ = Self::migrate_values(weight_counter)?;
+				Some(ReferendaStage::ReferendumInfo(None))
+			},
+			Some(ReferendaStage::ReferendumInfo(last_key)) =>
+				match Self::migrate_many_referendum_info(last_key, weight_counter)? {
+					Some(last_key) => Some(ReferendaStage::ReferendumInfo(Some(last_key))),
+					None => None,
+				},
+		};
+		Ok(stage)
+	}
+}
+
+impl<T: Config> ReferendaMigrator<T> {
+	fn migrate_values(_weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
+		defensive_assert!(
+			MetadataOf::<T, ()>::iter_keys().next().is_none(),
+			"Referenda metadata is not empty"
+		);
+
+		let referendum_count = ReferendumCount::<T, ()>::take();
+
+		const TRACKS_COUNT: usize = 16;
+
+		// track_id, count
+		let deciding_count =
+			DecidingCount::<T, ()>::iter().collect::<Vec<(TrackIdOf<T, ()>, u32)>>();
+		defensive_assert!(
+			deciding_count.len() <= TRACKS_COUNT,
+			"Deciding count unexpectedly large"
+		);
+		let _ = DecidingCount::<T, ()>::clear(TRACKS_COUNT as u32, None);
+
+		// (track_id, vec<(referendum_id, votes)>)
+		let track_queue = TrackQueue::<T, ()>::iter()
+			.map(|(track_id, queue)| (track_id, queue.into_inner()))
+			.collect::<Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>>();
+		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
+		let _ = TrackQueue::<T, ()>::clear(TRACKS_COUNT as u32, None);
+
+		Pallet::<T>::send_xcm(types::AhMigratorCall::<T>::ReceiveReferendaValues {
+			referendum_count,
+			deciding_count,
+			track_queue,
+		})?;
+
+		Ok(())
+	}
+
+	fn migrate_many_referendum_info(
+		mut last_key: Option<u32>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<u32>, Error<T>> {
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
@@ -92,47 +155,5 @@ impl<T: Config> MultiBlockMigration for ReferendumInfoMigrator<T> {
 		}
 
 		Ok(last_key)
-	}
-}
-
-pub struct ReferendaMigrator<T: Config> {
-	_phantom: sp_std::marker::PhantomData<T>,
-}
-
-impl<T: Config> SingleBlockMigration for ReferendaMigrator<T> {
-	type Error = Error<T>;
-	fn migrate(_weight_counter: &mut WeightMeter) -> Result<(), Self::Error> {
-		defensive_assert!(
-			MetadataOf::<T, ()>::iter_keys().next().is_none(),
-			"Referenda metadata is not empty"
-		);
-
-		let referendum_count = ReferendumCount::<T, ()>::take();
-
-		const TRACKS_COUNT: usize = 16;
-
-		// track_id, count
-		let deciding_count =
-			DecidingCount::<T, ()>::iter().collect::<Vec<(TrackIdOf<T, ()>, u32)>>();
-		defensive_assert!(
-			deciding_count.len() <= TRACKS_COUNT,
-			"Deciding count unexpectedly large"
-		);
-		let _ = DecidingCount::<T, ()>::clear(TRACKS_COUNT as u32, None);
-
-		// (track_id, vec<(referendum_id, votes)>)
-		let track_queue = TrackQueue::<T, ()>::iter()
-			.map(|(track_id, queue)| (track_id, queue.into_inner()))
-			.collect::<Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>>();
-		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
-		let _ = TrackQueue::<T, ()>::clear(TRACKS_COUNT as u32, None);
-
-		Pallet::<T>::send_xcm(types::AhMigratorCall::<T>::ReceiveReferenda {
-			referendum_count,
-			deciding_count,
-			track_queue,
-		})?;
-
-		Ok(())
 	}
 }

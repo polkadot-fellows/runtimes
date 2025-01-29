@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use frame_support::traits::{schedule::v3::Anon, Bounded, BoundedInline};
+use frame_support::traits::{schedule::v3::Anon, Bounded, BoundedInline, DefensiveTruncateFrom};
 use pallet_referenda::{
 	BalanceOf, BoundedCallOf, DecidingCount, MetadataOf, ReferendumCount, ReferendumInfo,
 	ReferendumInfoFor, ReferendumInfoOf, ReferendumStatus, ReferendumStatusOf, ScheduleAddressOf,
@@ -168,7 +168,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_receive_referenda(
+	pub fn do_receive_referenda_values(
 		referendum_count: u32,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
@@ -180,8 +180,7 @@ impl<T: Config> Pallet<T> {
 			DecidingCount::<T, ()>::insert(track_id, count);
 		});
 		track_queue.into_iter().for_each(|(track_id, queue)| {
-			defensive_assert!(queue.len() as u32 <= T::MaxQueued::get(), "track queue too large");
-			let queue = BoundedVec::<_, T::MaxQueued>::truncate_from(queue);
+			let queue = BoundedVec::<_, T::MaxQueued>::defensive_truncate_from(queue);
 			TrackQueue::<T, ()>::insert(track_id, queue);
 		});
 

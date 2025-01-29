@@ -242,6 +242,18 @@ pub mod pallet {
 			/// How many preimage legacy status failed to integrate.
 			count_bad: u32,
 		},
+		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
+		NomPoolsMessagesBatchReceived {
+			/// How many nom pools messages are in the batch.
+			count: u32,
+		},
+		/// Processed a batch of `RcNomPoolsMessage` that we received.
+		NomPoolsMessagesBatchProcessed {
+			/// How many nom pools messages were successfully integrated.
+			count_good: u32,
+			/// How many nom pools messages failed to integrate.
+			count_bad: u32,
+		},
 		/// We received a batch of referendums that we are going to integrate.
 		ReferendumsBatchReceived {
 			/// How many referendums are in the batch.
@@ -255,18 +267,6 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		ReferendaProcessed,
-		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
-		NomPoolsMessagesBatchReceived {
-			/// How many nom pools messages are in the batch.
-			count: u32,
-		},
-		/// Processed a batch of `RcNomPoolsMessage` that we received.
-		NomPoolsMessagesBatchProcessed {
-			/// How many nom pools messages were successfully integrated.
-			count_good: u32,
-			/// How many nom pools messages failed to integrate.
-			count_bad: u32,
-		},
 	}
 
 	#[pallet::pallet]
@@ -369,20 +369,9 @@ pub mod pallet {
 			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 
-		/// Receive referendums from the Relay Chain.
-		#[pallet::call_index(8)]
-		pub fn receive_referendums(
-			origin: OriginFor<T>,
-			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_referendums(referendums).map_err(Into::into)
-		}
-
 		/// Receive referendum counts, deciding counts, votes for the track queue.
-		#[pallet::call_index(9)]
-		pub fn receive_referenda(
+		#[pallet::call_index(8)]
+		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
 			// track_id, count
@@ -392,8 +381,19 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_referenda(referendum_count, deciding_count, track_queue)
+			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
 				.map_err(Into::into)
+		}
+
+		/// Receive referendums from the Relay Chain.
+		#[pallet::call_index(9)]
+		pub fn receive_referendums(
+			origin: OriginFor<T>,
+			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_referendums(referendums).map_err(Into::into)
 		}
 	}
 

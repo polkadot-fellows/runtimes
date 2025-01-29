@@ -1100,7 +1100,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToProxyType = migration::RcToProxyType;
 	type RcToAhDelay = migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type RcToProxyDelay = migration::RcToProxyDelay;
 	type RcToAhCall = migration::RcToAhCall;
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;

@@ -71,8 +71,9 @@ use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
+use referenda::ReferendaStage;
 use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
-use types::{MultiBlockMigration, SingleBlockMigration};
+use types::PalletMigration;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -155,10 +156,9 @@ pub enum MigrationStage<AccountId> {
 	},
 	NomPoolsMigrationDone,
 	ReferendaMigrationInit,
-	ReferendumMigrationOngoing {
-		last_key: Option<u32>,
+	ReferendaMigrationOngoing {
+		last_key: Option<ReferendaStage>,
 	},
-	ReferendaMigrationOngoing,
 	ReferendaMigrationDone,
 	MigrationDone,
 }
@@ -582,51 +582,35 @@ pub mod pallet {
 					Self::transition(MigrationStage::ReferendaMigrationInit);
 				},
 				MigrationStage::ReferendaMigrationInit => {
-					Self::transition(MigrationStage::ReferendumMigrationOngoing { last_key: None });
+					Self::transition(MigrationStage::ReferendaMigrationOngoing {
+						last_key: Some(Default::default()),
+					});
 				},
-				MigrationStage::ReferendumMigrationOngoing { last_key } => {
-					let res = with_transaction_opaque_err::<Option<u32>, Error<T>, _>(|| {
-						match referenda::ReferendumInfoMigrator::<T>::migrate_many(
-							last_key,
-							&mut weight_counter,
-						) {
-							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
-							Err(e) => TransactionOutcome::Rollback(Err(e)),
-						}
-					})
-					.expect("Always returning Ok; qed");
+				MigrationStage::ReferendaMigrationOngoing { last_key } => {
+					let res =
+						with_transaction_opaque_err::<Option<ReferendaStage>, Error<T>, _>(|| {
+							match referenda::ReferendaMigrator::<T>::migrate_many(
+								last_key,
+								&mut weight_counter,
+							) {
+								Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+								Err(e) => TransactionOutcome::Rollback(Err(e)),
+							}
+						})
+						.expect("Always returning Ok; qed");
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::ReferendaMigrationOngoing);
+							Self::transition(MigrationStage::ReferendaMigrationDone);
 						},
 						Ok(Some(last_key)) => {
-							Self::transition(MigrationStage::ReferendumMigrationOngoing {
+							Self::transition(MigrationStage::ReferendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
 						Err(err) => {
-							defensive!("Error while migrating referendums: {:?}", err);
-							log::error!(target: LOG_TARGET, "Error while migrating referendums: {:?}", err);
-						},
-					}
-				},
-				MigrationStage::ReferendaMigrationOngoing => {
-					let res = with_transaction_opaque_err::<(), Error<T>, _>(|| {
-						match referenda::ReferendaMigrator::<T>::migrate(&mut weight_counter) {
-							Ok(()) => TransactionOutcome::Commit(Ok(())),
-							Err(e) => TransactionOutcome::Rollback(Err(e)),
-						}
-					})
-					.expect("Always returning Ok; qed");
-					match res {
-						Ok(()) => {
-							Self::transition(MigrationStage::ReferendaMigrationDone);
-						},
-						Err(err) => {
-							defensive!("Error while migrating referendums: {:?}", err);
-							log::error!(target: LOG_TARGET, "Error while migrating referendums: {:?}", err);
-							// stage unchanged, retry.
+							defensive!("Error while migrating referenda: {:?}", err);
+							log::error!(target: LOG_TARGET, "Error while migrating referenda: {:?}", err);
 						},
 					}
 				},

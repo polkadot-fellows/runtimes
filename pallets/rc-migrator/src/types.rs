@@ -48,13 +48,13 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 7)]
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
-	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
-	#[codec(index = 9)]
-	ReceiveReferenda {
+	ReceiveReferendaValues {
 		referendum_count: u32,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	},
+	#[codec(index = 9)]
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -83,7 +83,7 @@ impl AhWeightInfo for () {
 	}
 }
 
-pub trait MultiBlockMigration {
+pub trait PalletMigration {
 	type Key: codec::MaxEncodedLen;
 	type Error;
 
@@ -95,12 +95,6 @@ pub trait MultiBlockMigration {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error>;
-}
-
-pub trait SingleBlockMigration {
-	type Error;
-	/// Migrates pallet data that can be completed within a single block on RC and AH.
-	fn migrate(weight_counter: &mut WeightMeter) -> Result<(), Self::Error>;
 }
 
 /// Trait to run some checks before and after a pallet migration.
