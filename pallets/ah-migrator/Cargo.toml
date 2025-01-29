@@ -64,6 +64,7 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"hex/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
