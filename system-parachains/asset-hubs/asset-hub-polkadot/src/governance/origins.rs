@@ -18,6 +18,7 @@
 
 pub use pallet_custom_origins::*;
 
+// From https://github.com/polkadot-fellows/runtimes/blob/7bbf00566d86d51fcd5582779e7e9c37a814405e/relay/polkadot/src/governance/origins.rs#L21-L154
 #[frame_support::pallet]
 pub mod pallet_custom_origins {
 	use crate::{Balance, DOLLARS, GRAND};

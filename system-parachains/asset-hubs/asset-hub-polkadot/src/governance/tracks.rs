@@ -20,6 +20,7 @@
 
 use super::*;
 
+// From https://github.com/polkadot-fellows/runtimes/blob/f29ef4bf7fc7039a9a62f0fd4e9abd95bfee6436/relay/polkadot/src/governance/tracks.rs#L21-L334
 const fn percent(x: i32) -> sp_arithmetic::FixedI64 {
 	sp_arithmetic::FixedI64::from_rational(x as u128, 100)
 }

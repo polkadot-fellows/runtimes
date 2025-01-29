@@ -122,8 +122,9 @@ impl<T: Config> SingleBlockMigration for ReferendaMigrator<T> {
 
 		// (track_id, vec<(referendum_id, votes)>)
 		let track_queue = TrackQueue::<T, ()>::iter()
+			.drain()
 			.map(|(track_id, queue)| (track_id, queue.into_inner()))
-			.collect::<Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>>();
+			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
 		let _ = TrackQueue::<T, ()>::clear(TRACKS_COUNT as u32, None);
 
