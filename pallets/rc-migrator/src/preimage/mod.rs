@@ -71,7 +71,6 @@ pub mod alias {
 	pub type TicketOf<T> = <T as pallet_preimage::Config>::Consideration;
 
 	// Coped from https://github.com/paritytech/polkadot-sdk/blob/00946b10ab18331f959f5cbced7c433b6132b1cb/substrate/frame/preimage/src/lib.rs#L173-L185
-	#[deprecated = "RequestStatusFor"]
 	#[frame_support::storage_alias(pallet_name)]
 	pub type StatusFor<T: pallet_preimage::Config> = StorageMap<
 		pallet_preimage::Pallet<T>,

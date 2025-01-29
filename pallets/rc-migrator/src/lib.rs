@@ -86,18 +86,6 @@ pub const MAX_XCM_SIZE: u32 = 50_000;
 /// Out of weight Error. Can be converted to a pallet error for convenience.
 pub struct OutOfWeightError;
 
-impl Default for OutOfWeightError {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
-impl OutOfWeightError {
-	pub fn new() -> Self {
-		Self
-	}
-}
-
 impl<T: Config> From<OutOfWeightError> for Error<T> {
 	fn from(_: OutOfWeightError) -> Self {
 		Self::OutOfWeight

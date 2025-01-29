@@ -32,7 +32,7 @@
 //! ```
 
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use frame_support::{pallet_prelude::*, traits::*};
+use frame_support::traits::*;
 use pallet_rc_migrator::{types::PalletMigrationChecks, RcMigrationStage};
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;

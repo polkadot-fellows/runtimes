@@ -43,7 +43,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		weight_counter: &mut WeightMeter,
+		_weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 

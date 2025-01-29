@@ -143,14 +143,12 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let new_request_status = match (new_ticket, request_status.request_status.clone()) {
-			(
-				Some(new_ticket),
-				alias::RequestStatus::Unrequested { ticket: (who, ref mut ticket), len },
-			) => alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
+			(Some(new_ticket), alias::RequestStatus::Unrequested { ticket: (who, _), len }) =>
+				alias::RequestStatus::Unrequested { ticket: (who, new_ticket), len },
 			(
 				Some(new_ticket),
 				alias::RequestStatus::Requested {
-					maybe_ticket: Some((who, ref mut ticket)),
+					maybe_ticket: Some((who, _)),
 					maybe_len: Some(len),
 					count,
 				},
@@ -180,7 +178,7 @@ impl<T: Config> Pallet<T> {
 		for status in statuses {
 			match Self::do_receive_preimage_legacy_status(status) {
 				Ok(()) => count_good += 1,
-				Err(e) => {
+				Err(_) => {
 					count_bad += 1;
 				},
 			}
@@ -228,7 +226,7 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 		);
 	}
 
-	fn post_check(payload: Self::Payload) {
+	fn post_check(_payload: Self::Payload) {
 		// There are at least 10 preimages present (sanity check).
 		assert!(
 			alias::PreimageFor::<T>::iter_keys().count() > 10,

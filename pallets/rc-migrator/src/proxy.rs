@@ -129,7 +129,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(OutOfWeightError::new());
+			return Err(OutOfWeightError);
 		}
 
 		let translated_proxies = proxies
@@ -168,7 +168,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		};
 
 		// Process announcements until we run out of weight
-		for (acc, (announcements, deposit)) in iter.by_ref() {
+		for (acc, (_announcements, deposit)) in iter.by_ref() {
 			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
 				break;
 			}

@@ -47,7 +47,7 @@ impl<T: Config> Pallet<T> {
 				count_good += 1;
 			}
 		}
-		count_good -= count_bad;
+
 		Self::deposit_event(Event::<T>::AccountBatchProcessed { count_good, count_bad });
 		Ok(())
 	}

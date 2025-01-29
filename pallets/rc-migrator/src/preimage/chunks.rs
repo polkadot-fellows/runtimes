@@ -47,7 +47,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	// This makes the code simpler.
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		weight_counter: &mut WeightMeter,
+		_weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 
@@ -61,7 +61,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 					(next_key, 0)
 				},
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
-				Some(((hash, len), offset)) => {
+				Some(((hash, len), _)) => {
 					// Get the next key
 					let Some(next_key) = Self::next_key(Some((hash, len))) else {
 						break None;

@@ -38,14 +38,14 @@ pub enum RcFreezeReason {
 
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(a: RcHoldReason) -> RuntimeHoldReason {
+	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
 		PreimageHoldReason::get()
 	}
 }
 
 pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
-	fn convert(a: RcFreezeReason) -> RuntimeFreezeReason {
+	fn convert(_: RcFreezeReason) -> RuntimeFreezeReason {
 		todo!()
 	}
 }
