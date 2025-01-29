@@ -263,10 +263,8 @@ jobs:
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
-          # Dirty hack to find out if the `metadata-hash` feature exists for the given package.
-          # Should print "error: no bin target named `something-that-does-not-exist`." if the feature doesn't exist.
-          # Otherwise it should print "error: the package 'glutton-kusama-runtime' does not contain this feature: metadata-hash".
-          if ! cargo build -p ${{ matrix.runtime.package }} --features metadata-hash --bin something-that-does-not-exist 2>&1 | grep "does not contain this feature: metadata-hash"; then
+          # Find out if the `metadata-hash` feature exists for the given package.
+          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
           
