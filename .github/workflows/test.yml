@@ -73,7 +73,7 @@ jobs:
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Download frame-omni-bencher
         run: |
@@ -142,7 +142,7 @@ jobs:
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
@@ -178,7 +178,7 @@ jobs:
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
@@ -216,7 +216,7 @@ jobs:
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: |
