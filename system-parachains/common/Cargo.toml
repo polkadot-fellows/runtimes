@@ -25,24 +25,24 @@ xcm-executor = { workspace = true }
 default = ["std"]
 std = [
 	"codec/std",
+	"frame-support/std",
+	"polkadot-runtime-common/std",
 	"scale-info/std",
 	"sp-api/std",
 	"sp-runtime/std",
-	"frame-support/std",
-	"polkadot-runtime-common/std",
-	"xcm/std",
 	"xcm-executor/std",
+	"xcm/std",
 ]
 
 runtime-benchmarks = [
-	"sp-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 ]
 
 try-runtime = [
-	"sp-runtime/try-runtime",
 	"frame-support/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"sp-runtime/try-runtime",
 ]
