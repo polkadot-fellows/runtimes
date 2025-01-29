@@ -299,7 +299,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					//Self::transition(MigrationStage::NomPoolsMigrationInit);
+					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights

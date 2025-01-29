@@ -98,7 +98,7 @@ impl<T: Config> Pallet<T> {
 							status.decision_deposit,
 						),
 					);
-					log::info!("Referendum {} cancelled", id);
+					log::error!("!!! Referendum {} cancelled", id);
 				};
 
 				let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
@@ -133,7 +133,10 @@ impl<T: Config> Pallet<T> {
 				let inline = if let Ok(i) = BoundedInline::try_from(call.encode()) {
 					i
 				} else {
-					defensive!("Call encoded length is too large for inline encoding");
+					let data = call.encode();
+					log::error!("Failed to bound call for referendum {}, orig_len={}, new_len={}, pallet={:?}, call={:?}, hex={}",
+								id, encoded_call.len(), data.len(), data.clone()[0], data.clone()[1], hex::encode(data));
+					//defensive!("Call encoded length is too large for inline encoding");
 					// TODO: if we have such a case we would need to dispatch two call on behalf of
 					// the original preimage submitter to release the funds for the new preimage
 					// deposit and dispatch the call to note a new preimage. or we provide a

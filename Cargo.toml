@@ -77,6 +77,7 @@ frame-try-runtime = { version = "0.44.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.30.0", package = "sc-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
+hex = { version = "0.4.1", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
 kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
