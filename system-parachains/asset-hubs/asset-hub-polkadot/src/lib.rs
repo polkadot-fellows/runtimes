@@ -110,9 +110,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::{
-			imbalance::ResolveAssetTo, pay::PayAssetFromAccount, UnityAssetBalanceConversion,
-		},
+		tokens::{imbalance::ResolveAssetTo, UnityAssetBalanceConversion},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
 		TransformOrigin, WithdrawReasons,
