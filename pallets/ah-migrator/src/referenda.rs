@@ -27,6 +27,8 @@ use pallet_referenda::{
 /// The `RuntimeOrigin` is a type argument that needs to be mapped to AH `RuntimeOrigin`.
 /// Inline `proposal`s and the ones stored by `Preimage` pallet should also be mapped to get the
 /// final local `pallet_referenda::ReferendumInfoFor::<T, ()>`.
+///
+/// Reflects: `pallet_referenda::ReferendumInfoOf::<T, ()>`.
 pub type RcReferendumInfoOf<T, I> = ReferendumInfo<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,
@@ -39,6 +41,8 @@ pub type RcReferendumInfoOf<T, I> = ReferendumInfo<
 >;
 
 /// RcReferendumStatusOf for RC.
+///
+/// Reflects: `pallet_referenda::ReferendumStatusOf::<T, ()>`.
 pub type RcReferendumStatusOf<T, I> = ReferendumStatus<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,

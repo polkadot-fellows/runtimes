@@ -98,7 +98,7 @@ pub struct NomPoolsMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
-impl<T: Config> MultiBlockMigration for NomPoolsMigrator<T> {
+impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 	type Key = NomPoolsStage<T::AccountId>;
 	type Error = Error<T>;
 

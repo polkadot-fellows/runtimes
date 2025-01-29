@@ -66,20 +66,18 @@ impl<T: Config> ReferendaMigrator<T> {
 		const TRACKS_COUNT: usize = 16;
 
 		// track_id, count
-		let deciding_count =
-			DecidingCount::<T, ()>::iter().collect::<Vec<(TrackIdOf<T, ()>, u32)>>();
+		let deciding_count = DecidingCount::<T, ()>::iter().drain().collect::<Vec<_>>();
 		defensive_assert!(
 			deciding_count.len() <= TRACKS_COUNT,
 			"Deciding count unexpectedly large"
 		);
-		let _ = DecidingCount::<T, ()>::clear(TRACKS_COUNT as u32, None);
 
 		// (track_id, vec<(referendum_id, votes)>)
 		let track_queue = TrackQueue::<T, ()>::iter()
+			.drain()
 			.map(|(track_id, queue)| (track_id, queue.into_inner()))
-			.collect::<Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>>();
+			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
-		let _ = TrackQueue::<T, ()>::clear(TRACKS_COUNT as u32, None);
 
 		Pallet::<T>::send_xcm(types::AhMigratorCall::<T>::ReceiveReferendaValues {
 			referendum_count,
