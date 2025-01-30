@@ -7887,9 +7887,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-bounties"
-version = "37.0.0"
+version = "37.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1163f9cd8bbc47ec0c6900a3ca67689d8d7b40bedfa6aa22b1b3c6027b1090e"
+checksum = "59f3d032f78624b12238a31b6e80ab3e112381a7bc222df152650e33bb2ce190"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -10230,9 +10230,9 @@ dependencies = [
 
 [[package]]
 name = "polkadot-runtime-parachains"
-version = "17.0.1"
+version = "17.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd58e3a17e5df678f5737b018cbfec603af2c93bec56bbb9f8fb8b2b017b54b1"
+checksum = "1d4cdf181c2419b35c2cbde813da2d8ee777b69b4a6fa346b962d144e3521976"
 dependencies = [
  "bitflags 1.3.2",
  "bitvec",
@@ -13069,9 +13069,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-fixtures"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b099db83f4c10c0bf84e87deb1596019f91411ea1c8c9733ea9a7f2e7e967073"
+checksum = "b1f251e579b3d3d93cf833c8e503122808742dee33e7ea53b0f292a76c024d66"
 dependencies = [
  "hex-literal",
  "snowbridge-beacon-primitives",
@@ -13126,9 +13126,9 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-router-primitives"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "025f1e6805753821b1db539369f1fb183fd59fd5df7023f7633a4c0cfd3e62f9"
+checksum = "aefe74eafeac92e1d9e46b7bb76ec297f6182b4a023f7e7eb7eb8be193f93bef"
 dependencies = [
  "frame-support",
  "hex-literal",
@@ -14554,9 +14554,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "17.0.0"
+version = "17.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79dd0c5332a5318e58f0300b20768b71cf9427c906f94a743c9dc7c3ee9e7fa9"
+checksum = "4c89045f495097293ce29df1f3f459e9ccc991ff2ee88a4a91e8110a6886d2c8"
 dependencies = [
  "environmental",
  "frame-benchmarking",

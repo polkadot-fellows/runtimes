@@ -96,7 +96,7 @@ pallet-bags-list = { version = "37.0.0", default-features = false }
 pallet-balances = { version = "39.0.0", default-features = false }
 pallet-beefy = { version = "39.0.0", default-features = false }
 pallet-beefy-mmr = { version = "39.0.0", default-features = false }
-pallet-bounties = { version = "37.0.0", default-features = false }
+pallet-bounties = { version = "37.0.2", default-features = false }
 pallet-bridge-grandpa = { version = "0.18.0", default-features = false }
 pallet-bridge-messages = { version = "0.18.0", default-features = false }
 pallet-bridge-parachains = { version = "0.18.0", default-features = false }
@@ -192,9 +192,9 @@ polkadot-system-emulated-network = { path = "integration-tests/emulated/networks
 primitive-types = { version = "0.12.2", default-features = false }
 frame-metadata-hash-extension = { version = "0.6.0", default-features = false }
 remote-externalities = { version = "0.46.0", package = "frame-remote-externalities" }
-runtime-parachains = { version = "17.0.1", default-features = false, package = "polkadot-runtime-parachains" }
+runtime-parachains = { version = "17.0.2", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "38.0.0" }
-sc-network = { version = "0.45.3" }
+sc-network = { version = "0.45.5" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
@@ -205,11 +205,11 @@ snowbridge-core = { version = "0.10.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.10.0", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.10.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.10.0", default-features = false }
-snowbridge-pallet-inbound-queue-fixtures = { version = "0.18.0" }
+snowbridge-pallet-inbound-queue-fixtures = { version = "0.18.1" }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.18.0" }
 snowbridge-pallet-outbound-queue = { version = "0.10.0", default-features = false }
 snowbridge-pallet-system = { version = "0.10.0", default-features = false }
-snowbridge-router-primitives = { version = "0.16.0", default-features = false }
+snowbridge-router-primitives = { version = "0.16.1", default-features = false }
 snowbridge-runtime-common = { version = "0.10.0", default-features = false }
 snowbridge-runtime-test-common = { version = "0.12.0" }
 snowbridge-system-runtime-api = { version = "0.10.0", default-features = false }
@@ -243,7 +243,7 @@ tokio = { version = "1.36.0" }
 xcm = { version = "14.2.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "17.0.3", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.16.0" }
-xcm-executor = { version = "17.0.0", default-features = false, package = "staging-xcm-executor" }
+xcm-executor = { version = "17.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.4.2", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.35.0", default-features = false }
