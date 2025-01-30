@@ -17,6 +17,7 @@ polkadot-runtime-common = { workspace = true }
 sp-runtime = { workspace = true }
 sp-weights = { workspace = true }
 sp-core = { workspace = true }
+sp-trie = { workspace = true, optional = true }
 pallet-remote-proxy = { workspace = true }
 
 xcm-builder = { workspace = true }
@@ -36,3 +37,7 @@ std = [
 	"xcm-builder/std",
 ]
 fast-runtime = []
+runtime-benchmarks = [
+	"sp-trie",
+	"pallet-remote-proxy/runtime-benchmarks",
+]

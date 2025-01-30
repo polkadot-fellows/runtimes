@@ -222,6 +222,38 @@ pub mod proxy {
 		) -> Option<ProxyDefinition<AccountId, LocalProxyType, BlockNumber>> {
 			ProxyDefinitionConverter::convert(remote)
 		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn create_remote_proxy_proof(
+			caller: &AccountId,
+			proxy: &AccountId,
+		) -> (pallet_remote_proxy::RemoteProxyProof<Self::RemoteBlockNumber>, BlockNumber, Hash) {
+			use codec::Encode;
+			use sp_trie::TrieMut;
+
+			let (mut db, mut root) = sp_trie::MemoryDB::<BlakeTwo256>::default_with_root();
+			let mut trie =
+				sp_trie::TrieDBMutBuilder::<sp_trie::LayoutV1<_>>::new(&mut db, &mut root).build();
+
+			let proxy_definition = vec![ProxyDefinition::<AccountId, ProxyType, BlockNumber> {
+				delegate: caller.clone(),
+				proxy_type: ProxyType::default(),
+				delay: 0,
+			}];
+
+			trie.insert(&Self::proxy_definition_storage_key(proxy), &proxy_definition.encode())
+				.unwrap();
+			drop(trie);
+
+			(
+				pallet_remote_proxy::RemoteProxyProof::RelayChain {
+					proof: db.drain().into_values().map(|d| d.0).collect(),
+					block: 1,
+				},
+				1,
+				root,
+			)
+		}
 	}
 }
 
