@@ -38,6 +38,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod staking;
 pub mod types;
+pub mod claims;
 mod weights;
 pub use pallet::*;
 
@@ -64,12 +65,14 @@ use storage::TransactionOutcome;
 use types::AhWeightInfo;
 use weights::WeightInfo;
 use xcm::prelude::*;
+use polkadot_runtime_common::claims as pallet_claims;
 
 use accounts::AccountsMigrator;
 use multisig::MultisigMigrator;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
+use claims::{ClaimsMigrator, ClaimsStage};
 use proxy::*;
 use referenda::ReferendaStage;
 use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
@@ -120,6 +123,11 @@ pub enum MigrationStage<AccountId> {
 		last_key: Option<(AccountId, [u8; 32])>,
 	},
 	MultisigMigrationDone,
+	ClaimsMigrationInit,
+	ClaimsMigrationOngoing {
+		current_key: Option<AccountId>,
+	},
+	ClaimsMigrationDone,
 	ProxyMigrationInit,
 	/// Currently migrating the proxies of the proxy pallet.
 	ProxyMigrationProxies {
@@ -196,6 +204,7 @@ pub mod pallet {
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
+		+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -375,6 +384,31 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationDone => {
 					Self::transition(MigrationStage::ProxyMigrationInit);
+				},
+				MigrationStage::ClaimsMigrationInit => {
+					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
+				},
+				MigrationStage::ClaimsMigrationOngoing { current_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match ClaimsMigrator::<T>::migrate_many(current_key, &mut weight_counter) {
+							Ok(current_key) => TransactionOutcome::Commit(Ok(current_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ClaimsMigrationDone);
+						},
+						Ok(Some(current_key)) => {
+							Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: Some(current_key) });
+						},
+						e => {
+							log::error!(target: LOG_TARGET, "Error while migrating claims: {:?}", e);
+							defensive!("Error while migrating claims");
+						},
+					}
 				},
 				MigrationStage::ProxyMigrationInit => {
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });

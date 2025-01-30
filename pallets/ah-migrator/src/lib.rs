@@ -55,6 +55,7 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
 };
+use polkadot_runtime_common::claims as pallet_claims;
 use pallet_referenda::TrackIdOf;
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
@@ -86,6 +87,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
+		+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
