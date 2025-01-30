@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
 - Update the XCM `Weigher` from `FixedWeightBounds` to `WeightInfoBounds` with benchmarked weights for Polkadot Collectives ([polkadot-fellows/runtimes#547](https://github.com/polkadot-fellows/runtimes/pull/547))
 - Increase max PoV size to 10Mib on Kusama ([polkadot-fellows/runtimes#553](https://github.com/polkadot-fellows/runtimes/pull/553))
+- Update to Polkadot SDK `stable2409-3` ([polkadot-fellows/runtimes#558](https://github.com/polkadot-fellows/runtimes/pull/558))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
