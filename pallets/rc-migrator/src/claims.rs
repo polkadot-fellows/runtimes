@@ -18,7 +18,11 @@
 // TODO FAIL-CI: Insecure unless your chain includes `PrevalidateAttests` as a `TransactionExtension`.
 
 use crate::*;
-use pallet_claims::EthereumAddress;
+use frame_support::traits::Currency;
+use frame_support::traits::VestingSchedule;
+use alias::EthereumAddress;
+use alias::StatementKind;
+use sp_core::ByteArray;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum ClaimsStage<AccountId> {
@@ -48,7 +52,12 @@ pub enum RcClaimsMessage<AccountId, Balance, BlockNumber> {
 	Preclaims((AccountId, EthereumAddress)),
 	Finished
 }
-pub type RcClaimsMessageOf<T> = RcClaimsMessage<T::AccountId, T::Balance, BlockNumberFor<T>>;
+pub type RcClaimsMessageOf<T> = RcClaimsMessage<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>;
+
+pub type BalanceOf<T> = <CurrencyOf<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+type CurrencyOf<T> = <<T as pallet_claims::Config>::VestingSchedule as VestingSchedule<
+	<T as frame_system::Config>::AccountId,
+>>::Currency;
 
 pub struct ClaimsMigrator<T> {
 	_phantom: PhantomData<T>,
@@ -63,5 +72,160 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(ClaimsStage::StorageValues);
+		let mut messages = Vec::new();
+
+		loop {
+			if weight_counter
+				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
+				.is_err()
+			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if messages.len() > 10_000 {
+				log::warn!("Weight allowed very big batch, stopping");
+				break;
+			}
+
+			inner_key = match inner_key {
+				ClaimsStage::StorageValues => {
+				let total = pallet_claims::Total::<T>::take();
+					messages.push(RcClaimsMessage::StorageValues { total });
+					ClaimsStage::Claims(None)
+				},
+				ClaimsStage::Claims(address) => {
+					let mut iter = match address.clone() {
+						Some(address) => alias::Claims::<T>::iter_from(address.0.to_vec()), // id hash
+						None => alias::Claims::<T>::iter(),
+					};
+
+					match iter.next() {
+						Some((address, amount)) => {
+							alias::Claims::<T>::remove(&address);
+							messages.push(RcClaimsMessage::Claims((address, amount)));
+							ClaimsStage::Claims(Some(address))
+						},
+						None => ClaimsStage::Vesting(None),
+					}
+				},
+				ClaimsStage::Vesting(address) => {
+					let mut iter = match address.clone() {
+						Some(address) => alias::Vesting::<T>::iter_from(address.0.to_vec()), // id hash
+						None => alias::Vesting::<T>::iter(),
+					};
+
+					match iter.next() {
+						Some((address, schedule)) => {
+							alias::Vesting::<T>::remove(&address);
+							messages.push(RcClaimsMessage::Vesting { who: address, schedule });
+							ClaimsStage::Vesting(Some(address))
+						},
+						None => ClaimsStage::Signing(None),
+					}
+				},
+				ClaimsStage::Signing(address) => {
+					let mut iter = match address.clone() {
+						Some(address) => alias::Signing::<T>::iter_from(address.0.to_vec()),
+						None => alias::Signing::<T>::iter(),
+					};
+
+
+					match iter.next() {
+						Some((address, statement)) => {
+							alias::Signing::<T>::remove(&address);
+							messages.push(RcClaimsMessage::Signing((address, statement)));
+							ClaimsStage::Signing(Some(address))
+						},
+						None => ClaimsStage::Preclaims(None),
+					}
+				},
+				ClaimsStage::Preclaims(address) => {
+					let mut iter = match address.clone() {
+						Some(address) => alias::Preclaims::<T>::iter_from(address.to_raw_vec()),
+						None => alias::Preclaims::<T>::iter(),
+					};
+
+					match iter.next() {
+						Some((address, statement)) => {
+							alias::Preclaims::<T>::remove(&address);
+							messages.push(RcClaimsMessage::Preclaims((address.clone(), statement)));
+							ClaimsStage::Preclaims(Some(address))
+						},
+						None => ClaimsStage::Finished,
+					}
+				},
+				ClaimsStage::Finished => {
+					break;
+				}
+			}
+		}
+
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm(messages, |messages| {
+				types::AhMigratorCall::<T>::ReceiveClaimsMessages { messages }
+			})?;
+		}
+
+		if inner_key == ClaimsStage::Finished {
+			Ok(None)
+		} else {
+			Ok(Some(inner_key))
+		}
 	}
+}
+
+pub mod alias {
+	use super::*;
+
+
+	/// Copy of the EthereumAddress type from the SDK since the version that we pull is is not MEL :(
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L130-L133
+	#[derive(
+		Clone, Copy, PartialEq, Eq, Encode, Decode, Default, RuntimeDebug, TypeInfo, MaxEncodedLen,
+	)]
+	pub struct EthereumAddress(pub [u8; 20]);
+
+	// Also not MEL...
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L84-L103
+	#[derive(
+		Encode,
+		Decode,
+		Clone,
+		Copy,
+		Eq,
+		PartialEq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
+	pub enum StatementKind {
+		Regular,
+		Saft,
+	}
+
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L226-L227
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Claims<T: pallet_claims::Config> = StorageMap<pallet_claims::Pallet<T>, Identity, EthereumAddress, BalanceOf<T>>;
+
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L241-L242
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Signing<T: pallet_claims::Config> = StorageMap<
+		pallet_claims::Pallet<T>,
+		Identity,
+		EthereumAddress,
+		StatementKind,
+	>;
+
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L245-L246
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Preclaims<T: pallet_claims::Config> =
+		StorageMap<pallet_claims::Pallet<T>, Identity, <T as frame_system::Config>::AccountId, EthereumAddress>;
+
+	// From https://github.com/paritytech/polkadot-sdk/blob/d8df46c7a1488f2358e69368813fd772164c4dac/polkadot/runtime/common/src/claims/mod.rs#L236-L238
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Vesting<T: pallet_claims::Config> =
+		StorageMap<pallet_claims::Pallet<T>, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>;
 }

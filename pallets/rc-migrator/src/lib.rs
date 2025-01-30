@@ -125,7 +125,7 @@ pub enum MigrationStage<AccountId> {
 	MultisigMigrationDone,
 	ClaimsMigrationInit,
 	ClaimsMigrationOngoing {
-		current_key: Option<AccountId>,
+		current_key: Option<ClaimsStage<AccountId>>,
 	},
 	ClaimsMigrationDone,
 	ProxyMigrationInit,
@@ -383,7 +383,7 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::MultisigMigrationDone => {
-					Self::transition(MigrationStage::ProxyMigrationInit);
+					Self::transition(MigrationStage::ClaimsMigrationInit);
 				},
 				MigrationStage::ClaimsMigrationInit => {
 					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
@@ -409,6 +409,9 @@ pub mod pallet {
 							defensive!("Error while migrating claims");
 						},
 					}
+				},
+				MigrationStage::ClaimsMigrationDone => {
+					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });
