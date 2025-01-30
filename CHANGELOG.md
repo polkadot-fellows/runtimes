@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Asset Hubs: added an AssetExchanger to be able to swap tokens using the xcm executor, even for delivery fees ([polkadot-fellows/runtimes#539](https://github.com/polkadot-fellows/runtimes/pull/539)).
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
 - Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable as fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
 
