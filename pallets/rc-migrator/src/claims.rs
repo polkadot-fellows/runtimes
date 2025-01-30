@@ -21,7 +21,6 @@
 use crate::*;
 use alias::{EthereumAddress, StatementKind};
 use frame_support::traits::{Currency, VestingSchedule};
-use sp_core::ByteArray;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum ClaimsStage<AccountId> {
