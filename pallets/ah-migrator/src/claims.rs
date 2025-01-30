@@ -16,6 +16,7 @@
 // limitations under the License.
 
 use crate::*;
+use pallet_rc_migrator::claims::{alias, RcClaimsMessage, RcClaimsMessageOf};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_claims(messages: Vec<RcClaimsMessageOf<T>>) -> Result<(), Error<T>> {
@@ -38,6 +39,43 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_process_claims(message: RcClaimsMessageOf<T>) -> Result<(), Error<T>> {
+		match message {
+			RcClaimsMessage::StorageValues { total } => {
+				if pallet_claims::Total::<T>::exists() {
+					return Err(Error::<T>::InsertConflict);
+				}
+				log::debug!(target: LOG_TARGET, "Processing claims message: total");
+				pallet_claims::Total::<T>::put(total);
+			},
+			RcClaimsMessage::Claims((who, amount)) => {
+				if alias::Claims::<T>::contains_key(&who) {
+					return Err(Error::<T>::InsertConflict);
+				}
+				log::debug!(target: LOG_TARGET, "Processing claims message: claims");
+				alias::Claims::<T>::insert(who, amount);
+			},
+			RcClaimsMessage::Vesting { who, schedule } => {
+				if alias::Vesting::<T>::contains_key(&who) {
+					return Err(Error::<T>::InsertConflict);
+				}
+				log::debug!(target: LOG_TARGET, "Processing claims message: vesting");
+				alias::Vesting::<T>::insert(who, schedule);
+			},
+			RcClaimsMessage::Signing((who, statement_kind)) => {
+				if alias::Signing::<T>::contains_key(&who) {
+					return Err(Error::<T>::InsertConflict);
+				}
+				log::debug!(target: LOG_TARGET, "Processing claims message: signing");
+				alias::Signing::<T>::insert(who, statement_kind);
+			},
+			RcClaimsMessage::Preclaims((who, address)) => {
+				if alias::Preclaims::<T>::contains_key(&who) {
+					return Err(Error::<T>::InsertConflict);
+				}
+				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims");
+				alias::Preclaims::<T>::insert(who, address);
+			},
+		}
 		Ok(())
 	}
 }

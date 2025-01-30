@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod claims;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -53,10 +54,11 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+	accounts::Account as RcAccount, claims::RcClaimsMessageOf, multisig::*, preimage::*, proxy::*,
+	staking::nom_pools::*,
 };
-use polkadot_runtime_common::claims as pallet_claims;
 use pallet_referenda::TrackIdOf;
+use polkadot_runtime_common::claims as pallet_claims;
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
@@ -154,6 +156,8 @@ pub mod pallet {
 		FailedToConvertType,
 		/// Failed to fetch preimage.
 		PreimageNotFound,
+		/// Failed to insert into storage because it is already present.
+		InsertConflict,
 	}
 
 	#[pallet::event]
@@ -182,6 +186,18 @@ pub mod pallet {
 			/// How many multisigs were successfully integrated.
 			count_good: u32,
 			/// How many multisigs failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of claims that we are going to integrate.
+		ClaimsBatchReceived {
+			/// How many claims are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of claims that we received.
+		ClaimsBatchProcessed {
+			/// How many claims were successfully integrated.
+			count_good: u32,
+			/// How many claims failed to integrate.
 			count_bad: u32,
 		},
 		/// We received a batch of proxies that we are going to integrate.
@@ -396,6 +412,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+
+		#[pallet::call_index(10)]
+		pub fn receive_claims(
+			origin: OriginFor<T>,
+			messages: Vec<RcClaimsMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_claims(messages).map_err(Into::into)
 		}
 	}
 

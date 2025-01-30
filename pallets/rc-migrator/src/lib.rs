@@ -32,13 +32,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
+pub mod claims;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
 pub mod referenda;
 pub mod staking;
 pub mod types;
-pub mod claims;
 mod weights;
 pub use pallet::*;
 
@@ -56,7 +56,7 @@ use frame_support::{
 use frame_system::{pallet_prelude::*, AccountInfo};
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-use polkadot_runtime_common::paras_registrar;
+use polkadot_runtime_common::{claims as pallet_claims, paras_registrar};
 use runtime_parachains::hrmp;
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::AccountId32;
@@ -65,14 +65,13 @@ use storage::TransactionOutcome;
 use types::AhWeightInfo;
 use weights::WeightInfo;
 use xcm::prelude::*;
-use polkadot_runtime_common::claims as pallet_claims;
 
 use accounts::AccountsMigrator;
+use claims::{ClaimsMigrator, ClaimsStage};
 use multisig::MultisigMigrator;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
-use claims::{ClaimsMigrator, ClaimsStage};
 use proxy::*;
 use referenda::ReferendaStage;
 use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
@@ -308,7 +307,7 @@ pub mod pallet {
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
 					// toggle for testing
-					Self::transition(MigrationStage::ProxyMigrationInit);
+					Self::transition(MigrationStage::ClaimsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -402,7 +401,9 @@ pub mod pallet {
 							Self::transition(MigrationStage::ClaimsMigrationDone);
 						},
 						Ok(Some(current_key)) => {
-							Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: Some(current_key) });
+							Self::transition(MigrationStage::ClaimsMigrationOngoing {
+								current_key: Some(current_key),
+							});
 						},
 						e => {
 							log::error!(target: LOG_TARGET, "Error while migrating claims: {:?}", e);
@@ -411,7 +412,8 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ClaimsMigrationDone => {
-					Self::transition(MigrationStage::ProxyMigrationInit);
+					//Self::transition(MigrationStage::ProxyMigrationInit);
+					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::ProxyMigrationInit => {
 					Self::transition(MigrationStage::ProxyMigrationProxies { last_key: None });

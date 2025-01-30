@@ -150,7 +150,9 @@ pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate, claims as pallet_claims};
+use polkadot_runtime_common::{
+	claims as pallet_claims, prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
+};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
