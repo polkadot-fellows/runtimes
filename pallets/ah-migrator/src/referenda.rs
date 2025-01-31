@@ -122,7 +122,7 @@ impl<T: Config> Pallet<T> {
 							status.decision_deposit,
 						),
 					);
-					log::error!("!!! Referendum {} cancelled", id);
+					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
 				};
 
 				let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
@@ -140,7 +140,7 @@ impl<T: Config> Pallet<T> {
 				let proposal = if let Ok(proposal) = Self::map_rc_ah_call(&status.proposal) {
 					proposal
 				} else {
-					log::error!("Failed to convert RC call to AH call for referendum {}", id);
+					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {}", id);
 					cancel_referendum(id, status);
 					return Ok(());
 				};

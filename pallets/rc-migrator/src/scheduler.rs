@@ -66,7 +66,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 				}
 			}
 			if messages.len() > 10_000 {
-				log::warn!("Weight allowed very big batch, stopping");
+				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
 				break;
 			}
 

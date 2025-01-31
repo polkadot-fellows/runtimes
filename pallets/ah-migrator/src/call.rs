@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
 			return Err(Error::<T>::FailedToConvertCall);
 		};
 
-		log::info!("MAPPED CALL: {:?}", call);
+		log::debug!(target: LOG_TARGET, "mapped call: {:?}", call);
 
 		let ah_bounded_call = T::Preimage::bound(call).map_err(|err| {
 			defensive!("Failed to bound call: {:?}", err);
@@ -52,7 +52,7 @@ impl<T: Config> Pallet<T> {
 		if ah_bounded_call.lookup_needed() {
 			// Noted preimages for referendums that did not pass will need to be manually removed
 			// later.
-			log::info!("New preimage was noted for call");
+			log::info!(target: LOG_TARGET, "New preimage was noted for call");
 		}
 
 		Ok(ah_bounded_call)
@@ -66,7 +66,7 @@ impl<T: Config> Pallet<T> {
 					encoded
 				} else {
 					// not an error since a submitter can delete the preimage for ongoing referendum
-					log::warn!("No preimage found for call hash: {:?}", hash);
+					log::warn!(target: LOG_TARGET, "No preimage found for call hash: {:?}", hash);
 					return Err(Error::<T>::PreimageNotFound);
 				};
 				Ok(encoded.into_owned())
@@ -76,7 +76,7 @@ impl<T: Config> Pallet<T> {
 					encoded
 				} else {
 					// not an error since a submitter can delete the preimage for ongoing referendum
-					log::warn!("No preimage found for call hash: {:?}", (hash, len));
+					log::warn!(target: LOG_TARGET, "No preimage found for call hash: {:?}", (hash, len));
 					return Err(Error::<T>::PreimageNotFound);
 				};
 				Ok(encoded.into_owned())

@@ -48,7 +48,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_process_scheduler_message(message: RcSchedulerMessageOf<T>) -> Result<(), Error<T>> {
-		log::debug!("Processing scheduler message: {:?}", message);
+		log::debug!(target: LOG_TARGET, "Processing scheduler message: {:?}", message);
 
 		match message {
 			RcSchedulerMessage::IncompleteSince(block_number) => {
@@ -74,6 +74,7 @@ impl<T: Config> Pallet<T> {
 							call
 						} else {
 							log::error!(
+								target: LOG_TARGET,
 								"Failed to convert RC call to AH call for task at block number {}",
 								block_number
 							);
