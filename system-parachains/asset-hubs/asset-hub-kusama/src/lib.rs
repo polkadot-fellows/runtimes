@@ -1127,6 +1127,7 @@ mod benches {
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
+		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
