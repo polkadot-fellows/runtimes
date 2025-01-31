@@ -98,11 +98,16 @@ async fn account_migration_works() {
 
 			log::debug!("AH DMP messages left: {}", fp.storage.count);
 			next_block_ah();
+
+			if RcMigrationStage::<Polkadot>::get() ==
+				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
+			{
+				pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
+					pre_check_payload.clone(),
+				);
+			}
 		}
 
-		pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
-			pre_check_payload,
-		);
 		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(());
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
