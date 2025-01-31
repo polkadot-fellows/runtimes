@@ -1009,8 +1009,7 @@ impl pallet_remote_proxy::Config for Runtime {
 		ProxyType,
 		RelayChainToLocalProxyTypeConverter,
 	>;
-	//TODO: Run benchmarks and replace.
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_remote_proxy::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
