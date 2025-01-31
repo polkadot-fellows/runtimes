@@ -42,6 +42,7 @@ mod weights;
 pub use pallet::*;
 pub mod scheduler;
 
+use accounts::AccountsMigrator;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -54,27 +55,28 @@ use frame_support::{
 	weights::WeightMeter,
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
+use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
-use runtime_parachains::hrmp;
-use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::AccountId32;
-use sp_std::prelude::*;
-use storage::TransactionOutcome;
-use types::AhWeightInfo;
-use weights::WeightInfo;
-use xcm::prelude::*;
-
-use accounts::AccountsMigrator;
-use multisig::MultisigMigrator;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
 use referenda::ReferendaStage;
-use staking::nom_pools::{NomPoolsMigrator, NomPoolsStage};
-use types::PalletMigration;
+use runtime_parachains::hrmp;
+use sp_core::{crypto::Ss58Codec, H256};
+use sp_runtime::AccountId32;
+use sp_std::prelude::*;
+use staking::{
+	bags_list::{BagsListMigrator, BagsListStage},
+	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
+	nom_pools::{NomPoolsMigrator, NomPoolsStage},
+};
+use storage::TransactionOutcome;
+use types::{AhWeightInfo, PalletMigration};
+use weights::WeightInfo;
+use xcm::prelude::*;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -95,11 +97,14 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-pub type MigrationStageOf<T> =
-	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>>;
+pub type MigrationStageOf<T> = MigrationStage<
+	<T as frame_system::Config>::AccountId,
+	BlockNumberFor<T>,
+	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+>;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -153,11 +158,21 @@ pub enum MigrationStage<AccountId, BlockNumber> {
 		next_key: Option<NomPoolsStage<AccountId>>,
 	},
 	NomPoolsMigrationDone,
+	FastUnstakeMigrationInit,
+	FastUnstakeMigrationOngoing {
+		next_key: Option<FastUnstakeStage<AccountId>>,
+	},
+	FastUnstakeMigrationDone,
 	ReferendaMigrationInit,
 	ReferendaMigrationOngoing {
 		last_key: Option<ReferendaStage>,
 	},
 	ReferendaMigrationDone,
+	BagsListMigrationInit,
+	BagsListMigrationOngoing {
+		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
+	},
+	BagsListMigrationDone,
 	SchedulerMigrationInit,
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
@@ -166,7 +181,7 @@ pub enum MigrationStage<AccountId, BlockNumber> {
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber> MigrationStage<AccountId, BlockNumber> {
+impl<AccountId, BlockNumber, BagsListScore> MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()`.
@@ -179,6 +194,22 @@ impl<AccountId, BlockNumber> MigrationStage<AccountId, BlockNumber> {
 	/// This is **not** the same as `!self.is_finished()`.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
+}
+
+#[cfg(feature = "std")]
+impl<AccountId, BlockNumber, BagsListScore> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore>
+{
+	type Err = std::string::String;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(match s {
+			"preimage" => MigrationStage::PreimageMigrationInit,
+			"referenda" => MigrationStage::ReferendaMigrationInit,
+			"multisig" => MigrationStage::MultisigMigrationInit,
+			other => return Err(format!("Unknown migration stage: {}", other)),
+		})
 	}
 }
 
@@ -205,6 +236,8 @@ pub mod pallet {
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
+		+ pallet_fast_unstake::Config
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
 	{
 		/// The overarching event type.
@@ -257,16 +290,15 @@ pub mod pallet {
 		/// A stage transition has occurred.
 		StageTransition {
 			/// The old stage before the transition.
-			old: MigrationStage<T::AccountId, BlockNumberFor<T>>,
+			old: MigrationStageOf<T>,
 			/// The new stage after the transition.
-			new: MigrationStage<T::AccountId, BlockNumberFor<T>>,
+			new: MigrationStageOf<T>,
 		},
 	}
 
 	/// The Relay Chain migration state.
 	#[pallet::storage]
-	pub type RcMigrationStage<T: Config> =
-		StorageValue<_, MigrationStage<T::AccountId, BlockNumberFor<T>>, ValueQuery>;
+	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
 	/// Helper storage item to obtain and store the known accounts that should be kept partially on
 	/// fully on Relay Chain.
@@ -304,8 +336,6 @@ pub mod pallet {
 					// TODO: not complete
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
-					// toggle for testing
-					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -542,8 +572,10 @@ pub mod pallet {
 							);
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating legacy preimage request status: {:?}", e);
-							defensive!("Error while migrating legacy preimage request status");
+							defensive!(
+								"Error while migrating legacy preimage request status: {:?}",
+								e
+							);
 						},
 					}
 				},
@@ -575,12 +607,43 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating nom pools: {:?}", e);
-							defensive!("Error while migrating nom pools");
+							defensive!("Error while migrating nom pools: {:?}", e);
 						},
 					}
 				},
 				MigrationStage::NomPoolsMigrationDone => {
+					Self::transition(MigrationStage::FastUnstakeMigrationInit);
+				},
+				MigrationStage::FastUnstakeMigrationInit => {
+					Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
+						next_key: None,
+					});
+				},
+				MigrationStage::FastUnstakeMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match FastUnstakeMigrator::<T>::migrate_many(next_key, &mut weight_counter)
+						{
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::FastUnstakeMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::FastUnstakeMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating fast unstake: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::FastUnstakeMigrationDone => {
 					Self::transition(MigrationStage::ReferendaMigrationInit);
 				},
 				MigrationStage::ReferendaMigrationInit => {
@@ -616,6 +679,35 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ReferendaMigrationDone => {
+					Self::transition(MigrationStage::BagsListMigrationInit);
+				},
+				MigrationStage::BagsListMigrationInit => {
+					Self::transition(MigrationStage::BagsListMigrationOngoing { next_key: None });
+				},
+				MigrationStage::BagsListMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match BagsListMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::BagsListMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::BagsListMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating bags list: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::BagsListMigrationDone => {
 					Self::transition(MigrationStage::SchedulerMigrationInit);
 				},
 				MigrationStage::SchedulerMigrationInit => {
@@ -659,7 +751,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// Execute a stage transition and log it.
-		fn transition(new: MigrationStage<T::AccountId, BlockNumberFor<T>>) {
+		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 			RcMigrationStage::<T>::put(&new);
 			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);

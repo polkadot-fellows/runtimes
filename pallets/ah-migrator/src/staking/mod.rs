@@ -17,4 +17,6 @@
 
 //! Staking migration logic.
 
+pub mod bags_list;
+pub mod fast_unstake;
 pub mod nom_pools;

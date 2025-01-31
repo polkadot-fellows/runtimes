@@ -55,7 +55,15 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	accounts::Account as RcAccount, multisig::*, preimage::*, proxy::*, staking::nom_pools::*,
+	accounts::Account as RcAccount,
+	multisig::*,
+	preimage::*,
+	proxy::*,
+	staking::{
+		bags_list::RcBagsListMessage,
+		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
+		nom_pools::*,
+	},
 };
 use pallet_referenda::TrackIdOf;
 use referenda::RcReferendumInfoOf;
@@ -77,6 +85,12 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum PalletEventName {
+	FastUnstake,
+	BagsList,
+}
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -92,6 +106,8 @@ pub mod pallet {
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
+		+ pallet_fast_unstake::Config
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
 	{
 		/// The overarching event type.
@@ -151,6 +167,8 @@ pub mod pallet {
 		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
+		/// Some item could not be inserted because it already exists.
+		InsertConflict,
 		/// Failed to convert RC type to AH type.
 		FailedToConvertType,
 		/// Failed to fetch preimage.
@@ -259,6 +277,17 @@ pub mod pallet {
 			/// How many nom pools messages were successfully integrated.
 			count_good: u32,
 			/// How many nom pools messages failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of messages that will be integrated into a pallet.
+		BatchReceived {
+			pallet: PalletEventName,
+			count: u32,
+		},
+		/// We processed a batch of messages for this pallet.
+		BatchProcessed {
+			pallet: PalletEventName,
+			count_good: u32,
 			count_bad: u32,
 		},
 		/// We received a batch of referendums that we are going to integrate.
@@ -386,8 +415,18 @@ pub mod pallet {
 			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 
-		/// Receive referendum counts, deciding counts, votes for the track queue.
 		#[pallet::call_index(8)]
+		pub fn receive_fast_unstake_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcFastUnstakeMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
+		}
+
+		/// Receive referendum counts, deciding counts, votes for the track queue.
+		#[pallet::call_index(9)]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
@@ -403,7 +442,7 @@ pub mod pallet {
 		}
 
 		/// Receive referendums from the Relay Chain.
-		#[pallet::call_index(9)]
+		#[pallet::call_index(10)]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -411,6 +450,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+
+		#[pallet::call_index(11)]
+		pub fn receive_bags_list_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcBagsListMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
 		#[pallet::call_index(12)]
