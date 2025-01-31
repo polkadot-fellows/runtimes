@@ -15,11 +15,11 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use frame_support::traits::{schedule::v3::Anon, Bounded, BoundedInline, DefensiveTruncateFrom};
+use call::BoundedCallOf;
+use frame_support::traits::{schedule::v3::Anon, DefensiveTruncateFrom};
 use pallet_referenda::{
-	BalanceOf, BoundedCallOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor,
-	ReferendumInfoOf, ReferendumStatus, ReferendumStatusOf, ScheduleAddressOf, TallyOf, TrackIdOf,
-	TrackQueue,
+	BalanceOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor, ReferendumStatus,
+	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue,
 };
 
 /// ReferendumInfoOf for RC.
@@ -33,7 +33,7 @@ pub type RcReferendumInfoOf<T, I> = ReferendumInfo<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,
 	BlockNumberFor<T>,
-	BoundedCallOf<T, I>,
+	BoundedCallOf<T>,
 	BalanceOf<T, I>,
 	TallyOf<T, I>,
 	<T as frame_system::Config>::AccountId,
@@ -47,7 +47,31 @@ pub type RcReferendumStatusOf<T, I> = ReferendumStatus<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,
 	BlockNumberFor<T>,
-	BoundedCallOf<T, I>,
+	BoundedCallOf<T>,
+	BalanceOf<T, I>,
+	TallyOf<T, I>,
+	<T as frame_system::Config>::AccountId,
+	ScheduleAddressOf<T, I>,
+>;
+
+/// Asset Hub ReferendumInfoOf.
+pub type ReferendumInfoOf<T, I> = ReferendumInfo<
+	TrackIdOf<T, I>,
+	<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	BlockNumberFor<T>,
+	BoundedCallOf<T>,
+	BalanceOf<T, I>,
+	TallyOf<T, I>,
+	<T as frame_system::Config>::AccountId,
+	ScheduleAddressOf<T, I>,
+>;
+
+/// ReferendumStatusOf for Asset Hub.
+pub type ReferendumStatusOf<T, I> = ReferendumStatus<
+	TrackIdOf<T, I>,
+	<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+	BlockNumberFor<T>,
+	BoundedCallOf<T>,
 	BalanceOf<T, I>,
 	TallyOf<T, I>,
 	<T as frame_system::Config>::AccountId,
@@ -98,7 +122,7 @@ impl<T: Config> Pallet<T> {
 							status.decision_deposit,
 						),
 					);
-					log::error!("!!! Referendum {} cancelled", id);
+					log::error!(target: LOG_TARGET, "!!! Referendum {} cancelled", id);
 				};
 
 				let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
@@ -113,34 +137,10 @@ impl<T: Config> Pallet<T> {
 					},
 				};
 
-				let encoded_call = if let Ok(e) = Self::fetch_preimage(&status.proposal) {
-					e
+				let proposal = if let Ok(proposal) = Self::map_rc_ah_call(&status.proposal) {
+					proposal
 				} else {
-					log::warn!("Failed to fetch preimage for referendum {}", id);
-					cancel_referendum(id, status);
-					return Ok(());
-				};
-
-				let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
-					call
-				} else {
-					// TODO: replace with defensive if we expect all referendum calls to be mapped.
-					log::warn!("Failed to convert RC call to AH call for referendum {}", id);
-					cancel_referendum(id, status);
-					return Ok(());
-				};
-
-				let inline = if let Ok(i) = BoundedInline::try_from(call.encode()) {
-					i
-				} else {
-					let data = call.encode();
-					log::error!("Failed to bound call for referendum {}, orig_len={}, new_len={}, pallet={:?}, call={:?}, hex={}",
-								id, encoded_call.len(), data.len(), data.clone()[0], data.clone()[1], hex::encode(data));
-					//defensive!("Call encoded length is too large for inline encoding");
-					// TODO: if we have such a case we would need to dispatch two call on behalf of
-					// the original preimage submitter to release the funds for the new preimage
-					// deposit and dispatch the call to note a new preimage. or we provide a
-					// better sdk for this case.
+					log::error!(target: LOG_TARGET, "Failed to convert RC call to AH call for referendum {}", id);
 					cancel_referendum(id, status);
 					return Ok(());
 				};
@@ -148,7 +148,7 @@ impl<T: Config> Pallet<T> {
 				let status = ReferendumStatusOf::<T, ()> {
 					track: status.track,
 					origin,
-					proposal: Bounded::Inline(inline),
+					proposal,
 					enactment: status.enactment,
 					submitted: status.submitted,
 					submission_deposit: status.submission_deposit,
@@ -168,7 +168,7 @@ impl<T: Config> Pallet<T> {
 			ReferendumInfo::Killed(a) => ReferendumInfo::Killed(a),
 		};
 
-		ReferendumInfoFor::<T, ()>::insert(id, referendum);
+		alias::ReferendumInfoFor::<T>::insert(id, referendum);
 
 		log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
 
@@ -195,33 +195,21 @@ impl<T: Config> Pallet<T> {
 		log::info!(target: LOG_TARGET, "Referenda pallet integrated");
 		Ok(())
 	}
-
-	fn fetch_preimage(bounded_call: &BoundedCallOf<T, ()>) -> Result<Vec<u8>, Error<T>> {
-		match bounded_call {
-			Bounded::Inline(encoded) => Ok(encoded.clone().into_inner()),
-			Bounded::Legacy { hash, .. } => {
-				let encoded = if let Ok(encoded) = T::Preimage::fetch(hash, None) {
-					encoded
-				} else {
-					// not an error since a submitter can delete the preimage for ongoing referendum
-					log::warn!("No preimage found for call hash: {:?}", hash);
-					return Err(Error::<T>::PreimageNotFound);
-				};
-				Ok(encoded.into_owned())
-			},
-			Bounded::Lookup { hash, len } => {
-				let encoded = if let Ok(encoded) = T::Preimage::fetch(hash, Some(*len)) {
-					encoded
-				} else {
-					// not an error since a submitter can delete the preimage for ongoing referendum
-					log::warn!("No preimage found for call hash: {:?}", (hash, len));
-					return Err(Error::<T>::PreimageNotFound);
-				};
-				Ok(encoded.into_owned())
-			},
-		}
-	}
 }
 
+pub mod alias {
+	use super::*;
+	use pallet_referenda::ReferendumIndex;
+
+	/// Information concerning any given referendum.
+	/// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/referenda/src/lib.rs#L249
+	#[frame_support::storage_alias(pallet_name)]
+	pub type ReferendumInfoFor<T: pallet_referenda::Config<()>> = StorageMap<
+		pallet_referenda::Pallet<T, ()>,
+		Blake2_128Concat,
+		ReferendumIndex,
+		ReferendumInfoOf<T, ()>,
+	>;
+}
 // TODO: shift referendums' time block by the time of the migration
 // TODO: schedule `one_fewer_deciding` for referendums canceled during migration

@@ -20,10 +20,13 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-bags-list = { workspace = true }
+pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -41,12 +44,15 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-bags-list/std",
 	"pallet-balances/std",
+	"pallet-fast-unstake/std",
 	"pallet-multisig/std",
 	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-referenda/std",
+	"pallet-scheduler/std",
 	"pallet-staking/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
@@ -64,12 +70,15 @@ runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
@@ -80,12 +89,15 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-fast-unstake/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-referenda/try-runtime",
+	"pallet-scheduler/try-runtime",
 	"pallet-staking/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",

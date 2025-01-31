@@ -1073,6 +1073,7 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	}
 }
 
+// TODO: should be set with Relay Chain Block Number Provider
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
@@ -1176,6 +1177,9 @@ construct_runtime!(
 
 		// Staking in the 70s
 		NominationPools: pallet_nomination_pools = 70,
+		FastUnstake: pallet_fast_unstake = 71,
+		VoterList: pallet_bags_list::<Instance1> = 72,
+
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,

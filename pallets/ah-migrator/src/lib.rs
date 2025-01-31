@@ -33,10 +33,12 @@
 
 pub mod account;
 pub mod claims;
+pub mod call;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
 pub mod referenda;
+pub mod scheduler;
 pub mod staking;
 pub mod types;
 
@@ -47,7 +49,7 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency,
+		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency, StorePreimage,
 		WithdrawReasons as LockWithdrawReasons,
 	},
 };
@@ -56,6 +58,14 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount, claims::RcClaimsMessageOf, multisig::*, preimage::*, proxy::*,
 	staking::nom_pools::*,
+	multisig::*,
+	preimage::*,
+	proxy::*,
+	staking::{
+		bags_list::RcBagsListMessage,
+		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
+		nom_pools::*,
+	},
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::claims as pallet_claims;
@@ -78,6 +88,12 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum PalletEventName {
+	FastUnstake,
+	BagsList,
+}
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -94,6 +110,9 @@ pub mod pallet {
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
+		+ pallet_fast_unstake::Config
+		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_scheduler::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -130,10 +149,10 @@ pub mod pallet {
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
-			<Self::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+			<<Self as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 		>;
 		/// Preimage registry.
-		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing>;
+		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
 	}
@@ -152,12 +171,18 @@ pub mod pallet {
 		FailedToUnreserveDeposit,
 		/// Failed to process an account data from RC.
 		FailedToProcessAccount,
+		/// Some item could not be inserted because it already exists.
+		InsertConflict,
 		/// Failed to convert RC type to AH type.
 		FailedToConvertType,
 		/// Failed to fetch preimage.
 		PreimageNotFound,
 		/// Failed to insert into storage because it is already present.
 		InsertConflict,
+		/// Failed to convert RC call to AH call.
+		FailedToConvertCall,
+		/// Failed to bound a call.
+		FailedToBoundCall,
 	}
 
 	#[pallet::event]
@@ -272,6 +297,17 @@ pub mod pallet {
 			/// How many nom pools messages failed to integrate.
 			count_bad: u32,
 		},
+		/// We received a batch of messages that will be integrated into a pallet.
+		BatchReceived {
+			pallet: PalletEventName,
+			count: u32,
+		},
+		/// We processed a batch of messages for this pallet.
+		BatchProcessed {
+			pallet: PalletEventName,
+			count_good: u32,
+			count_bad: u32,
+		},
 		/// We received a batch of referendums that we are going to integrate.
 		ReferendumsBatchReceived {
 			/// How many referendums are in the batch.
@@ -285,6 +321,16 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		ReferendaProcessed,
+		SchedulerMessagesReceived {
+			/// How many scheduler messages are in the batch.
+			count: u32,
+		},
+		SchedulerMessagesProcessed {
+			/// How many scheduler messages were successfully integrated.
+			count_good: u32,
+			/// How many scheduler messages failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -387,8 +433,18 @@ pub mod pallet {
 			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
 		}
 
-		/// Receive referendum counts, deciding counts, votes for the track queue.
 		#[pallet::call_index(8)]
+		pub fn receive_fast_unstake_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcFastUnstakeMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
+		}
+
+		/// Receive referendum counts, deciding counts, votes for the track queue.
+		#[pallet::call_index(9)]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
@@ -404,7 +460,7 @@ pub mod pallet {
 		}
 
 		/// Receive referendums from the Relay Chain.
-		#[pallet::call_index(9)]
+		#[pallet::call_index(10)]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -422,6 +478,26 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_claims(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(11)]
+		pub fn receive_bags_list_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcBagsListMessage<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(12)]
+		pub fn receive_scheduler_messages(
+			origin: OriginFor<T>,
+			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 	}
 
