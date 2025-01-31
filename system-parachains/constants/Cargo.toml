@@ -38,4 +38,8 @@ std = [
 runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks"
 ]
