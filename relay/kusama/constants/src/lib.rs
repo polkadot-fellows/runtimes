@@ -16,6 +16,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub mod weights;
 
 /// Money matters.
@@ -235,11 +237,12 @@ pub mod proxy {
 			let mut trie =
 				sp_trie::TrieDBMutBuilder::<sp_trie::LayoutV1<_>>::new(&mut db, &mut root).build();
 
-			let proxy_definition = vec![ProxyDefinition::<AccountId, ProxyType, BlockNumber> {
-				delegate: caller.clone(),
-				proxy_type: ProxyType::default(),
-				delay: 0,
-			}];
+			let proxy_definition =
+				alloc::vec![ProxyDefinition::<AccountId, ProxyType, BlockNumber> {
+					delegate: caller.clone(),
+					proxy_type: ProxyType::default(),
+					delay: 0,
+				}];
 
 			trie.insert(&Self::proxy_definition_storage_key(proxy), &proxy_definition.encode())
 				.unwrap();
