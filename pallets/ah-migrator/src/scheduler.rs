@@ -90,7 +90,8 @@ impl<T: Config> Pallet<T> {
 						};
 						Some(task)
 					} else {
-						None
+						// skip empty tasks
+						continue;
 					};
 					ah_tasks.push(task);
 				}
