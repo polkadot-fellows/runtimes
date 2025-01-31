@@ -18,7 +18,7 @@ use crate::*;
 use frame_support::traits::DefensiveTruncateFrom;
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage};
 
-/// Messages set from the RC Migrator concerning the Scheduler pallet.
+/// Messages sent from the RC Migrator concerning the Scheduler pallet.
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, RcScheduledOf<T>>;
 
 /// Relay Chain `Scheduled` type.
