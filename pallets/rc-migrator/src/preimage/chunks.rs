@@ -117,7 +117,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		};
 
 		if last_key.is_none() {
-			log::info!("No more preimages");
+			log::info!(target: LOG_TARGET, "No more preimages");
 		}
 
 		if !batch.is_empty() {

@@ -32,8 +32,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
-pub mod claims;
 pub mod call;
+pub mod claims;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -56,8 +56,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
-	accounts::Account as RcAccount, claims::RcClaimsMessageOf, multisig::*, preimage::*, proxy::*,
-	staking::nom_pools::*,
+	accounts::Account as RcAccount,
+	claims::RcClaimsMessageOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -177,8 +177,6 @@ pub mod pallet {
 		FailedToConvertType,
 		/// Failed to fetch preimage.
 		PreimageNotFound,
-		/// Failed to insert into storage because it is already present.
-		InsertConflict,
 		/// Failed to convert RC call to AH call.
 		FailedToConvertCall,
 		/// Failed to bound a call.
@@ -470,7 +468,7 @@ pub mod pallet {
 			Self::do_receive_referendums(referendums).map_err(Into::into)
 		}
 
-		#[pallet::call_index(10)]
+		#[pallet::call_index(11)]
 		pub fn receive_claims(
 			origin: OriginFor<T>,
 			messages: Vec<RcClaimsMessageOf<T>>,
@@ -480,7 +478,7 @@ pub mod pallet {
 			Self::do_receive_claims(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(11)]
+		#[pallet::call_index(12)]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcBagsListMessage<T>>,
@@ -490,7 +488,7 @@ pub mod pallet {
 			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(12)]
+		#[pallet::call_index(13)]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
 			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,

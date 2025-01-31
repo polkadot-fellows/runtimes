@@ -24,7 +24,7 @@ impl<T: Config> Pallet<T> {
 		messages: Vec<RcFastUnstakeMessage<T>>,
 	) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
-		log::info!("Integrating {} FastUnstakeMessages", messages.len());
+		log::info!(target: LOG_TARGET, "Integrating {} FastUnstakeMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::FastUnstake,
 			count: messages.len() as u32,
@@ -52,13 +52,13 @@ impl<T: Config> Pallet<T> {
 		match message {
 			RcFastUnstakeMessage::StorageValues { values } => {
 				FastUnstakeMigrator::<T>::put_values(values);
-				log::debug!("Integrating FastUnstakeStorageValues");
+				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeStorageValues");
 			},
 			RcFastUnstakeMessage::Queue { member } => {
 				if pallet_fast_unstake::Queue::<T>::contains_key(&member.0) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!("Integrating FastUnstakeQueueMember: {:?}", &member.0);
+				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &member.0);
 				pallet_fast_unstake::Queue::<T>::insert(member.0, member.1);
 			},
 		}

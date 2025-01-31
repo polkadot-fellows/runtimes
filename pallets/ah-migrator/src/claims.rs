@@ -44,35 +44,35 @@ impl<T: Config> Pallet<T> {
 				if pallet_claims::Total::<T>::exists() {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: total");
+				log::debug!(target: LOG_TARGET, "Processing claims message: total {:?}", total);
 				pallet_claims::Total::<T>::put(total);
 			},
 			RcClaimsMessage::Claims((who, amount)) => {
 				if alias::Claims::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: claims");
+				log::debug!(target: LOG_TARGET, "Processing claims message: claims {:?}", who);
 				alias::Claims::<T>::insert(who, amount);
 			},
 			RcClaimsMessage::Vesting { who, schedule } => {
 				if alias::Vesting::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: vesting");
+				log::debug!(target: LOG_TARGET, "Processing claims message: vesting {:?}", who);
 				alias::Vesting::<T>::insert(who, schedule);
 			},
 			RcClaimsMessage::Signing((who, statement_kind)) => {
 				if alias::Signing::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: signing");
+				log::debug!(target: LOG_TARGET, "Processing claims message: signing {:?}", who);
 				alias::Signing::<T>::insert(who, statement_kind);
 			},
 			RcClaimsMessage::Preclaims((who, address)) => {
 				if alias::Preclaims::<T>::contains_key(&who) {
 					return Err(Error::<T>::InsertConflict);
 				}
-				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims");
+				log::debug!(target: LOG_TARGET, "Processing claims message: preclaims {:?}", who);
 				alias::Preclaims::<T>::insert(who, address);
 			},
 		}
