@@ -23,11 +23,16 @@ pub mod nom_pools;
 
 use crate::*;
 
+parameter_types! {
+	// 1% of the Relay Chain's deposit
+	pub const FastUnstakeDeposit: Balance = UNITS / 100;
+}
+
 impl pallet_fast_unstake::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BatchSize = frame_support::traits::ConstU32<16>;
-	type Deposit = frame_support::traits::ConstU128<{ UNITS }>;
+	type Deposit = FastUnstakeDeposit;
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = nom_pools::StakingMock;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
