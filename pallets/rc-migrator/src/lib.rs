@@ -99,8 +99,11 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-pub type MigrationStageOf<T> =
-	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, <T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score>;
+pub type MigrationStageOf<T> = MigrationStage<
+	<T as frame_system::Config>::AccountId,
+	BlockNumberFor<T>,
+	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+>;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
@@ -171,6 +174,7 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	BagsListMigrationOngoing {
 		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
 	},
+	BagsListMigrationDone,
 	SchedulerMigrationInit,
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
@@ -179,7 +183,7 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber> MigrationStage<AccountId, BlockNumber> {
+impl<AccountId, BlockNumber, BagsListScore> MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()`.
@@ -272,15 +276,15 @@ pub mod pallet {
 		/// A stage transition has occurred.
 		StageTransition {
 			/// The old stage before the transition.
-			old: MigrationStageFor<T>,
+			old: MigrationStageOf<T>,
 			/// The new stage after the transition.
-			new: MigrationStageFor<T>,
+			new: MigrationStageOf<T>,
 		},
 	}
 
 	/// The Relay Chain migration state.
 	#[pallet::storage]
-	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageFor<T>, ValueQuery>;
+	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
 	/// Helper storage item to obtain and store the known accounts that should be kept partially on
 	/// fully on Relay Chain.
@@ -682,7 +686,9 @@ pub mod pallet {
 							Self::transition(MigrationStage::BagsListMigrationDone);
 						},
 						Ok(Some(next_key)) => {
-							Self::transition(MigrationStage::BagsListMigrationOngoing { next_key: Some(next_key) });
+							Self::transition(MigrationStage::BagsListMigrationOngoing {
+								next_key: Some(next_key),
+							});
 						},
 						e => {
 							defensive!("Error while migrating bags list: {:?}", e);
@@ -733,7 +739,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// Execute a stage transition and log it.
-		fn transition(new: MigrationStageFor<T>) {
+		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 			RcMigrationStage::<T>::put(&new);
 			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);

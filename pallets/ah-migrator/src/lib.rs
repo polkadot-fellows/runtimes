@@ -461,7 +461,7 @@ pub mod pallet {
 
 			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
-		
+
 		#[pallet::call_index(12)]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,

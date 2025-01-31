@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
 						} else {
 							log::error!(
 								target: LOG_TARGET,
-								"Failed to convert RC call to AH call for task at block number {}",
+								"Failed to convert RC call to AH call for task at block number {:?}",
 								block_number
 							);
 							continue;
