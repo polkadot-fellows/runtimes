@@ -32,10 +32,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod call;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
 pub mod referenda;
+pub mod scheduler;
 pub mod staking;
 pub mod types;
 
@@ -46,7 +48,7 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency,
+		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency, StorePreimage,
 		WithdrawReasons as LockWithdrawReasons,
 	},
 };
@@ -90,6 +92,7 @@ pub mod pallet {
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
 		+ pallet_nomination_pools::Config
+		+ pallet_scheduler::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -126,10 +129,10 @@ pub mod pallet {
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
-			<Self::RuntimeOrigin as OriginTrait>::PalletsOrigin,
+			<<Self as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 		>;
 		/// Preimage registry.
-		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing>;
+		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
 	}
@@ -152,6 +155,10 @@ pub mod pallet {
 		FailedToConvertType,
 		/// Failed to fetch preimage.
 		PreimageNotFound,
+		/// Failed to convert RC call to AH call.
+		FailedToConvertCall,
+		/// Failed to bound a call.
+		FailedToBoundCall,
 	}
 
 	#[pallet::event]
@@ -267,6 +274,16 @@ pub mod pallet {
 			count_bad: u32,
 		},
 		ReferendaProcessed,
+		SchedulerMessagesReceived {
+			/// How many scheduler messages are in the batch.
+			count: u32,
+		},
+		SchedulerMessagesProcessed {
+			/// How many scheduler messages were successfully integrated.
+			count_good: u32,
+			/// How many scheduler messages failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -394,6 +411,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_referendums(referendums).map_err(Into::into)
+		}
+
+		#[pallet::call_index(12)]
+		pub fn receive_scheduler_messages(
+			origin: OriginFor<T>,
+			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 	}
 
