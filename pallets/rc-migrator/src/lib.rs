@@ -389,7 +389,6 @@ pub mod pallet {
 						},
 						Err(err) => {
 							defensive!("Error while migrating accounts: {:?}", err);
-							log::error!(target: LOG_TARGET, "Error while migrating accounts: {:?}", err);
 							// stage unchanged, retry.
 						},
 					}
@@ -424,8 +423,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating multisigs: {:?}", e);
-							defensive!("Error while migrating multisigs");
+							defensive!("Error while migrating multisigs: {:?}", e);
 						},
 					}
 				},
@@ -454,8 +452,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating claims: {:?}", e);
-							defensive!("Error while migrating claims");
+							defensive!("Error while migrating claims: {:?}", e);
 						},
 					}
 				},
@@ -487,8 +484,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating proxies: {:?}", e);
-							defensive!("Error while migrating proxies");
+							defensive!("Error while migrating proxies: {:?}", e);
 						},
 					}
 				},
@@ -514,8 +510,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating proxy announcements: {:?}", e);
-							defensive!("Error while migrating proxy announcements");
+							defensive!("Error while migrating proxy announcements: {:?}", e);
 						},
 					}
 				},
@@ -549,8 +544,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating preimages: {:?}", e);
-							defensive!("Error while migrating preimages");
+							defensive!("Error while migrating preimages: {:?}", e);
 						},
 					}
 				},
@@ -583,8 +577,7 @@ pub mod pallet {
 							);
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating preimage request status: {:?}", e);
-							defensive!("Error while migrating preimage request status");
+							defensive!("Error while migrating preimage request status: {:?}", e);
 						},
 					}
 				},
