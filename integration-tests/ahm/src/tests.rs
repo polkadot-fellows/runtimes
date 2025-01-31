@@ -33,7 +33,8 @@
 
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::*;
-use pallet_rc_migrator::{types::PalletMigrationChecks, RcMigrationStage};
+use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
+use std::str::FromStr;
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
@@ -50,7 +51,7 @@ async fn account_migration_works() {
 		let mut dmps = Vec::new();
 
 		if let Ok(stage) = std::env::var("START_STAGE") {
-			let stage = state_from_str::<Polkadot>(&stage);
+			let stage = MigrationStage::from_str(&stage).expect("Invalid start stage");
 			RcMigrationStage::<Polkadot>::put(stage);
 		}
 
@@ -106,15 +107,4 @@ async fn account_migration_works() {
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});
-}
-
-pub fn state_from_str<T: pallet_rc_migrator::Config>(
-	s: &str,
-) -> pallet_rc_migrator::MigrationStageOf<T> {
-	use pallet_rc_migrator::MigrationStage;
-	match s {
-		"preimage" => MigrationStage::PreimageMigrationInit,
-		"referenda" => MigrationStage::ReferendaMigrationInit,
-		_ => MigrationStage::Pending,
-	}
 }

@@ -42,6 +42,7 @@ mod weights;
 pub use pallet::*;
 pub mod scheduler;
 
+use accounts::AccountsMigrator;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -54,31 +55,28 @@ use frame_support::{
 	weights::WeightMeter,
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
+use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
-use runtime_parachains::hrmp;
-use sp_core::{crypto::Ss58Codec, H256};
-use sp_runtime::AccountId32;
-use sp_std::prelude::*;
-use storage::TransactionOutcome;
-use types::AhWeightInfo;
-use weights::WeightInfo;
-use xcm::prelude::*;
-
-use accounts::AccountsMigrator;
-use multisig::MultisigMigrator;
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
 use proxy::*;
 use referenda::ReferendaStage;
+use runtime_parachains::hrmp;
+use sp_core::{crypto::Ss58Codec, H256};
+use sp_runtime::AccountId32;
+use sp_std::prelude::*;
 use staking::{
 	bags_list::{BagsListMigrator, BagsListStage},
 	fast_unstake::{FastUnstakeMigrator, FastUnstakeStage},
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
-use types::PalletMigration;
+use storage::TransactionOutcome;
+use types::{AhWeightInfo, PalletMigration};
+use weights::WeightInfo;
+use xcm::prelude::*;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -196,6 +194,22 @@ impl<AccountId, BlockNumber, BagsListScore> MigrationStage<AccountId, BlockNumbe
 	/// This is **not** the same as `!self.is_finished()`.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
+}
+
+#[cfg(feature = "std")]
+impl<AccountId, BlockNumber, BagsListScore> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore>
+{
+	type Err = std::string::String;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(match s {
+			"preimage" => MigrationStage::PreimageMigrationInit,
+			"referenda" => MigrationStage::ReferendaMigrationInit,
+			"multisig" => MigrationStage::MultisigMigrationInit,
+			other => return Err(format!("Unknown migration stage: {}", other)),
+		})
 	}
 }
 
@@ -322,8 +336,6 @@ pub mod pallet {
 					// TODO: not complete
 
 					Self::transition(MigrationStage::AccountsMigrationInit);
-					// toggle for testing
-					//Self::transition(MigrationStage::BagsListMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
