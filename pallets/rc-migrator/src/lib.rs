@@ -40,6 +40,7 @@ pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
+pub mod scheduler;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -98,13 +99,11 @@ impl<T: Config> From<OutOfWeightError> for Error<T> {
 	}
 }
 
-pub type MigrationStageOf<T> = MigrationStage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
->;
+pub type MigrationStageOf<T> =
+	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, <T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score>;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BagsListScore> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -172,16 +171,15 @@ pub enum MigrationStage<AccountId, BagsListScore> {
 	BagsListMigrationOngoing {
 		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
 	},
-	BagsListMigrationDone,
+	SchedulerMigrationInit,
+	SchedulerMigrationOngoing {
+		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
+	},
+	SchedulerMigrationDone,
 	MigrationDone,
 }
 
-pub type MigrationStageFor<T> = MigrationStage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
->;
-
-impl<AccountId, BagsListScore> MigrationStage<AccountId, BagsListScore> {
+impl<AccountId, BlockNumber> MigrationStage<AccountId, BlockNumber> {
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()`.
@@ -222,6 +220,7 @@ pub mod pallet {
 		+ pallet_nomination_pools::Config
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
+		+ pallet_scheduler::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -660,7 +659,6 @@ pub mod pallet {
 						},
 						Err(err) => {
 							defensive!("Error while migrating referenda: {:?}", err);
-							log::error!(target: LOG_TARGET, "Error while migrating referenda: {:?}", err);
 						},
 					}
 				},
@@ -684,17 +682,46 @@ pub mod pallet {
 							Self::transition(MigrationStage::BagsListMigrationDone);
 						},
 						Ok(Some(next_key)) => {
-							Self::transition(MigrationStage::BagsListMigrationOngoing {
-								next_key: Some(next_key),
-							});
+							Self::transition(MigrationStage::BagsListMigrationOngoing { next_key: Some(next_key) });
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating bags list: {:?}", e);
-							defensive!("Error while migrating bags list");
+							defensive!("Error while migrating bags list: {:?}", e);
 						},
 					}
 				},
 				MigrationStage::BagsListMigrationDone => {
+					Self::transition(MigrationStage::SchedulerMigrationInit);
+				},
+				MigrationStage::SchedulerMigrationInit => {
+					Self::transition(MigrationStage::SchedulerMigrationOngoing { last_key: None });
+				},
+				MigrationStage::SchedulerMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match scheduler::SchedulerMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SchedulerMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SchedulerMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating scheduler: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::SchedulerMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),

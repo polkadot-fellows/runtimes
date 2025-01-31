@@ -8891,6 +8891,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-referenda",
+ "pallet-scheduler",
  "pallet-staking",
  "parity-scale-codec",
  "polkadot-parachain-primitives",

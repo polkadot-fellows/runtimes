@@ -1071,6 +1071,7 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	}
 }
 
+// TODO: should be set with Relay Chain Block Number Provider
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
