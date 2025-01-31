@@ -572,8 +572,10 @@ pub mod pallet {
 							);
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating legacy preimage request status: {:?}", e);
-							defensive!("Error while migrating legacy preimage request status");
+							defensive!(
+								"Error while migrating legacy preimage request status: {:?}",
+								e
+							);
 						},
 					}
 				},
@@ -605,8 +607,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating nom pools: {:?}", e);
-							defensive!("Error while migrating nom pools");
+							defensive!("Error while migrating nom pools: {:?}", e);
 						},
 					}
 				},
@@ -638,8 +639,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating fast unstake: {:?}", e);
-							defensive!("Error while migrating fast unstake");
+							defensive!("Error while migrating fast unstake: {:?}", e);
 						},
 					}
 				},
