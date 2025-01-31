@@ -35,3 +35,7 @@ std = [
 	"sp-std/std",
 	"xcm/std",
 ]
+runtime-benchmarks = [
+	"kusama-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+]
