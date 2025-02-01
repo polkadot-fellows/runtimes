@@ -25,7 +25,7 @@ impl<T: Config> Pallet<T> {
 		messages: Vec<RcBagsListMessage<T>>,
 	) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
-		log::info!("Integrating {} BagsListMessages", messages.len());
+		log::info!(target: LOG_TARGET, "Integrating {} BagsListMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::BagsList,
 			count: messages.len() as u32,
@@ -55,7 +55,7 @@ impl<T: Config> Pallet<T> {
 				}
 
 				alias::ListNodes::<T>::insert(&id, &node);
-				log::debug!("Integrating BagsListNode: {:?}", &id);
+				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &id);
 			},
 			RcBagsListMessage::Bag { score, bag } => {
 				if alias::ListBags::<T>::contains_key(&score) {
@@ -63,7 +63,7 @@ impl<T: Config> Pallet<T> {
 				}
 
 				alias::ListBags::<T>::insert(&score, &bag);
-				log::debug!("Integrating BagsListBag: {:?}", &score);
+				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},
 		}
 

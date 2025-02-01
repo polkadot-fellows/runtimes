@@ -33,6 +33,7 @@
 
 pub mod account;
 pub mod call;
+pub mod claims;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -56,6 +57,7 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
+	claims::RcClaimsMessageOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -66,6 +68,7 @@ use pallet_rc_migrator::{
 	},
 };
 use pallet_referenda::TrackIdOf;
+use polkadot_runtime_common::claims as pallet_claims;
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
@@ -102,6 +105,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
+		+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -205,6 +209,18 @@ pub mod pallet {
 			/// How many multisigs were successfully integrated.
 			count_good: u32,
 			/// How many multisigs failed to integrate.
+			count_bad: u32,
+		},
+		/// We received a batch of claims that we are going to integrate.
+		ClaimsBatchReceived {
+			/// How many claims are in the batch.
+			count: u32,
+		},
+		/// We processed a batch of claims that we received.
+		ClaimsBatchProcessed {
+			/// How many claims were successfully integrated.
+			count_good: u32,
+			/// How many claims failed to integrate.
 			count_bad: u32,
 		},
 		/// We received a batch of proxies that we are going to integrate.
@@ -453,6 +469,16 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(11)]
+		pub fn receive_claims(
+			origin: OriginFor<T>,
+			messages: Vec<RcClaimsMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_claims(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(12)]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcBagsListMessage<T>>,
@@ -462,7 +488,7 @@ pub mod pallet {
 			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(12)]
+		#[pallet::call_index(13)]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
 			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,

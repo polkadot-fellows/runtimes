@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
 		messages: Vec<RcNomPoolsMessage<T>>,
 	) -> Result<(), Error<T>> {
 		let mut good = 0;
-		log::info!("Integrating {} NomPoolsMessages", messages.len());
+		log::info!(target: LOG_TARGET, "Integrating {} NomPoolsMessages", messages.len());
 		Self::deposit_event(Event::NomPoolsMessagesBatchReceived { count: messages.len() as u32 });
 
 		for message in messages {
@@ -48,45 +48,45 @@ impl<T: Config> Pallet<T> {
 		match message {
 			StorageValues { values } => {
 				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::put_values(values);
-				log::debug!("Integrating NomPoolsStorageValues");
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsStorageValues");
 			},
 			PoolMembers { member } => {
 				debug_assert!(!pallet_nomination_pools::PoolMembers::<T>::contains_key(&member.0));
-				log::debug!("Integrating NomPoolsPoolMember: {:?}", &member.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsPoolMember: {:?}", &member.0);
 				pallet_nomination_pools::PoolMembers::<T>::insert(member.0, member.1);
 			},
 			BondedPools { pool } => {
 				debug_assert!(!pallet_nomination_pools::BondedPools::<T>::contains_key(pool.0));
-				log::debug!("Integrating NomPoolsBondedPool: {}", &pool.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsBondedPool: {}", &pool.0);
 				pallet_nomination_pools::BondedPools::<T>::insert(
 					pool.0,
 					Self::rc_to_ah_bonded_pool(pool.1),
 				);
 			},
 			RewardPools { rewards } => {
-				log::debug!("Integrating NomPoolsRewardPool: {:?}", &rewards.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsRewardPool: {:?}", &rewards.0);
 				// Not sure if it is the best to use the alias here, but it is the easiest...
 				pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::insert(
 					rewards.0, rewards.1,
 				);
 			},
 			SubPoolsStorage { sub_pools } => {
-				log::debug!("Integrating NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsSubPoolsStorage: {:?}", &sub_pools.0);
 				pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::insert(
 					sub_pools.0,
 					sub_pools.1,
 				);
 			},
 			Metadata { meta } => {
-				log::debug!("Integrating NomPoolsMetadata: {:?}", &meta.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsMetadata: {:?}", &meta.0);
 				pallet_nomination_pools::Metadata::<T>::insert(meta.0, meta.1);
 			},
 			ReversePoolIdLookup { lookups } => {
-				log::debug!("Integrating NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsReversePoolIdLookup: {:?}", &lookups.0);
 				pallet_nomination_pools::ReversePoolIdLookup::<T>::insert(lookups.0, lookups.1);
 			},
 			ClaimPermissions { perms } => {
-				log::debug!("Integrating NomPoolsClaimPermissions: {:?}", &perms.0);
+				log::debug!(target: LOG_TARGET, "Integrating NomPoolsClaimPermissions: {:?}", &perms.0);
 				pallet_nomination_pools::ClaimPermissions::<T>::insert(perms.0, perms.1);
 			},
 		}

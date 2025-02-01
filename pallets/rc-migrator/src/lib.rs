@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
+pub mod claims;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -43,6 +44,7 @@ pub use pallet::*;
 pub mod scheduler;
 
 use accounts::AccountsMigrator;
+use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -58,7 +60,7 @@ use frame_system::{pallet_prelude::*, AccountInfo};
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-use polkadot_runtime_common::paras_registrar;
+use polkadot_runtime_common::{claims as pallet_claims, paras_registrar};
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
@@ -103,6 +105,12 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 >;
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum PalletEventName {
+	FastUnstake,
+	BagsList,
+}
+
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	/// The migration has not yet started but will start in the next block.
@@ -116,17 +124,23 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 		// Last migrated account
 		last_key: Option<AccountId>,
 	},
-	/// Accounts migration is done. Ready to go to the next one.
-	///
 	/// Note that this stage does not have any logic attached to itself. It just exists to make it
 	/// easier to swap out what stage should run next for testing.
 	AccountsMigrationDone,
+
 	MultisigMigrationInit,
 	MultisigMigrationOngoing {
 		/// Last migrated key of the `Multisigs` double map.
 		last_key: Option<(AccountId, [u8; 32])>,
 	},
 	MultisigMigrationDone,
+
+	ClaimsMigrationInit,
+	ClaimsMigrationOngoing {
+		current_key: Option<ClaimsStage<AccountId>>,
+	},
+	ClaimsMigrationDone,
+
 	ProxyMigrationInit,
 	/// Currently migrating the proxies of the proxy pallet.
 	ProxyMigrationProxies {
@@ -137,6 +151,7 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 		last_key: Option<AccountId>,
 	},
 	ProxyMigrationDone,
+
 	PreimageMigrationInit,
 	PreimageMigrationChunksOngoing {
 		// TODO type
@@ -153,26 +168,31 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	},
 	PreimageMigrationLegacyRequestStatusDone,
 	PreimageMigrationDone,
+
 	NomPoolsMigrationInit,
 	NomPoolsMigrationOngoing {
 		next_key: Option<NomPoolsStage<AccountId>>,
 	},
 	NomPoolsMigrationDone,
+
 	FastUnstakeMigrationInit,
 	FastUnstakeMigrationOngoing {
 		next_key: Option<FastUnstakeStage<AccountId>>,
 	},
 	FastUnstakeMigrationDone,
+
 	ReferendaMigrationInit,
 	ReferendaMigrationOngoing {
 		last_key: Option<ReferendaStage>,
 	},
 	ReferendaMigrationDone,
+
 	BagsListMigrationInit,
 	BagsListMigrationOngoing {
 		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
 	},
 	BagsListMigrationDone,
+
 	SchedulerMigrationInit,
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
@@ -232,6 +252,7 @@ pub mod pallet {
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
+		+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -334,7 +355,6 @@ pub mod pallet {
 			match stage {
 				MigrationStage::Pending => {
 					// TODO: not complete
-
 					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
@@ -369,7 +389,6 @@ pub mod pallet {
 						},
 						Err(err) => {
 							defensive!("Error while migrating accounts: {:?}", err);
-							log::error!(target: LOG_TARGET, "Error while migrating accounts: {:?}", err);
 							// stage unchanged, retry.
 						},
 					}
@@ -404,12 +423,40 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating multisigs: {:?}", e);
-							defensive!("Error while migrating multisigs");
+							defensive!("Error while migrating multisigs: {:?}", e);
 						},
 					}
 				},
 				MigrationStage::MultisigMigrationDone => {
+					Self::transition(MigrationStage::ClaimsMigrationInit);
+				},
+				MigrationStage::ClaimsMigrationInit => {
+					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
+				},
+				MigrationStage::ClaimsMigrationOngoing { current_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match ClaimsMigrator::<T>::migrate_many(current_key, &mut weight_counter) {
+							Ok(current_key) => TransactionOutcome::Commit(Ok(current_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ClaimsMigrationDone);
+						},
+						Ok(Some(current_key)) => {
+							Self::transition(MigrationStage::ClaimsMigrationOngoing {
+								current_key: Some(current_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating claims: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::ClaimsMigrationDone => {
 					Self::transition(MigrationStage::ProxyMigrationInit);
 				},
 				MigrationStage::ProxyMigrationInit => {
@@ -437,8 +484,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating proxies: {:?}", e);
-							defensive!("Error while migrating proxies");
+							defensive!("Error while migrating proxies: {:?}", e);
 						},
 					}
 				},
@@ -464,8 +510,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating proxy announcements: {:?}", e);
-							defensive!("Error while migrating proxy announcements");
+							defensive!("Error while migrating proxy announcements: {:?}", e);
 						},
 					}
 				},
@@ -499,8 +544,7 @@ pub mod pallet {
 							});
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating preimages: {:?}", e);
-							defensive!("Error while migrating preimages");
+							defensive!("Error while migrating preimages: {:?}", e);
 						},
 					}
 				},
@@ -533,8 +577,7 @@ pub mod pallet {
 							);
 						},
 						e => {
-							log::error!(target: LOG_TARGET, "Error while migrating preimage request status: {:?}", e);
-							defensive!("Error while migrating preimage request status");
+							defensive!("Error while migrating preimage request status: {:?}", e);
 						},
 					}
 				},

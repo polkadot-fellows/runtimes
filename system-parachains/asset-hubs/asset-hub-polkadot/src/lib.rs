@@ -150,7 +150,9 @@ pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use polkadot_runtime_common::{prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{
+	claims as pallet_claims, prod_or_fast, BlockHashCount, SlowAdjustingFeeUpdate,
+};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -1086,6 +1088,19 @@ impl pallet_scheduler::Config for Runtime {
 	type Preimages = Preimage;
 }
 
+parameter_types! {
+	pub PalletClaimsPrefix: &'static [u8] = b"Pay DOTs to the Polkadot account:";
+}
+
+impl pallet_claims::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type VestingSchedule = Vesting;
+	type Prefix = PalletClaimsPrefix;
+	/// Only Root can move a claim.
+	type MoveClaimOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = pallet_claims::TestWeightInfo; // TODOweights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
+}
+
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1122,6 +1137,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment = 11,
 		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
 		Vesting: pallet_vesting = 14,
+		Claims: pallet_claims = 15,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,

@@ -126,7 +126,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				break;
 			};
 
-			log::debug!("Migrating multisigs of acc {:?}", k1);
+			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
 			match Self::migrate_single(k1.clone(), multisig, weight_counter) {
 				Ok(ms) => batch.push(ms), // TODO continue here
