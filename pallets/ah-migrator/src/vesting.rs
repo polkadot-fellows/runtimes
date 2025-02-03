@@ -54,9 +54,12 @@ impl<T: Config> Pallet<T> {
 			log::warn!(target: LOG_TARGET, "Merging with existing vesting schedule for {:?}", message.who);
 		}
 
-		let all_schedules =
-			schedules.into_iter().chain(message.schedules.into_iter()).collect::<Vec<_>>();
-		let bounded_schedule = BoundedVec::<_, _>::truncate_from(all_schedules);
+		let all_schedules = schedules
+			.clone()
+			.into_iter()
+			.chain(message.schedules.into_iter())
+			.collect::<Vec<_>>();
+		let bounded_schedule = BoundedVec::<_, _>::truncate_from(all_schedules.clone());
 		let truncated = all_schedules.len() - bounded_schedule.len();
 
 		if truncated == 0 {
@@ -64,6 +67,7 @@ impl<T: Config> Pallet<T> {
 			log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}", message.who);
 		} else {
 			log::error!(target: LOG_TARGET, "Truncated {} vesting schedules for {:?}", truncated, message.who);
+			defensive!("Truncated vesting schedules for {:?}", message.who);
 
 			// TODO what do? should we create a storage item and insert the truncated ones?
 			// Nobody seems to use the Vesting pallet on AH yet, but we cannot be sure that there
