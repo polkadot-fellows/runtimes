@@ -282,7 +282,7 @@ jobs:
         with:
           targets: "wasm32-unknown-unknown"
           components: "rust-src, rustfmt"
-          toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
+          toolchain: "nightly-${{env.RUST_STABLE_VERSION}}"
 
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
