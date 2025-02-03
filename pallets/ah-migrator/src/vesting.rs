@@ -48,13 +48,27 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn do_process_vesting_schedule(message: RcVestingSchedule<T>) -> Result<(), Error<T>> {
-		if pallet_vesting::Vesting::<T>::contains_key(&message.who) {
-			defensive!("Vesting schedule for {:?} already exists", message.who);
-			return Err(Error::<T>::InsertConflict);
+		let mut schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
+
+		if !schedules.is_empty() {
+			log::warn!(target: LOG_TARGET, "Merging with existing vesting schedule for {:?}", message.who);
 		}
 
-		pallet_vesting::Vesting::<T>::insert(&message.who, message.schedules);
-		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}", message.who);
+		let all_schedules =
+			schedules.into_iter().chain(message.schedules.into_iter()).collect::<Vec<_>>();
+		let bounded_schedule = BoundedVec::<_, _>::truncate_from(all_schedules);
+		let truncated = all_schedules.len() - bounded_schedule.len();
+
+		if truncated == 0 {
+			pallet_vesting::Vesting::<T>::insert(&message.who, bounded_schedule);
+			log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}", message.who);
+		} else {
+			log::error!(target: LOG_TARGET, "Truncated {} vesting schedules for {:?}", truncated, message.who);
+
+			// TODO what do? should we create a storage item and insert the truncated ones?
+			// Nobody seems to use the Vesting pallet on AH yet, but we cannot be sure that there
+			// won't be a truncatenation.
+		}
 
 		Ok(())
 	}
