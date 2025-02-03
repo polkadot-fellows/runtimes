@@ -251,9 +251,10 @@ jobs:
           rustup component add rust-src
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           shared-key: "fellowship-cache-build-runtimes-test"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build runtime ${{ matrix.runtime.name }}
         run: |
