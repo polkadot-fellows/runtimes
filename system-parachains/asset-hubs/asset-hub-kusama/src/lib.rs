@@ -1009,8 +1009,7 @@ impl pallet_remote_proxy::Config for Runtime {
 		ProxyType,
 		RelayChainToLocalProxyTypeConverter,
 	>;
-	//TODO: Run benchmarks and replace.
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_remote_proxy::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1127,6 +1126,7 @@ mod benches {
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
+		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
