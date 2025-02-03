@@ -292,7 +292,7 @@ pub mod pallet {
 		///
 		/// # Example
 		///
-		/// ```
+		/// ```ignore
 		/// batch([
 		///     register_remote_proxy_proof,
 		///     as_multisig(remote_proxy_with_registered_proof(transfer))
