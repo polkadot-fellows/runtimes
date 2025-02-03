@@ -48,20 +48,22 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 7)]
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
-	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
+	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
 	#[codec(index = 9)]
+	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
+	#[codec(index = 10)]
 	ReceiveReferendaValues {
 		referendum_count: u32,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	},
-	#[codec(index = 10)]
-	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 11)]
-	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 12)]
-	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 }
 

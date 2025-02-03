@@ -28,6 +28,7 @@ pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-referenda = { workspace = true }
+pallet-vesting = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }

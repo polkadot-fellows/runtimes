@@ -25,6 +25,7 @@ pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
+pallet-vesting = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
