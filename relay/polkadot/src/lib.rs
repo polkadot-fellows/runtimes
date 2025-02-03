@@ -2036,13 +2036,18 @@ pub mod restore_corrupt_ledger_2 {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_some());
-			Ok(Default::default())
+			let found_corrupted =
+				pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_some();
+			Ok(found_corrupted.encode())
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_none());
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			let found_corrupted: bool = Decode::decode(&mut &state[..])
+				.map_err(|_| sp_runtime::TryRuntimeError::Corruption)?;
+			if found_corrupted {
+				assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_none());
+			}
 			Ok(())
 		}
 	}

@@ -59,6 +59,8 @@ const INSUFFICIENT_XCM_FEE: u128 = 1000;
 const XCM_FEE: u128 = 4_000_000_000;
 const TOKEN_AMOUNT: u128 = 100_000_000_000;
 const AH_BASE_FEE: u128 = 2_750_872_500_000u128;
+const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
+const ETHER_TOKEN_ADDRESS: [u8; 20] = [0; 20];
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum ControlCall {
@@ -389,7 +391,7 @@ fn send_token_from_ethereum_to_penpal() {
 /// Tests the registering of a token as an asset on AssetHub, and then subsequently sending
 /// a token from Ethereum to AssetHub.
 #[test]
-fn send_token_from_ethereum_to_asset_hub() {
+fn send_weth_from_ethereum_to_asset_hub() {
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
@@ -459,16 +461,15 @@ fn send_token_from_ethereum_to_asset_hub() {
 	});
 }
 
-/// Tests the full cycle of token transfers:
-/// - registering a token on AssetHub
-/// - sending a token to AssetHub
-/// - returning the token to Ethereum
-#[test]
-fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
-		1,
-		[Parachain(AssetHubPolkadot::para_id().into())],
-	));
+// Performs a round trip tansfer of a token, asseting success.
+fn send_token_from_ethereum_to_asset_hub_and_back_works(
+	token_address: H160,
+	amount: u128,
+	asset_location: Location,
+) {
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
+		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
+	);
 
 	BridgeHubPolkadot::fund_accounts(vec![
 		(assethub_sovereign.clone(), INITIAL_FUND),
@@ -481,12 +482,15 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 
 	// Set base transfer fee to Ethereum on AH.
 	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
 		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
+			RuntimeOrigin::root(),
 			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
 		));
 	});
 
+	// Send Token from Bridge Hub (simulates received Command from Ethereum)
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
@@ -511,32 +515,15 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		));
 
 		let message_id: H256 = [1; 32].into();
-		let message = VersionedMessage::V1(MessageV1 {
-			chain_id: CHAIN_ID,
-			command: Command::RegisterToken { token: WETH.into(), fee: XCM_FEE },
-		});
-		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
-		// Send the XCM
-		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
-
-		// Check that the register token message was sent using xcm
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
-			]
-		);
-
 		// Construct SendToken message and sent to inbound queue
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
 			command: Command::SendToken {
-				token: WETH.into(),
+				token: token_address,
 				destination: Destination::AccountId32 {
 					id: AssetHubPolkadotReceiver::get().into(),
 				},
-				amount: TOKEN_AMOUNT,
+				amount,
 				fee: XCM_FEE,
 			},
 		});
@@ -545,7 +532,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		// Send the XCM
 		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
 
-		// Check that the send token message was sent using xcm
+		// Check that the message was sent
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
@@ -554,32 +541,30 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		);
 	});
 
-	// check treasury account balance on BH before
+	// Receive Token on Asset Hub.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, .. }) => {
+					asset_id: *asset_id == asset_location,
+				},
+			]
+		);
+	});
+
 	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
 		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
 	});
 
+	// Send Token from Asset Hub back to Ethereum.
 	AssetHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
-		// Check that AssetHub has issued the foreign asset
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
-			]
-		);
-		let assets = vec![Asset {
-			id: AssetId(Location::new(
-				2,
-				[
-					GlobalConsensus(Ethereum { chain_id: CHAIN_ID }),
-					AccountKey20 { network: None, key: WETH },
-				],
-			)),
-			fun: Fungible(TOKEN_AMOUNT),
-		}];
+		let assets = vec![Asset { id: AssetId(asset_location), fun: Fungible(amount) }];
 		let versioned_assets = VersionedAssets::from(Assets::from(assets));
 
 		let destination = VersionedLocation::from(Location::new(
@@ -596,7 +581,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
 				AssetHubPolkadotReceiver::get(),
 			);
-		// Send the Weth back to Ethereum
+		// Send the Token back to Ethereum
 		assert_ok!(
 			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
 				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
@@ -617,10 +602,10 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		assert!(free_balance_diff > AH_BASE_FEE);
 	});
 
+	// Check that message with Token was queued on the BridgeHub
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		// Check that the transfer token back to Ethereum message was queue in the Ethereum
-		// Outbound Queue
+		// check the outbound queue
 		assert_expected_events!(
 			BridgeHubPolkadot,
 			vec![
@@ -637,8 +622,8 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 		assert!(
 			events.iter().any(|event| matches!(
 				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount })
-					if *who == RelayTreasuryPalletAccount::get() && *amount == local_fee
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount: fee_minted })
+					if *who == RelayTreasuryPalletAccount::get() && *fee_minted == local_fee
 			)),
 			"Snowbridge sovereign takes local fee."
 		);
@@ -652,6 +637,55 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 			"AssetHub sovereign takes remote fee."
 		);
 	});
+}
+
+/// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
+#[test]
+fn send_eth_asset_from_asset_hub_to_ethereum() {
+	let ether_location: Location = (Parent, Parent, EthereumNetwork::get()).into();
+
+	// Register Ether as foreign asset on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
+			RuntimeOrigin::root(),
+			ether_location.clone(),
+			ethereum_sovereign_account().into(),
+			true,
+			MIN_ETHER_BALANCE,
+		));
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::ForceCreated { .. }) => {},
+			]
+		);
+	});
+
+	// Perform a roundtrip transfer of Ether
+	send_token_from_ethereum_to_asset_hub_and_back_works(
+		ETHER_TOKEN_ADDRESS.into(),
+		MIN_ETHER_BALANCE + TOKEN_AMOUNT,
+		ether_location,
+	);
+}
+
+/// Tests the full cycle of token transfers:
+/// - registering a token on AssetHub
+/// - sending a token to AssetHub
+/// - returning the token to Ethereum
+#[test]
+fn send_weth_asset_from_asset_hub_to_ethereum() {
+	// Register WETH on Asset Hub
+	register_weth_token_from_ethereum_to_asset_hub();
+
+	let weth_location: Location =
+		(Parent, Parent, EthereumNetwork::get(), AccountKey20 { network: None, key: WETH }).into();
+	// Perform a roundtrip transfer of WETH
+	send_token_from_ethereum_to_asset_hub_and_back_works(WETH.into(), TOKEN_AMOUNT, weth_location);
 }
 
 #[test]
