@@ -21,6 +21,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_vesting_schedules(
 		messages: Vec<RcVestingSchedule<T>>,
 	) -> Result<(), Error<T>> {
+		alias::StorageVersion::<T>::put(alias::Releases::V1);
 		log::info!(target: LOG_TARGET, "Integrating {} vesting schedules", messages.len());
 		Self::deposit_event(Event::BatchReceived {
 			pallet: PalletEventName::Vesting,
@@ -87,7 +88,7 @@ impl<T: Config> Pallet<T> {
 			);
 			// Insert the new schedule into the free slot:
 			let mut schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
-			sc hedules.try_push(*truncate).map_err(|_| Error::<T>::Unreachable)?;
+			schedules.try_push(*truncate).map_err(|_| Error::<T>::Unreachable)?;
 			pallet_vesting::Vesting::<T>::insert(&message.who, &schedules);
 		}
 
@@ -128,5 +129,19 @@ impl<T: Config> Pallet<T> {
 			pallet_vesting_error_index: err_index,
 		});
 		Err(Error::<T>::FailedToMergeVestingSchedules)
+	}
+}
+
+pub mod alias {
+	use super::*;
+
+	#[frame_support::storage_alias(pallet_name)]
+	pub type StorageVersion<T: pallet_vesting::Config> = StorageValue<pallet_vesting::Pallet<T>, Releases, ValueQuery>;
+
+	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Default, TypeInfo)]
+	pub enum Releases {
+		#[default]
+		V0,
+		V1,
 	}
 }

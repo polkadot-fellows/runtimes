@@ -68,9 +68,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 			}
 
 			let mut iter = match inner_key {
-				Some(who) => pallet_vesting::Vesting::<T>::iter_from(
-					pallet_vesting::Vesting::<T>::hashed_key_for(who),
-				),
+				Some(who) => pallet_vesting::Vesting::<T>::iter_from_key(who),
 				None => pallet_vesting::Vesting::<T>::iter(),
 			};
 
