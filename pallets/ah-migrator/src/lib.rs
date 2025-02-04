@@ -185,6 +185,11 @@ pub mod pallet {
 		FailedToConvertCall,
 		/// Failed to bound a call.
 		FailedToBoundCall,
+		/// Failed to merge RC and AH vesting schedules.
+		///
+		/// See the Event `FailedToMergeVestingSchedules` for more info.
+		FailedToMergeVestingSchedules,
+		Unreachable,
 	}
 
 	#[pallet::event]
@@ -332,6 +337,21 @@ pub mod pallet {
 			count_good: u32,
 			/// How many scheduler messages failed to integrate.
 			count_bad: u32,
+		},
+		/// Should not happen. Manual intervention by the Fellowship required.
+		///
+		/// Can happen when existing AH and incoming RC vesting schedules have more combined
+		/// entries than allowed. This triggers the merging logic which has henceforth failed
+		/// with the given inner pallet-vesting error.
+		FailedToMergeVestingSchedules {
+			/// The account that failed to merge the schedules.
+			who: AccountId32,
+			/// The first schedule index that failed to merge.
+			schedule1: u32,
+			/// The second schedule index that failed to merge.
+			schedule2: u32,
+			/// The index of the pallet-vesting error that occurred.
+			pallet_vesting_error_index: Option<u8>,
 		},
 	}
 
