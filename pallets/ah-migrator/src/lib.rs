@@ -34,6 +34,7 @@
 pub mod account;
 pub mod call;
 pub mod claims;
+pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -58,6 +59,7 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
+	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -90,6 +92,7 @@ type RcAccountFor<T> = RcAccount<
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum PalletEventName {
+	Indices,
 	FastUnstake,
 	BagsList,
 }
@@ -113,6 +116,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_indices::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -496,6 +500,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(14)]
+		pub fn receive_indices(
+			origin: OriginFor<T>,
+			indices: Vec<RcIndicesIndexOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_indices(indices).map_err(Into::into)
 		}
 	}
 

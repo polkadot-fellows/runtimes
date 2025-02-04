@@ -17,6 +17,7 @@ pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }

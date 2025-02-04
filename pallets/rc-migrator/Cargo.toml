@@ -24,6 +24,7 @@ pallet-bags-list = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-indices = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-fast-unstake = { workspace = true }

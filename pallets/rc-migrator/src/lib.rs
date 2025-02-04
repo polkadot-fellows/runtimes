@@ -33,6 +33,7 @@
 
 pub mod accounts;
 pub mod claims;
+pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -57,6 +58,7 @@ use frame_support::{
 	weights::WeightMeter,
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
+use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
@@ -103,6 +105,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as frame_system::Config>::AccountId,
 	BlockNumberFor<T>,
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
+	<T as pallet_indices::Config>::AccountIndex,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -112,7 +115,7 @@ pub enum PalletEventName {
 }
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -181,6 +184,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	},
 	FastUnstakeMigrationDone,
 
+	IndicesMigrationInit,
+	IndicesMigrationOngoing {
+		next_key: Option<AccountIndex>,
+	},
+	IndicesMigrationDone,
+
 	ReferendaMigrationInit,
 	ReferendaMigrationOngoing {
 		last_key: Option<ReferendaStage>,
@@ -201,7 +210,9 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore> {
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore> MigrationStage<AccountId, BlockNumber, BagsListScore> {
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex>
+{
 	/// Whether the migration is finished.
 	///
 	/// This is **not** the same as `!self.is_ongoing()`.
@@ -218,8 +229,8 @@ impl<AccountId, BlockNumber, BagsListScore> MigrationStage<AccountId, BlockNumbe
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex>
 {
 	type Err = std::string::String;
 
@@ -260,6 +271,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_indices::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -687,6 +699,37 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::FastUnstakeMigrationDone => {
+					Self::transition(MigrationStage::IndicesMigrationInit);
+				},
+				MigrationStage::IndicesMigrationInit => {
+					Self::transition(MigrationStage::IndicesMigrationOngoing {
+						next_key: Some(Default::default()),
+					});
+				},
+				MigrationStage::IndicesMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match IndicesMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::IndicesMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::IndicesMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating indices: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::IndicesMigrationDone => {
 					Self::transition(MigrationStage::ReferendaMigrationInit);
 				},
 				MigrationStage::ReferendaMigrationInit => {
