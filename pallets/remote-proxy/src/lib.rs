@@ -172,6 +172,11 @@ pub mod pallet {
 	pub type BlockToRoot<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Twox64Concat, RemoteBlockNumberOf<T, I>, RemoteHashOf<T, I>, OptionQuery>;
 
+	/// Stores the last block that was added to [`BlockToRoot`].
+	#[pallet::storage]
+	pub type MostRecentBlock<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, RemoteBlockNumberOf<T, I>, OptionQuery>;
+
 	/// Configuration trait.
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config + pallet_proxy::Config {
@@ -200,7 +205,11 @@ pub mod pallet {
 
 			// Update the block to root mappings.
 			BlockToRoot::<T>::insert(&block, hash);
-			BlockToRoot::<T>::remove(block.saturating_sub(T::MaxStorageRootsToKeep::get()));
+			MostRecentBlock::insert(&block);
+
+			let delete_up_to = block.saturating_sub(T::MaxStorageRootsToKeep::get());
+			// If the chain got stuck for longer, we will clean up too old entries over time.
+			BlockToRoot::<T>::iter_keys().take_while(3, |k| k <= delete_up_to).for_each(BlockToRoot::<T>::remove);
 		}
 
 		fn on_validation_code_applied() {}
@@ -213,6 +222,8 @@ pub mod pallet {
 		CouldNotConvertLocalToRemoteAccountId,
 		/// The anchor block of the remote proof is unknown.
 		UnknownProofAnchorBlock,
+		/// The anchor block of the remote proof is too old.
+		ProofAnchorBlockTooOld,
 		/// The proxy definition could not be found in the proof.
 		InvalidProof,
 		/// Failed to decode the remote proxy definition from the proof.
@@ -374,6 +385,10 @@ pub mod pallet {
 
 			let def = match proof {
 				RemoteProxyProof::RelayChain { proof, block } => {
+					if MostRecentBlock::<T, I>::get(&block).map_or(true, |b| block <= b.saturating_sub(T::MaxStorageRootsToKeep::get()) {
+						return Err(Error::<T, I>::ProofAnchorBlockTooOld.into());
+					} 
+					
 					let Some(storage_root) = BlockToRoot::<T, I>::get(block) else {
 						return Err(Error::<T, I>::UnknownProofAnchorBlock.into());
 					};
@@ -427,7 +442,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// TODO: Make upstream public and use that one.
+		// TODO: Make upstream public and use that one.
 		fn do_proxy(
 			def: ProxyDefinition<T::AccountId, T::ProxyType, BlockNumberFor<T>>,
 			real: T::AccountId,
