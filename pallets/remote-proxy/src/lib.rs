@@ -90,7 +90,7 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	/// The storage key where to find the [`ProxyDefinition`] for the given proxy account in the
 	/// remote chain.
 	fn proxy_definition_storage_key(proxy: &Self::RemoteAccountId) -> Vec<u8> {
-		let mut key = storage_prefix("Proxy".as_bytes(), "Proxies".as_bytes()).to_vec();
+		let mut key = storage_prefix(b"Proxy", b"Proxies").to_vec();
 		proxy.using_encoded(|p| {
 			key.extend(Twox64Concat::hash(p));
 		});
