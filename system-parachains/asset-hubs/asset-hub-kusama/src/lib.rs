@@ -175,9 +175,16 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 2;
 }
 
+pub struct VestedTransferCalls;
+impl Contains<RuntimeCall> for VestedTransferCalls {
+	fn contains(call: &RuntimeCall) -> bool {
+		matches!(call, RuntimeCall::vesting(VestingCall::vested_transfer { .. }))
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = frame_support::traits::EverythingExcluding<VestedTransferCalls>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
