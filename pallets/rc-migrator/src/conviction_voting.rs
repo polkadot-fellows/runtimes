@@ -168,6 +168,7 @@ impl<T: Config> Pallet<T> {
 
 pub mod alias {
 	use super::*;
+	use core::fmt;
 
 	/// Copy of [`pallet_conviction_voting::BalanceOf`].
 	///
@@ -189,6 +190,39 @@ pub mod alias {
 	pub type PollIndexOf<T, I = ()> =
 		<<T as pallet_conviction_voting::Config<I>>::Polls as Polling<TallyOf<T, I>>>::Index;
 
+	pub struct MaxVotes<Inner> {
+		_phantom: sp_std::marker::PhantomData<Inner>,
+	}
+
+	impl<Inner: Get<u32>> Get<u32> for MaxVotes<Inner> {
+		fn get() -> u32 {
+			Inner::get()
+		}
+	}
+
+	impl<Inner> Clone for MaxVotes<Inner> {
+		fn clone(&self) -> Self {
+			Self {
+				_phantom: sp_std::marker::PhantomData,
+			}
+		}
+	}
+
+	impl<Inner: Get<u32>> fmt::Debug for MaxVotes<Inner> {
+		fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+			write!(f, "MaxVotes({})", Inner::get())
+		}
+	}
+
+	impl<Inner: Get<u32>> PartialEq for MaxVotes<Inner> {
+		fn eq(&self, _other: &Self) -> bool {
+			true // other has same type as us
+		}
+	}
+
+	impl<Inner: Get<u32>> Eq for MaxVotes<Inner> {}
+	
+
 	/// Copy of [`pallet_conviction_voting::VotingOf`].
 	///
 	/// Required since original type is private.
@@ -197,7 +231,9 @@ pub mod alias {
 		<T as frame_system::Config>::AccountId,
 		BlockNumberFor<T>,
 		PollIndexOf<T, I>,
-		<T as pallet_conviction_voting::Config<I>>::MaxVotes,
+		MaxVotes<
+			<T as pallet_conviction_voting::Config<I>>::MaxVotes,
+		>,
 	>;
 
 	/// Storage alias of [`pallet_conviction_voting::VotingFor`].
