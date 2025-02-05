@@ -261,7 +261,7 @@ pub mod pallet {
 		/// - `real`: The account that the proxy will make a call on behalf of.
 		/// - `force_proxy_type`: Specify the exact proxy type to be used and checked for this call.
 		/// - `call`: The call to be made by the `real` account.
-		/// - `proof`: The proof from the remote chain about the existence of the proof.
+		/// - `proof`: The proof from the remote chain about the existence of the proxy.
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let di = call.get_dispatch_info();
