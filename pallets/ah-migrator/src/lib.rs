@@ -34,6 +34,7 @@
 pub mod account;
 pub mod call;
 pub mod claims;
+pub mod conviction_voting;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -58,6 +59,7 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
+	conviction_voting as ah_conviction_voting,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -113,6 +115,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_conviction_voting::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -329,6 +332,14 @@ pub mod pallet {
 			/// How many scheduler messages failed to integrate.
 			count_bad: u32,
 		},
+		ConvictionVotingMessagesReceived {
+			/// How many conviction voting messages are in the batch.
+			count: u32,
+		},
+		ConvictionVotingMessagesProcessed {
+			/// How many conviction voting messages were successfully integrated.
+			count_good: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -496,6 +507,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(14)]
+		pub fn receive_conviction_voting_messages(
+			origin: OriginFor<T>,
+			messages: Vec<ah_conviction_voting::RcConvictionVotingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 	}
 
