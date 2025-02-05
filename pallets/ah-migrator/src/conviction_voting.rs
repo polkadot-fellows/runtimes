@@ -63,7 +63,6 @@ impl<T: Config> Pallet<T> {
 		balance_per_class: Vec<(alias::ClassOf<T>, alias::BalanceOf<T>)>,
 	) {
 		log::debug!(target: LOG_TARGET, "Processing ClassLocksFor record for: {:?}", &account_id);
-		let balance_per_class = balance_per_class;
 		let balance_per_class =
 			BoundedVec::<_, ClassCountOf<T::Polls, TallyOf<T, ()>>>::defensive_truncate_from(
 				balance_per_class,

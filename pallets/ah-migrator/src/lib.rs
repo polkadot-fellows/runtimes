@@ -59,7 +59,7 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
-	conviction_voting as ah_conviction_voting,
+	conviction_voting::RcConvictionVotingMessageOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -512,7 +512,7 @@ pub mod pallet {
 		#[pallet::call_index(14)]
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
-			messages: Vec<ah_conviction_voting::RcConvictionVotingMessageOf<T>>,
+			messages: Vec<RcConvictionVotingMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

@@ -40,7 +40,7 @@ pub type RcConvictionVotingMessageOf<T> = RcConvictionVotingMessage<
 	alias::BalanceOf<T>,
 >;
 
-pub struct ConvictionVotingMigrator<T: Config> {
+pub struct ConvictionVotingMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
@@ -190,6 +190,7 @@ pub mod alias {
 	pub type PollIndexOf<T, I = ()> =
 		<<T as pallet_conviction_voting::Config<I>>::Polls as Polling<TallyOf<T, I>>>::Index;
 
+	/// Wrapper around the `MaxVotes` since the SDK does not derive Clone correctly.
 	pub struct MaxVotes<Inner> {
 		_phantom: sp_std::marker::PhantomData<Inner>,
 	}
@@ -202,9 +203,7 @@ pub mod alias {
 
 	impl<Inner> Clone for MaxVotes<Inner> {
 		fn clone(&self) -> Self {
-			Self {
-				_phantom: sp_std::marker::PhantomData,
-			}
+			Self { _phantom: sp_std::marker::PhantomData }
 		}
 	}
 
@@ -221,7 +220,6 @@ pub mod alias {
 	}
 
 	impl<Inner: Get<u32>> Eq for MaxVotes<Inner> {}
-	
 
 	/// Copy of [`pallet_conviction_voting::VotingOf`].
 	///
@@ -231,9 +229,7 @@ pub mod alias {
 		<T as frame_system::Config>::AccountId,
 		BlockNumberFor<T>,
 		PollIndexOf<T, I>,
-		MaxVotes<
-			<T as pallet_conviction_voting::Config<I>>::MaxVotes,
-		>,
+		MaxVotes<<T as pallet_conviction_voting::Config<I>>::MaxVotes>,
 	>;
 
 	/// Storage alias of [`pallet_conviction_voting::VotingFor`].
