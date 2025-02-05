@@ -453,7 +453,7 @@ pub mod pallet {
 			let mut origin: T::RuntimeOrigin = frame_system::RawOrigin::Signed(real).into();
 			origin.add_filter(move |c: &<T as frame_system::Config>::RuntimeCall| {
 				let c = <T as pallet_proxy::Config>::RuntimeCall::from_ref(c);
-				// We make sure the proxy call does access this pallet to change modify proxies.
+				// We make sure the proxy call does not modify proxies.
 				match c.is_sub_type() {
 					// Proxy call cannot add or remove a proxy with more permissions than it already
 					// has.
