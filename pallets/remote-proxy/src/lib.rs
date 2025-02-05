@@ -385,7 +385,7 @@ pub mod pallet {
 
 			let def = match proof {
 				RemoteProxyProof::RelayChain { proof, block } => {
-					if MostRecentBlock::<T, I>::get(&block).map_or(true, |b| block <= b.saturating_sub(T::MaxStorageRootsToKeep::get()) {
+					if MostRecentBlock::<T, I>::get(&block).map_or(true, |b| block <= b.saturating_sub(T::MaxStorageRootsToKeep::get())) {
 						return Err(Error::<T, I>::ProofAnchorBlockTooOld.into());
 					} 
 					
