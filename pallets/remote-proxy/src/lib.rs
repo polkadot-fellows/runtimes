@@ -205,11 +205,11 @@ pub mod pallet {
 
 			// Update the block to root mappings.
 			BlockToRoot::<T>::insert(&block, hash);
-			MostRecentBlock::insert(&block);
+			MostRecentBlock::put(&block);
 
 			let delete_up_to = block.saturating_sub(T::MaxStorageRootsToKeep::get());
 			// If the chain got stuck for longer, we will clean up too old entries over time.
-			BlockToRoot::<T>::iter_keys().take_while(3, |k| k <= delete_up_to).for_each(BlockToRoot::<T>::remove);
+			BlockToRoot::<T>::iter_keys().take_while(|k| k <= delete_up_to).for_each(BlockToRoot::<T>::remove);
 		}
 
 		fn on_validation_code_applied() {}
