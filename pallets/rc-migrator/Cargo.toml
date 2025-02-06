@@ -21,6 +21,7 @@ sp-std = { workspace = true }
 sp-io = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
+pallet-conviction-voting = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-proxy = { workspace = true }
@@ -47,6 +48,7 @@ std = [
 	"log/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
+	"pallet-conviction-voting/std",
 	"pallet-fast-unstake/std",
 	"pallet-multisig/std",
 	"pallet-nomination-pools/std",
@@ -74,6 +76,7 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
@@ -94,6 +97,7 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-conviction-voting/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",

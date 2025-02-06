@@ -42,6 +42,7 @@ pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
+pub mod conviction_voting;
 pub mod scheduler;
 
 use accounts::AccountsMigrator;
@@ -106,6 +107,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	BlockNumberFor<T>,
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 	<T as pallet_indices::Config>::AccountIndex,
+	conviction_voting::alias::ClassOf<T>,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -115,7 +117,7 @@ pub enum PalletEventName {
 }
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> {
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -201,17 +203,21 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex> {
 		next_key: Option<BagsListStage<AccountId, BagsListScore>>,
 	},
 	BagsListMigrationDone,
-
 	SchedulerMigrationInit,
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
 	},
 	SchedulerMigrationDone,
+	ConvictionVotingMigrationInit,
+	ConvictionVotingMigrationOngoing {
+		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
+	},
+	ConvictionVotingMigrationDone,
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex>
-	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
 {
 	/// Whether the migration is finished.
 	///
@@ -229,8 +235,8 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex>
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
 {
 	type Err = std::string::String;
 
@@ -239,6 +245,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex> std::str::FromStr
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
+			"voting" => MigrationStage::ConvictionVotingMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -272,6 +279,7 @@ pub mod pallet {
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
 		+ pallet_indices::Config
+		+ pallet_conviction_voting::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -826,6 +834,40 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::SchedulerMigrationDone => {
+					Self::transition(MigrationStage::ConvictionVotingMigrationInit);
+				},
+				MigrationStage::ConvictionVotingMigrationInit => {
+					Self::transition(MigrationStage::ConvictionVotingMigrationOngoing {
+						last_key: None,
+					});
+				},
+				MigrationStage::ConvictionVotingMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match conviction_voting::ConvictionVotingMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::ConvictionVotingMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::ConvictionVotingMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating conviction voting: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::ConvictionVotingMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),

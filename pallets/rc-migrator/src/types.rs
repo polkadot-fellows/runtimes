@@ -65,6 +65,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 14)]
 	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	#[codec(index = 15)]
+	ReceiveConvictionVotingMessages {
+		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
+	},
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
