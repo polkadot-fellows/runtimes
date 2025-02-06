@@ -100,8 +100,8 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
-		ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter, NeverEnsureOrigin,
-		TransformOrigin, WithdrawReasons,
+		ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
+		InstanceFilter, NeverEnsureOrigin, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -196,13 +196,13 @@ parameter_types! {
 pub struct VestedTransferCalls;
 impl Contains<RuntimeCall> for VestedTransferCalls {
 	fn contains(call: &RuntimeCall) -> bool {
-		matches!(call, RuntimeCall::vesting(VestingCall::vested_transfer { .. }))
+		matches!(call, RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. }))
 	}
 }
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = frame_support::traits::EverythingExcluding<VestedTransferCalls>;
+	type BaseCallFilter = frame_support::traits::EverythingBut<VestedTransferCalls>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
