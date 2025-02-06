@@ -437,7 +437,11 @@ impl pallet_utility::Config for Runtime {
 }
 
 parameter_types! {
-	pub const IndexDeposit: Balance = DOLLARS / 10; // 10 Dollar on the Relay Chain
+	/// Deposit for an index in the indices pallet.
+	///
+	/// 32 bytes for the account ID and 16 for the deposit. We cannot use `max_encoded_len` since it
+	/// is not const.
+	pub const IndexDeposit: Balance = system_para_deposit(1, 32 + 16);
 }
 
 impl pallet_indices::Config for Runtime {
