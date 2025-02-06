@@ -50,6 +50,7 @@ pallet-bags-list = { workspace = true }
 pallet-bounties = { workspace = true }
 pallet-child-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
+pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nfts = { workspace = true }
@@ -182,6 +183,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -229,6 +231,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"pallet-indices/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -326,6 +329,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-indices/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

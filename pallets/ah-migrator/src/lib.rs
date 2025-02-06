@@ -35,6 +35,7 @@ pub mod account;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
+pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -60,6 +61,7 @@ use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
+	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -92,6 +94,7 @@ type RcAccountFor<T> = RcAccount<
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum PalletEventName {
+	Indices,
 	FastUnstake,
 	BagsList,
 }
@@ -115,6 +118,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 	{
 		/// The overarching event type.
@@ -510,6 +514,16 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(14)]
+		pub fn receive_indices(
+			origin: OriginFor<T>,
+			indices: Vec<RcIndicesIndexOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_indices(indices).map_err(Into::into)
+		}
+
+		#[pallet::call_index(15)]
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcConvictionVotingMessageOf<T>>,

@@ -64,6 +64,8 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 13)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 14)]
+	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	#[codec(index = 15)]
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
