@@ -34,8 +34,8 @@
 pub mod account;
 pub mod call;
 pub mod claims;
-pub mod indices;
 pub mod conviction_voting;
+pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -60,8 +60,8 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
-	indices::RcIndicesIndexOf,
 	conviction_voting::RcConvictionVotingMessageOf,
+	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
