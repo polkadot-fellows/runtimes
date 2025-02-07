@@ -35,7 +35,10 @@ use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::*;
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
 use std::str::FromStr;
+use polkadot_runtime_common::crowdloan as pallet_crowdloan;
+use polkadot_runtime_common::paras_registrar;
 
+use polkadot_runtime::Block as PolkadotBlock;
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
 
@@ -113,3 +116,35 @@ async fn account_migration_works() {
 		// some overweight ones.
 	});
 }
+
+/// Check that our function to calculate the unlock time of a crowdloan contribution is correct.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn crowdloan_unlock_times_are_correct_works() {
+	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap() else { return };
+	let para_id = ParaId::from(1000);
+	let mut wasted = 0;
+
+	rc.execute_with(|| {
+		for para in paras_registrar::Paras::<Polkadot>::iter_keys() {
+			let id: u32 = para.into();
+			let acala_fund_id = pallet_crowdloan::Pallet::<Polkadot>::fund_account_id(id);
+
+			let acc = frame_system::Account::<Polkadot>::get(&acala_fund_id).data;
+			if acc.free > 0 && acc.reserved == 0 {
+				println!("Para: {}, Fund id: {} with {} free", id, acala_fund_id, acc.free);
+				wasted += acc.free;
+			}
+		}
+
+		println!("Wasted: {}", wasted);
+	});
+}
+
+// The block after which a crowdloan contribution will be able to redeem their contribution.
+/*fn crowdloan_unlock_block<T: Config>(para_id: ParaId) -> u64 {
+	let lease_period = T::LeasePeriod::get();
+	let fund_index = T::FundIndex::get();
+	let fund_period = fund_index / lease_period;
+	lease_period * fund_period + fund_index
+}
+*/

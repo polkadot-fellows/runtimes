@@ -10077,6 +10077,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime",
+ "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "sc-consensus-grandpa",
