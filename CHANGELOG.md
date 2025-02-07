@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Coretime chain: allow cross-chain region transfers ([polkadot-fellows/runtimes/pull/483](https://github.com/polkadot-fellows/runtimes/pull/483))
 - Unstake the last remaining corrupt ledger ([polkadot-fellows/runtimes/pull/538](https://github.com/polkadot-fellows/runtimes/pull/538))
 - Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
+- Added the `XcmRecorder` config item to all runtimes so `local_xcm` can be returned from `DryRunApi` ([polkadot-fellows/runtimes#576](https://github.com/polkadot-fellows/runtimes/pull/576))
 
 ### Added
 
