@@ -45,6 +45,7 @@ pub mod staking;
 pub mod types;
 
 pub use pallet::*;
+pub use pallet_rc_migrator::types::ZeroWeightOr;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -538,6 +539,17 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
 			Weight::zero()
+		}
+	}
+
+	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
+		fn is_ongoing() -> bool {
+			// TODO: implement
+			true
+		}
+		fn is_finished() -> bool {
+			// TODO: implement
+			false
 		}
 	}
 }

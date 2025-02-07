@@ -56,7 +56,7 @@ use frame_support::{
 		tokens::{Fortitude, Precision, Preservation},
 		Contains, Defensive, LockableCurrency, ReservableCurrency,
 	},
-	weights::WeightMeter,
+	weights::{Weight, WeightMeter},
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
@@ -221,14 +221,14 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
 {
 	/// Whether the migration is finished.
 	///
-	/// This is **not** the same as `!self.is_ongoing()`.
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
 		matches!(self, MigrationStage::MigrationDone)
 	}
 
 	/// Whether the migration is ongoing.
 	///
-	/// This is **not** the same as `!self.is_finished()`.
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
 	}
@@ -968,6 +968,15 @@ pub mod pallet {
 			};
 
 			Ok(())
+		}
+	}
+
+	impl<T: Config> types::MigrationStatus for Pallet<T> {
+		fn is_ongoing() -> bool {
+			RcMigrationStage::<T>::get().is_ongoing()
+		}
+		fn is_finished() -> bool {
+			RcMigrationStage::<T>::get().is_finished()
 		}
 	}
 }
