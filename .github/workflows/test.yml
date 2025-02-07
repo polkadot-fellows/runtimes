@@ -314,7 +314,6 @@ jobs:
         run: yarn install
 
       - name: Running ecosystem tests
-        working-directory: ./ecosystem-tests
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 60
