@@ -587,3 +587,50 @@ fn remote_proxy_multiple_register_works() {
 		);
 	});
 }
+
+#[test]
+fn clean_up_works_and_old_blocks_are_rejected() {
+	new_test_ext().execute_with(|| {
+		let root = H256::zero();
+		let call = Box::new(call_transfer(6, 1));
+
+		for i in 0u64..30u64 {
+			BlockToRoot::<Test>::insert(i, root);
+		}
+
+		RemoteProxy::on_validation_data(&PersistedValidationData {
+			parent_head: vec![].into(),
+			relay_parent_number: 30,
+			relay_parent_storage_root: root,
+			max_pov_size: 5000000,
+		});
+		assert!(BlockToRoot::<Test>::get(5).is_some());
+		assert_err!(
+			RemoteProxy::remote_proxy(
+				RuntimeOrigin::signed(1),
+				1000,
+				None,
+				call.clone(),
+				RemoteProxyProof::RelayChain { proof: vec![], block: 5 }
+			),
+			Error::<Test>::ProofAnchorBlockTooOld
+		);
+
+		for i in 31u32..=40u32 {
+			RemoteProxy::on_validation_data(&PersistedValidationData {
+				parent_head: vec![].into(),
+				relay_parent_number: dbg!(i),
+				relay_parent_storage_root: root,
+				max_pov_size: 5000000,
+			});
+		}
+
+		for i in 0u64..31u64 {
+			assert!(BlockToRoot::<Test>::get(i).is_none());
+		}
+
+		for i in 31u64..42u64 {
+			assert!(BlockToRoot::<Test>::get(i).is_some());
+		}
+	});
+}

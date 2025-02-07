@@ -76,7 +76,7 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	/// The remote proxy type.
 	type RemoteProxyType: Parameter + MaxEncodedLen;
 	/// The remote block number.
-	type RemoteBlockNumber: Parameter + Saturating + MaxEncodedLen + Default;
+	type RemoteBlockNumber: Parameter + Saturating + MaxEncodedLen + Default + PartialOrd;
 	/// The hash type used by the remote chain.
 	type Hash: Parameter + MaxEncodedLen;
 	/// The hasher used by the remote chain.
@@ -197,7 +197,7 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 	}
 
-	impl<T: Config, I: 'static> OnSystemEvent for Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> OnSystemEvent for Pallet<T, I> {
 		fn on_validation_data(validation_data: &PersistedValidationData) {
 			let Some((block, hash)) = T::RemoteProxy::block_to_storage_root(validation_data) else {
 				return;
@@ -205,11 +205,13 @@ pub mod pallet {
 
 			// Update the block to root mappings.
 			BlockToRoot::<T>::insert(&block, hash);
-			MostRecentBlock::put(&block);
+			MostRecentBlock::<T, I>::put(&block);
 
 			let delete_up_to = block.saturating_sub(T::MaxStorageRootsToKeep::get());
 			// If the chain got stuck for longer, we will clean up too old entries over time.
-			BlockToRoot::<T>::iter_keys().take_while(|k| k <= delete_up_to).for_each(BlockToRoot::<T>::remove);
+			BlockToRoot::<T>::iter_keys()
+				.take_while(|k| *k <= delete_up_to)
+				.for_each(BlockToRoot::<T>::remove);
 		}
 
 		fn on_validation_code_applied() {}
@@ -385,10 +387,12 @@ pub mod pallet {
 
 			let def = match proof {
 				RemoteProxyProof::RelayChain { proof, block } => {
-					if MostRecentBlock::<T, I>::get(&block).map_or(true, |b| block <= b.saturating_sub(T::MaxStorageRootsToKeep::get())) {
+					if MostRecentBlock::<T, I>::get().map_or(true, |b| {
+						block <= b.saturating_sub(T::MaxStorageRootsToKeep::get())
+					}) {
 						return Err(Error::<T, I>::ProofAnchorBlockTooOld.into());
-					} 
-					
+					}
+
 					let Some(storage_root) = BlockToRoot::<T, I>::get(block) else {
 						return Err(Error::<T, I>::UnknownProofAnchorBlock.into());
 					};

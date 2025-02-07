@@ -57,7 +57,8 @@ mod benchmarks {
 			frame_system::Call::<T>::remark { remark: vec![] }.into();
 		let (proof, block_number, storage_root) =
 			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
-		BlockToRoot::<T, I>::insert(block_number, storage_root);
+		BlockToRoot::<T, I>::insert(EncodeAsBigEndian::from(block_number.clone()), storage_root);
+		MostRecentBlock::<T, I>::put(block_number);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(caller), real_lookup, None, Box::new(call), proof);
@@ -79,7 +80,7 @@ mod benchmarks {
 		let real: T::AccountId = whitelisted_caller();
 		let (proof, block_number, storage_root) =
 			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
-		BlockToRoot::<T, I>::insert(block_number, storage_root);
+		BlockToRoot::<T, I>::insert(EncodeAsBigEndian::from(block_number.clone()), storage_root);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(caller), proof);
@@ -102,7 +103,8 @@ mod benchmarks {
 			frame_system::Call::<T>::remark { remark: vec![] }.into();
 		let (proof, block_number, storage_root) =
 			T::RemoteProxy::create_remote_proxy_proof(&caller, &real);
-		BlockToRoot::<T, I>::insert(block_number, storage_root);
+		BlockToRoot::<T, I>::insert(EncodeAsBigEndian::from(block_number.clone()), storage_root);
+		MostRecentBlock::<T, I>::put(block_number);
 
 		#[block]
 		{
