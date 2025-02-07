@@ -244,11 +244,11 @@ jobs:
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
