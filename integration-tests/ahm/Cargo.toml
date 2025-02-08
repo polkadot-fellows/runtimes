@@ -13,6 +13,7 @@ authority-discovery-primitives = { workspace = true, default-features = true }
 babe-primitives = { workspace = true, default-features = true }
 beefy-primitives = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
+chrono = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
@@ -20,8 +21,10 @@ grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
 pallet-rc-migrator = { workspace = true, default-features = true }
 pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
 pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }

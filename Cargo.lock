@@ -2281,9 +2281,9 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.31"
+version = "0.4.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2c685bad3eb3d45a01354cedb7d5faa66194d1d58ba6e267a8de788f79db38"
+checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -2291,7 +2291,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.0",
 ]
 
 [[package]]
@@ -10063,6 +10063,7 @@ name = "polkadot-integration-tests-ahm"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
+ "chrono",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-remote-externalities",
@@ -10070,9 +10071,11 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-ah-migrator",
+ "pallet-balances",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-rc-migrator",
+ "pallet-timestamp",
  "parachains-common",
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
