@@ -39,6 +39,7 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
+xcm = { workspace = true }
 
 [features]
 default = ["std"]
@@ -72,7 +73,8 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"pallet-indices/std"
+	"pallet-indices/std",
+	"xcm/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

@@ -21,14 +21,14 @@ use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
-/// Relay Chain Freeze Reason
+/// Asset Hub Pallet list with indexes.
 #[derive(Encode, Decode)]
 pub enum AssetHubPalletConfig<T: Config> {
 	#[codec(index = 255)]
 	AhmController(AhMigratorCall<T>),
 }
 
-/// Call encoding for the calls needed from the Broker pallet.
+/// Call encoding for the calls needed from the ah-migrator pallet.
 #[derive(Encode, Decode)]
 pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 0)]
@@ -69,6 +69,9 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
+
+	#[codec(index = 101)]
+	StartMigration,
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

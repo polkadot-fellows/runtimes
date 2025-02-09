@@ -25,3 +25,17 @@ pub fn map_lock_reason(reasons: LockReasons) -> LockWithdrawReasons {
 		LockReasons::Misc => LockWithdrawReasons::TIP,
 	}
 }
+
+/// Relay Chain pallet list with indexes.
+#[derive(Encode, Decode)]
+pub enum RcPalletConfig {
+	#[codec(index = 255)]
+	RcmController(RcMigratorCall),
+}
+
+/// Call encoding for the calls needed from the rc-migrator pallet.
+#[derive(Encode, Decode)]
+pub enum RcMigratorCall {
+	#[codec(index = 1)]
+	StartDataMigration,
+}

@@ -121,6 +121,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
+	/// The migration has been scheduled to start at the given block number.
+	Scheduled {
+		block_number: BlockNumber,
+	},
+	/// The migration is initializing.
+	Initializing,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
 	// TODO: Initializing?
@@ -283,6 +289,10 @@ pub mod pallet {
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		///
+		/// This is generally root and Fellows origins.
+		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
@@ -365,17 +375,53 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
+		pub fn set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(stage);
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(MigrationStage::AccountsMigrationInit);
+			Ok(())
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
 			match stage {
 				MigrationStage::Pending => {
-					// TODO: not complete
+					// TODO: we should do nothing on pending stage.
+					// On production the AH will send a message and initialize the migration.
+					// Now we transition to `AccountsMigrationInit` to run tests
 					Self::transition(MigrationStage::AccountsMigrationInit);
+				},
+				MigrationStage::Scheduled { block_number } =>
+					if now >= block_number {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
+							Ok(_) => {
+								Self::transition(MigrationStage::Initializing);
+							},
+							Err(_) => {
+								defensive!(
+									"Failed to send StartMigration message to AH, \
+									retry with the next block"
+								);
+							},
+						}
+					},
+				MigrationStage::Initializing => {
+					// waiting AH to send a message and to start sending the data
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
