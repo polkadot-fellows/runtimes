@@ -89,8 +89,7 @@ fn verify_snapshot<T: Config>() {
 		frame_support::storage::unhashed::get::<
 			pallet_balances::AccountData<<T as pallet_balances::Config>::Balance>,
 		>(key.as_ref())
-	})
-	.unwrap();
+	}).unwrap();
 
 	if raw_acc.free == 0 {
 		panic!("No or broken snapshot: account does not have any balance");
