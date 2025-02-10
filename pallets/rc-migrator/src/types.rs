@@ -18,6 +18,7 @@
 
 use super::*;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use sp_runtime::FixedU128;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -69,8 +70,10 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[codec(index = 17)]
+	#[codec(index = 16)]
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
+	#[codec(index = 17)]
+	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

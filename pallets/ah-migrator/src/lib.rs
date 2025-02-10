@@ -33,6 +33,7 @@
 
 pub mod account;
 pub mod bounties;
+pub mod asset_rate;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
@@ -80,7 +81,7 @@ use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlockNumberProvider, Convert, TryConvert},
-	AccountId32,
+	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
 
@@ -125,6 +126,7 @@ pub mod pallet {
 		+ pallet_conviction_voting::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
+		+ pallet_asset_rate::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -350,6 +352,16 @@ pub mod pallet {
 			/// How many conviction voting messages were successfully integrated.
 			count_good: u32,
 		},
+		AssetRatesReceived {
+			/// How many asset rates are in the batch.
+			count: u32,
+		},
+		AssetRatesProcessed {
+			/// How many asset rates were successfully integrated.
+			count_good: u32,
+			/// How many asset rates failed to integrate.
+			count_bad: u32,
+		},
 	}
 
 	#[pallet::pallet]
@@ -539,7 +551,7 @@ pub mod pallet {
 			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(17)]
+		#[pallet::call_index(16)]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
 			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
@@ -547,6 +559,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_bounties_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(17)]
+		pub fn receive_asset_rates(
+			origin: OriginFor<T>,
+			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_asset_rates(rates).map_err(Into::into)
 		}
 	}
 

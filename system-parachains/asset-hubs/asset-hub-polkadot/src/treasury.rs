@@ -14,7 +14,8 @@
 // limitations under the License.
 
 use crate::*;
-use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use frame_support::traits::{tokens::UnityOrOuterConversion, FromContains};
+use polkadot_runtime_common::impls::{ContainsParts, VersionedLocatableAsset};
 use system_parachains_common::pay::{LocalPay, VersionedLocatableAccount};
 
 parameter_types! {
@@ -48,7 +49,7 @@ impl pallet_treasury::Config for Runtime {
 		xcm_config::RelayTreasuryPalletAccount,
 		xcm_config::LocationToAccountId,
 	>;
-	type BalanceConverter = UnityAssetBalanceConversion; // TODO: use actual conversion
+	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = (); // TODO: polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
@@ -93,4 +94,31 @@ impl pallet_child_bounties::Config for Runtime {
 	type MaxActiveChildBountyCount = MaxActiveChildBountyCount;
 	type ChildBountyValueMinimum = ChildBountyValueMinimum;
 	type WeightInfo = (); // TODO: weights::pallet_child_bounties::WeightInfo<Runtime>;
+}
+
+/// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
+/// `AssetRate` pallet instance.
+///
+/// With additional decoration to identify different IDs/locations of native asset and provide a
+/// one-to-one balance conversion for them.
+pub type AssetRateWithNative = UnityOrOuterConversion<
+	ContainsParts<
+		FromContains<
+			xcm_builder::IsChildSystemParachain<ParaId>,
+			xcm_builder::IsParentsOnly<ConstU8<1>>,
+		>,
+	>,
+	AssetRate,
+>;
+
+impl pallet_asset_rate::Config for Runtime {
+	type WeightInfo = (); // TODO weights::pallet_asset_rate::WeightInfo<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+	type CreateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type RemoveOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type UpdateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
+	type Currency = Balances;
+	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
