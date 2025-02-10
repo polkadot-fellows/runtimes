@@ -17,8 +17,8 @@
 use crate::*;
 use pallet_asset_rate::ConversionRateToNative;
 
-pub struct AssetRateMigrator<T: Config> {
-	pub last_key: Option<<T as pallet_asset_rate::Config>::AssetKind>,
+pub struct AssetRateMigrator<T> {
+	pub _phantom: PhantomData<T>,
 }
 
 impl<T: Config> PalletMigration for AssetRateMigrator<T> {
