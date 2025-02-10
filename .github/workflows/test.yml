@@ -1,4 +1,4 @@
-name: "Test all features"
+name: "Tests"
 
 # If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
 # which is located at the end of this file (more info in the job)
@@ -228,6 +228,98 @@ jobs:
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
+  build-runtimes:
+    needs: [ runtime-matrix ]
+    runs-on: ubuntu-latest
+    strategy:
+      # Ensure the other jobs are continue
+      fail-fast: false
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-build-runtimes-test"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build runtime ${{ matrix.runtime.name }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          # Build wasm
+          echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+
+          # Find out if the `metadata-hash` feature exists for the given package.
+          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
+            FEATURES="--features=metadata-hash"
+          fi
+          
+          # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
+          echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
+
+      - name: Upload  ${{ matrix.runtime.name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+          path: ${{ env.RUNTIME_BLOB_PATH }}
+
+  ecosystem-tests:
+    needs: [runtime-matrix, build-runtimes]
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          path: ecosystem-tests
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Setup runtime overrides
+        run: |
+          jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
+            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            # Set the path to the build runtimes
+            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+          done 
+          
+      - name: Installing dependencies of ecosystem tests
+        working-directory: ./ecosystem-tests
+        run: yarn install
+
+      - name: Running ecosystem tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: cd ecosystem-tests && yarn test
+
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
@@ -241,5 +333,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
