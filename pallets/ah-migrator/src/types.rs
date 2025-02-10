@@ -36,6 +36,6 @@ pub enum RcPalletConfig {
 /// Call encoding for the calls needed from the rc-migrator pallet.
 #[derive(Encode, Decode)]
 pub enum RcMigratorCall {
-	#[codec(index = 1)]
+	#[codec(index = 2)]
 	StartDataMigration,
 }

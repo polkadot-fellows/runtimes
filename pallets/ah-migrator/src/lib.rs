@@ -568,6 +568,10 @@ pub mod pallet {
 			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(100)]
 		pub fn set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
@@ -575,6 +579,10 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Start the data migration.
+		///
+		/// This is typically called by the Relay Chain to start the migration on the Asset Hub and
+		/// receive a handshake message indicating the Asset Hub's readiness.
 		#[pallet::call_index(101)]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;

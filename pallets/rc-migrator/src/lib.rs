@@ -262,6 +262,8 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
+	use frame_support::traits::schedule::DispatchTime;
+
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -377,6 +379,10 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
 		pub fn set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
@@ -384,7 +390,24 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
+		pub fn schedule_migration(
+			origin: OriginFor<T>,
+			start_moment: DispatchTime<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+			let block_number = start_moment.evaluate(now);
+			Self::transition(MigrationStage::Scheduled { block_number });
+			Ok(())
+		}
+
+		/// Start the data migration.
+		///
+		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
+		/// migration data.
+		#[pallet::call_index(2)]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
