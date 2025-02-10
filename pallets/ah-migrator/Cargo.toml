@@ -13,6 +13,8 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
+xcm = { workspace = true }
+cumulus-primitives-core = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
@@ -24,6 +26,7 @@ pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }

@@ -56,7 +56,9 @@ impl pallet_treasury::Config for Runtime {
 }
 
 pub struct MockedTreasuryArguments;
-impl pallet_treasury::ArgumentsFactory<VersionedLocatableAsset, VersionedLocatableAccount> for MockedTreasuryArguments {
+impl pallet_treasury::ArgumentsFactory<VersionedLocatableAsset, VersionedLocatableAccount>
+	for MockedTreasuryArguments
+{
 	fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
 		todo!()
 	}

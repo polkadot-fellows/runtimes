@@ -33,6 +33,8 @@
 
 pub mod account;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 pub mod bounties;
 pub mod call;
 pub mod claims;

@@ -93,30 +93,25 @@ pub struct RcMultisig<AccountId, Balance> {
 
 pub type RcMultisigOf<T> = RcMultisig<AccountIdOf<T>, BalanceOf<T>>;
 
-type BalanceOf<T> =
-	<<T as pallet_multisig::Config>::Currency as Currency<sp_runtime::AccountId32>>::Balance;
+type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
 
-pub struct MultisigMigrator<T: Config> {
+pub struct MultisigMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
-impl<T: Config> PalletMigration for MultisigMigrator<T> {
-	type Key = (T::AccountId, [u8; 32]);
-	type Error = Error<T>;
-
-	/// Migrate until the weight is exhausted. Start at the given key.
-	///
-	/// Storage changes must be rolled back on error.
-	fn migrate_many(
-		mut last_key: Option<Self::Key>,
+impl<T: pallet_multisig::Config> MultisigMigrator<T> {
+	pub fn migrate_out_many(
+		mut last_key: Option<(T::AccountId, [u8; 32])>,
 		weight_counter: &mut WeightMeter,
-	) -> Result<Option<Self::Key>, Error<T>> {
+	) -> Result<(Vec<RcMultisigOf<T>>, Option<(T::AccountId, [u8; 32])>), Error<T>> {
 		let mut batch = Vec::new();
-		let last_raw_key = last_key
-			.clone()
-			.map(|(k1, k2)| aliases::Multisigs::<T>::hashed_key_for(k1, k2))
-			.unwrap_or_default();
-		let mut iter = aliases::Multisigs::<T>::iter_from(last_raw_key);
+		let mut iter = match last_key.clone() {
+			Some((k1, k2)) =>
+				aliases::Multisigs::<T>::iter_from(aliases::Multisigs::<T>::hashed_key_for(k1, k2)),
+			None => aliases::Multisigs::<T>::iter(),
+		};
 
 		loop {
 			let kv = iter.next();
@@ -144,6 +139,23 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 			last_key = Some((k1, k2));
 		}
 
+		Ok((batch, last_key))
+	}
+}
+
+impl<T: Config> PalletMigration for MultisigMigrator<T> {
+	type Key = (T::AccountId, [u8; 32]);
+	type Error = Error<T>;
+
+	/// Migrate until the weight is exhausted. Start at the given key.
+	///
+	/// Storage changes must be rolled back on error.
+	fn migrate_many(
+		last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Error<T>> {
+		let (batch, last_key) = Self::migrate_out_many(last_key, weight_counter)?;
+
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm(batch, |batch| {
 				types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch }
@@ -154,7 +166,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 	}
 }
 
-impl<T: Config> MultisigMigrator<T> {
+impl<T: pallet_multisig::Config> MultisigMigrator<T> {
 	fn migrate_single(
 		k1: AccountIdOf<T>,
 		ms: aliases::MultisigOf<T>,

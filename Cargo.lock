@@ -7646,6 +7646,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
+ "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -7659,6 +7660,7 @@ dependencies = [
  "pallet-conviction-voting",
  "pallet-fast-unstake",
  "pallet-indices",
+ "pallet-message-queue",
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-preimage",
@@ -7680,6 +7682,7 @@ dependencies = [
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
  "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]
