@@ -42,8 +42,8 @@ pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
-pub mod bounties;
 pub mod asset_rate;
+pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
 
@@ -927,6 +927,17 @@ pub mod pallet {
 				MigrationStage::AssetRateMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match asset_rate::AssetRateMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
 							Self::transition(MigrationStage::AssetRateMigrationDone);
 						},
 						Ok(Some(last_key)) => {

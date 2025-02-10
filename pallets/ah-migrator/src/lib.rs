@@ -32,8 +32,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
-pub mod bounties;
 pub mod asset_rate;
+pub mod bounties;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
