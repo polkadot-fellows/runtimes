@@ -42,6 +42,7 @@ pub mod staking;
 pub mod types;
 mod weights;
 pub use pallet::*;
+pub mod asset_rate;
 pub mod conviction_voting;
 pub mod scheduler;
 
@@ -108,6 +109,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 	<T as pallet_indices::Config>::AccountIndex,
 	conviction_voting::alias::ClassOf<T>,
+	<T as pallet_asset_rate::Config>::AssetKind,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -117,7 +119,8 @@ pub enum PalletEventName {
 }
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+{
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -213,11 +216,16 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
+	AssetRateMigrationInit,
+	AssetRateMigrationOngoing {
+		last_key: Option<AssetKind>,
+	},
+	AssetRateMigrationDone,
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
-	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
 	/// Whether the migration is finished.
 	///
@@ -235,8 +243,8 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
 	type Err = std::string::String;
 
@@ -246,6 +254,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> std::str:
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
+			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -280,6 +289,7 @@ pub mod pallet {
 		+ pallet_scheduler::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
+		+ pallet_asset_rate::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -868,8 +878,41 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
+					Self::transition(MigrationStage::AssetRateMigrationInit);
+				},
+				MigrationStage::AssetRateMigrationInit => {
+					Self::transition(MigrationStage::AssetRateMigrationOngoing { last_key: None });
+				},
+				MigrationStage::AssetRateMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match asset_rate::AssetRateMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::AssetRateMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::AssetRateMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating asset rates: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::AssetRateMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
+
 				MigrationStage::MigrationDone => (),
 			};
 
