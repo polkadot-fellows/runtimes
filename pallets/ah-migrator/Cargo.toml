@@ -16,6 +16,7 @@ log = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
+pallet-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 pallet-multisig = { workspace = true }
@@ -28,6 +29,7 @@ pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
+pallet-treasury = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
@@ -53,6 +55,7 @@ std = [
 	"pallet-asset-rate/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
+	"pallet-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-fast-unstake/std",
 	"pallet-indices/std",
@@ -65,6 +68,7 @@ std = [
 	"pallet-scheduler/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-treasury/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
@@ -83,6 +87,7 @@ runtime-benchmarks = [
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
@@ -95,6 +100,7 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-treasury/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
@@ -106,6 +112,7 @@ try-runtime = [
 	"pallet-asset-rate/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-indices/try-runtime",
@@ -118,6 +125,7 @@ try-runtime = [
 	"pallet-scheduler/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
+	"pallet-treasury/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",

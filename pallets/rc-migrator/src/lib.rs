@@ -43,6 +43,7 @@ pub mod types;
 mod weights;
 pub use pallet::*;
 pub mod asset_rate;
+pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
 
@@ -216,6 +217,11 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
+	BountiesMigrationInit,
+	BountiesMigrationOngoing {
+		last_key: Option<bounties::BountiesStage>,
+	},
+	BountiesMigrationDone,
 	AssetRateMigrationInit,
 	AssetRateMigrationOngoing {
 		last_key: Option<AssetKind>,
@@ -254,6 +260,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
+			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
@@ -289,6 +296,8 @@ pub mod pallet {
 		+ pallet_scheduler::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 	{
 		/// The overarching event type.
@@ -878,6 +887,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
+					Self::transition(MigrationStage::BountiesMigrationInit);
+				},
+				MigrationStage::BountiesMigrationInit => {
+					Self::transition(MigrationStage::BountiesMigrationOngoing { last_key: None });
+				},
+				MigrationStage::BountiesMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match bounties::BountiesMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::BountiesMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::BountiesMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating bounties: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::BountiesMigrationDone => {
 					Self::transition(MigrationStage::AssetRateMigrationInit);
 				},
 				MigrationStage::AssetRateMigrationInit => {

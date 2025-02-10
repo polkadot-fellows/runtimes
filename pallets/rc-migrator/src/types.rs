@@ -71,6 +71,8 @@ pub enum AhMigratorCall<T: Config> {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
 	#[codec(index = 16)]
+	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
+	#[codec(index = 17)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
 }
 
