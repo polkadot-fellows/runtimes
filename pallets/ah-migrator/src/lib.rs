@@ -32,6 +32,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod bounties;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
@@ -52,8 +53,8 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency, StorePreimage,
-		WithdrawReasons as LockWithdrawReasons,
+		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
@@ -98,6 +99,7 @@ pub enum PalletEventName {
 	Indices,
 	FastUnstake,
 	BagsList,
+	Bounties,
 }
 
 #[frame_support::pallet(dev_mode)]
@@ -121,6 +123,8 @@ pub mod pallet {
 		+ pallet_scheduler::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -196,6 +200,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
+
 		/// We received a batch of accounts that we are going to integrate.
 		AccountBatchReceived {
 			/// How many accounts are in the batch.
@@ -532,6 +537,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(17)]
+		pub fn receive_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bounties_messages(messages).map_err(Into::into)
 		}
 	}
 

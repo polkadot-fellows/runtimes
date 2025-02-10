@@ -69,6 +69,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
+	#[codec(index = 17)]
+	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
