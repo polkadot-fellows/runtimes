@@ -270,7 +270,7 @@ jobs:
           ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
       - name: Install updates and dependencies
-        if: startsWith(github.event.comment.body, '/cmd bench')
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: .github/install-deps.sh
 
       - name: Set rust version via common env file
@@ -278,11 +278,19 @@ jobs:
 
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@master
-        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt') || startsWith(steps.get-pr-comment.outputs.group2, 'bench')
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
         with:
           targets: "wasm32-unknown-unknown"
           components: "rust-src, rustfmt"
-          toolchain: "nightly-${{env.RUST_STABLE_VERSION}}"
+          toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src, rustfmt"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
