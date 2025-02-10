@@ -52,7 +52,17 @@ impl pallet_treasury::Config for Runtime {
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = (); // TODO: polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
+	type BenchmarkHelper = MockedTreasuryArguments; // TODO polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
+}
+
+pub struct MockedTreasuryArguments;
+impl pallet_treasury::ArgumentsFactory<VersionedLocatableAsset, VersionedLocatableAccount> for MockedTreasuryArguments {
+	fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
+		todo!()
+	}
+	fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
+		todo!()
+	}
 }
 
 parameter_types! {
