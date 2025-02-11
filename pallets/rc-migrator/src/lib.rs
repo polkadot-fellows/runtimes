@@ -130,6 +130,9 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 		block_number: BlockNumber,
 	},
 	/// The migration is initializing.
+	///
+	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
+	/// receive the migration data.
 	Initializing,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
