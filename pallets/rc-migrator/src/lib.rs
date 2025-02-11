@@ -122,9 +122,18 @@ pub enum PalletEventName {
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
-	/// The migration has not yet started but will start in the next block.
+	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
+	/// The migration has been scheduled to start at the given block number.
+	Scheduled {
+		block_number: BlockNumber,
+	},
+	/// The migration is initializing.
+	///
+	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
+	/// receive the migration data.
+	Initializing,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
 	// TODO: Initializing?
@@ -272,6 +281,8 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
+	use frame_support::traits::schedule::DispatchTime;
+
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -302,6 +313,10 @@ pub mod pallet {
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		///
+		/// This is generally root, Asset Hub and Fellows origins.
+		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
@@ -384,17 +399,74 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::ManagerOrigin`].
+		#[pallet::call_index(0)]
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(stage);
+			Ok(())
+		}
+
+		/// Schedule the migration to start at a given moment.
+		#[pallet::call_index(1)]
+		pub fn schedule_migration(
+			origin: OriginFor<T>,
+			start_moment: DispatchTime<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+			let block_number = start_moment.evaluate(now);
+			Self::transition(MigrationStage::Scheduled { block_number });
+			Ok(())
+		}
+
+		/// Start the data migration.
+		///
+		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
+		/// migration data.
+		#[pallet::call_index(2)]
+		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(MigrationStage::AccountsMigrationInit);
+			Ok(())
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
 			match stage {
 				MigrationStage::Pending => {
-					// TODO: not complete
+					// TODO: we should do nothing on pending stage.
+					// On production the AH will send a message and initialize the migration.
+					// Now we transition to `AccountsMigrationInit` to run tests
 					Self::transition(MigrationStage::AccountsMigrationInit);
+				},
+				MigrationStage::Scheduled { block_number } =>
+					if now >= block_number {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
+							Ok(_) => {
+								Self::transition(MigrationStage::Initializing);
+							},
+							Err(_) => {
+								defensive!(
+									"Failed to send StartMigration message to AH, \
+									retry with the next block"
+								);
+							},
+						}
+					},
+				MigrationStage::Initializing => {
+					// waiting AH to send a message and to start sending the data
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
