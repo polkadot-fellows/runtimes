@@ -40,8 +40,11 @@ pub mod proxy;
 pub mod referenda;
 pub mod staking;
 pub mod types;
+pub mod vesting;
 mod weights;
 pub use pallet::*;
+pub mod asset_rate;
+pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
 
@@ -56,7 +59,7 @@ use frame_support::{
 		tokens::{Fortitude, Precision, Preservation},
 		Contains, Defensive, LockableCurrency, ReservableCurrency,
 	},
-	weights::WeightMeter,
+	weights::{Weight, WeightMeter},
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
@@ -80,6 +83,7 @@ use staking::{
 };
 use storage::TransactionOutcome;
 use types::{AhWeightInfo, PalletMigration};
+use vesting::VestingMigrator;
 use weights::WeightInfo;
 use xcm::prelude::*;
 
@@ -108,6 +112,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 	<T as pallet_indices::Config>::AccountIndex,
 	conviction_voting::alias::ClassOf<T>,
+	<T as pallet_asset_rate::Config>::AssetKind,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -117,7 +122,8 @@ pub enum PalletEventName {
 }
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+{
 	/// The migration has not yet started but will start in the next block.
 	#[default]
 	Pending,
@@ -180,6 +186,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 	},
 	NomPoolsMigrationDone,
 
+	VestingMigrationInit,
+	VestingMigrationOngoing {
+		next_key: Option<AccountId>,
+	},
+	VestingMigrationDone,
+
 	FastUnstakeMigrationInit,
 	FastUnstakeMigrationOngoing {
 		next_key: Option<FastUnstakeStage<AccountId>>,
@@ -213,39 +225,52 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
+	BountiesMigrationInit,
+	BountiesMigrationOngoing {
+		last_key: Option<bounties::BountiesStage>,
+	},
+	BountiesMigrationDone,
+	AssetRateMigrationInit,
+	AssetRateMigrationOngoing {
+		last_key: Option<AssetKind>,
+	},
+	AssetRateMigrationDone,
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
-	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
 	/// Whether the migration is finished.
 	///
-	/// This is **not** the same as `!self.is_ongoing()`.
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
 		matches!(self, MigrationStage::MigrationDone)
 	}
 
 	/// Whether the migration is ongoing.
 	///
-	/// This is **not** the same as `!self.is_finished()`.
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
 	}
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass>
+impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
 	type Err = std::string::String;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
+			"skip-accounts" => MigrationStage::AccountsMigrationDone,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
+			"bounties" => MigrationStage::BountiesMigrationInit,
+			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -278,8 +303,12 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
+		+ pallet_asset_rate::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -675,6 +704,36 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::NomPoolsMigrationDone => {
+					Self::transition(MigrationStage::VestingMigrationInit);
+				},
+
+				MigrationStage::VestingMigrationInit => {
+					Self::transition(MigrationStage::VestingMigrationOngoing { next_key: None });
+				},
+				MigrationStage::VestingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match VestingMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::VestingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::VestingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating vesting: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::VestingMigrationDone => {
 					Self::transition(MigrationStage::FastUnstakeMigrationInit);
 				},
 				MigrationStage::FastUnstakeMigrationInit => {
@@ -868,8 +927,73 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
+					Self::transition(MigrationStage::BountiesMigrationInit);
+				},
+				MigrationStage::BountiesMigrationInit => {
+					Self::transition(MigrationStage::BountiesMigrationOngoing { last_key: None });
+				},
+				MigrationStage::BountiesMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match bounties::BountiesMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::BountiesMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::BountiesMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating bounties: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::BountiesMigrationDone => {
+					Self::transition(MigrationStage::AssetRateMigrationInit);
+				},
+				MigrationStage::AssetRateMigrationInit => {
+					Self::transition(MigrationStage::AssetRateMigrationOngoing { last_key: None });
+				},
+				MigrationStage::AssetRateMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match asset_rate::AssetRateMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::AssetRateMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::AssetRateMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating asset rates: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::AssetRateMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
+
 				MigrationStage::MigrationDone => (),
 			};
 
@@ -968,6 +1092,15 @@ pub mod pallet {
 			};
 
 			Ok(())
+		}
+	}
+
+	impl<T: Config> types::MigrationStatus for Pallet<T> {
+		fn is_ongoing() -> bool {
+			RcMigrationStage::<T>::get().is_ongoing()
+		}
+		fn is_finished() -> bool {
+			RcMigrationStage::<T>::get().is_finished()
 		}
 	}
 }

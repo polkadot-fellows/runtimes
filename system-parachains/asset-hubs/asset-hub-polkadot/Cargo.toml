@@ -42,6 +42,7 @@ pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-conversion = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-assets = { workspace = true }
+pallet-asset-rate = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
@@ -148,6 +149,7 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"hex-literal",
 	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -156,6 +158,7 @@ runtime-benchmarks = [
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
@@ -183,7 +186,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-indices/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -199,6 +201,7 @@ try-runtime = [
 	"frame-try-runtime/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
+	"pallet-asset-rate/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -209,6 +212,7 @@ try-runtime = [
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
 	"pallet-fast-unstake/try-runtime",
+	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
@@ -231,7 +235,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
-	"pallet-indices/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -263,6 +266,7 @@ std = [
 	"log/std",
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
+	"pallet-asset-rate/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -273,6 +277,7 @@ std = [
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
 	"pallet-fast-unstake/std",
+	"pallet-indices/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
@@ -329,7 +334,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-indices/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

@@ -111,7 +111,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::{imbalance::ResolveAssetTo, UnityAssetBalanceConversion},
+		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
 		TransformOrigin, WithdrawReasons,
@@ -1096,7 +1096,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = MaximumSchedulerWeight;
+	type MaximumWeight = pallet_ah_migrator::ZeroWeightOr<AhMigrator, MaximumSchedulerWeight>;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
@@ -1192,6 +1192,7 @@ construct_runtime!(
 		Whitelist: pallet_whitelist = 64,
 		Bounties: pallet_bounties = 65,
 		ChildBounties: pallet_child_bounties = 66,
+		AssetRate: pallet_asset_rate = 67,
 
 		// Staking in the 70s
 		NominationPools: pallet_nomination_pools = 70,
@@ -1279,6 +1280,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
+		[pallet_asset_rate, AssetRate]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges
