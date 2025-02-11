@@ -122,7 +122,7 @@ pub enum PalletEventName {
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
-	/// The migration has not yet started but will start in the next block.
+	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
 	/// The migration has been scheduled to start at the given block number.

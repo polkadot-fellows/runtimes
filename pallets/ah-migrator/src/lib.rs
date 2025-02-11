@@ -107,7 +107,7 @@ pub enum PalletEventName {
 /// The migration stage on the Asset Hub.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage {
-	/// The migration has not yet started but will start in the next block.
+	/// The migration has not started but will start in the future.
 	#[default]
 	Pending,
 	/// Migrating data from the Relay Chain.
