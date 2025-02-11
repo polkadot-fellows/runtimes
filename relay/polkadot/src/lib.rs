@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_003_004,
+	spec_version: 1_004_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -2017,7 +2017,7 @@ pub mod restore_corrupt_ledger_2 {
 	impl OnRuntimeUpgrade for Migrate {
 		fn on_runtime_upgrade() -> frame_election_provider_support::Weight {
 			// ensure this only runs once, in the 1.4.0 release
-			if System::last_runtime_upgrade_spec_version() < 1_400_000 {
+			if System::last_runtime_upgrade_spec_version() < 1_004_000 {
 				let _ = pallet_staking::Pallet::<Runtime>::force_unstake(
 					RawOrigin::Root.into(),
 					CorruptStash::get(),

@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.4.0] 07.02.2025
 
 ### Fixed
 
@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Coretime chain: allow cross-chain region transfers ([polkadot-fellows/runtimes/pull/483](https://github.com/polkadot-fellows/runtimes/pull/483))
 - Unstake the last remaining corrupt ledger ([polkadot-fellows/runtimes/pull/538](https://github.com/polkadot-fellows/runtimes/pull/538))
 - Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
+- Added the `XcmRecorder` config item to all runtimes so `local_xcm` can be returned from `DryRunApi` ([polkadot-fellows/runtimes#576](https://github.com/polkadot-fellows/runtimes/pull/576))
 
 ### Added
 
@@ -33,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update the XCM `Weigher` from `FixedWeightBounds` to `WeightInfoBounds` with benchmarked weights for Polkadot Collectives ([polkadot-fellows/runtimes#547](https://github.com/polkadot-fellows/runtimes/pull/547))
 - Increase max PoV size to 10Mib on Kusama ([polkadot-fellows/runtimes#553](https://github.com/polkadot-fellows/runtimes/pull/553))
 - Update to Polkadot SDK `stable2409-4` ([polkadot-fellows/runtimes#558](https://github.com/polkadot-fellows/runtimes/pull/558))
+- Asset Hubs: disable vested transfers as preparation for the Asset Hub Migration ([polkadot-fellows/runtime#579](https://github.com/polkadot-fellows/runtimes/pull/579))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
