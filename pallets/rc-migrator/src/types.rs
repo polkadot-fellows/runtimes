@@ -66,15 +66,15 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
 	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
-	#[codec(index = 14)]
-	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
 	#[codec(index = 15)]
+	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	#[codec(index = 16)]
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[codec(index = 16)]
-	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 17)]
+	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
+	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
 }
 

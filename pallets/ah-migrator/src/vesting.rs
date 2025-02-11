@@ -49,86 +49,24 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Integrate vesting schedules.
-	///
-	/// May merges them with pre-existing schedules if there is not enough space.
 	pub fn do_process_vesting_schedule(message: RcVestingSchedule<T>) -> Result<(), Error<T>> {
-		let ah_schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
+		let mut ah_schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
 
 		if !ah_schedules.is_empty() {
-			log::warn!(target: LOG_TARGET, "Merging with existing vesting schedule for {:?}", message.who);
+			defensive!("We disabled vesting, looks like someone used it. Manually verify this and then remove this defensive assert.");
 		}
 
-		let all_schedules = ah_schedules
-			.into_iter()
-			.chain(message.schedules.into_iter())
-			.collect::<Vec<_>>();
-		let (bounded, truncated) = all_schedules
-			.split_at(T::MAX_VESTING_SCHEDULES.min(all_schedules.len() as u32) as usize);
-		let bounded_schedules = BoundedVec::<_, _>::truncate_from(bounded.to_vec());
-
-		if truncated.is_empty() {
-			pallet_vesting::Vesting::<T>::insert(&message.who, bounded_schedules);
-			log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}", message.who);
-			return Ok(());
+		for schedule in message.schedules {
+			ah_schedules
+				.try_push(schedule)
+				.defensive()
+				.map_err(|_| Error::<T>::FailedToIntegrateVestingSchedule)?;
 		}
 
-		log::error!(target: LOG_TARGET, "Truncated {} vesting schedules for {:?}", truncated.len(), message.who);
-		pallet_vesting::Vesting::<T>::insert(&message.who, &bounded_schedules);
-
-		for truncate in truncated {
-			let len = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default().len();
-			let last_index = len.checked_sub(1).ok_or(Error::<T>::Unreachable)? as u32;
-			let second_last_index = len.checked_sub(2).ok_or(Error::<T>::Unreachable)? as u32;
-			Self::merge_schedules(message.who.clone(), second_last_index, last_index)?;
-
-			// Now we have at least one slot free that we can use to insert into:
-			defensive_assert!(
-				pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default().len() <
-					bounded_schedules.len()
-			);
-			// Insert the new schedule into the free slot:
-			let mut schedules = pallet_vesting::Vesting::<T>::get(&message.who).unwrap_or_default();
-			schedules.try_push(*truncate).map_err(|_| Error::<T>::Unreachable)?;
-			pallet_vesting::Vesting::<T>::insert(&message.who, &schedules);
-		}
+		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
+		log::warn!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
 
 		Ok(())
-	}
-
-	/// Merges two vesting schedules.
-	///
-	/// This function makes use of an pallet-vesting call, which is not entirely clean, but our best
-	/// bet since otherwise it requires big code duplication. However, nobody is currently using the
-	/// Vesting pallet on AH, and I recon it unlikely that someone would create a lot of vesting
-	/// schedules just to have them merged (which they can also do on their own).
-	pub fn merge_schedules(
-		who: T::AccountId,
-		schedule1_index: u32,
-		schedule2_index: u32,
-	) -> Result<(), Error<T>> {
-		// Pretend to be the account:
-		let origin: <T as frame_system::Config>::RuntimeOrigin =
-			frame_system::RawOrigin::Signed(who.clone()).into();
-
-		// NOTE: the pallet macro should already add a transaction, but am not 100% sure:
-		let res = frame_support::storage::transactional::with_storage_layer(|| {
-			pallet_vesting::Pallet::<T>::merge_schedules(origin, schedule1_index, schedule2_index)
-		});
-
-		let Err(err) = res else {
-			return Ok(());
-		};
-
-		defensive!("Failed to merge vesting schedules: {:?}", err);
-		// This is an important error, so we emit an event to monitor if it happens in production:
-		let err_index = err.using_encoded(|e| e.get(0).copied());
-		Self::deposit_event(Event::FailedToMergeVestingSchedules {
-			who,
-			schedule1: schedule1_index,
-			schedule2: schedule2_index,
-			pallet_vesting_error_index: err_index,
-		});
-		Err(Error::<T>::FailedToMergeVestingSchedules)
 	}
 }
 

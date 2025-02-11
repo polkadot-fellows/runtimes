@@ -199,10 +199,8 @@ pub mod pallet {
 		FailedToConvertCall,
 		/// Failed to bound a call.
 		FailedToBoundCall,
-		/// Failed to merge RC and AH vesting schedules.
-		///
-		/// See the Event `FailedToMergeVestingSchedules` for more info.
-		FailedToMergeVestingSchedules,
+		/// Failed to integrate a vesting schedule.
+		FailedToIntegrateVestingSchedule,
 		Unreachable,
 	}
 
@@ -565,7 +563,7 @@ pub mod pallet {
 			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(14)]
+		#[pallet::call_index(15)]
 		pub fn receive_indices(
 			origin: OriginFor<T>,
 			indices: Vec<RcIndicesIndexOf<T>>,
@@ -575,7 +573,7 @@ pub mod pallet {
 			Self::do_receive_indices(indices).map_err(Into::into)
 		}
 
-		#[pallet::call_index(15)]
+		#[pallet::call_index(16)]
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcConvictionVotingMessageOf<T>>,
@@ -585,7 +583,7 @@ pub mod pallet {
 			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(16)]
+		#[pallet::call_index(17)]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
 			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
@@ -595,7 +593,7 @@ pub mod pallet {
 			Self::do_receive_bounties_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(17)]
+		#[pallet::call_index(18)]
 		pub fn receive_asset_rates(
 			origin: OriginFor<T>,
 			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,

@@ -264,6 +264,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
+			"skip-accounts" => MigrationStage::AccountsMigrationDone,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
