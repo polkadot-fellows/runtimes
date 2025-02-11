@@ -32,8 +32,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod account;
+pub mod asset_rate;
+pub mod bounties;
 pub mod call;
 pub mod claims;
+pub mod conviction_voting;
+pub mod indices;
 pub mod multisig;
 pub mod preimage;
 pub mod proxy;
@@ -44,14 +48,15 @@ pub mod types;
 pub mod vesting;
 
 pub use pallet::*;
+pub use pallet_rc_migrator::types::ZeroWeightOr;
 
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		Defensive, LockableCurrency, OriginTrait, QueryPreimage, ReservableCurrency, StorePreimage,
-		WithdrawReasons as LockWithdrawReasons,
+		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
@@ -59,6 +64,8 @@ use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
+	conviction_voting::RcConvictionVotingMessageOf,
+	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
@@ -76,7 +83,7 @@ use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlockNumberProvider, Convert, TryConvert},
-	AccountId32,
+	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
 
@@ -92,9 +99,11 @@ type RcAccountFor<T> = RcAccount<
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum PalletEventName {
+	Indices,
 	FastUnstake,
 	BagsList,
 	Vesting,
+	Bounties,
 }
 
 #[frame_support::pallet(dev_mode)]
@@ -117,6 +126,11 @@ pub mod pallet {
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
 		+ pallet_vesting::Config
+		+ pallet_indices::Config
+		+ pallet_conviction_voting::Config
+		+ pallet_bounties::Config
+		+ pallet_treasury::Config
+		+ pallet_asset_rate::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -197,6 +211,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
+
 		/// We received a batch of accounts that we are going to integrate.
 		AccountBatchReceived {
 			/// How many accounts are in the batch.
@@ -352,6 +367,24 @@ pub mod pallet {
 			schedule2: u32,
 			/// The index of the pallet-vesting error that occurred.
 			pallet_vesting_error_index: Option<u8>,
+		},
+		ConvictionVotingMessagesReceived {
+			/// How many conviction voting messages are in the batch.
+			count: u32,
+		},
+		ConvictionVotingMessagesProcessed {
+			/// How many conviction voting messages were successfully integrated.
+			count_good: u32,
+		},
+		AssetRatesReceived {
+			/// How many asset rates are in the batch.
+			count: u32,
+		},
+		AssetRatesProcessed {
+			/// How many asset rates were successfully integrated.
+			count_good: u32,
+			/// How many asset rates failed to integrate.
+			count_bad: u32,
 		},
 	}
 
@@ -531,12 +564,63 @@ pub mod pallet {
 
 			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
+
+		#[pallet::call_index(14)]
+		pub fn receive_indices(
+			origin: OriginFor<T>,
+			indices: Vec<RcIndicesIndexOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_indices(indices).map_err(Into::into)
+		}
+
+		#[pallet::call_index(15)]
+		pub fn receive_conviction_voting_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcConvictionVotingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(16)]
+		pub fn receive_bounties_messages(
+			origin: OriginFor<T>,
+			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_bounties_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(17)]
+		pub fn receive_asset_rates(
+			origin: OriginFor<T>,
+			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_asset_rates(rates).map_err(Into::into)
+		}
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
 			Weight::zero()
+		}
+	}
+
+	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
+		fn is_ongoing() -> bool {
+			// TODO: implement
+			true
+		}
+		fn is_finished() -> bool {
+			// TODO: implement
+			false
 		}
 	}
 }

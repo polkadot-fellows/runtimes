@@ -81,6 +81,7 @@ use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
 use migration::{RcToAhFreezeReason, RcToAhHoldReason};
+use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
@@ -110,7 +111,7 @@ use frame_support::{
 	traits::{
 		fungible::{self, HoldConsideration},
 		fungibles,
-		tokens::{imbalance::ResolveAssetTo, UnityAssetBalanceConversion},
+		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse,
 		Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin, PrivilegeCmp,
 		TransformOrigin, WithdrawReasons,
@@ -433,6 +434,22 @@ impl pallet_utility::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	/// Deposit for an index in the indices pallet.
+	///
+	/// 32 bytes for the account ID and 16 for the deposit. We cannot use `max_encoded_len` since it
+	/// is not const.
+	pub const IndexDeposit: Balance = system_para_deposit(1, 32 + 16);
+}
+
+impl pallet_indices::Config for Runtime {
+	type AccountIndex = AccountIndex;
+	type Currency = Balances;
+	type Deposit = IndexDeposit;
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = (); // TODO weights::pallet_indices::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1079,7 +1096,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight = MaximumSchedulerWeight;
+	type MaximumWeight = pallet_ah_migrator::ZeroWeightOr<AhMigrator, MaximumSchedulerWeight>;
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
@@ -1158,6 +1175,7 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
+		Indices: pallet_indices = 43,
 
 		Assets: pallet_assets::<Instance1> = 50,
 		Uniques: pallet_uniques = 51,
@@ -1174,12 +1192,12 @@ construct_runtime!(
 		Whitelist: pallet_whitelist = 64,
 		Bounties: pallet_bounties = 65,
 		ChildBounties: pallet_child_bounties = 66,
+		AssetRate: pallet_asset_rate = 67,
 
 		// Staking in the 70s
 		NominationPools: pallet_nomination_pools = 70,
 		FastUnstake: pallet_fast_unstake = 71,
 		VoterList: pallet_bags_list::<Instance1> = 72,
-
 
 		// Asset Hub Migrator
 		AhMigrator: pallet_ah_migrator = 255,
@@ -1262,6 +1280,7 @@ mod benches {
 		[pallet_whitelist, Whitelist]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
+		[pallet_asset_rate, AssetRate]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

@@ -18,6 +18,7 @@
 
 use super::*;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
+use sp_runtime::FixedU128;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -65,6 +66,16 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
 	#[codec(index = 14)]
 	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
+	#[codec(index = 14)]
+	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	#[codec(index = 15)]
+	ReceiveConvictionVotingMessages {
+		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
+	},
+	#[codec(index = 16)]
+	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
+	#[codec(index = 17)]
+	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -118,4 +129,23 @@ pub trait PalletMigrationChecks {
 
 	/// Run some checks after the migration and use the intermediate payload.
 	fn post_check(payload: Self::Payload);
+}
+
+pub trait MigrationStatus {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
+	fn is_finished() -> bool;
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
+	fn is_ongoing() -> bool;
+}
+
+/// A weight that is zero if the migration is ongoing, otherwise it is the default weight.
+pub struct ZeroWeightOr<Status, Default>(PhantomData<(Status, Default)>);
+impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr<Status, Default> {
+	fn get() -> Weight {
+		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
+	}
 }

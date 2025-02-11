@@ -136,9 +136,12 @@ pub mod alias {
 	use super::*;
 
 	#[frame_support::storage_alias(pallet_name)]
-	pub type StorageVersion<T: pallet_vesting::Config> = StorageValue<pallet_vesting::Pallet<T>, Releases, ValueQuery>;
+	pub type StorageVersion<T: pallet_vesting::Config> =
+		StorageValue<pallet_vesting::Pallet<T>, Releases, ValueQuery>;
 
-	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Default, TypeInfo)]
+	#[derive(
+		Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Default, TypeInfo,
+	)]
 	pub enum Releases {
 		#[default]
 		V0,

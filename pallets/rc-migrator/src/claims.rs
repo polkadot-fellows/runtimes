@@ -15,9 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO FAIL-CI: Insecure unless your chain includes `PrevalidateAttests` as a
-// `TransactionExtension`.
-
 use crate::*;
 use alias::{EthereumAddress, StatementKind};
 use frame_support::traits::{Currency, VestingSchedule};
