@@ -573,7 +573,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(100)]
-		pub fn set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(stage);
 			Ok(())
