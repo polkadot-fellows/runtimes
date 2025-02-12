@@ -171,6 +171,12 @@ pub mod pallet {
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
+		/// Helper type for benchmarking.
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: benchmarking::ParametersFactory<
+			RcMultisigOf<Self>,
+			RcAccountFor<Self>,
+		>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.

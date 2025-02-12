@@ -35,9 +35,8 @@ pub enum RcHoldReason {
 /// Relay Chain Freeze Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcFreezeReason {
-	// TODO
-	// #[codec(index = 39u8)]
-	// NominationPools(pallet_nomination_pools::FreezeReason),
+	#[codec(index = 39u8)]
+	NominationPools(pallet_nomination_pools::FreezeReason),
 }
 
 pub struct RcToAhHoldReason;
@@ -49,8 +48,14 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 
 pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
-	fn convert(_: RcFreezeReason) -> RuntimeFreezeReason {
-		todo!()
+	fn convert(reason: RcFreezeReason) -> RuntimeFreezeReason {
+		match reason {
+			RcFreezeReason::NominationPools(
+				pallet_nomination_pools::FreezeReason::PoolMinBalance,
+			) => RuntimeFreezeReason::NominationPools(
+				pallet_nomination_pools::FreezeReason::PoolMinBalance,
+			),
+		}
 	}
 }
 /// Relay Chain Proxy Type
