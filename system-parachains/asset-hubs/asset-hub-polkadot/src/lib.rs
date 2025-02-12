@@ -276,7 +276,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = ConstU32<1>;
 }
 
 parameter_types! {
@@ -1134,6 +1134,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
