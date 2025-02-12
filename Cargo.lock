@@ -7646,6 +7646,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
+ "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -10078,6 +10079,7 @@ dependencies = [
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "pallet-ah-migrator",
  "pallet-balances",
@@ -10086,6 +10088,7 @@ dependencies = [
  "pallet-rc-migrator",
  "pallet-timestamp",
  "parachains-common",
+ "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime",

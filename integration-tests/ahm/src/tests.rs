@@ -31,18 +31,19 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use codec::Encode;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::*;
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
-use std::str::FromStr;
-use std::io::Write;
-use polkadot_runtime_common::crowdloan as pallet_crowdloan;
-use polkadot_runtime_common::paras_registrar;
-
-use polkadot_runtime_common::slots as pallet_slots;
-use polkadot_runtime::Block as PolkadotBlock;
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
-use polkadot_runtime::Runtime as Polkadot;
+use parachains_common::impls::BalanceOf;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime_common::{
+	crowdloan as pallet_crowdloan, paras_registrar, paras_registrar as pallet_registrar,
+	slots as pallet_slots,
+};
+use std::{collections::BTreeMap, io::Write, str::FromStr};
 
 use super::mock::*;
 
@@ -119,12 +120,14 @@ async fn account_migration_works() {
 	});
 }
 
-use sp_runtime::AccountId32;
-use sp_runtime::traits::Dispatchable;
+use sp_runtime::{traits::Dispatchable, AccountId32};
 
 /// Check that our function to calculate the unlock time of a crowdloan contribution is correct.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn crowdloan_unlock_times_are_correct_works() {
+	std::env::set_var("SNAP_RC", "/Users/vados/Documents/work/runtimes/polkadot.snap");
+	std::env::set_var("START_STAGE", "preimage");
+
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
 
 	rc.execute_with(|| {
@@ -134,7 +137,6 @@ async fn crowdloan_unlock_times_are_correct_works() {
 
 		for para_id in para_ids.clone() {
 			let fund = pallet_crowdloan::Funds::<Polkadot>::get(para_id).unwrap();
-			// they all ended
 			assert!(fund.end < now);
 
 			let id: u32 = para_id.into();
@@ -143,35 +145,46 @@ async fn crowdloan_unlock_times_are_correct_works() {
 			let acc = frame_system::Account::<Polkadot>::get(&fund_id);
 			let total = acc.data.free + acc.data.reserved;
 
+			// All crowdloans without reserved amount can be dissolved. We will do this as part of
+			// the migration
 			if acc.data.reserved == 0 {
-				println!("$ Para: {}, Fund index: {}, id: {} Can be dissolved", para_id, fund.fund_index, fund_id);
+				println!(
+					"$ Para: {}, Fund index: {}, id: {} Can be dissolved",
+					para_id, fund.fund_index, fund_id
+				);
 
 				assert!(fund.raised == 0);
 				assert!(fund.deposit != 0, "we must have a deposit"); // TODO refund
 				ensure_can_dissolve(para_id);
-				
+
 				continue;
 			}
-			
-			println!("  Para: {}, Fund index: {}, id: {}, with {} total", para_id, fund.fund_index, fund_id, total / 10_000_000_000);
+
+			println!(
+				"  Para: {}, Fund index: {}, id: {}, with {} total",
+				para_id,
+				fund.fund_index,
+				fund_id,
+				total / 10_000_000_000
+			);
 		}
 
 		println!("#### Done ####");
 		let mut refunds: String = "para_id,fund_id,account,amount,refund_date\n".into();
 
-		for para_id in para_ids {
-			let Some(fund) = pallet_crowdloan::Funds::<Polkadot>::get(para_id) else {
-				continue;
-			};
+		/*for para_id in para_ids {
+		let Some(fund) = pallet_crowdloan::Funds::<Polkadot>::get(para_id) else {
+			continue;
+		};
 
-			let id: u32 = para_id.into();
-			let fund_id = pallet_crowdloan::Pallet::<Polkadot>::fund_account_id(fund.fund_index);
+		let id: u32 = para_id.into();
+		let fund_id = pallet_crowdloan::Pallet::<Polkadot>::fund_account_id(fund.fund_index);
 
-			let acc = frame_system::Account::<Polkadot>::get(&fund_id);
-			let total = acc.data.free + acc.data.reserved;
-			let refund_time = block_number_to_date(calculate_refund_time(para_id));
+		let acc = frame_system::Account::<Polkadot>::get(&fund_id);
+		let total = acc.data.free + acc.data.reserved;*/
+		let refund_time = calculate_refund_time(para_ids);
 
-			let mut contrib_iter = pallet_crowdloan::Pallet::<Polkadot>::contribution_iterator(fund.fund_index);
+		/*let mut contrib_iter = pallet_crowdloan::Pallet::<Polkadot>::contribution_iterator(fund.fund_index);
 			let mut total_contrib = 0;
 			let mut num_contribs = 0;
 
@@ -187,26 +200,108 @@ async fn crowdloan_unlock_times_are_correct_works() {
 			if acc.data.free + acc.data.reserved > fund.raised {
 				println!("! Over funded by {}", (acc.data.free + acc.data.reserved - fund.raised) / 10_000_000_000);
 			}
-		}
+		}*/
 
 		// write to file
-		let mut file = std::fs::File::create("/Users/vados/Documents/work/runtimes/refunds.csv").unwrap();
-		file.write_all(refunds.as_bytes()).unwrap();
+		//let mut file =
+		// std::fs::File::create("/Users/vados/Documents/work/runtimes/refunds.csv").unwrap();
+		// file.write_all(refunds.as_bytes()).unwrap();
 	});
 }
 
 /// Calculate when a crowdloan will be able to dissolve.
-fn calculate_refund_time(para_id: ParaId) -> u32 {
-	let fund = pallet_crowdloan::Funds::<Polkadot>::get(para_id).unwrap();
-	let dissolve_time = fund.last_period * <Polkadot as pallet_slots::Config>::LeasePeriod::get() + <Polkadot as pallet_slots::Config>::LeaseOffset::get();
-	//ensure_can_refund(para_id, dissolve_time);
-	dissolve_time
+fn calculate_refund_time(mut para_ids: Vec<ParaId>) -> BTreeMap<ParaId, BlockNumberFor<Polkadot>> {
+	let mut cutoff = 10_000_000; // some high number to make the test timeout if there is an error
+	let mut original_reserved: BTreeMap<AccountId32, BalanceOf<Polkadot>> = BTreeMap::new();
+	let orig_len = para_ids.len();
+	let mut refund_times: BTreeMap<ParaId, BlockNumberFor<Polkadot>> = BTreeMap::new();
+
+	frame_support::hypothetically!({
+		while !para_ids.is_empty() && cutoff > 0 {
+			let now = frame_system::Pallet::<Polkadot>::block_number();
+
+			para_ids = para_ids
+				.into_iter()
+				.filter(|para_id| {
+					let fund = pallet_crowdloan::Funds::<Polkadot>::get(para_id).unwrap();
+					let slots = pallet_slots::Leases::<Polkadot>::get(para_id);
+					// Lease pot account can either be a crowdloan account or a solo bidder
+					log::info!("[{now}] Para {} has {} slots", para_id, slots.len());
+					let Some(last_lease) = slots.last().cloned() else {
+						// TODO check this
+						// TODO additional check with crowdloan account has no reserve
+						log::info!(
+							"[{now}] Para {} has no slots and already had its funds unreserved",
+							para_id
+						);
+						// TODO https://polkadot.subsquare.io/referenda/524
+						if *para_id == ParaId::from(3356) {
+							return false;
+						}
+						refund_times.insert(*para_id, now);
+						// TODO some additional checks i forgot about
+						// Account must have at least `rased` in free funds
+						let pot =
+							pallet_crowdloan::Pallet::<Polkadot>::fund_account_id(fund.fund_index);
+						let pot_acc = frame_system::Account::<Polkadot>::get(&pot);
+						if pot_acc.data.free < fund.raised {
+							panic!(
+								"Para {} has {} raised but only {} free",
+								para_id, fund.raised, pot_acc.data.free
+							);
+						}
+						return false;
+					};
+
+					let Some((lease_pot_account, deposit_amount)) = last_lease else {
+						frame_support::defensive!("Last lease should never be None");
+						return false;
+					};
+
+					let reserved =
+						pallet_balances::Pallet::<Polkadot>::reserved_balance(&lease_pot_account);
+					let original_res =
+						original_reserved.entry(lease_pot_account).or_insert(reserved);
+					if reserved < *original_res {
+						log::info!(
+							"[{}] Lease funds of para {} can be withdrawn, reserved: {} -> {}",
+							now,
+							para_id,
+							*original_res,
+							reserved
+						);
+						assert_eq(*original_res - reserved, deposit_amount);
+						assert_eq(fund.raised, 0);
+						// TODO additional checks if there is a crowdloan, then it should be zero
+						return false;
+					}
+
+					true
+				})
+				.collect();
+
+			// Go to the start of the next Lease period
+			let offset = <Polkadot as pallet_slots::Config>::LeaseOffset::get();
+			let period = <Polkadot as pallet_slots::Config>::LeasePeriod::get();
+			let next_period_start = ((now - offset) / period) * period + period + offset;
+
+			run_to_block(next_period_start);
+			cutoff -= 1;
+		}
+
+		if !para_ids.is_empty() {
+			panic!("Some crowdloans could not be dissolved: {:?}", para_ids);
+		}
+	});
+	// TODO -1 for the Bifrost lease swap 3356 mentioned above
+	assert_eq!(orig_len - 1, refund_times.len());
+	refund_times
 }
 
 fn block_number_to_date(block_number: u32) -> String {
-    let block_now = frame_system::Pallet::<Polkadot>::block_number();
-    let unix_now = pallet_timestamp::Now::<Polkadot>::get();
-    let date = unix_now as i128 + (block_number as i128 - block_now as i128) as i128 * 6_000;
+	let block_now = frame_system::Pallet::<Polkadot>::block_number();
+	let unix_now = pallet_timestamp::Now::<Polkadot>::get();
+	let date = unix_now as i128 + (block_number as i128 - block_now as i128) as i128 * 6_000;
 	chrono::NaiveDateTime::from_timestamp_millis(date as i64).unwrap().to_string()
 }
 
@@ -214,20 +309,33 @@ fn ensure_can_refund(para_id: ParaId, at: u32) {
 	frame_support::hypothetically!({
 		let alice = AccountId32::new([0u8; 32]);
 		pallet_balances::Pallet::<Polkadot>::make_free_balance_be(&alice, 100_000_000_000_000_000);
-		run_to_block(at + 10);
+		run_to_block(at);
 
 		let fund = pallet_crowdloan::Funds::<Polkadot>::get(para_id).unwrap();
 		let origin = polkadot_runtime::RuntimeOrigin::signed(alice);
-		let call: polkadot_runtime::RuntimeCall = pallet_crowdloan::Call::<Polkadot>::refund { index: para_id }.into();
+		let call: polkadot_runtime::RuntimeCall =
+			pallet_crowdloan::Call::<Polkadot>::refund { index: para_id }.into();
 		call.dispatch_bypass_filter(origin).unwrap(); // Why bypass?
 	});
 }
 
 fn run_to_block(at: u32) {
-	let mut bn = frame_system::Pallet::<Polkadot>::block_number();
+	//let mut bn = frame_system::Pallet::<Polkadot>::block_number();
 
-	frame_system::Pallet::<Polkadot>::set_block_number(bn);
-	polkadot_runtime::AllPalletsWithSystem::on_initialize(bn);
+	frame_system::Pallet::<Polkadot>::set_block_number(at);
+	//polkadot_runtime::AllPalletsWithSystem::on_initialize(bn);
+	<pallet_registrar::Pallet<Polkadot> as frame_support::traits::OnInitialize<
+		BlockNumberFor<Polkadot>,
+	>>::on_initialize(at);
+	<pallet_slots::Pallet<Polkadot> as frame_support::traits::OnInitialize<
+		BlockNumberFor<Polkadot>,
+	>>::on_initialize(at);
+	<pallet_crowdloan::Pallet<Polkadot> as frame_support::traits::OnInitialize<
+		BlockNumberFor<Polkadot>,
+	>>::on_initialize(at);
+	<frame_system::Pallet<Polkadot> as frame_support::traits::OnFinalize<
+		BlockNumberFor<Polkadot>,
+	>>::on_finalize(at);
 }
 
 fn ensure_can_dissolve(para_id: ParaId) {
@@ -238,7 +346,8 @@ fn ensure_can_dissolve(para_id: ParaId) {
 		let data_before = frame_system::Account::<Polkadot>::get(&sender).data;
 		let origin = polkadot_runtime::RuntimeOrigin::signed(sender.clone());
 
-		let call: polkadot_runtime::RuntimeCall = pallet_crowdloan::Call::<Polkadot>::dissolve { index: para_id }.into();
+		let call: polkadot_runtime::RuntimeCall =
+			pallet_crowdloan::Call::<Polkadot>::dissolve { index: para_id }.into();
 		call.dispatch(origin).unwrap();
 		let data_after = frame_system::Account::<Polkadot>::get(&sender).data;
 
@@ -256,3 +365,10 @@ fn ensure_can_dissolve(para_id: ParaId) {
 	lease_period * fund_period + fund_index
 }
 */
+
+/// Assert that also works without debug_assert
+fn assert_eq<R: PartialEq + core::fmt::Debug>(a: R, b: R) {
+	if a != b {
+		panic!("{a:?} != {b:?}");
+	}
+}

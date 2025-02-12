@@ -321,7 +321,7 @@ members = [
 panic = "unwind"
 opt-level = 3
 # AHM: FAIL-CI
-debug-assertions = true
+debug-assertions = false
 overflow-checks = true
 
 [profile.production]

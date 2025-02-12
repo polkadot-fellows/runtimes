@@ -37,6 +37,7 @@ pub mod bounties;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
+pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
 pub mod preimage;
@@ -49,12 +50,14 @@ pub mod vesting;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
+use polkadot_runtime_common::crowdloan as pallet_crowdloan;
 
+use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
+		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -65,6 +68,7 @@ use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
+	crowdloan::RcCrowdloanMessageOf,
 	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
@@ -106,6 +110,8 @@ pub enum PalletEventName {
 	Bounties,
 }
 
+pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -139,6 +145,7 @@ pub mod pallet {
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
 			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
+			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 		/// XCM check account.
@@ -182,6 +189,56 @@ pub mod pallet {
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, RcAccountFor<T>, OptionQuery>;
 
+	/// Amount of balance that was reserved for winning a lease auction.
+	///
+	/// `unreserve_lease_deposit` can be permissionlessly called once the block number passed to
+	/// unreserve the deposit. It is implicitly called by `withdraw_crowdloan_contribution`.
+	///  
+	/// The account here can either be a crowdloan account or a solo bidder. If it is a crowdloan
+	/// account, then the summed up contributions for it in the contributions map will equate the
+	/// reserved balance here.
+	///
+	/// The keys are as follows:
+	/// - Block number after which the deposit can be unreserved.
+	/// - The account that will have the balance unreserved.
+	/// - The para_id of the lease slot.
+	/// - The balance to be unreserved.
+	#[pallet::storage]
+	pub type RcLeaseReserve<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Twox64Concat, BlockNumberFor<T>>,
+			NMapKey<Twox64Concat, T::AccountId>,
+			NMapKey<Twox64Concat, ParaId>,
+		),
+		BalanceOf<T>,
+		OptionQuery,
+	>;
+
+	/// Amount of balance that a contributor made towards a crowdloan.
+	///
+	/// `withdraw_crowdloan_contribution` can be permissionlessly called once the block number
+	/// passed to unlock the balance for a specific account.
+	///
+	/// The keys are as follows:
+	/// - Block number after which the balance can be unlocked.
+	/// - The account that made the contribution.
+	/// - The para_id of the crowdloan.
+	///
+	/// The value is (fund_pot, balance). The contribution pot is the second key in the
+	/// `RcCrowdloanContribution` storage.
+	#[pallet::storage]
+	pub type RcCrowdloanContribution<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Twox64Concat, BlockNumberFor<T>>,
+			NMapKey<Twox64Concat, T::AccountId>,
+			NMapKey<Twox64Concat, ParaId>,
+		),
+		(T::AccountId, BalanceOf<T>),
+		OptionQuery,
+	>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.
@@ -202,6 +259,12 @@ pub mod pallet {
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
 		Unreachable,
+		/// Either no lease deposit or already unreserved.
+		NoLeaseDeposit,
+		/// Either no crowdloan contribution or already withdrawn.
+		NoCrowdloanContribution,
+		/// Failed to withdraw crowdloan contribution.
+		FailedToWithdrawCrowdloanContribution,
 	}
 
 	#[pallet::event]
@@ -209,6 +272,13 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
+
+		/// Some amount could not be unreserved and possibly needs manual cleanup.
+		LeaseDepositUnreserveRemaining {
+			depositor: T::AccountId,
+			para_id: ParaId,
+			remaining: BalanceOf<T>,
+		},
 
 		/// We received a batch of accounts that we are going to integrate.
 		AccountBatchReceived {
@@ -601,6 +671,42 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_asset_rates(rates).map_err(Into::into)
+		}
+
+		#[pallet::call_index(19)]
+		pub fn unreserve_lease_deposit(
+			origin: OriginFor<T>,
+			block: BlockNumberFor<T>,
+			depositor: Option<T::AccountId>,
+			para_id: ParaId,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let depositor = depositor.unwrap_or(sender);
+
+			Self::do_unreserve_lease_deposit(block, depositor, para_id).map_err(Into::into)
+		}
+
+		#[pallet::call_index(20)]
+		pub fn withdraw_crowdloan_contribution(
+			origin: OriginFor<T>,
+			block: BlockNumberFor<T>,
+			depositor: Option<T::AccountId>,
+			para_id: ParaId,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let depositor = depositor.unwrap_or(sender);
+
+			Self::do_withdraw_crowdloan_contribution(block, depositor, para_id).map_err(Into::into)
+		}
+
+		#[pallet::call_index(21)]
+		pub fn receive_crowdloan_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcCrowdloanMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
 		}
 	}
 
