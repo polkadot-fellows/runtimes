@@ -55,7 +55,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>  {
 	type Key = CrowdloanStage;
 	type Error = Error<T>;
-	
+
 	fn migrate_many(
 		current_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
@@ -74,19 +74,19 @@ where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::
 					break;
 				}
 			}
-			
+
 			if messages.len() > 10_000 {
 				log::warn!("Weight allowed very big batch, stopping");
 				break;
 			}
-			
+
 			inner_key = match inner_key {
 				CrowdloanStage::LeaseReserve { last_key } => {
 					let mut iter = match last_key.clone() {
 						Some(last_key) => pallet_slots::Leases::<T>::iter_from_key(last_key),
 						None => pallet_slots::Leases::<T>::iter(),
 					};
-				
+
 					match iter.next() {
 						Some((para_id, leases)) => {
 							pallet_slots::Leases::<T>::remove(&para_id);
@@ -114,7 +114,7 @@ where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::
 							let unlock_block = num_leases_to_ending_block::<T>(leases.len() as u32);
 
 							log::warn!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unlock_block: {:?}", &para_id, &lease_acc, &amount, &unlock_block);
-							messages.push(RcCrowdloanMessage::LeaseReserve { block: unlock_block, account: lease_acc.clone(), para_id, amount });						
+							messages.push(RcCrowdloanMessage::LeaseReserve { block: unlock_block, account: lease_acc.clone(), para_id, amount });
 							CrowdloanStage::LeaseReserve { last_key: Some(para_id) }
 						},
 						None => CrowdloanStage::CrowdloanContribution { last_key: None },
