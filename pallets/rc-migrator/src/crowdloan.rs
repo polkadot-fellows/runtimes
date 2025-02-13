@@ -55,6 +55,7 @@ pub type RcCrowdloanMessageOf<T> =
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub enum CrowdloanStage {
+	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
 	CrowdloanContribution { last_key: Option<ParaId> },
 	CrowdloanDeposit,
@@ -75,7 +76,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		current_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut inner_key = current_key.unwrap_or(CrowdloanStage::LeaseReserve { last_key: None });
+		let mut inner_key = current_key.unwrap_or(CrowdloanStage::Setup);
 		let mut messages = Vec::new();
 
 		loop {
@@ -83,13 +84,11 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
-				/*if messages.is_empty() {
+				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
-				}*/
-				log::warn!("Out of weight, stop. num messages: {}", messages.len());
-				break;
+				}
 			}
 
 			if messages.len() > 10_000 {
@@ -98,6 +97,24 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 			}
 
 			inner_key = match inner_key {
+				CrowdloanStage::Setup => {
+					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
+
+					// Only thing to do here is to re-the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
+					let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
+					if leases.is_empty() {
+						defensive!("Bifrost fund maybe already ended, remove this");
+						continue;
+					}
+
+					// It would be better if we can re-map all contributions to the new para id, but
+					// that requires to iterate them all so we go the other way around; change the
+					// new leases to the old Bifrost Crowdloan.
+					pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
+					log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
+
+					inner_key
+				},
 				CrowdloanStage::LeaseReserve { last_key } => {
 					let mut iter = match last_key.clone() {
 						Some(last_key) => pallet_slots::Leases::<T>::iter_from_key(last_key),
@@ -130,7 +147,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
 
-							log::warn!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
+							log::debug!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
 							messages.push(RcCrowdloanMessage::LeaseReserve { unreserve_block, account: lease_acc.clone(), para_id, amount });
 							CrowdloanStage::LeaseReserve { last_key: Some(para_id) }
 						},
@@ -162,13 +179,15 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let leases = pallet_slots::Leases::<T>::get(para_id);
 							if leases.is_empty() {
-								defensive!("Leases should not be empty if there is a fund");
+								defensive_assert!(fund.raised == 0u32.into(), "Fund should be empty");
+								inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
+								continue;
 							}
 
 							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
 
 							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32);
-							log::warn!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);
+							log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);
 							pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 							messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
 
@@ -182,17 +201,19 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 				CrowdloanStage::CrowdloanDeposit => {
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
+							inner_key = CrowdloanStage::CrowdloanDeposit;
 							pallet_crowdloan::Funds::<T>::take(para_id);
 
 							let leases = pallet_slots::Leases::<T>::get(para_id);
 							if leases.is_empty() {
-								defensive!("Leases should not be empty if there is a fund");
+								defensive_assert!(fund.raised == 0u32.into(), "Fund should be empty");
+								continue;
 							}
 							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
 
-							log::warn!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
+							log::debug!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
 							messages.push(RcCrowdloanMessage::CrowdloanDeposit { unreserve_block, para_id, fund_index: fund.fund_index, amount: fund.deposit.into(), depositor: fund.depositor });
-							CrowdloanStage::CrowdloanDeposit
+							inner_key
 						},
 						None => CrowdloanStage::Finished,
 					}

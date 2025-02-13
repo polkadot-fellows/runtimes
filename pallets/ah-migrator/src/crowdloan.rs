@@ -88,7 +88,7 @@ impl<T: Config> Pallet<T> {
 				depositor,
 			} => {
 				log::info!(target: LOG_TARGET, "Integrating crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund_index, &amount, &depositor);
-				defensive_assert!(!RcCrowdloanContribution::<T>::contains_key((
+				defensive_assert!(!RcCrowdloanReserve::<T>::contains_key((
 					unreserve_block,
 					&depositor,
 					para_id

@@ -10073,13 +10073,11 @@ name = "polkadot-integration-tests-ahm"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
- "chrono",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
- "hex",
  "log",
  "pallet-ah-migrator",
  "pallet-balances",
