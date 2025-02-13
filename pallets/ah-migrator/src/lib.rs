@@ -280,9 +280,10 @@ pub mod pallet {
 		FailedToIntegrateVestingSchedule,
 		Unreachable,
 		/// Either no lease deposit or already unreserved.
-		NoLeaseDeposit,
+		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
 		NoCrowdloanContribution,
+		NoCrowdloanReserve,
 		/// Failed to withdraw crowdloan contribution.
 		FailedToWithdrawCrowdloanContribution,
 	}
@@ -293,8 +294,15 @@ pub mod pallet {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
 
-		/// Some amount could not be unreserved and possibly needs manual cleanup.
-		LeaseDepositUnreserveRemaining {
+		/// Some lease reserve could not be unreserved and needs manual cleanup.
+		LeaseUnreserveRemaining {
+			depositor: T::AccountId,
+			para_id: ParaId,
+			remaining: BalanceOf<T>,
+		},
+
+		/// Some amount for a crowdloan reserve could not be unreserved and needs manual cleanup.
+		CrowdloanUnreserveRemaining {
 			depositor: T::AccountId,
 			para_id: ParaId,
 			remaining: BalanceOf<T>,
@@ -440,21 +448,6 @@ pub mod pallet {
 			count_good: u32,
 			/// How many scheduler messages failed to integrate.
 			count_bad: u32,
-		},
-		/// Should not happen. Manual intervention by the Fellowship required.
-		///
-		/// Can happen when existing AH and incoming RC vesting schedules have more combined
-		/// entries than allowed. This triggers the merging logic which has henceforth failed
-		/// with the given inner pallet-vesting error.
-		FailedToMergeVestingSchedules {
-			/// The account that failed to merge the schedules.
-			who: AccountId32,
-			/// The first schedule index that failed to merge.
-			schedule1: u32,
-			/// The second schedule index that failed to merge.
-			schedule2: u32,
-			/// The index of the pallet-vesting error that occurred.
-			pallet_vesting_error_index: Option<u8>,
 		},
 		ConvictionVotingMessagesReceived {
 			/// How many conviction voting messages are in the batch.
@@ -720,6 +713,19 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(21)]
+		pub fn unreserve_crowdloan_reserve(
+			origin: OriginFor<T>,
+			block: BlockNumberFor<T>,
+			depositor: Option<T::AccountId>,
+			para_id: ParaId,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let depositor = depositor.unwrap_or(sender);
+
+			Self::do_unreserve_crowdloan_reserve(block, depositor, para_id).map_err(Into::into)
+		}
+
+		#[pallet::call_index(22)]
 		pub fn receive_crowdloan_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcCrowdloanMessageOf<T>>,

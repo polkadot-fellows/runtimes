@@ -1,19 +1,17 @@
-// This file is part of Substrate.
+// This file is part of Polkadot.
 
-// Copyright (C) Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: Apache-2.0
+// Polkadot is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Polkadot is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
 use frame_support::traits::tokens::Preservation;
@@ -110,16 +108,12 @@ impl<T: Config> Pallet<T> {
 		para_id: ParaId,
 	) -> Result<(), Error<T>> {
 		let balance = RcLeaseReserve::<T>::take((block, &depositor, para_id))
-			.ok_or(Error::<T>::NoLeaseDeposit)?;
+			.ok_or(Error::<T>::NoLeaseReserve)?;
 
 		let remaining = <T as Config>::Currency::unreserve(&depositor, balance);
 		if remaining > 0 {
 			defensive!("Should be able to unreserve all");
-			Self::deposit_event(Event::LeaseDepositUnreserveRemaining {
-				depositor,
-				remaining,
-				para_id,
-			});
+			Self::deposit_event(Event::LeaseUnreserveRemaining { depositor, remaining, para_id });
 		}
 
 		Ok(())
@@ -130,14 +124,13 @@ impl<T: Config> Pallet<T> {
 		depositor: T::AccountId,
 		para_id: ParaId,
 	) -> Result<(), Error<T>> {
-		// TODO remember to reactivate balance
 		let (pot, contribution) = RcCrowdloanContribution::<T>::take((block, &depositor, para_id))
 			.ok_or(Error::<T>::NoCrowdloanContribution)?;
 
 		// Maybe this is the first one to withdraw and we need to unreserve it from the pot
 		match Self::do_unreserve_lease_deposit(block, pot.clone(), para_id) {
 			Ok(()) => (),
-			Err(Error::<T>::NoLeaseDeposit) => (), // fine
+			Err(Error::<T>::NoLeaseReserve) => (), // fine
 			Err(e) => return Err(e),
 		}
 
@@ -153,6 +146,27 @@ impl<T: Config> Pallet<T> {
 		defensive_assert!(transferred == contribution);
 		// Need to reactivate since we deactivated it here https://github.com/paritytech/polkadot-sdk/blob/04847d515ef56da4d0801c9b89a4241dfa827b33/polkadot/runtime/common/src/crowdloan/mod.rs#L793
 		<T as Config>::Currency::reactivate(transferred);
+
+		Ok(())
+	}
+
+	pub fn do_unreserve_crowdloan_reserve(
+		block: BlockNumberFor<T>,
+		depositor: T::AccountId,
+		para_id: ParaId,
+	) -> Result<(), Error<T>> {
+		let amount = RcCrowdloanReserve::<T>::take((block, &depositor, para_id))
+			.ok_or(Error::<T>::NoCrowdloanReserve)?;
+
+		let remaining = <T as Config>::Currency::unreserve(&depositor, amount);
+		if remaining > 0 {
+			defensive!("Should be able to unreserve all");
+			Self::deposit_event(Event::CrowdloanUnreserveRemaining {
+				depositor,
+				remaining,
+				para_id,
+			});
+		}
 
 		Ok(())
 	}
