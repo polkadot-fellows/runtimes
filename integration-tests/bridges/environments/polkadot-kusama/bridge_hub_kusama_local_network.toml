@@ -10,22 +10,19 @@ chain_spec_command = "{{CHAIN_SPEC_GEN_BINARY_FOR_KUSAMA}} {% raw %} {{chainName
 [[relaychain.nodes]]
 name = "alice"
 validator = true
-rpc_port = 9935
-ws_port = 9945
+rpc_port = 9945
 balance = 2000000000000
 
 [[relaychain.nodes]]
 name = "bob"
 validator = true
-rpc_port = 9936
-ws_port = 9946
+rpc_port = 9946
 balance = 2000000000000
 
 [[relaychain.nodes]]
 name = "charlie"
 validator = true
-rpc_port = 9937
-ws_port = 9947
+rpc_port = 9947
 balance = 2000000000000
 
 [[parachains]]
@@ -36,8 +33,7 @@ cumulus_based = true
 
 [[parachains.collators]]
 name = "asset-hub-kusama-collator-1"
-rpc_port = 9011
-ws_port = 9010
+rpc_port = 9010
 command = "{{POLKADOT_PARACHAIN_BINARY}}"
 args = ["-lparachain=debug,xcm=trace,runtime::bridge-transfer=trace"]
 
@@ -57,8 +53,7 @@ cumulus_based = true
 name = "bridge-hub-kusama-collator-1"
 validator = true
 command = "{{POLKADOT_PARACHAIN_BINARY}}"
-rpc_port = 8935
-ws_port = 8945
+rpc_port = 8945
 args = [
 	"-lparachain=debug,runtime::mmr=info,substrate=info,runtime=info,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace",
 ]
@@ -68,8 +63,7 @@ args = [
 name = "bridge-hub-kusama-collator-2"
 validator = true
 command = "{{POLKADOT_PARACHAIN_BINARY}}"
-rpc_port = 8936
-ws_port = 8946
+rpc_port = 8946
 args = [
 	"-lparachain=trace,runtime::mmr=info,substrate=info,runtime=info,runtime::bridge-hub=trace,runtime::bridge=trace,runtime::bridge-dispatch=trace,bridge=trace,runtime::bridge-messages=trace,xcm=trace",
 ]

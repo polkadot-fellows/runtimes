@@ -21,7 +21,7 @@ jobs:
 
       - name: Load fellows
         id: load-fellows
-        uses: paritytech/get-fellows-action@v1.2.0
+        uses: paritytech/get-fellows-action@v1.3.0
 
   reject-non-fellows:
     needs: fellows
