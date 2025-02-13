@@ -44,6 +44,7 @@ mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub mod potoc;
 pub use ambassador::pallet_ambassador_origins;
 
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
@@ -53,6 +54,7 @@ use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
 };
+use potoc::pallet_potoc_origins;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -725,16 +727,11 @@ construct_runtime!(
 		AllianceMotion: pallet_collective::<Instance1> = 51,
 
 		// The Fellowship.
-		// pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
 		FellowshipCollective: pallet_ranked_collective::<Instance1> = 60,
-		// pub type FellowshipReferendaInstance = pallet_referenda::Instance1;
 		FellowshipReferenda: pallet_referenda::<Instance1> = 61,
 		FellowshipOrigins: pallet_fellowship_origins = 62,
-		// pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
 		FellowshipCore: pallet_core_fellowship::<Instance1> = 63,
-		// pub type FellowshipSalaryInstance = pallet_salary::Instance1;
 		FellowshipSalary: pallet_salary::<Instance1> = 64,
-		// pub type FellowshipTreasuryInstance = pallet_treasury::Instance1;
 		FellowshipTreasury: pallet_treasury::<Instance1> = 65,
 
 		// Ambassador Program.
@@ -744,6 +741,14 @@ construct_runtime!(
 		AmbassadorCore: pallet_core_fellowship::<Instance2> = 73,
 		AmbassadorSalary: pallet_salary::<Instance2> = 74,
 		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
+
+		// Tooling Collective
+		PotocCollective: pallet_ranked_collective::<Instance3> = 80,
+		PotocReferenda: pallet_referenda::<Instance3> = 81,
+		PotocOrigins: pallet_potoc_origins = 82,
+		PotocCore: pallet_core_fellowship::<Instance3> = 83,
+		PotocSalary: pallet_salary::<Instance3> = 84,
+		PotocTreasury: pallet_treasury::<Instance3> = 85
 	}
 );
 
@@ -779,6 +784,7 @@ type Migrations = (
 	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, fellowship::FellowshipCoreInstance>,
 	pallet_core_fellowship::migration::MigrateV0ToV1<Runtime, ambassador::AmbassadorCoreInstance>,
 	ambassador::migrations::TruncateHeadAmbassadors,
+	potoc::InsertSeedMembers,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -1145,7 +1151,7 @@ impl_runtime_apis! {
 						Asset {
 							fun: Fungible(ExistentialDeposit::get()),
 							id: AssetId(Parent.into())
-						}.into(),
+						},
 						Parent.into(),
 					))
 				}
