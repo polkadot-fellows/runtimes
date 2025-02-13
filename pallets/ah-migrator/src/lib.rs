@@ -686,6 +686,14 @@ pub mod pallet {
 			Self::do_receive_asset_rates(rates).map_err(Into::into)
 		}
 
+		/// Unreserve the deposit that was taken for creating a crowdloan.
+		///
+		/// This can be called by any signed origin. It unreserves the lease deposit on the account
+		/// that won the lease auction. It can be unreserved once all leases expired. Note that it
+		/// will be called automatically from `withdraw_crowdloan_contribution` for the matching
+		/// crowdloan account.
+		///
+		/// Solo bidder accounts that won lease auctions can use this to unreserve their amount.
 		#[pallet::call_index(19)]
 		pub fn unreserve_lease_deposit(
 			origin: OriginFor<T>,
@@ -699,6 +707,13 @@ pub mod pallet {
 			Self::do_unreserve_lease_deposit(block, depositor, para_id).map_err(Into::into)
 		}
 
+		/// Withdraw the contribution of a finished crowdloan.
+		///
+		/// A crowdloan contribution can be withdrawn if either:
+		/// - The crowdloan failed to in an auction and timed out
+		/// - Won an auction and all leases expired
+		///
+		/// Can be called by any signed origin.
 		#[pallet::call_index(20)]
 		pub fn withdraw_crowdloan_contribution(
 			origin: OriginFor<T>,
@@ -712,6 +727,14 @@ pub mod pallet {
 			Self::do_withdraw_crowdloan_contribution(block, depositor, para_id).map_err(Into::into)
 		}
 
+		/// Unreserve the deposit that was taken for creating a crowdloan.
+		///
+		/// This can be called once:
+		/// - The crowdloan failed to win an auction and timed out
+		/// - Won an auction and all leases expired
+		///
+		/// Can be called by any signed origin. The condition that all contributions are withdrawn
+		/// is not checked anymore since all withdraw and unreserve functions are permissionless.
 		#[pallet::call_index(21)]
 		pub fn unreserve_crowdloan_reserve(
 			origin: OriginFor<T>,

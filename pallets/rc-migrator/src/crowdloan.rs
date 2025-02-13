@@ -21,26 +21,55 @@ pub struct CrowdloanMigrator<T> {
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
+	/// Reserve for some slot leases.
 	LeaseReserve {
 		/// The block number at which this deposit can be unreserved.
 		unreserve_block: BlockNumber,
+		/// Account that has `amount` reserved.
 		account: AccountId,
+		/// Parachain ID that this crowdloan belongs to.
+		///
+		/// Note that Bifrost ID 3356 is now 2030.
 		para_id: ParaId,
+		/// Amount that was reserved for the lease.
+		///
+		/// This is not necessarily the same as the full crowdloan contribution amount, since there
+		/// can be contributions after the lease candle auction ended. But it is the same for solo
+		/// bidders. The amount that was contributed after the cutoff will be held as *free* by the
+		/// crowdloan pot account.
 		amount: Balance,
 	},
+	/// Contribute to a crowdloan.
 	CrowdloanContribution {
 		/// The block number at which this contribution can be withdrawn.
 		withdraw_block: BlockNumber,
+		/// The contributor that will have `amount` deposited.
 		contributor: AccountId,
+		/// Parachain ID that this crowdloan belongs to.
+		///
+		/// Note that Bifrost ID 3356 is now 2030.
 		para_id: ParaId,
+		/// Amount that was loaned to the crowdloan.
 		amount: Balance,
+		/// The crowdloan pot account that will have `amount` removed.
 		crowdloan_account: AccountId,
 	},
-	CrowdloanDeposit {
+	/// Reserve amount on a crowdloan pot account.
+	CrowdloanReserve {
+		/// The block number at which this deposit can be unreserved.
 		unreserve_block: BlockNumber,
+		/// The account that has `amount` reserved.
+		///
+		/// This is often the parachain manager or some multisig account from the parachain team
+		/// who initiated the crowdloan.
 		depositor: AccountId,
+		/// Parachain ID that this crowdloan belongs to.
+		///
+		/// Note that Bifrost ID 3356 is now 2030.
 		para_id: ParaId,
-		fund_index: u32,
+		/// Amount that was reserved to create the crowdloan.
+		///
+		/// Normally this is 500 DOT. TODO: Should sanity check.
 		amount: Balance,
 	},
 }
@@ -53,7 +82,7 @@ pub enum CrowdloanStage {
 	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
 	CrowdloanContribution { last_key: Option<ParaId> },
-	CrowdloanDeposit,
+	CrowdloanReserve,
 	Finished,
 }
 
@@ -95,7 +124,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 				CrowdloanStage::Setup => {
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
-					// Only thing to do here is to re-the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
+					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 					let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
 					if leases.is_empty() {
 						defensive!("Bifrost fund maybe already ended, remove this");
@@ -103,8 +132,8 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					}
 
 					// It would be better if we can re-map all contributions to the new para id, but
-					// that requires to iterate them all so we go the other way around; change the
-					// new leases to the old Bifrost Crowdloan.
+					// that requires to iterate them all, so we go the other way around; changing
+					// the leases to the old Bifrost Crowdloan.
 					pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
 					log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
 
@@ -118,16 +147,16 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 					match iter.next() {
 						Some((para_id, leases)) => {
+							inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
+
 							let Some(last_lease) = leases.last() else {
-								// This seems to be fine, but i don't know how it happens, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L108-L109
+								// This seems to be fine, but i don't know why it happens, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L108-L109
 								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
-								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
 								continue;
 							};
 
 							let Some((lease_acc, _)) = last_lease else {
 								defensive!("Last lease cannot be None");
-								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
 								continue;
 							};
 
@@ -135,8 +164,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							let amount: crate::BalanceOf<T> = leases.iter().flatten().map(|(_acc, amount)| amount).max().cloned().unwrap_or_default().into();
 
 							if amount == 0u32.into() {
-								defensive_assert!(para_id < ParaId::from(2000), "Must be system chain");
-								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
+								defensive_assert!(para_id < ParaId::from(2000), "Only system chains are allowed to have zero lease reserve");
 								continue;
 							}
 
@@ -144,7 +172,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							log::debug!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
 							messages.push(RcCrowdloanMessage::LeaseReserve { unreserve_block, account: lease_acc.clone(), para_id, amount });
-							CrowdloanStage::LeaseReserve { last_key: Some(para_id) }
+							inner_key
 						},
 						None => CrowdloanStage::CrowdloanContribution { last_key: None },
 					}
@@ -158,7 +186,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					let (para_id, fund) = match funds_iter.next() {
 						Some((para_id, fund)) => (para_id, fund),
 						None => {
-							inner_key = CrowdloanStage::CrowdloanDeposit;
+							inner_key = CrowdloanStage::CrowdloanReserve;
 							continue;
 						},
 					};
@@ -174,29 +202,29 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 							let leases = pallet_slots::Leases::<T>::get(para_id);
 							if leases.is_empty() {
-								defensive_assert!(fund.raised == 0u32.into(), "Fund should be empty");
+								defensive_assert!(fund.raised == 0u32.into(), "Crowdloan should be empty if there are no leases");
 								inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
 								continue;
 							}
 
 							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
-
 							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32);
-							log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);
+							// We directly remove so that we dont have to store a cursor:
 							pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
+
+							log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
+
 							messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
 
 							inner_key // does not change since we deleted the contribution
 						},
-						None => {
-							CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
-						},
+						None =>	CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) },
 					}
 				},
-				CrowdloanStage::CrowdloanDeposit => {
+				CrowdloanStage::CrowdloanReserve => {
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
-							inner_key = CrowdloanStage::CrowdloanDeposit;
+							inner_key = CrowdloanStage::CrowdloanReserve;
 							pallet_crowdloan::Funds::<T>::take(para_id);
 
 							let leases = pallet_slots::Leases::<T>::get(para_id);
@@ -207,15 +235,14 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
 
 							log::debug!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
-							messages.push(RcCrowdloanMessage::CrowdloanDeposit { unreserve_block, para_id, fund_index: fund.fund_index, amount: fund.deposit.into(), depositor: fund.depositor });
+
+							messages.push(RcCrowdloanMessage::CrowdloanReserve { unreserve_block, para_id, amount: fund.deposit.into(), depositor: fund.depositor });
 							inner_key
 						},
 						None => CrowdloanStage::Finished,
 					}
 				},
-				CrowdloanStage::Finished => {
-					break;
-				},
+				CrowdloanStage::Finished =>	break,
 			}
 		}
 
@@ -234,6 +261,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 }
 
 /// Calculate the lease ending block from the number of remaining leases (including the current).
+// TODO tests
 fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> BlockNumberFor<T> {
 	let now = frame_system::Pallet::<T>::block_number();
 	let num_leases: BlockNumberFor<T> = num_leases.into();
