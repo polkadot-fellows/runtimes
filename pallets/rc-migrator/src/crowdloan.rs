@@ -27,17 +27,26 @@ pub struct CrowdloanMigrator<T> {
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
 pub enum RcCrowdloanMessage<BlockNumber, AccountId, Balance> {
 	LeaseReserve {
-		block: BlockNumber,
+		/// The block number at which this deposit can be unreserved.
+		unreserve_block: BlockNumber,
 		account: AccountId,
 		para_id: ParaId,
 		amount: Balance,
 	},
 	CrowdloanContribution {
-		block: BlockNumber,
+		/// The block number at which this contribution can be withdrawn.
+		withdraw_block: BlockNumber,
 		contributor: AccountId,
 		para_id: ParaId,
 		amount: Balance,
 		crowdloan_account: AccountId,
+	},
+	CrowdloanDeposit {
+		unreserve_block: BlockNumber,
+		depositor: AccountId,
+		para_id: ParaId,
+		fund_index: u32,
+		amount: Balance,
 	},
 }
 
@@ -48,11 +57,17 @@ pub type RcCrowdloanMessageOf<T> =
 pub enum CrowdloanStage {
 	LeaseReserve { last_key: Option<ParaId> },
 	CrowdloanContribution { last_key: Option<ParaId> },
+	CrowdloanDeposit,
 	Finished,
 }
 
 impl<T: Config> PalletMigration for CrowdloanMigrator<T>
-where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>  {
+	where
+	crate::BalanceOf<T>:
+		From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+	crate::BalanceOf<T>:
+		From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+{
 	type Key = CrowdloanStage;
 	type Error = Error<T>;
 
@@ -68,11 +83,13 @@ where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
-				if messages.is_empty() {
+				/*if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
-				}
+				}*/
+				log::warn!("Out of weight, stop. num messages: {}", messages.len());
+				break;
 			}
 
 			if messages.len() > 10_000 {
@@ -89,39 +106,96 @@ where crate::BalanceOf<T>: From<<<T as polkadot_runtime_common::slots::Config>::
 
 					match iter.next() {
 						Some((para_id, leases)) => {
-							pallet_slots::Leases::<T>::remove(&para_id);
-
 							let Some(last_lease) = leases.last() else {
 								// This seems to be fine, but i don't know how it happens, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L108-L109
 								log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
 								continue;
 							};
 
 							let Some((lease_acc, _)) = last_lease else {
 								defensive!("Last lease cannot be None");
+								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
 								continue;
 							};
 
 							// NOTE: Max instead of sum, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L102-L103
-							let amount = leases.iter().flatten().map(|(_acc, amount)| amount).max().cloned().unwrap_or_default().into();
+							let amount: crate::BalanceOf<T> = leases.iter().flatten().map(|(_acc, amount)| amount).max().cloned().unwrap_or_default().into();
 
-							if amount == 0 {
-								// fucking stupid ParaId type
+							if amount == 0u32.into() {
 								defensive_assert!(para_id < ParaId::from(2000), "Must be system chain");
+								inner_key = CrowdloanStage::LeaseReserve { last_key: Some(para_id) };
 								continue;
 							}
 
-							let unlock_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
 
-							log::warn!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unlock_block: {:?}", &para_id, &lease_acc, &amount, &unlock_block);
-							messages.push(RcCrowdloanMessage::LeaseReserve { block: unlock_block, account: lease_acc.clone(), para_id, amount });
+							log::warn!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
+							messages.push(RcCrowdloanMessage::LeaseReserve { unreserve_block, account: lease_acc.clone(), para_id, amount });
 							CrowdloanStage::LeaseReserve { last_key: Some(para_id) }
 						},
 						None => CrowdloanStage::CrowdloanContribution { last_key: None },
 					}
 				},
 				CrowdloanStage::CrowdloanContribution { last_key } => {
-					todo!()
+					let mut funds_iter = match last_key.clone() {
+						Some(last_key) => pallet_crowdloan::Funds::<T>::iter_from_key(last_key),
+						None => pallet_crowdloan::Funds::<T>::iter(),
+					};
+
+					let (para_id, fund) = match funds_iter.next() {
+						Some((para_id, fund)) => (para_id, fund),
+						None => {
+							inner_key = CrowdloanStage::CrowdloanDeposit;
+							continue;
+						},
+					};
+
+					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
+
+					match contributions_iter.next() {
+						Some((contributor, (amount, memo))) => {
+							// Dont really care about memos, but we can add them, if needed.
+							if !memo.is_empty() {
+								log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
+							}
+
+							let leases = pallet_slots::Leases::<T>::get(para_id);
+							if leases.is_empty() {
+								defensive!("Leases should not be empty if there is a fund");
+							}
+
+							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
+
+							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+							log::warn!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);
+							pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
+							messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
+
+							inner_key // does not change since we deleted the contribution
+						},
+						None => {
+							CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
+						},
+					}
+				},
+				CrowdloanStage::CrowdloanDeposit => {
+					match pallet_crowdloan::Funds::<T>::iter().next() {
+						Some((para_id, fund)) => {
+							pallet_crowdloan::Funds::<T>::take(para_id);
+
+							let leases = pallet_slots::Leases::<T>::get(para_id);
+							if leases.is_empty() {
+								defensive!("Leases should not be empty if there is a fund");
+							}
+							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+
+							log::warn!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
+							messages.push(RcCrowdloanMessage::CrowdloanDeposit { unreserve_block, para_id, fund_index: fund.fund_index, amount: fund.deposit.into(), depositor: fund.depositor });
+							CrowdloanStage::CrowdloanDeposit
+						},
+						None => CrowdloanStage::Finished,
+					}
 				},
 				CrowdloanStage::Finished => {
 					break;

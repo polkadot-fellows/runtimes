@@ -49,6 +49,9 @@ use super::mock::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn account_migration_works() {
+	std::env::set_var("SNAP_RC", "/Users/vados/Documents/work/runtimes/polkadot.snap");
+	std::env::set_var("SNAP_AH", "/Users/vados/Documents/work/runtimes/ah-polkadot.snap");
+	std::env::set_var("START_STAGE", "crowdloan");
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 	let para_id = ParaId::from(1000);
 

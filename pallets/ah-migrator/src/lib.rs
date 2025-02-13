@@ -50,7 +50,6 @@ pub mod vesting;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
-use polkadot_runtime_common::crowdloan as pallet_crowdloan;
 
 use cumulus_primitives_core::ParaId;
 use frame_support::{
@@ -105,6 +104,7 @@ type RcAccountFor<T> = RcAccount<
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
+	Crowdloan,
 	BagsList,
 	Vesting,
 	Bounties,
@@ -236,6 +236,26 @@ pub mod pallet {
 			NMapKey<Twox64Concat, ParaId>,
 		),
 		(T::AccountId, BalanceOf<T>),
+		OptionQuery,
+	>;
+
+	/// The reserve that was taken to create a crowdloan.
+	///
+	/// This is normally 500 DOT and can be refunded as last step after all
+	/// `RcCrowdloanContribution`s of this loan have been withdrawn.
+	///
+	/// Keys:
+	/// - Block number after which this can be unreserved
+	/// -
+	#[pallet::storage]
+	pub type RcCrowdloanReserve<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Twox64Concat, BlockNumberFor<T>>,
+			NMapKey<Twox64Concat, T::AccountId>,
+			NMapKey<Twox64Concat, ParaId>,
+		),
+		BalanceOf<T>,
 		OptionQuery,
 	>;
 

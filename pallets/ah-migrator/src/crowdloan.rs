@@ -17,13 +17,88 @@
 
 use crate::*;
 use frame_support::traits::tokens::Preservation;
-use polkadot_runtime_common::crowdloan as pallet_crowdloan;
+use pallet_rc_migrator::crowdloan::RcCrowdloanMessage;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_crowdloan_messages(
 		messages: Vec<RcCrowdloanMessageOf<T>>,
 	) -> Result<(), Error<T>> {
-		todo!()
+		let (mut good, mut bad) = (0, 0);
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::Crowdloan,
+			count: messages.len() as u32,
+		});
+		log::info!(target: LOG_TARGET, "Received {} crowdloan messages", messages.len());
+
+		for message in messages {
+			match Self::do_process_crowdloan_message(message) {
+				Ok(()) => good += 1,
+				Err(e) => {
+					bad += 1;
+					log::error!(target: LOG_TARGET, "Error while integrating crowdloan message: {:?}", e);
+				},
+			}
+		}
+
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::Crowdloan,
+			count_good: good,
+			count_bad: bad,
+		});
+
+		Ok(())
+	}
+
+	pub fn do_process_crowdloan_message(message: RcCrowdloanMessageOf<T>) -> Result<(), Error<T>> {
+		match message {
+			RcCrowdloanMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
+				log::info!(target: LOG_TARGET, "Integrating lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &account, &amount, &unreserve_block);
+				defensive_assert!(!RcLeaseReserve::<T>::contains_key((
+					unreserve_block,
+					&account,
+					para_id
+				)));
+
+				RcLeaseReserve::<T>::insert((unreserve_block, account, para_id), amount);
+			},
+			RcCrowdloanMessage::CrowdloanContribution {
+				withdraw_block,
+				contributor,
+				para_id,
+				amount,
+				crowdloan_account,
+			} => {
+				log::info!(target: LOG_TARGET, "Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &crowdloan_account, &withdraw_block);
+				defensive_assert!(!RcCrowdloanContribution::<T>::contains_key((
+					withdraw_block,
+					&contributor,
+					para_id
+				)));
+
+				RcCrowdloanContribution::<T>::insert(
+					(withdraw_block, contributor, para_id),
+					(crowdloan_account, amount),
+				);
+			},
+			RcCrowdloanMessage::CrowdloanDeposit {
+				unreserve_block,
+				para_id,
+				fund_index,
+				amount,
+				depositor,
+			} => {
+				log::info!(target: LOG_TARGET, "Integrating crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund_index, &amount, &depositor);
+				defensive_assert!(!RcCrowdloanContribution::<T>::contains_key((
+					unreserve_block,
+					&depositor,
+					para_id
+				)));
+
+				RcCrowdloanReserve::<T>::insert((unreserve_block, depositor, para_id), amount);
+			},
+		}
+
+		Ok(())
 	}
 }
 
