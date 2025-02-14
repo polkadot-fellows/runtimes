@@ -21,7 +21,7 @@ bp-asset-hub-polkadot = { workspace = true }
 bp-bridge-hub-kusama = { workspace = true }
 bp-bridge-hub-polkadot = { workspace = true }
 kusama-runtime-constants = { workspace = true }
-polkadot-runtime-constants = { workspace = true }
+pallet-remote-proxy = { workspace = true }
 
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
@@ -132,6 +132,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"kusama-runtime-constants/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -141,6 +142,7 @@ runtime-benchmarks = [
 	"pallet-nft-fractionalization/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-remote-proxy/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
@@ -154,6 +156,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
@@ -179,6 +182,7 @@ try-runtime = [
 	"pallet-nft-fractionalization/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-remote-proxy/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -230,6 +234,7 @@ std = [
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
 	"pallet-proxy/std",
+	"pallet-remote-proxy/std",
 	"pallet-session/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
@@ -246,7 +251,6 @@ std = [
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
-	"polkadot-runtime-constants/std",
 	"primitive-types/std",
 	"scale-info/std",
 	"serde_json/std",
