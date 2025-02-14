@@ -300,7 +300,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
 		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
 		// have bigger issues with the chain, but we still want to burn.
-		if t.checked_rem(BURN_PERIOD).map_or(false, |r| r != 0) {
+		if t.checked_rem(BURN_PERIOD).is_some_and(|r| r != 0) {
 			return;
 		}
 
