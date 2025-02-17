@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
+chrono = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -32,6 +33,7 @@ pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
+pallet-timestamp = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }

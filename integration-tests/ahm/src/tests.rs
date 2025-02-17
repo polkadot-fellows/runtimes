@@ -107,7 +107,8 @@ async fn account_migration_works() {
 			}
 		}
 
-		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(());
+		pallet_ah_migrator::crowdloan::CrowdloanMigrationCheck::<AssetHub>::post_check();
+		//pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(());
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});

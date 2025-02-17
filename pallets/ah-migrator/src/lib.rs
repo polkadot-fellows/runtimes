@@ -137,6 +137,7 @@ pub mod pallet {
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
+		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -286,6 +287,8 @@ pub mod pallet {
 		NoCrowdloanReserve,
 		/// Failed to withdraw crowdloan contribution.
 		FailedToWithdrawCrowdloanContribution,
+		/// Block number is not yet reached.
+		NotYet,
 	}
 
 	#[pallet::event]
