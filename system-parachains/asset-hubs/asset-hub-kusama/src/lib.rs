@@ -167,30 +167,30 @@ impl Contains<RuntimeCall> for VestedTransferCalls {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
 	type BaseCallFilter = EverythingBut<VestedTransferCalls>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
-	type AccountId = AccountId;
+	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Lookup = AccountIdLookup<AccountId, ()>;
+	type RuntimeTask = RuntimeTask;
 	type Nonce = Nonce;
 	type Hash = Hash;
 	type Hashing = BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = AccountIdLookup<AccountId, ()>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeTask = RuntimeTask;
-	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = RocksDbWeight;
 	type Version = Version;
 	type PalletInfo = PalletInfo;
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-	type MaxConsumers = frame_support::traits::ConstU32<256>;
+	type MaxConsumers = ConstU32<256>;
 	type SingleBlockMigrations = ();
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
@@ -218,20 +218,20 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Runtime {
-	type MaxLocks = ConstU32<50>;
-	/// The type for recording an account's balance.
-	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeFreezeReason = RuntimeFreezeReason;
+	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
+	/// The type for recording an account's balance.
+	type Balance = Balance;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
-	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
-	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
+	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ConstU32<50>;
 	type MaxFreezes = ConstU32<0>;
 }
 
@@ -295,22 +295,22 @@ type TrustBackedAssetsCall = pallet_assets::Call<Runtime, TrustBackedAssetsInsta
 impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
 	type AssetId = AssetIdForTrustBackedAssets;
 	type AssetIdParameter = codec::Compact<AssetIdForTrustBackedAssets>;
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetAccountDeposit;
 	type MetadataDepositBase = MetadataDepositBase;
 	type MetadataDepositPerByte = MetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
 	type Freezer = ();
 	type Extra = ();
-	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
-	type AssetAccountDeposit = AssetAccountDeposit;
-	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -348,8 +348,8 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type StringLimit = ConstU32<50>;
 	type Freezer = ();
 	type Extra = ();
-	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
 	type CallbackHandle = ();
+	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -394,14 +394,14 @@ impl pallet_asset_conversion::Config for Runtime {
 	>;
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
+	type LPFee = ConstU32<3>;
 	type PoolSetupFee = PoolSetupFee;
 	type PoolSetupFeeAsset = KsmLocation;
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
-	type LPFee = ConstU32<3>;
-	type PalletId = AssetConversionPalletId;
-	type MaxSwapPathLength = ConstU32<3>;
 	type MintMinLiquidity = ConstU128<100>;
+	type MaxSwapPathLength = ConstU32<3>;
+	type PalletId = AssetConversionPalletId;
 	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
@@ -431,6 +431,7 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
 	type AssetId = xcm::v4::Location;
 	type AssetIdParameter = xcm::v4::Location;
 	type Currency = Balances;
@@ -445,16 +446,15 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ForeignAssetsAssetDeposit;
+	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
 	type MetadataDepositBase = ForeignAssetsMetadataDepositBase;
 	type MetadataDepositPerByte = ForeignAssetsMetadataDepositPerByte;
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ForeignAssetsAssetsStringLimit;
 	type Freezer = ();
 	type Extra = ();
-	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	type CallbackHandle = ();
-	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
-	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = xcm_config::XcmBenchmarkHelper;
 }
