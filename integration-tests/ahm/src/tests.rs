@@ -190,5 +190,5 @@ async fn print_sovereign_account_translation() {
 		}
 	});
 
-	//std::fs::write("/tmp/sovereign_account_translation.csv", csv).unwrap();
+	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv", csv).unwrap();
 }
