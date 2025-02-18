@@ -186,7 +186,7 @@ async fn print_sovereign_account_translation() {
 		for (i, (rc_acc, ah_acc)) in rc_accounts.iter().zip(ah_accounts.iter()).enumerate() {
 			println!("[{}] {} -> {}", paras[i], rc_acc, ah_acc);
 
-			csv.push_str(&format!("{},{},{},{}\n", paras[i], rc_acc, ah_acc));
+			csv.push_str(&format!("{},{},{}\n", paras[i], rc_acc, ah_acc));
 		}
 	});
 
