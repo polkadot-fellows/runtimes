@@ -10086,6 +10086,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime",
+ "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "sc-consensus-grandpa",
@@ -10097,7 +10098,9 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-storage 21.0.0",
  "sp-tracing 17.0.1",
+ "staging-xcm-builder",
  "tokio",
+ "xcm-emulator",
 ]
 
 [[package]]

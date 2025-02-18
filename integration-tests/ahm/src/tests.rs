@@ -31,13 +31,15 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use cumulus_primitives_core::{AggregateMessageOrigin, Junction, Location, ParaId};
 use frame_support::traits::*;
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
-use std::str::FromStr;
-
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::Runtime as Polkadot;
+use polkadot_runtime_common::paras_registrar;
+use sp_runtime::AccountId32;
+use std::str::FromStr;
+use xcm_emulator::ConvertLocation;
 
 use super::mock::*;
 
@@ -112,4 +114,81 @@ async fn account_migration_works() {
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
 	});
+}
+
+#[test]
+fn sovereign_account_translation() {
+	let good_cases = [
+		(
+			// para 2094 account https://polkadot.subscan.io/account/13YMK2dzLWfnGZXSLuAxgZbBiNMHLfnPZ8itzwXryJ9FcWsE
+			"13YMK2dzLWfnGZXSLuAxgZbBiNMHLfnPZ8itzwXryJ9FcWsE",
+			// on ah (different account id) https://assethub-polkadot.subscan.io/account/13cKp88oRErgQAFatu83oCvzxr2b45qVcnNLFu4Mr2ApU6ZC
+			"13cKp88oRErgQAFatu83oCvzxr2b45qVcnNLFu4Mr2ApU6ZC",
+		),
+		(
+			"13YMK2dsXbyC866w2tFM4vH52nRs3uTwac32jh1FNXZBXv18",
+			"13cKp88gcLA6Fgq5atCSBZctHG7AmKX3eFgTzeXkFFakPWuo",
+		),
+	];
+
+	for (rc_acc, ah_acc) in good_cases {
+		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
+		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
+
+		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		assert_eq!(translated, ah_acc);
+	}
+
+	let bad_cases = [
+		"13yJaZUmhMDG91AftfdNeJm6hMVSL9Jq2gqiyFdhiJgXf6AY", // wrong prefix
+		"13ddruDZgGbfVmbobzfNLV4momSgjkFnMXkfogizb4uEbHtQ", // "
+		"13cF4T4kfi8VYw2nTZfkYkn9BjGpmRDsivYxFqGYUWkU8L2d", // "
+		"13cKp88gcLA6Fgq5atCSBZctHG7AmKX3eFgTzeXkFFakPo6e", // last byte not 0
+		"13cF4T4kfiJ39NqGh4DAZSMo6NuWT1fYfZzCo9f5HH8dUFBJ", // 7 byte not zero
+		"13cKp88gcLA6Fgq5atCSBZctHGenFzUo3qmmReNVKzpnGvFg", // some center byte not zero
+	];
+
+	for rc_acc in bad_cases {
+		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
+
+		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap();
+		assert!(translated.is_none());
+	}
+}
+
+/// For human consumption.
+#[tokio::test]
+async fn print_sovereign_account_translation() {
+	let (mut rc, mut ah) = load_externalities().await.unwrap();
+
+	let mut rc_accounts = Vec::new();
+	let mut ah_accounts = Vec::new();
+
+	let paras = rc.execute_with(|| {
+		let paras = paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>();
+
+		for para_id in paras.clone() {
+			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
+			rc_accounts.push(rc_acc.clone());
+
+			let ah_acc = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+			ah_accounts.push(ah_acc);
+		}
+
+		paras
+	});
+
+	let mut csv: String = "para,rc,ah,exists_on_ah\n".into();
+
+	// Sanity check that they all exist. Note that they dont *have to*, but all do.
+	println!("Translating {} RC accounts to AH", rc_accounts.len());
+	ah.execute_with(|| {
+		for (i, (rc_acc, ah_acc)) in rc_accounts.iter().zip(ah_accounts.iter()).enumerate() {
+			println!("[{}] {} -> {}", paras[i], rc_acc, ah_acc);
+
+			csv.push_str(&format!("{},{},{},{}\n", paras[i], rc_acc, ah_acc));
+		}
+	});
+
+	//std::fs::write("/tmp/sovereign_account_translation.csv", csv).unwrap();
 }

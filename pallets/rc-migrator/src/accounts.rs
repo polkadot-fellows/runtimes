@@ -71,9 +71,11 @@ AH: mint_into(checking, checking_total - total_issuance) // publishes Balances::
 */
 
 use crate::{types::*, *};
+use codec::DecodeAll;
 use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
+use sp_core::ByteArray;
 use sp_runtime::traits::Zero;
 
 /// Account type meant to transfer data between RC and AH.
@@ -541,5 +543,33 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// TODO: define actual weight
 		Weight::from_all(1)
+	}
+
+	/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.
+	///
+	/// Returns:
+	/// - `Ok(None)` if the account is not a Parachain sovereign account
+	/// - `Ok(Some(ah_account))` with the translated account
+	/// - `Err(())` otherwise
+	pub fn try_translate_rc_sovereign_to_ah(acc: T::AccountId) -> Result<Option<T::AccountId>, ()> {
+		let raw = acc.to_raw_vec();
+
+		// Must start with "para"
+		let Some(raw) = raw.strip_prefix(b"para") else {
+			return Ok(None);
+		};
+		// Must end with 26 zero bytes
+		let Some(raw) = raw.strip_suffix(&[0u8; 26]) else {
+			return Ok(None);
+		};
+		let para_id = u16::decode_all(&mut &raw[..]).map_err(|_| ())?;
+
+		// Translate to AH sibling account
+		let mut ah_raw = [0u8; 32];
+		ah_raw[0..4].copy_from_slice(b"sibl");
+		ah_raw[4..6].copy_from_slice(&para_id.encode());
+		let ah_acc = ah_raw.try_into().map_err(|_| ()).defensive()?;
+
+		Ok(Some(ah_acc))
 	}
 }
