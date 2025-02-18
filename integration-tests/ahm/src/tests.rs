@@ -38,9 +38,8 @@ use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrati
 use polkadot_runtime::Runtime as Polkadot;
 use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr};
 use xcm_emulator::ConvertLocation;
-use std::collections::BTreeMap;
 
 use super::mock::*;
 
@@ -196,5 +195,6 @@ async fn print_sovereign_account_translation() {
 		}
 	});
 
-	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv", csv).unwrap();
+	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv",
+	// csv).unwrap();
 }
