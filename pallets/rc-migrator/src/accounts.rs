@@ -549,9 +549,9 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Returns:
 	/// - `Ok(None)` if the account is not a Parachain sovereign account
-	/// - `Ok(Some(ah_account))` with the translated account
+	/// - `Ok(Some((ah_account, para_id)))` with the translated account and the para id
 	/// - `Err(())` otherwise
-	pub fn try_translate_rc_sovereign_to_ah(acc: T::AccountId) -> Result<Option<T::AccountId>, ()> {
+	pub fn try_translate_rc_sovereign_to_ah(acc: T::AccountId) -> Result<Option<(T::AccountId, u16)>, ()> {
 		let raw = acc.to_raw_vec();
 
 		// Must start with "para"
@@ -570,6 +570,6 @@ impl<T: Config> AccountsMigrator<T> {
 		ah_raw[4..6].copy_from_slice(&para_id.encode());
 		let ah_acc = ah_raw.try_into().map_err(|_| ()).defensive()?;
 
-		Ok(Some(ah_acc))
+		Ok(Some((ah_acc, para_id)))
 	}
 }

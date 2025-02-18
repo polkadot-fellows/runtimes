@@ -40,6 +40,7 @@ use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
 use std::str::FromStr;
 use xcm_emulator::ConvertLocation;
+use std::collections::BTreeMap;
 
 use super::mock::*;
 
@@ -135,7 +136,7 @@ fn sovereign_account_translation() {
 		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
 		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
 
-		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		let (translated, _para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
 		assert_eq!(translated, ah_acc);
 	}
 
@@ -161,32 +162,37 @@ fn sovereign_account_translation() {
 async fn print_sovereign_account_translation() {
 	let (mut rc, mut ah) = load_externalities().await.unwrap();
 
-	let mut rc_accounts = Vec::new();
-	let mut ah_accounts = Vec::new();
+	let mut rc_to_ah = BTreeMap::new();
 
-	let paras = rc.execute_with(|| {
-		let paras = paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>();
-
-		for para_id in paras.clone() {
+	rc.execute_with(|| {
+		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
 			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
-			rc_accounts.push(rc_acc.clone());
 
-			let ah_acc = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
-			ah_accounts.push(ah_acc);
+			let (ah_acc, para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc.clone()).unwrap().unwrap();
+			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
 		}
 
-		paras
+		for account in frame_system::Account::<Polkadot>::iter_keys() {
+			let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(account.clone()).unwrap();
+
+			if let Some((ah_acc, para_id)) = translated {
+				if !rc_to_ah.contains_key(&account) {
+					println!("Account belongs to an unregistered para {}: {}", para_id, account);
+					rc_to_ah.insert(account, (ah_acc, para_id));
+				}
+			}
+		}
 	});
 
 	let mut csv: String = "para,rc,ah\n".into();
 
 	// Sanity check that they all exist. Note that they dont *have to*, but all do.
-	println!("Translating {} RC accounts to AH", rc_accounts.len());
+	println!("Translating {} RC accounts to AH", rc_to_ah.len());
 	ah.execute_with(|| {
-		for (i, (rc_acc, ah_acc)) in rc_accounts.iter().zip(ah_accounts.iter()).enumerate() {
-			println!("[{}] {} -> {}", paras[i], rc_acc, ah_acc);
+		for (rc_acc, (ah_acc, para_id)) in rc_to_ah.iter() {
+			println!("[{}] {} -> {}", para_id, rc_acc, ah_acc);
 
-			csv.push_str(&format!("{},{},{}\n", paras[i], rc_acc, ah_acc));
+			csv.push_str(&format!("{},{},{}\n", para_id, rc_acc, ah_acc));
 		}
 	});
 

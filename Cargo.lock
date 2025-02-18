@@ -10083,6 +10083,7 @@ dependencies = [
  "pallet-message-queue",
  "pallet-rc-migrator",
  "parachains-common",
+ "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime",
