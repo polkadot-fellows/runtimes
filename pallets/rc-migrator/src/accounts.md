@@ -28,3 +28,5 @@ It is advised that parachains check that they can control their account on Asset
 forego this check if they do not need control thereof - for example when they are not holding any
 funds on their relay sovereign account. However, please note that someone could still send funds to
 that address before or after the migration.
+
+Example for Bifrost: this is the [relay sovereign account](https://polkadot.subscan.io/account/13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm) and it gets translated to this [sibling sovereign account](https://assethub-polkadot.subscan.io/account/13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A).
