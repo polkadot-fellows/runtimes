@@ -178,7 +178,7 @@ async fn print_sovereign_account_translation() {
 		paras
 	});
 
-	let mut csv: String = "para,rc,ah,exists_on_ah\n".into();
+	let mut csv: String = "para,rc,ah\n".into();
 
 	// Sanity check that they all exist. Note that they dont *have to*, but all do.
 	println!("Translating {} RC accounts to AH", rc_accounts.len());
