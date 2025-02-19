@@ -1745,10 +1745,13 @@ impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
-	// An origin that can control the whole pallet: should be Root, or a part of your council.
-	type ControlOrigin = EnsureRoot<AccountId>;
-	// specific account for the migration, can trigger the signed migrations.
-	type SignedFilter = frame_system::EnsureSignedBy<MigController, AccountId>;
+	/// An origin that can control the whole pallet: should be Root, or a part of your council.
+	type ControlOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>
+	>;
+	/// specific account for the migration, can trigger the signed migrations.
+	type SignedFilter = EnsureSigned<AccountId>;
 
 	// Replace this with weight based on your runtime.
 	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
