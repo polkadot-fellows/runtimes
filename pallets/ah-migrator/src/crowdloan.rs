@@ -14,9 +14,9 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
+use chrono::TimeZone;
 use frame_support::traits::tokens::Preservation;
 use pallet_rc_migrator::crowdloan::RcCrowdloanMessage;
-use chrono::TimeZone;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_crowdloan_messages(
@@ -107,7 +107,7 @@ impl<T: Config> Pallet<T> {
 		depositor: T::AccountId,
 		para_id: ParaId,
 	) -> Result<(), Error<T>> {
-		ensure!(block > T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
+		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
 		let balance = RcLeaseReserve::<T>::take((block, &depositor, para_id))
 			.ok_or(Error::<T>::NoLeaseReserve)?;
 
@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
 		depositor: T::AccountId,
 		para_id: ParaId,
 	) -> Result<(), Error<T>> {
-		ensure!(block > T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
+		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
 		let (pot, contribution) = RcCrowdloanContribution::<T>::take((block, &depositor, para_id))
 			.ok_or(Error::<T>::NoCrowdloanContribution)?;
 
@@ -157,7 +157,7 @@ impl<T: Config> Pallet<T> {
 		depositor: T::AccountId,
 		para_id: ParaId,
 	) -> Result<(), Error<T>> {
-		ensure!(block > T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
+		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
 		let amount = RcCrowdloanReserve::<T>::take((block, &depositor, para_id))
 			.ok_or(Error::<T>::NoCrowdloanReserve)?;
 
@@ -179,26 +179,44 @@ pub struct CrowdloanMigrationCheck<T>(pub PhantomData<T>);
 
 #[cfg(feature = "std")]
 impl<T: Config> CrowdloanMigrationCheck<T>
-	where
-BlockNumberFor<T>: Into<u64> {
+where
+	BlockNumberFor<T>: Into<u64>,
+{
 	pub fn post_check() {
 		println!("Lease reserve info");
 		let lease_reserves = RcLeaseReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, who, para_id), value) in &lease_reserves {
-			println!("lr [{unlock_block}] {para_id} {who}: {} ({})", value / 10_000_000_000, Self::block_to_date(*unlock_block));
+			println!(
+				"lr [{unlock_block}] {para_id} {who}: {} ({})",
+				value / 10_000_000_000,
+				Self::block_to_date(*unlock_block)
+			);
 		}
 
 		let total_reserved = lease_reserves.iter().map(|((_, _, _), value)| value).sum::<u128>();
-		println!("Num lease reserves: {}, total reserved amount: {}", lease_reserves.len(), total_reserved / 10_000_000_000);
+		println!(
+			"Num lease reserves: {}, total reserved amount: {}",
+			lease_reserves.len(),
+			total_reserved / 10_000_000_000
+		);
 
 		println!("Crowdloan reserve info");
 		let crowdloan_reserves = RcCrowdloanReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, who, para_id), value) in &crowdloan_reserves {
-			println!("cr [{unlock_block}] {para_id} {who}: {} ({})", value / 10_000_000_000, Self::block_to_date(*unlock_block));
+			println!(
+				"cr [{unlock_block}] {para_id} {who}: {} ({})",
+				value / 10_000_000_000,
+				Self::block_to_date(*unlock_block)
+			);
 		}
 
-		let total_reserved = crowdloan_reserves.iter().map(|((_, _, _), value)| value).sum::<u128>();
-		println!("Num crowdloan reserves: {}, total reserved amount: {}", crowdloan_reserves.len(), total_reserved / 10_000_000_000);
+		let total_reserved =
+			crowdloan_reserves.iter().map(|((_, _, _), value)| value).sum::<u128>();
+		println!(
+			"Num crowdloan reserves: {}, total reserved amount: {}",
+			crowdloan_reserves.len(),
+			total_reserved / 10_000_000_000
+		);
 	}
 
 	#[cfg(feature = "std")]
@@ -209,7 +227,7 @@ BlockNumberFor<T>: Into<u64> {
 
 		let block_diff: u64 = (block.into() - anchor_block).into();
 		let add_time_ms: i64 = (block_diff * 6_000) as i64;
-		
+
 		// convert anchor_timestamp to chrono timestamp
 		let anchor_timestamp = chrono::Utc.timestamp_millis(anchor_timestamp as i64);
 		let block_timestamp = anchor_timestamp + chrono::Duration::milliseconds(add_time_ms);
