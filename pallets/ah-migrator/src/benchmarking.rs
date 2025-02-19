@@ -141,13 +141,21 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_multisigs(n: Linear<0, 100>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_multisig(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+	fn receive_nom_pools_messages_from_snap() {
+		verify_snapshot::<T>();
+		let (messages, _cursor) = relay_snapshot(|| {
+			unwrap_no_debug(
+				pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::migrate_many(
+					None,
+					&mut WeightMeter::new(),
+				),
+			)
+		});
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, messages)
+		receive_nom_pools_messages(RawOrigin::Root, messages);
+
+		// TODO assert event
 	}
 
 	// #[benchmark]
@@ -161,12 +169,21 @@ mod benchmarks {
 	// 			&mut WeightMeter::new(),
 	// 		))
 	// 	});
-
 	// 	accounts.truncate(n as usize);
 
 	// 	#[extrinsic_call]
 	// 	receive_accounts(RawOrigin::Root, accounts);
 	// }
+
+	#[benchmark]
+	fn receive_multisigs(n: Linear<0, 100>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_multisig(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages)
+	}
 
 	#[benchmark]
 	fn receive_accounts(n: Linear<0, 100>) {
@@ -176,6 +193,8 @@ mod benchmarks {
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages)
+
+		// TODO assert event
 	}
 }
 
@@ -219,8 +238,8 @@ fn verify_snapshot<T: Config>() {
 	}
 }
 
+/// Read something from the relay chain snapshot instead of the asset hub one.
 fn relay_snapshot<R, F: FnOnce() -> R>(f: F) -> R {
-	// Enable the relay chain snapshot
 	sp_io::storage::get(b"relay_chain_enable");
 	let result = f();
 	sp_io::storage::get(b"relay_chain_disable");

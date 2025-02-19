@@ -40,6 +40,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod staking;
 pub mod types;
+pub mod vesting;
 mod weights;
 pub use pallet::*;
 pub mod asset_rate;
@@ -82,6 +83,7 @@ use staking::{
 };
 use storage::TransactionOutcome;
 use types::{AhWeightInfo, PalletMigration};
+use vesting::VestingMigrator;
 use weights::WeightInfo;
 use xcm::prelude::*;
 
@@ -184,6 +186,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 	},
 	NomPoolsMigrationDone,
 
+	VestingMigrationInit,
+	VestingMigrationOngoing {
+		next_key: Option<AccountId>,
+	},
+	VestingMigrationDone,
+
 	FastUnstakeMigrationInit,
 	FastUnstakeMigrationOngoing {
 		next_key: Option<FastUnstakeStage<AccountId>>,
@@ -256,6 +264,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
+			"skip-accounts" => MigrationStage::AccountsMigrationDone,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
@@ -294,6 +303,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 		+ pallet_bounties::Config
@@ -694,6 +704,36 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::NomPoolsMigrationDone => {
+					Self::transition(MigrationStage::VestingMigrationInit);
+				},
+
+				MigrationStage::VestingMigrationInit => {
+					Self::transition(MigrationStage::VestingMigrationOngoing { next_key: None });
+				},
+				MigrationStage::VestingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match VestingMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::VestingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::VestingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating vesting: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::VestingMigrationDone => {
 					Self::transition(MigrationStage::FastUnstakeMigrationInit);
 				},
 				MigrationStage::FastUnstakeMigrationInit => {

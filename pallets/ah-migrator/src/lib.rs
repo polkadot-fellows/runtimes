@@ -47,6 +47,7 @@ pub mod referenda;
 pub mod scheduler;
 pub mod staking;
 pub mod types;
+pub mod vesting;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
@@ -75,6 +76,7 @@ use pallet_rc_migrator::{
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
+	vesting::RcVestingSchedule,
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::claims as pallet_claims;
@@ -102,6 +104,7 @@ pub enum PalletEventName {
 	Indices,
 	FastUnstake,
 	BagsList,
+	Vesting,
 	Bounties,
 }
 
@@ -124,6 +127,7 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 		+ pallet_bounties::Config
@@ -203,6 +207,9 @@ pub mod pallet {
 		FailedToConvertCall,
 		/// Failed to bound a call.
 		FailedToBoundCall,
+		/// Failed to integrate a vesting schedule.
+		FailedToIntegrateVestingSchedule,
+		Unreachable,
 	}
 
 	#[pallet::event]
@@ -352,6 +359,21 @@ pub mod pallet {
 			/// How many scheduler messages failed to integrate.
 			count_bad: u32,
 		},
+		/// Should not happen. Manual intervention by the Fellowship required.
+		///
+		/// Can happen when existing AH and incoming RC vesting schedules have more combined
+		/// entries than allowed. This triggers the merging logic which has henceforth failed
+		/// with the given inner pallet-vesting error.
+		FailedToMergeVestingSchedules {
+			/// The account that failed to merge the schedules.
+			who: AccountId32,
+			/// The first schedule index that failed to merge.
+			schedule1: u32,
+			/// The second schedule index that failed to merge.
+			schedule2: u32,
+			/// The index of the pallet-vesting error that occurred.
+			pallet_vesting_error_index: Option<u8>,
+		},
 		ConvictionVotingMessagesReceived {
 			/// How many conviction voting messages are in the batch.
 			count: u32,
@@ -473,6 +495,16 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
+		pub fn receive_vesting_schedules(
+			origin: OriginFor<T>,
+			schedules: Vec<RcVestingSchedule<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
+		}
+
+		#[pallet::call_index(9)]
 		pub fn receive_fast_unstake_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcFastUnstakeMessage<T>>,
@@ -483,7 +515,7 @@ pub mod pallet {
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
-		#[pallet::call_index(9)]
+		#[pallet::call_index(10)]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
@@ -499,7 +531,7 @@ pub mod pallet {
 		}
 
 		/// Receive referendums from the Relay Chain.
-		#[pallet::call_index(10)]
+		#[pallet::call_index(11)]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -509,7 +541,7 @@ pub mod pallet {
 			Self::do_receive_referendums(referendums).map_err(Into::into)
 		}
 
-		#[pallet::call_index(11)]
+		#[pallet::call_index(12)]
 		pub fn receive_claims(
 			origin: OriginFor<T>,
 			messages: Vec<RcClaimsMessageOf<T>>,
@@ -519,7 +551,7 @@ pub mod pallet {
 			Self::do_receive_claims(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(12)]
+		#[pallet::call_index(13)]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcBagsListMessage<T>>,
@@ -529,7 +561,7 @@ pub mod pallet {
 			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(13)]
+		#[pallet::call_index(14)]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
 			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
@@ -539,7 +571,7 @@ pub mod pallet {
 			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(14)]
+		#[pallet::call_index(15)]
 		pub fn receive_indices(
 			origin: OriginFor<T>,
 			indices: Vec<RcIndicesIndexOf<T>>,
@@ -549,7 +581,7 @@ pub mod pallet {
 			Self::do_receive_indices(indices).map_err(Into::into)
 		}
 
-		#[pallet::call_index(15)]
+		#[pallet::call_index(16)]
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcConvictionVotingMessageOf<T>>,
@@ -559,7 +591,7 @@ pub mod pallet {
 			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(16)]
+		#[pallet::call_index(17)]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
 			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
@@ -569,7 +601,7 @@ pub mod pallet {
 			Self::do_receive_bounties_messages(messages).map_err(Into::into)
 		}
 
-		#[pallet::call_index(17)]
+		#[pallet::call_index(18)]
 		pub fn receive_asset_rates(
 			origin: OriginFor<T>,
 			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
