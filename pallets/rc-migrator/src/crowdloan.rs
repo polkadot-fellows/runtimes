@@ -14,10 +14,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{types::AccountIdOf, *};
-use sp_runtime::{
-	traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One},
-	Saturating,
-};
+use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -159,11 +156,17 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 								continue;
 							};
 
-							let Some((lease_acc, _)) = last_lease else {
+							let Some((lease_acc, lease_amount)) = last_lease else {
 								// See https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L115
 								defensive!("Last lease cannot be None");
 								continue;
 							};
+
+							// Sanity check that all leases have the same account and amount:
+							for (acc, amount) in leases.iter().flatten() {
+								defensive_assert!(acc == lease_acc, "All leases should have the same account");
+								defensive_assert!(amount == lease_amount, "All leases should have the same amount");
+							}
 
 							// NOTE: Max instead of sum, see https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L102-L103
 							let amount: crate::BalanceOf<T> = leases.iter().flatten().map(|(_acc, amount)| amount).max().cloned().unwrap_or_default().into();
