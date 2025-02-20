@@ -125,10 +125,15 @@ pub trait PalletMigrationChecks {
 	type Payload;
 
 	/// Run some checks before the migration and store intermediate payload.
-	fn pre_check() -> Self::Payload;
+	/// In general, the expected output should be Some(payload) for data being transferred out of a
+	/// non-empty pallet, while it should be None for data being transferred to an empty pallet.
+	fn pre_check() -> Option<Self::Payload>;
 
 	/// Run some checks after the migration and use the intermediate payload.
-	fn post_check(payload: Self::Payload);
+	/// In general, the expected input should be Some(payload) for data just transferred to a
+	/// pallet, so that the pallet can check if all the data has been transferred correctly, while
+	/// it can be None for data just transferred out of a pallet.
+	fn post_check(payload: Option<Self::Payload>);
 }
 
 pub trait MigrationStatus {

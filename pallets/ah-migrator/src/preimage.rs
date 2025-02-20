@@ -211,9 +211,9 @@ impl<T: Config> Pallet<T> {
 pub struct PreimageMigrationCheck<T: Config>(PhantomData<T>);
 
 impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMigrationCheck<T> {
-	type Payload = ();
+	type Payload = Vec<(H256, u32)>;
 
-	fn pre_check() -> Self::Payload {
+	fn pre_check() -> Option<Self::Payload> {
 		// AH does not have a preimage pallet, therefore must be empty.
 
 		assert!(
@@ -224,20 +224,13 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
 			"Preimage::RequestStatusFor is not empty"
 		);
+		None
 	}
 
-	fn post_check(_payload: Self::Payload) {
-		// There are at least 10 preimages present (sanity check).
-		assert!(
-			alias::PreimageFor::<T>::iter_keys().count() > 10,
-			"Preimage::PreimageFor is empty"
-		);
-		/*assert_eq!(
-			alias::PreimageFor::<T>::iter_keys().count(),
-			alias::RequestStatusFor::<T>::iter_keys().count(),
-			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
-		);*/
-		// TODO fixme (ggwpez had to comment this since it fails with a new snapshot)
+	// The payload should come from the relay chain pre-check method on the same pallet
+	fn post_check(maybe_payload: Option<Self::Payload>) {
+		let payload =
+			maybe_payload.expect("Empty payload for AH post-migration checks for pallet Preimage");
 
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
@@ -254,6 +247,13 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 			assert!(
 				alias::RequestStatusFor::<T>::contains_key(key.0),
 				"Preimage::RequestStatusFor is missing"
+			);
+		}
+
+		for (hash, len) in payload {
+			assert!(
+				alias::PreimageFor::<T>::contains_key((hash, len)),
+				"missing item in Preimage::PreimageFor"
 			);
 		}
 
@@ -274,5 +274,11 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 				_ => {},
 			}
 		}
+		/*assert_eq!(
+			alias::PreimageFor::<T>::iter_keys().count(),
+			alias::RequestStatusFor::<T>::iter_keys().count(),
+			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
+		);*/
+		// TODO fixme (ggwpez had to comment this since it fails with a new snapshot)
 	}
 }
