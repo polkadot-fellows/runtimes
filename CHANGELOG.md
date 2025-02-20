@@ -4,6 +4,16 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1] WIP
+
+### Fixed
+
+### Added
+
+- Enabled state-trie-migration for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/593](https://github.com/polkadot-fellows/runtimes/pull/593))
+
+### Changed
+
 ## [1.4.0] 07.02.2025
 
 ### Fixed
