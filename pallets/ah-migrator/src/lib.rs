@@ -219,20 +219,6 @@ pub mod pallet {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
 
-		/// Some lease reserve could not be unreserved and needs manual cleanup.
-		LeaseUnreserveRemaining {
-			depositor: T::AccountId,
-			para_id: ParaId,
-			remaining: BalanceOf<T>,
-		},
-
-		/// Some amount for a crowdloan reserve could not be unreserved and needs manual cleanup.
-		CrowdloanUnreserveRemaining {
-			depositor: T::AccountId,
-			para_id: ParaId,
-			remaining: BalanceOf<T>,
-		},
-
 		/// We received a batch of accounts that we are going to integrate.
 		AccountBatchReceived {
 			/// How many accounts are in the batch.
