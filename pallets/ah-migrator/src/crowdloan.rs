@@ -105,9 +105,6 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-// extrinsic code
-impl<T: Config> Pallet<T> {}
-
 pub struct CrowdloanMigrationCheck<T>(pub PhantomData<T>);
 
 #[cfg(feature = "std")]
