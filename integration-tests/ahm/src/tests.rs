@@ -34,8 +34,10 @@
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::traits::*;
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
-use polkadot_runtime::Runtime as Polkadot;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime_common::slots as pallet_slots;
 use std::str::FromStr;
 
 use super::mock::*;
@@ -111,5 +113,39 @@ async fn account_migration_works() {
 		//pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(());
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
 		// some overweight ones.
+	});
+}
+
+#[tokio::test]
+async fn num_leases_to_ending_block_works_simple() {
+	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
+		frame_system::Pallet::<Polkadot>::set_block_number(now);
+		pallet_rc_migrator::crowdloan::num_leases_to_ending_block::<Polkadot>(num_leases)
+	};
+
+	rc.execute_with(|| {
+		let p = <Polkadot as pallet_slots::Config>::LeasePeriod::get();
+		let o = <Polkadot as pallet_slots::Config>::LeaseOffset::get();
+
+		// Sanity check:
+		assert!(f(1000, 0).is_err());
+		assert!(f(1000, 10).is_err());
+		// Overflow check:
+		assert!(f(o, u32::MAX).is_err());
+
+		// In period 0:
+		assert_eq!(f(o, 0), Ok(o));
+		assert_eq!(f(o, 1), Ok(o + p));
+		assert_eq!(f(o, 2), Ok(o + 2 * p));
+
+		// In period 1:
+		assert_eq!(f(o + p, 0), Ok(o + p));
+		assert_eq!(f(o + p, 1), Ok(o + 2 * p));
+		assert_eq!(f(o + p, 2), Ok(o + 3 * p));
+
+		// In period 19 with 5 remaining:
+		assert_eq!(f(o + 19 * p, 1), Ok(o + 20 * p));
+		assert_eq!(f(o + 19 * p, 5), Ok(o + 24 * p));
 	});
 }

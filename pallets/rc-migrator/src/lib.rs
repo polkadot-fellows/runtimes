@@ -362,8 +362,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The error that should to be replaced by something meaningful.
-		TODO,
+		Unreachable,
 		OutOfWeight,
 		/// Failed to send XCM message to AH.
 		XcmError,

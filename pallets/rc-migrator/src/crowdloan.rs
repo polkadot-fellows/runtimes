@@ -14,6 +14,10 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{types::AccountIdOf, *};
+use sp_runtime::{
+	traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One},
+	Saturating,
+};
 
 pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -156,6 +160,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							};
 
 							let Some((lease_acc, _)) = last_lease else {
+								// See https://github.com/paritytech/polkadot-sdk/blob/db3ff60b5af2a9017cb968a4727835f3d00340f0/polkadot/runtime/common/src/slots/mod.rs#L115
 								defensive!("Last lease cannot be None");
 								continue;
 							};
@@ -168,7 +173,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 								continue;
 							}
 
-							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
 
 							log::debug!(target: LOG_TARGET, "Migrating out lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &lease_acc, &amount, &unreserve_block);
 							messages.push(RcCrowdloanMessage::LeaseReserve { unreserve_block, account: lease_acc.clone(), para_id, amount });
@@ -207,7 +212,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							}
 
 							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
-							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
 							// We directly remove so that we dont have to store a cursor:
 							pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
@@ -231,7 +236,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 								defensive_assert!(fund.raised == 0u32.into(), "Fund should be empty");
 								continue;
 							}
-							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32);
+							let unreserve_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
 
 							log::debug!(target: LOG_TARGET, "Migrating out crowdloan deposit for para_id: {:?}, fund_index: {:?}, amount: {:?}, depositor: {:?}", &para_id, &fund.fund_index, &fund.deposit, &fund.depositor);
 
@@ -260,13 +265,31 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 }
 
 /// Calculate the lease ending block from the number of remaining leases (including the current).
-// TODO tests
-fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> BlockNumberFor<T> {
+///
+/// # Example
+///
+/// We are in the middle of period 3 and there are 2 leases left:
+/// |-0-|-1-|-2-|-3-|-4-|-5-|
+///               ^-----^
+/// Then this function returns the end block number of period 4 (start block of period 5).
+pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNumberFor<T>, ()> {
 	let now = frame_system::Pallet::<T>::block_number();
 	let num_leases: BlockNumberFor<T> = num_leases.into();
 	let offset = <T as pallet_slots::Config>::LeaseOffset::get();
 	let period = <T as pallet_slots::Config>::LeasePeriod::get();
 
-	let current_period = (now - offset) / period;
-	(current_period + num_leases) * period + offset
+	// Sanity check:
+	if now < offset {
+		return Err(());
+	}
+
+	// The current period: (now - offset) / period
+	let current_period = now.checked_sub(&offset).and_then(|x| x.checked_div(&period)).ok_or(())?;
+	// (current_period + num_leases) * period + offset
+	let last_period_end_block = current_period
+		.checked_add(&num_leases)
+		.and_then(|x| x.checked_mul(&period))
+		.and_then(|x| x.checked_add(&offset))
+		.ok_or(())?;
+	Ok(last_period_end_block)
 }
