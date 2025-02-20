@@ -1579,8 +1579,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhExistentialDeposit = AhExistentialDeposit;
 	type RcWeightInfo = ();
 	type AhWeightInfo = ();
-	type RcPostMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
-	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
+	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
+	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
 
 construct_runtime! {

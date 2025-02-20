@@ -335,11 +335,9 @@ pub mod pallet {
 		type AhWeightInfo: AhWeightInfo;
 		/// The existential deposit on the Asset Hub.
 		type AhExistentialDeposit: Get<<Self as pallet_balances::Config>::Balance>;
-		/// Contains all calls that are allowed during the migration.
-		///
-		/// The calls in here will be available again after the migration.
+		/// Contains calls that are allowed during the migration.
 		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
-		/// Contains all calls that are allowed after the migration finished.
+		/// Contains calls that are allowed after the migration finished.
 		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
@@ -1113,14 +1111,18 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
 
-		if stage.is_finished() && !T::RcIntraMigrationCalls::contains(call) {
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::RcPostMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
-		if stage.is_ongoing() && !T::RcPostMigrationCalls::contains(call) {
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::RcIntraMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
 	}
 }
