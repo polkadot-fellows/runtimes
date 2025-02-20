@@ -151,7 +151,6 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		TODO,
 		/// Either no lease deposit or already unreserved.
 		NoLeaseReserve,
 		/// Either no crowdloan contribution or already withdrawn.
