@@ -51,12 +51,15 @@ pallet-ah-ops = { workspace = true }
 [features]
 default = ["std"]
 std = [
+	"chrono/std",
 	"codec/std",
+	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
 	"hex/std",
 	"log/std",
+	"pallet-ah-ops/std",
 	"pallet-asset-rate/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
@@ -73,6 +76,7 @@ std = [
 	"pallet-scheduler/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-timestamp/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
 	"polkadot-parachain-primitives/std",
@@ -85,15 +89,13 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"chrono/std",
-	"cumulus-primitives-core/std",
-	"pallet-ah-ops/std",
-	"pallet-timestamp/std"
 ]
 runtime-benchmarks = [
+	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -110,19 +112,18 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
-	"pallet-ah-ops/runtime-benchmarks",
-	"pallet-timestamp/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-ah-ops/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
@@ -139,11 +140,10 @@ try-runtime = [
 	"pallet-scheduler/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
+	"pallet-timestamp/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-ah-ops/try-runtime",
-	"pallet-timestamp/try-runtime"
 ]
