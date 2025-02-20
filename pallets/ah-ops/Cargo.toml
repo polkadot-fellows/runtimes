@@ -1,6 +1,6 @@
 [package]
-name = "pallet-ah-migrator"
-description = "Operational pallet managing and processing migration from Relay Chain to Asset Hub on Asset Hub"
+name = "pallet-ah-ops"
+description = "Operations cleanup pallet for the post-migration Asset Hub"
 license = "Apache-2.0"
 version = "0.1.0"
 edition.workspace = true
@@ -46,7 +46,6 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
-pallet-ah-ops = { workspace = true }
 
 [features]
 default = ["std"]
@@ -87,7 +86,6 @@ std = [
 	"sp-std/std",
 	"chrono/std",
 	"cumulus-primitives-core/std",
-	"pallet-ah-ops/std",
 	"pallet-timestamp/std"
 ]
 runtime-benchmarks = [
@@ -117,7 +115,6 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
-	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks"
 ]
 try-runtime = [
@@ -144,6 +141,5 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-ah-ops/try-runtime",
 	"pallet-timestamp/try-runtime"
 ]

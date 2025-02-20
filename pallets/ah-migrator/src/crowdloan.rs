@@ -15,7 +15,6 @@
 
 use crate::*;
 use chrono::TimeZone;
-use frame_support::traits::tokens::Preservation;
 use pallet_rc_migrator::crowdloan::RcCrowdloanMessage;
 
 impl<T: Config> Pallet<T> {
@@ -52,13 +51,16 @@ impl<T: Config> Pallet<T> {
 		match message {
 			RcCrowdloanMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
 				log::info!(target: LOG_TARGET, "Integrating lease reserve for para_id: {:?}, account: {:?}, amount: {:?}, unreserve_block: {:?}", &para_id, &account, &amount, &unreserve_block);
-				defensive_assert!(!RcLeaseReserve::<T>::contains_key((
+				defensive_assert!(!pallet_ah_ops::RcLeaseReserve::<T>::contains_key((
 					unreserve_block,
-					&account,
-					para_id
+					para_id,
+					&account
 				)));
 
-				RcLeaseReserve::<T>::insert((unreserve_block, account, para_id), amount);
+				pallet_ah_ops::RcLeaseReserve::<T>::insert(
+					(unreserve_block, para_id, &account),
+					amount,
+				);
 			},
 			RcCrowdloanMessage::CrowdloanContribution {
 				withdraw_block,
@@ -68,14 +70,14 @@ impl<T: Config> Pallet<T> {
 				crowdloan_account,
 			} => {
 				log::info!(target: LOG_TARGET, "Integrating crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, crowdloan_account: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &crowdloan_account, &withdraw_block);
-				defensive_assert!(!RcCrowdloanContribution::<T>::contains_key((
+				defensive_assert!(!pallet_ah_ops::RcCrowdloanContribution::<T>::contains_key((
 					withdraw_block,
-					&contributor,
-					para_id
+					para_id,
+					&contributor
 				)));
 
-				RcCrowdloanContribution::<T>::insert(
-					(withdraw_block, contributor, para_id),
+				pallet_ah_ops::RcCrowdloanContribution::<T>::insert(
+					(withdraw_block, para_id, &contributor),
 					(crowdloan_account, amount),
 				);
 			},
@@ -86,13 +88,16 @@ impl<T: Config> Pallet<T> {
 				depositor,
 			} => {
 				log::info!(target: LOG_TARGET, "Integrating crowdloan reserve for para_id: {:?}, amount: {:?}, depositor: {:?}", &para_id, &amount, &depositor);
-				defensive_assert!(!RcCrowdloanReserve::<T>::contains_key((
+				defensive_assert!(!pallet_ah_ops::RcCrowdloanReserve::<T>::contains_key((
 					unreserve_block,
-					&depositor,
-					para_id
+					para_id,
+					&depositor
 				)));
 
-				RcCrowdloanReserve::<T>::insert((unreserve_block, depositor, para_id), amount);
+				pallet_ah_ops::RcCrowdloanReserve::<T>::insert(
+					(unreserve_block, para_id, &depositor),
+					amount,
+				);
 			},
 		}
 
@@ -101,79 +106,7 @@ impl<T: Config> Pallet<T> {
 }
 
 // extrinsic code
-impl<T: Config> Pallet<T> {
-	pub fn do_unreserve_lease_deposit(
-		block: BlockNumberFor<T>,
-		depositor: T::AccountId,
-		para_id: ParaId,
-	) -> Result<(), Error<T>> {
-		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
-		let balance = RcLeaseReserve::<T>::take((block, &depositor, para_id))
-			.ok_or(Error::<T>::NoLeaseReserve)?;
-
-		let remaining = <T as Config>::Currency::unreserve(&depositor, balance);
-		if remaining > 0 {
-			defensive!("Should be able to unreserve all");
-			Self::deposit_event(Event::LeaseUnreserveRemaining { depositor, remaining, para_id });
-		}
-
-		Ok(())
-	}
-
-	pub fn do_withdraw_crowdloan_contribution(
-		block: BlockNumberFor<T>,
-		depositor: T::AccountId,
-		para_id: ParaId,
-	) -> Result<(), Error<T>> {
-		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
-		let (pot, contribution) = RcCrowdloanContribution::<T>::take((block, &depositor, para_id))
-			.ok_or(Error::<T>::NoCrowdloanContribution)?;
-
-		// Maybe this is the first one to withdraw and we need to unreserve it from the pot
-		match Self::do_unreserve_lease_deposit(block, pot.clone(), para_id) {
-			Ok(()) => (),
-			Err(Error::<T>::NoLeaseReserve) => (), // fine
-			Err(e) => return Err(e),
-		}
-
-		// Ideally this does not fail. But if it does, then we keep it for manual inspection.
-		let transferred = <T as Config>::Currency::transfer(
-			&pot,
-			&depositor,
-			contribution,
-			Preservation::Preserve,
-		)
-		.defensive()
-		.map_err(|_| Error::<T>::FailedToWithdrawCrowdloanContribution)?;
-		defensive_assert!(transferred == contribution);
-		// Need to reactivate since we deactivated it here https://github.com/paritytech/polkadot-sdk/blob/04847d515ef56da4d0801c9b89a4241dfa827b33/polkadot/runtime/common/src/crowdloan/mod.rs#L793
-		<T as Config>::Currency::reactivate(transferred);
-
-		Ok(())
-	}
-
-	pub fn do_unreserve_crowdloan_reserve(
-		block: BlockNumberFor<T>,
-		depositor: T::AccountId,
-		para_id: ParaId,
-	) -> Result<(), Error<T>> {
-		ensure!(block <= T::RcBlockNumberProvider::current_block_number(), Error::<T>::NotYet);
-		let amount = RcCrowdloanReserve::<T>::take((block, &depositor, para_id))
-			.ok_or(Error::<T>::NoCrowdloanReserve)?;
-
-		let remaining = <T as Config>::Currency::unreserve(&depositor, amount);
-		if remaining > 0 {
-			defensive!("Should be able to unreserve all");
-			Self::deposit_event(Event::CrowdloanUnreserveRemaining {
-				depositor,
-				remaining,
-				para_id,
-			});
-		}
-
-		Ok(())
-	}
-}
+impl<T: Config> Pallet<T> {}
 
 pub struct CrowdloanMigrationCheck<T>(pub PhantomData<T>);
 
@@ -184,10 +117,10 @@ where
 {
 	pub fn post_check() {
 		println!("Lease reserve info");
-		let lease_reserves = RcLeaseReserve::<T>::iter().collect::<Vec<_>>();
-		for ((unlock_block, who, para_id), value) in &lease_reserves {
+		let lease_reserves = pallet_ah_ops::RcLeaseReserve::<T>::iter().collect::<Vec<_>>();
+		for ((unlock_block, para_id, who), value) in &lease_reserves {
 			println!(
-				"lr [{unlock_block}] {para_id} {who}: {} ({})",
+				"Lease Reserve [{unlock_block}] {para_id} {who}: {} ({})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -201,10 +134,10 @@ where
 		);
 
 		println!("Crowdloan reserve info");
-		let crowdloan_reserves = RcCrowdloanReserve::<T>::iter().collect::<Vec<_>>();
-		for ((unlock_block, who, para_id), value) in &crowdloan_reserves {
+		let crowdloan_reserves = pallet_ah_ops::RcCrowdloanReserve::<T>::iter().collect::<Vec<_>>();
+		for ((unlock_block, para_id, who), value) in &crowdloan_reserves {
 			println!(
-				"cr [{unlock_block}] {para_id} {who}: {} ({})",
+				"Crowdloan Reserve [{unlock_block}] {para_id} {who}: {} ({})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -221,7 +154,8 @@ where
 
 	#[cfg(feature = "std")]
 	fn block_to_date(block: BlockNumberFor<T>) -> chrono::DateTime<chrono::Utc> {
-		let anchor_block: u64 = T::RcBlockNumberProvider::current_block_number().into();
+		let anchor_block: u64 =
+			<T as crate::Config>::RcBlockNumberProvider::current_block_number().into();
 		// We are using the time from AH here, not relay. But the snapshots are taken together.
 		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get().into();
 
@@ -229,7 +163,7 @@ where
 		let add_time_ms: i64 = (block_diff * 6_000) as i64;
 
 		// convert anchor_timestamp to chrono timestamp
-		let anchor_timestamp = chrono::Utc.timestamp_millis(anchor_timestamp as i64);
+		let anchor_timestamp = chrono::Utc.timestamp_millis_opt(anchor_timestamp as i64).unwrap();
 		let block_timestamp = anchor_timestamp + chrono::Duration::milliseconds(add_time_ms);
 		block_timestamp
 	}

@@ -8,6 +8,7 @@ license = "GPL-3.0-only"                                        # TODO <https://
 [workspace.dependencies]
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-migrator = { path = "pallets/ah-migrator", default-features = false }
+pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 assert_matches = { version = "1.5.0" }
 approx = { version = "0.5.1" }
 chrono = { version = "0.4.39", default-features = false }
@@ -291,6 +292,7 @@ members = [
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
 	"pallets/ah-migrator",
+	"pallets/ah-ops",
 	"pallets/rc-migrator",
 	"relay/common",
 	"relay/kusama",

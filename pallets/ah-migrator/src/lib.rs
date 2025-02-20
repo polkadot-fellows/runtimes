@@ -138,6 +138,7 @@ pub mod pallet {
 		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_ah_ops::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -189,76 +190,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, RcAccountFor<T>, OptionQuery>;
-
-	/// Amount of balance that was reserved for winning a lease auction.
-	///
-	/// `unreserve_lease_deposit` can be permissionlessly called once the block number passed to
-	/// unreserve the deposit. It is implicitly called by `withdraw_crowdloan_contribution`.
-	///  
-	/// The account here can either be a crowdloan account or a solo bidder. If it is a crowdloan
-	/// account, then the summed up contributions for it in the contributions map will equate the
-	/// reserved balance here.
-	///
-	/// The keys are as follows:
-	/// - Block number after which the deposit can be unreserved.
-	/// - The account that will have the balance unreserved.
-	/// - The para_id of the lease slot.
-	/// - The balance to be unreserved.
-	#[pallet::storage]
-	pub type RcLeaseReserve<T: Config> = StorageNMap<
-		_,
-		(
-			NMapKey<Twox64Concat, BlockNumberFor<T>>,
-			NMapKey<Twox64Concat, T::AccountId>,
-			NMapKey<Twox64Concat, ParaId>,
-		),
-		BalanceOf<T>,
-		OptionQuery,
-	>;
-
-	/// Amount of balance that a contributor made towards a crowdloan.
-	///
-	/// `withdraw_crowdloan_contribution` can be permissionlessly called once the block number
-	/// passed to unlock the balance for a specific account.
-	///
-	/// The keys are as follows:
-	/// - Block number after which the balance can be unlocked.
-	/// - The account that made the contribution.
-	/// - The para_id of the crowdloan.
-	///
-	/// The value is (fund_pot, balance). The contribution pot is the second key in the
-	/// `RcCrowdloanContribution` storage.
-	#[pallet::storage]
-	pub type RcCrowdloanContribution<T: Config> = StorageNMap<
-		_,
-		(
-			NMapKey<Twox64Concat, BlockNumberFor<T>>,
-			NMapKey<Twox64Concat, T::AccountId>,
-			NMapKey<Twox64Concat, ParaId>,
-		),
-		(T::AccountId, BalanceOf<T>),
-		OptionQuery,
-	>;
-
-	/// The reserve that was taken to create a crowdloan.
-	///
-	/// This is normally 500 DOT and can be refunded as last step after all
-	/// `RcCrowdloanContribution`s of this loan have been withdrawn.
-	///
-	/// Keys:
-	/// - Block number after which this can be unreserved
-	/// -
-	#[pallet::storage]
-	pub type RcCrowdloanReserve<T: Config> = StorageNMap<
-		_,
-		(
-			NMapKey<Twox64Concat, BlockNumberFor<T>>,
-			NMapKey<Twox64Concat, T::AccountId>,
-			NMapKey<Twox64Concat, ParaId>,
-		),
-		BalanceOf<T>,
-		OptionQuery,
-	>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -689,69 +620,7 @@ pub mod pallet {
 			Self::do_receive_asset_rates(rates).map_err(Into::into)
 		}
 
-		/// Unreserve the deposit that was taken for creating a crowdloan.
-		///
-		/// This can be called by any signed origin. It unreserves the lease deposit on the account
-		/// that won the lease auction. It can be unreserved once all leases expired. Note that it
-		/// will be called automatically from `withdraw_crowdloan_contribution` for the matching
-		/// crowdloan account.
-		///
-		/// Solo bidder accounts that won lease auctions can use this to unreserve their amount.
 		#[pallet::call_index(19)]
-		pub fn unreserve_lease_deposit(
-			origin: OriginFor<T>,
-			block: BlockNumberFor<T>,
-			depositor: Option<T::AccountId>,
-			para_id: ParaId,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let depositor = depositor.unwrap_or(sender);
-
-			Self::do_unreserve_lease_deposit(block, depositor, para_id).map_err(Into::into)
-		}
-
-		/// Withdraw the contribution of a finished crowdloan.
-		///
-		/// A crowdloan contribution can be withdrawn if either:
-		/// - The crowdloan failed to in an auction and timed out
-		/// - Won an auction and all leases expired
-		///
-		/// Can be called by any signed origin.
-		#[pallet::call_index(20)]
-		pub fn withdraw_crowdloan_contribution(
-			origin: OriginFor<T>,
-			block: BlockNumberFor<T>,
-			depositor: Option<T::AccountId>,
-			para_id: ParaId,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let depositor = depositor.unwrap_or(sender);
-
-			Self::do_withdraw_crowdloan_contribution(block, depositor, para_id).map_err(Into::into)
-		}
-
-		/// Unreserve the deposit that was taken for creating a crowdloan.
-		///
-		/// This can be called once:
-		/// - The crowdloan failed to win an auction and timed out
-		/// - Won an auction and all leases expired
-		///
-		/// Can be called by any signed origin. The condition that all contributions are withdrawn
-		/// is not checked anymore since all withdraw and unreserve functions are permissionless.
-		#[pallet::call_index(21)]
-		pub fn unreserve_crowdloan_reserve(
-			origin: OriginFor<T>,
-			block: BlockNumberFor<T>,
-			depositor: Option<T::AccountId>,
-			para_id: ParaId,
-		) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-			let depositor = depositor.unwrap_or(sender);
-
-			Self::do_unreserve_crowdloan_reserve(block, depositor, para_id).map_err(Into::into)
-		}
-
-		#[pallet::call_index(22)]
 		pub fn receive_crowdloan_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcCrowdloanMessageOf<T>>,

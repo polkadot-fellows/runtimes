@@ -10,6 +10,7 @@ version.workspace = true
 
 [dependencies]
 pallet-ah-migrator = { workspace = true }
+pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 hex-literal = { optional = true, workspace = true }
@@ -186,6 +187,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -235,6 +237,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"pallet-ah-ops/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -334,6 +337,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"pallet-ah-ops/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

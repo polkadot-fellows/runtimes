@@ -195,6 +195,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 					match contributions_iter.next() {
 						Some((contributor, (amount, memo))) => {
+							inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
 							// Dont really care about memos, but we can add them, if needed.
 							if !memo.is_empty() {
 								log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
@@ -203,8 +204,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							let leases = pallet_slots::Leases::<T>::get(para_id);
 							if leases.is_empty() {
 								defensive_assert!(fund.raised == 0u32.into(), "Crowdloan should be empty if there are no leases");
-								inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
-								continue;
 							}
 
 							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);

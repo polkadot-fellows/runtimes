@@ -1118,6 +1118,12 @@ impl pallet_claims::Config for Runtime {
 	type WeightInfo = pallet_claims::TestWeightInfo; // TODOweights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
+impl pallet_ah_ops::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
+}
+
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1184,7 +1190,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 54,
 		AssetConversion: pallet_asset_conversion = 55,
 
-		// OpenGov stuff.
+		// OpenGov stuff
 		Treasury: pallet_treasury = 60,
 		ConvictionVoting: pallet_conviction_voting = 61,
 		Referenda: pallet_referenda = 62,
@@ -1199,7 +1205,8 @@ construct_runtime!(
 		FastUnstake: pallet_fast_unstake = 71,
 		VoterList: pallet_bags_list::<Instance1> = 72,
 
-		// Asset Hub Migrator
+		// Asset Hub Migration in the 250s
+		AhOps: pallet_ah_ops = 254,
 		AhMigrator: pallet_ah_migrator = 255,
 	}
 );
