@@ -211,15 +211,6 @@ pub mod pallet {
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
 		Unreachable,
-		/// Either no lease deposit or already unreserved.
-		NoLeaseReserve,
-		/// Either no crowdloan contribution or already withdrawn.
-		NoCrowdloanContribution,
-		NoCrowdloanReserve,
-		/// Failed to withdraw crowdloan contribution.
-		FailedToWithdrawCrowdloanContribution,
-		/// Block number is not yet reached.
-		NotYet,
 	}
 
 	#[pallet::event]
