@@ -51,7 +51,6 @@ pub mod vesting;
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
 
-use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},

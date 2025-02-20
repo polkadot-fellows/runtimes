@@ -52,7 +52,7 @@ pub const LOG_TARGET: &str = "runtime::ah-migrator";
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
-#[frame_support::pallet(dev_mode)]
+#[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 
@@ -197,6 +197,7 @@ pub mod pallet {
 		///
 		/// Solo bidder accounts that won lease auctions can use this to unreserve their amount.
 		#[pallet::call_index(0)]
+		#[pallet::weight(0)]
 		pub fn unreserve_lease_deposit(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -217,6 +218,7 @@ pub mod pallet {
 		///
 		/// Can be called by any signed origin.
 		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
 		pub fn withdraw_crowdloan_contribution(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -238,6 +240,7 @@ pub mod pallet {
 		/// Can be called by any signed origin. The condition that all contributions are withdrawn
 		/// is in place since the reserve acts as a storage deposit.
 		#[pallet::call_index(2)]
+		#[pallet::weight(0)]
 		pub fn unreserve_crowdloan_reserve(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,

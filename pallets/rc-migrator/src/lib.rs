@@ -294,7 +294,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 type AccountInfoFor<T> =
 	AccountInfo<<T as frame_system::Config>::Nonce, <T as frame_system::Config>::AccountData>;
 
-#[frame_support::pallet(dev_mode)]
+#[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 
