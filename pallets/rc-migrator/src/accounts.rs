@@ -122,7 +122,7 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 }
 
 /// The state for the Relay Chain accounts.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.
 	Migrate,

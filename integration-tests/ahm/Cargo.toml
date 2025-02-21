@@ -8,6 +8,7 @@ description = "Polkadot integration tests for the Asset Hub Migration"
 publish = false
 
 [dev-dependencies]
+codec = { workspace = true, default-features = true }
 asset-hub-polkadot-runtime = { workspace = true }
 authority-discovery-primitives = { workspace = true, default-features = true }
 babe-primitives = { workspace = true, default-features = true }
@@ -20,12 +21,15 @@ grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
 pallet-rc-migrator = { workspace = true, default-features = true }
 pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
 pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
+polkadot-runtime-common = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
 runtime-parachains = { workspace = true, default-features = true }
@@ -36,6 +40,4 @@ sp-storage = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["full", "macros"], workspace = true }
 xcm-builder = { workspace = true, default-features = true }
-xcm-emulator = { workspace = true, default-features = true }
-polkadot-runtime-common = { workspace = true, default-features = true }
-codec = { workspace = true, default-features = true }
+xcm-emulator = { workspace = true }

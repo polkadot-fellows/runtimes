@@ -76,6 +76,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
+	#[codec(index = 19)]
+	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
