@@ -118,6 +118,22 @@ pub enum MigrationStage {
 	MigrationDone,
 }
 
+impl MigrationStage {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
+	pub fn is_finished(&self) -> bool {
+		matches!(self, MigrationStage::MigrationDone)
+	}
+
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
+	pub fn is_ongoing(&self) -> bool {
+		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
+}
+
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
@@ -679,12 +695,10 @@ pub mod pallet {
 
 	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
 		fn is_ongoing() -> bool {
-			// TODO: implement
-			true
+			AhMigrationStage::<T>::get().is_ongoing()
 		}
 		fn is_finished() -> bool {
-			// TODO: implement
-			false
+			AhMigrationStage::<T>::get().is_finished()
 		}
 	}
 }
