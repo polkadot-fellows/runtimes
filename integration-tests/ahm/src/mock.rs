@@ -19,7 +19,10 @@ use std::str::FromStr;
 use asset_hub_polkadot_runtime::Block as AssetHubBlock;
 use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
 use frame_support::traits::EnqueueMessage;
-use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
+use pallet_rc_migrator::{
+	types::{AhPalletMigrationChecks, RcPalletMigrationChecks},
+	MigrationStage, RcMigrationStage,
+};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use sp_runtime::BoundedVec;
 
@@ -99,14 +102,14 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 // Migrates the pallet out of the Relay Chain and returns the corresponding Payload.
 //
 // Sends DMP messages with pallet migration data from relay chain to asset hub.
-pub fn rc_migrate<Payload, RCMigrator: PalletMigrationChecks<Payload = Payload>>(
+pub fn rc_migrate<RcMigrator: RcPalletMigrationChecks>(
 	mut relay_chain: RemoteExternalities<PolkadotBlock>,
-) -> (Vec<InboundDownwardMessage>, Payload) {
+) -> (Vec<InboundDownwardMessage>, RcMigrator::RcPayload) {
 	// AH parachain ID
 	let para_id = ParaId::from(1000);
 
 	// Simulate relay blocks and grab the DMP messages
-	let (dmp_messages, pre_check_payload) = relay_chain.execute_with(|| {
+	let (dmp_messages, rc_payload) = relay_chain.execute_with(|| {
 		let mut dmps = Vec::new();
 
 		if let Ok(stage) = std::env::var("START_STAGE") {
@@ -114,8 +117,7 @@ pub fn rc_migrate<Payload, RCMigrator: PalletMigrationChecks<Payload = Payload>>
 			RcMigrationStage::<Polkadot>::put(stage);
 		}
 
-		let pre_check_payload = RCMigrator::pre_check()
-			.expect("Missing pallet payload from non-empty relay chain pre-check");
+		let rc_payload = RcMigrator::pre_check();
 
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
@@ -129,7 +131,7 @@ pub fn rc_migrate<Payload, RCMigrator: PalletMigrationChecks<Payload = Payload>>
 				pallet_rc_migrator::MigrationStage::MigrationDone
 			{
 				log::info!("Migration done");
-				break (dmps, pre_check_payload);
+				break (dmps, rc_payload);
 			}
 		}
 	});
@@ -137,7 +139,7 @@ pub fn rc_migrate<Payload, RCMigrator: PalletMigrationChecks<Payload = Payload>>
 	// TODO: for some reason this prints some small value (2947), but logs on XCM send and
 	// receive show more iteration.
 	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
-	(dmp_messages, pre_check_payload)
+	(dmp_messages, rc_payload)
 }
 
 // Migrates the pallet into Asset Hub.
@@ -146,17 +148,16 @@ pub fn rc_migrate<Payload, RCMigrator: PalletMigrationChecks<Payload = Payload>>
 // migration. Uses the relay chain pre-migration payload to check the correctness of the
 // migration once completed.
 pub fn ah_migrate<
-	Payload: Clone,
-	RCMigrator: PalletMigrationChecks<Payload = Payload>,
-	AHMigrator: PalletMigrationChecks<Payload = Payload>,
+	RcMigrator: RcPalletMigrationChecks,
+	AhMigrator: AhPalletMigrationChecks<RcPayload = RcMigrator::RcPayload>,
 >(
 	mut asset_hub: RemoteExternalities<AssetHubBlock>,
-	pre_check_payload: Payload,
+	rc_payload: RcMigrator::RcPayload,
 	dmp_messages: Vec<InboundDownwardMessage>,
 ) {
 	// Inject the DMP messages into the Asset Hub
 	asset_hub.execute_with(|| {
-		AHMigrator::pre_check();
+		let ah_payload = AhMigrator::pre_check();
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
 		enqueue_dmp(dmp_messages);
@@ -177,11 +178,11 @@ pub fn ah_migrate<
 			if RcMigrationStage::<Polkadot>::get() ==
 				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
 			{
-				RCMigrator::post_check(Some(pre_check_payload.clone()));
+				RcMigrator::post_check(rc_payload.clone());
 			}
 		}
 
-		AHMigrator::post_check(None);
+		AhMigrator::post_check(ah_payload, rc_payload);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
 	});

@@ -32,7 +32,7 @@
 //! ```
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
-use pallet_rc_migrator::types::PalletMigrationChecks;
+use pallet_rc_migrator::types::RcPalletMigrationChecks;
 use polkadot_runtime::Runtime as Polkadot;
 
 use super::mock::*;
@@ -40,12 +40,11 @@ use super::mock::*;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn account_migration_works() {
 	let Some((rc, ah)) = load_externalities().await else { return };
-	type Payload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as PalletMigrationChecks>::Payload;
-	let (dmp_messages, pre_check_payload) =
-		rc_migrate::<Payload, pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>>(rc);
+	type RcPayload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as RcPalletMigrationChecks>::RcPayload;
+	let (dmp_messages, rc_payload) =
+		rc_migrate::<pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>>(rc);
 	ah_migrate::<
-		Payload,
 		pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 		pallet_ah_migrator::preimage::PreimageMigrationCheck<AssetHub>,
-	>(ah, pre_check_payload, dmp_messages);
+	>(ah, rc_payload, dmp_messages);
 }
