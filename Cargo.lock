@@ -10122,7 +10122,9 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-storage 21.0.0",
  "sp-tracing 17.0.1",
+ "staging-xcm-builder",
  "tokio",
+ "xcm-emulator",
 ]
 
 [[package]]
