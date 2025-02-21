@@ -49,6 +49,9 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 [features]
