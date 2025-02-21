@@ -40,6 +40,8 @@ runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 hex-literal = { workspace = true }
 xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 sp-staking = { workspace = true }
 
 [features]
