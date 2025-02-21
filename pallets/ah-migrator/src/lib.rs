@@ -90,6 +90,7 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -726,6 +727,15 @@ pub mod pallet {
 			};
 
 			Ok(())
+		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_finished() {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			} else {
+				None
+			}
 		}
 	}
 

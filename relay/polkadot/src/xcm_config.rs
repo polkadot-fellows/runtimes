@@ -92,7 +92,7 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// We track our teleports in/out to keep total issuance correct.
+	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
 	TeleportTracking,
 >;
 
