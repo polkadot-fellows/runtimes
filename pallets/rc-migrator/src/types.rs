@@ -120,17 +120,43 @@ pub trait PalletMigration {
 	) -> Result<Option<Self::Key>, Self::Error>;
 }
 
-/// Trait to run some checks before and after a pallet migration.
+/// Trait to run some checks on the Relay Chain before and after a pallet migration.
 ///
 /// This needs to be called by the test harness.
-pub trait PalletMigrationChecks {
-	type Payload;
+pub trait RcPalletMigrationChecks {
+	/// Relay Chain payload which is exported for migration checks.
+	type RcPayload: Clone;
 
-	/// Run some checks before the migration and store intermediate payload.
-	fn pre_check() -> Self::Payload;
+	/// Run some checks on the relay chain before the migration and store intermediate payload.
+	/// The expected output should contain the data being transferred out of the relay chain and it
+	/// will .
+	fn pre_check() -> Self::RcPayload;
+
+	/// Run some checks on the relay chain after the migration and use the intermediate payload.
+	/// The expected input should contain the data just transferred out of the relay chain, to allow
+	/// the check that data has been removed from the relay chain.
+	fn post_check(rc_payload: Self::RcPayload);
+}
+
+/// Trait to run some checks on the Asset Hub before and after a pallet migration.
+///
+/// This needs to be called by the test harness.
+pub trait AhPalletMigrationChecks {
+	/// Relay Chain payload which is exported for migration checks.
+	type RcPayload: Clone;
+	/// Asset hub payload for data that needs to be preserved during migration.
+	type AhPayload;
+
+	/// Run some checks on asset hub before the migration and store intermediate payload.
+	/// The expected output should contain the data stored in asset hub before the migration.
+	fn pre_check() -> Self::AhPayload;
 
 	/// Run some checks after the migration and use the intermediate payload.
-	fn post_check(payload: Self::Payload);
+	/// The expected input should contain the data just transferred out of the relay chain, to allow
+	/// the check that data has been correctly migrated to asset hub. It should also contain the
+	/// data previously stored in asset hub, allowing for more complex logical checks on the
+	/// migration outcome.
+	fn post_check(ah_payload: Self::AhPayload, rc_payload: Self::RcPayload);
 }
 
 pub trait MigrationStatus {

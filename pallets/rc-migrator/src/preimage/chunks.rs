@@ -160,16 +160,16 @@ impl<T: Config> PreimageChunkMigrator<T> {
 	}
 }
 
-impl<T: Config> PalletMigrationChecks for PreimageChunkMigrator<T> {
-	type Payload = Vec<(H256, u32)>;
+impl<T: Config> RcPalletMigrationChecks for PreimageChunkMigrator<T> {
+	type RcPayload = Vec<(H256, u32)>;
 
-	fn pre_check() -> Self::Payload {
+	fn pre_check() -> Self::RcPayload {
 		alias::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
 			.collect()
 	}
 
-	fn post_check(keys: Self::Payload) {
+	fn post_check(keys: Self::RcPayload) {
 		// Check that all keys are inserted
 		for (hash, len) in keys {
 			assert!(alias::PreimageFor::<T>::contains_key((hash, len)));

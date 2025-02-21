@@ -210,10 +210,11 @@ impl<T: Config> Pallet<T> {
 /// further downstream checks to catch everything.
 pub struct PreimageMigrationCheck<T: Config>(PhantomData<T>);
 
-impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMigrationCheck<T> {
-	type Payload = ();
+impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageMigrationCheck<T> {
+	type RcPayload = Vec<(H256, u32)>;
+	type AhPayload = Vec<(H256, u32)>;
 
-	fn pre_check() -> Self::Payload {
+	fn pre_check() -> Self::AhPayload {
 		// AH does not have a preimage pallet, therefore must be empty.
 
 		assert!(
@@ -224,21 +225,13 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
 			"Preimage::RequestStatusFor is not empty"
 		);
+		alias::PreimageFor::<T>::iter_keys()
+			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
+			.collect()
 	}
 
-	fn post_check(_payload: Self::Payload) {
-		// There are at least 10 preimages present (sanity check).
-		assert!(
-			alias::PreimageFor::<T>::iter_keys().count() > 10,
-			"Preimage::PreimageFor is empty"
-		);
-		/*assert_eq!(
-			alias::PreimageFor::<T>::iter_keys().count(),
-			alias::RequestStatusFor::<T>::iter_keys().count(),
-			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
-		);*/
-		// TODO fixme (ggwpez had to comment this since it fails with a new snapshot)
-
+	// The payload should come from the relay chain pre-check method on the same pallet
+	fn post_check(ah_payload: Self::AhPayload, rc_payload: Self::RcPayload) {
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
 			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
@@ -254,6 +247,20 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 			assert!(
 				alias::RequestStatusFor::<T>::contains_key(key.0),
 				"Preimage::RequestStatusFor is missing"
+			);
+		}
+
+		for (hash, len) in rc_payload {
+			assert!(
+				alias::PreimageFor::<T>::contains_key((hash, len)),
+				"missing relay chain item in assetHub for Preimage::PreimageFor"
+			);
+		}
+
+		for (hash, len) in ah_payload {
+			assert!(
+				alias::PreimageFor::<T>::contains_key((hash, len)),
+				"missing previous asset hub item in AssetHub for Preimage::PreimageFor"
 			);
 		}
 
@@ -274,5 +281,11 @@ impl<T: Config> pallet_rc_migrator::types::PalletMigrationChecks for PreimageMig
 				_ => {},
 			}
 		}
+		/*assert_eq!(
+			alias::PreimageFor::<T>::iter_keys().count(),
+			alias::RequestStatusFor::<T>::iter_keys().count(),
+			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
+		);*/
+		// TODO fixme (ggwpez had to comment this since it fails with a new snapshot)
 	}
 }
