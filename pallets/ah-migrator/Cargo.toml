@@ -9,6 +9,8 @@ repository.workspace = true
 
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
+cumulus-primitives-core = { workspace = true }
+chrono = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -31,6 +33,7 @@ pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
+pallet-timestamp = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
@@ -43,16 +46,20 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
+pallet-ah-ops = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
+	"chrono/std",
 	"codec/std",
+	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
 	"hex/std",
 	"log/std",
+	"pallet-ah-ops/std",
 	"pallet-asset-rate/std",
 	"pallet-bags-list/std",
 	"pallet-balances/std",
@@ -69,6 +76,7 @@ std = [
 	"pallet-scheduler/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-timestamp/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
 	"polkadot-parachain-primitives/std",
@@ -83,9 +91,11 @@ std = [
 	"sp-std/std",
 ]
 runtime-benchmarks = [
+	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -102,6 +112,7 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
@@ -112,6 +123,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-ah-ops/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-bags-list/try-runtime",
 	"pallet-balances/try-runtime",
@@ -128,6 +140,7 @@ try-runtime = [
 	"pallet-scheduler/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
+	"pallet-timestamp/try-runtime",
 	"pallet-treasury/try-runtime",
 	"pallet-vesting/try-runtime",
 	"polkadot-runtime-common/try-runtime",

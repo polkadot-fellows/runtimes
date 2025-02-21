@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
 	/// - RC time point: 150
 	/// - Result: 75 + (150 - 100) / 2 = 100
 	pub fn rc_to_ah_timepoint(rc_timepoint: BlockNumberFor<T>) -> BlockNumberFor<T> {
-		let rc_now = T::RcBlockNumberProvider::current_block_number();
+		let rc_now = <T as crate::Config>::RcBlockNumberProvider::current_block_number();
 		let ah_now = frame_system::Pallet::<T>::block_number();
 
 		if let Some(rc_since) = rc_now.checked_sub(&rc_timepoint) {

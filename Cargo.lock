@@ -784,6 +784,7 @@ dependencies = [
  "kusama-runtime-constants",
  "log",
  "pallet-ah-migrator",
+ "pallet-ah-ops",
  "pallet-asset-conversion",
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
@@ -2282,9 +2283,9 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.31"
+version = "0.4.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2c685bad3eb3d45a01354cedb7d5faa66194d1d58ba6e267a8de788f79db38"
+checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -2292,7 +2293,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.0",
 ]
 
 [[package]]
@@ -7646,12 +7647,15 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex",
  "hex-literal",
  "log",
+ "pallet-ah-ops",
  "pallet-asset-rate",
  "pallet-bags-list",
  "pallet-balances",
@@ -7668,6 +7672,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-staking",
  "pallet-state-trie-migration",
+ "pallet-timestamp",
  "pallet-treasury",
  "pallet-vesting",
  "parity-scale-codec",
@@ -7679,6 +7684,22 @@ dependencies = [
  "sp-application-crypto 38.0.0",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-ah-ops"
+version = "0.1.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime 39.0.5",
  "sp-std",
 ]
@@ -10079,13 +10100,17 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-ah-migrator",
+ "pallet-balances",
  "pallet-indices",
  "pallet-message-queue",
  "pallet-rc-migrator",
+ "pallet-timestamp",
  "parachains-common",
+ "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives 16.0.0",
  "polkadot-runtime",
+ "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "sc-consensus-grandpa",
@@ -10097,7 +10122,9 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-storage 21.0.0",
  "sp-tracing 17.0.1",
+ "staging-xcm-builder",
  "tokio",
+ "xcm-emulator",
 ]
 
 [[package]]
