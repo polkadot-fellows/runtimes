@@ -133,6 +133,8 @@ pub enum RcRuntimeCall {
 	Bounties(pallet_bounties::Call<Runtime>),
 	#[codec(index = 38u8)]
 	ChildBounties(pallet_child_bounties::Call<Runtime>),
+	#[codec(index = 99u8)]
+	XcmPallet(RcXcmPalletCall),
 }
 
 /// Relay Chain Treasury Call obtained from cargo expand.
@@ -187,6 +189,13 @@ pub enum RcUtilityCall {
 	/// Unlike `batch`, it allows errors and won't interrupt.
 	#[codec(index = 4u8)]
 	force_batch { calls: Vec<RcRuntimeCall> },
+}
+
+/// Relay Chain XcmPallet Call obtained from cargo expand.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum RcXcmPalletCall {
+	#[codec(index = 0u8)]
+	send { dest: Box<VersionedLocation>, message: Box<VersionedXcm<()>> },
 }
 
 /// Convert an encoded Relay Chain Call to a local AH one.
@@ -309,6 +318,75 @@ impl RcToAhCall {
 					})?;
 				Ok(RuntimeCall::ChildBounties(call))
 			},
+			RcRuntimeCall::XcmPallet(RcXcmPalletCall::send { dest, message }) => {
+				let dest = Location::try_from((*dest).clone()).inspect_err(|_| {
+					log::error!(
+						"Failed to decode `RcRuntimeCall::XcmPallet(RcXcmPalletCall::send` call to AH PolkadotXcm call - invalid dest: {:?} version!",
+						dest
+					);
+				})?;
+				let self_para_id: u32 = ParachainInfo::parachain_id().into();
+				match dest.unpack() {
+					(0, [Parachain(para_id)]) if para_id != &self_para_id => {
+						// The call is dedicated to the child parachain, so we change it to the sibling parachain (0->1).
+						let dest: Location = Location::new(1, [Parachain(*para_id)]);
+
+						Ok(RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+							dest: Box::new(dest.into_versioned()),
+							message,
+						}))
+					},
+					(0, [Parachain(para_id)]) if para_id == &self_para_id => {
+						// the call is dedicated for self_para_id, means `Here`
+						// TODO: we could possibly:
+						// - either try to unwrap encoded call from `Transact, but there could be another instructions
+						// - or just map to the `pallet_xcm::Call::execute`, something like this:
+						// RuntimeCall::PolkadotXcm(pallet_xcm::Call::execute {
+						// 	message,
+						// 	max_weight: <TODO: pallet_xcm::Config::Weigher>::weight(message),
+						// })
+						log::error!(
+							"Failed to decode `RcRuntimeCall::XcmPallet(RcXcmPalletCall::send` call to AH PolkadotXcm call for dest: {:?} and message: {:?}",
+							dest,
+							message,
+						);
+						Err(())
+					},
+					unsupported_dest => {
+						log::error!(
+							"Failed to decode `RcRuntimeCall::XcmPallet(RcXcmPalletCall::send` call to AH PolkadotXcm call for unsupported_dest: {:?} and message: {:?}",
+							unsupported_dest,
+							message,
+						);
+						Err(())
+					},
+				}
+			},
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn decode_proposal_with_pallet_xcm_send() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			// Real live Polkadot proposal with `XcmPallet::send`
+			// https://polkadot.subsquare.io/referenda/1452
+			let proposal_from_rc = hex_literal::hex!("630004000100a50f04082f0000060302105e5f02e20400903f037628a5be63c4d3c8dbb96c2904b1a9682e02831a1af836c7efc808020b92fa630600");
+			let ah_call = RcToAhCall::try_convert(&proposal_from_rc).expect("valid mapping");
+
+			match ah_call {
+				RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {dest, message}) => {
+					match Location::try_from(*dest) {
+						Ok(location) if location == Location::new(1, [Parachain(1001)]) => (),
+						_ => panic!("invalid location"),
+					}
+				}
+				_ => panic!("invalid call mapping"),
+			}
+		})
 	}
 }
