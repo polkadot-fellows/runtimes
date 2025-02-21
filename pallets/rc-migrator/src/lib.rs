@@ -49,6 +49,7 @@ pub mod asset_rate;
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
+pub mod xcm_config;
 
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
@@ -91,6 +92,7 @@ use vesting::VestingMigrator;
 use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -1262,6 +1264,15 @@ pub mod pallet {
 			};
 
 			Ok(())
+		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = RcMigrationStage::<T>::get();
+			if stage.is_finished() || stage.is_ongoing() {
+				None
+			} else {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			}
 		}
 	}
 

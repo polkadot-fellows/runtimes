@@ -59,7 +59,7 @@ parameter_types! {
 	/// The Checking Account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub LocalCheckAccount: (AccountId, MintLocation) = (CheckAccount::get(), MintLocation::Local);
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 	// Fellows pluralistic body.
@@ -81,6 +81,8 @@ pub type SovereignAccountOf = (
 /// of view of XCM-only concepts like `Location` and `Asset`.
 ///
 /// Ours is only aware of the Balances pallet, which is mapped to `TokenLocation`.
+///
+/// Teleports tracking is managed by `RcMigrator`
 pub type LocalAssetTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
@@ -91,7 +93,7 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// We track our teleports in/out to keep total issuance correct.
-	LocalCheckAccount,
+	TeleportTracking,
 >;
 
 /// The means that we convert an XCM origin `Location` into the runtime's `Origin` type for

@@ -49,6 +49,7 @@ pub mod scheduler;
 pub mod staking;
 pub mod types;
 pub mod vesting;
+pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
