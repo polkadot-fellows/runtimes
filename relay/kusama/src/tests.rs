@@ -101,9 +101,11 @@ fn transfer_cost_min_multiplier() {
 		ext.execute_with(|| {
 			pallet_transaction_payment::NextFeeMultiplier::<Runtime>::put(m);
 			let fee = TransactionPayment::compute_fee(len, &info, 0);
+			let weight =
 			println!(
-				"weight = {:?} // multiplier = {:?} // full transfer fee = {:?}",
-				info.weight.ref_time().separated_string(),
+				"extension_weight = {:?} // call_weight = {:?} // multiplier = {:?} // full transfer fee = {:?}",
+				info.extension_weight.ref_time().separated_string(),
+				info.call_weight.ref_time().separated_string(),
 				pallet_transaction_payment::NextFeeMultiplier::<Runtime>::get(),
 				fee.separated_string(),
 			);
