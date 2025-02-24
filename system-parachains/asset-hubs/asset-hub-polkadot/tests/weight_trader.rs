@@ -473,7 +473,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let native_location = DotLocation::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
 				TrustBackedAssetsPalletLocation,
-				xcm::v4::Location,
+				Location,
 			>::convert_back(&asset_1)
 			.unwrap();
 			// bob's initial balance for native and `asset1` assets.
@@ -569,14 +569,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
 			let native_location = DotLocation::get();
-			let foreign_location = xcm::v4::Location {
-				parents: 1,
-				interior: (
-					xcm::v4::Junction::Parachain(1234),
-					xcm::v4::Junction::GeneralIndex(12345),
-				)
-					.into(),
-			};
+			let foreign_location =
+				Location { parents: 1, interior: (Parachain(1234), GeneralIndex(12345)).into() };
 			// bob's initial balance for native and `asset1` assets.
 			let initial_balance = 200 * UNITS;
 			// liquidity for both arms of (native, asset1) pool.

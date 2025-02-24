@@ -806,7 +806,6 @@ dependencies = [
  "sp-offchain",
  "sp-runtime",
  "sp-session",
- "sp-std",
  "sp-storage",
  "sp-transaction-pool",
  "sp-version",
