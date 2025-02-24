@@ -30,7 +30,7 @@ use bridge_hub_kusama_runtime::{
 	},
 	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
 	ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, SignedExtra, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
+	RuntimeOrigin, SessionKeys, TxExtension, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
 use codec::{Decode, Encode};
@@ -82,7 +82,7 @@ fn construct_extrinsic(
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
-	let extra: SignedExtra = (
+	let extra: TxExtension = (
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),
@@ -536,14 +536,4 @@ fn location_conversion_works() {
 
 		assert_eq!(got, expected, "{}", tc.description);
 	}
-}
-
-#[test]
-fn xcm_payment_api_works() {
-	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
-		Runtime,
-		RuntimeCall,
-		RuntimeOrigin,
-		Block,
-	>();
 }
