@@ -139,8 +139,6 @@ pub fn rc_migrate<RcMigrator: RcPalletMigrationChecks>(
 		}
 	});
 	relay_chain.commit_all().unwrap();
-	// TODO: for some reason this prints some small value (2947), but logs on XCM send and
-	// receive show more iteration.
 	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
 	(dmp_messages, rc_payload)
 }
