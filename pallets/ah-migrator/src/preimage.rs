@@ -248,7 +248,7 @@ impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageM
 
 		for (hash, len) in rc_payload {
 			if alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::warn!("missing relay chain item in assetHub for Preimage::PreimageFor");
+				log::error!("missing relay chain item in assetHub for Preimage::PreimageFor");
 			}
 			// TODO: fix failing check and change log to assert below
 			// assert!(
