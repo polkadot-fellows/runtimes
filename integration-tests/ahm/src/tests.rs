@@ -44,7 +44,7 @@ use xcm_emulator::ConvertLocation;
 use super::mock::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn account_migration_works() {
+async fn preimage_pallet_migration() {
 	let Some((rc, ah)) = load_externalities().await else { return };
 	type RcPayload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as RcPalletMigrationChecks>::RcPayload;
 	let (dmp_messages, rc_payload) =

@@ -101,7 +101,10 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 
 // Migrates the pallet out of the Relay Chain and returns the corresponding Payload.
 //
-// Sends DMP messages with pallet migration data from relay chain to asset hub.
+// Sends DMP messages with pallet migration data from relay chain to asset hub. The output includes
+// both the DMP messages sent from the relay chain to asset hub, which will be used to perform the
+// migration, and the relay chain payload, which will be used to check the correctness of the
+// migration process.
 pub fn rc_migrate<RcMigrator: RcPalletMigrationChecks>(
 	mut relay_chain: RemoteExternalities<PolkadotBlock>,
 ) -> (Vec<InboundDownwardMessage>, RcMigrator::RcPayload) {
@@ -185,5 +188,6 @@ pub fn ah_migrate<
 		AhMigrator::post_check(ah_payload, rc_payload);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
+		// TODO compare with the number of messages before the migration
 	});
 }
