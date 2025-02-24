@@ -29,9 +29,9 @@ use bridge_hub_polkadot_runtime::{
 		DotRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
 		RelayTreasuryPalletAccount, XcmConfig,
 	},
-	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, TxExtension, TransactionPayment, UncheckedExtrinsic, SLOT_DURATION,
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive, ExistentialDeposit,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	TransactionPayment, TxExtension, UncheckedExtrinsic, SLOT_DURATION,
 };
 use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
 use codec::{Decode, Encode};

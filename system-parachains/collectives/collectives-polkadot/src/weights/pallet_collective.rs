@@ -295,4 +295,42 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
 	}
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 100]`.
+	fn kill(d: u32, p: u32) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `226 + p * (32 ±0)`
+		//  Estimated: `1711 + p * (32 ±0)`
+		// Minimum execution time: 18_920_000 picoseconds.
+		Weight::from_parts(20_452_656, 0)
+			.saturating_add(Weight::from_parts(0, 1711))
+			// Standard Error: 603
+			.saturating_add(Weight::from_parts(156_269, 0).saturating_mul(d.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
+	}
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 100]`.
+	fn release_proposal_cost() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `226 + p * (32 ±0)`
+		//  Estimated: `1711 + p * (32 ±0)`
+		// Minimum execution time: 18_920_000 picoseconds.
+		Weight::from_parts(20_452_656, 0)
+			.saturating_add(Weight::from_parts(0, 1711))
+			// Standard Error: 603
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
 }
