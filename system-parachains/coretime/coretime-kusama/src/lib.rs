@@ -98,7 +98,7 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
-/// The TransactionExtensions to the basic transaction logic.
+/// The `TransactionExtension` to the basic transaction logic.
 pub type TxExtensions = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
