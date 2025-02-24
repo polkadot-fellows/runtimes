@@ -1758,7 +1758,7 @@ impl pallet_state_trie_migration::Config for Runtime {
 
 	type MaxKeyLen = MigrationMaxKeyLen;
 }
-
+// Statemint State Migration Controller
 ord_parameter_types! {
 	pub const MigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
 	pub const RootMigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
