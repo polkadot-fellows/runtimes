@@ -20,10 +20,12 @@ use super::{
 	TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
 };
 use crate::{ForeignAssets, ForeignAssetsInstance};
+use alloc::{vec, vec::Vec};
 use assets_common::{
 	matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
+use core::marker::PhantomData;
 use frame_support::{
 	pallet_prelude::Get,
 	parameter_types,
@@ -39,7 +41,7 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
+use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -104,7 +106,7 @@ pub type LocationToAccountId = (
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
 	// Ethereum contract sovereign account.
 	// (Used to get convert ethereum contract locations to sovereign account)
-	GlobalConsensusEthereumConvertsFor<AccountId>,
+	EthereumLocationsConverterFor<AccountId>,
 );
 
 /// Means for transacting the native currency on this chain.
@@ -155,7 +157,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
-	xcm::v4::Location,
+	Location,
 >;
 
 /// Means for transacting foreign assets from different global consensus.
@@ -207,15 +209,15 @@ pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
 	AssetConversion,
 	NativeAndAssets,
 	(
-		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, xcm::v4::Location>,
+		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 		ForeignAssetsConvertedConcreteId,
 		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it
 		// explicitly here.
 		MatchedConvertedConcreteId<
-			xcm::v4::Location,
+			Location,
 			Balance,
 			Equals<ParentLocation>,
-			WithLatestLocationConverter<xcm::v4::Location>,
+			WithLatestLocationConverter<Location>,
 			TryConvertInto,
 		>,
 	),
@@ -359,11 +361,7 @@ impl xcm_executor::Config for XcmConfig {
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<
-					TrustBackedAssetsPalletLocation,
-					Balance,
-					xcm::v4::Location,
-				>,
+				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -483,23 +481,23 @@ pub type ForeignCreatorsSovereignAccountOf = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	AccountId32Aliases<RelayNetwork, AccountId>,
 	ParentIsPreset<AccountId>,
-	GlobalConsensusEthereumConvertsFor<AccountId>,
+	EthereumLocationsConverterFor<AccountId>,
 	GlobalConsensusParachainConvertsFor<UniversalLocation, AccountId>,
 );
 
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<xcm::v4::Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> xcm::v4::Location {
-		xcm::v4::Location::new(1, xcm::v4::Junction::Parachain(id))
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location::new(1, Junction::Parachain(id))
 	}
 }
 
 /// All configuration related to bridging
 pub mod bridging {
 	use super::*;
-	use sp_std::collections::btree_set::BTreeSet;
+	use alloc::collections::BTreeSet;
 	use xcm_builder::NetworkExportTableItem;
 
 	parameter_types! {
@@ -518,8 +516,8 @@ pub mod bridging {
 		/// (`AssetId` has to be aligned with `BridgeTable`)
 		pub XcmBridgeHubRouterFeeAssetId: AssetId = KsmLocation::get().into();
 
-		pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> =
-			sp_std::vec::Vec::new().into_iter()
+		pub BridgeTable: Vec<NetworkExportTableItem> =
+			Vec::new().into_iter()
 			.chain(to_polkadot::BridgeTable::get())
 			.collect();
 	}
@@ -552,10 +550,10 @@ pub mod bridging {
 
 			/// Set up exporters configuration.
 			/// `Option<Asset>` represents static "base fee" which is used for total delivery fee calculation.
-			pub BridgeTable: sp_std::vec::Vec<NetworkExportTableItem> = sp_std::vec![
+			pub BridgeTable: Vec<NetworkExportTableItem> = vec![
 				NetworkExportTableItem::new(
 					PolkadotNetwork::get(),
-					Some(sp_std::vec![
+					Some(vec![
 						AssetHubPolkadot::get().interior.split_global().expect("invalid configuration for AssetHubKusama").1,
 					]),
 					SiblingBridgeHub::get(),
@@ -569,7 +567,7 @@ pub mod bridging {
 
 			/// Universal aliases
 			pub UniversalAliases: BTreeSet<(Location, Junction)> = BTreeSet::from_iter(
-				sp_std::vec![
+				vec![
 					(SiblingBridgeHubWithBridgeHubPolkadotInstance::get(), GlobalConsensus(PolkadotNetwork::get()))
 				]
 			);
@@ -592,7 +590,7 @@ pub mod bridging {
 		/// Accept an asset if it is native to `AssetsAllowedNetworks` and it is coming from
 		/// `OriginLocation`.
 		pub struct RemoteAssetFromLocation<AssetsAllowedNetworks, OriginLocation>(
-			sp_std::marker::PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
+			PhantomData<(AssetsAllowedNetworks, OriginLocation)>,
 		);
 		impl<
 				L: TryInto<Location> + Clone,

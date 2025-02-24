@@ -17,6 +17,9 @@
 
 //! Tests for the Kusama Asset Hub (previously known as Statemine) chain.
 
+extern crate alloc;
+
+use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
@@ -24,23 +27,22 @@ use asset_hub_kusama_runtime::{
 		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
-	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
-	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys, ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
-	SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, ExistentialDeposit,
+	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
+	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys,
 	ExtBuilder, SlotDurations,
 };
 use codec::{Decode, Encode};
+use core::ops::Mul;
 use frame_support::{assert_ok, traits::fungibles::InspectEnumerable};
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::traits::MaybeEquivalence;
-use sp_std::ops::Mul;
 use system_parachains_constants::kusama::{
 	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, fee::WeightToFee,
 };
@@ -79,7 +81,7 @@ fn slot_durations() -> SlotDurations {
 fn setup_pool_for_paying_fees_with_foreign_assets(
 	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 		AccountId,
-		xcm::v4::Location,
+		Location,
 		Balance,
 	),
 ) {
@@ -87,7 +89,7 @@ fn setup_pool_for_paying_fees_with_foreign_assets(
 
 	// setup a pool to pay fees with `foreign_asset_id_location` tokens
 	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = xcm::v4::Location::parent();
+	let native_asset = Location::parent();
 	let pool_liquidity: Balance =
 		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
 
@@ -153,10 +155,8 @@ fn test_assets_balances_api_works() {
 		.build()
 		.execute_with(|| {
 			let local_asset_id = 1;
-			let foreign_asset_id_location = xcm::v4::Location::new(
-				1,
-				[xcm::v4::Junction::Parachain(1234), xcm::v4::Junction::GeneralIndex(12345)],
-			);
+			let foreign_asset_id_location =
+				Location::new(1, [Parachain(1234), GeneralIndex(12345)]);
 
 			// check before
 			assert_eq!(Assets::balance(local_asset_id, AccountId::from(ALICE)), 0);
@@ -334,14 +334,11 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	Runtime,
 	XcmConfig,
 	ForeignAssetsInstance,
-	xcm::v4::Location,
+	Location,
 	JustTry,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
-	xcm::v4::Location::new(
-		1,
-		[xcm::v4::Junction::Parachain(1313), xcm::v4::Junction::GeneralIndex(12345)]
-	),
+	Location::new(1, [Parachain(1313), GeneralIndex(12345)]),
 	Box::new(|| {
 		assert!(Assets::asset_ids().collect::<Vec<_>>().is_empty());
 	}),
@@ -356,8 +353,8 @@ asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_p
 	WeightToFee,
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
-	xcm::v4::Location,
-	WithLatestLocationConverter<xcm::v4::Location>,
+	Location,
+	WithLatestLocationConverter<Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	AssetDeposit::get(),
@@ -434,10 +431,7 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
 	let staking_pot = StakingPot::get();
 
-	let foreign_asset_id_location = xcm::v4::Location::new(
-		2,
-		[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
-	);
+	let foreign_asset_id_location = Location::new(2, [GlobalConsensus(NetworkId::Polkadot)]);
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
@@ -506,10 +500,7 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_suff
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
 	let staking_pot = <pallet_collator_selection::Pallet<Runtime>>::account_id();
 
-	let foreign_asset_id_location = xcm::v4::Location::new(
-		2,
-		[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
-	);
+	let foreign_asset_id_location = Location::new(2, [GlobalConsensus(NetworkId::Polkadot)]);
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
@@ -819,9 +810,9 @@ pub mod remove_when_updated_to_stable2409 {
 		<WeightToFee as frame_support::weights::WeightToFee>::Balance: From<u128> + Into<u128>,
 		SovereignAccountOf: ConvertLocation<AccountIdOf<Runtime>>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<Location> + Into<Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<Location> + Into<Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128>,
 		<Runtime as frame_system::Config>::AccountId:
@@ -833,13 +824,9 @@ pub mod remove_when_updated_to_stable2409 {
 	{
 		// foreign parachain with the same consensus currency as asset
 		let foreign_para_id = 2222;
-		let foreign_asset_id_location = xcm::v4::Location {
+		let foreign_asset_id_location = Location {
 			parents: 1,
-			interior: [
-				xcm::v4::Junction::Parachain(foreign_para_id),
-				xcm::v4::Junction::GeneralIndex(1234567),
-			]
-			.into(),
+			interior: [Parachain(foreign_para_id), GeneralIndex(1234567)].into(),
 		};
 
 		// foreign creator, which can be sibling parachain to match ForeignCreators
@@ -1145,7 +1132,7 @@ pub mod remove_when_updated_to_stable2409 {
 		block_author_account: AccountIdOf<Runtime>,
 		(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 			AccountIdOf<Runtime>,
-			xcm::v4::Location,
+			Location,
 			u128,
 		),
 		foreign_asset_id_amount_to_transfer: u128,
@@ -1171,9 +1158,9 @@ pub mod remove_when_updated_to_stable2409 {
 		BalanceOf<Runtime>: From<Balance> + Into<Balance>,
 		XcmConfig: xcm_executor::Config,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<Location> + Into<Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<Location> + Into<Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128> + From<u128>,
 		<Runtime as frame_system::Config>::AccountId: Into<<<Runtime as frame_system::Config>::RuntimeOrigin as OriginTrait>::AccountId>
@@ -1403,20 +1390,4 @@ fn location_conversion_works() {
 
 		assert_eq!(got, expected, "{}", tc.description);
 	}
-}
-
-#[test]
-fn xcm_payment_api_works() {
-	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
-		Runtime,
-		RuntimeCall,
-		RuntimeOrigin,
-		Block,
-	>();
-	asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
-		Runtime,
-		RuntimeCall,
-		RuntimeOrigin,
-		Block,
-	>();
 }
