@@ -20,6 +20,14 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
+extern crate alloc;
+
+use alloc::{
+	collections::{BTreeMap, VecDeque},
+	string::String,
+	vec,
+	vec::Vec,
+};
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
@@ -43,9 +51,7 @@ use runtime_parachains::{
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::{
-		v10 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
-	},
+	runtime_api_impl::v11 as parachains_runtime_api_impl,
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -57,6 +63,7 @@ use beefy_primitives::{
 	OpaqueKeyOwnershipProof,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
+use core::cmp::Ordering;
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
 };
@@ -82,31 +89,29 @@ use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use polkadot_primitives::{
-	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
-	CandidateHash, CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState, ExecutorParams,
-	GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage, InboundHrmpMessage, Moment,
-	NodeFeatures, Nonce, OccupiedCoreAssumption, PersistedValidationData, ScrapedOnChainVotes,
-	SessionInfo, Signature, ValidationCode, ValidationCodeHash, ValidatorId, ValidatorIndex,
-	PARACHAIN_KEY_TYPE_ID,
+	slashing,
+	vstaging::{
+		CandidateEvent, CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState,
+		ScrapedOnChainVotes,
+	},
+	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
+	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
+	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
+	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
+	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
 use sp_core::{OpaqueMetadata, H256};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto,
-		Extrinsic as ExtrinsicT, IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion,
-		Verify,
+		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
 	RuntimeDebug,
 };
 use sp_staking::SessionIndex;
-use sp_std::{
-	cmp::Ordering,
-	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
-	prelude::*,
-};
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -161,14 +166,14 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 /// Runtime version (Polkadot).
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("polkadot"),
-	impl_name: create_runtime_str!("parity-polkadot"),
+	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
+	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
 	spec_version: 1_004_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The BABE epoch configuration at genesis.
@@ -211,6 +216,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
@@ -346,6 +352,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = ConstU32<8>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -443,6 +450,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -772,6 +780,7 @@ impl pallet_treasury::Config for Runtime {
 	>;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
+	type BlockNumberProvider = System;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 }
@@ -848,18 +857,44 @@ impl pallet_grandpa::Config for Runtime {
 		pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
+impl frame_system::offchain::SigningTypes for Runtime {
+	type Public = <Signature as Verify>::Signer;
+	type Signature = Signature;
+}
+
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type RuntimeCall = RuntimeCall;
+	type Extrinsic = UncheckedExtrinsic;
+}
+
+impl<LocalCall> frame_system::offchain::CreateTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	type Extension = TxExtension;
+
+	fn create_transaction(call: RuntimeCall, extension: TxExtension) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_transaction(call, extension)
+	}
+}
+
 /// Submits a transaction with the node's public and signature type. Adheres to the signed extension
 /// format of the chain.
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
 {
-	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+	fn create_signed_transaction<
+		C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>,
+	>(
 		call: RuntimeCall,
 		public: <Signature as Verify>::Signer,
 		account: AccountId,
 		nonce: <Runtime as frame_system::Config>::Nonce,
-	) -> Option<(RuntimeCall, <UncheckedExtrinsic as ExtrinsicT>::SignaturePayload)> {
+	) -> Option<UncheckedExtrinsic> {
 		use sp_runtime::traits::StaticLookup;
 		// take the biggest period possible.
 		let period =
@@ -871,7 +906,7 @@ where
 			// so the actual block number is `n`.
 			.saturating_sub(1);
 		let tip = 0;
-		let extra: SignedExtra = (
+		let tx_ext: TxExtension = (
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -885,30 +920,28 @@ where
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::new(false),
-		);
-		let raw_payload = SignedPayload::new(call, extra)
+		)
+			.into();
+		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
 				log::warn!(target: LOG_TARGET, "Unable to create signed payload: {:?}", e);
 			})
 			.ok()?;
 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-		let (call, extra, _) = raw_payload.deconstruct();
+		let (call, tx_ext, _) = raw_payload.deconstruct();
 		let address = <Runtime as frame_system::Config>::Lookup::unlookup(account);
-		Some((call, (address, signature, extra)))
+		let transaction = UncheckedExtrinsic::new_signed(call, address, signature, tx_ext);
+		Some(transaction)
 	}
 }
 
-impl frame_system::offchain::SigningTypes for Runtime {
-	type Public = <Signature as Verify>::Signer;
-	type Signature = Signature;
-}
-
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+impl<LocalCall> frame_system::offchain::CreateInherent<LocalCall> for Runtime
 where
-	RuntimeCall: From<C>,
+	RuntimeCall: From<LocalCall>,
 {
-	type Extrinsic = UncheckedExtrinsic;
-	type OverarchingCall = RuntimeCall;
+	fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
 }
 
 parameter_types! {
@@ -1661,8 +1694,8 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// `BlockId` type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The `SignedExtension` to the basic transaction logic.
-pub type SignedExtra = (
+/// The `TransactionExtension` to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -2055,7 +2088,7 @@ pub mod restore_corrupt_ledger_2 {
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -2067,7 +2100,7 @@ pub type Executive = frame_executive::Executive<
 >;
 
 /// The payload being signed in transactions.
-pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
+pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
@@ -2109,7 +2142,9 @@ mod benches {
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_staking, Staking]
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
@@ -2180,7 +2215,7 @@ sp_api::impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -2245,6 +2280,10 @@ sp_api::impl_runtime_apis! {
 
 		fn pool_balance(pool_id: pallet_nomination_pools::PoolId) -> Balance {
 			NominationPools::api_pool_balance(pool_id)
+		}
+
+		fn pool_accounts(pool_id: pallet_nomination_pools::PoolId) -> (AccountId, AccountId) {
+			NominationPools::api_pool_accounts(pool_id)
 		}
 	}
 
@@ -2415,7 +2454,7 @@ sp_api::impl_runtime_apis! {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
-		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
+		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
@@ -2436,11 +2475,11 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn claim_queue() -> BTreeMap<CoreIndex, VecDeque<ParaId>> {
-			parachains_vstaging_api_impl::claim_queue::<Runtime>()
+			parachains_runtime_api_impl::claim_queue::<Runtime>()
 		}
 
 		fn candidates_pending_availability(para_id: ParaId) -> Vec<CommittedCandidateReceipt<Hash>> {
-			parachains_vstaging_api_impl::candidates_pending_availability::<Runtime>(para_id)
+			parachains_runtime_api_impl::candidates_pending_availability::<Runtime>(para_id)
 		}
 	}
 
@@ -2811,6 +2850,7 @@ sp_api::impl_runtime_apis! {
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use frame_system_benchmarking::extensions::Pallet as SystemExtensionsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 
 			let mut list = Vec::<BenchmarkList>::new();
@@ -2824,7 +2864,7 @@ sp_api::impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<
 			Vec<frame_benchmarking::BenchmarkBatch>,
-			sp_runtime::RuntimeString,
+			String,
 		> {
 			use frame_support::traits::WhitelistedStorageKeys;
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
@@ -2836,6 +2876,7 @@ sp_api::impl_runtime_apis! {
 			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use frame_system_benchmarking::extensions::Pallet as SystemExtensionsBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 			use xcm::latest::prelude::*;
 			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, LocalCheckAccount, SovereignAccountOf};
@@ -2900,7 +2941,7 @@ sp_api::impl_runtime_apis! {
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(Assets, u32, Location, alloc::boxed::Box<dyn FnOnce()>)> {
 					// Relay supports only native token, either reserve transfer it to non-system parachains,
 					// or teleport it to system parachain. Use the teleport case for benchmarking as it's
 					// slightly heavier.
@@ -3092,7 +3133,7 @@ mod test_fees {
 		println!("call = {:?} / info = {:?}", call, info);
 		// convert to runtime call.
 		let call = RuntimeCall::Balances(call);
-		let extra: SignedExtra = (
+		let tx_ext: TxExtension = (
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -3105,12 +3146,12 @@ mod test_fees {
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
 		let uxt = UncheckedExtrinsic {
-			function: call,
-			signature: Some((
+			preamble: generic::Preamble::Signed(
 				MultiAddress::Id(Alice.to_account_id()),
 				MultiSignature::Sr25519(Alice.sign(b"foo")),
-				extra,
-			)),
+				tx_ext,
+			),
+			function: call,
 		};
 		let len = uxt.encoded_size();
 
@@ -3417,7 +3458,9 @@ mod multiplier_tests {
 		let mut fees_paid = 0;
 
 		frame_system::Pallet::<Runtime>::set_block_consumed_resources(Weight::MAX, 0);
-		let info = DispatchInfo { weight: Weight::MAX, ..Default::default() };
+		// TODO: Find out if this test is correct, since we're not yet considering
+		// `extension_weight`
+		let info = DispatchInfo { call_weight: Weight::MAX, ..Default::default() };
 
 		let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()

@@ -24,7 +24,6 @@ sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
-sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
@@ -210,7 +209,6 @@ std = [
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",

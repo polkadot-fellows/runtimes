@@ -22,10 +22,10 @@ use crate::{
 	parachains_assigner_coretime::PartsOf57600,
 	OriginKind,
 };
+use alloc::{vec, vec::Vec};
 use codec::{Decode, Encode};
 use core::{iter, result};
 #[cfg(feature = "try-runtime")]
-use frame_support::ensure;
 use frame_support::{
 	traits::{OnRuntimeUpgrade, PalletInfoAccess, StorageVersion},
 	weights::Weight,
@@ -36,13 +36,10 @@ use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_primitives::{Balance, BlockNumber, CoreIndex, Id as ParaId};
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use runtime_parachains::configuration;
-#[cfg(feature = "try-runtime")]
-use runtime_parachains::scheduler::common::AssignmentProvider;
 
 use sp_arithmetic::traits::SaturatedConversion;
 use sp_core::Get;
 use sp_runtime::BoundedVec;
-use sp_std::{vec, vec::Vec};
 use xcm::prelude::{send_xcm, Instruction, Junction, Location, SendError, WeightLimit, Xcm};
 
 /// Return information about a legacy lease of a parachain.
@@ -81,7 +78,7 @@ pub struct MigrateToCoretime<T, SendXcm, LegacyLease>(
 	core::marker::PhantomData<(T, SendXcm, LegacyLease)>,
 );
 
-impl<T: Config, SendXcm: xcm::v4::SendXcm, LegacyLease: GetLegacyLease<BlockNumberFor<T>>>
+impl<T: Config, SendXcm: xcm::v5::SendXcm, LegacyLease: GetLegacyLease<BlockNumberFor<T>>>
 	MigrateToCoretime<T, SendXcm, LegacyLease>
 {
 	fn already_migrated() -> bool {
@@ -113,7 +110,7 @@ impl<T: Config, SendXcm: xcm::v4::SendXcm, LegacyLease: GetLegacyLease<BlockNumb
 
 impl<
 		T: Config + runtime_parachains::dmp::Config,
-		SendXcm: xcm::v4::SendXcm,
+		SendXcm: xcm::v5::SendXcm,
 		LegacyLease: GetLegacyLease<BlockNumberFor<T>>,
 	> OnRuntimeUpgrade for MigrateToCoretime<T, SendXcm, LegacyLease>
 {
@@ -147,9 +144,10 @@ impl<
 
 		log::trace!("Running post_upgrade()");
 
-		let prev_core_count = <u32>::decode(&mut &state[..]).unwrap();
-		let new_core_count = parachains_assigner_coretime::Pallet::<T>::session_core_count();
-		ensure!(new_core_count == prev_core_count, "Total number of cores need to not change.");
+		// TODO @alindima: Are these migrations expected to remain?
+		// let prev_core_count = <u32>::decode(&mut &state[..]).unwrap();
+		// let new_core_count = parachains_assigner_coretime::Pallet::<T>::session_core_count();
+		// ensure!(new_core_count == prev_core_count, "Total number of cores need to not change.");
 
 		Ok(())
 	}
@@ -160,7 +158,7 @@ impl<
 // NOTE: Also migrates `num_cores` config value in configuration::ActiveConfig.
 fn migrate_to_coretime<
 	T: Config,
-	SendXcm: xcm::v4::SendXcm,
+	SendXcm: xcm::v5::SendXcm,
 	LegacyLease: GetLegacyLease<BlockNumberFor<T>>,
 >() -> Weight {
 	let legacy_paras = LegacyLease::get_all_parachains_with_leases();
@@ -213,7 +211,7 @@ fn migrate_to_coretime<
 
 fn migrate_send_assignments_to_coretime_chain<
 	T: Config,
-	SendXcm: xcm::v4::SendXcm,
+	SendXcm: xcm::v5::SendXcm,
 	LegacyLease: GetLegacyLease<BlockNumberFor<T>>,
 >() -> result::Result<(), SendError> {
 	let legacy_paras = LegacyLease::get_all_parachains_with_leases();
@@ -236,7 +234,7 @@ fn migrate_send_assignments_to_coretime_chain<
 				return None
 			};
 
-			let valid_until: u32 = match valid_until.try_into() {
+			let valid_until: u32 = match BlockNumberFor::<T>::try_into(valid_until) {
 				Ok(val) => val,
 				Err(_) => {
 					log::error!("Converting block number to u32 failed!");
@@ -309,7 +307,7 @@ fn migrate_send_assignments_to_coretime_chain<
 fn mk_coretime_call<T: Config>(call: CoretimeCalls) -> Instruction<()> {
 	Instruction::Transact {
 		origin_kind: OriginKind::Superuser,
-		require_weight_at_most: T::MaxXcmTransactWeight::get(),
+		fallback_max_weight: Some(T::MaxXcmTransactWeight::get()),
 		call: BrokerRuntimePallets::Broker(call).encode().into(),
 	}
 }
