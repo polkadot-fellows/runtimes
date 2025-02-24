@@ -49,6 +49,7 @@ async fn preimage_pallet_migration() {
 	type RcPayload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as RcPalletMigrationChecks>::RcPayload;
 	let (dmp_messages, rc_payload) =
 		rc_migrate::<pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>>(rc);
+	// TODO: fix failing post-migration checks
 	ah_migrate::<
 		pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 		pallet_ah_migrator::preimage::PreimageMigrationCheck<AssetHub>,
