@@ -18,7 +18,7 @@
 use crate::*;
 use frame_support::traits::{Consideration, Footprint};
 use pallet_rc_migrator::preimage::{chunks::*, *};
-use sp_runtime::traits::Hash;
+use sp_runtime::traits::{BlakeTwo256, Hash};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_chunks(chunks: Vec<RcPreimageChunk>) -> Result<(), Error<T>> {
@@ -212,11 +212,10 @@ pub struct PreimageMigrationCheck<T: Config>(PhantomData<T>);
 
 impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageMigrationCheck<T> {
 	type RcPayload = Vec<(H256, u32)>;
-	type AhPayload = Vec<(H256, u32)>;
+	type AhPayload = ();
 
 	fn pre_check() -> Self::AhPayload {
 		// AH does not have a preimage pallet, therefore must be empty.
-
 		assert!(
 			alias::PreimageFor::<T>::iter_keys().next().is_none(),
 			"Preimage::PreimageFor is not empty"
@@ -225,13 +224,10 @@ impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageM
 			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
 			"Preimage::RequestStatusFor is not empty"
 		);
-		alias::PreimageFor::<T>::iter_keys()
-			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
-			.collect()
 	}
 
 	// The payload should come from the relay chain pre-check method on the same pallet
-	fn post_check(ah_payload: Self::AhPayload, rc_payload: Self::RcPayload) {
+	fn post_check(_ah_payload: Self::AhPayload, rc_payload: Self::RcPayload) {
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
 			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
@@ -257,11 +253,12 @@ impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageM
 			);
 		}
 
-		for (hash, len) in ah_payload {
-			assert!(
-				alias::PreimageFor::<T>::contains_key((hash, len)),
-				"missing previous asset hub item in AssetHub for Preimage::PreimageFor"
-			);
+		// Integrity check that all preimages have the correct hash and length
+		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
+			let preimage = alias::PreimageFor::<T>::get((hash, len)).expect("Storage corrupted");
+
+			assert_eq!(preimage.len(), len as usize);
+			assert_eq!(BlakeTwo256::hash(preimage.as_slice()), hash);
 		}
 
 		for (hash, status) in alias::RequestStatusFor::<T>::iter() {

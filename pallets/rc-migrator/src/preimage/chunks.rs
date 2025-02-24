@@ -169,18 +169,12 @@ impl<T: Config> RcPalletMigrationChecks for PreimageChunkMigrator<T> {
 			.collect()
 	}
 
-	fn post_check(keys: Self::RcPayload) {
-		// Check that all keys are inserted
-		for (hash, len) in keys {
-			assert!(alias::PreimageFor::<T>::contains_key((hash, len)));
-		}
-
-		// Integrity check that all preimages have the correct hash and length
-		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
-			let preimage = alias::PreimageFor::<T>::get((hash, len)).expect("Storage corrupted");
-
-			assert_eq!(preimage.len(), len as usize);
-			assert_eq!(BlakeTwo256::hash(preimage.as_slice()), hash);
+	fn post_check(rc_payload: Self::RcPayload) {
+		for (hash, len) in rc_payload {
+			assert!(
+				!alias::PreimageFor::<T>::contains_key((hash, len)),
+				"migrated key in Preimage::PreimageFor is still present on the relay chain"
+			);
 		}
 	}
 }

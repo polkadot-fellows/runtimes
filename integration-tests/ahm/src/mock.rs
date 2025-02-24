@@ -139,6 +139,8 @@ pub fn rc_migrate<RcMigrator: RcPalletMigrationChecks>(
 		}
 	});
 	relay_chain.commit_all().unwrap();
+	// TODO: for some reason this prints some small value (2947), but logs on XCM send and
+	// receive show more iteration.
 	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
 	(dmp_messages, rc_payload)
 }
@@ -175,17 +177,11 @@ pub fn ah_migrate<
 
 			log::debug!("AH DMP messages left: {}", fp.storage.count);
 			next_block_ah();
-
-			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
-			{
-				RcMigrator::post_check(rc_payload.clone());
-			}
 		}
 
+		RcMigrator::post_check(rc_payload.clone());
 		AhMigrator::post_check(ah_payload, rc_payload);
 		// NOTE that the DMP queue is probably not empty because the snapshot that we use
 		// contains some overweight ones.
-		// TODO compare with the number of messages before the migration
 	});
 }
