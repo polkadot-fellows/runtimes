@@ -86,7 +86,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureNever, EnsureRoot,
+	EnsureRoot,
 };
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
@@ -574,11 +574,8 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type SetMembersOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 	type MaxProposalWeight = MaxProposalWeight;
-	// TODO: Add `DisapproveOrigin`
-	type DisapproveOrigin = EnsureNever<AccountId>;
-	// TODO: Add `KillOrigin`
-	type KillOrigin = EnsureNever<AccountId>;
-	// TODO: Add `Consideration`
+	type DisapproveOrigin = EnsureRoot<AccountId>;
+	type KillOrigin = EnsureRoot<AccountId>;
 	type Consideration = ();
 }
 
