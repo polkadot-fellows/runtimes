@@ -31,85 +31,144 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use frame_support::traits::*;
-use pallet_rc_migrator::{types::PalletMigrationChecks, MigrationStage, RcMigrationStage};
-use std::str::FromStr;
-
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
-use polkadot_runtime::Runtime as Polkadot;
+use cumulus_primitives_core::{Junction, Location, ParaId};
+use frame_system::pallet_prelude::BlockNumberFor;
+use pallet_rc_migrator::types::RcPalletMigrationChecks;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
+use sp_runtime::AccountId32;
+use std::{collections::BTreeMap, str::FromStr};
+use xcm_emulator::ConvertLocation;
 
 use super::mock::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn account_migration_works() {
-	let Some((mut rc, mut ah)) = load_externalities().await else { return };
-	let para_id = ParaId::from(1000);
+async fn preimage_pallet_migration() {
+	let Some((rc, ah)) = load_externalities().await else { return };
+	type RcPayload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as RcPalletMigrationChecks>::RcPayload;
+	let (dmp_messages, rc_payload) =
+		rc_migrate::<pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>>(rc);
+	// TODO: fix failing post-migration checks
+	ah_migrate::<
+		pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+		pallet_ah_migrator::preimage::PreimageMigrationCheck<AssetHub>,
+	>(ah, rc_payload, dmp_messages);
+}
 
-	// Simulate relay blocks and grab the DMP messages
-	let (dmp_messages, pre_check_payload) = rc.execute_with(|| {
-		let mut dmps = Vec::new();
+#[tokio::test]
+async fn num_leases_to_ending_block_works_simple() {
+	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+	let f = |now: BlockNumberFor<Polkadot>, num_leases: u32| {
+		frame_system::Pallet::<Polkadot>::set_block_number(now);
+		pallet_rc_migrator::crowdloan::num_leases_to_ending_block::<Polkadot>(num_leases)
+	};
 
-		if let Ok(stage) = std::env::var("START_STAGE") {
-			let stage = MigrationStage::from_str(&stage).expect("Invalid start stage");
-			RcMigrationStage::<Polkadot>::put(stage);
+	rc.execute_with(|| {
+		let p = <Polkadot as pallet_slots::Config>::LeasePeriod::get();
+		let o = <Polkadot as pallet_slots::Config>::LeaseOffset::get();
+
+		// Sanity check:
+		assert!(f(1000, 0).is_err());
+		assert!(f(1000, 10).is_err());
+		// Overflow check:
+		assert!(f(o, u32::MAX).is_err());
+
+		// In period 0:
+		assert_eq!(f(o, 0), Ok(o));
+		assert_eq!(f(o, 1), Ok(o + p));
+		assert_eq!(f(o, 2), Ok(o + 2 * p));
+
+		// In period 1:
+		assert_eq!(f(o + p, 0), Ok(o + p));
+		assert_eq!(f(o + p, 1), Ok(o + 2 * p));
+		assert_eq!(f(o + p, 2), Ok(o + 3 * p));
+
+		// In period 19 with 5 remaining:
+		assert_eq!(f(o + 19 * p, 1), Ok(o + 20 * p));
+		assert_eq!(f(o + 19 * p, 5), Ok(o + 24 * p));
+	});
+}
+
+#[test]
+fn sovereign_account_translation() {
+	let good_cases = [
+		(
+			// para 2094 account https://polkadot.subscan.io/account/13YMK2dzLWfnGZXSLuAxgZbBiNMHLfnPZ8itzwXryJ9FcWsE
+			"13YMK2dzLWfnGZXSLuAxgZbBiNMHLfnPZ8itzwXryJ9FcWsE",
+			// on ah (different account id) https://assethub-polkadot.subscan.io/account/13cKp88oRErgQAFatu83oCvzxr2b45qVcnNLFu4Mr2ApU6ZC
+			"13cKp88oRErgQAFatu83oCvzxr2b45qVcnNLFu4Mr2ApU6ZC",
+		),
+		(
+			"13YMK2dsXbyC866w2tFM4vH52nRs3uTwac32jh1FNXZBXv18",
+			"13cKp88gcLA6Fgq5atCSBZctHG7AmKX3eFgTzeXkFFakPWuo",
+		),
+	];
+
+	for (rc_acc, ah_acc) in good_cases {
+		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
+		let ah_acc = AccountId32::from_str(ah_acc).unwrap();
+
+		let (translated, _para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap().unwrap();
+		assert_eq!(translated, ah_acc);
+	}
+
+	let bad_cases = [
+		"13yJaZUmhMDG91AftfdNeJm6hMVSL9Jq2gqiyFdhiJgXf6AY", // wrong prefix
+		"13ddruDZgGbfVmbobzfNLV4momSgjkFnMXkfogizb4uEbHtQ", // "
+		"13cF4T4kfi8VYw2nTZfkYkn9BjGpmRDsivYxFqGYUWkU8L2d", // "
+		"13cKp88gcLA6Fgq5atCSBZctHG7AmKX3eFgTzeXkFFakPo6e", // last byte not 0
+		"13cF4T4kfiJ39NqGh4DAZSMo6NuWT1fYfZzCo9f5HH8dUFBJ", // 7 byte not zero
+		"13cKp88gcLA6Fgq5atCSBZctHGenFzUo3qmmReNVKzpnGvFg", // some center byte not zero
+	];
+
+	for rc_acc in bad_cases {
+		let rc_acc = AccountId32::from_str(rc_acc).unwrap();
+
+		let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc).unwrap();
+		assert!(translated.is_none());
+	}
+}
+
+/// For human consumption.
+#[tokio::test]
+async fn print_sovereign_account_translation() {
+	let (mut rc, mut ah) = load_externalities().await.unwrap();
+
+	let mut rc_to_ah = BTreeMap::new();
+
+	rc.execute_with(|| {
+		for para_id in paras_registrar::Paras::<Polkadot>::iter_keys().collect::<Vec<_>>() {
+			let rc_acc = xcm_builder::ChildParachainConvertsVia::<ParaId, AccountId32>::convert_location(&Location::new(0, Junction::Parachain(para_id.into()))).unwrap();
+
+			let (ah_acc, para_id) = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(rc_acc.clone()).unwrap().unwrap();
+			rc_to_ah.insert(rc_acc, (ah_acc, para_id));
 		}
 
-		let pre_check_payload =
-			pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::pre_check();
+		for account in frame_system::Account::<Polkadot>::iter_keys() {
+			let translated = pallet_rc_migrator::accounts::AccountsMigrator::<Polkadot>::try_translate_rc_sovereign_to_ah(account.clone()).unwrap();
 
-		// Loop until no more DMPs are added and we had at least 1
-		loop {
-			next_block_rc();
-
-			let new_dmps =
-				runtime_parachains::dmp::DownwardMessageQueues::<Polkadot>::take(para_id);
-			dmps.extend(new_dmps);
-
-			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::MigrationDone
-			{
-				log::info!("Migration done");
-				break (dmps, pre_check_payload);
+			if let Some((ah_acc, para_id)) = translated {
+				if !rc_to_ah.contains_key(&account) {
+					println!("Account belongs to an unregistered para {}: {}", para_id, account);
+					rc_to_ah.insert(account, (ah_acc, para_id));
+				}
 			}
 		}
 	});
-	rc.commit_all().unwrap();
-	// TODO: for some reason this prints some small value (2947), but logs on XCM send and receive
-	// show more iteration.
-	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
 
-	// Inject the DMP messages into the Asset Hub
+	let mut csv: String = "para,rc,ah\n".into();
+
+	// Sanity check that they all exist. Note that they dont *have to*, but all do.
+	println!("Translating {} RC accounts to AH", rc_to_ah.len());
 	ah.execute_with(|| {
-		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::pre_check();
-		let mut fp =
-			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
-		enqueue_dmp(dmp_messages);
+		for (rc_acc, (ah_acc, para_id)) in rc_to_ah.iter() {
+			println!("[{}] {} -> {}", para_id, rc_acc, ah_acc);
 
-		// Loop until no more DMPs are queued
-		loop {
-			let new_fp =
-				asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
-			if fp == new_fp {
-				log::info!("AH DMP messages left: {}", fp.storage.count);
-				break;
-			}
-			fp = new_fp;
-
-			log::debug!("AH DMP messages left: {}", fp.storage.count);
-			next_block_ah();
-
-			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::PreimageMigrationDone
-			{
-				pallet_rc_migrator::preimage::PreimageChunkMigrator::<Polkadot>::post_check(
-					pre_check_payload.clone(),
-				);
-			}
+			csv.push_str(&format!("{},{},{}\n", para_id, rc_acc, ah_acc));
 		}
-
-		pallet_ah_migrator::preimage::PreimageMigrationCheck::<AssetHub>::post_check(());
-		// NOTE that the DMP queue is probably not empty because the snapshot that we use contains
-		// some overweight ones.
 	});
+
+	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv",
+	// csv).unwrap();
 }

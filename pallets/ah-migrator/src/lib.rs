@@ -39,6 +39,7 @@ pub mod bounties;
 pub mod call;
 pub mod claims;
 pub mod conviction_voting;
+pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
 pub mod preimage;
@@ -56,7 +57,7 @@ use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold},
+		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -67,6 +68,7 @@ use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
+	crowdloan::RcCrowdloanMessageOf,
 	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
@@ -104,10 +106,13 @@ type RcAccountFor<T> = RcAccount<
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
+	Crowdloan,
 	BagsList,
 	Vesting,
 	Bounties,
 }
+
+pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
@@ -134,6 +139,8 @@ pub mod pallet {
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
+		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_ah_ops::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -142,6 +149,7 @@ pub mod pallet {
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
 			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
+			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
 		/// XCM check account.
@@ -371,21 +379,6 @@ pub mod pallet {
 			count_good: u32,
 			/// How many scheduler messages failed to integrate.
 			count_bad: u32,
-		},
-		/// Should not happen. Manual intervention by the Fellowship required.
-		///
-		/// Can happen when existing AH and incoming RC vesting schedules have more combined
-		/// entries than allowed. This triggers the merging logic which has henceforth failed
-		/// with the given inner pallet-vesting error.
-		FailedToMergeVestingSchedules {
-			/// The account that failed to merge the schedules.
-			who: AccountId32,
-			/// The first schedule index that failed to merge.
-			schedule1: u32,
-			/// The second schedule index that failed to merge.
-			schedule2: u32,
-			/// The index of the pallet-vesting error that occurred.
-			pallet_vesting_error_index: Option<u8>,
 		},
 		ConvictionVotingMessagesReceived {
 			/// How many conviction voting messages are in the batch.
@@ -626,6 +619,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_asset_rates(rates).map_err(Into::into)
+		}
+
+		#[pallet::call_index(19)]
+		pub fn receive_crowdloan_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcCrowdloanMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
 		}
 	}
 
