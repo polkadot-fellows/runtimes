@@ -49,34 +49,37 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 7)]
 	ReceiveNomPoolsMessages { messages: Vec<staking::nom_pools::RcNomPoolsMessage<T>> },
 	#[codec(index = 8)]
-	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
+	ReceiveVestingSchedules { messages: Vec<vesting::RcVestingSchedule<T>> },
 	#[codec(index = 9)]
+	ReceiveFastUnstakeMessages { messages: Vec<staking::fast_unstake::RcFastUnstakeMessage<T>> },
+	#[codec(index = 10)]
 	ReceiveReferendaValues {
 		referendum_count: u32,
 		deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	},
-	#[codec(index = 10)]
-	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 11)]
-	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
+	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
 	#[codec(index = 12)]
-	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
+	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
-	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
+	ReceiveBagsListMessages { messages: Vec<staking::bags_list::RcBagsListMessage<T>> },
 	#[codec(index = 14)]
-	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	ReceiveSchedulerMessages { messages: Vec<scheduler::RcSchedulerMessageOf<T>> },
 	#[codec(index = 15)]
+	ReceiveIndices { indices: Vec<indices::RcIndicesIndexOf<T>> },
+	#[codec(index = 16)]
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
-	#[codec(index = 16)]
-	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 17)]
+	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
+	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
-
+	#[codec(index = 19)]
+	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 101)]
-	StartMigration,
+	StartMigration,	
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
@@ -119,17 +122,43 @@ pub trait PalletMigration {
 	) -> Result<Option<Self::Key>, Self::Error>;
 }
 
-/// Trait to run some checks before and after a pallet migration.
+/// Trait to run some checks on the Relay Chain before and after a pallet migration.
 ///
 /// This needs to be called by the test harness.
-pub trait PalletMigrationChecks {
-	type Payload;
+pub trait RcPalletMigrationChecks {
+	/// Relay Chain payload which is exported for migration checks.
+	type RcPayload: Clone;
 
-	/// Run some checks before the migration and store intermediate payload.
-	fn pre_check() -> Self::Payload;
+	/// Run some checks on the relay chain before the migration and store intermediate payload.
+	/// The expected output should contain the data being transferred out of the relay chain and it
+	/// will .
+	fn pre_check() -> Self::RcPayload;
+
+	/// Run some checks on the relay chain after the migration and use the intermediate payload.
+	/// The expected input should contain the data just transferred out of the relay chain, to allow
+	/// the check that data has been removed from the relay chain.
+	fn post_check(rc_payload: Self::RcPayload);
+}
+
+/// Trait to run some checks on the Asset Hub before and after a pallet migration.
+///
+/// This needs to be called by the test harness.
+pub trait AhPalletMigrationChecks {
+	/// Relay Chain payload which is exported for migration checks.
+	type RcPayload: Clone;
+	/// Asset hub payload for data that needs to be preserved during migration.
+	type AhPayload;
+
+	/// Run some checks on asset hub before the migration and store intermediate payload.
+	/// The expected output should contain the data stored in asset hub before the migration.
+	fn pre_check() -> Self::AhPayload;
 
 	/// Run some checks after the migration and use the intermediate payload.
-	fn post_check(payload: Self::Payload);
+	/// The expected input should contain the data just transferred out of the relay chain, to allow
+	/// the check that data has been correctly migrated to asset hub. It should also contain the
+	/// data previously stored in asset hub, allowing for more complex logical checks on the
+	/// migration outcome.
+	fn post_check(ah_payload: Self::AhPayload, rc_payload: Self::RcPayload);
 }
 
 pub trait MigrationStatus {

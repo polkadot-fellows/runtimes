@@ -50,10 +50,12 @@ impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAf
 ///
 /// Visually:
 ///
+/// ```text
 ///         |-----1-----|
 ///                      |---2---->
 /// --------|-----------|--------->
 ///       Start        End
+/// ```
 ///
 /// This call returns a 2-tuple to indicate whether a call is enabled during these periods.
 pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall) -> (bool, bool) {

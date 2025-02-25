@@ -14,12 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::str::FromStr;
+
 use asset_hub_polkadot_runtime::Block as AssetHubBlock;
-use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage};
+use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
 use frame_support::traits::EnqueueMessage;
-use polkadot_runtime::Block as PolkadotBlock;
+use pallet_rc_migrator::{
+	types::{AhPalletMigrationChecks, RcPalletMigrationChecks},
+	MigrationStage, RcMigrationStage,
+};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use sp_runtime::BoundedVec;
+
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
 
 const LOG_RC: &str = "runtime::relay";
 const LOG_AH: &str = "runtime::asset-hub";
@@ -55,25 +63,25 @@ pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
 }
 
 pub fn next_block_rc() {
-	let now = frame_system::Pallet::<polkadot_runtime::Runtime>::block_number();
+	let now = frame_system::Pallet::<Polkadot>::block_number();
 	log::debug!(target: LOG_RC, "Next block: {:?}", now + 1);
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
-	frame_system::Pallet::<polkadot_runtime::Runtime>::set_block_number(now + 1);
-	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
+	frame_system::Pallet::<Polkadot>::set_block_number(now + 1);
+	frame_system::Pallet::<Polkadot>::reset_events();
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
 		now + 1,
 	);
 }
 
 pub fn next_block_ah() {
-	let now = frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::block_number();
+	let now = frame_system::Pallet::<AssetHub>::block_number();
 	log::debug!(target: LOG_AH, "Next block: {:?}", now + 1);
 	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(
 		now,
 	);
-	frame_system::Pallet::<asset_hub_polkadot_runtime::Runtime>::set_block_number(now + 1);
+	frame_system::Pallet::<AssetHub>::set_block_number(now + 1);
 	<asset_hub_polkadot_runtime::MessageQueue as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
-	frame_system::Pallet::<polkadot_runtime::Runtime>::reset_events();
+	frame_system::Pallet::<Polkadot>::reset_events();
 	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
 }
 
@@ -89,4 +97,90 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 			AggregateMessageOrigin::Parent,
 		);
 	}
+}
+
+// Migrates the pallet out of the Relay Chain and returns the corresponding Payload.
+//
+// Sends DMP messages with pallet migration data from relay chain to asset hub. The output includes
+// both the DMP messages sent from the relay chain to asset hub, which will be used to perform the
+// migration, and the relay chain payload, which will be used to check the correctness of the
+// migration process.
+pub fn rc_migrate<RcMigrator: RcPalletMigrationChecks>(
+	mut relay_chain: RemoteExternalities<PolkadotBlock>,
+) -> (Vec<InboundDownwardMessage>, RcMigrator::RcPayload) {
+	// AH parachain ID
+	let para_id = ParaId::from(1000);
+
+	// Simulate relay blocks and grab the DMP messages
+	let (dmp_messages, rc_payload) = relay_chain.execute_with(|| {
+		let mut dmps = Vec::new();
+
+		if let Ok(stage) = std::env::var("START_STAGE") {
+			let stage = MigrationStage::from_str(&stage).expect("Invalid start stage");
+			RcMigrationStage::<Polkadot>::put(stage);
+		}
+
+		let rc_payload = RcMigrator::pre_check();
+
+		// Loop until no more DMPs are added and we had at least 1
+		loop {
+			next_block_rc();
+
+			let new_dmps =
+				runtime_parachains::dmp::DownwardMessageQueues::<Polkadot>::take(para_id);
+			dmps.extend(new_dmps);
+
+			if RcMigrationStage::<Polkadot>::get() ==
+				pallet_rc_migrator::MigrationStage::MigrationDone
+			{
+				log::info!("Migration done");
+				break (dmps, rc_payload);
+			}
+		}
+	});
+	relay_chain.commit_all().unwrap();
+	log::info!("Num of RC->AH DMP messages: {}", dmp_messages.len());
+	(dmp_messages, rc_payload)
+}
+
+// Migrates the pallet into Asset Hub.
+//
+// Processes all the pending DMP messages in the AH message queue to complete the pallet
+// migration. Uses the relay chain pre-migration payload to check the correctness of the
+// migration once completed.
+pub fn ah_migrate<
+	RcMigrator: RcPalletMigrationChecks,
+	AhMigrator: AhPalletMigrationChecks<RcPayload = RcMigrator::RcPayload>,
+>(
+	mut asset_hub: RemoteExternalities<AssetHubBlock>,
+	rc_payload: RcMigrator::RcPayload,
+	dmp_messages: Vec<InboundDownwardMessage>,
+) {
+	// Inject the DMP messages into the Asset Hub
+	asset_hub.execute_with(|| {
+		let ah_payload = AhMigrator::pre_check();
+		let mut fp =
+			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+		enqueue_dmp(dmp_messages);
+
+		// Loop until no more DMPs are queued
+		loop {
+			let new_fp =
+				asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+			if fp == new_fp {
+				log::info!("AH DMP messages left: {}", fp.storage.count);
+				break;
+			}
+			fp = new_fp;
+
+			log::debug!("AH DMP messages left: {}", fp.storage.count);
+			next_block_ah();
+		}
+
+		RcMigrator::post_check(rc_payload.clone());
+		AhMigrator::post_check(ah_payload, rc_payload);
+		// NOTE that the DMP queue is probably not empty because the snapshot that we use
+		// contains some overweight ones.
+		// TODO compare with the number of messages before the migration
+	});
 }

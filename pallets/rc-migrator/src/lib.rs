@@ -33,6 +33,7 @@
 
 pub mod accounts;
 pub mod claims;
+pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
 pub mod preimage;
@@ -40,6 +41,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod staking;
 pub mod types;
+pub mod vesting;
 mod weights;
 pub use pallet::*;
 pub mod asset_rate;
@@ -65,7 +67,9 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
-use polkadot_runtime_common::{claims as pallet_claims, paras_registrar};
+use polkadot_runtime_common::{
+	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+};
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
 };
@@ -82,6 +86,7 @@ use staking::{
 };
 use storage::TransactionOutcome;
 use types::{AhWeightInfo, PalletMigration};
+use vesting::VestingMigrator;
 use weights::WeightInfo;
 use xcm::prelude::*;
 
@@ -118,6 +123,8 @@ pub enum PalletEventName {
 	FastUnstake,
 	BagsList,
 }
+
+pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
@@ -193,6 +200,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 	},
 	NomPoolsMigrationDone,
 
+	VestingMigrationInit,
+	VestingMigrationOngoing {
+		next_key: Option<AccountId>,
+	},
+	VestingMigrationDone,
+
 	FastUnstakeMigrationInit,
 	FastUnstakeMigrationOngoing {
 		next_key: Option<FastUnstakeStage<AccountId>>,
@@ -226,16 +239,25 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 		last_key: Option<conviction_voting::ConvictionVotingStage<AccountId, VotingClass>>,
 	},
 	ConvictionVotingMigrationDone,
+
 	BountiesMigrationInit,
 	BountiesMigrationOngoing {
 		last_key: Option<bounties::BountiesStage>,
 	},
 	BountiesMigrationDone,
+
 	AssetRateMigrationInit,
 	AssetRateMigrationOngoing {
 		last_key: Option<AssetKind>,
 	},
 	AssetRateMigrationDone,
+
+	CrowdloanMigrationInit,
+	CrowdloanMigrationOngoing {
+		last_key: Option<crowdloan::CrowdloanStage>,
+	},
+	CrowdloanMigrationDone,
+
 	MigrationDone,
 }
 
@@ -270,6 +292,8 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
+			"skip-accounts" => MigrationStage::AccountsMigrationDone,
+			"crowdloan" => MigrationStage::CrowdloanMigrationInit,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
@@ -284,7 +308,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 type AccountInfoFor<T> =
 	AccountInfo<<T as frame_system::Config>::Nonce, <T as frame_system::Config>::AccountData>;
 
-#[frame_support::pallet(dev_mode)]
+#[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::schedule::DispatchTime;
 
@@ -310,11 +334,14 @@ pub mod pallet {
 		+ pallet_fast_unstake::Config
 		+ pallet_bags_list::Config<pallet_bags_list::Instance1>
 		+ pallet_scheduler::Config
+		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 		+ pallet_bounties::Config
 		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
+		+ pallet_slots::Config
+		+ pallet_crowdloan::Config
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -345,18 +372,15 @@ pub mod pallet {
 		type AhWeightInfo: AhWeightInfo;
 		/// The existential deposit on the Asset Hub.
 		type AhExistentialDeposit: Get<<Self as pallet_balances::Config>::Balance>;
-		/// Contains all calls that are allowed during the migration.
-		///
-		/// The calls in here will be available again after the migration.
+		/// Contains calls that are allowed during the migration.
 		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
-		/// Contains all calls that are allowed after the migration finished.
+		/// Contains calls that are allowed after the migration finished.
 		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The error that should to be replaced by something meaningful.
-		TODO,
+		Unreachable,
 		OutOfWeight,
 		/// Failed to send XCM message to AH.
 		XcmError,
@@ -411,6 +435,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
+		#[pallet::weight(0)]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(stage);
@@ -419,6 +444,7 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start_moment: DispatchTime<BlockNumberFor<T>>,
@@ -435,6 +461,7 @@ pub mod pallet {
 		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
 		/// migration data.
 		#[pallet::call_index(2)]
+		#[pallet::weight(0)]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
@@ -443,7 +470,13 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+		where
+		crate::BalanceOf<T>:
+			From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+		crate::BalanceOf<T>:
+			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+	{
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
 			let stage = RcMigrationStage::<T>::get();
@@ -771,6 +804,36 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::NomPoolsMigrationDone => {
+					Self::transition(MigrationStage::VestingMigrationInit);
+				},
+
+				MigrationStage::VestingMigrationInit => {
+					Self::transition(MigrationStage::VestingMigrationOngoing { next_key: None });
+				},
+				MigrationStage::VestingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match VestingMigrator::<T>::migrate_many(next_key, &mut weight_counter) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::VestingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::VestingMigrationOngoing {
+								next_key: Some(next_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating vesting: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::VestingMigrationDone => {
 					Self::transition(MigrationStage::FastUnstakeMigrationInit);
 				},
 				MigrationStage::FastUnstakeMigrationInit => {
@@ -1028,9 +1091,40 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AssetRateMigrationDone => {
+					Self::transition(MigrationStage::CrowdloanMigrationInit);
+				},
+				MigrationStage::CrowdloanMigrationInit => {
+					Self::transition(MigrationStage::CrowdloanMigrationOngoing { last_key: None });
+				},
+				MigrationStage::CrowdloanMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match crowdloan::CrowdloanMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+						Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::CrowdloanMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::CrowdloanMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating crowdloan: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::CrowdloanMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
-
 				MigrationStage::MigrationDone => (),
 			};
 
@@ -1150,14 +1244,18 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		const ALLOWED: bool = true;
 		const FORBIDDEN: bool = false;
 
-		if stage.is_finished() && !T::RcIntraMigrationCalls::contains(call) {
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::RcPostMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
-		if stage.is_ongoing() && !T::RcPostMigrationCalls::contains(call) {
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::RcIntraMigrationCalls::contains(call) {
 			return FORBIDDEN;
 		}
 
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
 	}
 }
