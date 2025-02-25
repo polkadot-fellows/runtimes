@@ -10,7 +10,7 @@ version.workspace = true
 
 [dependencies]
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
-hex-literal = { optional = true, workspace = true }
+hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde_json = { features = ["alloc"], workspace = true }
@@ -45,6 +45,7 @@ pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
@@ -104,7 +105,6 @@ pallet-xcm-bridge-hub-router = { workspace = true }
 snowbridge-router-primitives = { workspace = true }
 
 [dev-dependencies]
-hex-literal = { workspace = true }
 asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
@@ -124,7 +124,6 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"hex-literal",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -133,6 +132,7 @@ runtime-benchmarks = [
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -170,6 +170,7 @@ try-runtime = [
 	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-session/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-uniques/try-runtime",
@@ -219,6 +220,7 @@ std = [
 	"pallet-nfts/std",
 	"pallet-proxy/std",
 	"pallet-session/std",
+	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
