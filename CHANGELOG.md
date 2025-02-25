@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Enabled state-trie-migration for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/593](https://github.com/polkadot-fellows/runtimes/pull/593))
+- Enabled state-trie-migration for Kusama and Polkadot Asset Hubs ([polkadot-fellows/runtimes/pull/604](https://github.com/polkadot-fellows/runtimes/pull/604))
 
 ### Changed
 
