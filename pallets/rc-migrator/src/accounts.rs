@@ -309,7 +309,7 @@ impl<T: Config> AccountsMigrator<T> {
 				(reserved, <T as Config>::Currency::minimum_balance())
 			},
 			// migrate the entire account
-			_ => (0, 0),
+			AccountState::Migrate => (0, 0),
 		};
 
 		log::debug!(
