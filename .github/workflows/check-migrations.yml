@@ -129,8 +129,8 @@ jobs:
 
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
-            $OVERWRITE_STATE_VERSION \
             --runtime $RUNTIME_BLOB_PATH \
+            $OVERWRITE_STATE_VERSION \
             on-runtime-upgrade --checks=$CHECKS \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}"
