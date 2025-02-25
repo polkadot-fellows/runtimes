@@ -18,6 +18,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod people;
@@ -26,6 +28,7 @@ mod tests;
 mod weights;
 pub mod xcm_config;
 
+use alloc::{borrow::Cow, string::String, vec, vec::Vec};
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
@@ -58,7 +61,7 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, RuntimeDebug,
@@ -95,8 +98,8 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 
-/// The SignedExtension to the basic transaction logic.
-pub type SignedExtra = (
+/// The TransactionExtension to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -110,7 +113,7 @@ pub type SignedExtra = (
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
 parameter_types! {
 	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
@@ -119,11 +122,6 @@ parameter_types! {
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
 	// unreleased and/or un-applied
-	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	frame_support::migrations::RemovePallet<
-		IdentityMigratorPalletName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -146,14 +144,14 @@ impl_opaque_keys! {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("people-polkadot"),
-	impl_name: create_runtime_str!("people-polkadot"),
+	spec_name: Cow::Borrowed("people-polkadot"),
+	impl_name: Cow::Borrowed("people-polkadot"),
 	authoring_version: 1,
 	spec_version: 1_004_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 0,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -199,6 +197,7 @@ impl frame_system::Config for Runtime {
 	type Version = Version;
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = ConstU32<16>;
@@ -235,6 +234,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ConstU32<0>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -250,6 +250,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -270,6 +271,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -580,12 +582,14 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		// Substrate
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
 		// Cumulus
@@ -642,7 +646,7 @@ impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -835,6 +839,7 @@ impl_runtime_apis! {
 			use frame_benchmarking::{Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use frame_system_benchmarking::extensions::Pallet as SystemExtensionsBench;
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 
@@ -853,14 +858,15 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, String> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
 			use frame_support::traits::WhitelistedStorageKeys;
 			use sp_storage::TrackedStorageKey;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use frame_system_benchmarking::extensions::Pallet as SystemExtensionsBench;
 			impl frame_system_benchmarking::Config for Runtime {
-				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+				fn setup_set_code_requirements(code: &Vec<u8>) -> Result<(), BenchmarkError> {
 					ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
 					Ok(())
 				}
