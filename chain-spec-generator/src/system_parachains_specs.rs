@@ -42,7 +42,7 @@ pub type BridgeHubKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type GluttonKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-// pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
+pub type EncointerKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type CoretimeKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
@@ -172,25 +172,25 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 	))
 }
 
-// pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
-// 	let mut properties = sc_chain_spec::Properties::new();
-// 	properties.insert("ss58Format".into(), 2.into());
-// 	properties.insert("tokenSymbol".into(), "KSM".into());
-// 	properties.insert("tokenDecimals".into(), 12.into());
-//
-// 	Ok(Box::new(
-// 		EncointerKusamaChainSpec::builder(
-// 			encointer_kusama_runtime::WASM_BINARY.expect("EncointerKusama wasm not available!"),
-// 			Extensions { relay_chain: "kusama-local".into(), para_id: 1001 },
-// 		)
-// 		.with_name("Kusama Encointer Local")
-// 		.with_id("encointer-kusama-local")
-// 		.with_chain_type(ChainType::Local)
-// 		.with_genesis_config_preset_name("local_testnet")
-// 		.with_properties(properties)
-// 		.build(),
-// 	))
-// }
+pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("ss58Format".into(), 2.into());
+	properties.insert("tokenSymbol".into(), "KSM".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+
+	Ok(Box::new(
+		EncointerKusamaChainSpec::builder(
+			encointer_kusama_runtime::WASM_BINARY.expect("EncointerKusama wasm not available!"),
+			Extensions { relay_chain: "kusama-local".into(), para_id: 1001 },
+		)
+		.with_name("Kusama Encointer Local")
+		.with_id("encointer-kusama-local")
+		.with_chain_type(ChainType::Local)
+		.with_genesis_config_preset_name("local_testnet")
+		.with_properties(properties)
+		.build(),
+	))
+}
 
 pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
