@@ -1577,8 +1577,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = ();
-	type AhWeightInfo = ();
+	type RcWeightInfo = (); // TODO: weights::pallet_rc_migrator::WeightInfo;
+	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }

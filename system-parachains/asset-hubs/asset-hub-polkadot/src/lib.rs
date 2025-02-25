@@ -1134,6 +1134,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
+	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }

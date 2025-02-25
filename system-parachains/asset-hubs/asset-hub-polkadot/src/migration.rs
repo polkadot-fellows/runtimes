@@ -15,7 +15,7 @@
 
 use super::*;
 use codec::DecodeAll;
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::{pallet_prelude::TypeInfo, traits::Get};
 use frame_system::pallet_prelude::BlockNumberFor;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
 use sp_runtime::traits::{Convert, TryConvert};
@@ -45,6 +45,11 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 		PreimageHoldReason::get()
 	}
 }
+impl Get<RcHoldReason> for RcToAhHoldReason {
+	fn get() -> RcHoldReason {
+		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
 
 pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
@@ -58,6 +63,12 @@ impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
 		}
 	}
 }
+impl Get<RcFreezeReason> for RcToAhFreezeReason {
+	fn get() -> RcFreezeReason {
+		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+	}
+}
+
 /// Relay Chain Proxy Type
 ///
 /// Coped from https://github.com/polkadot-fellows/runtimes/blob/dde99603d7dbd6b8bf541d57eb30d9c07a4fce32/relay/polkadot/src/lib.rs#L986-L1010
@@ -86,6 +97,11 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			RcProxyType::Auction => Err(p), // Does not exist on AH
 			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
 		}
+	}
+}
+impl Get<RcProxyType> for RcToProxyType {
+	fn get() -> RcProxyType {
+		RcProxyType::Any
 	}
 }
 

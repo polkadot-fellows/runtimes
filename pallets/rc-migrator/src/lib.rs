@@ -41,7 +41,8 @@ pub mod referenda;
 pub mod staking;
 pub mod types;
 pub mod vesting;
-mod weights;
+pub mod weights;
+pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
 pub mod bounties;
@@ -82,9 +83,10 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-use types::{AhWeightInfo, PalletMigration};
+use types::PalletMigration;
 use vesting::VestingMigrator;
 use weights::WeightInfo;
+use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 
 /// The log target of this pallet.
@@ -451,7 +453,10 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T>::migrate_many(last_key, &mut weight_counter) {
+						match MultisigMigrator::<T, T::AhWeightInfo>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}
