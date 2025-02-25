@@ -79,7 +79,7 @@ pub enum AhMigratorCall<T: Config> {
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 101)]
-	StartMigration,	
+	StartMigration,
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.
