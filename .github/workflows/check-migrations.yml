@@ -124,7 +124,7 @@ jobs:
           OVERWRITE_STATE_VERSION=""
           if [[ "${{ matrix.runtime.name }}" == "asset-hub-kusama" || "${{ matrix.runtime.name }}" == "asset-hub-polkadot" ]]; then
             OVERWRITE_STATE_VERSION="--overwrite-state-version 1"
-            echo "Adding --overwrite-state-version 1 for ${matrix.runtime.name}"
+            echo "Adding --overwrite-state-version 1 for ${{ matrix.runtime.name }}"
           fi
 
           # Store the command in a variable so we can log it
