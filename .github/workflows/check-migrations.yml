@@ -119,19 +119,26 @@ jobs:
           export RUST_LOG=remote-ext=debug,runtime=debug
 
           echo "Extra args: $EXTRA_FLAGS"
-  
+
+          # Temporaraly add --overwrite-state-version 1 for asset-hub-kusama and asset-hub-polkadot 
+          OVERWRITE_STATE_VERSION=""
+          if [[ "${{ matrix.runtime.name }}" == "asset-hub-kusama" || "${{ matrix.runtime.name }}" == "asset-hub-polkadot" ]]; then
+            OVERWRITE_STATE_VERSION="--overwrite-state-version 1"
+            echo "Adding --overwrite-state-version 1 for ${matrix.runtime.name}"
+          fi
+
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
+            $OVERWRITE_STATE_VERSION \
             --runtime $RUNTIME_BLOB_PATH \
             on-runtime-upgrade --checks=$CHECKS \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}"
-  
+
           # Echo the command before running it, for debugging purposes
           echo "Running command:"
           echo "$COMMAND"
           eval "$COMMAND"
-          
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
