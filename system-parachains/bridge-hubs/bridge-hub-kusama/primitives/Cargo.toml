@@ -23,7 +23,6 @@ bp-messages = { workspace = true }
 frame-support = { workspace = true }
 sp-api = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 [features]
 default = ["std"]
@@ -36,6 +35,5 @@ std = [
 	"polkadot-runtime-constants/std",
 	"sp-api/std",
 	"sp-runtime/std",
-	"sp-std/std",
 	"system-parachains-constants/std",
 ]

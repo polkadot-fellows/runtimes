@@ -18,7 +18,6 @@
 
 use crate::*;
 use sp_genesis_builder::PresetId;
-use sp_std::vec::Vec;
 use system_parachains_constants::genesis_presets::*;
 
 const COLLECTIVES_POLKADOT_ED: Balance = ExistentialDeposit::get();
