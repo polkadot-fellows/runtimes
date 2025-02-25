@@ -407,17 +407,6 @@ pub mod pallet {
 					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
-					// TODO: remove when fixed https://github.com/polkadot-fellows/runtimes/issues/583
-					// 5DJEUVcwMAWxii979uTrYzBSZK6mPeD4jok3EDimNgzgNhXa
-					let account_id = hex_literal::hex![
-						"368d7df47ff9f015a247ddea7b37abb1d56387b632adf8393bb73f606540fd1f"
-					]
-					.into();
-					let lost_reserve_amount = 12_578_310_000_000;
-					<T as Config>::Currency::mint_into(&account_id, lost_reserve_amount).unwrap();
-					<T as Config>::Currency::reserve(&account_id, lost_reserve_amount).unwrap();
-					// TODO end.
-
 					// TODO: weights
 					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
 

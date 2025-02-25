@@ -596,6 +596,15 @@ impl<T: Config> AccountsMigrator<T> {
 			let rc_reserved = rc_reserved.min(total_reserved.saturating_sub(total_hold));
 			let ah_free = free.saturating_sub(rc_ed);
 
+			if rc_reserved == 0 {
+				log::debug!(
+					target: LOG_TARGET,
+					"Account has no enough reserved balance to keep on RC. account: {:?}.",
+					id.to_ss58check(),
+				);
+				continue;
+			}
+
 			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
 				// when there is no much free balance and the account is used only for reserves
 				// for parachains registering or hrmp channels we will keep the entire account on
