@@ -46,6 +46,7 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
+xcm = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 [features]
@@ -89,6 +90,7 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"xcm/std",
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
