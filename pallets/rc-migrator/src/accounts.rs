@@ -560,14 +560,17 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
 
 			let recipient: T::AccountId = channel_id.recipient.into_account_truncating();
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1539
 			update_reserves(recipient, info.recipient_deposit);
 		}
 
 		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
 		}
