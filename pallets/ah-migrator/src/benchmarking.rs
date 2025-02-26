@@ -155,7 +155,7 @@ mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn receive_multisigs_from_snap(n: Linear<0, 100>) {
+	fn receive_multisigs_from_snap(n: Linear<1, 255>) {
 		verify_snapshot::<T>();
 		let (mut messages, _cursor) = relay_snapshot(|| {
 			unwrap_no_debug(
@@ -185,7 +185,7 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_multisigs(n: Linear<0, 255>) {
+	fn receive_multisigs(n: Linear<1, 255>) {
 		let messages = (0..n)
 			.map(|i| <<T as Config>::BenchmarkHelper>::create_multisig(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
@@ -199,7 +199,7 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_accounts(n: Linear<0, 255>) {
+	fn receive_accounts(n: Linear<1, 255>) {
 		let messages = (0..n)
 			.map(|i| <<T as Config>::BenchmarkHelper>::create_account(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
@@ -211,7 +211,7 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_claims(n: Linear<0, 255>) {
+	fn receive_claims(n: Linear<1, 255>) {
 		let messages = (0..n)
 			.map(|i| <<T as Config>::BenchmarkHelper>::create_vesting_msg(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
@@ -223,7 +223,7 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_proxy_proxies(n: Linear<0, 255>) {
+	fn receive_proxy_proxies(n: Linear<1, 255>) {
 		let messages = (0..n)
 			.map(|i| <<T as Config>::BenchmarkHelper>::create_proxy(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
@@ -237,7 +237,7 @@ mod benchmarks {
 	}
 
 	#[benchmark]
-	fn receive_proxy_announcements(n: Linear<0, 255>) {
+	fn receive_proxy_announcements(n: Linear<1, 255>) {
 		let messages = (0..n)
 			.map(|i| {
 				<<T as Config>::BenchmarkHelper>::create_proxy_announcement(i.try_into().unwrap())

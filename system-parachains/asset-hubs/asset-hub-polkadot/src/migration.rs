@@ -15,7 +15,7 @@
 
 use super::*;
 use codec::DecodeAll;
-use frame_support::{pallet_prelude::TypeInfo, traits::Get};
+use frame_support::pallet_prelude::TypeInfo;
 use frame_system::pallet_prelude::BlockNumberFor;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
 use sp_runtime::traits::{Convert, TryConvert};
