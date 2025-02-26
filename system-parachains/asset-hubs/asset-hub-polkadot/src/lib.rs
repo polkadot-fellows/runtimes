@@ -67,7 +67,7 @@ mod impls;
 mod weights;
 pub mod xcm_config;
 
-use alloc::{borrow::Cow, boxed::Box, string::String, vec, vec::Vec};
+use alloc::{borrow::Cow, string::String, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
@@ -1061,6 +1061,7 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use alloc::boxed::Box;
 	use super::*;
 
 	frame_benchmarking::define_benchmarks!(

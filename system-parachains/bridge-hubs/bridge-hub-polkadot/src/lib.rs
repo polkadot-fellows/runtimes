@@ -31,7 +31,7 @@ pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;
 
-use alloc::{borrow::Cow, boxed::Box, string::String, vec, vec::Vec};
+use alloc::{borrow::Cow, string::String, vec, vec::Vec};
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
@@ -599,6 +599,7 @@ use pallet_bridge_messages::LaneIdOf;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use alloc::boxed::Box;
 	use super::*;
 
 	frame_benchmarking::define_benchmarks!(

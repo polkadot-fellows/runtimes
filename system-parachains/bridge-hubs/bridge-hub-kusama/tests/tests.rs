@@ -28,7 +28,7 @@ use bridge_hub_kusama_runtime::{
 		KsmRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
 		RelayTreasuryPalletAccount, XcmConfig,
 	},
-	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
+	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
 	ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, SessionKeys, TransactionPayment, TxExtension, UncheckedExtrinsic, SLOT_DURATION,
 };

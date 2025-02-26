@@ -44,7 +44,7 @@ use core::marker::PhantomData;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use encointer_balances_tx_payment::{
-	AccountIdOf, AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance, ONE_KSM,
+	AccountIdOf, AssetBalanceOf, AssetIdOf, BalanceToCommunityBalance,
 };
 pub use encointer_primitives::{
 	balances::{BalanceEntry, BalanceType, Demurrage},
@@ -676,7 +676,7 @@ impl
 	}
 	fn setup_balances_and_pool(asset_id: CommunityIdentifier, account: AccountId) {
 		use frame_support::traits::fungible::Mutate;
-		Balances::set_balance(&account, ONE_KSM);
+		Balances::set_balance(&account, encointer_balances_tx_payment::ONE_KSM);
 		EncointerBalances::issue(asset_id, &account, BalanceType::from_num(100u32)).unwrap();
 	}
 }
