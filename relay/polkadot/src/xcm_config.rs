@@ -46,6 +46,8 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
+pub use pallet_rc_migrator::xcm_config::*;
+
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
@@ -123,6 +125,7 @@ parameter_types! {
 	pub FeeAssetId: AssetId = AssetId(TokenLocation::get());
 	/// The base fee for the message delivery fees.
 	pub const BaseDeliveryFee: u128 = CENTS.saturating_mul(3);
+	pub const MaxAssetsIntoHolding: u32 = 64;
 }
 
 pub type PriceForChildParachainDelivery =
@@ -134,30 +137,6 @@ pub type XcmRouter = WithUniqueTopic<(
 	// Only one router so far - use DMP to communicate with child parachains.
 	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
 )>;
-
-parameter_types! {
-	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
-	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
-	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
-	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
-	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
-	pub CoretimeLocation: Location = Parachain(BROKER_ID).into_location();
-	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
-	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
-	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
-	pub People: Location = Parachain(PEOPLE_ID).into_location();
-	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
-	pub const MaxAssetsIntoHolding: u32 = 64;
-}
-
-/// Polkadot Relay recognizes/respects System Parachains as teleporters.
-pub type TrustedTeleporters = (
-	xcm_builder::Case<DotForAssetHub>,
-	xcm_builder::Case<DotForCollectives>,
-	xcm_builder::Case<DotForBridgeHub>,
-	xcm_builder::Case<DotForCoretime>,
-	xcm_builder::Case<DotForPeople>,
-);
 
 pub struct Fellows;
 impl Contains<Location> for Fellows {
@@ -216,7 +195,7 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter = crate::RcMigrator;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<

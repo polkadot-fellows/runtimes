@@ -51,8 +51,10 @@ pub mod conviction_voting;
 pub mod scheduler;
 pub mod xcm_config;
 
+use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
+use frame_support::traits::ContainsPair;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -279,9 +281,9 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(
 			self,
-			MigrationStage::Pending |
-				MigrationStage::Scheduled { .. } |
-				MigrationStage::MigrationDone
+			MigrationStage::Pending
+				| MigrationStage::Scheduled { .. }
+				| MigrationStage::MigrationDone
 		)
 	}
 }
@@ -1307,5 +1309,19 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// Otherwise, allow the call.
 		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
+	}
+}
+
+// To be used for `IsTeleport` filter. Disallows teleports during the migration.
+impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let stage = RcMigrationStage::<T>::get();
+		if stage.is_ongoing() {
+			// during migration, no teleports (in or out) allowed
+			false
+		} else {
+			// before and after migration use normal filter
+			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+		}
 	}
 }
