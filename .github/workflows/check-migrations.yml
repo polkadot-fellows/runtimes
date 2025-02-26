@@ -95,6 +95,7 @@ jobs:
           echo "Checks: $CHECKS"
 
           echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
+          echo "RUNTIME_EXTRA_ARGS=$RUNTIME_EXTRA_ARGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Set rust version via common env file
