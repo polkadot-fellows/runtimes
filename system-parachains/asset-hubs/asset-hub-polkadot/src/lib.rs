@@ -1061,8 +1061,8 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	use alloc::boxed::Box;
 	use super::*;
+	use alloc::boxed::Box;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
