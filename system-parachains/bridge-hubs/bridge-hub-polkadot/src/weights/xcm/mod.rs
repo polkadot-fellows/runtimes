@@ -87,7 +87,7 @@ impl<Call> XcmWeightInfo<Call> for BridgeHubPolkadotXcmWeight<Call> {
 	}
 	fn transact(
 		_origin_type: &OriginKind,
-		_require_weight_at_most: &Option<Weight>,
+		_fallback_max_weight: &Option<Weight>,
 		_call: &DoubleEncoded<Call>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::transact()

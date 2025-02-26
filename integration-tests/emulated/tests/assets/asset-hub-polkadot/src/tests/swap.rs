@@ -22,11 +22,11 @@ fn swap_locally_on_chain_using_local_assets() {
 	use frame_support::traits::fungible::Mutate;
 
 	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
-	let asset_one = v4::Location::new(
+	let asset_one = v5::Location::new(
 		0,
 		[
-			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v4::Junction::GeneralIndex(ASSET_ID.into()),
+			v5::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v5::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 
@@ -128,7 +128,7 @@ fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocation::get());
 	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_polkadot =
-		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
+		v5::Location::new(1, [v5::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -281,13 +281,13 @@ fn cannot_create_pool_from_pool_assets() {
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native: xcm::v4::Location =
+	let asset_native: xcm::v5::Location =
 		asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
-	let asset_one = xcm::v4::Location {
+	let asset_one = xcm::v5::Location {
 		parents: 0,
 		interior: [
-			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
+			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
 		]
 		.into(),
 	};

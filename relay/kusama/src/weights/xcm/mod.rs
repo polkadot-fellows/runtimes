@@ -114,7 +114,7 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 	}
 	fn transact(
 		_origin_kind: &OriginKind,
-		_require_weight_at_most: &Option<Weight>,
+		_fallback_max_weight: &Option<Weight>,
 		_call: &DoubleEncoded<RuntimeCall>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::transact()
