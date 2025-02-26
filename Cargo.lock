@@ -592,7 +592,7 @@ version = "1.0.0"
 dependencies = [
  "assert_matches",
  "asset-hub-kusama-runtime",
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
@@ -621,7 +621,7 @@ dependencies = [
 name = "asset-hub-kusama-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "assets-common",
  "bp-asset-hub-kusama",
  "bp-asset-hub-polkadot",
@@ -671,7 +671,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -727,7 +727,7 @@ version = "1.0.0"
 dependencies = [
  "assert_matches",
  "asset-hub-polkadot-runtime",
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
@@ -756,7 +756,7 @@ dependencies = [
 name = "asset-hub-polkadot-runtime"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "assets-common",
  "bp-asset-hub-kusama",
  "bp-asset-hub-polkadot",
@@ -805,7 +805,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -842,6 +842,38 @@ dependencies = [
 [[package]]
 name = "asset-test-utils"
 version = "20.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b0a99a8fa37a58ad868fca25530dde06b6582cb46b64bfae808f5b9b87e42ce"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "pallet-asset-conversion",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-session",
+ "pallet-timestamp",
+ "pallet-xcm",
+ "pallet-xcm-bridge-hub-router",
+ "parachains-common",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parity-scale-codec",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "staging-parachain-info",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+ "substrate-wasm-builder",
+ "xcm-runtime-apis",
+]
+
+[[package]]
+name = "asset-test-utils"
+version = "20.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
 dependencies = [
  "cumulus-pallet-parachain-system",
@@ -858,7 +890,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "parity-scale-codec",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -1783,7 +1815,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -1929,7 +1961,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -1981,7 +2013,7 @@ name = "bridge-hub-test-utils"
 version = "0.20.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
@@ -2007,7 +2039,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "parity-scale-codec",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
@@ -2371,7 +2403,7 @@ version = "1.0.0"
 dependencies = [
  "assert_matches",
  "asset-hub-polkadot-runtime",
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "collectives-polkadot-runtime",
  "collectives-polkadot-runtime-constants",
  "cumulus-pallet-parachain-system",
@@ -2449,7 +2481,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -2633,7 +2665,7 @@ dependencies = [
 name = "coretime-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "coretime-kusama-runtime",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -2696,7 +2728,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -2742,7 +2774,7 @@ dependencies = [
 name = "coretime-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "coretime-polkadot-runtime",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -2803,7 +2835,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -3248,6 +3280,20 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "cumulus-test-relay-sproof-builder"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e570e41c3f05a8143ebff967bbb0c7dcaaa6f0bebd8639b9418b8005b13eda03"
+dependencies = [
+ "cumulus-primitives-core",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "sp-runtime 39.0.5",
+ "sp-state-machine 0.43.0",
+ "sp-trie 37.0.0",
 ]
 
 [[package]]
@@ -3771,7 +3817,7 @@ name = "emulated-integration-tests-common"
 version = "16.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "bp-messages",
  "bp-xcm-bridge-hub",
  "bridge-runtime-common",
@@ -3791,7 +3837,7 @@ dependencies = [
  "polkadot-parachain-primitives",
  "polkadot-primitives",
  "polkadot-runtime-parachains",
- "sc-consensus-grandpa",
+ "sc-consensus-grandpa 0.30.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "sp-authority-discovery",
  "sp-consensus-babe",
  "sp-consensus-beefy",
@@ -5535,7 +5581,7 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cumulus-pallet-xcmp-queue",
  "pallet-balances",
  "pallet-message-queue",
@@ -6045,7 +6091,7 @@ dependencies = [
  "kusama-runtime-constants",
  "parachains-common",
  "polkadot-primitives",
- "sc-consensus-grandpa",
+ "sc-consensus-grandpa 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-authority-discovery",
  "sp-consensus-babe",
  "sp-consensus-beefy",
@@ -8436,7 +8482,8 @@ dependencies = [
 [[package]]
 name = "pallet-insecure-randomness-collective-flip"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce7ad80675d78bd38a7a66ecbbf2d218dd32955e97f8e301d0afe6c87b0f251"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9164,13 +9211,46 @@ dependencies = [
 [[package]]
 name = "parachains-runtimes-test-utils"
 version = "19.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d37c6a0fe791b244282e445c7ae2534217b05781a7e47ef9e391860cf3412210"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-parachain-inherent",
+ "cumulus-test-relay-sproof-builder 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-session",
+ "pallet-timestamp",
+ "pallet-xcm",
+ "parachains-common",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "sp-consensus-aura",
+ "sp-core 34.0.0",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "sp-tracing 17.0.1",
+ "staging-parachain-info",
+ "staging-xcm",
+ "staging-xcm-executor",
+ "substrate-wasm-builder",
+ "xcm-runtime-apis",
+]
+
+[[package]]
+name = "parachains-runtimes-test-utils"
+version = "19.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder",
+ "cumulus-test-relay-sproof-builder 0.16.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "frame-support",
  "frame-system",
  "pallet-balances",
@@ -9398,7 +9478,8 @@ dependencies = [
 [[package]]
 name = "penpal-runtime"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20094cbee22c7e6099653d69ca9a36678be58d6a1739adceb0c98a7b20df53c7"
 dependencies = [
  "assets-common",
  "cumulus-pallet-aura-ext",
@@ -9476,7 +9557,7 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
@@ -9538,7 +9619,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives",
@@ -9586,7 +9667,7 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-test-utils",
+ "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
  "frame-support",
@@ -9647,7 +9728,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
@@ -9834,7 +9915,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime",
  "polkadot-runtime-constants",
- "sc-consensus-grandpa",
+ "sc-consensus-grandpa 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp-authority-discovery",
  "sp-consensus-babe",
  "sp-consensus-beefy",
@@ -11531,7 +11612,7 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.3",
  "sc-executor",
- "sc-transaction-pool-api",
+ "sc-transaction-pool-api 37.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "sc-utils",
  "sp-api",
  "sp-blockchain",
@@ -11574,6 +11655,51 @@ dependencies = [
 [[package]]
 name = "sc-consensus-grandpa"
 version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3aaab70cf6f93ceea829ef0a4980ce95d84d5c7f4b5419b29bbed17fa04e1a6"
+dependencies = [
+ "ahash 0.8.8",
+ "array-bytes",
+ "async-trait",
+ "dyn-clone",
+ "finality-grandpa",
+ "fork-tree",
+ "futures",
+ "futures-timer",
+ "log",
+ "parity-scale-codec",
+ "parking_lot 0.12.3",
+ "rand",
+ "sc-block-builder",
+ "sc-chain-spec",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-network",
+ "sc-network-common",
+ "sc-network-gossip 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sc-network-sync",
+ "sc-network-types",
+ "sc-telemetry",
+ "sc-transaction-pool-api 37.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sc-utils",
+ "serde_json",
+ "sp-api",
+ "sp-application-crypto 38.0.0",
+ "sp-arithmetic 26.0.0",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-grandpa",
+ "sp-core 34.0.0",
+ "sp-crypto-hashing",
+ "sp-keystore 0.40.0",
+ "sp-runtime 39.0.5",
+ "substrate-prometheus-endpoint",
+ "thiserror",
+]
+
+[[package]]
+name = "sc-consensus-grandpa"
+version = "0.30.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
 dependencies = [
  "ahash 0.8.8",
@@ -11594,11 +11720,11 @@ dependencies = [
  "sc-consensus",
  "sc-network",
  "sc-network-common",
- "sc-network-gossip",
+ "sc-network-gossip 0.45.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "sc-network-sync",
  "sc-network-types",
  "sc-telemetry",
- "sc-transaction-pool-api",
+ "sc-transaction-pool-api 37.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "sc-utils",
  "serde_json",
  "sp-api",
@@ -11699,7 +11825,7 @@ dependencies = [
  "sc-client-api",
  "sc-network",
  "sc-network-types",
- "sc-transaction-pool-api",
+ "sc-transaction-pool-api 37.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "sp-api",
  "sp-consensus",
  "sp-core 34.0.0",
@@ -11776,6 +11902,26 @@ dependencies = [
  "sp-consensus",
  "sp-consensus-grandpa",
  "sp-runtime 39.0.5",
+]
+
+[[package]]
+name = "sc-network-gossip"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4086f4ac6b94ff2efd24f1776280c580454c5990b8665aa9f293fcd33c80630"
+dependencies = [
+ "ahash 0.8.8",
+ "futures",
+ "futures-timer",
+ "log",
+ "sc-network",
+ "sc-network-common",
+ "sc-network-sync",
+ "sc-network-types",
+ "schnellru",
+ "sp-runtime 39.0.5",
+ "substrate-prometheus-endpoint",
+ "tracing",
 ]
 
 [[package]]
@@ -11860,7 +12006,7 @@ dependencies = [
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-mixnet",
- "sc-transaction-pool-api",
+ "sc-transaction-pool-api 37.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "scale-info",
  "serde",
  "serde_json",
@@ -11889,6 +12035,23 @@ dependencies = [
  "serde_json",
  "thiserror",
  "wasm-timer",
+]
+
+[[package]]
+name = "sc-transaction-pool-api"
+version = "37.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f02936289a079360935685eee5400311994b25e9edb2420a3c4247d419a77f46"
+dependencies = [
+ "async-trait",
+ "futures",
+ "log",
+ "parity-scale-codec",
+ "serde",
+ "sp-blockchain",
+ "sp-core 34.0.0",
+ "sp-runtime 39.0.5",
+ "thiserror",
 ]
 
 [[package]]
@@ -12979,7 +13142,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-utility",
  "pallet-xcm",
- "parachains-runtimes-test-utils",
+ "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "parity-scale-codec",
  "snowbridge-core",
  "snowbridge-pallet-ethereum-client",
@@ -16437,7 +16600,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder",
+ "cumulus-test-relay-sproof-builder 0.16.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
@@ -16755,1443 +16918,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "asset-hub-rococo-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "asset-hub-rococo-runtime"
-version = "0.22.4"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "asset-hub-westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "asset-hub-westend-runtime"
-version = "0.26.4"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-asset-hub-rococo"
-version = "0.14.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-asset-hub-westend"
-version = "0.13.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-beefy"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-bridge-hub-kusama"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-bridge-hub-polkadot"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-bridge-hub-rococo"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-bridge-hub-westend"
-version = "0.14.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-rococo"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bp-westend"
-version = "0.14.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bridge-hub-rococo-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bridge-hub-rococo-runtime"
-version = "0.16.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bridge-hub-westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "bridge-hub-westend-runtime"
-version = "0.13.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "chain-spec-guide-runtime"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "collectives-westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "collectives-westend-runtime"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "contracts-rococo-runtime"
-version = "0.19.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "coretime-rococo-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "coretime-rococo-runtime"
-version = "0.12.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "coretime-westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "coretime-westend-runtime"
-version = "0.12.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-cli"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-collator"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-consensus-aura"
-version = "0.18.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-consensus-common"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-consensus-proposer"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-consensus-relay-chain"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-network"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-parachain-inherent"
-version = "0.12.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-pov-recovery"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-client-service"
-version = "0.19.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-pallet-dmp-queue"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-pallet-solo-to-para"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-ping"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-pov-validator"
-version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-primitives-storage-weight-reclaim"
-version = "8.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-primitives-timestamp"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-relay-chain-inprocess-interface"
-version = "0.19.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-relay-chain-interface"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-relay-chain-minimal-node"
-version = "0.19.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-relay-chain-rpc-interface"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-test-client"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-test-runtime"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "cumulus-test-service"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "equivocation-detector"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "erasure_coding_fuzzer"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "finality-relay"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-benchmarking-cli"
-version = "43.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-benchmarking-pallet-pov"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-election-solution-type-fuzzer"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-omni-bencher"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-support-test"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-support-test-compile-pass"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-support-test-pallet"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "frame-support-test-stg-frame-crate"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "generate-bags"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "glutton-westend-runtime"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "kitchensink-runtime"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "messages-relay"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "minimal-template-node"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "minimal-template-runtime"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "mmr-gadget"
-version = "40.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "mmr-rpc"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-bench"
-version = "0.9.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-primitives"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-rpc"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-runtime-generate-bags"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-template-release"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "node-testing"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-asset-conversion-ops"
-version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-assets-freezer"
-version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-atomic-swap"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-bags-list-fuzzer"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-bags-list-remote-tests"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-bridge-beefy"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-collective-content"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-contracts"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-contracts-fixtures"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-contracts-mock-network"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-contracts-proc-macro"
-version = "23.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-contracts-uapi"
-version = "12.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-default-config-example"
-version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-democracy"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-dev-mode"
-version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-election-provider-e2e-test"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-elections-phragmen"
-version = "39.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-basic"
-version = "34.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-frame-crate"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-kitchensink"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-mbm"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-offchain-worker"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-single-block-migrations"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-split"
-version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-example-tasks"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-examples"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-lottery"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-migrations"
-version = "8.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-minimal-template"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-mixnet"
-version = "0.14.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-node-authorization"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-nomination-pools-fuzzer"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-nomination-pools-test-delegate-stake"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-nomination-pools-test-transfer-stake"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-paged-list"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-paged-list-fuzzer"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-parachain-template"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-remark"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-revive"
-version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-revive-fixtures"
-version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-revive-mock-network"
-version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-revive-proc-macro"
-version = "0.1.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-revive-uapi"
-version = "0.1.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-root-offences"
-version = "35.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-root-testing"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-safe-mode"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-scored-pool"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-skip-feeless-payment"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-statement"
-version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-template"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-tips"
-version = "37.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-transaction-payment-rpc"
-version = "41.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-transaction-storage"
-version = "37.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "pallet-tx-pause"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "parachain-template-node"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "parachain-template-runtime"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "parachains-relay"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "penpal-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "people-rococo-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "people-rococo-runtime"
-version = "0.12.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "people-westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "people-westend-runtime"
-version = "0.12.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-approval-distribution"
-version = "18.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-availability-bitfield-distribution"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-availability-distribution"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-availability-recovery"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-cli"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-collator-protocol"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-dispute-distribution"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-erasure-coding"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-gossip-support"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-network-bridge"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-collation-generation"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-approval-voting"
-version = "18.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-av-store"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-backing"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-bitfield-signing"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-candidate-validation"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-chain-api"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-chain-selection"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-dispute-coordinator"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-parachains-inherent"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-prospective-parachains"
-version = "17.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-provisioner"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-pvf"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-pvf-checker"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-pvf-common"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-pvf-execute-worker"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-pvf-prepare-worker"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-core-runtime-api"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-jaeger"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-metrics"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-network-protocol"
-version = "18.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-primitives"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-subsystem"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-subsystem-test-helpers"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-subsystem-types"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-node-subsystem-util"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-overseer"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-parachain-bin"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-parachain-lib"
-version = "0.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-primitives-test-helpers"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-rpc"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-sdk"
-version = "0.9.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-sdk-docs"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-sdk-frame"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-service"
-version = "19.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-statement-distribution"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-statement-table"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-subsystem-bench"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-test-client"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-test-malus"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-test-runtime"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-test-service"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "polkadot-voter-bags"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "relay-substrate-client"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "relay-utils"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "remote-ext-tests-bags-list"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-parachain-runtime"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-runtime"
-version = "18.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-runtime-constants"
-version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-system-emulated-network"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "rococo-westend-system-emulated-network"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-authority-discovery"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-basic-authorship"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-cli"
-version = "0.47.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-client-db"
-version = "0.44.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-aura"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-babe"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-babe-rpc"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-beefy"
-version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-beefy-rpc"
-version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-epochs"
-version = "0.44.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-grandpa-rpc"
-version = "0.30.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-manual-seal"
-version = "0.46.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-pow"
-version = "0.44.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-consensus-slots"
-version = "0.44.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-informant"
-version = "0.44.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-keystore"
-version = "33.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-network-light"
-version = "0.44.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-network-statement"
-version = "0.27.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-network-test"
-version = "0.8.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-network-transactions"
-version = "0.44.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-offchain"
-version = "40.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-proposer-metrics"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-rpc"
-version = "40.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-rpc-server"
-version = "17.1.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-rpc-spec-v2"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-runtime-test"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-service"
-version = "0.46.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-service-test"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-state-db"
-version = "0.36.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-statement-store"
-version = "19.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-storage-monitor"
-version = "0.22.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-sync-state-rpc"
-version = "0.45.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-sysinfo"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-tracing"
-version = "37.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-tracing-proc-macro"
-version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sc-transaction-pool"
-version = "37.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "seedling-runtime"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "shell-runtime"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "solochain-template-node"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "solochain-template-runtime"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-api-test"
-version = "2.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-application-crypto-test"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-arithmetic-fuzzer"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-consensus-pow"
-version = "0.40.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-core-fuzz"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-core-hashing"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-core-hashing-proc-macro"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-crypto-ec-utils"
-version = "0.14.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-npos-elections-fuzzer"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-runtime-interface-test"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-runtime-interface-test-wasm"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-runtime-interface-test-wasm-deprecated"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-test-primitives"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "sp-transaction-storage-proof"
-version = "34.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "staging-chain-spec-builder"
-version = "6.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "staging-node-cli"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "staging-node-inspect"
-version = "0.23.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "staging-tracking-allocator"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "subkey"
-version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-build-script-utils"
-version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-cli-test-utils"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-frame-rpc-support"
-version = "40.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-frame-rpc-system"
-version = "39.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-relay-helper"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-state-trie-migration-rpc"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-test-client"
-version = "2.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-test-runtime"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-test-runtime-client"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-test-runtime-transaction-pool"
-version = "2.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "substrate-test-utils"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachain-adder"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachain-adder-collator"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachain-halt"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachain-undying"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachain-undying-collator"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-parachains"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "test-runtime-constants"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "testnet-parachains-constants"
-version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "tracing-gum"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "tracing-gum-proc-macro"
-version = "5.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "westend-emulated-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "westend-runtime"
-version = "18.0.2"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "westend-runtime-constants"
-version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "westend-system-emulated-network"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "xcm-docs"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "xcm-executor-integration-tests"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "xcm-simulator"
-version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "xcm-simulator-example"
-version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "xcm-simulator-fuzzer"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
-
-[[patch.unused]]
-name = "zombienet-backchannel"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#877b3f05291fcb14a38e27b475fe759c6e61a5ae"
