@@ -565,6 +565,7 @@ dependencies = [
  "penpal-emulated-chain",
  "polkadot-parachain-primitives",
  "sp-core",
+ "sp-keyring",
  "staging-xcm",
 ]
 
@@ -699,6 +700,7 @@ dependencies = [
  "polkadot-emulated-chain",
  "polkadot-parachain-primitives",
  "sp-core",
+ "sp-keyring",
  "staging-xcm",
 ]
 
@@ -1674,6 +1676,7 @@ dependencies = [
  "frame-support",
  "parachains-common",
  "sp-core",
+ "sp-keyring",
  "staging-xcm",
 ]
 
@@ -1819,6 +1822,7 @@ dependencies = [
  "frame-support",
  "parachains-common",
  "sp-core",
+ "sp-keyring",
  "staging-xcm",
 ]
 
@@ -9944,6 +9948,7 @@ dependencies = [
  "penpal-runtime",
  "polkadot-emulated-chain",
  "sp-core",
+ "sp-keyring",
  "staging-xcm",
 ]
 
