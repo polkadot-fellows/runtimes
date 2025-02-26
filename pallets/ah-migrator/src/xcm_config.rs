@@ -15,3 +15,29 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 //! XCM configurations for Asset Hub for the AHM migration.
+
+use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset};
+use cumulus_primitives_core::ParaId;
+use frame_support::parameter_types;
+use parachains_common::xcm_config::ConcreteAssetFromSystem;
+use polkadot_runtime_constants::system_parachain::*;
+use xcm::latest::prelude::*;
+
+parameter_types! {
+	pub const AssetHubParaId: ParaId = ParaId::new(ASSET_HUB_ID);
+	pub const DotLocation: Location = Location::parent();
+}
+
+/// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
+///
+/// - DOT with the parent Relay Chain and sibling system parachains; and
+/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+pub type TrustedTeleportersBeforeAfter = (
+	ConcreteAssetFromSystem<DotLocation>,
+	IsForeignConcreteAsset<FromSiblingParachain<AssetHubParaId>>,
+);
+
+/// During migration we only allow teleports of foreign assets (not DOT).
+///
+/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
+pub type TrustedTeleportersDuring = IsForeignConcreteAsset<FromSiblingParachain<AssetHubParaId>>;

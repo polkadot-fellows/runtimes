@@ -16,50 +16,30 @@
 
 //! XCM configurations for the Relay Chain for the AHM migration.
 
-use frame_support::{parameter_types, PalletId};
-use sp_runtime::{traits::AccountIdConversion, AccountId32};
-use xcm::prelude::*;
-use xcm_builder::{FungibleAdapter, IsConcrete, MintLocation};
-
-fn check_account() -> AccountId32 {
-	const CHECK_ACCOUNT_ID: PalletId = PalletId(*b"py/xcmch");
-	AccountIdConversion::<AccountId32>::into_account_truncating(&CHECK_ACCOUNT_ID)
-}
+use frame_support::parameter_types;
+use polkadot_runtime_constants::system_parachain::*;
+use xcm::latest::prelude::*;
+use xcm_builder::Case;
 
 parameter_types! {
-	pub const TokenLocation: Location = Here.into_location();
-	/// The Checking Account along with the indication that the local chain is able to mint tokens.
-	pub TrackingTeleportOut: (AccountId32, MintLocation) = (check_account(), MintLocation::Local);
+	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
+	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
+	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
+	pub CoretimeLocation: Location = Parachain(BROKER_ID).into_location();
+	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
+	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
+	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
+	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
 }
 
-/// Native token asset transactor.
-/// Only aware of the Balances pallet, which is mapped to `TokenLocation`.
-/// Tracks teleports of native token to keep total issuance consistent.
-pub type AssetTransactorBefore<T, AccountIdConverter> = FungibleAdapter<
-	// Use this currency:
-	pallet_balances::Pallet<T>,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<TokenLocation>,
-	// We can convert the `Location`s with our converter above:
-	AccountIdConverter,
-	// Our chain's account ID type
-	AccountId32,
-	// We track our teleports in/out to keep total issuance correct.
-	TrackingTeleportOut,
->;
-
-/// Native token asset transactor.
-/// Only aware of the Balances pallet, which is mapped to `TokenLocation`.
-/// Does not track teleports of native token. Total issuance tracking migrated to AH.
-pub type AssetTransactorDuringAfter<T, AccountIdConverter> = FungibleAdapter<
-	// Use this currency:
-	pallet_balances::Pallet<T>,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<TokenLocation>,
-	// We can convert the `Location`s with our converter above:
-	AccountIdConverter,
-	// Our chain's account ID type
-	AccountId32,
-	// No tracking of teleports.
-	(),
->;
+/// Polkadot Relay recognizes/respects System Parachains as teleporters.
+pub type TrustedTeleportersBeforeAndAfter = (
+	Case<DotForAssetHub>,
+	Case<DotForCollectives>,
+	Case<DotForBridgeHub>,
+	Case<DotForCoretime>,
+	Case<DotForPeople>,
+);
