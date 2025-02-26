@@ -108,7 +108,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned,
+	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
@@ -1778,7 +1778,7 @@ impl pallet_state_trie_migration::Config for Runtime {
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 	>;
 	/// specific account for the migration, can trigger the signed migrations.
-	type SignedFilter = EnsureSigned<AccountId>;
+	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
 	// Replace this with weight based on your runtime.
 	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
@@ -1788,7 +1788,6 @@ impl pallet_state_trie_migration::Config for Runtime {
 // Statemint State Migration Controller. Controlled by parity.io.
 ord_parameter_types! {
 	pub const MigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
-	pub const RootMigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
 }
 
 #[cfg(test)]
@@ -1873,9 +1872,5 @@ mod tests {
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
 		//panic!("{:x?}", acc);
 		assert_eq!(acc, MigController::sorted_members()[0]);
-		let acc =
-			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-		assert_eq!(acc, RootMigController::sorted_members()[0]);
-		//panic!("{:x?}", acc);
 	}
 }
