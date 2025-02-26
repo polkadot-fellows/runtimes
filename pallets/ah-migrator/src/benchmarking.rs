@@ -37,6 +37,9 @@ use pallet_rc_migrator::{
 	proxy::{RcProxy, RcProxyAnnouncement},
 };
 
+/// The minimum amount used for deposits, transfers, etc.
+///
+/// Equivalent to Polkadot `UNITS`, which is larger than Kusama `UNITS`.
 pub const UNITS: u128 = 10_000_000_000;
 
 pub trait ParametersFactory<RcMultisig, RcAccount, RcClaimsMessage, RcProxy, RcProxyAnnouncement> {
@@ -76,12 +79,16 @@ where
 
 	fn create_account(n: u8) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
 		let who: AccountId32 = [n; 32].into();
+		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+			&who,
+			<T as pallet_multisig::Config>::Currency::minimum_balance(),
+		);
 
 		let hold_amount = UNITS;
-		let holds = vec![IdAmount { id: T::RcToAhHoldReason::get(), amount: hold_amount }];
+		let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
 
 		let freeze_amount = 2 * UNITS;
-		let freezes = vec![IdAmount { id: T::RcToAhFreezeReason::get(), amount: freeze_amount }];
+		let freezes = vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
 
 		let lock_amount = 3 * UNITS;
 		let locks = vec![pallet_balances::BalanceLock::<u128> {
@@ -116,7 +123,7 @@ where
 
 	fn create_proxy(n: u8) -> RcProxy<AccountId32, u128, T::RcProxyType, u32> {
 		let proxy_def = ProxyDefinition {
-			proxy_type: T::RcToProxyType::get(),
+			proxy_type: T::RcProxyType::default(),
 			delegate: [n; 32].into(),
 			delay: 100,
 		};

@@ -32,6 +32,12 @@ pub enum RcHoldReason {
 	// StateTrieMigration(pallet_state_trie_migration::HoldReason),
 }
 
+impl Default for RcHoldReason {
+	fn default() -> Self {
+		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
 /// Relay Chain Freeze Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcFreezeReason {
@@ -39,15 +45,16 @@ pub enum RcFreezeReason {
 	NominationPools(pallet_nomination_pools::FreezeReason),
 }
 
+impl Default for RcFreezeReason {
+	fn default() -> Self {
+		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+	}
+}
+
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
 		PreimageHoldReason::get()
-	}
-}
-impl Get<RcHoldReason> for RcToAhHoldReason {
-	fn get() -> RcHoldReason {
-		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
 	}
 }
 
@@ -63,17 +70,13 @@ impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
 		}
 	}
 }
-impl Get<RcFreezeReason> for RcToAhFreezeReason {
-	fn get() -> RcFreezeReason {
-		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
-	}
-}
 
 /// Relay Chain Proxy Type
 ///
 /// Coped from https://github.com/polkadot-fellows/runtimes/blob/dde99603d7dbd6b8bf541d57eb30d9c07a4fce32/relay/polkadot/src/lib.rs#L986-L1010
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Default)]
 pub enum RcProxyType {
+	#[default]
 	Any = 0,
 	NonTransfer = 1,
 	Governance = 2,
@@ -97,11 +100,6 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			RcProxyType::Auction => Err(p), // Does not exist on AH
 			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
 		}
-	}
-}
-impl Get<RcProxyType> for RcToProxyType {
-	fn get() -> RcProxyType {
-		RcProxyType::Any
 	}
 }
 

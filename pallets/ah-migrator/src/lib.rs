@@ -155,24 +155,23 @@ pub mod pallet {
 		/// XCM check account.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
-		type RcHoldReason: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcHoldReason: Parameter + Default;
 		/// Relay Chain Freeze Reasons.
-		type RcFreezeReason: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcFreezeReason: Parameter + Default;
 		/// Relay Chain to Asset Hub Hold Reasons mapping.
-		///
-		/// Additionally provides a getter with a reason used in benchmarking.
-		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>
-			+ Get<Self::RcHoldReason>;
+		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping.
-		///
-		/// Additionally provides a getter with a reason used in benchmarking.
-		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>
-			+ Get<Self::RcFreezeReason>;
+		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
-		type RcProxyType: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcProxyType: Parameter + Default;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
-		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>
-			+ Get<Self::RcProxyType>;
+		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
 		/// Convert a Relay Chain block number delay to an Asset Hub one.
 		///
 		/// Note that we make a simplification here by assuming that both chains have the same block
