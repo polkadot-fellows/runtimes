@@ -78,6 +78,9 @@ jobs:
 
           EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
+          # Add the overwrite_state_version flag if it exists 
+          RUNTIME_EXTRA_ARGS="${{ matrix.runtime.runtime_args }}"
+
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
           if [ "$(.github/changelog-processor.py CHANGELOG.md --should-release)" = "0" ]; then
@@ -87,6 +90,7 @@ jobs:
             echo "Enabling the spec version check since we are releasing"
           fi
 
+          echo "Runtime extra args: $RUNTIME_EXTRA_ARGS"
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
@@ -120,17 +124,10 @@ jobs:
 
           echo "Extra args: $EXTRA_FLAGS"
 
-          # Temporaraly add --overwrite-state-version 1 for asset-hub-kusama and asset-hub-polkadot 
-          OVERWRITE_STATE_VERSION=""
-          if [[ "${{ matrix.runtime.name }}" == "asset-hub-kusama" || "${{ matrix.runtime.name }}" == "asset-hub-polkadot" ]]; then
-            OVERWRITE_STATE_VERSION="--overwrite-state-version 1"
-            echo "Adding --overwrite-state-version 1 for ${{ matrix.runtime.name }}"
-          fi
-
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
-            $OVERWRITE_STATE_VERSION \
+            $RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}"
