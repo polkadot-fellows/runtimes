@@ -78,7 +78,7 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	/// The remote block number.
 	type RemoteBlockNumber: Parameter + Saturating + MaxEncodedLen + Default + PartialOrd;
 	/// The hash type used by the remote chain.
-	type Hash: Parameter + MaxEncodedLen;
+	type RemoteHash: Parameter + MaxEncodedLen;
 	/// The hasher used by the remote chain.
 	type Hasher: Hasher<Out = Self::Hash>;
 
