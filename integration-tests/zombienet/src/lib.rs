@@ -1,6 +1,8 @@
 use anyhow::anyhow;
-use subxt::{OnlineClient, PolkadotConfig};
-use zombienet_sdk::{NetworkConfig, NetworkConfigBuilder, NetworkNode};
+use zombienet_sdk::{
+	subxt::{OnlineClient, SubstrateConfig},
+	NetworkConfig, NetworkConfigBuilder, NetworkNode,
+};
 
 pub mod environment;
 
@@ -45,23 +47,20 @@ pub fn small_network() -> Result<NetworkConfig, Error> {
 
 pub async fn wait_subxt_client(
 	node: &NetworkNode,
-) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+) -> Result<OnlineClient<SubstrateConfig>, anyhow::Error> {
 	log::info!("trying to connect to: {}", node.ws_uri());
 	loop {
-		match node.client::<PolkadotConfig>().await {
+		match node.wait_client::<SubstrateConfig>().await {
 			Ok(cli) => {
 				log::info!("returning client for: {}", node.ws_uri());
 				return Ok(cli);
 			},
 			Err(e) => {
 				log::trace!("{e:?}");
-				if let subxt::Error::Rpc(subxt::error::RpcError::ClientError(ref inner)) = e {
-					log::trace!("inner: {inner}");
-					if inner.to_string().contains("i/o error") {
-						// The node is not ready to accept connections yet
-						tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-						continue;
-					}
+				if e.to_string().contains("i/o error") {
+					// The node is not ready to accept connections yet
+					tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+					continue;
 				}
 				return Err(anyhow!("Cannot connect to node : {e:?}"));
 			},
