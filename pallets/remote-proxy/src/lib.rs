@@ -80,7 +80,7 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	/// The hash type used by the remote chain.
 	type RemoteHash: Parameter + MaxEncodedLen;
 	/// The hasher used by the remote chain.
-	type Hasher: Hasher<Out = Self::Hash>;
+	type RemoreHasher: Hasher<Out = Self::RemoteHash>;
 
 	/// Get the latest block to storage root mapping.
 	fn block_to_storage_root(
