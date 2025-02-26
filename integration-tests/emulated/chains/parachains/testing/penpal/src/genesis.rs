@@ -15,11 +15,11 @@
 
 // Substrate
 use frame_support::parameter_types;
-use sp_core::{sr25519, storage::Storage};
+use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::{AccountId, Balance};
 use penpal_runtime::xcm_config::{LocalReservableFromAssetHub, RelayLocation, UsdtFromAssetHub};
@@ -31,11 +31,11 @@ pub const ED: Balance = penpal_runtime::ExistentialDeposit::get();
 pub const USDT_ED: Balance = 70_000;
 
 parameter_types! {
-	pub PenpalSudoAccount: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
+	pub PenpalSudoAccount: AccountId = Keyring::Alice.to_account_id();
 	pub PenpalAssetOwner: AccountId = PenpalSudoAccount::get();
 }
 
-pub fn genesis(para_id: u32) -> Storage {
+pub fn genesis(para_id: u32) -> sp_core::storage::Storage {
 	let genesis_config = penpal_runtime::RuntimeGenesisConfig {
 		system: penpal_runtime::SystemConfig::default(),
 		balances: penpal_runtime::BalancesConfig {

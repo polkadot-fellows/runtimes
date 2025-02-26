@@ -355,6 +355,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = System;
 }
 
 #[cfg(all(test, not(feature = "runtime-benchmarks")))]

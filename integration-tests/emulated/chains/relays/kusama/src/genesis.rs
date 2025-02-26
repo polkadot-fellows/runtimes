@@ -18,49 +18,19 @@ use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use babe_primitives::AuthorityId as BabeId;
 use beefy_primitives::ecdsa_crypto::AuthorityId as BeefyId;
 use grandpa::AuthorityId as GrandpaId;
-use sp_core::{sr25519, storage::Storage};
 
 // Polkadot
 use polkadot_primitives::{AssignmentId, ValidatorId};
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, get_host_config,
+	accounts, build_genesis_storage, get_host_config, validators,
 };
 use kusama_runtime_constants::currency::UNITS as KSM;
 use parachains_common::Balance;
 
 pub const ED: Balance = kusama_runtime::ExistentialDeposit::get();
 const ENDOWMENT: u128 = 1_000_000 * KSM;
-
-mod validators {
-	use super::*;
-	use parachains_common::AccountId;
-
-	#[allow(clippy::type_complexity)]
-	pub fn initial_authorities() -> Vec<(
-		AccountId,
-		AccountId,
-		BabeId,
-		GrandpaId,
-		ValidatorId,
-		AssignmentId,
-		AuthorityDiscoveryId,
-		BeefyId,
-	)> {
-		let seed = "Alice";
-		vec![(
-			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
-			get_account_id_from_seed::<sr25519::Public>(seed),
-			get_from_seed::<BabeId>(seed),
-			get_from_seed::<GrandpaId>(seed),
-			get_from_seed::<ValidatorId>(seed),
-			get_from_seed::<AssignmentId>(seed),
-			get_from_seed::<AuthorityDiscoveryId>(seed),
-			get_from_seed::<BeefyId>(seed),
-		)]
-	}
-}
 
 fn session_keys(
 	babe: BabeId,
@@ -80,7 +50,7 @@ fn session_keys(
 	}
 }
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = kusama_runtime::RuntimeGenesisConfig {
 		system: kusama_runtime::SystemConfig::default(),
 		balances: kusama_runtime::BalancesConfig {

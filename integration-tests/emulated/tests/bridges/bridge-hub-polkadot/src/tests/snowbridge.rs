@@ -43,7 +43,7 @@ use snowbridge_core::{
 };
 use snowbridge_pallet_system::PricingParametersOf;
 use snowbridge_router_primitives::inbound::{
-	Command, Destination, GlobalConsensusEthereumConvertsFor, MessageV1, VersionedMessage,
+	Command, Destination, EthereumLocationsConverterFor, MessageV1, VersionedMessage,
 };
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
@@ -110,7 +110,7 @@ fn create_agent() {
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		DescendOrigin(Parachain(origin_para).into()),
 		Transact {
-			require_weight_at_most: 3000000000.into(),
+			fallback_max_weight: Some(3000000000.into()),
 			origin_kind: OriginKind::Xcm,
 			call: create_agent_call.encode().into(),
 		},
@@ -170,7 +170,7 @@ fn create_channel() {
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		DescendOrigin(Parachain(origin_para).into()),
 		Transact {
-			require_weight_at_most: 3000000000.into(),
+			fallback_max_weight: Some(3000000000.into()),
 			origin_kind: OriginKind::Xcm,
 			call: create_agent_call.encode().into(),
 		},
@@ -183,7 +183,7 @@ fn create_channel() {
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		DescendOrigin(Parachain(origin_para).into()),
 		Transact {
-			require_weight_at_most: 3000000000.into(),
+			fallback_max_weight: Some(3000000000.into()),
 			origin_kind: OriginKind::Xcm,
 			call: create_channel_call.encode().into(),
 		},
@@ -759,7 +759,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			<AssetHubPolkadot as Chain>::Runtime,
 			pallet_assets::Instance2,
 		>::create {
-			id: v4::Location::default(),
+			id: v5::Location::default(),
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
@@ -774,7 +774,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 
 fn ethereum_sovereign_account() -> AccountId {
 	let origin_location = (Parent, Parent, EthereumNetwork::get()).into();
-	GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(&origin_location).unwrap()
+	EthereumLocationsConverterFor::<AccountId>::convert_location(&origin_location).unwrap()
 }
 
 fn make_register_token_message() -> InboundQueueFixture {
@@ -1003,7 +1003,7 @@ fn transfer_relay_token() {
 	let expected_token_id = TokenIdOf::convert_location(&expected_asset_id).unwrap();
 
 	let ethereum_sovereign: AccountId =
-		GlobalConsensusEthereumConvertsFor::<[u8; 32]>::convert_location(&Location::new(
+		EthereumLocationsConverterFor::<[u8; 32]>::convert_location(&Location::new(
 			2,
 			[GlobalConsensus(EthereumNetwork::get())],
 		))
@@ -1023,7 +1023,7 @@ fn transfer_relay_token() {
 
 		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
 			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::V4(asset_id.clone())),
+			Box::new(VersionedLocation::V5(asset_id.clone())),
 			AssetMetadata {
 				name: "wnd".as_bytes().to_vec().try_into().unwrap(),
 				symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),
@@ -1049,14 +1049,14 @@ fn transfer_relay_token() {
 		));
 
 		let assets = vec![Asset { id: AssetId(Location::parent()), fun: Fungible(TOKEN_AMOUNT) }];
-		let versioned_assets = VersionedAssets::V4(Assets::from(assets));
+		let versioned_assets = VersionedAssets::V5(Assets::from(assets));
 
-		let destination = VersionedLocation::V4(Location::new(
+		let destination = VersionedLocation::V5(Location::new(
 			2,
 			[GlobalConsensus(Ethereum { chain_id: CHAIN_ID })],
 		));
 
-		let beneficiary = VersionedLocation::V4(Location::new(
+		let beneficiary = VersionedLocation::V5(Location::new(
 			0,
 			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
 		));
@@ -1159,7 +1159,7 @@ fn transfer_ah_token() {
 	let ethereum_destination = Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]);
 
 	let ethereum_sovereign: AccountId =
-		GlobalConsensusEthereumConvertsFor::<[u8; 32]>::convert_location(&ethereum_destination)
+		EthereumLocationsConverterFor::<[u8; 32]>::convert_location(&ethereum_destination)
 			.unwrap()
 			.into();
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign.clone(), INITIAL_FUND)]);
@@ -1191,7 +1191,7 @@ fn transfer_ah_token() {
 
 		assert_ok!(<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::register_token(
 			RuntimeOrigin::root(),
-			Box::new(VersionedLocation::V4(asset_id_in_bh.clone())),
+			Box::new(VersionedLocation::V5(asset_id_in_bh.clone())),
 			AssetMetadata {
 				name: "ah_asset".as_bytes().to_vec().try_into().unwrap(),
 				symbol: "ah_asset".as_bytes().to_vec().try_into().unwrap(),
@@ -1221,9 +1221,9 @@ fn transfer_ah_token() {
 
 		// Send partial of the token, will fail if send all
 		let assets = vec![Asset { id: AssetId(asset_id.clone()), fun: Fungible(TOKEN_AMOUNT / 2) }];
-		let versioned_assets = VersionedAssets::V4(Assets::from(assets));
+		let versioned_assets = VersionedAssets::V5(Assets::from(assets));
 
-		let beneficiary = VersionedLocation::V4(Location::new(
+		let beneficiary = VersionedLocation::V5(Location::new(
 			0,
 			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
 		));

@@ -1104,7 +1104,7 @@ fn reserve_withdraw_from_untrusted_reserve_fails() {
 		]);
 		let result = <AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
 			signed_origin,
-			bx!(xcm::VersionedXcm::V4(xcm)),
+			bx!(xcm::VersionedXcm::V5(xcm)),
 			Weight::MAX,
 		);
 		assert!(result.is_err());

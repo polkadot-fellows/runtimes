@@ -20,8 +20,6 @@
 //! into consideration, so the end of leases is 64 days short, in some cases leading to them being
 //! dropped completely.
 
-extern crate alloc;
-
 use crate::{Runtime, RuntimeOrigin};
 use frame_support::{pallet_prelude::*, traits::OnRuntimeUpgrade};
 use pallet_broker::{
@@ -30,9 +28,8 @@ use pallet_broker::{
 	WeightInfo, Workplan,
 };
 
-use alloc::collections::btree_map::BTreeMap;
+use alloc::{collections::btree_map::BTreeMap, vec::Vec};
 use sp_arithmetic::traits::Saturating;
-use sp_std::vec::Vec;
 
 #[cfg(feature = "try-runtime")]
 use pallet_broker::{
@@ -433,7 +430,7 @@ impl OnRuntimeUpgrade for FixMigration {
 		// Walk the workplan at timeslice 287565 and make sure there is an entry for all 62 cores.
 		log::trace!(target: TARGET, "Checking workplan");
 		for i in 0..62 {
-			if i >= 51 && i < 56 {
+			if (51..56).contains(&1) {
 				// Cores offered for sale, we don't know anything about them.
 				continue;
 			}
@@ -442,26 +439,26 @@ impl OnRuntimeUpgrade for FixMigration {
 			let entry = Workplan::<Runtime>::get((workplan_start, i)).expect("Entry should exist");
 			log::trace!(target: TARGET, "Found entry");
 			assert_eq!(entry.len(), 1);
-			assert_eq!(entry.get(0).unwrap().mask, CoreMask::complete());
+			assert_eq!(entry.first().unwrap().mask, CoreMask::complete());
 			log::trace!(target: TARGET, "Entry complete");
 			if i < 5 {
 				// system chains
-				assert_eq!(entry.get(0).unwrap().assignment, system_chains[i as usize]);
+				assert_eq!(entry.first().unwrap().assignment, system_chains[i as usize]);
 			} else if i < 51 {
 				// leases
 				assert_eq!(
-					entry.get(0).unwrap().assignment,
+					entry.first().unwrap().assignment,
 					Task(LEASES.get(i as usize - 5).unwrap().0)
 				);
 			} else if i <= 60 {
 				// 5 potential renewals
 				assert_eq!(
-					entry.get(0).unwrap().assignment,
+					entry.first().unwrap().assignment,
 					Task(POTENTIAL_RENEWALS.get(i as usize - 56).unwrap().0)
 				);
 			} else {
 				// Pool core:
-				assert_eq!(entry.get(0).unwrap().assignment, Pool,);
+				assert_eq!(entry.first().unwrap().assignment, Pool,);
 			}
 		}
 

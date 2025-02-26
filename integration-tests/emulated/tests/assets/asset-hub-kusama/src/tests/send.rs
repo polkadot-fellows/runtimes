@@ -36,15 +36,15 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal = v4::Location::new(
+	let asset_location_on_penpal = v5::Location::new(
 		0,
 		[
-			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v4::Junction::GeneralIndex(ASSET_ID.into()),
+			v5::Junction::PalletInstance(ASSETS_PALLET_ID),
+			v5::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	let foreign_asset_at_asset_hub =
-		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
+		v5::Location::new(1, [v5::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 

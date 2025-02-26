@@ -16,5 +16,6 @@
 
 pub mod cumulus_pallet_parachain_system;
 pub mod frame_system;
+pub mod frame_system_extensions;
 pub mod pallet_glutton;
 pub mod pallet_message_queue;

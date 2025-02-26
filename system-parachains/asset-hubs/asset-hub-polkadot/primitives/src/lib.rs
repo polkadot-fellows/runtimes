@@ -20,6 +20,7 @@
 
 extern crate alloc;
 
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
@@ -57,12 +58,12 @@ frame_support::parameter_types! {
 pub fn build_congestion_message<RuntimeCall>(
 	bridge_id: sp_core::H256,
 	is_congested: bool,
-) -> alloc::vec::Vec<Instruction<RuntimeCall>> {
+) -> Vec<Instruction<RuntimeCall>> {
 	alloc::vec![
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			fallback_max_weight: Some(XcmBridgeHubRouterTransactCallMaxWeight::get()),
 			call: Call::ToKusamaXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
 				bridge_id,
 				is_congested,

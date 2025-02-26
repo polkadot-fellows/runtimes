@@ -187,4 +187,23 @@ impl<T: frame_system::Config> WeightInfo<T> {
             .saturating_add(T::DbWeight::get().reads(5))
             .saturating_add(T::DbWeight::get().writes(1))
     }
+    /// Storage: `System::Account` (r:1 w:1)
+    /// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+    /// Storage: `Dmp::DeliveryFeeFactor` (r:1 w:0)
+    /// Proof: `Dmp::DeliveryFeeFactor` (`max_values`: None, `max_size`: None, mode: `Measured`)
+    /// Storage: `XcmPallet::SupportedVersion` (r:1 w:0)
+    /// Proof: `XcmPallet::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
+    /// Storage: `Dmp::DownwardMessageQueues` (r:1 w:1)
+    /// Proof: `Dmp::DownwardMessageQueues` (`max_values`: None, `max_size`: None, mode: `Measured`)
+    /// Storage: `Dmp::DownwardMessageQueueHeads` (r:1 w:1)
+    /// Proof: `Dmp::DownwardMessageQueueHeads` (`max_values`: None, `max_size`: None, mode: `Measured`)
+    pub(crate) fn initiate_transfer() -> Weight {
+        // Proof Size summary in bytes:
+        //  Measured:  `180`
+        //  Estimated: `3645`
+        // Minimum execution time: 82_584_000 picoseconds.
+        Weight::from_parts(84_614_000, 3645)
+            .saturating_add(T::DbWeight::get().reads(5))
+            .saturating_add(T::DbWeight::get().writes(3))
+    }
 }
