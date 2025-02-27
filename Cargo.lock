@@ -671,7 +671,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -805,7 +805,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -859,7 +859,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -890,7 +890,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-bridge-hub-router",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
@@ -1815,7 +1815,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -1961,7 +1961,7 @@ dependencies = [
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -2039,7 +2039,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-bridge-hub",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "sp-core 34.0.0",
  "sp-io 38.0.0",
@@ -2481,7 +2481,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -2728,7 +2728,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -2835,7 +2835,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -3280,20 +3280,6 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
-]
-
-[[package]]
-name = "cumulus-test-relay-sproof-builder"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e570e41c3f05a8143ebff967bbb0c7dcaaa6f0bebd8639b9418b8005b13eda03"
-dependencies = [
- "cumulus-primitives-core",
- "parity-scale-codec",
- "polkadot-primitives",
- "sp-runtime 39.0.5",
- "sp-state-machine 0.43.0",
- "sp-trie 37.0.0",
 ]
 
 [[package]]
@@ -9211,46 +9197,13 @@ dependencies = [
 [[package]]
 name = "parachains-runtimes-test-utils"
 version = "19.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d37c6a0fe791b244282e445c7ae2534217b05781a7e47ef9e391860cf3412210"
-dependencies = [
- "cumulus-pallet-parachain-system",
- "cumulus-pallet-xcmp-queue",
- "cumulus-primitives-core",
- "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "pallet-collator-selection",
- "pallet-session",
- "pallet-timestamp",
- "pallet-xcm",
- "parachains-common",
- "parity-scale-codec",
- "polkadot-parachain-primitives",
- "sp-consensus-aura",
- "sp-core 34.0.0",
- "sp-io 38.0.0",
- "sp-runtime 39.0.5",
- "sp-tracing 17.0.1",
- "staging-parachain-info",
- "staging-xcm",
- "staging-xcm-executor",
- "substrate-wasm-builder",
- "xcm-runtime-apis",
-]
-
-[[package]]
-name = "parachains-runtimes-test-utils"
-version = "19.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#2fb0a5300f921d4e21ef000ddacaf0e0f4cc0f97"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder 0.16.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
+ "cumulus-test-relay-sproof-builder",
  "frame-support",
  "frame-system",
  "pallet-balances",
@@ -9619,7 +9572,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives",
@@ -9728,7 +9681,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
- "parachains-runtimes-test-utils 19.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
@@ -13142,7 +13095,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-utility",
  "pallet-xcm",
- "parachains-runtimes-test-utils 19.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
+ "parachains-runtimes-test-utils",
  "parity-scale-codec",
  "snowbridge-core",
  "snowbridge-pallet-ethereum-client",
@@ -16600,7 +16553,7 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
- "cumulus-test-relay-sproof-builder 0.16.0 (git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing)",
+ "cumulus-test-relay-sproof-builder",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",

@@ -448,6 +448,7 @@ pallet-indices = { git = "https://github.com/paritytech/polkadot-sdk.git", branc
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 sp-consensus-beefy = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
+parachains-runtimes-test-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
