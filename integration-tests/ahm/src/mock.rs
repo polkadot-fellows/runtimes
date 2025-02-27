@@ -24,7 +24,7 @@ use pallet_rc_migrator::{
 	MigrationStage, RcMigrationStage,
 };
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
-use sp_runtime::BoundedVec;
+use sp_runtime::{BoundedVec, Perbill};
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
@@ -68,8 +68,16 @@ pub fn next_block_rc() {
 	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
 	frame_system::Pallet::<Polkadot>::set_block_number(now + 1);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
-		now + 1,
+	let weight =
+		<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
+			now + 1,
+		);
+	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
+	assert!(
+		weight.all_lte(Perbill::from_percent(80) * limit),
+		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
+		weight,
+		limit
 	);
 }
 
