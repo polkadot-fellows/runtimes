@@ -1750,7 +1750,10 @@ impl pallet_state_trie_migration::Config for Runtime {
 		EnsureRoot<AccountId>,
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 	>;
-	/// specific account for the migration, can trigger the signed migrations.
+	/// Warning: this is not advised, as it might allow the chain to be temporarily DOS-ed.
+	/// Preferably, if the chain's governance/maintenance team is planning on using a specific
+	/// account for the migration, put it here to make sure only that account can trigger the signed
+	/// migrations.
 	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
 	// Replace this with weight based on your runtime.
@@ -1760,11 +1763,6 @@ impl pallet_state_trie_migration::Config for Runtime {
 }
 // Statemint State Migration Controller account controlled by parity.io. Can trigger migration.
 // See bot code https://github.com/paritytech/polkadot-scripts/blob/master/src/services/state_trie_migration.ts
-//
-/// Warning: this is not advised, as it might allow the chain to be temporarily DOS-ed.
-/// Preferably, if the chain's governance/maintenance team is planning on using a specific
-/// account for the migration, put it here to make sure only that account can trigger the signed
-/// migrations.
 ord_parameter_types! {
 	pub const MigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
 }
