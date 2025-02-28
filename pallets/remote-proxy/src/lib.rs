@@ -76,16 +76,22 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	/// The remote proxy type.
 	type RemoteProxyType: Parameter + MaxEncodedLen;
 	/// The remote block number.
-	type RemoteBlockNumber: Parameter + Saturating + MaxEncodedLen + Default + PartialOrd;
+	type RemoteBlockNumber: Parameter
+		+ Saturating
+		+ MaxEncodedLen
+		+ Default
+		+ PartialOrd
+		+ Ord
+		+ From<u32>;
 	/// The hash type used by the remote chain.
 	type RemoteHash: Parameter + MaxEncodedLen;
 	/// The hasher used by the remote chain.
-	type RemoreHasher: Hasher<Out = Self::RemoteHash>;
+	type RemoteHasher: Hasher<Out = Self::RemoteHash>;
 
 	/// Get the latest block to storage root mapping.
 	fn block_to_storage_root(
 		validation_data: &PersistedValidationData,
-	) -> Option<(Self::RemoteBlockNumber, <Self::Hasher as Hasher>::Out)>;
+	) -> Option<(Self::RemoteBlockNumber, <Self::RemoteHasher as Hasher>::Out)>;
 
 	/// The storage key where to find the [`ProxyDefinition`] for the given proxy account in the
 	/// remote chain.
@@ -150,12 +156,12 @@ pub mod pallet {
 		<T as frame_system::Config>::AccountId,
 		<T as pallet_proxy::Config>::ProxyType,
 		BlockNumberFor<T>,
-	>>::Hasher;
+	>>::RemoteHasher;
 	type RemoteHashOf<T, I> = <<T as Config<I>>::RemoteProxy as RemoteProxyInterface<
 		<T as frame_system::Config>::AccountId,
 		<T as pallet_proxy::Config>::ProxyType,
 		BlockNumberFor<T>,
-	>>::Hash;
+	>>::RemoteHash;
 	type RemoteProxyTypeOf<T, I> = <<T as Config<I>>::RemoteProxy as RemoteProxyInterface<
 		<T as frame_system::Config>::AccountId,
 		<T as pallet_proxy::Config>::ProxyType,
@@ -169,22 +175,23 @@ pub mod pallet {
 	/// Stores the last [`Config::MaxStorageRootsToKeep`] block to storage root mappings of the
 	/// target chain.
 	#[pallet::storage]
-	pub type BlockToRoot<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Twox64Concat, RemoteBlockNumberOf<T, I>, RemoteHashOf<T, I>, OptionQuery>;
-
-	/// Stores the last block that was added to [`BlockToRoot`].
-	#[pallet::storage]
-	pub type MostRecentBlock<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, RemoteBlockNumberOf<T, I>, OptionQuery>;
+	pub type BlockToRoot<T: Config<I>, I: 'static = ()> = StorageValue<
+		_,
+		BoundedVec<(RemoteBlockNumberOf<T, I>, RemoteHashOf<T, I>), T::MaxStorageRootsToKeep>,
+		ValueQuery,
+	>;
 
 	/// Configuration trait.
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config + pallet_proxy::Config {
-		/// Maximum number of storage roots to keep in storage.
+		/// The maximum number of storage roots to keep.
 		///
 		/// The storage roots are used to validate the remote proofs. The more we keep in storage,
-		/// the older the proof can be.
-		type MaxStorageRootsToKeep: Get<RemoteBlockNumberOf<Self, I>>;
+		/// the older the proof can be. This is not only seen as a maximum number, but also as the
+		/// maximum difference between the latest and the oldest storage root stored. This means
+		/// that if the chain for example did not progress for `MaxStorageRootsToKeep` blocks, only
+		/// the latest added storage root will be available for validating proofs.
+		type MaxStorageRootsToKeep: Get<u32>;
 
 		/// The interface for interacting with the remote proxy.
 		type RemoteProxy: RemoteProxyInterface<
@@ -204,14 +211,19 @@ pub mod pallet {
 			};
 
 			// Update the block to root mappings.
-			BlockToRoot::<T>::insert(&block, hash);
-			MostRecentBlock::<T, I>::put(&block);
+			BlockToRoot::<T, I>::mutate(|roots| {
+				let delete_up_to =
+					block.clone().saturating_sub(T::MaxStorageRootsToKeep::get().into());
 
-			let delete_up_to = block.saturating_sub(T::MaxStorageRootsToKeep::get());
-			// If the chain got stuck for longer, we will clean up too old entries over time.
-			BlockToRoot::<T>::iter_keys()
-				.take_while(|k| *k <= delete_up_to)
-				.for_each(BlockToRoot::<T>::remove);
+				while roots.first().is_some_and(|f| f.0 <= delete_up_to) {
+					roots.remove(0);
+				}
+
+				// We always remove all the old items before, thus there should always be space in
+				// the vector.
+				let _res = roots.try_push((block, hash));
+				debug_assert!(_res.is_ok());
+			});
 		}
 
 		fn on_validation_code_applied() {}
@@ -224,8 +236,6 @@ pub mod pallet {
 		CouldNotConvertLocalToRemoteAccountId,
 		/// The anchor block of the remote proof is unknown.
 		UnknownProofAnchorBlock,
-		/// The anchor block of the remote proof is too old.
-		ProofAnchorBlockTooOld,
 		/// The proxy definition could not be found in the proof.
 		InvalidProof,
 		/// Failed to decode the remote proxy definition from the proof.
@@ -387,13 +397,12 @@ pub mod pallet {
 
 			let def = match proof {
 				RemoteProxyProof::RelayChain { proof, block } => {
-					if MostRecentBlock::<T, I>::get().map_or(true, |b| {
-						block <= b.saturating_sub(T::MaxStorageRootsToKeep::get())
-					}) {
-						return Err(Error::<T, I>::ProofAnchorBlockTooOld.into());
-					}
+					let roots = BlockToRoot::<T, I>::get();
 
-					let Some(storage_root) = BlockToRoot::<T, I>::get(block) else {
+					let Ok(storage_root) = roots
+						.binary_search_by(|(b, _)| b.cmp(&block))
+						.map(|pos| roots[pos].1.clone())
+					else {
 						return Err(Error::<T, I>::UnknownProofAnchorBlock.into());
 					};
 

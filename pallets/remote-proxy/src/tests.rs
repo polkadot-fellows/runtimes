@@ -32,7 +32,7 @@ use sp_core::{ConstU32, ConstU64, H256};
 use sp_io::TestExternalities;
 use sp_runtime::{
 	traits::{BlakeTwo256, Dispatchable},
-	BuildStorage,
+	BoundedVec, BuildStorage,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -139,12 +139,12 @@ impl crate::RemoteProxyInterface<u64, ProxyType, u64> for RemoteProxyImpl {
 	type RemoteAccountId = u64;
 	type RemoteProxyType = ProxyType;
 	type RemoteBlockNumber = u64;
-	type Hash = H256;
-	type Hasher = BlakeTwo256;
+	type RemoteHash = H256;
+	type RemoteHasher = BlakeTwo256;
 
 	fn block_to_storage_root(
 		validation_data: &PersistedValidationData,
-	) -> Option<(Self::RemoteBlockNumber, <Self::Hasher as Hasher>::Out)> {
+	) -> Option<(Self::RemoteBlockNumber, <Self::RemoteHasher as Hasher>::Out)> {
 		Some((validation_data.relay_parent_number as _, validation_data.relay_parent_storage_root))
 	}
 
@@ -195,7 +195,7 @@ impl crate::RemoteProxyInterface<u64, ProxyType, u64> for RemoteProxyImpl {
 }
 
 impl Config for Test {
-	type MaxStorageRootsToKeep = ConstU64<10>;
+	type MaxStorageRootsToKeep = ConstU32<10>;
 	type RemoteProxy = RemoteProxyImpl;
 	type WeightInfo = ();
 }
@@ -594,9 +594,12 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 		let root = H256::zero();
 		let call = Box::new(call_transfer(6, 1));
 
-		for i in 0u64..30u64 {
-			BlockToRoot::<Test>::insert(i, root);
-		}
+		BlockToRoot::<Test>::set(BoundedVec::truncate_from(vec![
+			(0, root),
+			(10, root),
+			(20, root),
+			(29, root),
+		]));
 
 		RemoteProxy::on_validation_data(&PersistedValidationData {
 			parent_head: vec![].into(),
@@ -604,7 +607,9 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 			relay_parent_storage_root: root,
 			max_pov_size: 5000000,
 		});
-		assert!(BlockToRoot::<Test>::get(5).is_some());
+		BlockToRoot::<Test>::get()
+			.iter()
+			.for_each(|(b, _)| assert!(*b == 29 || *b == 30));
 		assert_err!(
 			RemoteProxy::remote_proxy(
 				RuntimeOrigin::signed(1),
@@ -613,7 +618,7 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 				call.clone(),
 				RemoteProxyProof::RelayChain { proof: vec![], block: 5 }
 			),
-			Error::<Test>::ProofAnchorBlockTooOld
+			Error::<Test>::UnknownProofAnchorBlock
 		);
 
 		for i in 31u32..=40u32 {
@@ -625,12 +630,8 @@ fn clean_up_works_and_old_blocks_are_rejected() {
 			});
 		}
 
-		for i in 0u64..31u64 {
-			assert!(BlockToRoot::<Test>::get(i).is_none());
-		}
-
-		for i in 31u64..42u64 {
-			assert!(BlockToRoot::<Test>::get(i).is_some());
-		}
+		BlockToRoot::<Test>::get()
+			.iter()
+			.for_each(|(b, _)| assert!(*b >= 31 && *b <= 40));
 	});
 }
