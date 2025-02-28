@@ -15,6 +15,7 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
+xcm = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-bags-list = { workspace = true }
@@ -26,6 +27,7 @@ pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -46,7 +48,6 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
-xcm = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 [features]
@@ -68,6 +69,7 @@ std = [
 	"pallet-conviction-voting/std",
 	"pallet-fast-unstake/std",
 	"pallet-indices/std",
+	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-nomination-pools/std",
 	"pallet-preimage/std",
@@ -105,6 +107,7 @@ runtime-benchmarks = [
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
@@ -133,6 +136,7 @@ try-runtime = [
 	"pallet-conviction-voting/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-indices/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-preimage/try-runtime",

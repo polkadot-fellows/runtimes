@@ -32,12 +32,23 @@ pub enum RcHoldReason {
 	// StateTrieMigration(pallet_state_trie_migration::HoldReason),
 }
 
+impl Default for RcHoldReason {
+	fn default() -> Self {
+		RcHoldReason::Preimage(pallet_preimage::HoldReason::Preimage)
+	}
+}
+
 /// Relay Chain Freeze Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcFreezeReason {
-	// TODO
-	// #[codec(index = 39u8)]
-	// NominationPools(pallet_nomination_pools::FreezeReason),
+	#[codec(index = 39u8)]
+	NominationPools(pallet_nomination_pools::FreezeReason),
+}
+
+impl Default for RcFreezeReason {
+	fn default() -> Self {
+		RcFreezeReason::NominationPools(pallet_nomination_pools::FreezeReason::PoolMinBalance)
+	}
 }
 
 pub struct RcToAhHoldReason;
@@ -49,15 +60,23 @@ impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
 
 pub struct RcToAhFreezeReason;
 impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
-	fn convert(_: RcFreezeReason) -> RuntimeFreezeReason {
-		todo!()
+	fn convert(reason: RcFreezeReason) -> RuntimeFreezeReason {
+		match reason {
+			RcFreezeReason::NominationPools(
+				pallet_nomination_pools::FreezeReason::PoolMinBalance,
+			) => RuntimeFreezeReason::NominationPools(
+				pallet_nomination_pools::FreezeReason::PoolMinBalance,
+			),
+		}
 	}
 }
+
 /// Relay Chain Proxy Type
 ///
 /// Coped from https://github.com/polkadot-fellows/runtimes/blob/dde99603d7dbd6b8bf541d57eb30d9c07a4fce32/relay/polkadot/src/lib.rs#L986-L1010
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Default)]
 pub enum RcProxyType {
+	#[default]
 	Any = 0,
 	NonTransfer = 1,
 	Governance = 2,

@@ -25,48 +25,231 @@
 //! ```
 
 use crate::*;
-use core::str::FromStr;
-use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage};
 use frame_benchmarking::v2::*;
-use frame_support::{traits::EnqueueMessage, weights::WeightMeter};
+use frame_support::{
+	traits::{tokens::IdAmount, Currency},
+	weights::WeightMeter,
+};
 use frame_system::RawOrigin;
-use pallet_rc_migrator::types::PalletMigration;
-use xcm::VersionedXcm;
+use pallet_proxy::ProxyDefinition;
+use pallet_rc_migrator::{
+	claims::{alias::EthereumAddress, RcClaimsMessage},
+	proxy::{RcProxy, RcProxyAnnouncement},
+};
+
+/// The minimum amount used for deposits, transfers, etc.
+///
+/// Equivalent to Polkadot `UNITS`, which is larger than Kusama `UNITS`.
+pub const UNITS: u128 = 10_000_000_000;
+
+pub trait ParametersFactory<RcMultisig, RcAccount, RcClaimsMessage, RcProxy, RcProxyAnnouncement> {
+	fn create_multisig(n: u8) -> RcMultisig;
+	fn create_account(n: u8) -> RcAccount;
+	fn create_vesting_msg(n: u8) -> RcClaimsMessage;
+	fn create_proxy(n: u8) -> RcProxy;
+	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement;
+}
+
+pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
+impl<T: Config>
+	ParametersFactory<
+		RcMultisig<AccountId32, u128>,
+		RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason>,
+		RcClaimsMessage<AccountId32, u128, u32>,
+		RcProxy<AccountId32, u128, T::RcProxyType, u32>,
+		RcProxyAnnouncement<AccountId32, u128>,
+	> for BenchmarkFactory<T>
+where
+	T::AccountId: From<AccountId32>,
+	<<T as pallet_multisig::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
+	<<T as pallet_proxy::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
+{
+	fn create_multisig(n: u8) -> RcMultisig<AccountId32, u128> {
+		let creator: AccountId32 = [n; 32].into();
+		let deposit: u128 = UNITS;
+		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+			&creator,
+			(deposit * 10).into(),
+		);
+		let _ =
+			<T as pallet_multisig::Config>::Currency::reserve(&creator, deposit.into()).unwrap();
+
+		RcMultisig { creator, deposit, details: Some([2u8; 32].into()) }
+	}
+
+	fn create_account(n: u8) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
+		let who: AccountId32 = [n; 32].into();
+		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+			&who,
+			<T as pallet_multisig::Config>::Currency::minimum_balance(),
+		);
+
+		let hold_amount = UNITS;
+		let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+
+		let freeze_amount = 2 * UNITS;
+		let freezes = vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+
+		let lock_amount = 3 * UNITS;
+		let locks = vec![pallet_balances::BalanceLock::<u128> {
+			id: [1u8; 8],
+			amount: lock_amount,
+			reasons: pallet_balances::Reasons::All,
+		}];
+
+		let unnamed_reserve = 4 * UNITS;
+
+		let free = UNITS + hold_amount + freeze_amount + lock_amount + unnamed_reserve;
+		let reserved = hold_amount + unnamed_reserve;
+		let frozen = freeze_amount + lock_amount;
+
+		RcAccount {
+			who,
+			free,
+			reserved,
+			frozen,
+			holds,
+			freezes,
+			locks,
+			unnamed_reserve,
+			consumers: 1,
+			providers: 1,
+		}
+	}
+
+	fn create_vesting_msg(n: u8) -> RcClaimsMessage<AccountId32, u128, u32> {
+		RcClaimsMessage::Vesting { who: EthereumAddress([n; 20]), schedule: (100, 200, 300) }
+	}
+
+	fn create_proxy(n: u8) -> RcProxy<AccountId32, u128, T::RcProxyType, u32> {
+		let proxy_def = ProxyDefinition {
+			proxy_type: T::RcProxyType::default(),
+			delegate: [n; 32].into(),
+			delay: 100,
+		};
+		let proxies = vec![proxy_def; T::MaxProxies::get() as usize];
+
+		RcProxy { delegator: [n; 32].into(), deposit: 200, proxies }
+	}
+
+	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement<AccountId32, u128> {
+		let creator: AccountId32 = [n; 32].into();
+		let deposit: u128 = UNITS;
+		let _ = <T as pallet_proxy::Config>::Currency::deposit_creating(
+			&creator,
+			(deposit * 10).into(),
+		);
+		let _ =
+			<T as pallet_multisig::Config>::Currency::reserve(&creator, deposit.into()).unwrap();
+
+		RcProxyAnnouncement { depositor: creator, deposit }
+	}
+}
+
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
+	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
+}
 
 #[benchmarks(where T: pallet_balances::Config)]
 mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn receive_multisigs() {
+	fn receive_multisigs_from_snap(n: Linear<1, 255>) {
 		verify_snapshot::<T>();
-		let (messages, _cursor) = relay_snapshot(|| {
-			unwrap_no_debug(pallet_rc_migrator::multisig::MultisigMigrator::<T>::migrate_out_many(
-				None,
-				&mut WeightMeter::new(),
-			))
+		let (mut messages, _cursor) = relay_snapshot(|| {
+			unwrap_no_debug(
+				pallet_rc_migrator::multisig::MultisigMigrator::<T, ()>::migrate_out_many(
+					None,
+					&mut WeightMeter::new(),
+					&mut WeightMeter::new(),
+				),
+			)
 		});
 
-		#[extrinsic_call]
-		_(RawOrigin::Root, messages);
+		// TODO: unreserve fails since accounts should migrate first to make it successful. we will
+		// have a similar issue with the other calls benchmarks.
+		// TODO: possible we can truncate to n to have weights based on the number of messages
+		// TODO: for calls that have messages with `m` number of variants, we perhaps need to have
+		// `m` parameters like `n` parameter in this function. and we filter the returned by
+		// `migrate_out_many` `messages` or we pass these parameters to `migrate_out_many`.
+		messages.truncate(n as usize);
 
-		// TODO assert event
+		#[extrinsic_call]
+		receive_multisigs(RawOrigin::Root, messages);
+
+		for event in frame_system::Pallet::<T>::events() {
+			let encoded = event.encode();
+			log::info!("Event of pallet: {} and event: {}", encoded[0], encoded[1]);
+		}
 	}
 
 	#[benchmark]
-	fn receive_nom_pools_messages_pool_members() {
-		verify_snapshot::<T>();
-		let (messages, _cursor) = relay_snapshot(|| {
-			unwrap_no_debug(pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator::<T>::migrate_many(
-				None,
-				&mut WeightMeter::new(),
-			))
-		});
+	fn receive_multisigs(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_multisig(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
 
-		// TODO assert event
+		assert_last_event::<T>(
+			Event::MultisigBatchProcessed { count_good: n, count_bad: 0 }.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_accounts(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_account(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(Event::AccountBatchProcessed { count_good: n, count_bad: 0 }.into());
+	}
+
+	#[benchmark]
+	fn receive_claims(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_vesting_msg(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(Event::ClaimsBatchProcessed { count_good: n, count_bad: 0 }.into());
+	}
+
+	#[benchmark]
+	fn receive_proxy_proxies(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_proxy(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::ProxyProxiesBatchProcessed { count_good: n, count_bad: 0 }.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_proxy_announcements(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_proxy_announcement(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::ProxyAnnouncementsBatchProcessed { count_good: n, count_bad: 0 }.into(),
+		);
 	}
 }
 
@@ -102,7 +285,8 @@ fn verify_snapshot<T: Config>() {
 		frame_support::storage::unhashed::get::<
 			pallet_balances::AccountData<<T as pallet_balances::Config>::Balance>,
 		>(key.as_ref())
-	}).unwrap();
+	})
+	.unwrap();
 
 	if raw_acc.free == 0 {
 		panic!("No or broken snapshot: account does not have any balance");

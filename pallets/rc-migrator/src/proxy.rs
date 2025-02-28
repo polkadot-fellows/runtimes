@@ -69,6 +69,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
 		let mut batch = Vec::new();
+		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
@@ -86,8 +87,12 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				continue;
 			}
 
-			match Self::migrate_single(acc.clone(), (proxies.into_inner(), deposit), weight_counter)
-			{
+			match Self::migrate_single(
+				acc.clone(),
+				(proxies.into_inner(), deposit),
+				weight_counter,
+				&mut ah_weight,
+			) {
 				Ok(proxy) => {
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
@@ -127,8 +132,13 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
+		ah_weight: &mut WeightMeter,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+			return Err(OutOfWeightError);
+		}
+
+		if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_proxies(1)).is_err() {
 			return Err(OutOfWeightError);
 		}
 
@@ -157,6 +167,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 		let mut last_processed = None;
+		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		// Get iterator starting after last processed key
 		let mut iter = if let Some(last_key) = last_key {
@@ -170,6 +181,10 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		// Process announcements until we run out of weight
 		for (acc, (_announcements, deposit)) in iter.by_ref() {
 			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+				break;
+			}
+
+			if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_announcements(1)).is_err() {
 				break;
 			}
 

@@ -33,6 +33,8 @@
 
 pub mod account;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 pub mod bounties;
 pub mod call;
 pub mod claims;
@@ -77,6 +79,7 @@ use pallet_rc_migrator::{
 		nom_pools::*,
 	},
 	vesting::RcVestingSchedule,
+	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::claims as pallet_claims;
@@ -187,15 +190,21 @@ pub mod pallet {
 		/// XCM check account.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
-		type RcHoldReason: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcHoldReason: Parameter + Default;
 		/// Relay Chain Freeze Reasons.
-		type RcFreezeReason: Parameter;
-		/// Relay Chain to Asset Hub Hold Reasons mapping;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcFreezeReason: Parameter + Default;
+		/// Relay Chain to Asset Hub Hold Reasons mapping.
 		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
-		/// Relay Chain to Asset Hub Freeze Reasons mapping;
+		/// Relay Chain to Asset Hub Freeze Reasons mapping.
 		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
-		type RcProxyType: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcProxyType: Parameter + Default;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
 		/// Convert a Relay Chain block number delay to an Asset Hub one.
@@ -218,6 +227,17 @@ pub mod pallet {
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
 		/// Send UMP message.
 		type SendXcm: SendXcm;
+		/// Weight information for extrinsics in this pallet.
+		type AhWeightInfo: WeightInfo;
+		/// Helper type for benchmarking.
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: benchmarking::ParametersFactory<
+			RcMultisigOf<Self>,
+			RcAccountFor<Self>,
+			RcClaimsMessageOf<Self>,
+			RcProxyOf<Self, Self::RcProxyType>,
+			RcProxyAnnouncementOf<Self>,
+		>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -440,6 +460,7 @@ pub mod pallet {
 		///
 		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
+		#[pallet::weight(T::AhWeightInfo::receive_accounts(accounts.len() as u32))]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccountFor<T>>,
@@ -457,6 +478,7 @@ pub mod pallet {
 		/// multisigs were prepared by
 		/// `pallet_rc_migrator::multisig::MultisigMigrator::migrate_many`.
 		#[pallet::call_index(1)]
+		#[pallet::weight(T::AhWeightInfo::receive_multisigs(accounts.len() as u32))]
 		pub fn receive_multisigs(
 			origin: OriginFor<T>,
 			accounts: Vec<RcMultisigOf<T>>,
@@ -468,6 +490,7 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
@@ -479,6 +502,7 @@ pub mod pallet {
 
 		/// Receive proxy announcements from the Relay Chain.
 		#[pallet::call_index(3)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_announcements(announcements.len() as u32))]
 		pub fn receive_proxy_announcements(
 			origin: OriginFor<T>,
 			announcements: Vec<RcProxyAnnouncementOf<T>>,

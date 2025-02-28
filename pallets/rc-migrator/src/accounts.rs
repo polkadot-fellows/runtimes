@@ -188,8 +188,8 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Error<T>> {
-		// we should not send more than AH can handle within the block.
-		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
+		// we should not send more than we allocated on AH for the migration.
+		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts batch for the current iteration.
 		let mut batch = Vec::new();
 
@@ -219,7 +219,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 						who.clone(),
 						account_info.clone(),
 						weight_counter,
-						&mut ah_weight_counter,
+						&mut ah_weight,
 					) {
 						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
 						Err(e) => TransactionOutcome::Rollback(Err(e)),
@@ -320,18 +320,9 @@ impl<T: Config> AccountsMigrator<T> {
 			who.to_ss58check(),
 		);
 
-		// account the weight for migrating a single account on Relay Chain.
-		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
-			return Err(Error::OutOfWeight);
-		}
-
-		// account the weight for receiving a single account on Asset Hub.
-		if ah_weight.try_consume(T::AhWeightInfo::migrate_account()).is_err() {
-			return Err(Error::OutOfWeight);
-		}
-
 		// migrate the target account:
 		// - keep `balance`, `holds`, `freezes`, .. in memory
+		// - check if there is anything to migrate
 		// - release all `holds`, `freezes`, ...
 		// - teleport all balance from RC to AH:
 		// -- mint into XCM `checking` account
@@ -357,6 +348,16 @@ impl<T: Config> AccountsMigrator<T> {
 				log::warn!(target: LOG_TARGET, "Weird account detected '{}'", who.to_ss58check());
 			}
 			return Ok(None);
+		}
+
+		// account the weight for migrating a single account on Relay Chain.
+		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
+			return Err(Error::OutOfWeight);
+		}
+
+		// account the weight for receiving a single account on Asset Hub.
+		if ah_weight.try_consume(T::AhWeightInfo::receive_accounts(1)).is_err() {
+			return Err(Error::OutOfWeight);
 		}
 
 		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =

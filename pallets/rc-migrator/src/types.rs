@@ -96,18 +96,6 @@ pub struct ParaInfo<AccountId, Balance> {
 	pub locked: Option<bool>,
 }
 
-/// Weight information for the processing the packages from this pallet on the Asset Hub.
-pub trait AhWeightInfo {
-	/// Weight for processing a single account on AH.
-	fn migrate_account() -> Weight;
-}
-
-impl AhWeightInfo for () {
-	fn migrate_account() -> Weight {
-		Weight::from_all(1)
-	}
-}
-
 pub trait PalletMigration {
 	type Key: codec::MaxEncodedLen;
 	type Error;

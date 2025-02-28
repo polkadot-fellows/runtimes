@@ -61,10 +61,12 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		let mut inner_key = current_key.unwrap_or(ClaimsStage::StorageValues);
 		let mut messages = Vec::new();
 
+		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
+
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+				.is_err() || ah_weight.try_consume(T::AhWeightInfo::receive_claims(1)).is_err()
 			{
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
