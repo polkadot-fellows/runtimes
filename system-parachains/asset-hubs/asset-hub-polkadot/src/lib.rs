@@ -1126,6 +1126,10 @@ impl pallet_ah_ops::Config for Runtime {
 
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type ManagerOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckingAccount;
 	type RcHoldReason = migration::RcHoldReason;
@@ -1140,6 +1144,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
+	type SendXcm = xcm_config::XcmRouter;
 	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;

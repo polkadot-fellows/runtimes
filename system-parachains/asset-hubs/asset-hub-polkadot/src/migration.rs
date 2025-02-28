@@ -117,6 +117,7 @@ impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
 /// A subset of Relay Chain origins.
 ///
 /// These origins are utilized in Governance and mapped to Asset Hub origins for active referendums.
+#[allow(non_camel_case_types)]
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcPalletsOrigin {
 	#[codec(index = 0u8)]
@@ -155,6 +156,7 @@ pub enum RcRuntimeCall {
 }
 
 /// Relay Chain Treasury Call obtained from cargo expand.
+#[allow(non_camel_case_types)]
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcTreasuryCall {
 	/// Propose and approve a spend of treasury funds.
@@ -191,6 +193,7 @@ pub enum RcTreasuryCall {
 /// Relay Chain Utility Call obtained from cargo expand.
 ///
 /// The variants that are not generally used in Governance are not included.
+#[allow(non_camel_case_types)]
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcUtilityCall {
 	/// Send a batch of dispatch calls.
