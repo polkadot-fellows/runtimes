@@ -34,7 +34,8 @@
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_primitives_core::{Junction, Location, ParaId};
 use frame_system::pallet_prelude::BlockNumberFor;
-use pallet_rc_migrator::types::RcPalletMigrationChecks;
+use pallet_ah_migrator::types::AhMigrationCheck;
+use pallet_rc_migrator::types::RcMigrationCheck;
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use sp_runtime::AccountId32;
@@ -43,17 +44,44 @@ use xcm_emulator::ConvertLocation;
 
 use super::mock::*;
 
+type RcChecks = (
+	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
+	// other pallets go here
+);
+
+type AhChecks = (
+	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
+	// other pallets go here
+);
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn preimage_pallet_migration() {
-	let Some((rc, ah)) = load_externalities().await else { return };
-	type RcPayload = <pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot> as RcPalletMigrationChecks>::RcPayload;
-	let (dmp_messages, rc_payload) =
-		rc_migrate::<pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>>(rc);
-	// TODO: fix failing post-migration checks
-	ah_migrate::<
-		pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
-		pallet_ah_migrator::preimage::PreimageMigrationCheck<AssetHub>,
-	>(ah, rc_payload, dmp_messages);
+async fn pallet_migration_works() {
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Pre-checks on the Relay
+	let rc_pre_payload = rc.execute_with(RcChecks::pre_check);
+
+	// Pre-checks on the Asset Hub
+	let ah_pre_payload = ah.execute_with(|| {
+		let payload = AhChecks::pre_check(rc_pre_payload.clone());
+		payload
+	});
+
+	// Migrate the Relay Chain
+	let dmp_messages = rc_migrate(&mut rc);
+
+	// Post-checks on the Relay
+	rc.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
+
+	// Migrate the Asset Hub
+	ah_migrate(&mut ah, dmp_messages);
+
+	// Post-checks on the Asset Hub
+	ah.execute_with(|| {
+		AhChecks::post_check(rc_pre_payload, ah_pre_payload);
+	});
 }
 
 #[tokio::test]

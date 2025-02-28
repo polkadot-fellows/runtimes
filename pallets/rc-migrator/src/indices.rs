@@ -18,6 +18,8 @@
 // TODO FAIL-CI: Insecure unless your chain includes `PrevalidateAttests` as a
 // `TransactionExtension`.
 
+use crate::*;
+
 use crate::{types::AccountIdOf, *};
 use frame_support::traits::Currency;
 
@@ -40,7 +42,7 @@ type BalanceOf<T> = <<T as pallet_indices::Config>::Currency as Currency<
 >>::Balance;
 
 impl<T: Config> PalletMigration for IndicesMigrator<T> {
-	type Key = <T as pallet_indices::Config>::AccountIndex;
+	type Key = ();
 	type Error = Error<T>;
 
 	fn migrate_many(
@@ -67,16 +69,12 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 				break;
 			}
 
-			let mut iter = match inner_key {
-				Some(inner_key) => pallet_indices::Accounts::<T>::iter_from_key(inner_key),
-				None => pallet_indices::Accounts::<T>::iter(),
-			};
-
-			match iter.next() {
+			match pallet_indices::Accounts::<T>::iter().next() {
 				Some((index, (who, deposit, frozen))) => {
 					pallet_indices::Accounts::<T>::remove(&index);
+					log::debug!(target: LOG_TARGET, "Migrating index: {:?}", index);
 					messages.push(RcIndicesIndex { index, who, deposit, frozen });
-					inner_key = Some(index);
+					inner_key = Some(());
 				},
 				None => {
 					inner_key = None;
@@ -92,5 +90,21 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 		}
 
 		Ok(inner_key)
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for IndicesMigrator<T> {
+	type RcPrePayload = Vec<RcIndicesIndexOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_indices::Accounts::<T>::iter()
+			.map(|(index, (who, deposit, frozen))| RcIndicesIndex { index, who, deposit, frozen })
+			.collect()
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		let index = pallet_indices::Accounts::<T>::iter().collect::<Vec<_>>();
+		assert_eq!(index, vec![], "All indices should be removed from the Relay");
 	}
 }

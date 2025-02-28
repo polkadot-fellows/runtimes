@@ -160,17 +160,17 @@ impl<T: Config> PreimageChunkMigrator<T> {
 	}
 }
 
-impl<T: Config> RcPalletMigrationChecks for PreimageChunkMigrator<T> {
-	type RcPayload = Vec<(H256, u32)>;
+impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
+	type RcPrePayload = Vec<(H256, u32)>;
 
-	fn pre_check() -> Self::RcPayload {
+	fn pre_check() -> Self::RcPrePayload {
 		alias::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
 			.collect()
 	}
 
-	fn post_check(rc_payload: Self::RcPayload) {
-		for (hash, len) in rc_payload {
+	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+		for (hash, len) in rc_pre_payload {
 			if !alias::PreimageFor::<T>::contains_key((hash, len)) {
 				log::error!(
 					"migrated key in Preimage::PreimageFor is still present on the relay chain"
