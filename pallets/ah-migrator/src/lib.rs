@@ -47,6 +47,7 @@ pub mod scheduler;
 pub mod staking;
 pub mod types;
 pub mod vesting;
+pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::types::ZeroWeightOr;
@@ -89,6 +90,7 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -145,6 +147,9 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
+	use crate::xcm_config::TrustedTeleportersDuring;
+	use frame_support::traits::ContainsPair;
+	use pallet_rc_migrator::xcm_config::TrustedTeleportersBeforeAndAfter;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -726,6 +731,15 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_finished() {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			} else {
+				None
+			}
+		}
 	}
 
 	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
@@ -734,6 +748,19 @@ pub mod pallet {
 		}
 		fn is_finished() -> bool {
 			AhMigrationStage::<T>::get().is_finished()
+		}
+	}
+
+	// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+		fn contains(asset: &Asset, origin: &Location) -> bool {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_ongoing() {
+				TrustedTeleportersDuring::contains(asset, origin)
+			} else {
+				// before and after migration use normal filter
+				TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+			}
 		}
 	}
 }

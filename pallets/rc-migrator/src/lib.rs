@@ -48,9 +48,12 @@ pub mod asset_rate;
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
+pub mod xcm_config;
 
+use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
+use frame_support::traits::ContainsPair;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -89,6 +92,7 @@ use types::{AhWeightInfo, PalletMigration};
 use vesting::VestingMigrator;
 use weights::WeightInfo;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -277,9 +281,9 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(
 			self,
-			MigrationStage::Pending |
-				MigrationStage::Scheduled { .. } |
-				MigrationStage::MigrationDone
+			MigrationStage::Pending
+				| MigrationStage::Scheduled { .. }
+				| MigrationStage::MigrationDone
 		)
 	}
 }
@@ -1224,6 +1228,15 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = RcMigrationStage::<T>::get();
+			if stage.is_finished() || stage.is_ongoing() {
+				None
+			} else {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			}
+		}
 	}
 
 	impl<T: Config> types::MigrationStatus for Pallet<T> {
@@ -1257,5 +1270,19 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// Otherwise, allow the call.
 		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
+	}
+}
+
+// To be used for `IsTeleport` filter. Disallows teleports during the migration.
+impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let stage = RcMigrationStage::<T>::get();
+		if stage.is_ongoing() {
+			// during migration, no teleports (in or out) allowed
+			false
+		} else {
+			// before and after migration use normal filter
+			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+		}
 	}
 }
