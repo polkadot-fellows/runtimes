@@ -98,10 +98,23 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// total reserve balance after applying all `freezes` and `locks`.
 	pub frozen: Balance,
 	/// Account holds from Relay Chain.
+	///
+	/// Expected hold reasons:
+	/// - DelegatedStaking: StakingDelegation (only on Kusama)
+	/// - Preimage: Preimage
+	/// - Staking: Staking - later instead of "staking " lock
 	pub holds: Vec<IdAmount<HoldReason, Balance>>,
 	/// Account freezes from Relay Chain.
+	///
+	/// Expected freeze reasons:
+	/// - NominationPools: PoolMinBalance
 	pub freezes: Vec<IdAmount<FreezeReason, Balance>>,
 	/// Account locks from Relay Chain.
+	///
+	/// Expected lock ids:
+	/// - "staking " - should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
+	/// - "vesting "
+	/// - "pyconvot"
 	pub locks: Vec<BalanceLock<Balance>>,
 	/// Unnamed reserve.
 	///
@@ -139,10 +152,6 @@ pub enum AccountState<Balance> {
 	/// - accounts placed deposit for parachain registration (paras_registrar pallet);
 	/// - accounts placed deposit for hrmp channel registration (parachains_hrmp pallet);
 	Part {
-		/// Free part of the account the must be preserved on RC.
-		///
-		/// In practice the new ED.
-		free: Balance,
 		/// The reserved balance that must be preserved on RC.
 		///
 		/// In practice reserved by old `Currency` api and has no associated reason.
@@ -283,17 +292,27 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let rc_state = Self::get_rc_state(&who);
 
-		if matches!(rc_state, AccountState::Preserve) {
-			log::debug!(
-				target: LOG_TARGET,
-				"Preserve account '{:?}' on Relay Chain",
-				who.to_ss58check(),
-			);
-			return Ok(None);
-		}
-
-		// TODO: we do not expect `Part` variation for now and might delete it later
-		debug_assert!(!matches!(rc_state, AccountState::Part { .. }));
+		let (rc_reserve, rc_free_min) = match rc_state {
+			AccountState::Preserve => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Preserve account '{:?}' on Relay Chain",
+					who.to_ss58check(),
+				);
+				return Ok(None);
+			},
+			AccountState::Part { reserved } => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
+					who.to_ss58check(),
+					&reserved,
+				);
+				(reserved, <T as Config>::Currency::minimum_balance())
+			},
+			// migrate the entire account
+			AccountState::Migrate => (0, 0),
+		};
 
 		log::debug!(
 			target: LOG_TARGET,
@@ -387,34 +406,47 @@ impl<T: Config> AccountsMigrator<T> {
 			<T as Config>::Currency::remove_lock(lock.id, &who);
 		}
 
-		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who);
+		// unreserve the unnamed reserve but keep some reserve on RC if needed.
+		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
+			.checked_sub(rc_reserve)
+			.defensive_unwrap_or_default();
 		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
 
-		// TODO: To ensure the account can be fully withdrawn from RC to AH, we force-update the
-		// references here. After inspecting the state, it's clear that fully correcting the
+		// TODO: ensuring the account can be fully withdrawn from RC to AH requires force-updating
+		// the references here. After inspecting the state, it's clear that fully correcting the
 		// reference counts would be nearly impossible. Instead, for accounts meant to be fully
 		// migrated to the AH, we will calculate the actual reference counts based on the
-		// migrating pallets and transfer them to AH. This is done using the
+		// migrating pallets and transfer the counts to AH. This is done using the
 		// `Self::get_consumer_count` and `Self::get_provider_count` functions.
+		//
+		// accounts fully migrating to AH will have a consumer count of `0` since all holds and
+		// freezes are removed. Accounts keeping some reserve on RC will have a consumer count of
+		// `1` as they have consumers of the reserve. The provider count is set to `1` to allow
+		// reaping accounts that provided the ED at the `burn_from` below.
+		let consumers = if rc_reserve > 0 { 1 } else { 0 };
 		SystemAccount::<T>::mutate(&who, |a| {
-			a.consumers = 0;
+			a.consumers = consumers;
 			a.providers = 1;
 		});
 
-		let balance = <T as Config>::Currency::reducible_balance(
+		let total_balance = <T as Config>::Currency::total_balance(&who);
+		let teleport_total = <T as Config>::Currency::reducible_balance(
 			&who,
 			Preservation::Expendable,
 			Fortitude::Polite,
 		);
-		let total_balance = <T as Config>::Currency::total_balance(&who);
 
-		debug_assert!(total_balance == balance);
-		debug_assert!(total_balance == account_data.free + account_data.reserved);
-		debug_assert!(total_balance >= <T as Config>::AhExistentialDeposit::get());
+		let teleport_free =
+			account_data.free.checked_sub(rc_free_min).defensive_unwrap_or_default();
+		let teleport_reserved =
+			account_data.reserved.checked_sub(rc_reserve).defensive_unwrap_or_default();
+
+		defensive_assert!(teleport_total == total_balance - rc_free_min - rc_reserve);
+		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
 
 		let burned = match <T as Config>::Currency::burn_from(
 			&who,
-			total_balance,
+			teleport_total,
 			Preservation::Expendable,
 			Precision::Exact,
 			Fortitude::Polite,
@@ -431,10 +463,10 @@ impl<T: Config> AccountsMigrator<T> {
 			},
 		};
 
-		debug_assert!(total_balance == burned);
+		debug_assert!(teleport_total == burned);
 
 		let minted =
-			match <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), total_balance) {
+			match <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), teleport_total) {
 				Ok(minted) => minted,
 				Err(e) => {
 					log::error!(
@@ -447,12 +479,12 @@ impl<T: Config> AccountsMigrator<T> {
 				},
 			};
 
-		debug_assert!(total_balance == minted);
+		debug_assert!(teleport_total == minted);
 
 		Ok(Some(Account {
 			who: who.clone(),
-			free: account_data.free,
-			reserved: account_data.reserved,
+			free: teleport_free,
+			reserved: teleport_reserved,
 			frozen: account_data.frozen,
 			holds,
 			freezes,
@@ -521,25 +553,83 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
-		for (channel_id, _info) in hrmp::HrmpChannels::<T>::iter() {
+		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
+		let mut update_reserves = |id, deposit| {
+			if deposit == 0 {
+				return;
+			}
+			reserves.entry(id).and_modify(|e| *e += deposit).or_insert(deposit);
+		};
+
+		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
-			RcAccounts::<T>::insert(sender, AccountStateFor::<T>::Preserve);
+			update_reserves(sender, info.sender_deposit);
 
 			let recipient: T::AccountId = channel_id.recipient.into_account_truncating();
-			RcAccounts::<T>::insert(recipient, AccountStateFor::<T>::Preserve);
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1539
+			update_reserves(recipient, info.recipient_deposit);
+		}
+
+		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
+			let sender: T::AccountId = channel_id.sender.into_account_truncating();
+			update_reserves(sender, info.sender_deposit);
 		}
 
 		for (_, info) in Paras::<T>::iter() {
-			RcAccounts::<T>::insert(
-				info.manager,
-				// TODO: we can use `Part` variation to keep only the reserved part on RC
-				// for now for simplicity we preserve the whole account on RC
-				AccountStateFor::<T>::Preserve,
-			);
+			update_reserves(info.manager, info.deposit);
 		}
 
-		// TODO: should we consider `hrmp::HrmpOpenChannelRequests` or we can just clean up it
-		// before the migration.
+		for (id, rc_reserved) in reserves {
+			let account_entry = SystemAccount::<T>::get(&id);
+			let free = <T as Config>::Currency::balance(&id);
+			let total_frozen = account_entry.data.frozen;
+			let total_reserved = <T as Config>::Currency::reserved_balance(&id);
+			let total_hold = pallet_balances::Holds::<T>::get(&id)
+				.into_iter()
+				// we do not expect more holds
+				.take(5)
+				.map(|h| h.amount)
+				.sum::<T::Balance>();
+
+			let rc_ed = <T as Config>::Currency::minimum_balance();
+			let ah_ed = T::AhExistentialDeposit::get();
+
+			// we prioritize the named holds over the unnamed reserve. if any named holds we will
+			// send them to the AH and keep up to the `rc_reserved` on the RC.
+			let rc_reserved = rc_reserved.min(total_reserved.saturating_sub(total_hold));
+			let ah_free = free.saturating_sub(rc_ed);
+
+			if rc_reserved == 0 {
+				log::debug!(
+					target: LOG_TARGET,
+					"Account has no enough reserved balance to keep on RC. account: {:?}.",
+					id.to_ss58check(),
+				);
+				continue;
+			}
+
+			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
+				// when there is no much free balance and the account is used only for reserves
+				// for parachains registering or hrmp channels we will keep the entire account on
+				// the RC.
+				log::debug!(
+					target: LOG_TARGET,
+					"Preserve account: {:?} on the RC",
+					id.to_ss58check()
+				);
+				RcAccounts::<T>::insert(&id, AccountState::Preserve);
+			} else {
+				log::debug!(
+					target: LOG_TARGET,
+					"Keep part of account: {:?} reserve: {:?} on the RC",
+					id.to_ss58check(),
+					rc_reserved
+				);
+				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
+			}
+		}
 
 		// TODO: define actual weight
 		Weight::from_all(1)
