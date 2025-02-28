@@ -208,13 +208,13 @@ pub mod proxy {
 
 		type RemoteBlockNumber = BlockNumber;
 
-		type Hash = Hash;
+		type RemoteHash = Hash;
 
-		type Hasher = BlakeTwo256;
+		type RemoteHasher = BlakeTwo256;
 
 		fn block_to_storage_root(
 			validation_data: &polkadot_primitives::PersistedValidationData,
-		) -> Option<(Self::RemoteBlockNumber, <Self::Hasher as sp_core::Hasher>::Out)> {
+		) -> Option<(Self::RemoteBlockNumber, <Self::RemoteHasher as sp_core::Hasher>::Out)> {
 			Some((validation_data.relay_parent_number, validation_data.relay_parent_storage_root))
 		}
 

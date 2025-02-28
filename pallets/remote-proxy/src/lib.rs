@@ -127,7 +127,7 @@ pub trait RemoteProxyInterface<AccountId, ProxyType, BlockNumber> {
 	fn create_remote_proxy_proof(
 		caller: &AccountId,
 		proxy: &AccountId,
-	) -> (RemoteProxyProof<Self::RemoteBlockNumber>, Self::RemoteBlockNumber, Self::Hash);
+	) -> (RemoteProxyProof<Self::RemoteBlockNumber>, Self::RemoteBlockNumber, Self::RemoteHash);
 }
 
 #[frame_support::pallet]
