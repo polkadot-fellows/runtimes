@@ -52,7 +52,7 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 	type RcPrePayload = Vec<RcIndicesIndexOf<T>>;
 	type AhPrePayload = Vec<RcIndicesIndexOf<T>>;
 
-	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		pallet_indices::Accounts::<T>::iter()
 			.map(|(index, (who, deposit, frozen))| RcIndicesIndex { index, who, deposit, frozen })
 			.collect()
@@ -60,9 +60,9 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
-		let all_pre: BTreeMap<_, _> = ah_pre_payload
+		let all_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
-			.chain(rc_pre_payload.into_iter())
+			.chain(ah_pre_payload.into_iter())
 			.map(|RcIndicesIndex { index, who, deposit, frozen }| (index, (who, deposit, frozen)))
 			.collect();
 		let all_post: BTreeMap<_, _> = pallet_indices::Accounts::<T>::iter().collect();

@@ -64,10 +64,7 @@ async fn pallet_migration_works() {
 	let rc_pre_payload = rc.execute_with(RcChecks::pre_check);
 
 	// Pre-checks on the Asset Hub
-	let ah_pre_payload = ah.execute_with(|| {
-		let payload = AhChecks::pre_check(rc_pre_payload.clone());
-		payload
-	});
+	let ah_pre_payload = ah.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
 
 	// Migrate the Relay Chain
 	let dmp_messages = rc_migrate(&mut rc);
