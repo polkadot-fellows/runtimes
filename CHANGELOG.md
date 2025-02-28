@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama. ‼️ Builders: Please read the docs and the implications around the lifetime of a proxy on a remote chain. ‼️ ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
+
 ## [1.4.1] 26.02.2025
 
 ### Fixed
@@ -31,8 +37,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
 - Snowbridge: Add support for bridging Ether ([polkadot-fellows/runtimes#548](https://github.com/polkadot-fellows/runtimes/pull/548))
-
-- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama. ‼️ Builders: Please read the docs and the implications around the lifetime of a proxy on a remote chain. ‼️ ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
 
 ### Changed
 
