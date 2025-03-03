@@ -82,7 +82,6 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(4_560_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	// FAIL-CI I copied this from SDK master now for testing
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
 	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
 	/// Storage: `Preimage::StatusFor` (r:1 w:0)
