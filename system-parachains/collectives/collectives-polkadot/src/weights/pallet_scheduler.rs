@@ -82,8 +82,9 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(4_560_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
+	// FAIL-CI I copied this from SDK master now for testing
 	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
-	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `MaxEncodedLen`)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
 	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
@@ -91,15 +92,15 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[128, 4194304]`.
 	fn service_task_fetched(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `246 + s * (1 ±0)`
-		//  Estimated: `4197809`
-		// Minimum execution time: 26_560_000 picoseconds.
-		Weight::from_parts(26_740_000, 0)
-			.saturating_add(Weight::from_parts(0, 4197809))
-			// Standard Error: 8
-			.saturating_add(Weight::from_parts(1_399, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
+		//  Measured:  `66 + s * (1 ±0)`
+		//  Estimated: `3556 + s * (1 ±0)`
+		// Minimum execution time: 16_320_000 picoseconds.
+		Weight::from_parts(16_792_000, 3556)
+			// Standard Error: 263
+			.saturating_add(Weight::from_parts(23_402, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(s.into()))
 	}
 	/// Storage: `Scheduler::Lookup` (r:0 w:1)
 	/// Proof: `Scheduler::Lookup` (`max_values`: None, `max_size`: Some(48), added: 2523, mode: `MaxEncodedLen`)
