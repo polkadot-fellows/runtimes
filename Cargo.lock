@@ -659,6 +659,7 @@ dependencies = [
  "pallet-nfts",
  "pallet-nfts-runtime-api",
  "pallet-proxy",
+ "pallet-remote-proxy",
  "pallet-session",
  "pallet-state-trie-migration",
  "pallet-timestamp",
@@ -676,7 +677,6 @@ dependencies = [
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
- "polkadot-runtime-constants",
  "primitive-types",
  "scale-info",
  "serde_json",
@@ -6105,11 +6105,15 @@ name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "pallet-remote-proxy",
+ "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "scale-info",
  "smallvec",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
+ "sp-trie 37.0.0",
  "sp-weights 31.0.0",
  "staging-xcm-builder",
 ]
@@ -8790,6 +8794,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-remote-proxy"
+version = "1.0.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core 34.0.0",
+ "sp-io 38.0.0",
+ "sp-runtime 39.0.5",
+ "sp-state-machine 0.43.0",
+ "sp-trie 37.0.0",
+]
+
+[[package]]
 name = "pallet-salary"
 version = "23.2.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
@@ -9450,6 +9475,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "hex-literal",
  "log",
  "pallet-asset-conversion",
  "pallet-asset-tx-payment",
@@ -10081,11 +10107,15 @@ name = "polkadot-runtime-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "pallet-remote-proxy",
+ "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "scale-info",
  "smallvec",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
+ "sp-trie 37.0.0",
  "sp-weights 31.0.0",
  "staging-xcm-builder",
 ]
