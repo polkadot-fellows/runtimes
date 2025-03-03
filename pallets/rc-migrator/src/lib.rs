@@ -42,7 +42,8 @@ pub mod referenda;
 pub mod staking;
 pub mod types;
 pub mod vesting;
-mod weights;
+pub mod weights;
+pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
 pub mod bounties;
@@ -85,9 +86,10 @@ use staking::{
 	nom_pools::{NomPoolsMigrator, NomPoolsStage},
 };
 use storage::TransactionOutcome;
-use types::{AhWeightInfo, PalletMigration};
+use types::PalletMigration;
 use vesting::VestingMigrator;
 use weights::WeightInfo;
+use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 
 /// The log target of this pallet.
@@ -129,9 +131,18 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
 {
-	/// The migration has not yet started but will start in the next block.
+	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
+	/// The migration has been scheduled to start at the given block number.
+	Scheduled {
+		block_number: BlockNumber,
+	},
+	/// The migration is initializing.
+	///
+	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
+	/// receive the migration data.
+	Initializing,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
 	// TODO: Initializing?
@@ -266,7 +277,12 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 	///
 	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+		!matches!(
+			self,
+			MigrationStage::Pending |
+				MigrationStage::Scheduled { .. } |
+				MigrationStage::MigrationDone
+		)
 	}
 }
 
@@ -296,6 +312,8 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::traits::schedule::DispatchTime;
+
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -329,6 +347,10 @@ pub mod pallet {
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		///
+		/// This is generally root, Asset Hub and Fellows origins.
+		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
@@ -408,6 +430,47 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::ManagerOrigin`].
+		#[pallet::call_index(0)]
+		#[pallet::weight(0)]
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(stage);
+			Ok(())
+		}
+
+		/// Schedule the migration to start at a given moment.
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
+		pub fn schedule_migration(
+			origin: OriginFor<T>,
+			start_moment: DispatchTime<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+			let block_number = start_moment.evaluate(now);
+			Self::transition(MigrationStage::Scheduled { block_number });
+			Ok(())
+		}
+
+		/// Start the data migration.
+		///
+		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
+		/// migration data.
+		#[pallet::call_index(2)]
+		#[pallet::weight(0)]
+		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(MigrationStage::AccountsMigrationInit);
+			Ok(())
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
 		where
@@ -416,15 +479,34 @@ pub mod pallet {
 		crate::BalanceOf<T>:
 			From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
 	{
-		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			let mut weight_counter = WeightMeter::with_limit(T::MaxRcWeight::get());
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
 			match stage {
 				MigrationStage::Pending => {
-					// TODO: not complete
+					// TODO: we should do nothing on pending stage.
+					// On production the AH will send a message and initialize the migration.
+					// Now we transition to `AccountsMigrationInit` to run tests
 					Self::transition(MigrationStage::AccountsMigrationInit);
+				},
+				MigrationStage::Scheduled { block_number } =>
+					if now >= block_number {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
+							Ok(_) => {
+								Self::transition(MigrationStage::Initializing);
+							},
+							Err(_) => {
+								defensive!(
+									"Failed to send StartMigration message to AH, \
+									retry with the next block"
+								);
+							},
+						}
+					},
+				MigrationStage::Initializing => {
+					// waiting AH to send a message and to start sending the data
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -471,7 +553,10 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T>::migrate_many(last_key, &mut weight_counter) {
+						match MultisigMigrator::<T, T::AhWeightInfo>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
 							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
 							Err(e) => TransactionOutcome::Rollback(Err(e)),
 						}

@@ -33,6 +33,8 @@
 
 pub mod account;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 pub mod bounties;
 pub mod call;
 pub mod claims;
@@ -77,6 +79,7 @@ use pallet_rc_migrator::{
 		nom_pools::*,
 	},
 	vesting::RcVestingSchedule,
+	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::claims as pallet_claims;
@@ -88,6 +91,7 @@ use sp_runtime::{
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
+use xcm::prelude::*;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -107,6 +111,36 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+}
+
+/// The migration stage on the Asset Hub.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+pub enum MigrationStage {
+	/// The migration has not started but will start in the future.
+	#[default]
+	Pending,
+	/// Migrating data from the Relay Chain.
+	DataMigrationOngoing,
+	/// Migrating data from the Relay Chain is completed.
+	DataMigrationDone,
+	/// The migration is done.
+	MigrationDone,
+}
+
+impl MigrationStage {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
+	pub fn is_finished(&self) -> bool {
+		matches!(self, MigrationStage::MigrationDone)
+	}
+
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
+	pub fn is_ongoing(&self) -> bool {
+		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
+	}
 }
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
@@ -141,6 +175,10 @@ pub mod pallet {
 	{
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		///
+		/// This is generally root and Fellows origins.
+		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
@@ -152,15 +190,21 @@ pub mod pallet {
 		/// XCM check account.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
-		type RcHoldReason: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcHoldReason: Parameter + Default;
 		/// Relay Chain Freeze Reasons.
-		type RcFreezeReason: Parameter;
-		/// Relay Chain to Asset Hub Hold Reasons mapping;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcFreezeReason: Parameter + Default;
+		/// Relay Chain to Asset Hub Hold Reasons mapping.
 		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
-		/// Relay Chain to Asset Hub Freeze Reasons mapping;
+		/// Relay Chain to Asset Hub Freeze Reasons mapping.
 		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
-		type RcProxyType: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcProxyType: Parameter + Default;
 		/// Convert a Relay Chain Proxy Type to a local AH one.
 		type RcToProxyType: TryConvert<Self::RcProxyType, <Self as pallet_proxy::Config>::ProxyType>;
 		/// Convert a Relay Chain block number delay to an Asset Hub one.
@@ -181,6 +225,19 @@ pub mod pallet {
 		type Preimage: QueryPreimage<H = <Self as frame_system::Config>::Hashing> + StorePreimage;
 		/// Convert a Relay Chain Call to a local AH one.
 		type RcToAhCall: for<'a> TryConvert<&'a [u8], <Self as frame_system::Config>::RuntimeCall>;
+		/// Send UMP message.
+		type SendXcm: SendXcm;
+		/// Weight information for extrinsics in this pallet.
+		type AhWeightInfo: WeightInfo;
+		/// Helper type for benchmarking.
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: benchmarking::ParametersFactory<
+			RcMultisigOf<Self>,
+			RcAccountFor<Self>,
+			RcClaimsMessageOf<Self>,
+			RcProxyOf<Self, Self::RcProxyType>,
+			RcProxyAnnouncementOf<Self>,
+		>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -189,6 +246,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, RcAccountFor<T>, OptionQuery>;
+
+	/// The Asset Hub migration state.
+	#[pallet::storage]
+	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -207,6 +268,8 @@ pub mod pallet {
 		FailedToConvertCall,
 		/// Failed to bound a call.
 		FailedToBoundCall,
+		/// Failed to send XCM message.
+		XcmError,
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
 		Unreachable,
@@ -217,7 +280,13 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// The event that should to be replaced by something meaningful.
 		TODO,
-
+		/// A stage transition has occurred.
+		StageTransition {
+			/// The old stage before the transition.
+			old: MigrationStage,
+			/// The new stage after the transition.
+			new: MigrationStage,
+		},
 		/// We received a batch of accounts that we are going to integrate.
 		AccountBatchReceived {
 			/// How many accounts are in the batch.
@@ -391,6 +460,7 @@ pub mod pallet {
 		///
 		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
+		#[pallet::weight(T::AhWeightInfo::receive_accounts(accounts.len() as u32))]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccountFor<T>>,
@@ -408,6 +478,7 @@ pub mod pallet {
 		/// multisigs were prepared by
 		/// `pallet_rc_migrator::multisig::MultisigMigrator::migrate_many`.
 		#[pallet::call_index(1)]
+		#[pallet::weight(T::AhWeightInfo::receive_multisigs(accounts.len() as u32))]
 		pub fn receive_multisigs(
 			origin: OriginFor<T>,
 			accounts: Vec<RcMultisigOf<T>>,
@@ -419,6 +490,7 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
@@ -430,6 +502,7 @@ pub mod pallet {
 
 		/// Receive proxy announcements from the Relay Chain.
 		#[pallet::call_index(3)]
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_announcements(announcements.len() as u32))]
 		pub fn receive_proxy_announcements(
 			origin: OriginFor<T>,
 			announcements: Vec<RcProxyAnnouncementOf<T>>,
@@ -605,6 +678,29 @@ pub mod pallet {
 
 			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
 		}
+
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::ManagerOrigin`].
+		#[pallet::call_index(100)]
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::transition(stage);
+			Ok(())
+		}
+
+		/// Start the data migration.
+		///
+		/// This is typically called by the Relay Chain to start the migration on the Asset Hub and
+		/// receive a handshake message indicating the Asset Hub's readiness.
+		#[pallet::call_index(101)]
+		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
 	}
 
 	#[pallet::hooks]
@@ -614,14 +710,54 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> Pallet<T> {
+		/// Execute a stage transition and log it.
+		fn transition(new: MigrationStage) {
+			let old = AhMigrationStage::<T>::get();
+			AhMigrationStage::<T>::put(&new);
+			log::info!(
+				target: LOG_TARGET,
+				"[Block {:?}] Stage transition: {:?} -> {:?}",
+				frame_system::Pallet::<T>::block_number(),
+				&old,
+				&new
+			);
+			Self::deposit_event(Event::StageTransition { old, new });
+		}
+
+		/// Send a single XCM message.
+		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
+			log::info!(target: LOG_TARGET, "Sending XCM message");
+
+			let call = types::RcPalletConfig::RcmController(call);
+
+			let message = Xcm(vec![
+				Instruction::UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Instruction::Transact {
+					origin_kind: OriginKind::Superuser,
+					require_weight_at_most: Weight::from_all(1), // TODO
+					call: call.encode().into(),
+				},
+			]);
+
+			if let Err(err) = send_xcm::<T::SendXcm>(Location::parent(), message.clone()) {
+				log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
+				return Err(Error::XcmError);
+			};
+
+			Ok(())
+		}
+	}
+
 	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
 		fn is_ongoing() -> bool {
-			// TODO: implement
-			true
+			AhMigrationStage::<T>::get().is_ongoing()
 		}
 		fn is_finished() -> bool {
-			// TODO: implement
-			false
+			AhMigrationStage::<T>::get().is_finished()
 		}
 	}
 }

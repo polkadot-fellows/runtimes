@@ -7663,6 +7663,7 @@ dependencies = [
  "pallet-conviction-voting",
  "pallet-fast-unstake",
  "pallet-indices",
+ "pallet-message-queue",
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-preimage",
@@ -7686,6 +7687,7 @@ dependencies = [
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
  "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]

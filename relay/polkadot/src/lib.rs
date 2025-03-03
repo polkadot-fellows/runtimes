@@ -82,6 +82,7 @@ use frame_system::EnsureRoot;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
+use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
 	CandidateHash, CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState, ExecutorParams,
@@ -113,6 +114,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
+use xcm_config::{AssetHubLocation, CollectivesLocation, FellowsBodyId};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -1569,16 +1571,30 @@ parameter_types! {
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 }
 
+pub struct ContainsAssetHub;
+impl Contains<Location> for ContainsAssetHub {
+	fn contains(loc: &Location) -> bool {
+		*loc == AssetHubLocation::get()
+	}
+}
+
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type ManagerOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EitherOfDiverse<
+			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
+			EnsureXcm<ContainsAssetHub, Location>,
+		>,
+	>;
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckAccount;
 	type SendXcm = xcm_config::XcmRouter;
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = ();
-	type AhWeightInfo = ();
+	type RcWeightInfo = (); // TODO: weights::pallet_rc_migrator::WeightInfo;
+	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }

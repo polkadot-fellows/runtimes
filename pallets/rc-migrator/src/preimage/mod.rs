@@ -26,7 +26,6 @@ pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageL
 pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
 
 use crate::*;
-use sp_runtime::traits::{BlakeTwo256, Hash};
 
 pub mod alias {
 	use super::*;

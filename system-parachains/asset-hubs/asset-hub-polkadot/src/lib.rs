@@ -276,7 +276,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = ConstU32<1>;
 }
 
 parameter_types! {
@@ -1126,6 +1126,10 @@ impl pallet_ah_ops::Config for Runtime {
 
 impl pallet_ah_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type ManagerOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
 	type Currency = Balances;
 	type CheckingAccount = xcm_config::CheckingAccount;
 	type RcHoldReason = migration::RcHoldReason;
@@ -1140,6 +1144,10 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcPalletsOrigin = migration::RcPalletsOrigin;
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
+	type SendXcm = xcm_config::XcmRouter;
+	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1288,6 +1296,7 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
+		[pallet_ah_migrator, AhMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

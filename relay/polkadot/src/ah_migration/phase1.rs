@@ -23,6 +23,9 @@ pub struct CallsEnabledDuringMigration;
 impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledDuringMigration {
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (during, _after) = call_allowed_status(call);
+		if !during {
+			log::warn!("Call bounced by the filter during the migration: {:?}", call);
+		}
 		during
 	}
 }
@@ -32,6 +35,9 @@ pub struct CallsEnabledAfterMigration;
 impl Contains<<Runtime as frame_system::Config>::RuntimeCall> for CallsEnabledAfterMigration {
 	fn contains(call: &<Runtime as frame_system::Config>::RuntimeCall) -> bool {
 		let (_during, after) = call_allowed_status(call);
+		if !after {
+			log::warn!("Call bounced by the filter after the migration: {:?}", call);
+		}
 		after
 	}
 }
@@ -68,7 +74,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Scheduler(..) => (OFF, OFF),
 		Preimage(..) => (OFF, OFF),
 		Babe(..) => (ON, ON), // TODO double check
-		Timestamp(..) => (OFF, OFF),
+		Timestamp(..) => (ON, ON),
 		Indices(..) => (OFF, OFF),
 		Balances(..) => (OFF, ON),
 		// TransactionPayment has no calls
@@ -126,8 +132,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		XcmPallet(..) => (OFF, ON), /* TODO allow para origins and root to call this during the migration, see https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928789463 */
 		MessageQueue(..) => (ON, ON), // TODO think about this
 		AssetRate(..) => (OFF, OFF),
-		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur
-		                         * RcMigrator has no calls currently
-		                         * Exhaustive match. Compiler ensures that we did not miss any. */
+		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
+		RcMigrator(..) => (ON, ON),
+		// Exhaustive match. Compiler ensures that we did not miss any.
 	}
 }
