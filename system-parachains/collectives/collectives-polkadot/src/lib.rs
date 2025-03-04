@@ -1311,3 +1311,30 @@ fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 	let parachain_tbf = TransactionByteFee::get();
 	assert_eq!(relay_tbf / 20, parachain_tbf);
 }
+
+#[test]
+fn scheduler_weight_is_sane() {
+	use pallet_scheduler::WeightInfo;
+	type W = <Runtime as pallet_scheduler::Config>::WeightInfo;
+
+	fn lookup_weight(s: u32) -> Weight {
+		W::service_agendas_base() +
+			W::service_agenda_base(
+				<Runtime as pallet_scheduler::Config>::MaxScheduledPerBlock::get(),
+			) + W::service_task_base() +
+			W::service_task_fetched(s) +
+			W::service_task_named() +
+			W::service_task_periodic()
+	}
+
+	let limit = Perbill::from_percent(90) * MaximumSchedulerWeight::get();
+
+	let small_lookup = lookup_weight(128);
+	assert!(small_lookup.all_lte(limit), "Must be possible to submit a small lookup");
+
+	let medium_lookup = lookup_weight(1024);
+	assert!(medium_lookup.all_lte(limit), "Must be possible to submit a medium lookup");
+
+	let large_lookup = lookup_weight(1024 * 1024);
+	assert!(large_lookup.all_lte(limit), "Must be possible to submit a large lookup");
+}
