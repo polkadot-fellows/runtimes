@@ -1895,7 +1895,6 @@ mod tests {
 		use sp_core::crypto::Ss58Codec;
 		let acc =
 			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-		//panic!("{:x?}", acc);
 		assert_eq!(acc, MigController::sorted_members()[0]);
 	}
 }
