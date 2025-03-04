@@ -12,8 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Enabled state-trie-migration for Kusama and Polkadot Asset Hubs ([polkadot-fellows/runtimes/pull/604](https://github.com/polkadot-fellows/runtimes/pull/604))
 
-### Changed
-
 ## [1.4.1] 26.02.2025
 
 ### Fixed
