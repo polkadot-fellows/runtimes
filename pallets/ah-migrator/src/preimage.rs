@@ -204,17 +204,12 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-/// Check that the `pallet-preimage` post-state is sane.
-///
-/// This is not running exhaustive checks. It just does some basic checks and assumes that there are
-/// further downstream checks to catch everything.
-pub struct PreimageMigrationCheck<T: Config>(PhantomData<T>);
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
+	type RcPrePayload = Vec<(H256, u32)>;
+	type AhPrePayload = ();
 
-impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageMigrationCheck<T> {
-	type RcPayload = Vec<(H256, u32)>;
-	type AhPayload = ();
-
-	fn pre_check() -> Self::AhPayload {
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		// AH does not have a preimage pallet, therefore must be empty.
 		assert!(
 			alias::PreimageFor::<T>::iter_keys().next().is_none(),
@@ -227,7 +222,7 @@ impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageM
 	}
 
 	// The payload should come from the relay chain pre-check method on the same pallet
-	fn post_check(_ah_payload: Self::AhPayload, rc_payload: Self::RcPayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Check that the PreimageFor entries are sane.
 		for (key, preimage) in alias::PreimageFor::<T>::iter() {
 			assert!(preimage.len() > 0, "Preimage::PreimageFor is empty");
@@ -246,7 +241,7 @@ impl<T: Config> pallet_rc_migrator::types::AhPalletMigrationChecks for PreimageM
 			);
 		}
 
-		for (hash, len) in rc_payload {
+		for (hash, len) in rc_pre_payload {
 			if alias::PreimageFor::<T>::contains_key((hash, len)) {
 				log::error!("missing relay chain item in assetHub for Preimage::PreimageFor");
 			}

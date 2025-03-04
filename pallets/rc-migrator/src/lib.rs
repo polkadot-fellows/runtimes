@@ -115,7 +115,6 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as frame_system::Config>::AccountId,
 	BlockNumberFor<T>,
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
-	<T as pallet_indices::Config>::AccountIndex,
 	conviction_voting::alias::ClassOf<T>,
 	<T as pallet_asset_rate::Config>::AssetKind,
 >;
@@ -129,8 +128,7 @@ pub enum PalletEventName {
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
-{
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> {
 	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
@@ -216,7 +214,7 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 
 	IndicesMigrationInit,
 	IndicesMigrationOngoing {
-		next_key: Option<AccountIndex>,
+		next_key: Option<()>,
 	},
 	IndicesMigrationDone,
 
@@ -263,8 +261,8 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, Vot
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
-	MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
 {
 	/// Whether the migration is finished.
 	///
@@ -287,8 +285,8 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind>
+impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
 {
 	type Err = std::string::String;
 
@@ -302,6 +300,7 @@ impl<AccountId, BlockNumber, BagsListScore, AccountIndex, VotingClass, AssetKind
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
+			"indices" => MigrationStage::IndicesMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
