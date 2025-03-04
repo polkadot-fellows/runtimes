@@ -41,6 +41,8 @@ use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
 use xcm_emulator::ConvertLocation;
+use remote_externalities::RemoteExternalities;
+use cumulus_primitives_core::BlockT;
 
 use super::mock::*;
 
@@ -61,24 +63,32 @@ async fn pallet_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
 	// Pre-checks on the Relay
-	let rc_pre_payload = rc.execute_with(RcChecks::pre_check);
+	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
 
 	// Pre-checks on the Asset Hub
-	let ah_pre_payload = ah.execute_with(|| AhChecks::pre_check(rc_pre_payload.clone()));
+	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
 	// Migrate the Relay Chain
 	let dmp_messages = rc_migrate(&mut rc);
 
 	// Post-checks on the Relay
-	rc.execute_with(|| RcChecks::post_check(rc_pre_payload.clone()));
+	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
 
 	// Migrate the Asset Hub
 	ah_migrate(&mut ah, dmp_messages);
 
 	// Post-checks on the Asset Hub
-	ah.execute_with(|| {
-		AhChecks::post_check(rc_pre_payload, ah_pre_payload);
-	});
+	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+}
+
+fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
+	if std::env::var("START_STAGE").is_err() {
+		Some(ext.execute_with(|| {
+			f()
+		}))
+	} else {
+		None
+	}
 }
 
 #[tokio::test]
