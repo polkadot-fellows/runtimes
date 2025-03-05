@@ -149,7 +149,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			Pallet::<T>::send_chunked_xcm(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch },
-				|_| Weight::from_all(1),
+				|_| Weight::from_all(1), // TODO
 			)?;
 		}
 

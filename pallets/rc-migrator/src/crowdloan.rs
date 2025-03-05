@@ -258,7 +258,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 			Pallet::<T>::send_chunked_xcm(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages },
-				|_| Weight::from_all(1),
+				|_| Weight::from_all(1), // TODO
 			)?;
 		}
 

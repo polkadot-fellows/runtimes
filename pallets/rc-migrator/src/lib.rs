@@ -1148,6 +1148,12 @@ pub mod pallet {
 		/// Split up the items into chunks of `MAX_XCM_SIZE` and send them as separate XCM
 		/// transacts.
 		///
+		/// ### Parameters:
+		/// - items - data items to batch and send with the `create_call`
+		/// - create_call - function to create the call from the items
+		/// - weight_at_most - function to calculate the weight limit on AH for the call with `n`
+		///   elements from `items`
+		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm<E: Encode>(
@@ -1213,6 +1219,10 @@ pub mod pallet {
 		}
 
 		/// Send a single XCM message.
+		///
+		/// ### Parameters:
+		/// - call - the call to send
+		/// - weight_at_most - the weight limit for the call on AH
 		pub fn send_xcm(
 			call: types::AhMigratorCall<T>,
 			weight_at_most: Weight,

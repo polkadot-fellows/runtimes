@@ -91,7 +91,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				|batch| types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus {
 					legacy_status: batch,
 				},
-				|_| Weight::from_all(1),
+				|_| Weight::from_all(1), // TODO
 			)?;
 		}
 

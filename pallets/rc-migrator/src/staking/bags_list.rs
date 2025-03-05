@@ -123,7 +123,7 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 			Pallet::<T>::send_chunked_xcm(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages },
-				|_| Weight::from_all(1),
+				|_| Weight::from_all(1), // TODO
 			)?;
 		}
 

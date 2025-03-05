@@ -89,7 +89,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 			Pallet::<T>::send_chunked_xcm(
 				messages,
 				|messages| types::AhMigratorCall::ReceiveVestingSchedules { messages },
-				|_| Weight::from_all(1),
+				|_| Weight::from_all(1), // TODO
 			)?;
 		}
 
