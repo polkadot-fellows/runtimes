@@ -86,9 +86,13 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus { legacy_status: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus {
+					legacy_status: batch,
+				},
+				|_| Weight::from_all(1),
+			)?;
 		}
 
 		Ok(new_next_key)

@@ -121,9 +121,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch },
+				|_| Weight::from_all(1),
+			)?;
 		}
 
 		Ok(last_key)

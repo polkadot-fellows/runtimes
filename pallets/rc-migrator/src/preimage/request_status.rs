@@ -72,9 +72,13 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageRequestStatus { request_status: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceivePreimageRequestStatus {
+					request_status: batch,
+				},
+				|_| Weight::from_all(1),
+			)?;
 		}
 
 		Ok(new_next_key)

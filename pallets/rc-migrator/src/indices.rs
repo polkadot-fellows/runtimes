@@ -20,7 +20,7 @@
 
 use crate::*;
 
-use crate::{types::AccountIdOf, *};
+use crate::types::AccountIdOf;
 use frame_support::traits::Currency;
 
 pub struct IndicesMigrator<T> {
@@ -84,9 +84,11 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(messages, |batch| {
-				types::AhMigratorCall::<T>::ReceiveIndices { indices: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				messages,
+				|batch| types::AhMigratorCall::<T>::ReceiveIndices { indices: batch },
+				|_| Weight::from_all(1),
+			)?;
 		}
 
 		Ok(inner_key)

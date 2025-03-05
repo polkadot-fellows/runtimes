@@ -436,7 +436,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO: weight
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(stage);
@@ -445,7 +445,7 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO: weight
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start_moment: DispatchTime<BlockNumberFor<T>>,
@@ -462,7 +462,7 @@ pub mod pallet {
 		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
 		/// migration data.
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO: weight
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
@@ -492,7 +492,7 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, Weight::from_all(1)) {
 							Ok(_) => {
 								Self::transition(MigrationStage::Initializing);
 							},
@@ -1153,6 +1153,7 @@ pub mod pallet {
 		pub fn send_chunked_xcm<E: Encode>(
 			mut items: Vec<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
+			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<(), Error<T>> {
 			log::info!(target: LOG_TARGET, "Received {} items to batch send via XCM", items.len());
 			items.reverse();
@@ -1173,7 +1174,8 @@ pub mod pallet {
 					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
 				}
 
-				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch.len());
+				let batch_len = batch.len() as u32;
+				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
 
 				let message = Xcm(vec![
@@ -1183,7 +1185,14 @@ pub mod pallet {
 					},
 					Instruction::Transact {
 						origin_kind: OriginKind::Superuser,
-						require_weight_at_most: Weight::from_all(1), // TODO
+						// The `require_weight_at_most` parameter is used by the XCM executor to
+						// verify if the available weight is sufficient to process this call. If
+						// sufficient, the executor will execute the call and use the actual weight
+						// from the dispatchable result to adjust the meter limit. The weight meter
+						// limit on the Asset Hub is [Config::MaxAhWeight], which applies not only
+						// to process the calls passed with XCM messages but also to some base work
+						// required to process an XCM message.
+						require_weight_at_most: weight_at_most(batch_len),
 						call: call.encode().into(),
 					},
 				]);
@@ -1201,7 +1210,10 @@ pub mod pallet {
 		}
 
 		/// Send a single XCM message.
-		pub fn send_xcm(call: types::AhMigratorCall<T>) -> Result<(), Error<T>> {
+		pub fn send_xcm(
+			call: types::AhMigratorCall<T>,
+			weight_at_most: Weight,
+		) -> Result<(), Error<T>> {
 			log::info!(target: LOG_TARGET, "Sending XCM message");
 
 			let call = types::AssetHubPalletConfig::<T>::AhmController(call);
@@ -1213,7 +1225,14 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Superuser,
-					require_weight_at_most: Weight::from_all(1), // TODO
+					// The `require_weight_at_most` parameter is used by the XCM executor to verify
+					// if the available weight is sufficient to process this call. If sufficient,
+					// the executor will execute the call and use the actual weight from the
+					// dispatchable result to adjust the meter limit. The weight meter limit on the
+					// Asset Hub is [Config::MaxAhWeight], which applies not only to process the
+					// calls passed with XCM messages but also to some base work required to process
+					// an XCM message.
+					require_weight_at_most: weight_at_most,
 					call: call.encode().into(),
 				},
 			]);
