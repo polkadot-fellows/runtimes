@@ -1192,6 +1192,9 @@ pub mod pallet {
 						// limit on the Asset Hub is [Config::MaxAhWeight], which applies not only
 						// to process the calls passed with XCM messages but also to some base work
 						// required to process an XCM message.
+						// Additionally the call will not be executed if `require_weight_at_most` is
+						// lower than the actual weight of the call.
+						// TODO: we can remove ths with XCMv5
 						require_weight_at_most: weight_at_most(batch_len),
 						call: call.encode().into(),
 					},
@@ -1232,6 +1235,9 @@ pub mod pallet {
 					// Asset Hub is [Config::MaxAhWeight], which applies not only to process the
 					// calls passed with XCM messages but also to some base work required to process
 					// an XCM message.
+					// Additionally the call will not be executed if `require_weight_at_most` is
+					// lower than the actual weight of the call.
+					// TODO: we can remove ths with XCMv5
 					require_weight_at_most: weight_at_most,
 					call: call.encode().into(),
 				},
