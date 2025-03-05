@@ -78,6 +78,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
+	#[codec(index = 20)]
+	ReceiveChildBountiesMessages { messages: Vec<child_bounties::RcChildBountiesMessageOf<T>> },
 	#[codec(index = 101)]
 	StartMigration,
 }
