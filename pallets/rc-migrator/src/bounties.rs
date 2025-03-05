@@ -138,9 +138,11 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm(messages, |messages| {
-			types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages }
-		})?;
+		Pallet::<T>::send_chunked_xcm(
+			messages,
+			|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
+			|_| Weight::from_all(1), // TODO
+		)?;
 
 		if last_key == BountiesStage::Finished {
 			log::info!(target: LOG_TARGET, "Bounties migration finished");

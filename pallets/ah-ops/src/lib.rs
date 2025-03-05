@@ -197,7 +197,7 @@ pub mod pallet {
 		///
 		/// Solo bidder accounts that won lease auctions can use this to unreserve their amount.
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO weight
 		pub fn unreserve_lease_deposit(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -218,7 +218,7 @@ pub mod pallet {
 		///
 		/// Can be called by any signed origin.
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO weight
 		pub fn withdraw_crowdloan_contribution(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -240,7 +240,7 @@ pub mod pallet {
 		/// Can be called by any signed origin. The condition that all contributions are withdrawn
 		/// is in place since the reserve acts as a storage deposit.
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
+		#[pallet::weight({0})] // TODO weight
 		pub fn unreserve_crowdloan_reserve(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,

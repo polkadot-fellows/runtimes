@@ -264,9 +264,11 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch },
+				|len| T::AhWeightInfo::receive_accounts(len),
+			)?;
 		}
 
 		Ok(maybe_last_key)
