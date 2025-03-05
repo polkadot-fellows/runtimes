@@ -16,6 +16,7 @@
 // limitations under the License.
 
 use super::*;
+use pallet_rc_migrator::vesting::{RcVestingSchedule, VestingMigrator};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_vesting_schedules(
@@ -84,5 +85,33 @@ pub mod alias {
 		#[default]
 		V0,
 		V1,
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
+	type RcPrePayload = Vec<RcVestingSchedule<T>>;
+	type AhPrePayload = Vec<RcVestingSchedule<T>>;
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| RcVestingSchedule { who, schedules })
+			.collect()
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+		use std::collections::BTreeMap;
+
+		let all_pre: BTreeMap<_, _> = rc_pre_payload
+			.into_iter()
+			.chain(ah_pre_payload.into_iter())
+			.map(|RcVestingSchedule { who, schedules }| (who.clone(), schedules))
+			.collect();
+
+		let all_post: BTreeMap<_, _> = pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| (who, schedules))
+			.collect();
+
+		assert_eq!(all_pre, all_post, "RC and AH vesting schedules are present");
 	}
 }
