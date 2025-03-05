@@ -111,7 +111,6 @@ bridge-runtime-common = { features = [
 ], workspace = true, default-features = true }
 pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
-static_assertions = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
