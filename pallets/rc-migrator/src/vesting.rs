@@ -94,3 +94,24 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 		Ok(inner_key)
 	}
 }
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
+	type RcPrePayload = Vec<RcVestingSchedule<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| RcVestingSchedule { who, schedules })
+			.collect()
+	}
+
+	fn post_check(pre_payload: Self::RcPrePayload) {
+		// Verify that vesting data is still present and consistent
+		let vesting_positions = pallet_vesting::Vesting::<T>::iter().collect::<Vec<_>>();
+		assert_eq!(
+			vesting_positions.len(),
+			pre_payload.len(),
+			"Vesting data count mismatch after migration"
+		);
+	}
+}
