@@ -16,7 +16,9 @@
 // limitations under the License.
 
 use super::*;
-use pallet_rc_migrator::vesting::{RcVestingSchedule, VestingMigrator};
+use pallet_rc_migrator::vesting::{
+	BalanceOf, GenericVestingInfo, RcVestingSchedule, VestingMigrator,
+};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_vesting_schedules(
@@ -90,26 +92,59 @@ pub mod alias {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
-	type RcPrePayload = Vec<RcVestingSchedule<T>>;
-	type AhPrePayload = Vec<RcVestingSchedule<T>>;
+	type RcPrePayload =
+		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
+
+	type AhPrePayload =
+		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		pallet_vesting::Vesting::<T>::iter()
-			.map(|(who, schedules)| RcVestingSchedule { who, schedules })
+			.map(|(who, schedules)| {
+				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
+				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					schedules
+						.iter()
+						.map(|s| GenericVestingInfo {
+							locked: s.locked(),
+							starting_block: s.starting_block(),
+							per_block: s.per_block(),
+						})
+						.collect();
+				(who.encode(), balances, vesting_info)
+			})
 			.collect()
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 
-		let all_pre: BTreeMap<_, _> = rc_pre_payload
+		let all_pre: BTreeMap<
+			Vec<u8>,
+			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
+		> = rc_pre_payload
 			.into_iter()
 			.chain(ah_pre_payload.into_iter())
-			.map(|RcVestingSchedule { who, schedules }| (who.clone(), schedules))
+			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
 			.collect();
 
-		let all_post: BTreeMap<_, _> = pallet_vesting::Vesting::<T>::iter()
-			.map(|(who, schedules)| (who, schedules))
+		let all_post: BTreeMap<
+			Vec<u8>,
+			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
+		> = pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| {
+				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
+				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					schedules
+						.iter()
+						.map(|s| GenericVestingInfo {
+							locked: s.locked(),
+							starting_block: s.starting_block(),
+							per_block: s.per_block(),
+						})
+						.collect();
+				(who.encode(), (balances, vesting_info))
+			})
 			.collect();
 
 		assert_eq!(all_pre, all_post, "RC and AH vesting schedules are present");
