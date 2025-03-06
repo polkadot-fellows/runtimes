@@ -68,7 +68,7 @@ impl WeighAssets for AssetFilter {
 			// only 1 kind of fungible asset.
 			Self::Wild(AllOf { .. } | AllOfCounted { .. }) => balances_weight,
 			Self::Wild(AllCounted(count)) =>
-				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
+				balances_weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
 			Self::Wild(All) => balances_weight.saturating_mul(MAX_ASSETS),
 		}
 	}
@@ -278,11 +278,12 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 		assets: &Vec<AssetTransferFilter>,
 		_xcm: &Xcm<()>,
 	) -> Weight {
+		let base_weight = XcmBalancesWeight::<Runtime>::initiate_transfer();
 		let mut weight = if let Some(remote_fees) = remote_fees {
 			let fees = remote_fees.inner();
-			fees.weigh_assets(XcmBalancesWeight::<Runtime>::initiate_transfer())
+			fees.weigh_assets(base_weight)
 		} else {
-			Weight::zero()
+			base_weight
 		};
 		for asset_filter in assets {
 			let assets = asset_filter.inner();
