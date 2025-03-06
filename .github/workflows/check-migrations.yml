@@ -78,7 +78,7 @@ jobs:
 
           EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
-          EXTRA_ARGS="${{ matrix.runtime.runtime_args }}"
+          TRY_RUNTIME_EXTRA_ARGS+="${{ matrix.runtime.runtime_extra_args }}"
 
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
@@ -89,12 +89,12 @@ jobs:
             echo "Enabling the spec version check since we are releasing"
           fi
 
-          echo "Runtime extra args: $RUNTIME_EXTRA_ARGS"
+          echo "Try runtime extra args: $EXTRA_ARGS"
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
           echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
-          echo "RUNTIME_EXTRA_ARGS=$RUNTIME_EXTRA_ARGS" >> $GITHUB_ENV
+          echo "TRY_RUNTIME_EXTRA_ARGS=$TRY_RUNTIME_EXTRA_ARGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Set rust version via common env file
@@ -127,7 +127,7 @@ jobs:
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
-            $RUNTIME_EXTRA_ARGS \
+            $TRY_RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}"
