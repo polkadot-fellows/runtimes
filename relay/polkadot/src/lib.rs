@@ -1565,9 +1565,18 @@ impl OnSwap for SwapLeases {
 	}
 }
 
+// Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
+const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
+
 parameter_types! {
+	// Exvivalent to `polkadot_asset_hub_runtime::MessageQueueServiceWeight`.
+	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
+	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
+	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
 	pub RcMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, u64::MAX); // TODO set the actual max weight
-	pub AhMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, 5*1024*1024); // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 }
 
@@ -1593,8 +1602,11 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = (); // TODO: weights::pallet_rc_migrator::WeightInfo;
-	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	// TODO: weights::pallet_rc_migrator::WeightInfo
+	type RcWeightInfo = ();
+	// TODO: weights::pallet_ah_migrator::WeightInfo
+	// we use `SubstrateWeight` instead of () to use the local `DbWeight`.
+	type AhWeightInfo = pallet_rc_migrator::weights_ah::SubstrateWeight<Runtime>;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }

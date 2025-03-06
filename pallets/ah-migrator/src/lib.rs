@@ -460,7 +460,18 @@ pub mod pallet {
 		///
 		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::AhWeightInfo::receive_accounts(accounts.len() as u32))]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			for account in accounts.iter() {
+				let weight = if account.is_liquid() {
+					T::AhWeightInfo::receive_liquid_accounts(1)
+				} else {
+					T::AhWeightInfo::receive_accounts(1)
+				};
+				total = total.saturating_add(weight);
+			}
+			total
+		})]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccountFor<T>>,
