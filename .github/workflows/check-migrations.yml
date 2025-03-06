@@ -89,7 +89,7 @@ jobs:
             echo "Enabling the spec version check since we are releasing"
           fi
 
-          echo "Try runtime extra args: $EXTRA_ARGS"
+          echo "Try runtime extra args: $TRY_RUNTIME_EXTRA_ARGS"
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
