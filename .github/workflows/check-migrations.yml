@@ -78,7 +78,7 @@ jobs:
 
           EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
-          TRY_RUNTIME_EXTRA_ARGS+="${{ matrix.runtime.runtime_extra_args }}"
+          TRY_RUNTIME_EXTRA_ARGS+="${{ matrix.runtime.try_runtime_args }}"
 
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
