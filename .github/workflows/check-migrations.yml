@@ -79,7 +79,7 @@ jobs:
           EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
           # Add the overwrite_state_version flag if it exists 
-          RUNTIME_EXTRA_ARGS="${{ matrix.runtime.runtime_args }}"
+          EXTRA_ARGS="${{ matrix.runtime.runtime_args }}"
 
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
