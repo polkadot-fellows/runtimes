@@ -18,6 +18,7 @@
 use crate::*;
 use frame_support::traits::Currency;
 use pallet_vesting::MaxVestingSchedulesGet;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 pub type BalanceOf<T> = <<T as pallet_vesting::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
@@ -94,5 +95,67 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 		}
 
 		Ok(inner_key)
+	}
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct GenericVestingInfo<BlockNumber, Balance> {
+	pub locked: Balance,
+	pub starting_block: BlockNumber,
+	pub per_block: Balance,
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
+	type RcPrePayload =
+		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| {
+				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
+				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					schedules
+						.iter()
+						.map(|s| GenericVestingInfo {
+							locked: s.locked(),
+							starting_block: s.starting_block(),
+							per_block: s.per_block(),
+						})
+						.collect();
+				(who.encode(), balances, vesting_info)
+			})
+			.collect()
+	}
+
+	fn post_check(pre_payload: Self::RcPrePayload) {
+		let pre_map: BTreeMap<
+			Vec<u8>,
+			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
+		> = pre_payload
+			.into_iter()
+			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
+			.collect();
+
+		let current_map: BTreeMap<
+			Vec<u8>,
+			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
+		> = pallet_vesting::Vesting::<T>::iter()
+			.map(|(who, schedules)| {
+				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
+				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					schedules
+						.iter()
+						.map(|s| GenericVestingInfo {
+							locked: s.locked(),
+							starting_block: s.starting_block(),
+							per_block: s.per_block(),
+						})
+						.collect();
+				(who.encode(), (balances, vesting_info))
+			})
+			.collect();
+
+		assert_eq!(pre_map, current_map, "Vesting data mismatch after migration");
 	}
 }
