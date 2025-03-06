@@ -241,15 +241,16 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			);
 		}
 
+		// All items have been migrated from the relay chain
 		for (hash, len) in rc_pre_payload {
-			if alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::error!("missing relay chain item in assetHub for Preimage::PreimageFor");
-			}
-			// TODO: fix failing check and change log to assert below
-			// assert!(
-			//   alias::PreimageFor::<T>::contains_key((hash, len)),
-			//	 "missing relay chain item in assetHub for Preimage::PreimageFor"
-			// );
+			assert!(
+				alias::PreimageFor::<T>::contains_key((hash, len)),
+				"missing relay chain item in assetHub for Preimage::PreimageFor"
+			);
+			assert!(
+				alias::RequestStatusFor::<T>::contains_key(hash),
+				"missing relay chain migrated item in assetHub for Preimage::RequestStatusFor"
+			);
 		}
 
 		// Integrity check that all preimages have the correct hash and length

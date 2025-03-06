@@ -171,16 +171,14 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		for (hash, len) in rc_pre_payload {
-			if !alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::error!(
-					"migrated key in Preimage::PreimageFor is still present on the relay chain"
-				);
-			}
-			// TODO: fix failing check and change log to assert below
-			// assert!(
-			// 	 !alias::PreimageFor::<T>::contains_key((hash, len)),
-			//	 "migrated key in Preimage::PreimageFor is still present on the relay chain"
-			// );
+			assert!(
+				!alias::PreimageFor::<T>::contains_key((hash, len)),
+				"migrated key in Preimage::PreimageFor is still present on the relay chain"
+			);
+			assert!(
+				!alias::RequestStatusFor::<T>::contains_key(hash),
+				"migrated hash in Preimage::RequestStatusFor is still present on the relay chain"
+			);
 		}
 	}
 }
