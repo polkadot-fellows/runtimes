@@ -134,6 +134,18 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	pub providers: u8,
 }
 
+impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
+	Account<AccountId, Balance, HoldReason, FreezeReason>
+{
+	/// Check if the total account balance is liquid.
+	pub fn is_liquid(&self) -> bool {
+		self.unnamed_reserve.is_zero() &&
+			self.freezes.is_empty() &&
+			self.locks.is_empty() &&
+			self.holds.is_empty()
+	}
+}
+
 /// The state for the Relay Chain accounts.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum AccountState<Balance> {
@@ -220,6 +232,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 						account_info.clone(),
 						weight_counter,
 						&mut ah_weight,
+						batch.len() as u32,
 					) {
 						Ok(ok) => TransactionOutcome::Commit(Ok(ok)),
 						Err(e) => TransactionOutcome::Rollback(Err(e)),
@@ -264,9 +277,11 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch },
+				|_| ah_weight.consumed(),
+			)?;
 		}
 
 		Ok(maybe_last_key)
@@ -284,6 +299,7 @@ impl<T: Config> AccountsMigrator<T> {
 		account_info: AccountInfoFor<T>,
 		rc_weight: &mut WeightMeter,
 		ah_weight: &mut WeightMeter,
+		batch_len: u32,
 	) -> Result<Option<AccountFor<T>>, Error<T>> {
 		// account for `get_rc_state` read below
 		if rc_weight.try_consume(T::DbWeight::get().reads(1)).is_err() {
@@ -352,11 +368,6 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// account the weight for migrating a single account on Relay Chain.
 		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
-			return Err(Error::OutOfWeight);
-		}
-
-		// account the weight for receiving a single account on Asset Hub.
-		if ah_weight.try_consume(T::AhWeightInfo::receive_accounts(1)).is_err() {
 			return Err(Error::OutOfWeight);
 		}
 
@@ -482,7 +493,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 		debug_assert!(teleport_total == minted);
 
-		Ok(Some(Account {
+		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
 			reserved: teleport_reserved,
@@ -493,7 +504,37 @@ impl<T: Config> AccountsMigrator<T> {
 			unnamed_reserve,
 			consumers: Self::get_consumer_count(&who, &account_info),
 			providers: Self::get_provider_count(&who, &account_info),
-		}))
+		};
+
+		// account the weight for receiving a single account on Asset Hub.
+		let an_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		if ah_weight.try_consume(an_receive_weight).is_err() {
+			log::debug!(
+				target: LOG_TARGET,
+				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
+				ah_weight,
+				an_receive_weight
+			);
+			return Err(Error::OutOfWeight);
+		}
+
+		Ok(Some(withdrawn_account))
+	}
+
+	/// Get the weight for importing a single account on Asset Hub.
+	///
+	/// The base weight is only included for the first imported account.
+	pub fn get_ah_receive_account_weight(batch_len: u32, account: &AccountFor<T>) -> Weight {
+		let weight_of = if account.is_liquid() {
+			T::AhWeightInfo::receive_liquid_accounts
+		} else {
+			T::AhWeightInfo::receive_accounts
+		};
+		if batch_len == 0 {
+			weight_of(1)
+		} else {
+			weight_of(1).saturating_sub(weight_of(0))
+		}
 	}
 
 	/// Consumer ref count of migrating to Asset Hub pallets except a reference for `reserved` and

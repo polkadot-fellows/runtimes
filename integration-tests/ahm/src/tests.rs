@@ -204,3 +204,40 @@ async fn print_sovereign_account_translation() {
 	//std::fs::write("../../pallets/rc-migrator/src/sovereign_account_translation.csv",
 	// csv).unwrap();
 }
+
+#[tokio::test]
+async fn print_accounts_statistics() {
+	use frame_system::Account as SystemAccount;
+
+	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
+
+	let mut total_counts = std::collections::HashMap::new();
+
+	rc.execute_with(|| {
+		for (who, account_info) in SystemAccount::<Polkadot>::iter() {
+			total_counts.entry("total_count").and_modify(|count| *count += 1).or_insert(1);
+
+			let freezes_count = pallet_balances::Freezes::<Polkadot>::get(&who).len();
+			let lock_count = pallet_balances::Locks::<Polkadot>::get(&who).len();
+			let holds_sum = pallet_balances::Holds::<Polkadot>::get(&who)
+				.iter()
+				.map(|h| h.amount)
+				.sum::<u128>();
+			let unnamed_reserve = account_info.data.reserved.saturating_sub(holds_sum);
+
+			if freezes_count == 0 && lock_count == 0 && holds_sum == 0 && unnamed_reserve == 0 {
+				total_counts
+					.entry("total_liquid_count")
+					.and_modify(|count| *count += 1)
+					.or_insert(1);
+			}
+		}
+	});
+
+	/*
+	RC Polkadot snapshot from 2025-01-24:
+		total_count ~ 1_434_995
+		total_liquid_count ~ 1_373_890
+	 */
+	println!("Total counts: {:?}", total_counts);
+}
