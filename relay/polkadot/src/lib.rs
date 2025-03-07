@@ -1566,8 +1566,8 @@ impl OnSwap for SwapLeases {
 }
 
 parameter_types! {
-	pub RcMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, u64::MAX); // TODO set the actual max weight
-	pub AhMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, 5*1024*1024); // TODO set the actual max weight
+	pub RcMigratorMaxWeight: Weight = Weight::from_parts(500_000_000_000, u64::MAX); // TODO set the actual max weight
+	pub AhMigratorMaxWeight: Weight = Weight::from_parts(500_000_000_000, 5*1024*1024); // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 }
 

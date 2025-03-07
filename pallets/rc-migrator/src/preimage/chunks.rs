@@ -62,8 +62,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				},
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
 				Some(((hash, len), _)) => {
-					// Get the next key
-					let Some(next_key) = Self::next_key(Some((hash, len))) else {
+					// Get the next key and remove the previous one
+					let next_key_maybe = Self::next_key(Some((hash, len)));
+					alias::PreimageFor::<T>::remove((hash, len));
+					alias::RequestStatusFor::<T>::remove(hash);
+					let Some(next_key) = next_key_maybe else {
 						break None;
 					};
 					(next_key, 0)
