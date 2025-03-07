@@ -78,6 +78,8 @@ jobs:
 
           EXTRA_FLAGS+=" --blocktime ${{ matrix.runtime.blocktime }} "
 
+          TRY_RUNTIME_EXTRA_ARGS+="${{ matrix.runtime.try_runtime_args }}"
+
           # Disable the spec version check when we dont want to release.
           # The program prints either `1` or `0`.
           if [ "$(.github/changelog-processor.py CHANGELOG.md --should-release)" = "0" ]; then
@@ -87,10 +89,12 @@ jobs:
             echo "Enabling the spec version check since we are releasing"
           fi
 
+          echo "Try runtime extra args: $TRY_RUNTIME_EXTRA_ARGS"
           echo "Flags: $EXTRA_FLAGS"
           echo "Checks: $CHECKS"
 
           echo "EXTRA_FLAGS=$EXTRA_FLAGS" >> $GITHUB_ENV
+          echo "TRY_RUNTIME_EXTRA_ARGS=$TRY_RUNTIME_EXTRA_ARGS" >> $GITHUB_ENV
           echo "CHECKS=$CHECKS" >> $GITHUB_ENV
 
       - name: Set rust version via common env file
@@ -119,19 +123,19 @@ jobs:
           export RUST_LOG=remote-ext=debug,runtime=debug
 
           echo "Extra args: $EXTRA_FLAGS"
-  
+
           # Store the command in a variable so we can log it
           COMMAND="try-runtime \
             --runtime $RUNTIME_BLOB_PATH \
+            $TRY_RUNTIME_EXTRA_ARGS \
             on-runtime-upgrade --checks=$CHECKS \
             $EXTRA_FLAGS \
             live --uri ${{ matrix.runtime.uri }}"
-  
+
           # Echo the command before running it, for debugging purposes
           echo "Running command:"
           echo "$COMMAND"
           eval "$COMMAND"
-          
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
