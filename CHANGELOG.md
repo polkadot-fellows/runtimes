@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.4.2] 05.03.2025
+## [1.4.2] 07.03.2025
 
 ### Added
 
