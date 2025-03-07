@@ -115,7 +115,6 @@ impl_opaque_keys! {
 	}
 }
 
-#[cfg(feature = "state-trie-version-1")]
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// Note: "statemine" is the legacy name for this chain. It has been renamed to
@@ -129,22 +128,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
 	state_version: 1,
-};
-
-#[cfg(not(feature = "state-trie-version-1"))]
-#[sp_version::runtime_version]
-pub const VERSION: RuntimeVersion = RuntimeVersion {
-	// Note: "statemine" is the legacy name for this change. It has been renamed to
-	// "asset-hub-kusama". Many wallets/tools depend on the `spec_name`, so it remains "statemine"
-	// for the time being. Wallets/tools should update to treat "asset-hub-kusama" equally.
-	spec_name: create_runtime_str!("statemine"),
-	impl_name: create_runtime_str!("statemine"),
-	authoring_version: 1,
-	spec_version: 1_004_001,
-	impl_version: 0,
-	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 15,
-	state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -1067,7 +1050,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 
-		#[cfg(feature = "state-trie-version-1")]
+		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
 	}
 );
@@ -1797,51 +1780,35 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
-#[cfg(feature = "state-trie-version-1")]
 parameter_types! {
 	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
 	pub const MigrationSignedDepositPerItem: Balance = CENTS;
 	pub const MigrationSignedDepositBase: Balance = 2_000 * CENTS;
-	pub const MigrationMaxKeyLen: u32 = 512;
+	pub const MigrationMaxKeyLen: u32 = 32;
 }
 
-#[cfg(feature = "state-trie-version-1")]
 impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
-	// An origin that can control the whole pallet: should be Root, or a part of your council.
-	type ControlOrigin = frame_system::EnsureSignedBy<RootMigController, AccountId>;
-	// specific account for the migration, can trigger the signed migrations.
-	type SignedFilter = frame_system::EnsureSignedBy<MigController, AccountId>;
+	// An origin that can control the whole pallet: should be Root or the Fellowship.
+	type ControlOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
+	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
 	// Replace this with weight based on your runtime.
 	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
 
 	type MaxKeyLen = MigrationMaxKeyLen;
 }
-
-#[cfg(feature = "state-trie-version-1")]
-frame_support::ord_parameter_types! {
+// Statemint State Migration Controller account controlled by parity.io. Can trigger migration.
+// See bot code https://github.com/paritytech/polkadot-scripts/blob/master/src/services/state_trie_migration.ts
+ord_parameter_types! {
 	pub const MigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
-	pub const RootMigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
-}
-
-#[cfg(feature = "state-trie-version-1")]
-#[test]
-fn ensure_key_ss58() {
-	use frame_support::traits::SortedMembers;
-	use sp_core::crypto::Ss58Codec;
-	let acc =
-		AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-	//panic!("{:x?}", acc);
-	assert_eq!(acc, MigController::sorted_members()[0]);
-	let acc =
-		AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-	assert_eq!(acc, RootMigController::sorted_members()[0]);
-	//panic!("{:x?}", acc);
 }
 
 #[cfg(test)]
@@ -1916,5 +1883,14 @@ mod tests {
 			bp_asset_hub_kusama::CreateForeignAssetDeposit::get(),
 			ForeignAssetsAssetDeposit::get()
 		);
+	}
+
+	#[test]
+	fn ensure_key_ss58() {
+		use frame_support::traits::SortedMembers;
+		use sp_core::crypto::Ss58Codec;
+		let acc =
+			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
+		assert_eq!(acc, MigController::sorted_members()[0]);
 	}
 }
