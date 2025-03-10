@@ -49,7 +49,7 @@ There is good news and bad news here. The good news is that there is only one ac
 The bad news is that the proxy pallet does not keep track of pure accounts. There is no storage item for it. I created [a script](https://github.com/ggwpez/substrate-scripts/blob/370b8336f46d6fc5acd2044731874a1e887a2253/proxy-created-events.py) that will print all proxies that are neither `Any` nor `NonTransfer`.  
 Polkadot asset hub has a single `AssetOwner` proxy and Kusama Asset Hub none.
 
-We should disable these colliding proxy types on Asset Hub, to avoid future use until the migration finished. But generally it should be possible to migrate the pure proxy accounts as is without any translation of their ID while keeping the ability of them to call `kill_pure`. The only exception is if the parent account was translated (for example as a Parachain Sovereign), then it would not be possible to kill this pure proxy anymore and redeem the deposit without manual intervention.
+We should disable these colliding proxy types on Asset Hub, to avoid future use until the migration finished. But generally it should be possible to migrate the pure proxy accounts as is without any translation of their ID while keeping the ability of them to call `kill_pure`. If the creator account was translated (eg Parachain Sovereign) then they would have to use our account recovery to redeem that account.
 
 We probably also have to add stub variants for the ones that have no equivalent on AH (marked with TBD) to allow users to still redeem these proxies and claim the deposit.
 
