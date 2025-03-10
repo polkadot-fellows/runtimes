@@ -40,9 +40,9 @@ Pure proxies are [derived](https://github.com/paritytech/polkadot-sdk/blob/4f7a9
 | 4 | - | AssetOwner | ✅ | ❌ | NoOp |
 | 5 | - | AssetManager | ✅ | ✅ | NoOp |
 | 6 | CancelProxy | Collator | ❌ | ✅ | Disable on AH |
-| 7 | Auction | - | ✅ | ✅ | NoOp |
-| 8 | NominationPools | - | ✅ | ✅ | NoOp |
-| 9 | NominationParaRegistration | - | ✅ | ✅ | NoOp |
+| 7 | Auction | TBD | ✅ | ✅ | NoOp |
+| 8 | NominationPools | TBD | ✅ | ✅ | NoOp |
+| 9 | NominationParaRegistration | TBD | ✅ | ✅ | NoOp |
 
 There is good news and bad news here. The good news is that there is only one account with an `AssetOwner` proxy and that has an index that is unused by the Relay Chain. All other proxies are using `Any`. This means that the case that one proxy imposters as another proxy - by exploiting the colliding enum indices - should not happen. Such an attack could otherwise be devastating, since it could allow one proxy to irrevocably kill another proxy. For example; a `Governance` proxy on the Relay chain could then delete a `CancelProxy` on the asset hub. Deletion (via `Proxy::kill_pure`) is the "only" thing that can be done by this attack.
 
@@ -50,6 +50,8 @@ The bad news is that the proxy pallet does not keep track of pure accounts. Ther
 Polkadot asset hub has a single `AssetOwner` proxy and Kusama Asset Hub none.
 
 We should disable these colliding proxy types on Asset Hub, to avoid future use until the migration finished. But generally it should be possible to migrate the pure proxy accounts as is without any translation of their ID while keeping the ability of them to call `kill_pure`. The only exception is if the parent account was translated (for example as a Parachain Sovereign), then it would not be possible to kill this pure proxy anymore and redeem the deposit without manual intervention.
+
+We probably also have to add stub variants for the ones that have no equivalent on AH (marked with TBD) to allow users to still redeem these proxies and claim the deposit.
 
 ## User Impact
 - Announcements need to be re-created
