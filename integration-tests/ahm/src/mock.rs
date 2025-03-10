@@ -14,18 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
+use cumulus_primitives_core::{
+	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
+};
+use frame_support::traits::EnqueueMessage;
+use pallet_rc_migrator::{
+	MigrationStage as RcMigrationStage, RcMigrationStage as RcMigrationStageStorage,
+};
+use polkadot_primitives::UpwardMessage;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
+use runtime_parachains::{
+	dmp::DownwardMessageQueues,
+	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
+};
+use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
 
-use asset_hub_polkadot_runtime::Block as AssetHubBlock;
-use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
-use frame_support::traits::EnqueueMessage;
-use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
-use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
-use sp_runtime::{BoundedVec, Perbill};
-
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
-use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
-
+pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";
 const LOG_AH: &str = "runtime::asset-hub";
 
@@ -99,7 +106,21 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
-			AggregateMessageOrigin::Parent,
+			ParachainMessageOrigin::Parent,
+		);
+	}
+}
+
+/// Enqueue DMP messages on the parachain side.
+///
+/// This bypasses `set_validation_data` and `enqueue_inbound_upward_messages` by just directly
+/// enqueuing them.
+pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
+	for msg in msgs {
+		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
+		polkadot_runtime::MessageQueue::enqueue_message(
+			bounded_msg.as_bounded_slice(),
+			RcMessageOrigin::Ump(UmpQueueId::Para(AH_PARA_ID)),
 		);
 	}
 }
@@ -121,21 +142,18 @@ pub fn rc_migrate(
 		let mut dmps = Vec::new();
 
 		if let Ok(stage) = std::env::var("START_STAGE") {
-			let stage = MigrationStage::from_str(&stage).expect("Invalid start stage");
-			RcMigrationStage::<Polkadot>::put(stage);
+			let stage = RcMigrationStage::from_str(&stage).expect("Invalid start stage");
+			RcMigrationStageStorage::<Polkadot>::put(stage);
 		}
 
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
 			next_block_rc();
 
-			let new_dmps =
-				runtime_parachains::dmp::DownwardMessageQueues::<Polkadot>::take(para_id);
+			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);
 
-			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::MigrationDone
-			{
+			if RcMigrationStageStorage::<Polkadot>::get() == RcMigrationStage::MigrationDone {
 				log::info!("Migration done");
 				break dmps;
 			}
@@ -158,13 +176,13 @@ pub fn ah_migrate(
 	// Inject the DMP messages into the Asset Hub
 	asset_hub.execute_with(|| {
 		let mut fp =
-			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+			asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
 		enqueue_dmp(dmp_messages);
 
 		// Loop until no more DMPs are queued
 		loop {
 			let new_fp =
-				asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+				asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
 			if fp == new_fp {
 				log::info!("AH DMP messages left: {}", fp.storage.count);
 				break;
