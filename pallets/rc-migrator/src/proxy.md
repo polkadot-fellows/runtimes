@@ -25,8 +25,32 @@ The [delay of a ProxyDefinition](https://github.com/paritytech/polkadot-sdk/blob
 ## Storage: Announcements
 
 The [Announcements](https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/proxy/src/lib.rs#L581-L592) storage maps proxy account IDs to [Accouncement](https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/proxy/src/lib.rs#L80-L89). Since an announcement contains a call hash, we cannot translate them for the same reason as with the Multisigs; the preimage of the hash would be either undecodable, decode to something else (security issue) or accidentally decode to the same thing.  
-
 We therefore do not migrate the announcements.
+
+## Pure Proxy Derivation Issue
+
+Pure proxies are [derived](https://github.com/paritytech/polkadot-sdk/blob/4f7a93885e1a35ec60178d3b4f1e59a7df3d85f5/substrate/frame/proxy/src/lib.rs#L790-L806) in the form of `hash(BlockNumber, ParentAcc, ProxyType)`. The important part here is the `ProxyType` enum. The [relay chain](https://github.com/polkadot-fellows/runtimes/blob/main/relay/polkadot/constants/src/lib.rs#L177-L189) and [Asset Hub](https://github.com/polkadot-fellows/runtimes/blob/main/system-parachains/asset-hubs/asset-hub-polkadot/src/lib.rs#L456-L471) have the following variants:
+
+| Index | Relay Chain | Asset Hub | Index Good | Unused on AH | Verdict |
+|-------|-------------|-----------|-----------------|-------------|---------|
+| 0 | Any | Any | ✅ | ❌ | Translate |
+| 1 | NonTransfer | NonTransfer | ✅ | ✅ | Translate |
+| 2 | Governance | CancelProxy | ❌ | ✅ | Disable on AH |
+| 3 | Staking | Assets | ❌ | ✅ | Disable on AH |
+| 4 | - | AssetOwner | ✅ | ❌ | Translate |
+| 5 | - | AssetManager | ✅ | ✅ | Translate |
+| 6 | CancelProxy | Collator | ❌ | ✅ | Disable on AH |
+| 7 | Auction | - | ✅ | ✅ | Translate |
+| 8 | NominationPools | - | ✅ | ✅ | Translate |
+| 9 | NominationParaRegistration | - | ✅ | ✅ | Translate |
+
+There is good news and bad news here. The good news is that there is only one account with an `AssetOwner` proxy and that has an index that is unused by the Relay Chain. All other proxies are using `Any`. This means that the case that one proxy imposters as another proxy - by exploiting the colliding enum indices - should not happen. Such an attack could otherwise be devastating, since it could allow one proxy to irrevocably kill another proxy. For example; a `Governance` proxy on the Relay chain could then delete a `CancelProxy` on the asset hub. Deletion (via `Proxy::kill_pure`) is the "only" thing that can be done by this attack.
+
+The bad news is that the proxy pallet does not keep track of pure accounts. There is no storage item for it. I created [a script](https://github.com/ggwpez/substrate-scripts/blob/370b8336f46d6fc5acd2044731874a1e887a2253/proxy-created-events.py) that will print all proxies that are not `Any` or `NonTransfer`.  
+Polkadot asset hub has a single `AssetOwner` proxy and Kusama Asset Hub none.
+
+It should therefore be possible to migrate the pure proxy accounts as is without any translation of their ID while keeping the ability of them to call `kill_pure`. However, if the parent account was translated (for example as a Parachain Sovereign), then it would not be possible to kill this pure proxy anymore and redeem the deposit without manual intervention.
+
 ## User Impact
 - Announcements need to be re-created
 - Proxies of type `Auction` are not migrated and need to be re-created on the Relay
