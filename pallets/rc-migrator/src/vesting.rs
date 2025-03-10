@@ -134,22 +134,22 @@ impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
 			.into_iter()
 			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
 			.collect();
-
 		let current_map: BTreeMap<
 			Vec<u8>,
 			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
 		> = pallet_vesting::Vesting::<T>::iter()
 			.map(|(who, schedules)| {
-				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
-				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
-					schedules
-						.iter()
-						.map(|s| GenericVestingInfo {
-							locked: s.locked(),
-							starting_block: s.starting_block(),
-							per_block: s.per_block(),
-						})
-						.collect();
+				let mut balances: Vec<BalanceOf<T>> = Vec::new();
+				let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					Vec::new();
+				for s in schedules.iter() {
+					balances.push(s.locked());
+					vesting_info.push(GenericVestingInfo {
+						locked: s.locked(),
+						starting_block: s.starting_block(),
+						per_block: s.per_block(),
+					});
+				}
 				(who.encode(), (balances, vesting_info))
 			})
 			.collect();

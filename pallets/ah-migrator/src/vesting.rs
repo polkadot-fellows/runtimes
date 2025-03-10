@@ -95,36 +95,24 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 	type RcPrePayload =
 		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
 
-	type AhPrePayload =
-		Vec<(Vec<u8>, Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>)>;
+	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		pallet_vesting::Vesting::<T>::iter()
-			.map(|(who, schedules)| {
-				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
-				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
-					schedules
-						.iter()
-						.map(|s| GenericVestingInfo {
-							locked: s.locked(),
-							starting_block: s.starting_block(),
-							per_block: s.per_block(),
-						})
-						.collect();
-				(who.encode(), balances, vesting_info)
-			})
-			.collect()
+		let vesting_schedules: Vec<_> = pallet_vesting::Vesting::<T>::iter().collect();
+		assert!(
+			vesting_schedules.is_empty(),
+			"Vesting schedules should be empty before migration starts"
+		);
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 
-		let all_pre: BTreeMap<
+		let rc_pre: BTreeMap<
 			Vec<u8>,
 			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
 		> = rc_pre_payload
 			.into_iter()
-			.chain(ah_pre_payload.into_iter())
 			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
 			.collect();
 
@@ -133,20 +121,26 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
 		> = pallet_vesting::Vesting::<T>::iter()
 			.map(|(who, schedules)| {
-				let balances: Vec<BalanceOf<T>> = schedules.iter().map(|s| s.locked()).collect();
-				let vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
-					schedules
-						.iter()
-						.map(|s| GenericVestingInfo {
-							locked: s.locked(),
-							starting_block: s.starting_block(),
-							per_block: s.per_block(),
-						})
-						.collect();
+				let mut balances: Vec<BalanceOf<T>> = Vec::new();
+				let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
+					Vec::new();
+
+				for s in schedules.iter() {
+					balances.push(s.locked());
+					vesting_info.push(GenericVestingInfo {
+						locked: s.locked(),
+						starting_block: s.starting_block(),
+						per_block: s.per_block(),
+					});
+				}
 				(who.encode(), (balances, vesting_info))
 			})
 			.collect();
 
-		assert_eq!(all_pre, all_post, "RC and AH vesting schedules are present");
+		assert_eq!(
+			rc_pre,
+			all_post,
+			"Vesting schedules mismatch: Asset Hub schedules differ from original Relay Chain schedules"
+		);
 	}
 }
