@@ -51,7 +51,7 @@ pub mod types;
 pub mod vesting;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::types::ZeroWeightOr;
+pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
 
 use frame_support::{
 	pallet_prelude::*,
@@ -87,7 +87,7 @@ use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlockNumberProvider, Convert, TryConvert},
+	traits::{BlockNumberProvider, Convert, TryConvert, Zero},
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
@@ -462,11 +462,16 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let mut total = Weight::zero();
+			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
+				T::AhWeightInfo::receive_liquid_accounts
+			} else {
+				T::AhWeightInfo::receive_accounts
+			};
 			for account in accounts.iter() {
-				let weight = if account.is_liquid() {
-					T::AhWeightInfo::receive_liquid_accounts(1)
+				let weight = if total.is_zero() {
+					weight_of(account)(1)
 				} else {
-					T::AhWeightInfo::receive_accounts(1)
+					weight_of(account)(1).saturating_sub(weight_of(account)(0))
 				};
 				total = total.saturating_add(weight);
 			}

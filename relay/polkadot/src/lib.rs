@@ -1605,8 +1605,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	// TODO: weights::pallet_rc_migrator::WeightInfo
 	type RcWeightInfo = ();
 	// TODO: weights::pallet_ah_migrator::WeightInfo
-	// we use `SubstrateWeight` instead of () to use the local `DbWeight`.
-	type AhWeightInfo = pallet_rc_migrator::weights_ah::SubstrateWeight<Runtime>;
+	type AhWeightInfo = ();
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
