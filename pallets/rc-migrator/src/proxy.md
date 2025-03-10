@@ -27,7 +27,7 @@ The [delay of a ProxyDefinition](https://github.com/paritytech/polkadot-sdk/blob
 The [Announcements](https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/proxy/src/lib.rs#L581-L592) storage maps proxy account IDs to [Accouncement](https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/proxy/src/lib.rs#L80-L89). Since an announcement contains a call hash, we cannot translate them for the same reason as with the Multisigs; the preimage of the hash would be either undecodable, decode to something else (security issue) or accidentally decode to the same thing.  
 We therefore do not migrate the announcements.
 
-## Pure Proxy Derivation Issue
+## Pure Proxy Migration
 
 Pure proxies are [derived](https://github.com/paritytech/polkadot-sdk/blob/4f7a93885e1a35ec60178d3b4f1e59a7df3d85f5/substrate/frame/proxy/src/lib.rs#L790-L806) in the form of `hash(BlockNumber, ParentAcc, ProxyType)`. The important part here is the `ProxyType` enum. The [relay chain](https://github.com/polkadot-fellows/runtimes/blob/main/relay/polkadot/constants/src/lib.rs#L177-L189) and [Asset Hub](https://github.com/polkadot-fellows/runtimes/blob/main/system-parachains/asset-hubs/asset-hub-polkadot/src/lib.rs#L456-L471) have the following variants:
 
