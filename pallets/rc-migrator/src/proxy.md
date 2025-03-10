@@ -33,16 +33,16 @@ Pure proxies are [derived](https://github.com/paritytech/polkadot-sdk/blob/4f7a9
 
 | Index | Relay Chain | Asset Hub | Index Good | Unused on AH | Verdict |
 |-------|-------------|-----------|-----------------|-------------|---------|
-| 0 | Any | Any | ✅ | ❌ | Translate |
-| 1 | NonTransfer | NonTransfer | ✅ | ✅ | Translate |
+| 0 | Any | Any | ✅ | ❌ | NoOp |
+| 1 | NonTransfer | NonTransfer | ✅ | ✅ | NoOp |
 | 2 | Governance | CancelProxy | ❌ | ✅ | Disable on AH |
 | 3 | Staking | Assets | ❌ | ✅ | Disable on AH |
-| 4 | - | AssetOwner | ✅ | ❌ | Translate |
-| 5 | - | AssetManager | ✅ | ✅ | Translate |
+| 4 | - | AssetOwner | ✅ | ❌ | NoOp |
+| 5 | - | AssetManager | ✅ | ✅ | NoOp |
 | 6 | CancelProxy | Collator | ❌ | ✅ | Disable on AH |
-| 7 | Auction | - | ✅ | ✅ | Translate |
-| 8 | NominationPools | - | ✅ | ✅ | Translate |
-| 9 | NominationParaRegistration | - | ✅ | ✅ | Translate |
+| 7 | Auction | - | ✅ | ✅ | NoOp |
+| 8 | NominationPools | - | ✅ | ✅ | NoOp |
+| 9 | NominationParaRegistration | - | ✅ | ✅ | NoOp |
 
 There is good news and bad news here. The good news is that there is only one account with an `AssetOwner` proxy and that has an index that is unused by the Relay Chain. All other proxies are using `Any`. This means that the case that one proxy imposters as another proxy - by exploiting the colliding enum indices - should not happen. Such an attack could otherwise be devastating, since it could allow one proxy to irrevocably kill another proxy. For example; a `Governance` proxy on the Relay chain could then delete a `CancelProxy` on the asset hub. Deletion (via `Proxy::kill_pure`) is the "only" thing that can be done by this attack.
 
