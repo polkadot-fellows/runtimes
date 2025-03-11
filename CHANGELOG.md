@@ -8,18 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-#### From [#605](https://github.com/polkadot-fellows/runtimes/pull/605)
-
-- Now each system extension has its own weight, defined by `ExtensionWeightInfo`.
-- Parachains define the default `CoreSelector` strategy. 
+- Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
+- Parachains define the default `CoreSelector` strategy, according to [`RFC-0103`](https://polkadot-fellows.github.io/RFCs/approved/0103-introduce-core-index-commitment.html) ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
 
 ### Changed
 
-#### From [#605](https://github.com/polkadot-fellows/runtimes/pull/605)
-
-- Migration to XCMv5.
-- Changed from `SignedExtension` to `TransactionExtension`.
-- `sp-std` removed from runtimes.
+- Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
+- Migration to XCMv5 ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
+- Changed from `SignedExtension` to `TransactionExtension` ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
+- `sp-std` removed from runtimes ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
 
 ## [1.4.0] 07.02.2025
 
