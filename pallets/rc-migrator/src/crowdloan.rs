@@ -299,3 +299,47 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 		.ok_or(())?;
 	Ok(last_period_end_block)
 }
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
+	type RcPrePayload = Vec<(ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>)>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_crowdloan::Funds::<T>::iter()
+			.map(|(para_id, fund)| {
+				let contributions: Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)> =
+					pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+						.map(|(contributor, (amount, block_number_bytes))| {
+							let block_number: BlockNumberFor<T> =
+								BlockNumberFor::<T>::decode(&mut &block_number_bytes[..])
+									.unwrap_or_default();
+							(block_number, contributor, amount.try_into().unwrap_or_default())
+						})
+						.collect();
+				(para_id, contributions)
+			})
+			.collect()
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		use std::collections::BTreeMap;
+
+		let current_map: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> =
+			pallet_crowdloan::Funds::<T>::iter()
+				.map(|(para_id, fund)| {
+					let contributions: Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)> =
+						pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+							.map(|(contributor, (amount, block_number_bytes))| {
+								let block_number: BlockNumberFor<T> =
+									BlockNumberFor::<T>::decode(&mut &block_number_bytes[..])
+										.unwrap_or_default();
+								(block_number, contributor, amount.try_into().unwrap_or_default())
+							})
+							.collect();
+					(para_id, contributions)
+				})
+				.collect();
+
+		assert!(current_map.is_empty(), "Current crowdloan data should be empty after migration");
+	}
+}

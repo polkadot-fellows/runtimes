@@ -15,7 +15,8 @@
 
 use crate::*;
 use chrono::TimeZone;
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessage;
+use cumulus_primitives_core::ParaId;
+use pallet_rc_migrator::crowdloan::{CrowdloanMigrator, RcCrowdloanMessage};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_crowdloan_messages(
@@ -163,5 +164,44 @@ where
 		let anchor_timestamp = chrono::Utc.timestamp_millis_opt(anchor_timestamp as i64).unwrap();
 		let block_timestamp = anchor_timestamp + chrono::Duration::milliseconds(add_time_ms);
 		block_timestamp
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
+	type RcPrePayload = Vec<(
+		ParaId,
+		Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
+	)>;
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		let crowdloan_data: Vec<_> = pallet_ah_ops::RcCrowdloanContribution::<T>::iter().collect();
+		assert!(
+			crowdloan_data.is_empty(),
+			"Crowdloan data should be empty before migration starts"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		use std::collections::BTreeMap;
+		let rc_pre: BTreeMap<
+			ParaId,
+			Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
+		> = rc_pre_payload.into_iter().collect();
+
+		let all_post: BTreeMap<
+			ParaId,
+			Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
+		> = pallet_ah_ops::RcCrowdloanContribution::<T>::iter()
+			.map(|((block_number, para_id, contributor), (_, amount))| {
+				(para_id, vec![(block_number, contributor, amount)])
+			})
+			.collect();
+
+		assert_eq!(
+			rc_pre, all_post,
+			"Crowdloan data mismatch: Asset Hub data differs from original Relay Chain data"
+		);
 	}
 }
