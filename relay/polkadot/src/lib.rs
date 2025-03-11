@@ -1940,6 +1940,8 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
+		parachains_shared::migration::MigrateToV1<Runtime>,
+		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
 		parachains_inclusion::migration::MigrateToV1<Runtime>,
 		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
