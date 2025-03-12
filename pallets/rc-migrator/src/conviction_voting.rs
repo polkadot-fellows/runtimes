@@ -141,7 +141,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm(
+		Pallet::<T>::send_chunked_xcm_and_track(
 			messages,
 			|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
 			|_| Weight::from_all(1), // TODO

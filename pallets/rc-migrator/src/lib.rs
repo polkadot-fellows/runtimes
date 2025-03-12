@@ -411,6 +411,11 @@ pub mod pallet {
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, accounts::AccountState<T::Balance>, OptionQuery>;
 
+	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
+	/// the Asset Hub has confirmed as processed.
+	#[pallet::storage]
+	pub type XcmDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+
 	/// Alias for `Paras` from `paras_registrar`.
 	///
 	/// The fields of the type stored in the original storage item are private, so we define the
@@ -468,6 +473,15 @@ pub mod pallet {
 			Self::transition(MigrationStage::AccountsMigrationInit);
 			Ok(())
 		}
+
+		/// Update the total number of XCM messages processed by the Asset Hub.
+		#[pallet::call_index(3)]
+		#[pallet::weight({0})] // TODO: weight
+		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::update_msg_processed_count(count);
+			Ok(())
+		}
 	}
 
 	#[pallet::hooks]
@@ -483,6 +497,14 @@ pub mod pallet {
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
+			if Self::has_excess_unconfirmed_xcm(&stage) {
+				log::info!(
+					target: LOG_TARGET,
+					"Excess unconfirmed XCM messages, skipping the data extraction for this block."
+				);
+				return weight_counter.consumed();
+			}
+
 			match stage {
 				MigrationStage::Pending => {
 					// TODO: we should do nothing on pending stage.
@@ -492,6 +514,7 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
+						// TODO: weight
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, Weight::from_all(1)) {
 							Ok(_) => {
 								Self::transition(MigrationStage::Initializing);
@@ -1137,6 +1160,59 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Returns `true` if the migration is ongoing and the Asset Hub has not confirmed
+		/// processing the same number of XCM messages as we have sent to it.
+		fn has_excess_unconfirmed_xcm(current: &MigrationStageOf<T>) -> bool {
+			if !current.is_ongoing() {
+				return false;
+			}
+			let (sent, processed) = XcmDataMessageCounts::<T>::get();
+			const ALLOWED_UNCONFIRMED: u32 = 0;
+			if sent > processed + ALLOWED_UNCONFIRMED {
+				log::info!(
+					target: LOG_TARGET,
+					"Excess unconfirmed XCM messages: sent = {}, processed = {}",
+					sent,
+					processed
+				);
+				return true;
+			}
+			false
+		}
+
+		/// Increases the number of XCM messages sent to the Asset Hub.
+		fn increase_msg_sent_count(count: u32) {
+			let (sent, processed) = XcmDataMessageCounts::<T>::get();
+			let new_sent = sent + count;
+			XcmDataMessageCounts::<T>::put((new_sent, processed));
+			log::debug!(
+				target: LOG_TARGET,
+				"Increased XCM message sent count by {}; sent: {}, processed: {}",
+				count,
+				new_sent,
+				processed
+			);
+		}
+
+		/// Updates the number of XCM messages processed by the Asset Hub.
+		fn update_msg_processed_count(new_processed: u32) {
+			let (sent, processed) = XcmDataMessageCounts::<T>::get();
+			if processed > new_processed {
+				defensive!(
+					"Processed XCM message count is less than the new processed count: {}",
+					(processed, new_processed),
+				);
+				return;
+			}
+			XcmDataMessageCounts::<T>::put((sent, new_processed));
+			log::info!(
+				target: LOG_TARGET,
+				"Updated XCM message processed count to {}; sent: {}",
+				new_processed,
+				sent,
+			);
+		}
+
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
@@ -1160,9 +1236,11 @@ pub mod pallet {
 			mut items: Vec<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
-		) -> Result<(), Error<T>> {
-			log::info!(target: LOG_TARGET, "Received {} items to batch send via XCM", items.len());
+		) -> Result<u32, Error<T>> {
+			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
+			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
 			items.reverse();
+			let mut batch_count = 0;
 
 			while !items.is_empty() {
 				let mut remaining_size: u32 = MAX_XCM_SIZE;
@@ -1212,10 +1290,12 @@ pub mod pallet {
 				) {
 					log::error!(target: LOG_TARGET, "Error while sending XCM message: {:?}", err);
 					return Err(Error::XcmError);
-				};
+				} else {
+					batch_count += 1;
+				}
 			}
 
-			Ok(())
+			Ok(batch_count)
 		}
 
 		/// Send a single XCM message.
@@ -1262,6 +1342,41 @@ pub mod pallet {
 			};
 
 			Ok(())
+		}
+
+		/// Decorates the `send_chunked_xcm` function by calling the `increase_msg_sent_count`
+		/// function with the number of XCM messages sent.
+		///
+		/// Check the `send_chunked_xcm` function for the documentation.
+		pub fn send_chunked_xcm_and_track<E: Encode>(
+			items: Vec<E>,
+			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
+			weight_at_most: impl Fn(u32) -> Weight,
+		) -> Result<u32, Error<T>> {
+			match Self::send_chunked_xcm(items, create_call, weight_at_most) {
+				Ok(count) => {
+					Self::increase_msg_sent_count(count);
+					Ok(count)
+				},
+				Err(e) => Err(e),
+			}
+		}
+
+		/// Decorates the `send_xcm` function by calling the `increase_msg_sent_count` function
+		/// with the number of XCM messages sent.
+		///
+		/// Check the `send_xcm` function for the documentation.
+		pub fn send_xcm_and_track(
+			call: types::AhMigratorCall<T>,
+			weight_at_most: Weight,
+		) -> Result<u32, Error<T>> {
+			match Self::send_xcm(call, weight_at_most) {
+				Ok(_) => {
+					Self::increase_msg_sent_count(1);
+					Ok(1)
+				},
+				Err(e) => Err(e),
+			}
 		}
 	}
 

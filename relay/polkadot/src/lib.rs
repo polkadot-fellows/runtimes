@@ -1724,6 +1724,8 @@ construct_runtime! {
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 
 		// Relay Chain Migrator
+		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
+		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
 	}
 }

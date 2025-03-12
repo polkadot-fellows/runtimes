@@ -270,20 +270,22 @@ async fn migration_works() {
 		});
 		ah.commit_all().unwrap();
 
-		// execute next AH block.
-		let ump_messages = ah.execute_with(|| {
-			next_block_ah();
+		// execute next AH block on every second RC block.
+		if rc_block_count % 2 == 0 {
+			let ump_messages = ah.execute_with(|| {
+				next_block_ah();
 
-			PendingUpwardMessages::<AssetHub>::take()
-		});
-		ah.commit_all().unwrap();
+				PendingUpwardMessages::<AssetHub>::take()
+			});
+			ah.commit_all().unwrap();
 
-		// enqueue UMP messages from AH to RC.
-		rc.execute_with(|| {
-			// TODO: bound the `ump_messages` total size
-			enqueue_ump(ump_messages);
-		});
-		rc.commit_all().unwrap();
+			// enqueue UMP messages from AH to RC.
+			rc.execute_with(|| {
+				// TODO: bound the `ump_messages` total size
+				enqueue_ump(ump_messages);
+			});
+			rc.commit_all().unwrap();
+		}
 
 		rc_block_count += 1;
 	}

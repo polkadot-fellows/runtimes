@@ -18,7 +18,7 @@ use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
-use frame_support::traits::EnqueueMessage;
+use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use pallet_rc_migrator::{
 	MigrationStage as RcMigrationStage, RcMigrationStage as RcMigrationStageStorage,
 };
@@ -67,15 +67,16 @@ pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
 }
 
 pub fn next_block_rc() {
-	let now = frame_system::Pallet::<Polkadot>::block_number();
-	log::debug!(target: LOG_RC, "Next block: {:?}", now + 1);
-	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
-	frame_system::Pallet::<Polkadot>::set_block_number(now + 1);
+	let past = frame_system::Pallet::<Polkadot>::block_number();
+	let now = past + 1;
+	log::debug!(target: LOG_RC, "Next block: {:?}", now);
+	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	let weight =
-		<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
-			now + 1,
-		);
+	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
+	let weight = <polkadot_runtime::RcMigrator as OnInitialize<_>>::on_initialize(now)
+		.saturating_add(weight);
+	<polkadot_runtime::RcMigrator as OnFinalize<_>>::on_finalize(now);
+
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
@@ -86,15 +87,23 @@ pub fn next_block_rc() {
 }
 
 pub fn next_block_ah() {
-	let now = frame_system::Pallet::<AssetHub>::block_number();
-	log::debug!(target: LOG_AH, "Next block: {:?}", now + 1);
-	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(
-		now,
-	);
-	frame_system::Pallet::<AssetHub>::set_block_number(now + 1);
-	<asset_hub_polkadot_runtime::MessageQueue as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+	let past = frame_system::Pallet::<AssetHub>::block_number();
+	let now = past + 1;
+	log::debug!(target: LOG_AH, "Next block: {:?}", now);
+	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
+	let weight = <asset_hub_polkadot_runtime::AhMigrator as OnInitialize<_>>::on_initialize(now)
+		.saturating_add(weight);
+	<asset_hub_polkadot_runtime::AhMigrator as OnFinalize<_>>::on_finalize(now);
+
+	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
+	assert!(
+		weight.all_lte(Perbill::from_percent(80) * limit),
+		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
+		weight,
+		limit
+	);
 }
 
 /// Enqueue DMP messages on the parachain side.

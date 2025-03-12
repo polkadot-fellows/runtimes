@@ -179,34 +179,45 @@ mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn receive_multisigs_from_snap(n: Linear<1, 255>) {
-		verify_snapshot::<T>();
-		let (mut messages, _cursor) = relay_snapshot(|| {
-			unwrap_no_debug(
-				pallet_rc_migrator::multisig::MultisigMigrator::<T, ()>::migrate_out_many(
-					None,
-					&mut WeightMeter::new(),
-					&mut WeightMeter::new(),
-				),
-			)
-		});
+	fn on_initialize() {
+		let block_num = BlockNumberFor::<T>::from(1u32);
+		XcmDataMessageCounts::<T>::put((1, 0));
 
-		// TODO: unreserve fails since accounts should migrate first to make it successful. we will
-		// have a similar issue with the other calls benchmarks.
-		// TODO: possible we can truncate to n to have weights based on the number of messages
-		// TODO: for calls that have messages with `m` number of variants, we perhaps need to have
-		// `m` parameters like `n` parameter in this function. and we filter the returned by
-		// `migrate_out_many` `messages` or we pass these parameters to `migrate_out_many`.
-		messages.truncate(n as usize);
-
-		#[extrinsic_call]
-		receive_multisigs(RawOrigin::Root, messages);
-
-		for event in frame_system::Pallet::<T>::events() {
-			let encoded = event.encode();
-			log::info!("Event of pallet: {} and event: {}", encoded[0], encoded[1]);
+		#[block]
+		{
+			Pallet::<T>::on_finalize(block_num)
 		}
 	}
+
+	// #[benchmark]
+	// fn receive_multisigs_from_snap(n: Linear<1, 255>) {
+	// 	verify_snapshot::<T>();
+	// 	let (mut messages, _cursor) = relay_snapshot(|| {
+	// 		unwrap_no_debug(
+	// 			pallet_rc_migrator::multisig::MultisigMigrator::<T, ()>::migrate_out_many(
+	// 				None,
+	// 				&mut WeightMeter::new(),
+	// 				&mut WeightMeter::new(),
+	// 			),
+	// 		)
+	// 	});
+
+	// 	// TODO: unreserve fails since accounts should migrate first to make it successful. we will
+	// 	// have a similar issue with the other calls benchmarks.
+	// 	// TODO: possible we can truncate to n to have weights based on the number of messages
+	// 	// TODO: for calls that have messages with `m` number of variants, we perhaps need to have
+	// 	// `m` parameters like `n` parameter in this function. and we filter the returned by
+	// 	// `migrate_out_many` `messages` or we pass these parameters to `migrate_out_many`.
+	// 	messages.truncate(n as usize);
+
+	// 	#[extrinsic_call]
+	// 	receive_multisigs(RawOrigin::Root, messages);
+
+	// 	for event in frame_system::Pallet::<T>::events() {
+	// 		let encoded = event.encode();
+	// 		log::info!("Event of pallet: {} and event: {}", encoded[0], encoded[1]);
+	// 	}
+	// }
 
 	#[benchmark]
 	fn receive_multisigs(n: Linear<1, 255>) {
