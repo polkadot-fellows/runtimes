@@ -64,6 +64,8 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
 
 			next_key = Self::next_key(Some(next_key_inner));
+			// Remove the migrated key from the relay chain
+			alias::RequestStatusFor::<T>::remove(next_key_inner);
 
 			if batch.len() >= 10 || next_key.is_none() {
 				// TODO weight checking
@@ -95,5 +97,31 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 			)
 			.next(),
 		}
+	}
+}
+
+impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
+	type RcPrePayload = Vec<(H256, bool)>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		alias::RequestStatusFor::<T>::iter()
+			.map(|(hash, request_status)| {
+				(
+					hash,
+					match request_status {
+						alias::RequestStatus::Requested { .. } => true,
+						_ => false,
+					},
+				)
+			})
+			.collect()
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		assert_eq!(
+			alias::RequestStatusFor::<T>::iter().count(),
+			0,
+			"Preimage::RequestStatusFor is not empty on relay chain after migration"
+		);
 	}
 }

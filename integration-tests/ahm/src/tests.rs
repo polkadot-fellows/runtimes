@@ -47,12 +47,16 @@ use super::mock::*;
 
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	// other pallets go here
 );
 
 type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	// other pallets go here
 );
