@@ -179,7 +179,7 @@ mod benchmarks {
 	use super::*;
 
 	#[benchmark]
-	fn on_initialize() {
+	fn on_finalize() {
 		let block_num = BlockNumberFor::<T>::from(1u32);
 		XcmDataMessageCounts::<T>::put((1, 0));
 

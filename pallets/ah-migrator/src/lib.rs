@@ -805,7 +805,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-			T::AhWeightInfo::on_initialize()
+			T::AhWeightInfo::on_finalize()
 		}
 
 		fn on_finalize(_: BlockNumberFor<T>) {

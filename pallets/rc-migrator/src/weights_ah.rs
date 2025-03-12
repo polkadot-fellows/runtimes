@@ -50,7 +50,7 @@ use core::marker::PhantomData;
 
 /// Weight functions needed for `pallet_ah_migrator`.
 pub trait WeightInfo {
-	fn on_initialize() -> Weight;
+	fn on_finalize() -> Weight;
 	fn receive_multisigs(n: u32, ) -> Weight;
 	fn receive_accounts(n: u32, ) -> Weight;
 	fn receive_liquid_accounts(n: u32, ) -> Weight;
@@ -72,7 +72,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn on_initialize() -> Weight {
+	fn on_finalize() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1013`
 		//  Estimated: `4478`
@@ -189,7 +189,7 @@ impl WeightInfo for () {
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn on_initialize() -> Weight {
+	fn on_finalize() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1013`
 		//  Estimated: `4478`
