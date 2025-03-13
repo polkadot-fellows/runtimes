@@ -49,6 +49,7 @@ pub mod asset_rate;
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
+pub mod treasury;
 
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
@@ -58,7 +59,8 @@ use frame_support::{
 	storage::transactional::with_transaction_opaque_err,
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
-		tokens::{Fortitude, Precision, Preservation},
+		schedule::DispatchTime,
+		tokens::{Fortitude, Pay, Precision, Preservation},
 		Contains, Defensive, LockableCurrency, ReservableCurrency,
 	},
 	weights::{Weight, WeightMeter},
@@ -258,6 +260,12 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	},
 	CrowdloanMigrationDone,
 
+	TreasuryMigrationInit,
+	TreasuryMigrationOngoing {
+		last_key: Option<treasury::TreasuryStage>,
+	},
+	TreasuryMigrationDone,
+
 	MigrationDone,
 }
 
@@ -301,6 +309,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::Fr
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
+			"treasury" => MigrationStage::TreasuryMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -311,8 +320,6 @@ type AccountInfoFor<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::schedule::DispatchTime;
-
 	use super::*;
 
 	/// Paras Registrar Pallet
@@ -1127,6 +1134,38 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::CrowdloanMigrationDone => {
+					Self::transition(MigrationStage::MigrationDone);
+				},
+				MigrationStage::TreasuryMigrationInit => {
+					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });
+				},
+				MigrationStage::TreasuryMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match treasury::TreasuryMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");	
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::TreasuryMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::TreasuryMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						e => {
+							defensive!("Error while migrating treasury: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::TreasuryMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),

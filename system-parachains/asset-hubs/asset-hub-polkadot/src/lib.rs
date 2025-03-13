@@ -1131,6 +1131,7 @@ impl pallet_ah_migrator::Config for Runtime {
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
 	>;
 	type Currency = Balances;
+	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
 	type RcHoldReason = migration::RcHoldReason;
 	type RcFreezeReason = migration::RcFreezeReason;
@@ -1146,6 +1147,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
 	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	type TreasuryAccounts = migration::TreasuryAccounts;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }

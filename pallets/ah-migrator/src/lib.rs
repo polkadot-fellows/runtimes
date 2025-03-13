@@ -47,6 +47,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
+pub mod treasury;
 pub mod types;
 pub mod vesting;
 
@@ -57,7 +58,9 @@ use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
+		tokens::{Fortitude, Preservation},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -78,6 +81,7 @@ use pallet_rc_migrator::{
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
+	treasury::{RcTreasuryMessage, RcTreasuryMessageOf},
 	vesting::RcVestingSchedule,
 	weights_ah::WeightInfo,
 };
@@ -111,6 +115,7 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	Treasury,
 }
 
 /// The migration stage on the Asset Hub.
@@ -187,6 +192,8 @@ pub mod pallet {
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
+		/// All supported assets registry.
+		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
@@ -229,6 +236,11 @@ pub mod pallet {
 		type SendXcm: SendXcm;
 		/// Weight information for extrinsics in this pallet.
 		type AhWeightInfo: WeightInfo;
+		/// Asset Hub Treasury accounts migrating to the new treasury account address (same account
+		/// address that was used on the Relay Chain).
+		/// 
+		/// The asset list should not include the native asset.
+		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
 		/// Helper type for benchmarking.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: benchmarking::ParametersFactory<
@@ -688,6 +700,16 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
+		}
+
+		#[pallet::call_index(20)]
+		pub fn receive_treasury_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcTreasuryMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_treasury_messages(messages).map_err(Into::into)
 		}
 
 		/// Set the migration stage.

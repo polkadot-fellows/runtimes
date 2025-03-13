@@ -79,6 +79,7 @@ parameter_types! {
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
+	// Account address: `HWZmQq6zMMk7TxixHfseFT2ewicT6UofPa68VCn3gkXrdJF`
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());

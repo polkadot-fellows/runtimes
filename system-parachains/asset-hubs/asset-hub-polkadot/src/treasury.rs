@@ -24,6 +24,7 @@ parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * RC_DAYS;
 	pub const MaxApprovals: u32 = 100;
+	// Account address: `13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTB`
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
@@ -42,13 +43,7 @@ impl pallet_treasury::Config for Runtime {
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
 	type BeneficiaryLookup = IdentityLookup<Self::Beneficiary>;
-	// TODO: should we continue using `RelayTreasuryPalletAccount` or we move all assets to
-	// `Treasury::account_id()``
-	type Paymaster = LocalPay<
-		NativeAndAssets,
-		xcm_config::RelayTreasuryPalletAccount,
-		xcm_config::LocationToAccountId,
-	>;
+	type Paymaster = LocalPay<NativeAndAssets, TreasuryAccount, xcm_config::LocationToAccountId>;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
 	// TODO polkadot_runtime_common::impls::benchmarks::TreasuryArguments;

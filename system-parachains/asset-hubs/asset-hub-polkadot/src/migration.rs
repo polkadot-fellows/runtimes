@@ -15,12 +15,35 @@
 
 use super::*;
 use codec::DecodeAll;
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use frame_system::pallet_prelude::BlockNumberFor;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
+use sp_core::Get;
 use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;
+
+/// Treasury accounts migrating to the new treasury account address (same account address that was
+/// used on the Relay Chain).
+pub struct TreasuryAccounts;
+impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
+	fn get() -> (AccountId, Vec<Location>) {
+		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
+		(
+			xcm_config::RelayTreasuryPalletAccount::get(),
+			vec![
+				// USDT
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),
+				// USDC
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1337)]),
+				// DED
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(30)]),
+				// STINK
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(42069)]),
+			],
+		)
+	}
+}
 
 /// Relay Chain Hold Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
