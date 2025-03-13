@@ -18,3 +18,5 @@
 pub mod mock;
 #[cfg(test)]
 pub mod tests;
+#[cfg(test)]
+pub mod proxy_test;

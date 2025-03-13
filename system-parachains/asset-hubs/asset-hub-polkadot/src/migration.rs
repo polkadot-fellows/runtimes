@@ -86,6 +86,7 @@ pub enum RcProxyType {
 	CancelProxy = 6,
 	Auction = 7,
 	NominationPools = 8,
+	ParaRegistration = 9,
 }
 
 pub struct RcToProxyType;
@@ -99,6 +100,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			RcProxyType::CancelProxy => Ok(ProxyType::CancelProxy),
 			RcProxyType::Auction => Err(p), // Does not exist on AH
 			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
+			RcProxyType::ParaRegistration => Err(p), // Does not exist on AH
 		}
 	}
 }

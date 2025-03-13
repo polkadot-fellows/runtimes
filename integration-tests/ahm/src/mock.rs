@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::str::FromStr;
-
+use codec::Decode;
 use asset_hub_polkadot_runtime::Block as AssetHubBlock;
 use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
 use frame_support::traits::EnqueueMessage;
@@ -95,13 +95,20 @@ pub fn next_block_ah() {
 /// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
 /// enqueuing them.
 pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
+	log::info!("Enqueuing {} DMP messages", msgs.len());
 	for msg in msgs {
+		// Sanity check that we can decode it
+		if let Err(e) = xcm::VersionedXcm::<asset_hub_polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..]) {
+			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg.msg), e);
+		}
+
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
 			AggregateMessageOrigin::Parent,
 		);
 	}
+	log::info!("Enqueued DMP messages");
 }
 
 // Migrates the pallet out of the Relay Chain and returns the corresponding Payload.

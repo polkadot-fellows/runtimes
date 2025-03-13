@@ -23,7 +23,7 @@ extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
 
-pub struct ProxyProxiesMigrator<T: Config> {
+pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
@@ -94,6 +94,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				&mut ah_weight,
 			) {
 				Ok(proxy) => {
+					pallet_proxy::Proxies::<T>::remove(&acc);
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
 				},
@@ -113,7 +114,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|len| T::AhWeightInfo::receive_proxy_proxies(len),
+				|len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
 			)?;
 		}
 
@@ -143,6 +144,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_proxies(1)).is_err() {
 			return Err(OutOfWeightError);
 		}
+		log::info!(target: LOG_TARGET, "Migrating proxies for {}", acc.to_ss58check());
 
 		let translated_proxies = proxies
 			.into_iter()
@@ -212,4 +214,17 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			Ok(None)
 		}
 	}
+}
+
+impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
+	type RcPrePayload = usize; // number of delegators
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_proxy::Proxies::<T>::iter_keys().count()
+	}
+	
+	fn post_check(_: Self::RcPrePayload) {
+		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
+		//assert_eq!(count, 0);
+	}	
 }

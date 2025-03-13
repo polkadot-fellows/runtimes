@@ -501,7 +501,7 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
+		#[pallet::weight(0)] // TODO
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
