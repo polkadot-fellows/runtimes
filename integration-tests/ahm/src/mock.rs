@@ -20,7 +20,8 @@ use cumulus_primitives_core::{
 };
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use pallet_rc_migrator::{
-	MigrationStage as RcMigrationStage, RcMigrationStage as RcMigrationStageStorage,
+	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
+	RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
@@ -75,6 +76,7 @@ pub fn next_block_rc() {
 	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
 	let weight = <polkadot_runtime::RcMigrator as OnInitialize<_>>::on_initialize(now)
 		.saturating_add(weight);
+	<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
 	<polkadot_runtime::RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
@@ -95,6 +97,7 @@ pub fn next_block_ah() {
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
 	let weight = <asset_hub_polkadot_runtime::AhMigrator as OnInitialize<_>>::on_initialize(now)
 		.saturating_add(weight);
+	<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
 	<asset_hub_polkadot_runtime::AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
@@ -155,6 +158,11 @@ pub fn rc_migrate(
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
 			next_block_rc();
+
+			// Bypass the unconfirmed DMP messages limit since we do not send the messages to the AH
+			// on every RC block.
+			let (sent, processed) = RcDmpDataMessageCounts::<Polkadot>::get();
+			RcDmpDataMessageCounts::<Polkadot>::put((sent, sent));
 
 			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);

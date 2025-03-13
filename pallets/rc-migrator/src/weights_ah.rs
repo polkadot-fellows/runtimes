@@ -62,8 +62,8 @@ pub trait WeightInfo {
 /// Weights for `pallet_ah_migrator` using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	/// Storage: `AhMigrator::XcmDataMessageCounts` (r:1 w:0)
-	/// Proof: `AhMigrator::XcmDataMessageCounts` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
 	/// Proof: `ParachainSystem::UpwardDeliveryFeeFactor` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)
@@ -179,8 +179,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests.
 impl WeightInfo for () {
-	/// Storage: `AhMigrator::XcmDataMessageCounts` (r:1 w:0)
-	/// Proof: `AhMigrator::XcmDataMessageCounts` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
 	/// Proof: `ParachainSystem::UpwardDeliveryFeeFactor` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `PolkadotXcm::SupportedVersion` (r:1 w:0)

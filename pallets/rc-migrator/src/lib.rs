@@ -413,8 +413,11 @@ pub mod pallet {
 
 	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
 	/// the Asset Hub has confirmed as processed.
+	///
+	/// The difference between these two numbers are the messages that are "in-flight". We aim to
+	/// keep this number low to not accidentally overload the asset hub.
 	#[pallet::storage]
-	pub type XcmDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
@@ -497,7 +500,7 @@ pub mod pallet {
 			let stage = RcMigrationStage::<T>::get();
 			weight_counter.consume(T::DbWeight::get().reads(1));
 
-			if Self::has_excess_unconfirmed_xcm(&stage) {
+			if Self::has_excess_unconfirmed_dmp(&stage) {
 				log::info!(
 					target: LOG_TARGET,
 					"Excess unconfirmed XCM messages, skipping the data extraction for this block."
@@ -1162,19 +1165,19 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Returns `true` if the migration is ongoing and the Asset Hub has not confirmed
 		/// processing the same number of XCM messages as we have sent to it.
-		fn has_excess_unconfirmed_xcm(current: &MigrationStageOf<T>) -> bool {
+		fn has_excess_unconfirmed_dmp(current: &MigrationStageOf<T>) -> bool {
 			if !current.is_ongoing() {
 				return false;
 			}
-			let (sent, processed) = XcmDataMessageCounts::<T>::get();
-			const ALLOWED_UNCONFIRMED: u32 = 0;
-			if sent > processed + ALLOWED_UNCONFIRMED {
+			let (sent, processed) = DmpDataMessageCounts::<T>::get();
+			if sent > processed {
 				log::info!(
 					target: LOG_TARGET,
 					"Excess unconfirmed XCM messages: sent = {}, processed = {}",
 					sent,
 					processed
 				);
+				// TODO: make it possible to reset the counts with an extrinsic.
 				return true;
 			}
 			false
@@ -1182,9 +1185,9 @@ pub mod pallet {
 
 		/// Increases the number of XCM messages sent to the Asset Hub.
 		fn increase_msg_sent_count(count: u32) {
-			let (sent, processed) = XcmDataMessageCounts::<T>::get();
+			let (sent, processed) = DmpDataMessageCounts::<T>::get();
 			let new_sent = sent + count;
-			XcmDataMessageCounts::<T>::put((new_sent, processed));
+			DmpDataMessageCounts::<T>::put((new_sent, processed));
 			log::debug!(
 				target: LOG_TARGET,
 				"Increased XCM message sent count by {}; sent: {}, processed: {}",
@@ -1196,7 +1199,7 @@ pub mod pallet {
 
 		/// Updates the number of XCM messages processed by the Asset Hub.
 		fn update_msg_processed_count(new_processed: u32) {
-			let (sent, processed) = XcmDataMessageCounts::<T>::get();
+			let (sent, processed) = DmpDataMessageCounts::<T>::get();
 			if processed > new_processed {
 				defensive!(
 					"Processed XCM message count is less than the new processed count: {}",
@@ -1204,7 +1207,7 @@ pub mod pallet {
 				);
 				return;
 			}
-			XcmDataMessageCounts::<T>::put((sent, new_processed));
+			DmpDataMessageCounts::<T>::put((sent, new_processed));
 			log::info!(
 				target: LOG_TARGET,
 				"Updated XCM message processed count to {}; sent: {}",

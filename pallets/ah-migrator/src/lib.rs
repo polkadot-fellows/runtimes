@@ -254,7 +254,7 @@ pub mod pallet {
 	/// The total number of XCM data messages processed from the Relay Chain and the number of XCM
 	/// messages that encountered an error during processing.
 	#[pallet::storage]
-	pub type XcmDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -809,7 +809,7 @@ pub mod pallet {
 		}
 
 		fn on_finalize(_: BlockNumberFor<T>) {
-			let (processed, _) = XcmDataMessageCounts::<T>::get();
+			let (processed, _) = DmpDataMessageCounts::<T>::get();
 			if processed == 0 {
 				return;
 			}
@@ -829,10 +829,10 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Increments the number of XCM messages received from the Relay Chain.
 		fn increment_msg_received_count(with_error: bool) {
-			let (processed, processed_with_error) = XcmDataMessageCounts::<T>::get();
+			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
 			let processed = processed + 1;
 			let processed_with_error = processed_with_error + if with_error { 1 } else { 0 };
-			XcmDataMessageCounts::<T>::put((processed, processed_with_error));
+			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
 			log::debug!(
 				target: LOG_TARGET,
 				"Increment XCM message processed, processed: {}, processed with error: {}",

@@ -181,7 +181,7 @@ mod benchmarks {
 	#[benchmark]
 	fn on_finalize() {
 		let block_num = BlockNumberFor::<T>::from(1u32);
-		XcmDataMessageCounts::<T>::put((1, 0));
+		DmpDataMessageCounts::<T>::put((1, 0));
 
 		#[block]
 		{

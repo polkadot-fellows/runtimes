@@ -250,6 +250,12 @@ async fn print_accounts_statistics() {
 async fn migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
+	// Pre-checks on the Relay
+	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
+
+	// Pre-checks on the Asset Hub
+	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
+
 	let mut rc_block_count = 0;
 	// finish the loop when the migration is done.
 	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
@@ -289,6 +295,12 @@ async fn migration_works() {
 
 		rc_block_count += 1;
 	}
+
+	// Post-checks on the Relay
+	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
+
+	// Post-checks on the Asset Hub
+	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 
 	println!("Migration done in {} RC blocks", rc_block_count);
 }
