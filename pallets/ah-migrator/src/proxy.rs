@@ -16,8 +16,8 @@
 // limitations under the License.
 
 use crate::*;
-use sp_runtime::{traits::Zero, BoundedSlice};
 use pallet_rc_migrator::types::ToPolkadotSs58;
+use sp_runtime::{traits::Zero, BoundedSlice};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
@@ -132,13 +132,16 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		()
 	}
-	
+
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
-		
+
 		log::info!(target: LOG_TARGET, "Total number of proxies: {}", count);
 		if count < rc_pre_payload {
-			panic!("Some proxies were not migrated. Expected at least {} proxies, got {}", rc_pre_payload, count);
+			panic!(
+				"Some proxies were not migrated. Expected at least {} proxies, got {}",
+				rc_pre_payload, count
+			);
 		}
 	}
 }

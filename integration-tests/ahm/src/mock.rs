@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::str::FromStr;
-use codec::Decode;
 use asset_hub_polkadot_runtime::Block as AssetHubBlock;
+use codec::Decode;
 use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
 use frame_support::traits::EnqueueMessage;
 use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use sp_runtime::{BoundedVec, Perbill};
+use std::str::FromStr;
 
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
@@ -98,7 +98,9 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 	log::info!("Enqueuing {} DMP messages", msgs.len());
 	for msg in msgs {
 		// Sanity check that we can decode it
-		if let Err(e) = xcm::VersionedXcm::<asset_hub_polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..]) {
+		if let Err(e) =
+			xcm::VersionedXcm::<asset_hub_polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..])
+		{
 			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg.msg), e);
 		}
 

@@ -87,7 +87,7 @@ async fn pallet_migration_works() {
 
 fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
 	//if std::env::var("START_STAGE").is_err() {
-		Some(ext.execute_with(|| f()))
+	Some(ext.execute_with(|| f()))
 	//} else {
 	//	None
 	//}
@@ -247,18 +247,23 @@ async fn print_accounts_statistics() {
 	println!("Total counts: {:?}", total_counts);
 }
 
-
 #[test]
 fn ah_account_migration_weight() {
-	use pallet_rc_migrator::weights_ah::WeightInfo;
 	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_MILLIS;
+	use pallet_rc_migrator::weights_ah::WeightInfo;
 
 	let ms_for_accs = |num_accs: u32| {
-		let weight = pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(num_accs as u32);
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
 		weight.ref_time() as f64 / WEIGHT_REF_TIME_PER_MILLIS as f64
 	};
 	let mb_for_accs = |num_accs: u32| {
-		let weight = pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(num_accs as u32);
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
 		weight.proof_size() as f64 / 1_000_000.0
 	};
 

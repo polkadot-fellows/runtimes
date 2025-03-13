@@ -23,24 +23,22 @@
 //! yet, they are here. This test is also very simple, it is not generic and just uses the Runtime
 //! types directly.
 
-use std::collections::BTreeMap;
-use sp_runtime::traits::Convert;
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::RcMigrationCheck;
-use sp_runtime::AccountId32;
-use sp_runtime::traits::Dispatchable;
-use std::str::FromStr;
-use frame_support::traits::Currency;
-use pallet_rc_migrator::types::ToPolkadotSs58;
+use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use sp_runtime::{
+	traits::{Convert, Dispatchable},
+	AccountId32,
+};
+use std::{collections::BTreeMap, str::FromStr};
 
 // oggle here if you need "generics" for Kusama or Westend
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
 /// Intent based permission.
-/// 
+///
 /// Should be a superset of all possible proxy types.
 #[derive(Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum Permission {
@@ -73,7 +71,7 @@ impl Convert<polkadot_runtime::ProxyType, Permission> for Permission {
 }
 
 /// Proxy accounts can still be controlled by their delegates with the correct permissions.
-/// 
+///
 /// This tests the actual functionality, not the raw data. It does so by dispatching calls from the
 /// delegatee account on behalf of the delegator. It then checks for whether or not the correct
 /// events were emitted.
@@ -88,7 +86,7 @@ pub struct Proxy {
 	pub who: AccountId32,
 	/// The original proxy type as set on the Relay Chain.
 	///
-	/// We will use this to check that the intention of the proxy is still the same. This should 
+	/// We will use this to check that the intention of the proxy is still the same. This should
 	/// catch issues with translation and index collision.
 	pub permissions: Vec<Permission>,
 	/// Can control `who`.
@@ -101,17 +99,17 @@ type PureProxies = BTreeMap<(AccountId32, AccountId32), Vec<Permission>>;
 
 impl RcMigrationCheck for ProxiesStillWork {
 	type RcPrePayload = PureProxies;
-	
+
 	fn pre_check() -> Self::RcPrePayload {
 		let mut pre_payload = BTreeMap::new();
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
-			//if !Self::guess_is_pure(&delegator) {
-			//	continue
-			//}
 			for proxy in proxies.into_iter() {
 				let permission = Permission::convert(proxy.proxy_type);
-				pre_payload.entry((proxy.delegate, delegator.clone())).or_insert_with(Vec::new).push(permission);				
+				pre_payload
+					.entry((proxy.delegate, delegator.clone()))
+					.or_insert_with(Vec::new)
+					.push(permission);
 			}
 		}
 
@@ -126,7 +124,7 @@ impl RcMigrationCheck for ProxiesStillWork {
 impl AhMigrationCheck for ProxiesStillWork {
 	type RcPrePayload = PureProxies;
 	type AhPrePayload = ();
-	
+
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		() // No OP
 	}
@@ -136,11 +134,16 @@ impl AhMigrationCheck for ProxiesStillWork {
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
 			if entry.is_empty() {
 				// FIXME possibly bug
-				log::error!("Storage entry must exist for {:?} -> {:?}", delegator.to_polkadot_ss58(), delegatee.to_polkadot_ss58());
+				log::error!(
+					"Storage entry must exist for {:?} -> {:?}",
+					delegator.to_polkadot_ss58(),
+					delegatee.to_polkadot_ss58()
+				);
 				continue
 			}
 
-			let maybe_delay = entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
+			let maybe_delay =
+				entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
 
 			Self::check_proxy(delegatee, delegator, permissions, maybe_delay.unwrap_or(0));
 		}
@@ -148,22 +151,40 @@ impl AhMigrationCheck for ProxiesStillWork {
 }
 
 impl ProxiesStillWork {
-	fn check_proxy(delegatee: &AccountId32, delegator: &AccountId32, permissions: &Vec<Permission>, delay: BlockNumberFor<AssetHubRuntime>) {
+	fn check_proxy(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+		permissions: &Vec<Permission>,
+		delay: BlockNumberFor<AssetHubRuntime>,
+	) {
 		if delay > 0 {
-			log::warn!("Skipping proxy delegatee {:?} -> {:?} because of delay: {:?}", delegator.to_polkadot_ss58(), delegatee.to_polkadot_ss58(), delay);
+			log::warn!(
+				"Skipping proxy delegatee {:?} -> {:?} because of delay: {:?}",
+				delegator.to_polkadot_ss58(),
+				delegatee.to_polkadot_ss58(),
+				delay
+			);
 			return;
 		}
 
 		frame_system::Pallet::<AssetHubRuntime>::reset_events();
-		let alice = AccountId32::from_str("5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu").unwrap();
+		let alice =
+			AccountId32::from_str("5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu").unwrap();
 
-		log::debug!("Checking that proxy relation {:?} -> {:?} still works with permissions {:?}", delegator.to_polkadot_ss58(), delegatee.to_polkadot_ss58(), permissions);
+		log::debug!(
+			"Checking that proxy relation {:?} -> {:?} still works with permissions {:?}",
+			delegator.to_polkadot_ss58(),
+			delegatee.to_polkadot_ss58(),
+			permissions
+		);
 		if delegatee == delegator {
 			return;
 		}
 
 		let allowed_transfer = permissions.contains(&Permission::Any);
-		let allowed_governance = permissions.contains(&Permission::Any) || permissions.contains(&Permission::NonTransfer) || permissions.contains(&Permission::Governance);
+		let allowed_governance = permissions.contains(&Permission::Any) ||
+			permissions.contains(&Permission::NonTransfer) ||
+			permissions.contains(&Permission::Governance);
 
 		if allowed_transfer {
 			assert!(Self::can_transfer(delegatee, delegator), "`Any` can transfer");
@@ -172,9 +193,15 @@ impl ProxiesStillWork {
 		}
 
 		if allowed_governance {
-			assert!(Self::can_governance(delegatee, delegator), "`Any` or `Governance` can do governance");
+			assert!(
+				Self::can_governance(delegatee, delegator),
+				"`Any` or `Governance` can do governance"
+			);
 		} else {
-			assert!(!Self::can_governance(delegatee, delegator), "Only `Any` or `Governance` can do governance");
+			assert!(
+				!Self::can_governance(delegatee, delegator),
+				"Only `Any` or `Governance` can do governance"
+			);
 		}
 
 		// TODO add staking etc
@@ -189,21 +216,29 @@ impl ProxiesStillWork {
 		frame_support::hypothetically!({
 			let ed = Self::fund_accounts(delegatee, delegator);
 
-			let transfer: asset_hub_polkadot_runtime::RuntimeCall = pallet_balances::Call::transfer_keep_alive {
-				dest: delegatee.clone().into(), // Transfer to self (does not matter).
-				value: ed * 10, // Does not matter.
-			}.into();
+			let transfer: asset_hub_polkadot_runtime::RuntimeCall =
+				pallet_balances::Call::transfer_keep_alive {
+					dest: delegatee.clone().into(), // Transfer to self (does not matter).
+					value: ed * 10,                 // Does not matter.
+				}
+				.into();
 
 			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
 				real: delegator.clone().into(),
 				force_proxy_type: None,
 				call: Box::new(transfer),
-			}.into();
+			}
+			.into();
 
-			log::debug!("Checking whether {:?} can transfer on behalf of {:?}", delegatee.to_polkadot_ss58(), delegator.to_polkadot_ss58());
+			log::debug!(
+				"Checking whether {:?} can transfer on behalf of {:?}",
+				delegatee.to_polkadot_ss58(),
+				delegator.to_polkadot_ss58()
+			);
 
 			frame_system::Pallet::<AssetHubRuntime>::reset_events();
-			let _ = proxy_call.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
+			let _ = proxy_call
+				.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
 
 			// !Self::filtered(res.err().map(|e| e.error))
 			Self::find_transfer_event(delegatee, delegator)
@@ -215,36 +250,52 @@ impl ProxiesStillWork {
 			Self::fund_accounts(delegatee, delegator);
 
 			let value = <AssetHubRuntime as pallet_bounties::Config>::BountyValueMinimum::get() * 2;
-			let call: asset_hub_polkadot_runtime::RuntimeCall = pallet_bounties::Call::propose_bounty {
-				value,
-				description: vec![]
-			}.into();
+			let call: asset_hub_polkadot_runtime::RuntimeCall =
+				pallet_bounties::Call::propose_bounty { value, description: vec![] }.into();
 
 			let proxy_call: asset_hub_polkadot_runtime::RuntimeCall = pallet_proxy::Call::proxy {
 				real: delegator.clone().into(),
 				force_proxy_type: None,
 				call: Box::new(call),
-			}.into();
+			}
+			.into();
 
-			log::debug!("Checking whether {:?} can do governance on behalf of {:?}", delegatee.to_polkadot_ss58(), delegator.to_polkadot_ss58());
+			log::debug!(
+				"Checking whether {:?} can do governance on behalf of {:?}",
+				delegatee.to_polkadot_ss58(),
+				delegator.to_polkadot_ss58()
+			);
 
 			frame_system::Pallet::<AssetHubRuntime>::reset_events();
-			let _ = proxy_call.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
+			let _ = proxy_call
+				.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
 
 			Self::find_bounty_event()
 		})
 	}
 
-	fn fund_accounts(delegatee: &AccountId32, delegator: &AccountId32) -> <AssetHubRuntime as pallet_balances::Config>::Balance {
+	fn fund_accounts(
+		delegatee: &AccountId32,
+		delegator: &AccountId32,
+	) -> <AssetHubRuntime as pallet_balances::Config>::Balance {
 		let ed = <AssetHubRuntime as pallet_balances::Config>::ExistentialDeposit::get();
-		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(&delegatee.clone().into(), ed * 10000000);
-		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(&delegator.clone().into(), ed * 10000000);
+		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
+			&delegatee.clone().into(),
+			ed * 10000000,
+		);
+		let _ = pallet_balances::Pallet::<AssetHubRuntime>::deposit_creating(
+			&delegator.clone().into(),
+			ed * 10000000,
+		);
 		ed
 	}
 
 	fn find_transfer_event(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
-			if let asset_hub_polkadot_runtime::RuntimeEvent::Balances(pallet_balances::Event::Transfer { from, to, .. }) = event.event {
+			if let asset_hub_polkadot_runtime::RuntimeEvent::Balances(
+				pallet_balances::Event::Transfer { from, to, .. },
+			) = event.event
+			{
 				if from == *delegator && to == *delegatee {
 					return true
 				}
@@ -256,7 +307,10 @@ impl ProxiesStillWork {
 
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
-			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(pallet_bounties::Event::BountyProposed { .. }) = event.event {
+			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(
+				pallet_bounties::Event::BountyProposed { .. },
+			) = event.event
+			{
 				return true
 			}
 		}
