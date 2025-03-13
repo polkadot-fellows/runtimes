@@ -54,9 +54,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		let last_key = loop {
 			let (next_key_inner, mut last_offset) = match next_key {
 				None => {
-					let (maybe_next_key, skipped) = Self::next_key(None);
+					let (maybe_next_key, skipped) = Self::next_key();
 					// Remove skipped storage items that won't be migrated
-					let _ = alias::PreimageFor::<T>::clear(skipped, None);
+					for (old_hash, old_len) in skipped {
+						alias::PreimageFor::<T>::remove((old_hash, old_len));
+					}
 					let Some(next_key) = maybe_next_key else {
 						// No more preimages
 						break None;
@@ -66,9 +68,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
 				Some(((hash, len), _)) => {
 					// Get the next key and remove the ones before that
-					let (next_key_maybe, skipped) = Self::next_key(Some((hash, len)));
 					alias::PreimageFor::<T>::remove((hash, len));
-					let _ = alias::PreimageFor::<T>::clear(skipped, None);
+					let (next_key_maybe, skipped) = Self::next_key();
+					for (old_hash, old_len) in skipped {
+						alias::PreimageFor::<T>::remove((old_hash, old_len));
+					}
 					let Some(next_key) = next_key_maybe else {
 						break None;
 					};
@@ -78,8 +82,10 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			// Load the preimage
 			let Some(preimage) = alias::PreimageFor::<T>::get(next_key_inner) else {
 				defensive!("Storage corruption");
-				let (next_key_maybe, skipped) = Self::next_key(Some(next_key_inner));
-				let _ = alias::PreimageFor::<T>::clear(skipped, None);
+				let (next_key_maybe, skipped) = Self::next_key();
+				for (old_hash, old_len) in skipped {
+					alias::PreimageFor::<T>::remove((old_hash, old_len));
+				}
 				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
 			};
@@ -96,8 +102,10 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 
 			let Ok(bounded_chunk) = BoundedVec::try_from(chunk_bytes.clone()).defensive() else {
 				defensive!("Unreachable");
-				let (next_key_maybe, skipped) = Self::next_key(Some(next_key_inner));
-				let _ = alias::PreimageFor::<T>::clear(skipped, None);
+				let (next_key_maybe, skipped) = Self::next_key();
+				for (old_hash, old_len) in skipped {
+					alias::PreimageFor::<T>::remove((old_hash, old_len));
+				}
 				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
 			};
@@ -143,36 +151,31 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 }
 
 impl<T: Config> PreimageChunkMigrator<T> {
-	// Returns the next key to migrated and the number of preimages skipped before that
-	fn next_key(key: Option<(H256, u32)>) -> (Option<(H256, u32)>, u32) {
-		let mut skipped: u32 = 0;
-		let next_key_maybe = match key {
-			None => alias::PreimageFor::<T>::iter_keys(),
-			Some((hash, len)) => alias::PreimageFor::<T>::iter_keys_from(
-				alias::PreimageFor::<T>::hashed_key_for((hash, len)),
-			),
-		}
-		// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
-		// loop, but it cannot be exploited since the pallet does not allow to add more items to
-		// the `StatusFor` map anymore.
-		.skip_while(|(hash, _)| {
-			if !alias::RequestStatusFor::<T>::contains_key(hash) {
-				log::info!(
-					"Ignoring old preimage that is not in the request status map: {:?}",
-					hash
-				);
-				skipped += 1;
-				debug_assert!(
-					alias::StatusFor::<T>::contains_key(hash),
-					"Preimage must be tracked somewhere"
-				);
-				true
-			} else {
-				false
-			}
-		})
-		.next();
-		log::info!("Skipping {} items", skipped);
+	// Returns the next key to migrated and all the legacy preimages skipped before that, which will
+	// be deleted
+	fn next_key() -> (Option<(H256, u32)>, Vec<(H256, u32)>) {
+		let mut skipped = Vec::new();
+		let next_key_maybe = alias::PreimageFor::<T>::iter_keys()
+			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
+			// loop, but it cannot be exploited since the pallet does not allow to add more items to
+			// the `StatusFor` map anymore.
+			.skip_while(|(hash, len)| {
+				if !alias::RequestStatusFor::<T>::contains_key(hash) {
+					log::info!(
+						"Ignoring old preimage that is not in the request status map: {:?}",
+						hash
+					);
+					skipped.push((*hash, *len));
+					debug_assert!(
+						alias::StatusFor::<T>::contains_key(hash),
+						"Preimage must be tracked somewhere"
+					);
+					true
+				} else {
+					false
+				}
+			})
+			.next();
 		(next_key_maybe, skipped)
 	}
 }
