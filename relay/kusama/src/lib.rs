@@ -92,7 +92,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, InstanceFilter,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, InstanceFilter,
 		KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError,
 		StorageMapShim, WithdrawReasons,
 	},
@@ -834,7 +834,11 @@ impl pallet_staking::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	fn filter(who: &AccountId) -> bool {
+		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
+	}
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1674,7 +1678,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = pallet_staking::AllStakers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_staking::AllStakers<Runtime>;
 }
 
 parameter_types! {
