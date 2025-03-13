@@ -121,9 +121,6 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 }
 
 /// Enqueue DMP messages on the parachain side.
-///
-/// This bypasses `set_validation_data` and `enqueue_inbound_upward_messages` by just directly
-/// enqueuing them.
 pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 	for msg in msgs {
 		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
