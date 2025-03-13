@@ -116,6 +116,10 @@ parameter_types! {
 			version: [4, 0, 0, 0], // 0x04000000
 			epoch: 269568,
 		},
+		electra: Fork {
+			version: [5, 0, 0, 0], // 0x05000000
+			epoch: todo!("TODO: @claravanstaden please check"),
+		},
 	};
 }
 
@@ -140,6 +144,10 @@ parameter_types! {
 		},
 		deneb: Fork {
 			version: [4, 0, 0, 0], // 0x04000000
+			epoch: 0,
+		},
+		electra: Fork {
+			version: [5, 0, 0, 0], // 0x05000000
 			epoch: 0,
 		}
 	};
