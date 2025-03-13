@@ -341,5 +341,8 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
 				.collect();
 
 		assert!(current_map.is_empty(), "Current crowdloan data should be empty after migration");
+
+		let funds_empty = pallet_crowdloan::Funds::<T>::iter().next().is_none();
+		assert!(funds_empty, "pallet_crowdloan::Funds should be empty after migration");
 	}
 }

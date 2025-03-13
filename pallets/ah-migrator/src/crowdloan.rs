@@ -188,7 +188,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		let rc_pre: BTreeMap<
 			ParaId,
 			Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
-		> = rc_pre_payload.into_iter().collect();
+		> = rc_pre_payload.iter().cloned().collect();
 
 		let all_post: BTreeMap<
 			ParaId,
@@ -202,6 +202,47 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		assert_eq!(
 			rc_pre, all_post,
 			"Crowdloan data mismatch: Asset Hub data differs from original Relay Chain data"
+		);
+
+		let lease_reserves_pre: BTreeMap<_, _> = rc_pre_payload
+			.iter()
+			.flat_map(|(para_id, entries)| {
+				entries.iter().map(move |(block_number, account_id, amount)| {
+					((block_number.clone(), para_id.clone(), account_id.clone()), *amount)
+				})
+			})
+			.collect();
+
+		let lease_reserves_post: BTreeMap<_, _> = pallet_ah_ops::RcLeaseReserve::<T>::iter()
+			.map(|((block_number, para_id, account_id), amount)| {
+				((block_number, para_id, account_id), amount)
+			})
+			.collect();
+
+		assert_eq!(
+			lease_reserves_pre, lease_reserves_post,
+			"Lease reserve data mismatch: Asset Hub data differs from original Relay Chain data"
+		);
+
+		let crowdloan_reserves_pre: BTreeMap<_, _> = rc_pre_payload
+			.iter()
+			.flat_map(|(para_id, entries)| {
+				entries.iter().map(move |(block_number, account_id, amount)| {
+					((block_number.clone(), para_id.clone(), account_id.clone()), *amount)
+				})
+			})
+			.collect();
+
+		let crowdloan_reserves_post: BTreeMap<_, _> =
+			pallet_ah_ops::RcCrowdloanReserve::<T>::iter()
+				.map(|((block_number, para_id, account_id), amount)| {
+					((block_number, para_id, account_id), amount)
+				})
+				.collect();
+
+		assert_eq!(
+			crowdloan_reserves_pre, crowdloan_reserves_post,
+			"Crowdloan reserve data mismatch: Asset Hub data differs from original Relay Chain data"
 		);
 	}
 }
