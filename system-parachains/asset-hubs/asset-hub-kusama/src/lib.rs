@@ -38,12 +38,15 @@ use assets_common::{
 };
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
+use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
+use pallet_proxy::ProxyDefinition;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, ConvertInto,
+		Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
@@ -112,7 +115,6 @@ impl_opaque_keys! {
 	}
 }
 
-#[cfg(feature = "state-trie-version-1")]
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// Note: "statemine" is the legacy name for this chain. It has been renamed to
@@ -121,27 +123,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_004_000,
+	spec_version: 1_004_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
 	state_version: 1,
-};
-
-#[cfg(not(feature = "state-trie-version-1"))]
-#[sp_version::runtime_version]
-pub const VERSION: RuntimeVersion = RuntimeVersion {
-	// Note: "statemine" is the legacy name for this change. It has been renamed to
-	// "asset-hub-kusama". Many wallets/tools depend on the `spec_name`, so it remains "statemine"
-	// for the time being. Wallets/tools should update to treat "asset-hub-kusama" equally.
-	spec_name: create_runtime_str!("statemine"),
-	impl_name: create_runtime_str!("statemine"),
-	authoring_version: 1,
-	spec_version: 1_004_000,
-	impl_version: 0,
-	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 15,
-	state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -526,9 +512,11 @@ parameter_types! {
 	RuntimeDebug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
+	Default,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds or assets.
 	NonTransfer,
@@ -542,11 +530,6 @@ pub enum ProxyType {
 	AssetManager,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
-}
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -690,7 +673,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnSystemEvent = ();
+	type OnSystemEvent = RemoteProxyRelayChain;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 	type ReservedDmpWeight = ReservedDmpWeight;
@@ -973,6 +956,52 @@ impl pallet_xcm_bridge_hub_router::Config<ToPolkadotXcmRouterInstance> for Runti
 		cumulus_pallet_xcmp_queue::bridging::InAndOutXcmpChannelStatusProvider<Runtime>;
 }
 
+/// Converts from the relay chain proxy type to the local proxy type.
+pub struct RelayChainToLocalProxyTypeConverter;
+
+impl
+	Convert<
+		ProxyDefinition<AccountId, kusama_runtime_constants::proxy::ProxyType, BlockNumber>,
+		Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>>,
+	> for RelayChainToLocalProxyTypeConverter
+{
+	fn convert(
+		a: ProxyDefinition<AccountId, kusama_runtime_constants::proxy::ProxyType, BlockNumber>,
+	) -> Option<ProxyDefinition<AccountId, ProxyType, BlockNumber>> {
+		let proxy_type = match a.proxy_type {
+			kusama_runtime_constants::proxy::ProxyType::Any => ProxyType::Any,
+			kusama_runtime_constants::proxy::ProxyType::NonTransfer => ProxyType::NonTransfer,
+			kusama_runtime_constants::proxy::ProxyType::CancelProxy => ProxyType::CancelProxy,
+			// Proxy types that are not supported on AH.
+			kusama_runtime_constants::proxy::ProxyType::Governance |
+			kusama_runtime_constants::proxy::ProxyType::Staking |
+			kusama_runtime_constants::proxy::ProxyType::Auction |
+			kusama_runtime_constants::proxy::ProxyType::Spokesperson |
+			kusama_runtime_constants::proxy::ProxyType::NominationPools |
+			kusama_runtime_constants::proxy::ProxyType::Society |
+			kusama_runtime_constants::proxy::ProxyType::ParaRegistration => return None,
+		};
+
+		Some(ProxyDefinition {
+			delegate: a.delegate,
+			proxy_type,
+			// Delays are currently not supported by the remote proxy pallet, but should be
+			// converted in the future to the block time used by the local proxy pallet.
+			delay: a.delay,
+		})
+	}
+}
+
+impl pallet_remote_proxy::Config for Runtime {
+	// The time between creating a proof and using the proof in a transaction.
+	type MaxStorageRootsToKeep = ConstU32<{ RC_MINUTES }>;
+	type RemoteProxy = kusama_runtime_constants::proxy::RemoteProxyInterface<
+		ProxyType,
+		RelayChainToLocalProxyTypeConverter,
+	>;
+	type WeightInfo = weights::pallet_remote_proxy::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1009,6 +1038,7 @@ construct_runtime!(
 		Utility: pallet_utility = 40,
 		Multisig: pallet_multisig = 41,
 		Proxy: pallet_proxy = 42,
+		RemoteProxyRelayChain: pallet_remote_proxy = 43,
 
 		// The main stage.
 		Assets: pallet_assets::<Instance1> = 50,
@@ -1020,7 +1050,7 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 
-		#[cfg(feature = "state-trie-version-1")]
+		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
 	}
 );
@@ -1088,6 +1118,7 @@ mod benches {
 		[pallet_nft_fractionalization, NftFractionalization]
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
+		[pallet_remote_proxy, RemoteProxyRelayChain]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
@@ -1749,51 +1780,35 @@ cumulus_pallet_parachain_system::register_validate_block! {
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }
 
-#[cfg(feature = "state-trie-version-1")]
 parameter_types! {
 	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
 	pub const MigrationSignedDepositPerItem: Balance = CENTS;
 	pub const MigrationSignedDepositBase: Balance = 2_000 * CENTS;
-	pub const MigrationMaxKeyLen: u32 = 512;
+	pub const MigrationMaxKeyLen: u32 = 32;
 }
 
-#[cfg(feature = "state-trie-version-1")]
 impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
-	// An origin that can control the whole pallet: should be Root, or a part of your council.
-	type ControlOrigin = frame_system::EnsureSignedBy<RootMigController, AccountId>;
-	// specific account for the migration, can trigger the signed migrations.
-	type SignedFilter = frame_system::EnsureSignedBy<MigController, AccountId>;
+	// An origin that can control the whole pallet: should be Root or the Fellowship.
+	type ControlOrigin = EitherOfDiverse<
+		EnsureRoot<AccountId>,
+		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+	>;
+	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
 	// Replace this with weight based on your runtime.
 	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
 
 	type MaxKeyLen = MigrationMaxKeyLen;
 }
-
-#[cfg(feature = "state-trie-version-1")]
-frame_support::ord_parameter_types! {
+// Statemint State Migration Controller account controlled by parity.io. Can trigger migration.
+// See bot code https://github.com/paritytech/polkadot-scripts/blob/master/src/services/state_trie_migration.ts
+ord_parameter_types! {
 	pub const MigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
-	pub const RootMigController: AccountId = AccountId::from(hex_literal::hex!("8458ed39dc4b6f6c7255f7bc42be50c2967db126357c999d44e12ca7ac80dc52"));
-}
-
-#[cfg(feature = "state-trie-version-1")]
-#[test]
-fn ensure_key_ss58() {
-	use frame_support::traits::SortedMembers;
-	use sp_core::crypto::Ss58Codec;
-	let acc =
-		AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-	//panic!("{:x?}", acc);
-	assert_eq!(acc, MigController::sorted_members()[0]);
-	let acc =
-		AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
-	assert_eq!(acc, RootMigController::sorted_members()[0]);
-	//panic!("{:x?}", acc);
 }
 
 #[cfg(test)]
@@ -1868,5 +1883,14 @@ mod tests {
 			bp_asset_hub_kusama::CreateForeignAssetDeposit::get(),
 			ForeignAssetsAssetDeposit::get()
 		);
+	}
+
+	#[test]
+	fn ensure_key_ss58() {
+		use frame_support::traits::SortedMembers;
+		use sp_core::crypto::Ss58Codec;
+		let acc =
+			AccountId::from_ss58check("5F4EbSkZz18X36xhbsjvDNs6NuZ82HyYtq5UiJ1h9SBHJXZD").unwrap();
+		assert_eq!(acc, MigController::sorted_members()[0]);
 	}
 }

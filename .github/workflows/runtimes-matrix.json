@@ -32,7 +32,8 @@
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "try_runtime_args": "--overwrite-state-version 1"
   },
   {
     "name": "asset-hub-polkadot",
@@ -41,7 +42,8 @@
     "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
     "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "extra_args": "--disable-mbm-checks",
+    "try_runtime_args": "--overwrite-state-version 1"
   },
   {
     "name": "bridge-hub-kusama",
