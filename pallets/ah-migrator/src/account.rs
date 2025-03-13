@@ -123,4 +123,20 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
+
+	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
+		let checking_account = T::CheckingAccount::get();
+		// current value is the migrated checking balance of RC
+		let rc_balance_before = <T as Config>::Currency::total_balance(&checking_account);
+		let ah_issuance_before = AhTotalIssuanceBefore::<T>::get();
+
+		// set it to the correct value:
+		let balance_after = rc_balance_before
+			.checked_sub(ah_issuance_before) // amount teleported to other system chains
+			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?
+			.checked_add(rc_balance_kept) // total amount teleported to other chains
+			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?;
+		<T as Config>::Currency::make_free_balance_be(&checking_account, balance_after);
+		Ok(())
+	}
 }

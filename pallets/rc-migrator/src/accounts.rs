@@ -139,10 +139,10 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 {
 	/// Check if the total account balance is liquid.
 	pub fn is_liquid(&self) -> bool {
-		self.unnamed_reserve.is_zero() &&
-			self.freezes.is_empty() &&
-			self.locks.is_empty() &&
-			self.holds.is_empty()
+		self.unnamed_reserve.is_zero()
+			&& self.freezes.is_empty()
+			&& self.locks.is_empty()
+			&& self.holds.is_empty()
 	}
 }
 
@@ -195,7 +195,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 	///
 	/// Result:
 	/// - None - no accounts left to be migrated to AH.
-	/// - Some(maybe_last_key) - the last migrated account from RC to AH if
+	/// - Some(maybe_last_key) - the last migrated account from RC to AH if any
 	fn migrate_many(
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
@@ -340,16 +340,14 @@ impl<T: Config> AccountsMigrator<T> {
 		// - keep `balance`, `holds`, `freezes`, .. in memory
 		// - check if there is anything to migrate
 		// - release all `holds`, `freezes`, ...
-		// - teleport all balance from RC to AH:
-		// -- mint into XCM `checking` account
-		// -- burn from target account
+		// - burn from target account the `balance` to be moved from RC to AH
 		// - add `balance`, `holds`, `freezes`, .. to the accounts package to be sent via XCM
 
 		let account_data: AccountData<T::Balance> = account_info.data.clone();
 
-		if account_data.free.is_zero() &&
-			account_data.reserved.is_zero() &&
-			account_data.frozen.is_zero()
+		if account_data.free.is_zero()
+			&& account_data.reserved.is_zero()
+			&& account_data.frozen.is_zero()
 		{
 			if account_info.nonce.is_zero() {
 				log::warn!(
@@ -476,22 +474,6 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		debug_assert!(teleport_total == burned);
-
-		let minted =
-			match <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), teleport_total) {
-				Ok(minted) => minted,
-				Err(e) => {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to mint balance into checking account: {}, error: {:?}",
-						who.to_ss58check(),
-						e
-					);
-					return Err(Error::FailedToWithdrawAccount);
-				},
-			};
-
-		debug_assert!(teleport_total == minted);
 
 		let withdrawn_account = Account {
 			who: who.clone(),
@@ -646,7 +628,7 @@ impl<T: Config> AccountsMigrator<T> {
 			if rc_reserved == 0 {
 				log::debug!(
 					target: LOG_TARGET,
-					"Account has no enough reserved balance to keep on RC. account: {:?}.",
+					"Account doesn't have enough reserved balance to keep on RC. account: {:?}.",
 					id.to_ss58check(),
 				);
 				continue;
@@ -661,6 +643,8 @@ impl<T: Config> AccountsMigrator<T> {
 					"Preserve account: {:?} on the RC",
 					id.to_ss58check()
 				);
+				// entire balance is kept
+				RcBalanceKept::<T>::mutate(|total| *total += free + total_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
 				log::debug!(
@@ -669,6 +653,7 @@ impl<T: Config> AccountsMigrator<T> {
 					id.to_ss58check(),
 					rc_reserved
 				);
+				RcBalanceKept::<T>::mutate(|total| *total += rc_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}

@@ -59,7 +59,7 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
-		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		Currency, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
 };
@@ -143,6 +143,13 @@ impl MigrationStage {
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, MigrationStage::Pending | MigrationStage::MigrationDone)
 	}
+}
+
+/// Further data coming from Relay Chain alongside the signal that migration has finished.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+pub struct MigrationFinishedData {
+	/// Total native token balance NOT migrated from Relay Chain
+	pub rc_balance_kept: u128,
 }
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
@@ -256,6 +263,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
 
+	/// Helper storage item to store the total balance / total issuance of native token at the start
+	/// of the migration. Since teleports are disabled during migration, the total issuance will not
+	/// change for other reason than the migration itself.
+	#[pallet::storage]
+	pub type AhTotalIssuanceBefore<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.
@@ -277,6 +290,8 @@ pub mod pallet {
 		XcmError,
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
+		/// Checking account overflow or underflow.
+		FailedToCalculateCheckingAccount,
 		Unreachable,
 	}
 
@@ -463,7 +478,7 @@ pub mod pallet {
 
 		/// Receive accounts from the Relay Chain.
 		///
-		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
+		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let mut total = Weight::zero();
@@ -714,7 +729,27 @@ pub mod pallet {
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			AhTotalIssuanceBefore::<T>::put(<T as Config>::Currency::total_issuance());
+			defensive_assert!(
+				<T as Config>::Currency::total_balance(&T::CheckingAccount::get()) == 0
+			);
+
 			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Finish the migration.
+		///
+		/// This is typically called by the Relay Chain to signal the migration has finished.
+		#[pallet::call_index(110)]
+		pub fn finish_migration(
+			origin: OriginFor<T>,
+			data: MigrationFinishedData,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::finish_accounts_migration(data.rc_balance_kept.into())?;
+			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
 	}

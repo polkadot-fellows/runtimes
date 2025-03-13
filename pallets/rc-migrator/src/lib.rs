@@ -409,11 +409,15 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
-	/// Helper storage item to obtain and store the known accounts that should be kept partially on
+	/// Helper storage item to obtain and store the known accounts that should be kept partially or
 	/// fully on Relay Chain.
 	#[pallet::storage]
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, accounts::AccountState<T::Balance>, OptionQuery>;
+
+	/// Helper storage item to store the total balance that should be kept on Relay Chain.
+	#[pallet::storage]
+	pub type RcBalanceKept<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
 
 	/// Alias for `Paras` from `paras_registrar`.
 	///
