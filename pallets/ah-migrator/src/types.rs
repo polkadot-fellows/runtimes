@@ -38,6 +38,8 @@ pub enum RcPalletConfig {
 pub enum RcMigratorCall {
 	#[codec(index = 2)]
 	StartDataMigration,
+	#[codec(index = 3)]
+	UpdateAhMsgProcessedCount(u32),
 }
 
 /// Trait to run some checks on the Asset Hub before and after a pallet migration.
