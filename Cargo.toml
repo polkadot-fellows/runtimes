@@ -24,10 +24,8 @@ bp-bridge-hub-cumulus = { version = "0.18.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
 bp-header-chain = { version = "0.18.1", default-features = false }
-bp-kusama = { version = "0.16.0", default-features = false }
 bp-messages = { version = "0.18.0", default-features = false }
 bp-parachains = { version = "0.18.0", default-features = false }
-bp-polkadot = { version = "0.16.0", default-features = false }
 bp-polkadot-core = { version = "0.18.0", default-features = false }
 bp-relayers = { version = "0.18.0", default-features = false }
 bp-runtime = { version = "0.18.0", default-features = false }
@@ -499,7 +497,6 @@ assets-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-relayers = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-xcm-bridge-hub = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
@@ -538,4 +535,3 @@ snowbridge-runtime-test-common = { git = "https://github.com/paritytech/polkadot
 snowbridge-system-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 substrate-bip39 = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
