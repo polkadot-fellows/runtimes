@@ -179,6 +179,17 @@ mod benchmarks {
 	use super::*;
 
 	#[benchmark]
+	fn on_finalize() {
+		let block_num = BlockNumberFor::<T>::from(1u32);
+		DmpDataMessageCounts::<T>::put((1, 0));
+
+		#[block]
+		{
+			Pallet::<T>::on_finalize(block_num)
+		}
+	}
+
+	#[benchmark]
 	fn receive_multisigs_from_snap(n: Linear<1, 255>) {
 		verify_snapshot::<T>();
 		let (mut messages, _cursor) = relay_snapshot(|| {

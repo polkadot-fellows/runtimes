@@ -14,18 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
+use cumulus_primitives_core::{
+	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
+};
+use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
+use pallet_rc_migrator::{
+	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
+	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
+};
+use polkadot_primitives::UpwardMessage;
+use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
+use runtime_parachains::{
+	dmp::DownwardMessageQueues,
+	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
+};
+use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
 
-use asset_hub_polkadot_runtime::Block as AssetHubBlock;
-use cumulus_primitives_core::{AggregateMessageOrigin, InboundDownwardMessage, ParaId};
-use frame_support::traits::EnqueueMessage;
-use pallet_rc_migrator::{MigrationStage, RcMigrationStage};
-use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
-use sp_runtime::{BoundedVec, Perbill};
-
-use asset_hub_polkadot_runtime::Runtime as AssetHub;
-use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
-
+pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";
 const LOG_AH: &str = "runtime::asset-hub";
 
@@ -60,15 +68,17 @@ pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
 }
 
 pub fn next_block_rc() {
-	let now = frame_system::Pallet::<Polkadot>::block_number();
-	log::debug!(target: LOG_RC, "Next block: {:?}", now + 1);
-	<polkadot_runtime::RcMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(now);
-	frame_system::Pallet::<Polkadot>::set_block_number(now + 1);
+	let past = frame_system::Pallet::<Polkadot>::block_number();
+	let now = past + 1;
+	log::debug!(target: LOG_RC, "Next block: {:?}", now);
+	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	let weight =
-		<polkadot_runtime::RcMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(
-			now + 1,
-		);
+	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
+	let weight = <polkadot_runtime::RcMigrator as OnInitialize<_>>::on_initialize(now)
+		.saturating_add(weight);
+	<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
+	<polkadot_runtime::RcMigrator as OnFinalize<_>>::on_finalize(now);
+
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
@@ -79,15 +89,24 @@ pub fn next_block_rc() {
 }
 
 pub fn next_block_ah() {
-	let now = frame_system::Pallet::<AssetHub>::block_number();
-	log::debug!(target: LOG_AH, "Next block: {:?}", now + 1);
-	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnFinalize<_>>::on_finalize(
-		now,
-	);
-	frame_system::Pallet::<AssetHub>::set_block_number(now + 1);
-	<asset_hub_polkadot_runtime::MessageQueue as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+	let past = frame_system::Pallet::<AssetHub>::block_number();
+	let now = past + 1;
+	log::debug!(target: LOG_AH, "Next block: {:?}", now);
+	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
-	<asset_hub_polkadot_runtime::AhMigrator as frame_support::traits::OnInitialize<_>>::on_initialize(now + 1);
+	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
+	let weight = <asset_hub_polkadot_runtime::AhMigrator as OnInitialize<_>>::on_initialize(now)
+		.saturating_add(weight);
+	<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
+	<asset_hub_polkadot_runtime::AhMigrator as OnFinalize<_>>::on_finalize(now);
+
+	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
+	assert!(
+		weight.all_lte(Perbill::from_percent(80) * limit),
+		"Weight exceeded 80% of limit: {:?}, limit: {:?}",
+		weight,
+		limit
+	);
 }
 
 /// Enqueue DMP messages on the parachain side.
@@ -99,9 +118,41 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
-			AggregateMessageOrigin::Parent,
+			ParachainMessageOrigin::Parent,
 		);
 	}
+}
+
+/// Enqueue DMP messages on the parachain side.
+pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
+	for msg in msgs {
+		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
+		polkadot_runtime::MessageQueue::enqueue_message(
+			bounded_msg.as_bounded_slice(),
+			RcMessageOrigin::Ump(UmpQueueId::Para(AH_PARA_ID)),
+		);
+	}
+}
+
+// Sets the initial migration stage on the Relay Chain.
+//
+// If the `START_STAGE` environment variable is set, it will be used to set the initial migration
+// stage. Otherwise, the current migration stage will be returned.
+pub fn set_initial_migration_stage(
+	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
+) -> RcMigrationStageOf<Polkadot> {
+	let stage = relay_chain.execute_with(|| {
+		if let Ok(stage) = std::env::var("START_STAGE") {
+			log::info!("Setting start stage: {:?}", &stage);
+			let stage = RcMigrationStage::from_str(&stage).expect("Invalid start stage");
+			RcMigrationStageStorage::<Polkadot>::put(stage.clone());
+			stage
+		} else {
+			RcMigrationStageStorage::<Polkadot>::get()
+		}
+	});
+	relay_chain.commit_all().unwrap();
+	stage
 }
 
 // Migrates the pallet out of the Relay Chain and returns the corresponding Payload.
@@ -120,22 +171,19 @@ pub fn rc_migrate(
 	let dmp_messages = relay_chain.execute_with(|| {
 		let mut dmps = Vec::new();
 
-		if let Ok(stage) = std::env::var("START_STAGE") {
-			let stage = MigrationStage::from_str(&stage).expect("Invalid start stage");
-			RcMigrationStage::<Polkadot>::put(stage);
-		}
-
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
 			next_block_rc();
 
-			let new_dmps =
-				runtime_parachains::dmp::DownwardMessageQueues::<Polkadot>::take(para_id);
+			// Bypass the unconfirmed DMP messages limit since we do not send the messages to the AH
+			// on every RC block.
+			let (sent, _) = RcDmpDataMessageCounts::<Polkadot>::get();
+			RcDmpDataMessageCounts::<Polkadot>::put((sent, sent));
+
+			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);
 
-			if RcMigrationStage::<Polkadot>::get() ==
-				pallet_rc_migrator::MigrationStage::MigrationDone
-			{
+			if RcMigrationStageStorage::<Polkadot>::get() == RcMigrationStage::MigrationDone {
 				log::info!("Migration done");
 				break dmps;
 			}
@@ -158,13 +206,13 @@ pub fn ah_migrate(
 	// Inject the DMP messages into the Asset Hub
 	asset_hub.execute_with(|| {
 		let mut fp =
-			asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+			asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
 		enqueue_dmp(dmp_messages);
 
 		// Loop until no more DMPs are queued
 		loop {
 			let new_fp =
-				asset_hub_polkadot_runtime::MessageQueue::footprint(AggregateMessageOrigin::Parent);
+				asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
 			if fp == new_fp {
 				log::info!("AH DMP messages left: {}", fp.storage.count);
 				break;

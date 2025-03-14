@@ -128,7 +128,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm(
+		Pallet::<T>::send_chunked_xcm_and_track(
 			messages,
 			|messages| types::AhMigratorCall::<T>::ReceiveSchedulerMessages { messages },
 			|_| Weight::from_all(1), // TODO

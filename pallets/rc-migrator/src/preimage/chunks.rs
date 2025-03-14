@@ -139,7 +139,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch },
 				|_| Weight::from_all(1), // TODO
