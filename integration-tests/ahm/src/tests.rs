@@ -65,6 +65,9 @@ type AhChecks = (
 async fn pallet_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
+	// Set the initial migration stage from env var if set.
+	set_initial_migration_stage(&mut rc);
+
 	// Pre-checks on the Relay
 	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
 
@@ -249,6 +252,9 @@ async fn print_accounts_statistics() {
 #[tokio::test(flavor = "current_thread")]
 async fn migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Set the initial migration stage from env var if set.
+	set_initial_migration_stage(&mut rc);
 
 	// Pre-checks on the Relay
 	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);

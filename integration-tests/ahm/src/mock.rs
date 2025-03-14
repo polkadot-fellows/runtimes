@@ -21,7 +21,7 @@ use cumulus_primitives_core::{
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
 use pallet_rc_migrator::{
 	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
-	RcMigrationStage as RcMigrationStageStorage,
+	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
@@ -134,6 +134,27 @@ pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 	}
 }
 
+// Sets the initial migration stage on the Relay Chain.
+//
+// If the `START_STAGE` environment variable is set, it will be used to set the initial migration
+// stage. Otherwise, the current migration stage will be returned.
+pub fn set_initial_migration_stage(
+	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
+) -> RcMigrationStageOf<Polkadot> {
+	let stage = relay_chain.execute_with(|| {
+		if let Ok(stage) = std::env::var("START_STAGE") {
+			log::info!("Setting start stage: {:?}", &stage);
+			let stage = RcMigrationStage::from_str(&stage).expect("Invalid start stage");
+			RcMigrationStageStorage::<Polkadot>::put(stage.clone());
+			stage
+		} else {
+			RcMigrationStageStorage::<Polkadot>::get()
+		}
+	});
+	relay_chain.commit_all().unwrap();
+	stage
+}
+
 // Migrates the pallet out of the Relay Chain and returns the corresponding Payload.
 //
 // Sends DMP messages with pallet migration data from relay chain to asset hub. The output includes
@@ -150,18 +171,13 @@ pub fn rc_migrate(
 	let dmp_messages = relay_chain.execute_with(|| {
 		let mut dmps = Vec::new();
 
-		if let Ok(stage) = std::env::var("START_STAGE") {
-			let stage = RcMigrationStage::from_str(&stage).expect("Invalid start stage");
-			RcMigrationStageStorage::<Polkadot>::put(stage);
-		}
-
 		// Loop until no more DMPs are added and we had at least 1
 		loop {
 			next_block_rc();
 
 			// Bypass the unconfirmed DMP messages limit since we do not send the messages to the AH
 			// on every RC block.
-			let (sent, processed) = RcDmpDataMessageCounts::<Polkadot>::get();
+			let (sent, _) = RcDmpDataMessageCounts::<Polkadot>::get();
 			RcDmpDataMessageCounts::<Polkadot>::put((sent, sent));
 
 			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
