@@ -10099,6 +10099,7 @@ name = "polkadot-integration-tests-ahm"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-remote-externalities",
