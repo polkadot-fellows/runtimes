@@ -18,6 +18,7 @@
 //! Account balance migration.
 
 use crate::*;
+use pallet_rc_migrator::accounts::AccountsMigrator;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
@@ -138,5 +139,33 @@ impl<T: Config> Pallet<T> {
 			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?;
 		<T as Config>::Currency::make_free_balance_be(&checking_account, balance_after);
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
+	// rc_total_issuance_before
+	type RcPrePayload = BalanceOf<T>;
+	type AhPrePayload = ();
+
+	/// Run some checks on asset hub before the migration and store intermediate payload.
+	///
+	/// The expected output should contain the data stored in asset hub before the migration.
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		let check_account = T::CheckingAccount::get();
+		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		assert_eq!(checking_balance, 0);
+	}
+
+	/// Run some checks after the migration and use the intermediate payload.
+	///
+	/// The expected input should contain the data just transferred out of the relay chain, to allow
+	/// the check that data has been correctly migrated to asset hub. It should also contain the
+	/// data previously stored in asset hub, allowing for more complex logical checks on the
+	/// migration outcome.
+	fn post_check(rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let ah_total_issuance = <T as Config>::Currency::total_issuance();
+		// assert RC total issuance before == AH total issuance after
+		assert_eq!(rc_total_issuance_before, ah_total_issuance);
 	}
 }

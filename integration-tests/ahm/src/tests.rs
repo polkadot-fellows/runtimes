@@ -50,12 +50,14 @@ use std::{collections::BTreeMap, str::FromStr};
 use xcm_emulator::ConvertLocation;
 
 type RcChecks = (
+	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	// other pallets go here
 );
 
 type AhChecks = (
+	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	// other pallets go here
@@ -264,8 +266,8 @@ async fn migration_works() {
 
 	let mut rc_block_count = 0;
 	// finish the loop when the migration is done.
-	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
-		RcMigrationStage::MigrationDone
+	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get())
+		!= RcMigrationStage::MigrationDone
 	{
 		// execute next RC block.
 		let dmp_messages = rc.execute_with(|| {

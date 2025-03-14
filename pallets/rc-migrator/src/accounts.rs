@@ -179,7 +179,7 @@ pub type AccountFor<T> = Account<
 	<T as pallet_balances::Config>::FreezeIdentifier,
 >;
 
-pub struct AccountsMigrator<T: Config> {
+pub struct AccountsMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
@@ -564,7 +564,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// The part of the balance of the `who` that must stay on the Relay Chain.
 	pub fn get_rc_state(who: &T::AccountId) -> AccountStateFor<T> {
 		// TODO: static list of System Accounts that must stay on RC
-		// e.g. XCM teleport checking account
+		// note: XCM teleport checking account not one of them - shall be completely migrated
 
 		if let Some(state) = RcAccounts::<T>::get(who) {
 			return state;
@@ -701,5 +701,33 @@ impl<T: Config> AccountsMigrator<T> {
 		let ah_acc = ah_raw.try_into().map_err(|_| ()).defensive()?;
 
 		Ok(Some((ah_acc, para_id)))
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
+	// rc_total_issuance_before
+	type RcPrePayload = BalanceOf<T>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		<T as Config>::Currency::total_issuance()
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		let check_account = T::CheckingAccount::get();
+		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		assert_eq!(checking_balance, 0);
+
+		let mut kept = 0;
+		for (who, acc_state) in RcAccounts::<T>::iter() {
+			kept += match acc_state {
+				AccountState::Migrate => 0,
+				AccountState::Preserve => <T as Config>::Currency::total_balance(&who),
+				AccountState::Part { reserved } => reserved,
+			};
+		}
+
+		assert_eq!(RcBalanceKept::<T>::get(), kept);
+		assert_eq!(<T as Config>::Currency::total_issuance(), kept);
 	}
 }
