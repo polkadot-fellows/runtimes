@@ -1283,7 +1283,7 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						require_weight_at_most: weight_at_most(batch_len) + Weight::from_parts(10_000_000_000, 1_000_000),
+						require_weight_at_most: weight_at_most(batch_len),
 						call: call.encode().into(),
 					},
 				]);
@@ -1332,7 +1332,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					require_weight_at_most: weight_at_most + Weight::from_parts(10_000_000_000, 1_000_000),
+					require_weight_at_most: weight_at_most,
 					call: call.encode().into(),
 				},
 			]);

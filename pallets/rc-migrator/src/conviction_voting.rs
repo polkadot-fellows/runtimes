@@ -52,15 +52,17 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
+		log::info!(target: LOG_TARGET, "Migrating conviction voting with weight limit: {:?}, weight for one message: {:?}", weight_counter, <T as frame_system::Config>::DbWeight::get().reads_writes(1, 1));
 		let mut last_key = last_key.unwrap_or(ConvictionVotingStage::VotingFor(None));
 		let mut messages = Vec::new();
+		let mut made_progress = false;
 
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
-				if messages.is_empty() {
+				if !made_progress {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
@@ -70,6 +72,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
 				break;
 			}
+			made_progress = true;
 
 			last_key = match last_key {
 				ConvictionVotingStage::VotingFor(last_voting_key) => {

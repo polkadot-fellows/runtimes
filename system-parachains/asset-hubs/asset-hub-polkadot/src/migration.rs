@@ -27,7 +27,6 @@ use xcm::latest::prelude::*;
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
-	// TODO
 	#[codec(index = 98)]
 	StateTrieMigration(pallet_state_trie_migration::HoldReason),
 	#[codec(index = 41)]
