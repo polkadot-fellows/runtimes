@@ -130,7 +130,6 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 			ParachainMessageOrigin::Parent,
 		);
 	}
-	log::info!("Enqueued DMP messages");
 }
 
 /// Enqueue DMP messages on the parachain side.

@@ -33,7 +33,7 @@ use sp_runtime::{
 };
 use std::{collections::BTreeMap, str::FromStr};
 
-// oggle here if you need "generics" for Kusama or Westend
+// toggle here if you need "generics" for Kusama or Westend
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
@@ -77,10 +77,9 @@ impl Convert<polkadot_runtime::ProxyType, Permission> for Permission {
 /// events were emitted.
 pub struct ProxiesStillWork;
 
-/// An account that is probably a pure proxy.
+/// An account that has some delegatees set to control it.
 ///
-/// Does not *really* matter when it is an "impure" proxy, but the focus here is to ensure that pure
-/// ones still work.
+/// Can be pure or impure.
 #[derive(Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Proxy {
 	pub who: AccountId32,
@@ -212,6 +211,7 @@ impl ProxiesStillWork {
 		assert!(!Self::can_governance(&alice, &delegator), "Alice cannot do governance");
 	}
 
+	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
 	fn can_transfer(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		frame_support::hypothetically!({
 			let ed = Self::fund_accounts(delegatee, delegator);
@@ -245,6 +245,9 @@ impl ProxiesStillWork {
 		})
 	}
 
+	/// Check that the `delegatee` can do governance on behalf of the `delegator`.
+	///
+	/// Currently only checks the `bounties::propose_bounty` call.
 	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		frame_support::hypothetically!({
 			Self::fund_accounts(delegatee, delegator);
@@ -274,6 +277,7 @@ impl ProxiesStillWork {
 		})
 	}
 
+	/// Fund the `delegatee` and `delegator` with some balance.
 	fn fund_accounts(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
@@ -290,6 +294,7 @@ impl ProxiesStillWork {
 		ed
 	}
 
+	/// Check if there is a `Transfer` event from the `delegator` to the `delegatee`.
 	fn find_transfer_event(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Balances(
@@ -305,6 +310,7 @@ impl ProxiesStillWork {
 		false
 	}
 
+	/// Check if there is a `BountyProposed` event.
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(
