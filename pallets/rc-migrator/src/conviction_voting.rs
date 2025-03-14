@@ -85,7 +85,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 							if Pallet::<T>::is_empty_conviction_vote(&voting) {
 								// from the Polkadot 17.01.2025 snapshot 20575 records
 								// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-								log::info!(
+								log::debug!(target: LOG_TARGET,
 									"VotingFor {:?} is ignored since it has zero voting capital",
 									(&account_id, &class)
 								);
@@ -115,7 +115,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 								if balance.is_zero() {
 									// from the Polkadot 17.01.2025 snapshot 8522 records
 									// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-									log::info!(
+									log::debug!(target: LOG_TARGET,
 										"ClassLocksFor {:?} is ignored since it has a zero balance",
 										(&account_id, &class)
 									);
