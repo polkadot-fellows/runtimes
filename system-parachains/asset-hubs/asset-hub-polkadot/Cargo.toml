@@ -93,6 +93,8 @@ primitive-types = { features = [
 	"num-traits",
 	"scale-info",
 ], workspace = true }
+pallet-delegated-staking = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }

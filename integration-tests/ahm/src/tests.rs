@@ -276,3 +276,13 @@ fn ah_account_migration_weight() {
 		assert!(mb < 4.0, "Proof size for Accounts migration is insane");
 	}
 }
+
+#[test]
+fn decode_ah_call() {
+	use codec::Decode;
+
+	let raw = include_str!("ah_call.hex").replace("0x", "").replace("\n", "");
+	let data = hex::decode(raw).unwrap();
+	let call = asset_hub_polkadot_runtime::RuntimeCall::decode(&mut &data[..]).unwrap();
+	println!("{:?}", call);
+}
