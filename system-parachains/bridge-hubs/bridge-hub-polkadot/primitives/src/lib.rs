@@ -246,8 +246,8 @@ pub mod bp_polkadot {
 	/// Maximal size of encoded `bp_parachains::ParaStoredHeaderData` structure among all Polkadot
 	/// parachains.
 	///
-	/// It includes the block number and state root, so it shall be near 40 bytes, but let's have some
-	/// reserve.
+	/// It includes the block number and state root, so it shall be near 40 bytes, but let's have
+	/// some reserve.
 	pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 
 	decl_bridge_finality_runtime_apis!(polkadot, grandpa);
