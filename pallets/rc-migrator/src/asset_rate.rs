@@ -70,7 +70,7 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveAssetRates { asset_rates: messages },
 				|_| Weight::from_all(1), // TODO

@@ -41,3 +41,4 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["full", "macros"], workspace = true }
 xcm-builder = { workspace = true, default-features = true }
 xcm-emulator = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
