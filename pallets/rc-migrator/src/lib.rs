@@ -1134,7 +1134,7 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::CrowdloanMigrationDone => {
-					Self::transition(MigrationStage::MigrationDone);
+					Self::transition(MigrationStage::TreasuryMigrationInit);
 				},
 				MigrationStage::TreasuryMigrationInit => {
 					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });

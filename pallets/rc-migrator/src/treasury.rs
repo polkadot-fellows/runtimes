@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::*;
-use pallet_treasury::{Proposal, ProposalIndex, SpendIndex, SpendStatus};
+use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
@@ -49,7 +49,12 @@ pub enum RcTreasuryMessage<
 	Deactivated(Balance),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
-	Spends((SpendIndex, SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>)),
+	Spends(
+		(
+			SpendIndex,
+			alias::SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>,
+		),
+	),
 	// TODO: migrate with new sdk version
 	// LastSpendPeriod(BlockNumber),
 	Funds,
@@ -134,13 +139,13 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				},
 				TreasuryStage::Spends(last_key) => {
 					let mut iter = if let Some(last_key) = last_key {
-						pallet_treasury::Spends::<T>::iter_from_key(last_key)
+						alias::Spends::<T>::iter_from_key(last_key)
 					} else {
-						pallet_treasury::Spends::<T>::iter()
+						alias::Spends::<T>::iter()
 					};
 					match iter.next() {
 						Some((key, value)) => {
-							pallet_treasury::Spends::<T>::remove(&key);
+							alias::Spends::<T>::remove(&key);
 							messages.push(RcTreasuryMessage::Spends((key, value)));
 							TreasuryStage::Spends(Some(key))
 						},
@@ -187,4 +192,42 @@ pub mod alias {
 	#[frame_support::storage_alias(pallet_name)]
 	pub type SpendCount<T: pallet_treasury::Config> =
 		StorageValue<pallet_treasury::Pallet<T>, SpendIndex, ValueQuery>;
+
+	/// Spends that have been approved and being processed.
+	///
+	/// Copy of [`pallet_treasury::Spends`].
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Spends<T: pallet_treasury::Config> = StorageMap<
+		pallet_treasury::Pallet<T>,
+		Twox64Concat,
+		pallet_treasury::SpendIndex,
+		SpendStatus<
+			<T as pallet_treasury::Config>::AssetKind,
+			pallet_treasury::AssetBalanceOf<T, ()>,
+			<T as pallet_treasury::Config>::Beneficiary,
+			BlockNumberFor<T>,
+			<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
+		>,
+		OptionQuery,
+	>;
+
+	/// Info regarding an approved treasury spend.
+	///
+	/// Copy of [`pallet_treasury::SpendStatus`].
+	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo)]
+	pub struct SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId> {
+		// The kind of asset to be spent.
+		pub asset_kind: AssetKind,
+		/// The asset amount of the spend.
+		pub amount: AssetBalance,
+		/// The beneficiary of the spend.
+		pub beneficiary: Beneficiary,
+		/// The block number from which the spend can be claimed.
+		pub valid_from: BlockNumber,
+		/// The block number by which the spend has to be claimed.
+		pub expire_at: BlockNumber,
+		/// The status of the payout/claim.
+		pub status: pallet_treasury::PaymentState<PaymentId>,
+	}
 }

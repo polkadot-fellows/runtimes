@@ -60,7 +60,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
-		tokens::{Fortitude, Preservation},
+		tokens::{Fortitude, Pay, Preservation},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -81,12 +81,12 @@ use pallet_rc_migrator::{
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
-	treasury::{RcTreasuryMessage, RcTreasuryMessageOf},
+	treasury::RcTreasuryMessage,
 	vesting::RcVestingSchedule,
 	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
-use polkadot_runtime_common::claims as pallet_claims;
+use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
@@ -105,6 +105,16 @@ type RcAccountFor<T> = RcAccount<
 	<T as pallet_balances::Config>::Balance,
 	<T as Config>::RcHoldReason,
 	<T as Config>::RcFreezeReason,
+>;
+
+pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
+	<T as frame_system::Config>::AccountId,
+	pallet_treasury::BalanceOf<T, ()>,
+	pallet_treasury::AssetBalanceOf<T, ()>,
+	BlockNumberFor<T>,
+	VersionedLocatableAsset,
+	VersionedLocation,
+	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -238,9 +248,21 @@ pub mod pallet {
 		type AhWeightInfo: WeightInfo;
 		/// Asset Hub Treasury accounts migrating to the new treasury account address (same account
 		/// address that was used on the Relay Chain).
-		/// 
+		///
 		/// The asset list should not include the native asset.
 		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
+		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
+		/// Asset Hub (AssetKind, Beneficiary) parameters.
+		type RcToAhTreasurySpend: Convert<
+			(VersionedLocatableAsset, VersionedLocation),
+			Result<
+				(
+					<Self as pallet_treasury::Config>::AssetKind,
+					<Self as pallet_treasury::Config>::Beneficiary,
+				),
+				(),
+			>,
+		>;
 		/// Helper type for benchmarking.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: benchmarking::ParametersFactory<

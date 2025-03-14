@@ -15,6 +15,7 @@
 // limitations under the License.
 
 use crate::*;
+use pallet_rc_migrator::treasury::alias as treasury_alias;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_treasury_messages(messages: Vec<RcTreasuryMessageOf<T>>) -> DispatchResult {
@@ -60,10 +61,35 @@ impl<T: Config> Pallet<T> {
 				pallet_treasury::Approvals::<T>::put(approvals);
 			},
 			RcTreasuryMessage::SpendCount(spend_count) => {
-				pallet_rc_migrator::treasury::alias::SpendCount::<T>::put(spend_count);
+				treasury_alias::SpendCount::<T>::put(spend_count);
 			},
 			RcTreasuryMessage::Spends((spend_index, spend)) => {
-				pallet_treasury::Spends::<T>::insert(spend_index, spend);
+				let treasury_alias::SpendStatus {
+					asset_kind,
+					amount,
+					beneficiary,
+					valid_from,
+					expire_at,
+					status,
+				} = spend;
+				let (asset_kind, beneficiary) =
+					T::RcToAhTreasurySpend::convert((asset_kind, beneficiary)).map_err(|_| {
+						defensive!(
+							"Failed to convert RC treasury spend to AH treasury spend: {:?}",
+							spend_index
+						);
+						Error::FailedToConvertType
+					})?;
+				let spend = treasury_alias::SpendStatus {
+					asset_kind,
+					amount,
+					beneficiary,
+					valid_from,
+					expire_at,
+					status,
+				};
+				log::debug!(target: LOG_TARGET, "Mapped treasury spend: {:?}", spend);
+				treasury_alias::Spends::<T>::insert(spend_index, spend);
 			},
 			// TODO: migrate with new sdk version
 			// RcTreasuryMessage::LastSpendPeriod(last_spend_period) => {
@@ -133,17 +159,17 @@ impl<T: Config> Pallet<T> {
 		);
 
 		match <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
-			&account_id,
 			&old_account_id,
+			&account_id,
 			reducible,
 			Preservation::Expendable,
 		) {
 			Ok(_) => log::info!(
 				target: LOG_TARGET,
-				"Transferred treasury native asset funds from new account {:?} \
-				to old account {:?} amount: {:?}",
-				account_id,
+				"Transferred treasury native asset funds from old account {:?} \
+				to new account {:?} amount: {:?}",
 				old_account_id,
+				account_id,
 				reducible
 			),
 			Err(e) => log::error!(
