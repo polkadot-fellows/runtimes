@@ -1428,7 +1428,9 @@ name = "bp-bridge-hub-kusama"
 version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
+ "bp-header-chain",
  "bp-messages",
+ "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1444,7 +1446,9 @@ name = "bp-bridge-hub-polkadot"
 version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
+ "bp-header-chain",
  "bp-messages",
+ "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1472,20 +1476,6 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
- "sp-std",
-]
-
-[[package]]
-name = "bp-kusama"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad2076b1e50cfcdf07d04e5d395b0b57983bb73eb2791fbafe5348852a89381f"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
  "sp-std",
 ]
 
@@ -1521,20 +1511,6 @@ dependencies = [
  "scale-info",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
- "sp-std",
-]
-
-[[package]]
-name = "bp-polkadot"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa6277dd4333917ecfbcc35e9332a9f11682e0a506e76b617c336224660fce33"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
  "sp-std",
 ]
 
@@ -1731,10 +1707,8 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-runtime",
@@ -1877,10 +1851,8 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-runtime",

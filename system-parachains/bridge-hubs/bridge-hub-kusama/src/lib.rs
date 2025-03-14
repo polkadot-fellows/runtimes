@@ -31,6 +31,7 @@ pub mod xcm_config;
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
+use bridge_to_polkadot_config::bp_polkadot;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
 
