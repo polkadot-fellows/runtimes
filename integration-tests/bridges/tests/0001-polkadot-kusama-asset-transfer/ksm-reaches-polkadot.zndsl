@@ -9,4 +9,4 @@ asset-hub-polkadot-collator-1: run {{ENV_PATH}}/helper.sh with "reserve-transfer
 asset-hub-polkadot-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/wrapped-assets-balance.js with '{ "accountAddress": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "expectedAssetBalance": 4800000000000, "expectedAssetId": { "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Kusama" }] }}}' within 300 seconds
 
 # check that the relayer //Ferdie is rewarded by Polkadot AH
-bridge-hub-polkadot-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL,0x00000001,0x62686b73,ThisChain,0" within 30 seconds
+bridge-hub-polkadot-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with '{ "relayerAccountAddress": "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL", "reward": { "laneId": "0x00000001", "bridgedChainId": "0x62686b73", "owner": "ThisChain" }, "expectedRelayerReward": 1}' within 30 seconds
