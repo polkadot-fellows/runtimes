@@ -28,7 +28,6 @@ bp-kusama = { version = "0.16.0", default-features = false }
 bp-messages = { version = "0.18.0", default-features = false }
 bp-parachains = { version = "0.18.0", default-features = false }
 bp-polkadot = { version = "0.16.0", default-features = false }
-bp-polkadot-bulletin = { version = "0.15.0", default-features = false }
 bp-polkadot-core = { version = "0.18.0", default-features = false }
 bp-relayers = { version = "0.18.0", default-features = false }
 bp-runtime = { version = "0.18.0", default-features = false }
@@ -540,4 +539,3 @@ snowbridge-system-runtime-api = { git = "https://github.com/paritytech/polkadot-
 substrate-bip39 = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
 bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }

@@ -1473,7 +1473,6 @@ version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
- "bp-polkadot-bulletin",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1559,24 +1558,6 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
- "sp-std",
-]
-
-[[package]]
-name = "bp-polkadot-bulletin"
-version = "0.15.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
-dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime 39.0.5",
  "sp-std",
 ]
 
