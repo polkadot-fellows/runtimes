@@ -1,0 +1,32 @@
+[package]
+name = "governance-polkadot-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+description = "Polkadot governance integration tests with xcm-emulator"
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+
+# Substrate
+sp-core = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+pallet-whitelist = { workspace = true, default-features = true }
+pallet-utility = { workspace = true, default-features = true }
+
+# Polkadot
+pallet-xcm = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+
+# Cumulus
+emulated-integration-tests-common = { workspace = true }
+
+# Local
+polkadot-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+collectives-polkadot-runtime = { workspace = true }
+polkadot-system-emulated-network = { workspace = true }

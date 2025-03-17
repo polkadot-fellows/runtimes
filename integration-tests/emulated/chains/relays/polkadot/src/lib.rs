@@ -37,6 +37,7 @@ decl_test_relay_chains! {
 			Balances: polkadot_runtime::Balances,
 			Treasury: polkadot_runtime::Treasury,
 			AssetRate: polkadot_runtime::AssetRate,
+			Preimage: polkadot_runtime::Preimage,
 			Hrmp: polkadot_runtime::Hrmp,
 		}
 	},

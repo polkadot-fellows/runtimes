@@ -291,6 +291,7 @@ members = [
 	"integration-tests/emulated/tests/collectives/collectives-polkadot",
 	"integration-tests/emulated/tests/coretime/coretime-kusama",
 	"integration-tests/emulated/tests/coretime/coretime-polkadot",
+	"integration-tests/emulated/tests/governance/polkadot",
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
