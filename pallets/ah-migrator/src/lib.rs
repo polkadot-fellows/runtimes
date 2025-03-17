@@ -819,7 +819,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_treasury_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_treasury_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Set the migration stage.
