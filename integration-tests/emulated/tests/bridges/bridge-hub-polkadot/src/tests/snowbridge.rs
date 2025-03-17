@@ -47,10 +47,14 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_kusama::AssetHubKusama;
 use system_parachains_constants::polkadot::currency::UNITS;
+use crate::tests::{assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted};
+use crate::tests::asset_hub_kusama_location;
+use integration_tests_helpers::common::WETH;
+use crate::tests::dot_at_ah_polkadot;
 
 pub const CHAIN_ID: u64 = 1;
-pub const WETH: [u8; 20] = hex!("87d1f7fdfEe7f651FaBc8bFCB6E086C278b77A7d");
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
 pub const GATEWAY_ADDRESS: [u8; 20] = hex!("EDa338E4dC46038493b885327842fD3E301CaB39");
 
@@ -461,7 +465,7 @@ fn send_weth_from_ethereum_to_asset_hub() {
 	});
 }
 
-// Performs a round trip tansfer of a token, asseting success.
+// Performs a round trip transfer of a token, asserting success.
 fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	token_address: H160,
 	amount: u128,
@@ -1317,4 +1321,92 @@ fn transfer_ah_token() {
 			"Token minted to beneficiary."
 		);
 	});
+}
+
+#[test]
+fn send_weth_from_ethereum_to_ahp_to_ahk() {
+	let sender = AssetHubPolkadotSender::get();
+	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
+	// Fund ethereum sovereign account on AssetHub.
+	AssetHubPolkadot::fund_accounts(vec![
+		(ethereum_sovereign_account(), INITIAL_FUND),
+		// to pay fees to AHK
+		(sender.clone(), INITIAL_FUND)
+	]);
+
+	// Bridge token from Ethereum to AHP
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		// Construct SendToken message and sent to inbound queue
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::SendToken {
+				token: WETH.into(),
+				destination: Destination::AccountId32 {
+					id: AssetHubPolkadotReceiver::get().into(),
+				},
+				amount: TOKEN_AMOUNT,
+				fee: XCM_FEE,
+			},
+		});
+		// Convert the message to XCM
+		let message_id: H256 = [1; 32].into();
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		// Send the XCM
+		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
+
+		// Check that the message was sent
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
+			]
+		);
+	});
+
+	let beneficiary = Location::new(1, [AccountId32 { network: None, id: AssetHubKusamaReceiver::get().into() }]);
+	let weth_location = Location::new(2, [GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH}]);
+	let fee = dot_at_ah_polkadot();
+	let fees_asset: AssetId = fee.clone().into();
+	let custom_xcm_on_dest = Xcm::<()>(vec![DepositAsset {
+		assets: Wild(AllCounted(1)),
+		beneficiary,
+	}]);
+
+	let assets: Assets = vec![
+		(weth_location, TOKEN_AMOUNT).into(),
+		(fee, XCM_FEE).into(),
+	].into();
+
+	let asset_hub_location: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())]);
+
+	assert_ok!(AssetHubPolkadot::execute_with(|| {
+		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
+			bx!(asset_hub_kusama_location().into()),
+			bx!(assets.into()),
+			bx!(TransferType::RemoteReserve(asset_hub_location.clone().into())),
+			bx!(fees_asset.into()),
+			bx!(TransferType::RemoteReserve(asset_hub_location.into())),
+			bx!(VersionedXcm::from(custom_xcm_on_dest)),
+			WeightLimit::Unlimited,
+		)
+	}));
+
+	// process and verify intermediary hops
+	assert_bridge_hub_polkadot_message_accepted(true);
+	assert_bridge_hub_kusama_message_received();
 }

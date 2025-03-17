@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 paste = { workspace = true }
+hex-literal = { workspace = true }
 
 # Substrate
 pallet-balances = { workspace = true, default-features = true }

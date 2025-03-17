@@ -25,10 +25,14 @@ use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::prelude::*;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
+use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
+use integration_tests_helpers::common::WETH;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
+use asset_hub_kusama_runtime::xcm_config::bridging::to_polkadot::EthereumNetwork;
 
 frame_support::parameter_types! {
 	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
@@ -40,6 +44,12 @@ frame_support::parameter_types! {
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+	pub EthereumSovereignAccount: AccountId = GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(
+		&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		),
+	).unwrap();
 }
 
 pub fn genesis() -> Storage {
@@ -92,6 +102,26 @@ pub fn genesis() -> Storage {
 					PenpalATeleportableAssetLocation::get(),
 					PenpalASiblingSovereignAccount::get(),
 					false,
+					ED,
+				),
+				// Ether
+				(
+					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
+					EthereumSovereignAccount::get(),
+					true,
+					ED,
+				),
+				// Weth
+				(
+					Location::new(
+						2,
+						[
+							GlobalConsensus(EthereumNetwork::get()),
+							AccountKey20 { network: None, key: WETH.into() },
+						],
+					),
+					EthereumSovereignAccount::get(),
+					true,
 					ED,
 				),
 			],

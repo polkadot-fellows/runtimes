@@ -26,6 +26,10 @@ use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_core::sr25519;
 use xcm::prelude::*;
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
+use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
+use integration_tests_helpers::common::WETH;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
@@ -49,6 +53,12 @@ frame_support::parameter_types! {
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
+	pub EthereumSovereignAccount: AccountId = GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(
+		&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		),
+	).unwrap();
 }
 
 fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
@@ -124,6 +134,26 @@ pub fn genesis() -> Storage {
 					PenpalBTeleportableAssetLocation::get(),
 					PenpalBSiblingSovereignAccount::get(),
 					false,
+					ED,
+				),
+				// Ether
+				(
+					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
+					EthereumSovereignAccount::get(),
+					true,
+					ED,
+				),
+				// Weth
+				(
+					Location::new(
+						2,
+						[
+							GlobalConsensus(EthereumNetwork::get()),
+							AccountKey20 { network: None, key: WETH.into() },
+						],
+					),
+					EthereumSovereignAccount::get(),
+					true,
 					ED,
 				),
 			],

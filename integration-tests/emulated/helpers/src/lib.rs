@@ -28,6 +28,8 @@ pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
 pub use xcm_emulator::Chain;
 
+pub mod common;
+
 /// TODO: when bumping to polkadot-sdk v1.8.0,
 /// remove this crate altogether and get the macros from `emulated-integration-tests-common`.
 /// TODO: backport this macros to polkadot-sdk
