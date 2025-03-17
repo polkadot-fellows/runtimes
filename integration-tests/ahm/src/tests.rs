@@ -31,19 +31,23 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
+use super::mock::*;
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
+use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::RcMigrationCheck;
+use pallet_rc_migrator::{
+	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
+	RcMigrationStage as RcMigrationStageStorage,
+};
 use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
+use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
 use xcm_emulator::ConvertLocation;
-
-use super::mock::*;
 
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
@@ -60,6 +64,9 @@ type AhChecks = (
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Set the initial migration stage from env var if set.
+	set_initial_migration_stage(&mut rc);
 
 	// Pre-checks on the Relay
 	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
@@ -240,4 +247,66 @@ async fn print_accounts_statistics() {
 		total_liquid_count ~ 1_373_890
 	 */
 	println!("Total counts: {:?}", total_counts);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn migration_works() {
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Set the initial migration stage from env var if set.
+	set_initial_migration_stage(&mut rc);
+
+	// Pre-checks on the Relay
+	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
+
+	// Pre-checks on the Asset Hub
+	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
+
+	let mut rc_block_count = 0;
+	// finish the loop when the migration is done.
+	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
+		RcMigrationStage::MigrationDone
+	{
+		// execute next RC block.
+		let dmp_messages = rc.execute_with(|| {
+			next_block_rc();
+
+			DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID)
+		});
+		rc.commit_all().unwrap();
+
+		// enqueue DMP messages from RC to AH.
+		ah.execute_with(|| {
+			// TODO: bound the `dmp_messages` total size
+			enqueue_dmp(dmp_messages);
+		});
+		ah.commit_all().unwrap();
+
+		// execute next AH block on every second RC block.
+		if rc_block_count % 2 == 0 {
+			let ump_messages = ah.execute_with(|| {
+				next_block_ah();
+
+				PendingUpwardMessages::<AssetHub>::take()
+			});
+			ah.commit_all().unwrap();
+
+			// enqueue UMP messages from AH to RC.
+			rc.execute_with(|| {
+				// TODO: bound the `ump_messages` total size
+				enqueue_ump(ump_messages);
+			});
+			rc.commit_all().unwrap();
+		}
+
+		rc_block_count += 1;
+	}
+
+	// Post-checks on the Relay
+	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
+
+	// Post-checks on the Asset Hub
+	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+
+	println!("Migration done in {} RC blocks", rc_block_count);
 }

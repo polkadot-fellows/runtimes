@@ -110,7 +110,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
 				|len| T::AhWeightInfo::receive_proxy_proxies(len),
@@ -196,7 +196,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(
+			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
 					announcements: batch,

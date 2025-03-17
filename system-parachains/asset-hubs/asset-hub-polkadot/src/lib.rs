@@ -1146,7 +1146,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
-	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	// TODO: weights::pallet_ah_migrator::WeightInfo;
+	type AhWeightInfo = ();
 	type TreasuryAccounts = migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = migration::RcToAhTreasurySpend;
 	#[cfg(feature = "runtime-benchmarks")]
