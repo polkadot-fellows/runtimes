@@ -1,0 +1,26 @@
+[relaychain]
+default_image = "parity/polkadot:latest"
+default_command = "polkadot"
+chain_spec_command = "cargo run --release -p chain-spec-generator -- kusama-local"
+chain = "rococo-local"
+
+[[relaychain.nodes]]
+name = "alice"
+validator = true
+
+[[relaychain.nodes]]
+name = "bob"
+validator = true
+
+[[parachains]]
+id = 2000
+cumulus_based = true
+chain_spec_command = "cargo run --release -p chain-spec-generator -- asset-hub-kusama-local"
+
+# run charlie as parachain collator
+[[parachains.collators]]
+name = "charlie"
+validator = true
+image = "parity/polkadot-parachain:latest"
+command = "polkadot-parachain"
+args = ["--force-authoring"]
