@@ -1226,6 +1226,7 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
+	// TODO: review - GeneralAdmin propagation from AssetHub?
 	type ChannelManager = EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>;
 	type Currency = Balances;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active

@@ -55,7 +55,9 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
+	// TODO: wrong - before/during/after migration setup?
 	pub const GovernanceLocation: Location = Location::parent();
+	// TODO: wrong - before/during/after migration setup?
 	pub const FellowshipLocation: Location = Location::parent();
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just KSM.
 	pub FeeAssetId: AssetId = AssetId(RelayLocation::get());
