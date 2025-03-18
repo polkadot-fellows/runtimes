@@ -9,4 +9,4 @@ asset-hub-kusama-collator-1: run {{ENV_PATH}}/helper.sh with "reserve-transfer-a
 asset-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/wrapped-assets-balance.js with '{ "accountAddress": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "expectedAssetBalance": 48000000000, "expectedAssetId": { "parents": 2, "interior": { "X1": [{ "GlobalConsensus": "Polkadot" }] }}}' within 300 seconds
 
 # check that the relayer //Eve is rewarded by Kusama AH
-bridge-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with '{ "relayerAccountAddress": "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw", "reward": { "laneId": "0x00000001", "bridgedChainId": "0x62687064", "owner": "ThisChain" }, "expectedRelayerReward": 1}' within 30 seconds
+bridge-hub-kusama-collator-1: js-script {{FRAMEWORK_PATH}}/js-helpers/relayer-rewards.js with "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw,0x00000001,0x62687064,ThisChain,0" within 30 seconds
