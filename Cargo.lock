@@ -1445,6 +1445,7 @@ version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
+ "bp-polkadot-bulletin",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1535,6 +1536,25 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-polkadot-bulletin"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16ed3a8bcfb14fe0ff32102d0699df1afd1fd4bb94d4ed4bb84a09f76f9ca8f6"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
+ "sp-runtime 39.0.5",
  "sp-std",
 ]
 
