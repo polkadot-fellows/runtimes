@@ -31,7 +31,7 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use super::mock::*;
+use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -52,13 +52,17 @@ use xcm_emulator::ConvertLocation;
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
+	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	// other pallets go here
+	ProxiesStillWork,
 );
 
 type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
+	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	// other pallets go here
+	ProxiesStillWork,
 );
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -247,6 +251,36 @@ async fn print_accounts_statistics() {
 		total_liquid_count ~ 1_373_890
 	 */
 	println!("Total counts: {:?}", total_counts);
+}
+
+#[test]
+fn ah_account_migration_weight() {
+	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_MILLIS;
+	use pallet_rc_migrator::weights_ah::WeightInfo;
+
+	let ms_for_accs = |num_accs: u32| {
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
+		weight.ref_time() as f64 / WEIGHT_REF_TIME_PER_MILLIS as f64
+	};
+	let mb_for_accs = |num_accs: u32| {
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
+		weight.proof_size() as f64 / 1_000_000.0
+	};
+
+	// Print for 10, 100 and 1000 accounts in ms
+	for i in [10, 100, 486, 1000] {
+		let (ms, mb) = (ms_for_accs(i), mb_for_accs(i));
+		println!("Weight for {} accounts: {: >4.2} ms, {: >4.2} MB", i, ms, mb);
+
+		assert!(ms < 200.0, "Ref time weight for Accounts migration is insane");
+		assert!(mb < 4.0, "Proof size for Accounts migration is insane");
+	}
 }
 
 #[tokio::test(flavor = "current_thread")]

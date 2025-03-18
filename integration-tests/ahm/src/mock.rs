@@ -15,6 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
+use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
@@ -114,7 +115,15 @@ pub fn next_block_ah() {
 /// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
 /// enqueuing them.
 pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
+	log::info!("Enqueuing {} DMP messages", msgs.len());
 	for msg in msgs {
+		// Sanity check that we can decode it
+		if let Err(e) =
+			xcm::VersionedXcm::<asset_hub_polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..])
+		{
+			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg.msg), e);
+		}
+
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
@@ -126,6 +135,10 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 /// Enqueue DMP messages on the parachain side.
 pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 	for msg in msgs {
+		if let Err(e) = xcm::VersionedXcm::<polkadot_runtime::RuntimeCall>::decode(&mut &msg[..]) {
+			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg), e);
+		}
+
 		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
 		polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),

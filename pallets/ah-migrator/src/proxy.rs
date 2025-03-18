@@ -16,13 +16,14 @@
 // limitations under the License.
 
 use crate::*;
+use pallet_rc_migrator::types::ToPolkadotSs58;
 use sp_runtime::{traits::Zero, BoundedSlice};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
 		Self::deposit_event(Event::ProxyProxiesBatchReceived { count: proxies.len() as u32 });
 		let (mut count_good, mut count_bad) = (0, 0);
-		log::info!(target: LOG_TARGET, "Integrating {} proxies", proxies.len());
+		log::info!(target: LOG_TARGET, "Integrating batch proxies of with len {}", proxies.len());
 
 		for proxy in proxies {
 			match Self::do_receive_proxy(proxy) {
@@ -40,7 +41,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Receive a single proxy and write it to storage.
 	pub fn do_receive_proxy(proxy: RcProxyOf<T, T::RcProxyType>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_ss58check(), proxy.deposit);
+		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_polkadot_ss58(), proxy.deposit);
 
 		let max_proxies = <T as pallet_proxy::Config>::MaxProxies::get() as usize;
 		if proxy.proxies.len() > max_proxies {
@@ -50,12 +51,13 @@ impl<T: Config> Pallet<T> {
 		let proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
 			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type) else {
 				// This is fine, eg. `Auction` proxy is not supported on AH
-				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy at index {} for {}", i, proxy.delegator.to_ss58check());
+				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy at index {} for {}", i, proxy.delegator.to_polkadot_ss58());
 				// TODO unreserve deposit
 				return None;
 			};
 			let delay = T::RcToAhDelay::convert(p.delay);
 
+			log::debug!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
 				delay,
@@ -74,7 +76,7 @@ impl<T: Config> Pallet<T> {
 		// The deposit was already taken by the account migration
 
 		// Add the proxies
-		pallet_proxy::Proxies::<T>::insert(proxy.delegator, (bounded_proxies, proxy.deposit));
+		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
 
 		Ok(())
 	}
@@ -118,5 +120,28 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
+	type RcPrePayload = usize; // number of delegators
+	type AhPrePayload = (); // number of proxies
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		()
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
+
+		log::info!(target: LOG_TARGET, "Total number of proxies: {}", count);
+		// TODO: This is not necessarily correct, since some proxy types are not migrated.
+		if count < rc_pre_payload {
+			panic!(
+				"Some proxies were not migrated. Expected at least {} proxies, got {}",
+				rc_pre_payload, count
+			);
+		}
 	}
 }

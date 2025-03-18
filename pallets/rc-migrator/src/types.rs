@@ -16,9 +16,22 @@
 
 //! Types
 
+extern crate alloc;
+
 use super::*;
+use alloc::string::String;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::FixedU128;
+
+pub trait ToPolkadotSs58 {
+	fn to_polkadot_ss58(&self) -> String;
+}
+
+impl ToPolkadotSs58 for AccountId32 {
+	fn to_polkadot_ss58(&self) -> String {
+		self.to_ss58check_with_version(sp_core::crypto::Ss58AddressFormat::custom(0))
+	}
+}
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
