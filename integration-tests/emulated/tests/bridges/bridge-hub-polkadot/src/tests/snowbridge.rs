@@ -47,12 +47,13 @@ use snowbridge_router_primitives::inbound::{
 };
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_kusama::AssetHubKusama;
 use system_parachains_constants::polkadot::currency::UNITS;
-use crate::tests::{assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted};
+use crate::tests::{assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted, bridged_dot_at_ah_kusama};
 use crate::tests::asset_hub_kusama_location;
 use integration_tests_helpers::common::WETH;
 use crate::tests::dot_at_ah_polkadot;
+use crate::tests::create_foreign_on_ah_kusama;
+use integration_tests_helpers::create_pool_with_native_on;
 
 pub const CHAIN_ID: u64 = 1;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
@@ -1331,8 +1332,24 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 	AssetHubPolkadot::fund_accounts(vec![
 		(ethereum_sovereign_account(), INITIAL_FUND),
 		// to pay fees to AHK
-		(sender.clone(), INITIAL_FUND)
+		(sender.clone(), INITIAL_FUND+ TOKEN_AMOUNT)
 	]);
+
+	let asset_hub_polkadot_location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())]);
+	// set XCM versions
+	BridgeHubPolkadot::force_xcm_version(asset_hub_polkadot_location, XCM_VERSION);
+	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
+	AssetHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
+
+	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
+
+	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
+	create_pool_with_native_on!(
+		AssetHubKusama,
+		bridged_dot_at_asset_hub_kusama.clone(),
+		true,
+		sender.clone()
+	);
 
 	// Bridge token from Ethereum to AHP
 	BridgeHubPolkadot::execute_with(|| {
@@ -1344,7 +1361,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 			command: Command::SendToken {
 				token: WETH.into(),
 				destination: Destination::AccountId32 {
-					id: AssetHubPolkadotReceiver::get().into(),
+					id: sender.clone().into(),
 				},
 				amount: TOKEN_AMOUNT,
 				fee: XCM_FEE,
@@ -1387,26 +1404,64 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 	}]);
 
 	let assets: Assets = vec![
-		(weth_location, TOKEN_AMOUNT).into(),
+		(weth_location.clone(), TOKEN_AMOUNT).into(),
 		(fee, XCM_FEE).into(),
 	].into();
-
-	let asset_hub_location: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())]);
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
 			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
 			bx!(asset_hub_kusama_location().into()),
 			bx!(assets.into()),
-			bx!(TransferType::RemoteReserve(asset_hub_location.clone().into())),
+			bx!(TransferType::LocalReserve),
 			bx!(fees_asset.into()),
-			bx!(TransferType::RemoteReserve(asset_hub_location.into())),
+			bx!(TransferType::LocalReserve),
 			bx!(VersionedXcm::from(custom_xcm_on_dest)),
 			WeightLimit::Unlimited,
 		)
 	}));
 
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		let events = AssetHubPolkadot::events();
+		// Check that no assets were trapped
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
+			)),
+			"Assets were trapped, should not happen."
+		);
+	});
+
 	// process and verify intermediary hops
 	assert_bridge_hub_polkadot_message_accepted(true);
 	assert_bridge_hub_kusama_message_received();
+
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				// Token was issued to beneficiary
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+					asset_id: *asset_id == weth_location,
+					owner: *owner == AssetHubKusamaReceiver::get().into(),
+				},
+			]
+		);
+
+		let events = AssetHubKusama::events();
+		// Check that no assets were trapped
+		assert!(
+			!events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::PolkadotXcm(pallet_xcm::Event::AssetsTrapped { .. })
+			)),
+			"Assets were trapped, should not happen."
+		);
+	});
 }
