@@ -2,8 +2,8 @@
 
 We provide a script to run a relay chain and all the associated system chains locally. The script requires the following tools avaible in the `$PATH`:
 
-- [zombienet](https://github.com/paritytech/zombienet)
-- [podman](https://podman.io/)
+- [zombie-cli](https://crates.io/crates/zombie-cli)
+- [podman](https://podman.io/) or [docker](https://www.docker.com/products/docker-desktop/)
 - Some relative new Rust version
 - At non-x86 systems: `polkadot` and `polkadot-parachain`
 
