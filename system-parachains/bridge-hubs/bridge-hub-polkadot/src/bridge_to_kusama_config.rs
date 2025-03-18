@@ -23,7 +23,6 @@ use crate::{
 	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
 };
 
-pub use bp_bridge_hub_kusama::bp_kusama;
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,

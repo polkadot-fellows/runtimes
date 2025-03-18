@@ -16,8 +16,6 @@ system-parachains-constants = { workspace = true }
 
 # Bridge Dependencies
 bp-bridge-hub-cumulus = { workspace = true }
-bp-header-chain = { workspace = true }
-bp-polkadot-core = { workspace = true }
 bp-runtime = { workspace = true }
 bp-messages = { workspace = true }
 snowbridge-core = { workspace = true }
@@ -35,9 +33,7 @@ xcm = { workspace = true }
 default = ["std"]
 std = [
 	"bp-bridge-hub-cumulus/std",
-	"bp-header-chain/std",
 	"bp-messages/std",
-	"bp-polkadot-core/std",
 	"bp-runtime/std",
 	"frame-support/std",
 	"kusama-runtime-constants/std",

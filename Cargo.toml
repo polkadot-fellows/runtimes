@@ -24,8 +24,10 @@ bp-bridge-hub-cumulus = { version = "0.18.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
 bp-header-chain = { version = "0.18.1", default-features = false }
+bp-kusama = { version = "0.16.0", default-features = false }
 bp-messages = { version = "0.18.0", default-features = false }
 bp-parachains = { version = "0.18.0", default-features = false }
+bp-polkadot = { version = "0.16.0", default-features = false }
 bp-polkadot-core = { version = "0.18.0", default-features = false }
 bp-relayers = { version = "0.18.0", default-features = false }
 bp-runtime = { version = "0.18.0", default-features = false }

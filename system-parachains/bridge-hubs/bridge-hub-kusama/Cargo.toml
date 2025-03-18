@@ -94,6 +94,8 @@ bp-parachains = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
+bp-kusama = { workspace = true }
+bp-polkadot = { workspace = true }
 bp-xcm-bridge-hub = { workspace = true }
 bp-xcm-bridge-hub-router = { workspace = true }
 bridge-hub-common = { workspace = true }
@@ -122,9 +124,11 @@ std = [
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"bp-header-chain/std",
+	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
 	"bp-polkadot-core/std",
+	"bp-polkadot/std",
 	"bp-relayers/std",
 	"bp-runtime/std",
 	"bp-xcm-bridge-hub-router/std",
