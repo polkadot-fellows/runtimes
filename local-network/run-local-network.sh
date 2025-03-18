@@ -36,7 +36,7 @@ cargo run -q -p chain-spec-generator -- people-$NETWORK-local > $TEMP_DIR/people
 cargo run -q -p chain-spec-generator -- coretime-$NETWORK-local > $TEMP_DIR/coretime.json
 
 if [[ "$NETWORK" = "polkadot" ]]; then
-    cargo run -p chain-spec-generator -- collectives-$NETWORK-local > $TEMP_DIR/coretime.json
+    cargo run -p chain-spec-generator -- collectives-$NETWORK-local > $TEMP_DIR/collectives.json
 fi
 
 
@@ -52,4 +52,4 @@ if [ -n "$FORCE_NATIVE_PROVIDER" ]; then
 fi
 
 export CHAIN_SPEC_PATH=$TEMP_DIR
-zombienet spawn -p $PROVIDER local-network-$NETWORK.toml
+RUST_LOG=zombienet_orchestrator=debug zombie-cli spawn -p $PROVIDER local-network-$NETWORK.toml
