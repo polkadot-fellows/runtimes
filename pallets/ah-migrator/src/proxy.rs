@@ -137,6 +137,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
 
 		log::info!(target: LOG_TARGET, "Total number of proxies: {}", count);
+		// TODO: This is not necessarily correct, since some proxy types are not migrated.
 		if count < rc_pre_payload {
 			panic!(
 				"Some proxies were not migrated. Expected at least {} proxies, got {}",

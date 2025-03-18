@@ -50,16 +50,16 @@ use std::{collections::BTreeMap, str::FromStr};
 use xcm_emulator::ConvertLocation;
 
 type RcChecks = (
-	//pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
-	//pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	// other pallets go here
 	ProxiesStillWork,
 );
 
 type AhChecks = (
-	//pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
-	//pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	// other pallets go here
 	ProxiesStillWork,
@@ -92,11 +92,11 @@ async fn pallet_migration_works() {
 }
 
 fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
-	//if std::env::var("START_STAGE").is_err() {
-	Some(ext.execute_with(|| f()))
-	//} else {
-	//	None
-	//}
+	if std::env::var("START_STAGE").is_err() {
+		Some(ext.execute_with(|| f()))
+	} else {
+		None
+	}
 }
 
 #[tokio::test]

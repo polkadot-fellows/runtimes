@@ -135,6 +135,12 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 /// Enqueue DMP messages on the parachain side.
 pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 	for msg in msgs {
+		if let Err(e) =
+			xcm::VersionedXcm::<polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..])
+		{
+			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg.msg), e);
+		}
+
 		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
 		polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
