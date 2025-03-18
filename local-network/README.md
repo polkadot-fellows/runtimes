@@ -5,6 +5,7 @@ We provide a script to run a relay chain and all the associated system chains lo
 - [zombienet](https://github.com/paritytech/zombienet)
 - [podman](https://podman.io/)
 - Some relative new Rust version
+- At non-x86 systems: `polkadot` and `polkadot-parachain`
 
 Launching a local network is done like this:
 ```sh
