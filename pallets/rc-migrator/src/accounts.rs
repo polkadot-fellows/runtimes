@@ -550,7 +550,7 @@ impl<T: Config> AccountsMigrator<T> {
 		let total_balance = <T as Config>::Currency::total_balance(who);
 		if total_balance < ed {
 			if account.nonce.is_zero() {
-				log::warn!(
+				log::info!(
 					target: LOG_TARGET,
 					"Possible system non-migratable account detected. \
 					Account: '{}', info: {:?}",
@@ -558,7 +558,7 @@ impl<T: Config> AccountsMigrator<T> {
 					account
 				);
 			} else {
-				log::warn!(
+				log::info!(
 					target: LOG_TARGET,
 					"Non-migratable account detected. \
 					Account: '{}', info: {:?}",
