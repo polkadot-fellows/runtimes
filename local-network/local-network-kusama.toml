@@ -2,6 +2,7 @@
 default_image = "parity/polkadot:latest"
 default_command = "polkadot"
 chain_spec_path = "{{CHAIN_SPEC_PATH}}/kusama.json"
+chain = "kusama-local"
 
 [[relaychain.nodes]]
 name = "alice"
@@ -15,6 +16,7 @@ validator = true
 id = 1000
 cumulus_based = true
 chain_spec_path = "{{CHAIN_SPEC_PATH}}/asset_hub.json"
+chain = "asset-hub-kusama-local"
 
 # run charlie as parachain collator
 [[parachains.collators]]
@@ -28,6 +30,7 @@ args = ["--force-authoring"]
 id = 1002
 cumulus_based = true
 chain_spec_path = "{{CHAIN_SPEC_PATH}}/bridge_hub.json"
+chain = "bridge-hub-kusama-local"
 
 # run dave as parachain collator
 [[parachains.collators]]
@@ -41,6 +44,7 @@ args = ["--force-authoring"]
 id = 1004
 cumulus_based = true
 chain_spec_path = "{{CHAIN_SPEC_PATH}}/people.json"
+chain = "people-kusama-local"
 
 # run dave as parachain collator
 [[parachains.collators]]
@@ -54,6 +58,7 @@ args = ["--force-authoring"]
 id = 1005
 cumulus_based = true
 chain_spec_path = "{{CHAIN_SPEC_PATH}}/coretime.json"
+chain = "coretime-kusama-local"
 
 # run eve as parachain collator
 [[parachains.collators]]

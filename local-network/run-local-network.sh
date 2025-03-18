@@ -43,9 +43,13 @@ fi
 PROVIDER=podman
 ARCH=$(uname -m)
 if [[ "$ARCH" != "x86_64" && "$ARCH" != "i386" && "$ARCH" != "i686" ]]; then
-    echo "Non-x86 architecture detected ($ARCH), please ensure that polkadot and polkadot-parachain is available in \$PATH."
+    echo "Non-x86 architecture detected ($ARCH), please ensure that \`polkadot\` and \`polkadot-parachain\` is available in \$PATH."
+    PROVIDER=native
+fi
+
+if [ -n "$FORCE_NATIVE_PROVIDER" ]; then
     PROVIDER=native
 fi
 
 export CHAIN_SPEC_PATH=$TEMP_DIR
-zombienet spawn -p podman local-network-$NETWORK.toml
+zombienet spawn -p $PROVIDER local-network-$NETWORK.toml
