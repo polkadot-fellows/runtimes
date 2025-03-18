@@ -41,7 +41,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Receive a single proxy and write it to storage.
 	pub fn do_receive_proxy(proxy: RcProxyOf<T, T::RcProxyType>) -> Result<(), Error<T>> {
-		log::info!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_polkadot_ss58(), proxy.deposit);
+		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_polkadot_ss58(), proxy.deposit);
 
 		let max_proxies = <T as pallet_proxy::Config>::MaxProxies::get() as usize;
 		if proxy.proxies.len() > max_proxies {
@@ -57,7 +57,7 @@ impl<T: Config> Pallet<T> {
 			};
 			let delay = T::RcToAhDelay::convert(p.delay);
 
-			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
+			log::debug!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
 				delay,
@@ -77,7 +77,6 @@ impl<T: Config> Pallet<T> {
 
 		// Add the proxies
 		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
-		log::info!(target: LOG_TARGET, "Added proxies for {}", proxy.delegator.to_polkadot_ss58());
 
 		Ok(())
 	}

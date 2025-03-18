@@ -194,12 +194,12 @@ impl ProxiesStillWork {
 		if allowed_governance {
 			assert!(
 				Self::can_governance(delegatee, delegator),
-				"`Any` or `Governance` can do governance"
+				"`Any`, `NonTransfer`, or `Governance` can do governance"
 			);
 		} else {
 			assert!(
 				!Self::can_governance(delegatee, delegator),
-				"Only `Any` or `Governance` can do governance"
+				"Only `Any`, `NonTransfer`, or `Governance` can do governance"
 			);
 		}
 
@@ -240,7 +240,6 @@ impl ProxiesStillWork {
 			let _ = proxy_call
 				.dispatch(asset_hub_polkadot_runtime::RuntimeOrigin::signed(delegatee.clone()));
 
-			// !Self::filtered(res.err().map(|e| e.error))
 			Self::find_transfer_event(delegatee, delegator)
 		})
 	}

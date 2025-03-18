@@ -144,7 +144,6 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_proxies(1)).is_err() {
 			return Err(OutOfWeightError);
 		}
-		log::info!(target: LOG_TARGET, "Migrating proxies for {}", acc.to_ss58check());
 
 		let translated_proxies = proxies
 			.into_iter()
