@@ -67,8 +67,9 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				},
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
 				Some(((hash, len), _)) => {
-					// Get the next key and remove the ones before that
+					// Remove the previous key for which the migration is complete.
 					alias::PreimageFor::<T>::remove((hash, len));
+					// Get the next key and remove the ones skipped before that.
 					let (next_key_maybe, skipped) = Self::next_key();
 					for (old_hash, old_len) in skipped {
 						alias::PreimageFor::<T>::remove((old_hash, old_len));
@@ -81,7 +82,9 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			};
 			// Load the preimage
 			let Some(preimage) = alias::PreimageFor::<T>::get(next_key_inner) else {
-				defensive!("Storage corruption");
+				defensive!("Storage corruption {:?}", next_key_inner);
+				// Remove the previous key for which the migration failed.
+				alias::PreimageFor::<T>::remove(next_key_inner);
 				let (next_key_maybe, skipped) = Self::next_key();
 				for (old_hash, old_len) in skipped {
 					alias::PreimageFor::<T>::remove((old_hash, old_len));
@@ -102,6 +105,8 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 
 			let Ok(bounded_chunk) = BoundedVec::try_from(chunk_bytes.clone()).defensive() else {
 				defensive!("Unreachable");
+				// Remove the previous key for which the migration failed.
+				alias::PreimageFor::<T>::remove(next_key_inner);
 				let (next_key_maybe, skipped) = Self::next_key();
 				for (old_hash, old_len) in skipped {
 					alias::PreimageFor::<T>::remove((old_hash, old_len));

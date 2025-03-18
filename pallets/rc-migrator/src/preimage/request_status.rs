@@ -105,6 +105,9 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		alias::RequestStatusFor::<T>::iter()
+			.filter(|(hash, _)| {
+				alias::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == *hash)
+			})
 			.map(|(hash, request_status)| {
 				(
 					hash,
