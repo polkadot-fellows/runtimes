@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Disable MBM migrations for all runtimes for check-migrations CI
+- Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
 
 ## [1.4.2] 07.03.2025
 
