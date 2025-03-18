@@ -146,9 +146,11 @@ function init_polkadot_kusama() {
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
         $relayer_path init-bridge polkadot-to-bridge-hub-kusama \
-	--source-uri ws://localhost:9942 \
+	--source-host localhost \
+	--source-port 9942 \
 	--source-version-mode Auto \
-	--target-uri ws://localhost:8945 \
+	--target-host localhost \
+	--target-port 8945 \
 	--target-version-mode Auto \
 	--target-signer //Alice
 }
@@ -158,9 +160,11 @@ function init_kusama_polkadot() {
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
         $relayer_path init-bridge kusama-to-bridge-hub-polkadot \
-        --source-uri ws://localhost:9945 \
+        --source-host localhost \
+        --source-port 9945 \
         --source-version-mode Auto \
-        --target-uri ws://localhost:8943 \
+        --target-host localhost \
+        --target-port 8943 \
         --target-version-mode Auto \
         --target-signer //Alice
 }
@@ -170,15 +174,19 @@ function run_relay() {
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
         $relayer_path relay-headers-and-messages bridge-hub-kusama-bridge-hub-polkadot \
-        --polkadot-uri ws://localhost:9942 \
+        --polkadot-host localhost \
+        --polkadot-port 9942 \
         --polkadot-version-mode Auto \
-        --bridge-hub-polkadot-uri ws://localhost:8943 \
+        --bridge-hub-polkadot-host localhost \
+        --bridge-hub-polkadot-port 8943 \
         --bridge-hub-polkadot-version-mode Auto \
         --bridge-hub-polkadot-signer //Charlie \
         --bridge-hub-polkadot-transactions-mortality 4 \
-        --kusama-uri ws://localhost:9945 \
+        --kusama-host localhost \
+        --kusama-port 9945 \
         --kusama-version-mode Auto \
-        --bridge-hub-kusama-uri ws://localhost:8945 \
+        --bridge-hub-kusama-host localhost \
+        --bridge-hub-kusama-port 8945 \
         --bridge-hub-kusama-version-mode Auto \
         --bridge-hub-kusama-signer //Charlie \
         --bridge-hub-kusama-transactions-mortality 4 \
