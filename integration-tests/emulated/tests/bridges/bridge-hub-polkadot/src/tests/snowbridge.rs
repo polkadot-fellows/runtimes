@@ -12,7 +12,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::*;
+use crate::{
+	tests::{
+		assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted,
+		asset_hub_kusama_location, bridged_dot_at_ah_kusama, create_foreign_on_ah_kusama,
+		dot_at_ah_polkadot,
+	},
+	*,
+};
 use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
 	RelayTreasuryPalletAccount,
@@ -26,6 +33,7 @@ use codec::{Decode, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
+use integration_tests_helpers::{common::WETH, create_pool_with_native_on};
 use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::genesis::AssetHubPolkadotAssetOwner,
 	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,
@@ -48,12 +56,6 @@ use snowbridge_router_primitives::inbound::{
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::currency::UNITS;
-use crate::tests::{assert_bridge_hub_kusama_message_received, assert_bridge_hub_polkadot_message_accepted, bridged_dot_at_ah_kusama};
-use crate::tests::asset_hub_kusama_location;
-use integration_tests_helpers::common::WETH;
-use crate::tests::dot_at_ah_polkadot;
-use crate::tests::create_foreign_on_ah_kusama;
-use integration_tests_helpers::create_pool_with_native_on;
 
 pub const CHAIN_ID: u64 = 1;
 pub const ETHEREUM_DESTINATION_ADDRESS: [u8; 20] = hex!("44a57ee2f2FCcb85FDa2B0B18EBD0D8D2333700e");
@@ -1332,10 +1334,13 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 	AssetHubPolkadot::fund_accounts(vec![
 		(ethereum_sovereign_account(), INITIAL_FUND),
 		// to pay fees to AHK
-		(sender.clone(), INITIAL_FUND+ TOKEN_AMOUNT)
+		(sender.clone(), INITIAL_FUND),
 	]);
 
-	let asset_hub_polkadot_location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())]);
+	let asset_hub_polkadot_location = Location::new(
+		2,
+		[GlobalConsensus(Polkadot), Parachain(AssetHubPolkadot::para_id().into())],
+	);
 	// set XCM versions
 	BridgeHubPolkadot::force_xcm_version(asset_hub_polkadot_location, XCM_VERSION);
 	BridgeHubPolkadot::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
@@ -1360,9 +1365,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 			chain_id: CHAIN_ID,
 			command: Command::SendToken {
 				token: WETH.into(),
-				destination: Destination::AccountId32 {
-					id: sender.clone().into(),
-				},
+				destination: Destination::AccountId32 { id: sender.clone().into() },
 				amount: TOKEN_AMOUNT,
 				fee: XCM_FEE,
 			},
@@ -1394,19 +1397,19 @@ fn send_weth_from_ethereum_to_ahp_to_ahk() {
 		);
 	});
 
-	let beneficiary = Location::new(1, [AccountId32 { network: None, id: AssetHubKusamaReceiver::get().into() }]);
-	let weth_location = Location::new(2, [GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH}]);
+	let beneficiary =
+		Location::new(1, [AccountId32 { network: None, id: AssetHubKusamaReceiver::get().into() }]);
+	let weth_location = Location::new(
+		2,
+		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
+	);
 	let fee = dot_at_ah_polkadot();
 	let fees_asset: AssetId = fee.clone().into();
-	let custom_xcm_on_dest = Xcm::<()>(vec![DepositAsset {
-		assets: Wild(AllCounted(1)),
-		beneficiary,
-	}]);
+	let custom_xcm_on_dest =
+		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
-	let assets: Assets = vec![
-		(weth_location.clone(), TOKEN_AMOUNT).into(),
-		(fee, XCM_FEE).into(),
-	].into();
+	let assets: Assets =
+		vec![(weth_location.clone(), TOKEN_AMOUNT).into(), (fee, XCM_FEE).into()].into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
