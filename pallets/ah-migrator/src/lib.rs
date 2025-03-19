@@ -57,7 +57,7 @@ use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -850,7 +850,7 @@ pub mod pallet {
 			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
 			log::debug!(
 				target: LOG_TARGET,
-				"Increment XCM message processed, processed: {}, processed with error: {}",
+				"Increment XCM message processed, total processed: {}, failed: {}",
 				processed,
 				processed_with_error
 			);

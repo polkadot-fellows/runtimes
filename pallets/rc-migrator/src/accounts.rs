@@ -294,7 +294,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Migrate a single account out of the Relay chain and return it.
 	///
 	/// The account on the relay chain is modified as part of this operation.
-	fn withdraw_account(
+	pub fn withdraw_account(
 		who: T::AccountId,
 		account_info: AccountInfoFor<T>,
 		rc_weight: &mut WeightMeter,
@@ -347,22 +347,8 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let account_data: AccountData<T::Balance> = account_info.data.clone();
 
-		if account_data.free.is_zero() &&
-			account_data.reserved.is_zero() &&
-			account_data.frozen.is_zero()
-		{
-			if account_info.nonce.is_zero() {
-				log::warn!(
-					target: LOG_TARGET,
-					"Possible system account detected. \
-					Consumer ref: {}, Provider ref: {}, Account: '{}'",
-					account_info.consumers,
-					account_info.providers,
-					who.to_ss58check()
-				);
-			} else {
-				log::warn!(target: LOG_TARGET, "Weird account detected '{}'", who.to_ss58check());
-			}
+		if !Self::can_migrate_account(&who, &account_info) {
+			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
 			return Ok(None);
 		}
 
@@ -388,19 +374,56 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 		}
 
+		let ed = <T as Config>::Currency::minimum_balance();
 		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {
-			if let Err(e) =
-				<T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
-			{
+			let IdAmount { id, amount } = hold.clone();
+			let free = <T as Config>::Currency::balance(&who);
+
+			// When the free balance is below the minimum balance and we attempt to release a hold,
+			// the `fungible` implementation would burn the entire free balance while zeroing the
+			// hold. To prevent this, we partially release the hold just enough to raise the free
+			// balance to the minimum balance, while maintaining some balance on hold. This approach
+			// prevents the free balance from being burned.
+			// This scenario causes a panic in the test environment - see:
+			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
+			let amount = if free < ed && amount.saturating_sub(ed - free) > 0 {
+				log::debug!(
+					target: LOG_TARGET,
+					"Partially releasing hold to prevent the free balance from being burned"
+				);
+				let partial_amount = ed - free;
+				if let Err(e) =
+					<T as Config>::Currency::release(&id, &who, partial_amount, Precision::Exact)
+				{
+					log::error!(target: LOG_TARGET,
+						"Failed to partially release hold: {:?} \
+						for account: {:?}, \
+						partial amount: {:?}, \
+						with error: {:?}",
+						id,
+						who.to_ss58check(),
+						partial_amount,
+						e
+					);
+					return Err(Error::FailedToWithdrawAccount);
+				}
+				amount - partial_amount
+			} else {
+				amount
+			};
+
+			if let Err(e) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
 				log::error!(target: LOG_TARGET,
-					"Failed to release hold: {:?} \
-					for account: {:?} \
+					"Failed to release the hold: {:?} \
+					for account: {:?}, \
+					amount: {:?}, \
 					with error: {:?}",
-					hold.id,
+					id,
 					who.to_ss58check(),
+					amount,
 					e
 				);
 				return Err(Error::FailedToWithdrawAccount);
@@ -519,6 +542,42 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		Ok(Some(withdrawn_account))
+	}
+
+	/// Check if the account can be withdrawn and migrated to AH.
+	pub fn can_migrate_account(who: &T::AccountId, account: &AccountInfoFor<T>) -> bool {
+		let ed = <T as Config>::Currency::minimum_balance();
+		let total_balance = <T as Config>::Currency::total_balance(who);
+		if total_balance < ed {
+			if account.nonce.is_zero() {
+				log::info!(
+					target: LOG_TARGET,
+					"Possible system non-migratable account detected. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			} else {
+				log::info!(
+					target: LOG_TARGET,
+					"Non-migratable account detected. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			}
+			if !total_balance.is_zero() || !account.data.frozen.is_zero() {
+				log::warn!(
+					target: LOG_TARGET,
+					"Non-migratable account has non-zero balance. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			}
+			return false;
+		}
+		true
 	}
 
 	/// Get the weight for importing a single account on Asset Hub.
