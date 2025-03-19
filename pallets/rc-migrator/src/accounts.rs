@@ -225,6 +225,10 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 				break;
 			};
 
+			if batch.len() > 3 {
+				break;
+			}
+
 			let withdraw_res =
 				with_transaction_opaque_err::<Option<AccountFor<T>>, Error<T>, _>(|| {
 					match Self::withdraw_account(
