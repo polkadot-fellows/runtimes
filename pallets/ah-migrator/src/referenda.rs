@@ -83,7 +83,10 @@ impl<T: Config> Pallet<T> {
 		referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating {} referendums", referendums.len());
-		Self::deposit_event(Event::ReferendumsBatchReceived { count: referendums.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::ReferendaReferendums,
+			count: referendums.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for (id, referendum) in referendums {
@@ -93,7 +96,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::ReferendumsBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::ReferendaReferendums,
+			count_good,
+			count_bad,
+		});
 		log::info!(target: LOG_TARGET, "Processed {} referendums", count_good);
 
 		Ok(())
@@ -181,6 +188,10 @@ impl<T: Config> Pallet<T> {
 		track_queue: Vec<(TrackIdOf<T, ()>, Vec<(u32, u128)>)>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating referenda pallet");
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::ReferendaValues,
+			count: 1,
+		});
 
 		ReferendumCount::<T, ()>::put(referendum_count);
 		deciding_count.iter().for_each(|(track_id, count)| {
@@ -191,7 +202,11 @@ impl<T: Config> Pallet<T> {
 			TrackQueue::<T, ()>::insert(track_id, queue);
 		});
 
-		Self::deposit_event(Event::ReferendaProcessed);
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::ReferendaValues,
+			count_good: 1,
+			count_bad: 0,
+		});
 		log::info!(target: LOG_TARGET, "Referenda pallet integrated");
 		Ok(())
 	}
