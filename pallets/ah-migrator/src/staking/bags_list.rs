@@ -18,7 +18,7 @@
 //! Fast unstake migration logic.
 
 use crate::*;
-use pallet_rc_migrator::staking::bags_list::alias;
+use pallet_rc_migrator::staking::bags_list::{alias, BagsListMigrator, GenericBagsListMessage};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_messages(
@@ -68,5 +68,52 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
+	type RcPrePayload = Vec<GenericBagsListMessage<T::AccountId, T::Score>>;
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		assert!(
+			alias::ListNodes::<T>::iter().next().is_none(),
+			"ListNodes should be empty before migration starts"
+		);
+		assert!(
+			alias::ListBags::<T>::iter().next().is_none(),
+			"ListBags should be empty before migration starts"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let mut ah_messages = Vec::new();
+
+		// Collect current state
+		for (id, node) in alias::ListNodes::<T>::iter() {
+			ah_messages.push(GenericBagsListMessage::Node {
+				id: id.clone(),
+				node: alias::Node {
+					id: node.id,
+					prev: node.prev,
+					next: node.next,
+					bag_upper: node.bag_upper,
+					score: node.score,
+				},
+			});
+		}
+
+		for (score, bag) in alias::ListBags::<T>::iter() {
+			ah_messages.push(GenericBagsListMessage::Bag {
+				score,
+				bag: alias::Bag { head: bag.head, tail: bag.tail },
+			});
+		}
+
+		assert_eq!(
+			rc_pre_payload, ah_messages,
+			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
+		);
 	}
 }

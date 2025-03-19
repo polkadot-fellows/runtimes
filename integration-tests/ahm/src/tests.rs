@@ -53,6 +53,7 @@ type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
+	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
 	// other pallets go here
 	ProxiesStillWork,
 );
@@ -61,6 +62,7 @@ type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
+	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
 	// other pallets go here
 	ProxiesStillWork,
 );
