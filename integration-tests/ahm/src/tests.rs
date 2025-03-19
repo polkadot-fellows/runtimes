@@ -51,6 +51,8 @@ use xcm_emulator::ConvertLocation;
 
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	// other pallets go here
@@ -59,6 +61,8 @@ type RcChecks = (
 
 type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	// other pallets go here
