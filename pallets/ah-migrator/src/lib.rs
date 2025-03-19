@@ -111,6 +111,7 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	ReferendaMetadata,
 }
 
 /// The migration stage on the Asset Hub.
@@ -772,6 +773,20 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			let res = Self::do_receive_crowdloan_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
+		#[pallet::call_index(20)]
+		pub fn receive_referenda_metadata(
+			origin: OriginFor<T>,
+			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_referenda_metadata(metadata);
 
 			Self::increment_msg_received_count(res.is_err());
 
