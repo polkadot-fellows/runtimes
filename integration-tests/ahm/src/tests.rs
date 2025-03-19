@@ -51,6 +51,7 @@ use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
+use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation};
 
 type RcChecks = (
@@ -385,10 +386,15 @@ async fn scheduled_migration_works() {
 		let now = frame_system::Pallet::<Polkadot>::block_number();
 		let scheduled_at = now + 2;
 
-		assert_ok!(RcMigrator::schedule_migration(
-			RawOrigin::Root.into(),
-			DispatchTime::At(scheduled_at)
+		// Fellowship Origin
+		let origin = pallet_xcm::Origin::Xcm(Location::new(
+			0,
+			[
+				Junction::Parachain(1001),
+				Junction::Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+			],
 		));
+		assert_ok!(RcMigrator::schedule_migration(origin.into(), DispatchTime::At(scheduled_at)));
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
 			RcMigrationStage::Scheduled { block_number: scheduled_at }
