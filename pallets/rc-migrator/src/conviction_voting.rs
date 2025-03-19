@@ -250,3 +250,38 @@ pub mod alias {
 		ValueQuery,
 	>;
 }
+
+impl<T: Config> crate::types::RcMigrationCheck for ConvictionVotingMigrator<T> {
+	type RcPrePayload = Vec<RcConvictionVotingMessageOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut messages = Vec::new();
+
+		// Collect VotingFor
+		for (account_id, class, voting) in alias::VotingFor::<T>::iter() {
+			messages.push(RcConvictionVotingMessage::VotingFor(account_id, class, voting));
+		}
+
+		// Collect ClassLocksFor
+		for (account_id, balance_per_class) in pallet_conviction_voting::ClassLocksFor::<T>::iter()
+		{
+			messages.push(RcConvictionVotingMessage::ClassLocksFor(
+				account_id,
+				balance_per_class.into_inner(),
+			));
+		}
+
+		messages
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		assert!(
+			alias::VotingFor::<T>::iter().next().is_none(),
+			"VotingFor should be empty after migration"
+		);
+		assert!(
+			pallet_conviction_voting::ClassLocksFor::<T>::iter().next().is_none(),
+			"ClassLocksFor should be empty after migration"
+		);
+	}
+}
