@@ -148,7 +148,8 @@ pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 // Sets the initial migration stage on the Relay Chain.
 //
 // If the `START_STAGE` environment variable is set, it will be used to set the initial migration
-// stage. Otherwise, the current migration stage will be returned.
+// stage. Otherwise, the `AccountsMigrationInit` stage will be set bypassing the `Scheduled` stage.
+// The `Scheduled` stage is tested separately by the `scheduled_migration_works` test.
 pub fn set_initial_migration_stage(
 	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
 ) -> RcMigrationStageOf<Polkadot> {
