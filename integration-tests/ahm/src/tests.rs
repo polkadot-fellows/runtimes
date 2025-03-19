@@ -35,19 +35,23 @@ use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
-use frame_system::pallet_prelude::BlockNumberFor;
-use pallet_ah_migrator::types::AhMigrationCheck;
+use frame_support::traits::schedule::DispatchTime;
+use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
+use pallet_ah_migrator::{
+	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
+	MigrationStage as AhMigrationStage,
+};
 use pallet_rc_migrator::{
 	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
-use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
-use xcm_emulator::ConvertLocation;
+use xcm_emulator::{assert_ok, ConvertLocation};
 
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
@@ -343,4 +347,111 @@ async fn migration_works() {
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 
 	println!("Migration done in {} RC blocks", rc_block_count);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn scheduled_migration_works() {
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	// Check that the migration is pending on the RC.
+	rc.execute_with(|| {
+		log::info!("Asserting the initial state on RC");
+		next_block_rc();
+
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Pending);
+
+		// clear the DMP queue.
+		let _ = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
+	});
+	rc.commit_all().unwrap();
+
+	// Check that the migration is pending on the AH.
+	ah.execute_with(|| {
+		log::info!("Asserting the initial state on AH");
+		next_block_ah();
+
+		assert_eq!(AhMigrationStageStorage::<AssetHub>::get(), AhMigrationStage::Pending);
+
+		// clear the UMP queue.
+		let _ = PendingUpwardMessages::<AssetHub>::take();
+	});
+	ah.commit_all().unwrap();
+
+	// Schedule the migration on RC.
+	let dmp_messages = rc.execute_with(|| {
+		log::info!("Scheduling the migration on RC");
+		next_block_rc();
+
+		let now = frame_system::Pallet::<Polkadot>::block_number();
+		let scheduled_at = now + 2;
+
+		assert_ok!(RcMigrator::schedule_migration(
+			RawOrigin::Root.into(),
+			DispatchTime::At(scheduled_at)
+		));
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::Scheduled { block_number: scheduled_at }
+		);
+
+		next_block_rc();
+		// migrating not yet started
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::Scheduled { block_number: scheduled_at }
+		);
+		assert_eq!(DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID).len(), 0);
+
+		next_block_rc();
+
+		// migration started
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
+		assert!(dmp_messages.len() > 0);
+
+		dmp_messages
+	});
+
+	// enqueue DMP messages from RC to AH.
+	ah.execute_with(|| {
+		enqueue_dmp(dmp_messages);
+	});
+	ah.commit_all().unwrap();
+
+	// Asset Hub receives the message from the Relay Chain to start the migration and the
+	// acknowledges it by sending the message back to the Relay Chain.
+	let ump_messages = ah.execute_with(|| {
+		log::info!("Acknowledging the start of the migration on AH");
+		assert_eq!(AhMigrationStageStorage::<AssetHub>::get(), AhMigrationStage::Pending);
+
+		next_block_ah();
+
+		assert_eq!(
+			AhMigrationStageStorage::<AssetHub>::get(),
+			AhMigrationStage::DataMigrationOngoing
+		);
+
+		PendingUpwardMessages::<AssetHub>::take()
+	});
+	ah.commit_all().unwrap();
+
+	// enqueue UMP messages from AH to RC.
+	rc.execute_with(|| {
+		enqueue_ump(ump_messages);
+	});
+	rc.commit_all().unwrap();
+
+	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
+	rc.execute_with(|| {
+		log::info!("Receiving the acknowledgement from AH on RC");
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+
+		next_block_rc();
+
+		assert_eq!(
+			RcMigrationStageStorage::<Polkadot>::get(),
+			RcMigrationStage::AccountsMigrationOngoing { last_key: None }
+		);
+	});
+	rc.commit_all().unwrap();
 }

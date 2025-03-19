@@ -511,10 +511,7 @@ pub mod pallet {
 
 			match stage {
 				MigrationStage::Pending => {
-					// TODO: we should do nothing on pending stage.
-					// On production the AH will send a message and initialize the migration.
-					// Now we transition to `AccountsMigrationInit` to run tests
-					Self::transition(MigrationStage::AccountsMigrationInit);
+					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
@@ -533,6 +530,7 @@ pub mod pallet {
 					},
 				MigrationStage::Initializing => {
 					// waiting AH to send a message and to start sending the data
+					return weight_counter.consumed();
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
