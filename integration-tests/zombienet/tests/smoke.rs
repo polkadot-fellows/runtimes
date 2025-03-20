@@ -3,6 +3,25 @@ use subxt::ext::futures::StreamExt;
 use zombienet_sdk_tests::{environment::get_spawn_fn, small_network, wait_subxt_client};
 
 #[tokio::test(flavor = "multi_thread")]
+async fn dump_docker_images() {
+	tracing_subscriber::fmt::init();
+	let output = std::process::Command::new("docker")
+		.arg("images")
+		.output()
+		.expect("Failed to execute command");
+
+	if output.status.success() {
+		let stdout = String::from_utf8_lossy(&output.stdout);
+		println!("Docker Images:\n{}", stdout);
+		log::info!("Docker Images:\n{}", stdout);
+	} else {
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		eprintln!("Error:\n{}", stderr);
+		log::error!("Error:\n{}", stderr);
+	}
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn smoke() {
 	tracing_subscriber::fmt::init();
 
