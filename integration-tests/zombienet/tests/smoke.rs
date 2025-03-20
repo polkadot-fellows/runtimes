@@ -1,9 +1,14 @@
 use std::time::Instant;
 use subxt::ext::futures::StreamExt;
-use zombienet_sdk_tests::{environment::get_spawn_fn, small_network, wait_subxt_client};
+use zombienet_sdk_tests::{
+	environment::{
+		get_images_from_env, get_spawn_fn
+	},
+	small_network, wait_subxt_client
+};
 
-#[tokio::test(flavor = "multi_thread")]
-async fn dump_docker_images() {
+#[test]
+fn dump_docker_images() {
 	tracing_subscriber::fmt::init();
 	let output = std::process::Command::new("docker")
 		.arg("images")
@@ -18,6 +23,32 @@ async fn dump_docker_images() {
 		let stderr = String::from_utf8_lossy(&output.stderr);
 		eprintln!("Error:\n{}", stderr);
 		log::error!("Error:\n{}", stderr);
+	}
+}
+
+#[test]
+fn dump_docker_binary_versions() {
+	tracing_subscriber::fmt::init();
+
+	let images = get_images_from_env();
+
+	for image in [images.polkadot, images.cumulus] {
+		let output = std::process::Command::new("docker")
+			.arg("run")
+			.arg(image.clone())
+			.arg("--version")
+			.output()
+			.expect("Failed to execute command");
+
+		if output.status.success() {
+			let stdout = String::from_utf8_lossy(&output.stdout);
+			println!("{} binary version: {}", image, stdout);
+			log::info!("{} binary version: {}", image, stdout);
+		} else {
+			let stderr = String::from_utf8_lossy(&output.stderr);
+			eprintln!("Error: {}", stderr);
+			log::error!("Error: {}", stderr);
+		}
 	}
 }
 
