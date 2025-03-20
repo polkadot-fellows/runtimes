@@ -31,7 +31,10 @@ impl<T: Config> Pallet<T> {
 		messages: Vec<RcSchedulerMessageOf<T>>,
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Processing {} scheduler messages", messages.len());
-		Self::deposit_event(Event::SchedulerMessagesReceived { count: messages.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::Scheduler,
+			count: messages.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for message in messages {
@@ -41,7 +44,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::SchedulerMessagesProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::Scheduler,
+			count_good,
+			count_bad,
+		});
 		log::info!(target: LOG_TARGET, "Processed {} scheduler messages", count_good);
 
 		Ok(())

@@ -32,7 +32,10 @@ const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_multisigs(multisigs: Vec<RcMultisigOf<T>>) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::MultisigBatchReceived { count: multisigs.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::Multisig,
+			count: multisigs.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} multisigs", multisigs.len());
 
@@ -45,7 +48,11 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		Self::deposit_event(Event::MultisigBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::Multisig,
+			count_good,
+			count_bad,
+		});
 
 		Ok(())
 	}

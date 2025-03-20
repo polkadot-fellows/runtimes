@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use asset_hub_polkadot_runtime::{Block as AssetHubBlock, Runtime as AssetHub};
+use asset_hub_polkadot_runtime::{AhMigrator, Block as AssetHubBlock, Runtime as AssetHub};
 use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
@@ -25,7 +25,7 @@ use pallet_rc_migrator::{
 	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
-use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
+use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use runtime_parachains::{
 	dmp::DownwardMessageQueues,
@@ -75,10 +75,9 @@ pub fn next_block_rc() {
 	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
 	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
-	let weight = <polkadot_runtime::RcMigrator as OnInitialize<_>>::on_initialize(now)
-		.saturating_add(weight);
+	let weight = <RcMigrator as OnInitialize<_>>::on_initialize(now).saturating_add(weight);
 	<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
-	<polkadot_runtime::RcMigrator as OnFinalize<_>>::on_finalize(now);
+	<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
@@ -96,10 +95,9 @@ pub fn next_block_ah() {
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
-	let weight = <asset_hub_polkadot_runtime::AhMigrator as OnInitialize<_>>::on_initialize(now)
-		.saturating_add(weight);
+	let weight = <AhMigrator as OnInitialize<_>>::on_initialize(now).saturating_add(weight);
 	<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
-	<asset_hub_polkadot_runtime::AhMigrator as OnFinalize<_>>::on_finalize(now);
+	<AhMigrator as OnFinalize<_>>::on_finalize(now);
 
 	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
@@ -150,19 +148,20 @@ pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 // Sets the initial migration stage on the Relay Chain.
 //
 // If the `START_STAGE` environment variable is set, it will be used to set the initial migration
-// stage. Otherwise, the current migration stage will be returned.
+// stage. Otherwise, the `AccountsMigrationInit` stage will be set bypassing the `Scheduled` stage.
+// The `Scheduled` stage is tested separately by the `scheduled_migration_works` test.
 pub fn set_initial_migration_stage(
 	relay_chain: &mut RemoteExternalities<PolkadotBlock>,
 ) -> RcMigrationStageOf<Polkadot> {
 	let stage = relay_chain.execute_with(|| {
-		if let Ok(stage) = std::env::var("START_STAGE") {
+		let stage = if let Ok(stage) = std::env::var("START_STAGE") {
 			log::info!("Setting start stage: {:?}", &stage);
-			let stage = RcMigrationStage::from_str(&stage).expect("Invalid start stage");
-			RcMigrationStageStorage::<Polkadot>::put(stage.clone());
-			stage
+			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStageStorage::<Polkadot>::get()
-		}
+			RcMigrationStage::AccountsMigrationInit
+		};
+		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
+		stage
 	});
 	relay_chain.commit_all().unwrap();
 	stage

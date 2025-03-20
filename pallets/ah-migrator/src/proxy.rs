@@ -21,7 +21,10 @@ use sp_runtime::{traits::Zero, BoundedSlice};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::ProxyProxiesBatchReceived { count: proxies.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::ProxyProxies,
+			count: proxies.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating batch proxies of with len {}", proxies.len());
 
@@ -34,7 +37,11 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		Self::deposit_event(Event::ProxyProxiesBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::ProxyProxies,
+			count_good,
+			count_bad,
+		});
 
 		Ok(())
 	}
@@ -84,7 +91,8 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxy_announcements(
 		announcements: Vec<RcProxyAnnouncementOf<T>>,
 	) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::ProxyAnnouncementsBatchReceived {
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::ProxyAnnouncements,
 			count: announcements.len() as u32,
 		});
 
@@ -101,7 +109,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::ProxyAnnouncementsBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::ProxyAnnouncements,
+			count_good,
+			count_bad,
+		});
 
 		Ok(())
 	}

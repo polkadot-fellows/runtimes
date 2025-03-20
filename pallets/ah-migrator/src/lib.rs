@@ -111,7 +111,21 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	Balances,
+	Multisig,
+	Claims,
+	ProxyProxies,
+	ProxyAnnouncements,
+	PreimageChunk,
+	PreimageRequestStatus,
+	PreimageLegacyStatus,
+	NomPools,
+	ReferendaValues,
 	ReferendaMetadata,
+	ReferendaReferendums,
+	Scheduler,
+	ConvictionVoting,
+	AssetRates,
 }
 
 /// The migration stage on the Asset Hub.
@@ -284,8 +298,6 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// The event that should to be replaced by something meaningful.
-		TODO,
 		/// A stage transition has occurred.
 		StageTransition {
 			/// The old stage before the transition.
@@ -293,165 +305,10 @@ pub mod pallet {
 			/// The new stage after the transition.
 			new: MigrationStage,
 		},
-		/// We received a batch of accounts that we are going to integrate.
-		AccountBatchReceived {
-			/// How many accounts are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of accounts that we received.
-		AccountBatchProcessed {
-			/// How many accounts were successfully integrated.
-			count_good: u32,
-			/// How many accounts failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of multisigs that we are going to integrate.
-		MultisigBatchReceived {
-			/// How many multisigs are in the batch.
-			count: u32,
-		},
-		MultisigBatchProcessed {
-			/// How many multisigs were successfully integrated.
-			count_good: u32,
-			/// How many multisigs failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of claims that we are going to integrate.
-		ClaimsBatchReceived {
-			/// How many claims are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of claims that we received.
-		ClaimsBatchProcessed {
-			/// How many claims were successfully integrated.
-			count_good: u32,
-			/// How many claims failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of proxies that we are going to integrate.
-		ProxyProxiesBatchReceived {
-			/// How many proxies are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of proxies that we received.
-		ProxyProxiesBatchProcessed {
-			/// How many proxies were successfully integrated.
-			count_good: u32,
-			/// How many proxies failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of proxy announcements that we are going to integrate.
-		ProxyAnnouncementsBatchReceived {
-			/// How many proxy announcements are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of proxy announcements that we received.
-		ProxyAnnouncementsBatchProcessed {
-			/// How many proxy announcements were successfully integrated.
-			count_good: u32,
-			/// How many proxy announcements failed to integrate.
-			count_bad: u32,
-		},
-		/// Received a batch of `RcPreimageChunk` that are going to be integrated.
-		PreimageChunkBatchReceived {
-			/// How many preimage chunks are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageChunk` that we received.
-		PreimageChunkBatchProcessed {
-			/// How many preimage chunks were successfully integrated.
-			count_good: u32,
-			/// How many preimage chunks failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of `RcPreimageRequestStatus` that we are going to integrate.
-		PreimageRequestStatusBatchReceived {
-			/// How many preimage request status are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageRequestStatus` that we received.
-		PreimageRequestStatusBatchProcessed {
-			/// How many preimage request status were successfully integrated.
-			count_good: u32,
-			/// How many preimage request status failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of `RcPreimageLegacyStatus` that we are going to integrate.
-		PreimageLegacyStatusBatchReceived {
-			/// How many preimage legacy status are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageLegacyStatus` that we received.
-		PreimageLegacyStatusBatchProcessed {
-			/// How many preimage legacy status were successfully integrated.
-			count_good: u32,
-			/// How many preimage legacy status failed to integrate.
-			count_bad: u32,
-		},
-		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
-		NomPoolsMessagesBatchReceived {
-			/// How many nom pools messages are in the batch.
-			count: u32,
-		},
-		/// Processed a batch of `RcNomPoolsMessage` that we received.
-		NomPoolsMessagesBatchProcessed {
-			/// How many nom pools messages were successfully integrated.
-			count_good: u32,
-			/// How many nom pools messages failed to integrate.
-			count_bad: u32,
-		},
 		/// We received a batch of messages that will be integrated into a pallet.
-		BatchReceived {
-			pallet: PalletEventName,
-			count: u32,
-		},
+		BatchReceived { pallet: PalletEventName, count: u32 },
 		/// We processed a batch of messages for this pallet.
-		BatchProcessed {
-			pallet: PalletEventName,
-			count_good: u32,
-			count_bad: u32,
-		},
-		/// We received a batch of referendums that we are going to integrate.
-		ReferendumsBatchReceived {
-			/// How many referendums are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of referendums that we received.
-		ReferendumsBatchProcessed {
-			/// How many referendums were successfully integrated.
-			count_good: u32,
-			/// How many referendums failed to integrate.
-			count_bad: u32,
-		},
-		ReferendaProcessed,
-		SchedulerMessagesReceived {
-			/// How many scheduler messages are in the batch.
-			count: u32,
-		},
-		SchedulerMessagesProcessed {
-			/// How many scheduler messages were successfully integrated.
-			count_good: u32,
-			/// How many scheduler messages failed to integrate.
-			count_bad: u32,
-		},
-		ConvictionVotingMessagesReceived {
-			/// How many conviction voting messages are in the batch.
-			count: u32,
-		},
-		ConvictionVotingMessagesProcessed {
-			/// How many conviction voting messages were successfully integrated.
-			count_good: u32,
-		},
-		AssetRatesReceived {
-			/// How many asset rates are in the batch.
-			count: u32,
-		},
-		AssetRatesProcessed {
-			/// How many asset rates were successfully integrated.
-			count_good: u32,
-			/// How many asset rates failed to integrate.
-			count_bad: u32,
-		},
+		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::pallet]

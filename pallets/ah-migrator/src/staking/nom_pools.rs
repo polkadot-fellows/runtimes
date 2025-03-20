@@ -29,14 +29,18 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		let mut good = 0;
 		log::info!(target: LOG_TARGET, "Integrating {} NomPoolsMessages", messages.len());
-		Self::deposit_event(Event::NomPoolsMessagesBatchReceived { count: messages.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::NomPools,
+			count: messages.len() as u32,
+		});
 
 		for message in messages {
 			Self::do_receive_nom_pools_message(message);
 			good += 1;
 		}
 
-		Self::deposit_event(Event::NomPoolsMessagesBatchProcessed {
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::NomPools,
 			count_good: good as u32,
 			count_bad: 0,
 		});

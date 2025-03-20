@@ -22,7 +22,10 @@ use sp_runtime::traits::{BlakeTwo256, Hash};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_chunks(chunks: Vec<RcPreimageChunk>) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::PreimageChunkBatchReceived { count: chunks.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::PreimageChunk,
+			count: chunks.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} preimage chunks", chunks.len());
 
@@ -35,7 +38,11 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		Self::deposit_event(Event::PreimageChunkBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::PreimageChunk,
+			count_good,
+			count_bad,
+		});
 
 		Ok(())
 	}
@@ -92,7 +99,8 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_request_statuses(
 		request_status: Vec<RcPreimageRequestStatusOf<T>>,
 	) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::PreimageRequestStatusBatchReceived {
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::PreimageRequestStatus,
 			count: request_status.len() as u32,
 		});
 		log::info!(target: LOG_TARGET, "Integrating {} preimage request status", request_status.len());
@@ -108,7 +116,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::PreimageRequestStatusBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::PreimageRequestStatus,
+			count_good,
+			count_bad,
+		});
 		Ok(())
 	}
 
@@ -176,7 +188,8 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_preimage_legacy_statuses(
 		statuses: Vec<RcPreimageLegacyStatusOf<T>>,
 	) -> Result<(), Error<T>> {
-		Self::deposit_event(Event::PreimageLegacyStatusBatchReceived {
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::PreimageLegacyStatus,
 			count: statuses.len() as u32,
 		});
 		log::info!(target: LOG_TARGET, "Integrating {} preimage legacy status", statuses.len());
@@ -191,7 +204,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::PreimageLegacyStatusBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::PreimageLegacyStatus,
+			count_good,
+			count_bad,
+		});
 		Ok(())
 	}
 

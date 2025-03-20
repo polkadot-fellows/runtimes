@@ -25,7 +25,10 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating {} accounts", accounts.len());
 
-		Self::deposit_event(Event::<T>::AccountBatchReceived { count: accounts.len() as u32 });
+		Self::deposit_event(Event::<T>::BatchReceived {
+			pallet: PalletEventName::Balances,
+			count: accounts.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for account in accounts {
@@ -48,7 +51,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::<T>::AccountBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::<T>::BatchProcessed {
+			pallet: PalletEventName::Balances,
+			count_good,
+			count_bad,
+		});
 		Ok(())
 	}
 
