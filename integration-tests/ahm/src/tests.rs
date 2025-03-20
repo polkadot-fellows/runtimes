@@ -56,6 +56,7 @@ use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
+	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -66,6 +67,7 @@ type RcChecks = (
 );
 
 type AhChecks = (
+	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
@@ -308,8 +310,8 @@ async fn migration_works() {
 
 	let mut rc_block_count = 0;
 	// finish the loop when the migration is done.
-	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
-		RcMigrationStage::MigrationDone
+	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get())
+		!= RcMigrationStage::MigrationDone
 	{
 		// execute next RC block.
 		let dmp_messages = rc.execute_with(|| {

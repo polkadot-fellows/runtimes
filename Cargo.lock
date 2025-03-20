@@ -7649,6 +7649,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
+ "assets-common",
  "chrono",
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -7679,9 +7680,11 @@ dependencies = [
  "pallet-timestamp",
  "pallet-treasury",
  "pallet-vesting",
+ "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
+ "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -7691,6 +7694,8 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-std",
  "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]
@@ -8937,6 +8942,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
+ "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -8946,6 +8952,8 @@ dependencies = [
  "sp-staking 36.0.0",
  "sp-std",
  "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]

@@ -49,6 +49,7 @@ pub mod scheduler;
 pub mod staking;
 pub mod types;
 pub mod vesting;
+pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
@@ -92,6 +93,7 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -158,11 +160,21 @@ impl MigrationStage {
 	}
 }
 
+/// Further data coming from Relay Chain alongside the signal that migration has finished.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+pub struct MigrationFinishedData {
+	/// Total native token balance NOT migrated from Relay Chain
+	pub rc_balance_kept: u128,
+}
+
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
+	use crate::xcm_config::TrustedTeleportersDuring;
+	use frame_support::traits::ContainsPair;
+	use pallet_rc_migrator::xcm_config::TrustedTeleportersBeforeAndAfter;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -271,6 +283,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
 
+	/// Helper storage item to store the total balance / total issuance of native token at the start
+	/// of the migration. Since teleports are disabled during migration, the total issuance will not
+	/// change for other reason than the migration itself.
+	#[pallet::storage]
+	pub type AhTotalIssuanceBefore<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.
@@ -292,6 +310,8 @@ pub mod pallet {
 		XcmError,
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
+		/// Checking account overflow or underflow.
+		FailedToCalculateCheckingAccount,
 		Unreachable,
 	}
 
@@ -321,7 +341,7 @@ pub mod pallet {
 
 		/// Receive accounts from the Relay Chain.
 		///
-		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
+		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
 		#[pallet::weight({
 			let mut total = Weight::zero();
@@ -669,7 +689,27 @@ pub mod pallet {
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			AhTotalIssuanceBefore::<T>::put(<T as Config>::Currency::total_issuance());
+			defensive_assert!(
+				<T as Config>::Currency::total_balance(&T::CheckingAccount::get()) == 0
+			);
+
 			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Finish the migration.
+		///
+		/// This is typically called by the Relay Chain to signal the migration has finished.
+		#[pallet::call_index(110)]
+		pub fn finish_migration(
+			origin: OriginFor<T>,
+			data: MigrationFinishedData,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::finish_accounts_migration(data.rc_balance_kept.into())?;
+			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
 	}
@@ -752,6 +792,15 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_finished() {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			} else {
+				None
+			}
+		}
 	}
 
 	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
@@ -760,6 +809,19 @@ pub mod pallet {
 		}
 		fn is_finished() -> bool {
 			AhMigrationStage::<T>::get().is_finished()
+		}
+	}
+
+	// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+		fn contains(asset: &Asset, origin: &Location) -> bool {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_ongoing() {
+				TrustedTeleportersDuring::contains(asset, origin)
+			} else {
+				// before and after migration use normal filter
+				TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+			}
 		}
 	}
 }
