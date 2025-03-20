@@ -388,6 +388,8 @@ pub mod pallet {
 		XcmError,
 		/// Failed to withdraw account from RC for migration to AH.
 		FailedToWithdrawAccount,
+		/// Indicates that the specified block number is in the past.
+		PastBlockNumber,
 	}
 
 	#[pallet::event]
@@ -462,6 +464,7 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 			let block_number = start_moment.evaluate(now);
+			ensure!(block_number > now, Error::<T>::PastBlockNumber);
 			Self::transition(MigrationStage::Scheduled { block_number });
 			Ok(())
 		}
