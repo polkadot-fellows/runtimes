@@ -57,7 +57,7 @@ use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -121,6 +121,7 @@ pub enum PalletEventName {
 	PreimageLegacyStatus,
 	NomPools,
 	ReferendaValues,
+	ReferendaMetadata,
 	ReferendaReferendums,
 	Scheduler,
 	ConvictionVoting,
@@ -635,6 +636,20 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[pallet::call_index(20)]
+		pub fn receive_referenda_metadata(
+			origin: OriginFor<T>,
+			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_referenda_metadata(metadata);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
@@ -692,7 +707,7 @@ pub mod pallet {
 			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
 			log::debug!(
 				target: LOG_TARGET,
-				"Increment XCM message processed, processed: {}, processed with error: {}",
+				"Increment XCM message processed, total processed: {}, failed: {}",
 				processed,
 				processed_with_error
 			);

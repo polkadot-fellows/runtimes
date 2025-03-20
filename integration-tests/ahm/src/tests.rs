@@ -36,7 +36,7 @@ use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
 use frame_support::traits::schedule::DispatchTime;
-use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
 	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
 	MigrationStage as AhMigrationStage,
@@ -49,13 +49,16 @@ use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
+use sp_core::crypto::Ss58Codec;
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
 use xcm::latest::*;
-use xcm_emulator::{assert_ok, ConvertLocation};
+use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	// other pallets go here
@@ -64,6 +67,8 @@ type RcChecks = (
 
 type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	// other pallets go here
@@ -460,4 +465,63 @@ async fn scheduled_migration_works() {
 		);
 	});
 	rc.commit_all().unwrap();
+}
+
+#[tokio::test]
+async fn some_account_migration_works() {
+	use frame_system::Account as SystemAccount;
+	use pallet_rc_migrator::accounts::AccountsMigrator;
+
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	let accounts: Vec<AccountId32> = vec![
+		// 18.03.2025 - account with reserve above ED, but no free balance
+		"5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
+		// 18.03.2025 - account with zero free balance, and reserve below ED
+		"5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
+		// 18.03.2025 - account with free balance below ED, and reserve above ED
+		"5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+	];
+
+	for account_id in accounts {
+		let maybe_withdrawn_account = rc.execute_with(|| {
+			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
+			log::info!("Migrating account id: {:?}", account_id.to_ss58check());
+			log::info!("RC account info: {:?}", rc_account);
+
+			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(
+				account_id,
+				rc_account,
+				&mut WeightMeter::new(),
+				&mut WeightMeter::new(),
+				0,
+			)
+			.unwrap_or_else(|err| {
+				log::error!("Account withdrawal failed: {:?}", err);
+				None
+			});
+
+			maybe_withdrawn_account
+		});
+
+		let withdrawn_account = match maybe_withdrawn_account {
+			Some(withdrawn_account) => withdrawn_account,
+			None => {
+				log::warn!("Account is not withdrawable");
+				continue;
+			},
+		};
+
+		log::info!("Withdrawn account: {:?}", withdrawn_account);
+
+		ah.execute_with(|| {
+			use asset_hub_polkadot_runtime::AhMigrator;
+			use codec::{Decode, Encode};
+
+			let encoded_account = withdrawn_account.encode();
+			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let res = AhMigrator::do_receive_account(account);
+			log::info!("Account integration result: {:?}", res);
+		});
+	}
 }

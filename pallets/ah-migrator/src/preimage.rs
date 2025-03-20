@@ -132,6 +132,13 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
+		if !alias::PreimageFor::<T>::iter_keys()
+			.any(|(key_hash, _)| key_hash == request_status.hash)
+		{
+			log::error!("Missing preimage for request status hash {:?}", request_status.hash);
+			return Err(Error::<T>::TODO);
+		}
+
 		let new_ticket = match request_status.request_status {
 			alias::RequestStatus::Unrequested { ticket: (ref who, ref ticket), len } => {
 				let fp = Footprint::from_parts(1, len as usize);
@@ -232,10 +239,6 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			alias::PreimageFor::<T>::iter_keys().next().is_none(),
 			"Preimage::PreimageFor is not empty"
 		);
-		assert!(
-			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
-			"Preimage::RequestStatusFor is not empty"
-		);
 	}
 
 	// The payload should come from the relay chain pre-check method on the same pallet
@@ -258,15 +261,35 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			);
 		}
 
-		for (hash, len) in rc_pre_payload {
-			if alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::error!("missing relay chain item in assetHub for Preimage::PreimageFor");
+		let new_preimages = alias::PreimageFor::<T>::iter_keys().count();
+		// TODO: fix, it currently fails to migrate item with hash
+		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
+		if new_preimages != rc_pre_payload.len() {
+			log::error!(
+				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
+				new_preimages,
+				rc_pre_payload.len(),
+			);
+		}
+
+		// All items have been successfully migrated from the relay chain
+		for (hash, len) in rc_pre_payload.iter() {
+			// TODO: fix, it currently fails to migrate item with hash
+			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
+			if !alias::PreimageFor::<T>::contains_key((hash, len)) {
+				log::error!(
+					"missing relay chain item in assetHub for Preimage::PreimageFor {:?} {:?}",
+					hash,
+					len,
+				);
 			}
-			// TODO: fix failing check and change log to assert below
-			// assert!(
-			//   alias::PreimageFor::<T>::contains_key((hash, len)),
-			//	 "missing relay chain item in assetHub for Preimage::PreimageFor"
-			// );
+		}
+
+		// All AssetHub items came from the relay chain
+		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
+			if !rc_pre_payload.contains(&(hash, len)) {
+				log::error!("Asset Hub migrated item from Preimage::PreimageFor was not present in the relay chain payload {:?} {:?}", hash, len);
+			}
 		}
 
 		// Integrity check that all preimages have the correct hash and length
@@ -276,29 +299,112 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 			assert_eq!(preimage.len(), len as usize);
 			assert_eq!(BlakeTwo256::hash(preimage.as_slice()), hash);
 		}
+	}
+}
 
-		for (hash, status) in alias::RequestStatusFor::<T>::iter() {
-			match status {
-				alias::RequestStatus::Unrequested { len, .. } => {
-					assert!(
-						alias::PreimageFor::<T>::contains_key((hash, len)),
-						"Preimage::RequestStatusFor is missing preimage"
-					);
-				},
-				alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
-					assert!(
-						alias::PreimageFor::<T>::contains_key((hash, len)),
-						"Preimage::RequestStatusFor is missing preimage"
-					);
-				},
-				_ => {},
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator<T> {
+	type RcPrePayload = Vec<(H256, bool)>;
+	type AhPrePayload = ();
+
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+		// AH does not have a preimage pallet, therefore must be empty.
+		assert!(
+			alias::RequestStatusFor::<T>::iter_keys().next().is_none(),
+			"Preimage::RequestStatusFor is not empty"
+		);
+	}
+
+	// The payload should come from the relay chain pre-check method on the same pallet
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		let new_requests_len = alias::RequestStatusFor::<T>::iter_keys().count();
+		// TODO: fix, it currently fails to migrate item with hash
+		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e
+		if new_requests_len != rc_pre_payload.len() {
+			log::error!(
+				"Preimage::RequestStatusFor and relay chain payload have different size: {} vs {}",
+				new_requests_len,
+				rc_pre_payload.len(),
+			);
+		}
+
+		for (hash, requested) in rc_pre_payload.iter() {
+			// TODO: fix, it currently fails to migrate item with hash
+			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e
+			if !alias::RequestStatusFor::<T>::contains_key(hash) {
+				log::error!(
+					"missing relay chain migrated item in assetHub for Preimage::RequestStatusFor {:?} {:?}",
+					hash,
+					requested
+				);
+			} else {
+				match alias::RequestStatusFor::<T>::get(hash).unwrap() {
+					alias::RequestStatus::Unrequested { len, .. } => {
+						// FIXME Giuseppe
+						/*assert!(
+							!requested,
+							"Requested preimage in the relay chain has become unrequested on assetHub"
+						);*/
+						assert!(
+							alias::PreimageFor::<T>::contains_key((hash, len)),
+							"Preimage::RequestStatusFor is missing preimage"
+						);
+					},
+					alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
+						assert!(
+							requested,
+							"Unrequested preimage in the relay chain has become requested on assetHub"
+						);
+						assert!(
+							alias::PreimageFor::<T>::contains_key((hash, len)),
+							"Preimage::RequestStatusFor is missing preimage"
+						);
+					},
+					alias::RequestStatus::Requested { .. } => {
+						assert!(
+							requested,
+							"Unrequested preimage in the relay chain has become requested on assetHub"
+						);
+					},
+				}
 			}
 		}
-		/*assert_eq!(
+
+		for hash in alias::RequestStatusFor::<T>::iter_keys() {
+			if !rc_pre_payload.contains(&(hash, true)) && !rc_pre_payload.contains(&(hash, false)) {
+				log::error!(
+					"Asset Hub migrated item from Preimage::RequestStatusFor was not present in the relay chain payload {:?}",
+					hash
+				);
+			}
+		}
+
+		assert_eq!(
 			alias::PreimageFor::<T>::iter_keys().count(),
 			alias::RequestStatusFor::<T>::iter_keys().count(),
 			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
-		);*/
-		// TODO fixme (ggwpez had to comment this since it fails with a new snapshot)
+		);
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for PreimageLegacyRequestStatusMigrator<T> {
+	type RcPrePayload = Vec<H256>;
+	type AhPrePayload = ();
+
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+		// AH does not have a preimage pallet, therefore must be empty.
+		assert!(
+			alias::StatusFor::<T>::iter_keys().next().is_none(),
+			"Preimage::StatusFor is not empty on the relay chain"
+		);
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		// All items have been deleted
+		assert!(
+			alias::StatusFor::<T>::iter_keys().next().is_none(),
+			"Preimage::StatusFor is not empty on assetHub"
+		);
 	}
 }
