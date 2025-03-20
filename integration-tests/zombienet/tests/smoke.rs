@@ -9,7 +9,6 @@ use zombienet_sdk_tests::{
 
 #[test]
 fn dump_docker_images() {
-	tracing_subscriber::fmt::init();
 	let output = std::process::Command::new("docker")
 		.arg("images")
 		.output()
@@ -17,7 +16,7 @@ fn dump_docker_images() {
 
 	if output.status.success() {
 		let stdout = String::from_utf8_lossy(&output.stdout);
-		println!("Docker Images:\n{}", stdout);
+		eprintln!("Docker Images:\n{}", stdout);
 		log::info!("Docker Images:\n{}", stdout);
 	} else {
 		let stderr = String::from_utf8_lossy(&output.stderr);
@@ -28,8 +27,6 @@ fn dump_docker_images() {
 
 #[test]
 fn dump_docker_binary_versions() {
-	tracing_subscriber::fmt::init();
-
 	let images = get_images_from_env();
 
 	for image in [images.polkadot, images.cumulus] {
@@ -42,7 +39,7 @@ fn dump_docker_binary_versions() {
 
 		if output.status.success() {
 			let stdout = String::from_utf8_lossy(&output.stdout);
-			println!("{} binary version: {}", image, stdout);
+			eprintln!("{} binary version: {}", image, stdout);
 			log::info!("{} binary version: {}", image, stdout);
 		} else {
 			let stderr = String::from_utf8_lossy(&output.stderr);
