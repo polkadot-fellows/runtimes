@@ -75,6 +75,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 
 			match iter.next() {
 				Some((who, schedules)) => {
+					pallet_vesting::Vesting::<T>::remove(&who);
 					messages.push(RcVestingSchedule { who: who.clone(), schedules });
 					log::debug!(target: LOG_TARGET, "Migrating vesting schedules for {:?}", who);
 					inner_key = Some(who);
@@ -126,34 +127,10 @@ impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
 			.collect()
 	}
 
-	fn post_check(pre_payload: Self::RcPrePayload) {
-		let pre_map: BTreeMap<
-			Vec<u8>,
-			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
-		> = pre_payload
-			.into_iter()
-			.map(|(who, balances, vesting_info)| (who, (balances, vesting_info)))
-			.collect();
-		let current_map: BTreeMap<
-			Vec<u8>,
-			(Vec<BalanceOf<T>>, Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>>),
-		> = pallet_vesting::Vesting::<T>::iter()
-			.map(|(who, schedules)| {
-				let mut balances: Vec<BalanceOf<T>> = Vec::new();
-				let mut vesting_info: Vec<GenericVestingInfo<BlockNumberFor<T>, BalanceOf<T>>> =
-					Vec::new();
-				for s in schedules.iter() {
-					balances.push(s.locked());
-					vesting_info.push(GenericVestingInfo {
-						locked: s.locked(),
-						starting_block: s.starting_block(),
-						per_block: s.per_block(),
-					});
-				}
-				(who.encode(), (balances, vesting_info))
-			})
-			.collect();
-
-		assert_eq!(pre_map, current_map, "Vesting data mismatch after migration");
+	fn post_check(_: Self::RcPrePayload) {
+		assert!(
+			pallet_vesting::Vesting::<T>::iter().next().is_none(),
+			"Vesting storage should be empty after migration"
+		);
 	}
 }
