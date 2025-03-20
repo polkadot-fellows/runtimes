@@ -33,7 +33,7 @@ pub struct RcPreimageLegacyStatus<AccountId, Balance> {
 pub type RcPreimageLegacyStatusOf<T> =
 	RcPreimageLegacyStatus<<T as frame_system::Config>::AccountId, super::alias::BalanceOf<T>>;
 
-pub struct PreimageLegacyRequestStatusMigrator<T: Config> {
+pub struct PreimageLegacyRequestStatusMigrator<T: pallet_preimage::Config> {
 	_phantom: PhantomData<T>,
 }
 
@@ -78,6 +78,8 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 
 			log::debug!(target: LOG_TARGET, "Exported legacy preimage status for: {:?}", next_key_inner);
 			next_key = Self::next_key(Some(next_key_inner));
+			// Remove the migrated key from the relay chain
+			alias::StatusFor::<T>::remove(next_key_inner);
 
 			if batch.len() >= 10 || next_key.is_none() {
 				// TODO weight checking
@@ -107,6 +109,23 @@ impl<T: Config> PreimageLegacyRequestStatusMigrator<T> {
 			Some(key) =>
 				alias::StatusFor::<T>::iter_keys_from(alias::StatusFor::<T>::hashed_key_for(key))
 					.next(),
+		}
+	}
+}
+
+impl<T: Config> RcMigrationCheck for PreimageLegacyRequestStatusMigrator<T> {
+	type RcPrePayload = Vec<H256>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		alias::StatusFor::<T>::iter().map(|(hash, _)| hash).collect()
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+		for hash in rc_pre_payload {
+			assert!(
+				!alias::StatusFor::<T>::contains_key(hash),
+				"migrated key in Preimage::StatusFor is still present on the relay chain"
+			);
 		}
 	}
 }

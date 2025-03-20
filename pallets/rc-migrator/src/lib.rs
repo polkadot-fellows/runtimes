@@ -305,6 +305,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::Fr
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
+			"proxy" => MigrationStage::ProxyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}

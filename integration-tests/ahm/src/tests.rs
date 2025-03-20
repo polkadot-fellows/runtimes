@@ -31,7 +31,7 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use super::mock::*;
+use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -45,22 +45,31 @@ use polkadot_runtime::{Block as PolkadotBlock, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
+use sp_core::crypto::Ss58Codec;
 use sp_runtime::AccountId32;
 use std::{collections::BTreeMap, str::FromStr};
-use xcm_emulator::ConvertLocation;
+use xcm_emulator::{ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
+	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	// other pallets go here
+	ProxiesStillWork,
 );
 
 type AhChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
+	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
+	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	// other pallets go here
+	ProxiesStillWork,
 );
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -251,6 +260,36 @@ async fn print_accounts_statistics() {
 	println!("Total counts: {:?}", total_counts);
 }
 
+#[test]
+fn ah_account_migration_weight() {
+	use frame_support::weights::constants::WEIGHT_REF_TIME_PER_MILLIS;
+	use pallet_rc_migrator::weights_ah::WeightInfo;
+
+	let ms_for_accs = |num_accs: u32| {
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
+		weight.ref_time() as f64 / WEIGHT_REF_TIME_PER_MILLIS as f64
+	};
+	let mb_for_accs = |num_accs: u32| {
+		let weight =
+			pallet_rc_migrator::weights_ah::SubstrateWeight::<AssetHub>::receive_liquid_accounts(
+				num_accs as u32,
+			);
+		weight.proof_size() as f64 / 1_000_000.0
+	};
+
+	// Print for 10, 100 and 1000 accounts in ms
+	for i in [10, 100, 486, 1000] {
+		let (ms, mb) = (ms_for_accs(i), mb_for_accs(i));
+		println!("Weight for {} accounts: {: >4.2} ms, {: >4.2} MB", i, ms, mb);
+
+		assert!(ms < 200.0, "Ref time weight for Accounts migration is insane");
+		assert!(mb < 4.0, "Proof size for Accounts migration is insane");
+	}
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn migration_works() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
@@ -311,4 +350,63 @@ async fn migration_works() {
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 
 	println!("Migration done in {} RC blocks", rc_block_count);
+}
+
+#[tokio::test]
+async fn some_account_migration_works() {
+	use frame_system::Account as SystemAccount;
+	use pallet_rc_migrator::accounts::AccountsMigrator;
+
+	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+
+	let accounts: Vec<AccountId32> = vec![
+		// 18.03.2025 - account with reserve above ED, but no free balance
+		"5HB5nWBF2JfqogQYTcVkP1BfrgfadBizGmLBhmoAbGm5C7ir".parse().unwrap(),
+		// 18.03.2025 - account with zero free balance, and reserve below ED
+		"5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
+		// 18.03.2025 - account with free balance below ED, and reserve above ED
+		"5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+	];
+
+	for account_id in accounts {
+		let maybe_withdrawn_account = rc.execute_with(|| {
+			let rc_account = SystemAccount::<Polkadot>::get(&account_id);
+			log::info!("Migrating account id: {:?}", account_id.to_ss58check());
+			log::info!("RC account info: {:?}", rc_account);
+
+			let maybe_withdrawn_account = AccountsMigrator::<Polkadot>::withdraw_account(
+				account_id,
+				rc_account,
+				&mut WeightMeter::new(),
+				&mut WeightMeter::new(),
+				0,
+			)
+			.unwrap_or_else(|err| {
+				log::error!("Account withdrawal failed: {:?}", err);
+				None
+			});
+
+			maybe_withdrawn_account
+		});
+
+		let withdrawn_account = match maybe_withdrawn_account {
+			Some(withdrawn_account) => withdrawn_account,
+			None => {
+				log::warn!("Account is not withdrawable");
+				continue;
+			},
+		};
+
+		log::info!("Withdrawn account: {:?}", withdrawn_account);
+
+		ah.execute_with(|| {
+			use asset_hub_polkadot_runtime::AhMigrator;
+			use codec::{Decode, Encode};
+
+			let encoded_account = withdrawn_account.encode();
+			let account = Decode::decode(&mut &encoded_account[..]).unwrap();
+			let res = AhMigrator::do_receive_account(account);
+			log::info!("Account integration result: {:?}", res);
+		});
+	}
 }
