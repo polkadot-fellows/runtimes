@@ -47,7 +47,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   runtime-test:
-    needs: [runtime-matrix]
+    needs: [runtime-matrix, zombienet-smoke]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -111,7 +111,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   integration-test:
-    needs: [integration-test-matrix]
+    needs: [integration-test-matrix, zombienet-smoke]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -281,7 +281,7 @@ jobs:
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes]
+    needs: [runtime-matrix, build-runtimes, zombienet-smoke]
     runs-on: ubuntu-22.04
     if: github.event_name == 'pull_request'
     steps:
