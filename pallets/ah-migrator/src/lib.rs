@@ -59,7 +59,7 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
-		Currency, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
 };

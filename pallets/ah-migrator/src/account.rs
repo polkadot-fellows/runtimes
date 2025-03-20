@@ -160,9 +160,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
+		use frame_support::traits::Currency;
 		let checking_account = T::CheckingAccount::get();
 		// current value is the migrated checking balance of RC
-		let rc_balance_before = <T as Config>::Currency::total_balance(&checking_account);
+		let rc_balance_before =
+			<<T as pallet::Config>::Currency as Currency<_>>::total_balance(&checking_account);
 		let ah_issuance_before = AhTotalIssuanceBefore::<T>::get();
 
 		// set it to the correct value:
