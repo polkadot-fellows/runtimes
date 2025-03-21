@@ -76,3 +76,25 @@ coretime-kusama = ["coretime-kusama-runtime"]
 coretime-polkadot = ["coretime-polkadot-runtime"]
 people-kusama = ["people-kusama-runtime"]
 people-polkadot = ["people-polkadot-runtime"]
+
+all-polkadot = [
+	"polkadot",
+	"asset-hub-polkadot",
+	"collectives-polkadot",
+	"bridge-hub-polkadot",
+	"coretime-polkadot",
+	"people-polkadot"
+]
+all-kusama = [
+	"kusama",
+	"asset-hub-kusama",
+	"bridge-hub-kusama",
+	"encointer-kusama",
+	"glutton-kusama",
+	"coretime-kusama",
+	"people-kusama",
+]
+all-runtimes = [
+	"all-polkadot",
+	"all-kusama",
+]
