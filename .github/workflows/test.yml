@@ -222,6 +222,13 @@ jobs:
         run: |
           cargo build -p chain-spec-generator --features fast-runtime --release --locked
 
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker info
+          docker ps -a
+          docker --version
+
       - name: Zombienet smoke test
         timeout-minutes: 20
         run: |
@@ -258,6 +265,13 @@ jobs:
         with:
           shared-key: "fellowship-cache-zombienet-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker info
+          docker ps -a
+          docker --version
 
       - name: Zombienet smoke test
         timeout-minutes: 20
