@@ -47,7 +47,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   runtime-test:
-    needs: [runtime-matrix, zombienet-smoke]
+    needs: [runtime-matrix]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -111,7 +111,7 @@ jobs:
 
   # Job required by "confirmTestPassed"
   integration-test:
-    needs: [integration-test-matrix, zombienet-smoke]
+    needs: [integration-test-matrix]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -233,7 +233,7 @@ jobs:
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
-    needs: [ runtime-matrix, zombienet-smoke ]
+    needs: [ runtime-matrix ]
     runs-on: ubuntu-latest
     strategy:
       # Ensure the other jobs are continue
@@ -285,7 +285,7 @@ jobs:
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes, zombienet-smoke]
+    needs: [runtime-matrix, build-runtimes]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:

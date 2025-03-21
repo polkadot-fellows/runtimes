@@ -113,9 +113,9 @@ jobs:
           EXTRA_FLAGS: ${{ env.EXTRA_FLAGS }}
           CHECKS: ${{ env.CHECKS }}
         run: |
-          # cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
+          cargo install -q --git https://github.com/paritytech/try-runtime-cli --tag v0.8.0 --locked && try-runtime --version
 
-          # cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
+          cargo build --profile production -p ${{ matrix.runtime.package }} --features try-runtime -q --locked
 
           PACKAGE_NAME=${{ matrix.runtime.package }}
           RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
@@ -125,12 +125,12 @@ jobs:
           echo "Extra args: $EXTRA_FLAGS"
 
           # Store the command in a variable so we can log it
-          # COMMAND="try-runtime \
-          #  --runtime $RUNTIME_BLOB_PATH \
-          #  $TRY_RUNTIME_EXTRA_ARGS \
-          #  on-runtime-upgrade --checks=$CHECKS \
-          #  $EXTRA_FLAGS \
-          #  live --uri ${{ matrix.runtime.uri }}"
+          COMMAND="try-runtime \
+            --runtime $RUNTIME_BLOB_PATH \
+            $TRY_RUNTIME_EXTRA_ARGS \
+            on-runtime-upgrade --checks=$CHECKS \
+            $EXTRA_FLAGS \
+            live --uri ${{ matrix.runtime.uri }}"
 
           # Echo the command before running it, for debugging purposes
           echo "Running command:"
