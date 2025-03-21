@@ -1,50 +1,32 @@
 use std::time::Instant;
 use subxt::ext::futures::StreamExt;
 use zombienet_sdk_tests::{
-	environment::{
-		get_images_from_env, get_spawn_fn
-	},
-	small_network, wait_subxt_client
+	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
+	small_network, wait_subxt_client,
 };
 
-#[test]
-fn dump_docker_images() {
-	let output = std::process::Command::new("docker")
-		.arg("images")
-		.output()
-		.expect("Failed to execute command");
+fn dump_provider_and_versions() {
+	let provider = get_provider_from_env();
+	log::info!("Using zombienet provider: {:?}", provider);
 
-	if output.status.success() {
-		let stdout = String::from_utf8_lossy(&output.stdout);
-		eprintln!("Docker Images:\n{}", stdout);
-		log::info!("Docker Images:\n{}", stdout);
-	} else {
-		let stderr = String::from_utf8_lossy(&output.stderr);
-		eprintln!("Error:\n{}", stderr);
-		log::error!("Error:\n{}", stderr);
-	}
-}
+	if let Provider::Docker = provider {
+		let images = get_images_from_env();
 
-#[test]
-fn dump_docker_binary_versions() {
-	let images = get_images_from_env();
+		for image in [images.polkadot, images.cumulus] {
+			let output = std::process::Command::new("docker")
+				.arg("run")
+				.arg(image.clone())
+				.arg("--version")
+				.output()
+				.expect("Failed to execute command");
 
-	for image in [images.polkadot, images.cumulus] {
-		let output = std::process::Command::new("docker")
-			.arg("run")
-			.arg(image.clone())
-			.arg("--version")
-			.output()
-			.expect("Failed to execute command");
-
-		if output.status.success() {
-			let stdout = String::from_utf8_lossy(&output.stdout);
-			eprintln!("{} binary version: {}", image, stdout);
-			log::info!("{} binary version: {}", image, stdout);
-		} else {
-			let stderr = String::from_utf8_lossy(&output.stderr);
-			eprintln!("Error: {}", stderr);
-			log::error!("Error: {}", stderr);
+			if output.status.success() {
+				let stdout = String::from_utf8_lossy(&output.stdout);
+				log::info!("{} binary version: {}", image, stdout.trim());
+			} else {
+				let stderr = String::from_utf8_lossy(&output.stderr);
+				log::error!("Error: {}", stderr);
+			}
 		}
 	}
 }
@@ -54,6 +36,7 @@ async fn smoke() {
 	tracing_subscriber::fmt::init();
 
 	// config and env
+	dump_provider_and_versions();
 	let spawn_fn = get_spawn_fn();
 	let config = small_network().unwrap();
 

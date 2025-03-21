@@ -225,8 +225,6 @@ jobs:
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
-          docker info
-          docker ps -a
           docker --version
 
       - name: Zombienet smoke test
@@ -234,53 +232,6 @@ jobs:
         run: |
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
-
-  # Job required by "confirmTestPassed"
-  zombienet-smoke-wip:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install updates and dependencies
-        run: .github/install-deps.sh
-
-      - name: Set rust version via common env file
-        run: cat .github/env >> $GITHUB_ENV
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          targets: "wasm32-unknown-unknown"
-          components: "rust-src"
-          toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Wait for Docker to Start
-        run: |
-          timeout 30 sh -c 'until docker info; do sleep 1; done'
-          docker info
-          docker ps -a
-          docker --version
-
-      - name: Zombienet smoke test
-        timeout-minutes: 20
-        env:
-          RUST_TEST_NOCAPTURE: 1
-        run: |
-          cargo test --manifest-path integration-tests/zombienet/Cargo.toml dump_docker_images
-          cargo test --manifest-path integration-tests/zombienet/Cargo.toml dump_docker_binary_versions
-
 
   build-runtimes:
     needs: [ runtime-matrix, zombienet-smoke ]
