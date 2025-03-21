@@ -238,7 +238,7 @@ pub struct OriginPrivilegeCmp;
 impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 
 		match (left, right) {
@@ -1576,7 +1576,7 @@ parameter_types! {
 	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
 	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
 	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
-	pub RcMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, u64::MAX); // TODO set the actual max weight
+	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 }
 
@@ -2135,7 +2135,7 @@ pub(crate) mod restore_corrupted_ledgers {
 						stash.clone(),
 					);
 					err_migration += 1;
-					continue
+					continue;
 				};
 
 				// restore currupted ledger.
@@ -2155,7 +2155,7 @@ pub(crate) mod restore_corrupted_ledgers {
 							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
 							err
 						);
-						continue
+						continue;
 					},
 				};
 
@@ -3008,7 +3008,7 @@ sp_api::impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 			use xcm::latest::prelude::*;
-			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, LocalCheckAccount, SovereignAccountOf};
+			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, TeleportTracking, SovereignAccountOf};
 
 			impl pallet_session_benchmarking::Config for Runtime {}
 			impl pallet_offences_benchmarking::Config for Runtime {}
@@ -3121,7 +3121,7 @@ sp_api::impl_runtime_apis! {
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 				type TransactAsset = Balances;
 
-				type CheckedAccount = LocalCheckAccount;
+				type CheckedAccount = TeleportTracking;
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
@@ -3691,7 +3691,7 @@ mod remote_tests {
 	#[tokio::test]
 	async fn dispatch_all_proposals() {
 		if var("RUN_OPENGOV_TEST").is_err() {
-			return
+			return;
 		}
 
 		sp_tracing::try_init_simple();
@@ -3737,7 +3737,7 @@ mod remote_tests {
 	#[tokio::test]
 	async fn run_migrations() {
 		if var("RUN_MIGRATION_TESTS").is_err() {
-			return
+			return;
 		}
 
 		sp_tracing::try_init_simple();

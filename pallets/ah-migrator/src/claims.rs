@@ -21,7 +21,10 @@ use pallet_rc_migrator::claims::{alias, RcClaimsMessage, RcClaimsMessageOf};
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_claims(messages: Vec<RcClaimsMessageOf<T>>) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Integrating {} claims", messages.len());
-		Self::deposit_event(Event::ClaimsBatchReceived { count: messages.len() as u32 });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::Claims,
+			count: messages.len() as u32,
+		});
 		let (mut count_good, mut count_bad) = (0, 0);
 
 		for message in messages {
@@ -33,7 +36,11 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		Self::deposit_event(Event::ClaimsBatchProcessed { count_good, count_bad });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::Claims,
+			count_good,
+			count_bad,
+		});
 
 		Ok(())
 	}

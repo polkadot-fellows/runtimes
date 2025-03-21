@@ -50,7 +50,9 @@ pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
 pub mod treasury;
+pub mod xcm_config;
 
+use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
@@ -61,7 +63,7 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, Defensive, LockableCurrency, ReservableCurrency,
+		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency,
 	},
 	weights::{Weight, WeightMeter},
 };
@@ -93,6 +95,7 @@ use vesting::VestingMigrator;
 use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -310,6 +313,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::Fr
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
 			"treasury" => MigrationStage::TreasuryMigrationInit,
+			"proxy" => MigrationStage::ProxyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -394,6 +398,8 @@ pub mod pallet {
 		XcmError,
 		/// Failed to withdraw account from RC for migration to AH.
 		FailedToWithdrawAccount,
+		/// Indicates that the specified block number is in the past.
+		PastBlockNumber,
 	}
 
 	#[pallet::event]
@@ -412,11 +418,15 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
-	/// Helper storage item to obtain and store the known accounts that should be kept partially on
+	/// Helper storage item to obtain and store the known accounts that should be kept partially or
 	/// fully on Relay Chain.
 	#[pallet::storage]
 	pub type RcAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, accounts::AccountState<T::Balance>, OptionQuery>;
+
+	/// Helper storage item to store the total balance that should be kept on Relay Chain.
+	#[pallet::storage]
+	pub type RcBalanceKept<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
 
 	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
 	/// the Asset Hub has confirmed as processed.
@@ -468,6 +478,7 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 			let block_number = start_moment.evaluate(now);
+			ensure!(block_number > now, Error::<T>::PastBlockNumber);
 			Self::transition(MigrationStage::Scheduled { block_number });
 			Ok(())
 		}
@@ -517,10 +528,7 @@ pub mod pallet {
 
 			match stage {
 				MigrationStage::Pending => {
-					// TODO: we should do nothing on pending stage.
-					// On production the AH will send a message and initialize the migration.
-					// Now we transition to `AccountsMigrationInit` to run tests
-					Self::transition(MigrationStage::AccountsMigrationInit);
+					return weight_counter.consumed();
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
@@ -539,6 +547,7 @@ pub mod pallet {
 					},
 				MigrationStage::Initializing => {
 					// waiting AH to send a message and to start sending the data
+					return weight_counter.consumed();
 				},
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
@@ -1420,6 +1429,15 @@ pub mod pallet {
 				Err(e) => Err(e),
 			}
 		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = RcMigrationStage::<T>::get();
+			if stage.is_finished() || stage.is_ongoing() {
+				None
+			} else {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			}
+		}
 	}
 
 	impl<T: Config> types::MigrationStatus for Pallet<T> {
@@ -1453,5 +1471,19 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// Otherwise, allow the call.
 		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
+	}
+}
+
+// To be used for `IsTeleport` filter. Disallows teleports during the migration.
+impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let stage = RcMigrationStage::<T>::get();
+		if stage.is_ongoing() {
+			// during migration, no teleports (in or out) allowed
+			false
+		} else {
+			// before and after migration use normal filter
+			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+		}
 	}
 }

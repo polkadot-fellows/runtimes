@@ -15,7 +15,8 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 log = { workspace = true }
-xcm = { workspace = true }
+assets-common = { workspace = true }
+parachains-common = { workspace = true }
 impl-trait-for-tuples = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-balances = { workspace = true }
@@ -39,6 +40,7 @@ pallet-treasury = { workspace = true }
 pallet-timestamp = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
 runtime-parachains = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
@@ -49,6 +51,9 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 [features]
@@ -94,6 +99,11 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+	"assets-common/std",
+	"parachains-common/std",
+	"polkadot-runtime-constants/std",
+	"xcm-builder/std",
+	"xcm-executor/std"
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
@@ -125,6 +135,10 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"assets-common/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",

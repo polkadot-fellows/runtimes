@@ -179,7 +179,7 @@ pub type AccountFor<T> = Account<
 	<T as pallet_balances::Config>::FreezeIdentifier,
 >;
 
-pub struct AccountsMigrator<T: Config> {
+pub struct AccountsMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
@@ -195,7 +195,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 	///
 	/// Result:
 	/// - None - no accounts left to be migrated to AH.
-	/// - Some(maybe_last_key) - the last migrated account from RC to AH if
+	/// - Some(maybe_last_key) - the last migrated account from RC to AH if any
 	fn migrate_many(
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
@@ -294,7 +294,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Migrate a single account out of the Relay chain and return it.
 	///
 	/// The account on the relay chain is modified as part of this operation.
-	fn withdraw_account(
+	pub fn withdraw_account(
 		who: T::AccountId,
 		account_info: AccountInfoFor<T>,
 		rc_weight: &mut WeightMeter,
@@ -306,29 +306,14 @@ impl<T: Config> AccountsMigrator<T> {
 			return Err(Error::OutOfWeight);
 		}
 
-		let rc_state = Self::get_rc_state(&who);
-
-		let (rc_reserve, rc_free_min) = match rc_state {
-			AccountState::Preserve => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Preserve account '{:?}' on Relay Chain",
-					who.to_ss58check(),
-				);
-				return Ok(None);
-			},
-			AccountState::Part { reserved } => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
-					who.to_ss58check(),
-					&reserved,
-				);
-				(reserved, <T as Config>::Currency::minimum_balance())
-			},
-			// migrate the entire account
-			AccountState::Migrate => (0, 0),
-		};
+		if let AccountState::Preserve = Self::get_rc_state(&who) {
+			log::debug!(
+				target: LOG_TARGET,
+				"Preserve account '{:?}' on Relay Chain",
+				who.to_ss58check(),
+			);
+			return Ok(None);
+		}
 
 		log::debug!(
 			target: LOG_TARGET,
@@ -340,29 +325,13 @@ impl<T: Config> AccountsMigrator<T> {
 		// - keep `balance`, `holds`, `freezes`, .. in memory
 		// - check if there is anything to migrate
 		// - release all `holds`, `freezes`, ...
-		// - teleport all balance from RC to AH:
-		// -- mint into XCM `checking` account
-		// -- burn from target account
+		// - burn from target account the `balance` to be moved from RC to AH
 		// - add `balance`, `holds`, `freezes`, .. to the accounts package to be sent via XCM
 
 		let account_data: AccountData<T::Balance> = account_info.data.clone();
 
-		if account_data.free.is_zero() &&
-			account_data.reserved.is_zero() &&
-			account_data.frozen.is_zero()
-		{
-			if account_info.nonce.is_zero() {
-				log::warn!(
-					target: LOG_TARGET,
-					"Possible system account detected. \
-					Consumer ref: {}, Provider ref: {}, Account: '{}'",
-					account_info.consumers,
-					account_info.providers,
-					who.to_ss58check()
-				);
-			} else {
-				log::warn!(target: LOG_TARGET, "Weird account detected '{}'", who.to_ss58check());
-			}
+		if !Self::can_migrate_account(&who, &account_info) {
+			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
 			return Ok(None);
 		}
 
@@ -388,19 +357,56 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 		}
 
+		let ed = <T as Config>::Currency::minimum_balance();
 		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {
-			if let Err(e) =
-				<T as Config>::Currency::release(&hold.id, &who, hold.amount, Precision::Exact)
-			{
+			let IdAmount { id, amount } = hold.clone();
+			let free = <T as Config>::Currency::balance(&who);
+
+			// When the free balance is below the minimum balance and we attempt to release a hold,
+			// the `fungible` implementation would burn the entire free balance while zeroing the
+			// hold. To prevent this, we partially release the hold just enough to raise the free
+			// balance to the minimum balance, while maintaining some balance on hold. This approach
+			// prevents the free balance from being burned.
+			// This scenario causes a panic in the test environment - see:
+			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
+			let amount = if free < ed && amount.saturating_sub(ed - free) > 0 {
+				log::debug!(
+					target: LOG_TARGET,
+					"Partially releasing hold to prevent the free balance from being burned"
+				);
+				let partial_amount = ed - free;
+				if let Err(e) =
+					<T as Config>::Currency::release(&id, &who, partial_amount, Precision::Exact)
+				{
+					log::error!(target: LOG_TARGET,
+						"Failed to partially release hold: {:?} \
+						for account: {:?}, \
+						partial amount: {:?}, \
+						with error: {:?}",
+						id,
+						who.to_ss58check(),
+						partial_amount,
+						e
+					);
+					return Err(Error::FailedToWithdrawAccount);
+				}
+				amount - partial_amount
+			} else {
+				amount
+			};
+
+			if let Err(e) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
 				log::error!(target: LOG_TARGET,
-					"Failed to release hold: {:?} \
-					for account: {:?} \
+					"Failed to release the hold: {:?} \
+					for account: {:?}, \
+					amount: {:?}, \
 					with error: {:?}",
-					hold.id,
+					id,
 					who.to_ss58check(),
+					amount,
 					e
 				);
 				return Err(Error::FailedToWithdrawAccount);
@@ -417,6 +423,31 @@ impl<T: Config> AccountsMigrator<T> {
 			// - "pyconvot"
 			<T as Config>::Currency::remove_lock(lock.id, &who);
 		}
+
+		let rc_state = Self::get_rc_state(&who);
+		let (rc_reserve, rc_free_min) = match rc_state {
+			AccountState::Part { reserved } => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
+					who.to_ss58check(),
+					&reserved,
+				);
+				(reserved, <T as Config>::Currency::minimum_balance())
+			},
+			// migrate the entire account
+			AccountState::Migrate => (0, 0),
+			// this should not happen bc AccountState::Preserve is checked at the very beginning.
+			_ => {
+				log::warn!(
+					target: LOG_TARGET,
+					"Unexpected account state for '{:?}' on Relay Chain: {:?}",
+					who.to_ss58check(),
+					rc_state,
+				);
+				return Err(Error::FailedToWithdrawAccount);
+			},
+		};
 
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
 		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
@@ -477,22 +508,6 @@ impl<T: Config> AccountsMigrator<T> {
 
 		debug_assert!(teleport_total == burned);
 
-		let minted =
-			match <T as Config>::Currency::mint_into(&T::CheckingAccount::get(), teleport_total) {
-				Ok(minted) => minted,
-				Err(e) => {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to mint balance into checking account: {}, error: {:?}",
-						who.to_ss58check(),
-						e
-					);
-					return Err(Error::FailedToWithdrawAccount);
-				},
-			};
-
-		debug_assert!(teleport_total == minted);
-
 		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
@@ -507,18 +522,54 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let an_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
-		if ah_weight.try_consume(an_receive_weight).is_err() {
+		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		if ah_weight.try_consume(ah_receive_weight).is_err() {
 			log::debug!(
 				target: LOG_TARGET,
 				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
 				ah_weight,
-				an_receive_weight
+				ah_receive_weight
 			);
 			return Err(Error::OutOfWeight);
 		}
 
 		Ok(Some(withdrawn_account))
+	}
+
+	/// Check if the account can be withdrawn and migrated to AH.
+	pub fn can_migrate_account(who: &T::AccountId, account: &AccountInfoFor<T>) -> bool {
+		let ed = <T as Config>::Currency::minimum_balance();
+		let total_balance = <T as Config>::Currency::total_balance(who);
+		if total_balance < ed {
+			if account.nonce.is_zero() {
+				log::info!(
+					target: LOG_TARGET,
+					"Possible system non-migratable account detected. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			} else {
+				log::info!(
+					target: LOG_TARGET,
+					"Non-migratable account detected. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			}
+			if !total_balance.is_zero() || !account.data.frozen.is_zero() {
+				log::warn!(
+					target: LOG_TARGET,
+					"Non-migratable account has non-zero balance. \
+					Account: '{}', info: {:?}",
+					who.to_ss58check(),
+					account
+				);
+			}
+			return false;
+		}
+		true
 	}
 
 	/// Get the weight for importing a single account on Asset Hub.
@@ -582,7 +633,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// The part of the balance of the `who` that must stay on the Relay Chain.
 	pub fn get_rc_state(who: &T::AccountId) -> AccountStateFor<T> {
 		// TODO: static list of System Accounts that must stay on RC
-		// e.g. XCM teleport checking account
+		// note: XCM teleport checking account not one of them - shall be completely migrated
 
 		if let Some(state) = RcAccounts::<T>::get(who) {
 			return state;
@@ -646,7 +697,7 @@ impl<T: Config> AccountsMigrator<T> {
 			if rc_reserved == 0 {
 				log::debug!(
 					target: LOG_TARGET,
-					"Account has no enough reserved balance to keep on RC. account: {:?}.",
+					"Account doesn't have enough reserved balance to keep on RC. account: {:?}.",
 					id.to_ss58check(),
 				);
 				continue;
@@ -661,6 +712,8 @@ impl<T: Config> AccountsMigrator<T> {
 					"Preserve account: {:?} on the RC",
 					id.to_ss58check()
 				);
+				// entire balance is kept
+				RcBalanceKept::<T>::mutate(|total| *total += free + total_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
 				log::debug!(
@@ -669,6 +722,7 @@ impl<T: Config> AccountsMigrator<T> {
 					id.to_ss58check(),
 					rc_reserved
 				);
+				RcBalanceKept::<T>::mutate(|total| *total += rc_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}
@@ -716,5 +770,33 @@ impl<T: Config> AccountsMigrator<T> {
 		let ah_acc = ah_raw.try_into().map_err(|_| ()).defensive()?;
 
 		Ok(Some((ah_acc, para_id)))
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
+	// rc_total_issuance_before
+	type RcPrePayload = BalanceOf<T>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		<T as Config>::Currency::total_issuance()
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		let check_account = T::CheckingAccount::get();
+		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		assert_eq!(checking_balance, 0);
+
+		let mut kept = 0;
+		for (who, acc_state) in RcAccounts::<T>::iter() {
+			kept += match acc_state {
+				AccountState::Migrate => 0,
+				AccountState::Preserve => <T as Config>::Currency::total_balance(&who),
+				AccountState::Part { reserved } => reserved,
+			};
+		}
+
+		assert_eq!(RcBalanceKept::<T>::get(), kept);
+		//assert_eq!(<T as Config>::Currency::total_issuance(), kept); // TODO Adrian
 	}
 }

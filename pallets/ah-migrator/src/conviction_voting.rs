@@ -27,13 +27,20 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		log::info!(target: LOG_TARGET, "Processing {} conviction voting messages", messages.len());
 		let count = messages.len() as u32;
-		Self::deposit_event(Event::ConvictionVotingMessagesReceived { count });
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::ConvictionVoting,
+			count,
+		});
 
 		for message in messages {
 			Self::do_receive_conviction_voting_message(message);
 		}
 
-		Self::deposit_event(Event::ConvictionVotingMessagesProcessed { count_good: count });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::ConvictionVoting,
+			count_good: count,
+			count_bad: 0,
+		});
 
 		Ok(())
 	}

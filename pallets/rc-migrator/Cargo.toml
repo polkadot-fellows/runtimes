@@ -39,8 +39,11 @@ pallet-nomination-pools = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
+polkadot-runtime-constants = { workspace = true }
 hex-literal = { workspace = true }
 xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 sp-staking = { workspace = true }
 
 [features]
@@ -78,6 +81,9 @@ std = [
 	"sp-staking/std",
 	"sp-std/std",
 	"xcm/std",
+	"polkadot-runtime-constants/std",
+	"xcm-builder/std",
+	"xcm-executor/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -104,6 +110,8 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",

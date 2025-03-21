@@ -528,7 +528,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
+					//RuntimeCall::Bounties(..) | # TODO more
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.

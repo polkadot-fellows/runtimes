@@ -54,13 +54,14 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(ConvictionVotingStage::VotingFor(None));
 		let mut messages = Vec::new();
+		let mut made_progress = false;
 
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
-				if messages.is_empty() {
+				if !made_progress {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
@@ -70,6 +71,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
 				break;
 			}
+			made_progress = true;
 
 			last_key = match last_key {
 				ConvictionVotingStage::VotingFor(last_voting_key) => {
@@ -85,7 +87,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 							if Pallet::<T>::is_empty_conviction_vote(&voting) {
 								// from the Polkadot 17.01.2025 snapshot 20575 records
 								// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-								log::info!(
+								log::debug!(target: LOG_TARGET,
 									"VotingFor {:?} is ignored since it has zero voting capital",
 									(&account_id, &class)
 								);
@@ -115,7 +117,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 								if balance.is_zero() {
 									// from the Polkadot 17.01.2025 snapshot 8522 records
 									// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-									log::info!(
+									log::debug!(target: LOG_TARGET,
 										"ClassLocksFor {:?} is ignored since it has a zero balance",
 										(&account_id, &class)
 									);

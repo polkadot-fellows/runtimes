@@ -24,14 +24,18 @@ impl<T: Config> Pallet<T> {
 		log::info!(target: LOG_TARGET, "Processing {} asset rates", rates.len());
 
 		let count = rates.len() as u32;
-		Self::deposit_event(Event::AssetRatesReceived { count });
+		Self::deposit_event(Event::BatchReceived { pallet: PalletEventName::AssetRates, count });
 
 		for rate in rates {
 			Self::do_receive_asset_rate(rate)?;
 		}
 
 		log::info!(target: LOG_TARGET, "Processed {} asset rates", count);
-		Self::deposit_event(Event::AssetRatesProcessed { count_good: count, count_bad: 0 });
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::AssetRates,
+			count_good: count,
+			count_bad: 0,
+		});
 
 		Ok(())
 	}

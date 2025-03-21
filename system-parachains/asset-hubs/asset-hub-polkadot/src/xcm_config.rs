@@ -21,7 +21,7 @@ use super::{
 };
 use crate::ForeignAssetsInstance;
 use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset},
+	matching::{FromNetwork, IsForeignConcreteAsset},
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
@@ -35,7 +35,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::xcm_config::{
-	AllSiblingSystemParachains, AssetFeeAsExistentialDepositMultiplier, ConcreteAssetFromSystem,
+	AllSiblingSystemParachains, AssetFeeAsExistentialDepositMultiplier,
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -49,8 +49,8 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
 	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
-	IsConcrete, LocalMint, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
+	IsConcrete, LocalMint, MintLocation, NoChecking, ParentAsSuperuser, ParentIsPreset,
+	RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignPaidRemoteExporter,
 	SovereignSignedViaLocation, StartsWith, StartsWithExplicitGlobalConsensus, TakeWeightCredit,
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
@@ -82,6 +82,8 @@ parameter_types! {
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
+	/// The Checking Account along with the indication that the local chain is able to mint tokens.
+	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -115,8 +117,8 @@ pub type FungibleTransactor = FungibleAdapter<
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// We don't track any teleports of `Balances`.
-	(),
+	// Teleports tracking is managed by `AhMigrator`: no tracking before, track after.
+	TeleportTracking,
 >;
 
 /// `AssetId`/`Balance` converter for `TrustBackedAssets`.
@@ -343,15 +345,6 @@ pub type WaivedLocations = (
 	AmbassadorEntities,
 );
 
-/// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
-///
-/// - DOT with the parent Relay Chain and sibling system parachains; and
-/// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
-pub type TrustedTeleporters = (
-	ConcreteAssetFromSystem<DotLocation>,
-	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
-);
-
 /// Multiplier used for dedicated `TakeFirstAssetTrader` with `ForeignAssets` instance.
 pub type ForeignAssetFeeAsExistentialDepositMultiplierFeeCharger =
 	AssetFeeAsExistentialDepositMultiplier<
@@ -376,7 +369,7 @@ impl xcm_executor::Config for XcmConfig {
 		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		bridging::to_ethereum::EthereumAssetFromEthereum,
 	);
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter = crate::AhMigrator;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
