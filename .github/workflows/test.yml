@@ -48,7 +48,7 @@ jobs:
   # Job required by "confirmTestPassed"
   runtime-test:
     needs: [runtime-matrix, zombienet-smoke]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -112,7 +112,7 @@ jobs:
   # Job required by "confirmTestPassed"
   integration-test:
     needs: [integration-test-matrix, zombienet-smoke]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
@@ -322,7 +322,7 @@ jobs:
 
   ecosystem-tests:
     needs: [runtime-matrix, build-runtimes, zombienet-smoke]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout sources

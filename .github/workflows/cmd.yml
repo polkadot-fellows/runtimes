@@ -218,7 +218,7 @@ jobs:
     env:
       JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
-    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'self-hosted' || 'ubuntu-22.04' }}
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'self-hosted' || 'ubuntu-latest' }}
     steps:
       - name: Get command
         uses: actions-ecosystem/action-regex-match@v2
