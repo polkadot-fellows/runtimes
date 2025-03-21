@@ -91,7 +91,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("glutton"),
 	impl_name: create_runtime_str!("glutton"),
 	authoring_version: 1,
-	spec_version: 1_003_003,
+	spec_version: 1_004_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -294,13 +294,36 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use super::*;
+
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_glutton, Glutton]
 		[pallet_message_queue, MessageQueue]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 	);
+
+	impl frame_system_benchmarking::Config for Runtime {
+		fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
+			Ok(())
+		}
+
+		fn verify_set_code() {
+			System::assert_last_event(
+				cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into(),
+			);
+		}
+	}
+
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
+	pub use frame_system_benchmarking::Pallet as SystemBench;
+	pub use sp_storage::TrackedStorageKey;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+use benches::*;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -409,10 +432,6 @@ impl_runtime_apis! {
 			Vec<frame_benchmarking::BenchmarkList>,
 			Vec<frame_support::traits::StorageInfo>,
 		) {
-			use frame_benchmarking::{Benchmarking, BenchmarkList};
-			use frame_support::traits::StorageInfoTrait;
-			use frame_system_benchmarking::Pallet as SystemBench;
-
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -424,22 +443,6 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch,  BenchmarkError};
-			use sp_storage::TrackedStorageKey;
-
-			use frame_system_benchmarking::Pallet as SystemBench;
-			impl frame_system_benchmarking::Config for Runtime {
-				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
-					ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
-					Ok(())
-				}
-
-				fn verify_set_code() {
-					System::assert_last_event(cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into());
-				}
-			}
-
-			use frame_support::traits::WhitelistedStorageKeys;
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 
 			let mut batches = Vec::<BenchmarkBatch>::new();

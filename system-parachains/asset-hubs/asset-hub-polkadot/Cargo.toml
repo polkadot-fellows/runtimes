@@ -13,7 +13,7 @@ pallet-ah-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
-hex-literal = { optional = true, workspace = true }
+hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde_json = { features = ["alloc"], workspace = true }
@@ -62,6 +62,7 @@ pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
+pallet-state-trie-migration = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
@@ -94,7 +95,6 @@ primitive-types = { features = [
 	"scale-info",
 ], workspace = true }
 pallet-delegated-staking = { workspace = true }
-pallet-state-trie-migration = { workspace = true }
 
 # Polkadot
 pallet-xcm = { workspace = true }
@@ -127,7 +127,6 @@ pallet-xcm-bridge-hub-router = { workspace = true }
 snowbridge-router-primitives = { workspace = true }
 
 [dev-dependencies]
-hex-literal = { workspace = true }
 asset-test-utils = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
@@ -150,7 +149,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"hex-literal",
+	"kusama-runtime-constants/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
@@ -161,6 +160,7 @@ runtime-benchmarks = [
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
@@ -171,6 +171,7 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
@@ -183,15 +184,15 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
 	"system-parachains-common/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-delegated-staking/runtime-benchmarks",
-	"pallet-state-trie-migration/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -218,6 +219,7 @@ try-runtime = [
 	"pallet-child-bounties/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-delegated-staking/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
@@ -229,6 +231,7 @@ try-runtime = [
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
+	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
@@ -242,8 +245,6 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
-	"pallet-delegated-staking/try-runtime",
-	"pallet-state-trie-migration/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -286,6 +287,7 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
+	"pallet-delegated-staking/std",
 	"pallet-fast-unstake/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
@@ -298,6 +300,7 @@ std = [
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
+	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -344,8 +347,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"pallet-delegated-staking/std",
-	"pallet-state-trie-migration/std"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
