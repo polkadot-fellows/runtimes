@@ -38,81 +38,81 @@ fn main() -> Result<(), String> {
 
 	let supported_chains =
 		HashMap::<&str, Box<dyn Fn() -> Result<Box<dyn ChainSpec>, String>>>::from([
-				#[cfg(feature = "polkadot")]
+			#[cfg(feature = "polkadot")]
 			("polkadot-dev", Box::new(relay_chain_specs::polkadot_development_config) as Box<_>),
-				#[cfg(feature = "polkadot")]
+			#[cfg(feature = "polkadot")]
 			(
 				"polkadot-local",
 				Box::new(relay_chain_specs::polkadot_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama")]
 			("kusama-dev", Box::new(relay_chain_specs::kusama_development_config) as Box<_>),
-				#[cfg(feature = "kusama")]
+			#[cfg(feature = "kusama")]
 			("kusama-local", Box::new(relay_chain_specs::kusama_local_testnet_config) as Box<_>),
-				#[cfg(feature = "asset-hub-kusama")]
+			#[cfg(feature = "asset-hub-kusama")]
 			(
 				"asset-hub-kusama-local",
 				Box::new(system_parachains_specs::asset_hub_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "asset-hub-polkadot")]
+			#[cfg(feature = "asset-hub-polkadot")]
 			(
 				"asset-hub-polkadot-local",
 				Box::new(system_parachains_specs::asset_hub_polkadot_local_testnet_config)
 					as Box<_>,
 			),
-				#[cfg(feature = "collectives-polkadot")]
+			#[cfg(feature = "collectives-polkadot")]
 			(
 				"collectives-polkadot-local",
 				Box::new(system_parachains_specs::collectives_polkadot_local_testnet_config)
 					as Box<_>,
 			),
-				#[cfg(feature = "bridge-hub-polkadot")]
+			#[cfg(feature = "bridge-hub-polkadot")]
 			(
 				"bridge-hub-polkadot-local",
 				Box::new(system_parachains_specs::bridge_hub_polkadot_local_testnet_config)
 					as Box<_>,
 			),
-				#[cfg(feature = "bridge-hub-kusama")]
+			#[cfg(feature = "bridge-hub-kusama")]
 			(
 				"bridge-hub-kusama-local",
 				Box::new(system_parachains_specs::bridge_hub_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "glutton-kusama")]
+			#[cfg(feature = "glutton-kusama")]
 			(
 				"glutton-kusama-local",
 				Box::new(system_parachains_specs::glutton_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "encointer-kusama")]
+			#[cfg(feature = "encointer-kusama")]
 			(
 				"encointer-kusama-local",
 				Box::new(system_parachains_specs::encointer_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "coretime-kusama")]
+			#[cfg(feature = "coretime-kusama")]
 			(
 				"coretime-kusama",
 				Box::new(system_parachains_specs::coretime_kusama_config) as Box<_>,
 			),
-				#[cfg(feature = "coretime-kusama")]
+			#[cfg(feature = "coretime-kusama")]
 			(
 				"coretime-kusama-local",
 				Box::new(system_parachains_specs::coretime_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "coretime-polkadot")]
+			#[cfg(feature = "coretime-polkadot")]
 			(
 				"coretime-polkadot",
 				Box::new(system_parachains_specs::coretime_polkadot_config) as Box<_>,
 			),
-				#[cfg(feature = "coretime-polkadot")]
+			#[cfg(feature = "coretime-polkadot")]
 			(
 				"coretime-polkadot-local",
 				Box::new(system_parachains_specs::coretime_polkadot_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "people-kusama")]
+			#[cfg(feature = "people-kusama")]
 			(
 				"people-kusama-local",
 				Box::new(system_parachains_specs::people_kusama_local_testnet_config) as Box<_>,
 			),
-				#[cfg(feature = "people-polkadot")]
+			#[cfg(feature = "people-polkadot")]
 			(
 				"people-polkadot-local",
 				Box::new(system_parachains_specs::people_polkadot_local_testnet_config) as Box<_>,

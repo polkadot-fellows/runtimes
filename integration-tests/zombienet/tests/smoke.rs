@@ -1,5 +1,5 @@
 use std::time::Instant;
-use subxt::{{OnlineClient, PolkadotConfig}, ext::futures::StreamExt};
+use subxt::{ext::futures::StreamExt, OnlineClient, PolkadotConfig};
 use zombienet_sdk_tests::{
 	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
 	small_network,
@@ -48,7 +48,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 
 	let alice = network.get_node("alice")?;
 	// wait until the subxt client is ready
-	let alice_client: OnlineClient<PolkadotConfig>  = alice.wait_client().await?;
+	let alice_client: OnlineClient<PolkadotConfig> = alice.wait_client().await?;
 
 	// wait 10 blocks
 	let mut blocks = alice_client.blocks().subscribe_finalized().await.unwrap().take(10);
