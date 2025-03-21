@@ -139,10 +139,10 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 {
 	/// Check if the total account balance is liquid.
 	pub fn is_liquid(&self) -> bool {
-		self.unnamed_reserve.is_zero()
-			&& self.freezes.is_empty()
-			&& self.locks.is_empty()
-			&& self.holds.is_empty()
+		self.unnamed_reserve.is_zero() &&
+			self.freezes.is_empty() &&
+			self.locks.is_empty() &&
+			self.holds.is_empty()
 	}
 }
 
@@ -306,6 +306,15 @@ impl<T: Config> AccountsMigrator<T> {
 			return Err(Error::OutOfWeight);
 		}
 
+		if let AccountState::Preserve = Self::get_rc_state(&who) {
+			log::debug!(
+				target: LOG_TARGET,
+				"Preserve account '{:?}' on Relay Chain",
+				who.to_ss58check(),
+			);
+			return Ok(None);
+		}
+
 		log::debug!(
 			target: LOG_TARGET,
 			"Migrating account '{}'",
@@ -417,14 +426,6 @@ impl<T: Config> AccountsMigrator<T> {
 
 		let rc_state = Self::get_rc_state(&who);
 		let (rc_reserve, rc_free_min) = match rc_state {
-			AccountState::Preserve => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Preserve account '{:?}' on Relay Chain",
-					who.to_ss58check(),
-				);
-				return Ok(None);
-			},
 			AccountState::Part { reserved } => {
 				log::debug!(
 					target: LOG_TARGET,
@@ -436,6 +437,16 @@ impl<T: Config> AccountsMigrator<T> {
 			},
 			// migrate the entire account
 			AccountState::Migrate => (0, 0),
+			// this should not happen bc AccountState::Preserve is checked at the very beginning.
+			_ => {
+				log::warn!(
+					target: LOG_TARGET,
+					"Unexpected account state for '{:?}' on Relay Chain: {:?}",
+					who.to_ss58check(),
+					rc_state,
+				);
+				return Err("Unexpected account state".into());
+			},
 		};
 
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
