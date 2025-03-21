@@ -15,12 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use sc_chain_spec::{ChainSpec, ChainType, NoExtension};
+use sc_chain_spec::NoExtension;
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
+use sc_chain_spec::{ChainSpec, ChainType};
 
 pub type PolkadotChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
 pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
 const DEFAULT_PROTOCOL_ID: &str = "dot";
 
 /// Returns the properties for the [`PolkadotChainSpec`].

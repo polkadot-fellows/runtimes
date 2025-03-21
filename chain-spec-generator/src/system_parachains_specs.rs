@@ -15,10 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use sc_chain_spec::{ChainSpec, ChainSpecExtension, ChainSpecGroup, ChainType};
-use sc_network::config::MultiaddrWithPeerId;
+use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 /// Generic extensions for Parachain ChainSpecs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
@@ -53,7 +51,8 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 #[cfg(feature = "asset-hub-polkadot")]
-pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -66,7 +65,7 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 		)
 		.with_name("Polkadot Asset Hub Local")
 		.with_id("asset-hub-polkadot-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -74,7 +73,8 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 }
 
 #[cfg(feature = "asset-hub-kusama")]
-pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -87,7 +87,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		)
 		.with_name("Kusama Asset Hub Local")
 		.with_id("asset-hub-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -95,7 +95,8 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 }
 
 #[cfg(feature = "collectives-polkadot")]
-pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn collectives_polkadot_local_testnet_config(
+) -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -109,7 +110,7 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 		)
 		.with_name("Polkadot Collectives Local")
 		.with_id("collectives-polkadot-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -117,7 +118,8 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 }
 
 #[cfg(feature = "bridge-hub-polkadot")]
-pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn bridge_hub_polkadot_local_testnet_config(
+) -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -131,7 +133,7 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 		)
 		.with_name("Polkadot Bridge Hub Local")
 		.with_id("bridge-hub-polkadot-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -139,7 +141,8 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 }
 
 #[cfg(feature = "bridge-hub-kusama")]
-pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -152,7 +155,7 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		)
 		.with_name("Kusama Bridge Hub Local")
 		.with_id("bridge-hub-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -160,7 +163,7 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 }
 
 #[cfg(feature = "glutton-kusama")]
-pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 
@@ -171,7 +174,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 		)
 		.with_name("Kusama Glutton Local")
 		.with_id("glutton-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -179,7 +182,8 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 }
 
 #[cfg(feature = "encointer-kusama")]
-pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -192,7 +196,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 		)
 		.with_name("Kusama Encointer Local")
 		.with_id("encointer-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -200,7 +204,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 }
 
 #[cfg(feature = "coretime-kusama")]
-pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -213,7 +217,7 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 		)
 		.with_name("Kusama Coretime Local")
 		.with_id("coretime-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -221,7 +225,7 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 }
 
 #[cfg(feature = "coretime-kusama")]
-pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn coretime_kusama_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -241,14 +245,16 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 		)
 		.with_name("Kusama Coretime")
 		.with_id("coretime-kusama")
-		.with_chain_type(ChainType::Live)
+		.with_chain_type(sc_chain_spec::ChainType::Live)
 		.with_genesis_config_preset_name("live")
 		.with_properties(properties)
 		.with_boot_nodes(
 			boot_nodes
 				.iter()
 				.map(|addr| {
-					MultiaddrWithPeerId::from_str(addr).expect("Boot node address is incorrect.")
+					use std::str::FromStr;
+					sc_network::config::MultiaddrWithPeerId::from_str(addr)
+						.expect("Boot node address is incorrect.")
 				})
 				.collect(),
 		)
@@ -257,7 +263,8 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 }
 
 #[cfg(feature = "coretime-polkadot")]
-pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
+{
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -270,7 +277,7 @@ pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 		)
 		.with_name("Polkadot Coretime Local")
 		.with_id("coretime-polkadot-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -278,7 +285,7 @@ pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 }
 
 #[cfg(feature = "coretime-polkadot")]
-pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn coretime_polkadot_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -301,14 +308,16 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 		)
 		.with_name("Polkadot Coretime")
 		.with_id("coretime-polkadot")
-		.with_chain_type(ChainType::Live)
+		.with_chain_type(sc_chain_spec::ChainType::Live)
 		.with_genesis_config_preset_name("live")
 		.with_properties(properties)
 		.with_boot_nodes(
 			boot_nodes
 				.iter()
 				.map(|addr| {
-					MultiaddrWithPeerId::from_str(addr).expect("Boot node address is incorrect.")
+					use std::str::FromStr;
+					sc_network::config::MultiaddrWithPeerId::from_str(addr)
+						.expect("Boot node address is incorrect.")
 				})
 				.collect(),
 		)
@@ -317,7 +326,7 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 }
 
 #[cfg(feature = "people-kusama")]
-pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn people_kusama_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
 	properties.insert("tokenSymbol".into(), "KSM".into());
@@ -330,7 +339,7 @@ pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String
 		)
 		.with_name("Kusama People Local")
 		.with_id("people-kusama-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
@@ -338,7 +347,7 @@ pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String
 }
 
 #[cfg(feature = "people-polkadot")]
-pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
+pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenSymbol".into(), "DOT".into());
@@ -351,7 +360,7 @@ pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 		)
 		.with_name("Polkadot People Local")
 		.with_id("people-polkadot-local")
-		.with_chain_type(ChainType::Local)
+		.with_chain_type(sc_chain_spec::ChainType::Local)
 		.with_genesis_config_preset_name("local_testnet")
 		.with_properties(properties)
 		.build(),
