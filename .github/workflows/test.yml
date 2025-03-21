@@ -377,7 +377,7 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      #- zombienet-smoke
+      # FAIL-CI - zombienet-smoke
       - ecosystem-tests
       - ahm-test
     steps:
