@@ -306,30 +306,6 @@ impl<T: Config> AccountsMigrator<T> {
 			return Err(Error::OutOfWeight);
 		}
 
-		let rc_state = Self::get_rc_state(&who);
-
-		let (rc_reserve, rc_free_min) = match rc_state {
-			AccountState::Preserve => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Preserve account '{:?}' on Relay Chain",
-					who.to_ss58check(),
-				);
-				return Ok(None);
-			},
-			AccountState::Part { reserved } => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
-					who.to_ss58check(),
-					&reserved,
-				);
-				(reserved, <T as Config>::Currency::minimum_balance())
-			},
-			// migrate the entire account
-			AccountState::Migrate => (0, 0),
-		};
-
 		log::debug!(
 			target: LOG_TARGET,
 			"Migrating account '{}'",
@@ -438,6 +414,29 @@ impl<T: Config> AccountsMigrator<T> {
 			// - "pyconvot"
 			<T as Config>::Currency::remove_lock(lock.id, &who);
 		}
+
+		let rc_state = Self::get_rc_state(&who);
+		let (rc_reserve, rc_free_min) = match rc_state {
+			AccountState::Preserve => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Preserve account '{:?}' on Relay Chain",
+					who.to_ss58check(),
+				);
+				return Ok(None);
+			},
+			AccountState::Part { reserved } => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
+					who.to_ss58check(),
+					&reserved,
+				);
+				(reserved, <T as Config>::Currency::minimum_balance())
+			},
+			// migrate the entire account
+			AccountState::Migrate => (0, 0),
+		};
 
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
 		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
