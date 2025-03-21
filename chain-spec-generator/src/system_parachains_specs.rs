@@ -52,6 +52,7 @@ pub type PeopleKusamaChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
+#[cfg(feature = "asset-hub-polkadot")]
 pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -72,6 +73,7 @@ pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, S
 	))
 }
 
+#[cfg(feature = "asset-hub-kusama")]
 pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -92,6 +94,7 @@ pub fn asset_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	))
 }
 
+#[cfg(feature = "collectives-polkadot")]
 pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -113,6 +116,7 @@ pub fn collectives_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>,
 	))
 }
 
+#[cfg(feature = "bridge-hub-polkadot")]
 pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -134,6 +138,7 @@ pub fn bridge_hub_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, 
 	))
 }
 
+#[cfg(feature = "bridge-hub-kusama")]
 pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -154,6 +159,7 @@ pub fn bridge_hub_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 	))
 }
 
+#[cfg(feature = "glutton-kusama")]
 pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -172,6 +178,7 @@ pub fn glutton_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Strin
 	))
 }
 
+#[cfg(feature = "encointer-kusama")]
 pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -192,6 +199,7 @@ pub fn encointer_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Str
 	))
 }
 
+#[cfg(feature = "coretime-kusama")]
 pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -212,6 +220,7 @@ pub fn coretime_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, Stri
 	))
 }
 
+#[cfg(feature = "coretime-kusama")]
 pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -247,6 +256,7 @@ pub fn coretime_kusama_config() -> Result<Box<dyn ChainSpec>, String> {
 	))
 }
 
+#[cfg(feature = "coretime-polkadot")]
 pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -267,6 +277,7 @@ pub fn coretime_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, St
 	))
 }
 
+#[cfg(feature = "coretime-polkadot")]
 pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());
@@ -305,6 +316,7 @@ pub fn coretime_polkadot_config() -> Result<Box<dyn ChainSpec>, String> {
 	))
 }
 
+#[cfg(feature = "people-kusama")]
 pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 2.into());
@@ -325,6 +337,7 @@ pub fn people_kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String
 	))
 }
 
+#[cfg(feature = "people-polkadot")]
 pub fn people_polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	let mut properties = sc_chain_spec::Properties::new();
 	properties.insert("ss58Format".into(), 0.into());

@@ -24,6 +24,7 @@ pub type KusamaChainSpec = sc_chain_spec::GenericChainSpec<NoExtension>;
 const DEFAULT_PROTOCOL_ID: &str = "dot";
 
 /// Returns the properties for the [`PolkadotChainSpec`].
+#[cfg(feature = "polkadot")]
 pub fn polkadot_chain_spec_properties() -> serde_json::map::Map<String, serde_json::Value> {
 	serde_json::json!({
 		"tokenDecimals": 10,
@@ -34,6 +35,7 @@ pub fn polkadot_chain_spec_properties() -> serde_json::map::Map<String, serde_js
 }
 
 /// Polkadot development config (single validator Alice)
+#[cfg(feature = "polkadot")]
 pub fn polkadot_development_config() -> Result<Box<dyn ChainSpec>, String> {
 	Ok(Box::new(
 		PolkadotChainSpec::builder(
@@ -53,6 +55,7 @@ pub fn polkadot_development_config() -> Result<Box<dyn ChainSpec>, String> {
 }
 
 /// Kusama development config (single validator Alice)
+#[cfg(feature = "kusama")]
 pub fn kusama_development_config() -> Result<Box<dyn ChainSpec>, String> {
 	Ok(Box::new(
 		KusamaChainSpec::builder(
@@ -71,6 +74,7 @@ pub fn kusama_development_config() -> Result<Box<dyn ChainSpec>, String> {
 }
 
 /// Polkadot local testnet config (multivalidator Alice + Bob)
+#[cfg(feature = "polkadot")]
 pub fn polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	Ok(Box::new(
 		PolkadotChainSpec::builder(
@@ -90,6 +94,7 @@ pub fn polkadot_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 }
 
 /// Kusama local testnet config (multivalidator Alice + Bob)
+#[cfg(feature = "kusama")]
 pub fn kusama_local_testnet_config() -> Result<Box<dyn ChainSpec>, String> {
 	Ok(Box::new(
 		KusamaChainSpec::builder(
