@@ -522,13 +522,13 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let an_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
-		if ah_weight.try_consume(an_receive_weight).is_err() {
+		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		if ah_weight.try_consume(ah_receive_weight).is_err() {
 			log::debug!(
 				target: LOG_TARGET,
 				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
 				ah_weight,
-				an_receive_weight
+				ah_receive_weight
 			);
 			return Err(Error::OutOfWeight);
 		}
