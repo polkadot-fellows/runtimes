@@ -99,6 +99,11 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+	"assets-common/std",
+	"parachains-common/std",
+	"polkadot-runtime-constants/std",
+	"xcm-builder/std",
+	"xcm-executor/std"
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
@@ -130,6 +135,10 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"assets-common/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
