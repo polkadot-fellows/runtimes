@@ -78,23 +78,23 @@ people-kusama = ["people-kusama-runtime"]
 people-polkadot = ["people-polkadot-runtime"]
 
 all-polkadot = [
-	"polkadot",
 	"asset-hub-polkadot",
-	"collectives-polkadot",
 	"bridge-hub-polkadot",
+	"collectives-polkadot",
 	"coretime-polkadot",
-	"people-polkadot"
+	"people-polkadot",
+	"polkadot",
 ]
 all-kusama = [
-	"kusama",
 	"asset-hub-kusama",
 	"bridge-hub-kusama",
+	"coretime-kusama",
 	"encointer-kusama",
 	"glutton-kusama",
-	"coretime-kusama",
+	"kusama",
 	"people-kusama",
 ]
 all-runtimes = [
-	"all-polkadot",
 	"all-kusama",
+	"all-polkadot",
 ]
