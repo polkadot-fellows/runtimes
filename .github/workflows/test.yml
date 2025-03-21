@@ -185,8 +185,8 @@ jobs:
 
       - name: Download AHM test snapshots
         run: |
-          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmTdrtye7Vt2xDybZHR3Xjf8kbxXkSfk54AUz2DuKKGmrG?download=true&filename=try-runtime-snap-polkadot-25075273.snap.lz4 -o polkadot.snap.lz4
-          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmYhq75NLZEA1nJjx6JFuDYFMyYVJvRSAHBMQT26EEvGJk?download=true&filename=try-runtime-snap-polkadot-asset-hub-8384696.snap.lz4 -o ah-polkadot.snap.lz4
+          curl -sL 'https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmTdrtye7Vt2xDybZHR3Xjf8kbxXkSfk54AUz2DuKKGmrG?download=true&filename=try-runtime-snap-polkadot-25075273.snap.lz4' -o polkadot.snap.lz4
+          curl -sL 'https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmYhq75NLZEA1nJjx6JFuDYFMyYVJvRSAHBMQT26EEvGJk?download=true&filename=try-runtime-snap-polkadot-asset-hub-8384696.snap.lz4' -o ah-polkadot.snap.lz4
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
