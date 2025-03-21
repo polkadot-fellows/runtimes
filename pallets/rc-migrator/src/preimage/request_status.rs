@@ -64,6 +64,8 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 			log::debug!(target: LOG_TARGET, "Exported preimage request status for: {:?}", next_key_inner);
 
 			next_key = Self::next_key(Some(next_key_inner));
+			// Remove the migrated key from the relay chain
+			alias::RequestStatusFor::<T>::remove(next_key_inner);
 
 			if batch.len() >= 10 || next_key.is_none() {
 				// TODO weight checking
@@ -72,9 +74,13 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageRequestStatus { request_status: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceivePreimageRequestStatus {
+					request_status: batch,
+				},
+				|_| Weight::from_all(1), // TODO
+			)?;
 		}
 
 		Ok(new_next_key)
@@ -91,5 +97,34 @@ impl<T: Config> PreimageRequestStatusMigrator<T> {
 			)
 			.next(),
 		}
+	}
+}
+
+impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
+	type RcPrePayload = Vec<(H256, bool)>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		alias::RequestStatusFor::<T>::iter()
+			.filter(|(hash, _)| {
+				alias::PreimageFor::<T>::iter_keys().any(|(key_hash, _)| key_hash == *hash)
+			})
+			.map(|(hash, request_status)| {
+				(
+					hash,
+					match request_status {
+						alias::RequestStatus::Requested { .. } => true,
+						_ => false,
+					},
+				)
+			})
+			.collect()
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		assert_eq!(
+			alias::RequestStatusFor::<T>::iter().count(),
+			0,
+			"Preimage::RequestStatusFor is not empty on relay chain after migration"
+		);
 	}
 }

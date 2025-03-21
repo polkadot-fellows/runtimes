@@ -22,6 +22,7 @@ use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumInf
 pub enum ReferendaStage {
 	#[default]
 	StorageValues,
+	Metadata(Option<u32>),
 	ReferendumInfo(Option<u32>),
 }
 
@@ -40,8 +41,13 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 		let stage = match last_key {
 			None | Some(ReferendaStage::StorageValues) => {
 				Self::migrate_values(weight_counter)?;
-				Some(ReferendaStage::ReferendumInfo(None))
+				Some(ReferendaStage::Metadata(None))
 			},
+			Some(ReferendaStage::Metadata(last_key)) =>
+				Self::migrate_many_metadata(last_key, weight_counter)?
+					.map_or(Some(ReferendaStage::ReferendumInfo(None)), |last_key| {
+						Some(ReferendaStage::Metadata(Some(last_key)))
+					}),
 			Some(ReferendaStage::ReferendumInfo(last_key)) =>
 				Self::migrate_many_referendum_info(last_key, weight_counter)?
 					.map(|last_key| ReferendaStage::ReferendumInfo(Some(last_key))),
@@ -52,13 +58,9 @@ impl<T: Config> PalletMigration for ReferendaMigrator<T> {
 
 impl<T: Config> ReferendaMigrator<T> {
 	fn migrate_values(_weight_counter: &mut WeightMeter) -> Result<(), Error<T>> {
-		defensive_assert!(
-			MetadataOf::<T, ()>::iter_keys().next().is_none(),
-			"Referenda metadata is not empty"
-		);
+		log::debug!(target: LOG_TARGET, "Migrating referenda values");
 
 		let referendum_count = ReferendumCount::<T, ()>::take();
-
 		const TRACKS_COUNT: usize = 16;
 
 		// track_id, count
@@ -75,19 +77,91 @@ impl<T: Config> ReferendaMigrator<T> {
 			.collect::<Vec<_>>();
 		defensive_assert!(track_queue.len() <= TRACKS_COUNT, "Track queue unexpectedly large");
 
-		Pallet::<T>::send_xcm(types::AhMigratorCall::<T>::ReceiveReferendaValues {
-			referendum_count,
-			deciding_count,
-			track_queue,
-		})?;
+		Pallet::<T>::send_xcm_and_track(
+			types::AhMigratorCall::<T>::ReceiveReferendaValues {
+				referendum_count,
+				deciding_count,
+				track_queue,
+			},
+			Weight::from_all(1),
+		)?;
 
 		Ok(())
+	}
+
+	fn migrate_many_metadata(
+		mut last_key: Option<u32>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<u32>, Error<T>> {
+		log::debug!(target: LOG_TARGET, "Migrating referenda metadata");
+
+		// we should not send more than AH can handle within the block.
+		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
+		let mut batch = Vec::new();
+
+		let last_key = loop {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+				if batch.is_empty() {
+					defensive!("Out of weight too early");
+					return Err(Error::OutOfWeight);
+				} else {
+					break last_key;
+				}
+			}
+
+			// TODO: replace by the actual weight.
+			if ah_weight_counter.try_consume(Weight::from_all(1)).is_err() {
+				if batch.is_empty() {
+					defensive!("Out of weight too early");
+					return Err(Error::OutOfWeight);
+				} else {
+					break last_key;
+				}
+			}
+
+			let next_key = match last_key {
+				Some(last_key) => {
+					let Some(next_key) = MetadataOf::<T, ()>::iter_keys_from_key(last_key).next()
+					else {
+						break None;
+					};
+					next_key
+				},
+				None => {
+					let Some(next_key) = MetadataOf::<T, ()>::iter_keys().next() else {
+						break None;
+					};
+					next_key
+				},
+			};
+
+			let Some(hash) = MetadataOf::<T, ()>::take(next_key) else {
+				defensive!("MetadataOf is empty");
+				last_key = MetadataOf::<T, ()>::iter_keys_from_key(next_key).next();
+				continue;
+			};
+
+			batch.push((next_key, hash));
+			last_key = Some(next_key);
+		};
+
+		if !batch.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveReferendaMetadata { metadata: batch },
+				|_| Weight::from_all(1), // TODO
+			)?;
+		}
+
+		Ok(last_key)
 	}
 
 	fn migrate_many_referendum_info(
 		mut last_key: Option<u32>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<u32>, Error<T>> {
+		log::debug!(target: LOG_TARGET, "Migrating referenda info");
+
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
@@ -132,7 +206,7 @@ impl<T: Config> ReferendaMigrator<T> {
 				},
 			};
 
-			let Some(info) = pallet_referenda::ReferendumInfoFor::<T, ()>::take(next_key) else {
+			let Some(info) = ReferendumInfoFor::<T, ()>::take(next_key) else {
 				defensive!("ReferendumInfoFor is empty");
 				last_key = ReferendumInfoFor::<T, ()>::iter_keys_from_key(next_key).next();
 				continue;
@@ -143,9 +217,11 @@ impl<T: Config> ReferendaMigrator<T> {
 		};
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveReferendums { referendums: batch },
+				|_| Weight::from_all(1), // TODO
+			)?;
 		}
 
 		Ok(last_key)

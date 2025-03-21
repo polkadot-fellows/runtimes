@@ -255,9 +255,11 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(messages, |messages| {
-				types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages },
+				|_| Weight::from_all(1), // TODO
+			)?;
 		}
 
 		if inner_key == CrowdloanStage::Finished {

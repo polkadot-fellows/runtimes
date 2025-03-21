@@ -797,6 +797,7 @@ dependencies = [
  "pallet-child-bounties",
  "pallet-collator-selection",
  "pallet-conviction-voting",
+ "pallet-delegated-staking",
  "pallet-fast-unstake",
  "pallet-indices",
  "pallet-message-queue",
@@ -809,6 +810,7 @@ dependencies = [
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-state-trie-migration",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -7647,6 +7649,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
+ "assets-common",
  "chrono",
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -7677,9 +7680,11 @@ dependencies = [
  "pallet-timestamp",
  "pallet-treasury",
  "pallet-vesting",
+ "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
+ "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -7689,6 +7694,8 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-std",
  "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]
@@ -8935,6 +8942,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",
+ "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",
@@ -8944,6 +8952,8 @@ dependencies = [
  "sp-staking 36.0.0",
  "sp-std",
  "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]
@@ -10097,18 +10107,24 @@ name = "polkadot-integration-tests-ahm"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "pallet-ah-migrator",
  "pallet-balances",
+ "pallet-bounties",
  "pallet-indices",
  "pallet-message-queue",
+ "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-timestamp",
+ "pallet-whitelist",
+ "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
@@ -10118,6 +10134,8 @@ dependencies = [
  "polkadot-runtime-constants",
  "polkadot-runtime-parachains",
  "sc-consensus-grandpa",
+ "scale-info",
+ "sp-application-crypto 38.0.0",
  "sp-authority-discovery",
  "sp-consensus-babe",
  "sp-consensus-beefy",
@@ -10126,6 +10144,7 @@ dependencies = [
  "sp-runtime 39.0.5",
  "sp-storage 21.0.0",
  "sp-tracing 17.0.1",
+ "staging-xcm",
  "staging-xcm-builder",
  "tokio",
  "xcm-emulator",

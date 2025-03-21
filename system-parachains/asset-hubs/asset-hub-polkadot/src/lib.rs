@@ -528,7 +528,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques { .. } |
 					RuntimeCall::Scheduler(..) |
 					RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
+					//RuntimeCall::Bounties(..) | # TODO more
 					RuntimeCall::ChildBounties(..) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
@@ -1145,7 +1145,8 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
-	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	// TODO: weights::pallet_ah_migrator::WeightInfo;
+	type AhWeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }

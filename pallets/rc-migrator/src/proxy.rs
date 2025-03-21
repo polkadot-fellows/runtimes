@@ -23,7 +23,7 @@ extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
 
-pub struct ProxyProxiesMigrator<T: Config> {
+pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
 }
 
@@ -94,6 +94,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				&mut ah_weight,
 			) {
 				Ok(proxy) => {
+					pallet_proxy::Proxies::<T>::remove(&acc);
 					batch.push(proxy);
 					last_key = Some(acc); // Update last processed key
 				},
@@ -110,9 +111,11 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
+				|len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+			)?;
 		}
 
 		// Return last processed key if there are more items, None if we're done
@@ -194,9 +197,13 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Send batch if we have any items
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceiveProxyAnnouncements { announcements: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
+					announcements: batch,
+				},
+				|len| T::AhWeightInfo::receive_proxy_announcements(len),
+			)?;
 		}
 
 		// Return last processed key if there are more items, None if we're done
@@ -205,5 +212,18 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		} else {
 			Ok(None)
 		}
+	}
+}
+
+impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
+	type RcPrePayload = usize; // number of delegators
+
+	fn pre_check() -> Self::RcPrePayload {
+		pallet_proxy::Proxies::<T>::iter_keys().count()
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
+		assert_eq!(count, 0, "All proxies are removed from the relay");
 	}
 }

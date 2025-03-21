@@ -49,15 +49,16 @@ pub mod scheduler;
 pub mod staking;
 pub mod types;
 pub mod vesting;
+pub mod xcm_config;
 
 pub use pallet::*;
-pub use pallet_rc_migrator::types::ZeroWeightOr;
+pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
 
 use frame_support::{
 	pallet_prelude::*,
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
-		fungible::{InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -87,11 +88,12 @@ use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlockNumberProvider, Convert, TryConvert},
+	traits::{BlockNumberProvider, Convert, TryConvert, Zero},
 	AccountId32, FixedU128,
 };
 use sp_std::prelude::*;
 use xcm::prelude::*;
+use xcm_builder::MintLocation;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -111,6 +113,21 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	Balances,
+	Multisig,
+	Claims,
+	ProxyProxies,
+	ProxyAnnouncements,
+	PreimageChunk,
+	PreimageRequestStatus,
+	PreimageLegacyStatus,
+	NomPools,
+	ReferendaValues,
+	ReferendaMetadata,
+	ReferendaReferendums,
+	Scheduler,
+	ConvictionVoting,
+	AssetRates,
 }
 
 /// The migration stage on the Asset Hub.
@@ -143,11 +160,21 @@ impl MigrationStage {
 	}
 }
 
+/// Further data coming from Relay Chain alongside the signal that migration has finished.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+pub struct MigrationFinishedData {
+	/// Total native token balance NOT migrated from Relay Chain
+	pub rc_balance_kept: u128,
+}
+
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
+	use crate::xcm_config::TrustedTeleportersDuring;
+	use frame_support::traits::ContainsPair;
+	use pallet_rc_migrator::xcm_config::TrustedTeleportersBeforeAndAfter;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -251,6 +278,17 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type AhMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
 
+	/// The total number of XCM data messages processed from the Relay Chain and the number of XCM
+	/// messages that encountered an error during processing.
+	#[pallet::storage]
+	pub type DmpDataMessageCounts<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+
+	/// Helper storage item to store the total balance / total issuance of native token at the start
+	/// of the migration. Since teleports are disabled during migration, the total issuance will not
+	/// change for other reason than the migration itself.
+	#[pallet::storage]
+	pub type AhTotalIssuanceBefore<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.
@@ -272,14 +310,14 @@ pub mod pallet {
 		XcmError,
 		/// Failed to integrate a vesting schedule.
 		FailedToIntegrateVestingSchedule,
+		/// Checking account overflow or underflow.
+		FailedToCalculateCheckingAccount,
 		Unreachable,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// The event that should to be replaced by something meaningful.
-		TODO,
 		/// A stage transition has occurred.
 		StageTransition {
 			/// The old stage before the transition.
@@ -287,165 +325,10 @@ pub mod pallet {
 			/// The new stage after the transition.
 			new: MigrationStage,
 		},
-		/// We received a batch of accounts that we are going to integrate.
-		AccountBatchReceived {
-			/// How many accounts are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of accounts that we received.
-		AccountBatchProcessed {
-			/// How many accounts were successfully integrated.
-			count_good: u32,
-			/// How many accounts failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of multisigs that we are going to integrate.
-		MultisigBatchReceived {
-			/// How many multisigs are in the batch.
-			count: u32,
-		},
-		MultisigBatchProcessed {
-			/// How many multisigs were successfully integrated.
-			count_good: u32,
-			/// How many multisigs failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of claims that we are going to integrate.
-		ClaimsBatchReceived {
-			/// How many claims are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of claims that we received.
-		ClaimsBatchProcessed {
-			/// How many claims were successfully integrated.
-			count_good: u32,
-			/// How many claims failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of proxies that we are going to integrate.
-		ProxyProxiesBatchReceived {
-			/// How many proxies are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of proxies that we received.
-		ProxyProxiesBatchProcessed {
-			/// How many proxies were successfully integrated.
-			count_good: u32,
-			/// How many proxies failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of proxy announcements that we are going to integrate.
-		ProxyAnnouncementsBatchReceived {
-			/// How many proxy announcements are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of proxy announcements that we received.
-		ProxyAnnouncementsBatchProcessed {
-			/// How many proxy announcements were successfully integrated.
-			count_good: u32,
-			/// How many proxy announcements failed to integrate.
-			count_bad: u32,
-		},
-		/// Received a batch of `RcPreimageChunk` that are going to be integrated.
-		PreimageChunkBatchReceived {
-			/// How many preimage chunks are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageChunk` that we received.
-		PreimageChunkBatchProcessed {
-			/// How many preimage chunks were successfully integrated.
-			count_good: u32,
-			/// How many preimage chunks failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of `RcPreimageRequestStatus` that we are going to integrate.
-		PreimageRequestStatusBatchReceived {
-			/// How many preimage request status are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageRequestStatus` that we received.
-		PreimageRequestStatusBatchProcessed {
-			/// How many preimage request status were successfully integrated.
-			count_good: u32,
-			/// How many preimage request status failed to integrate.
-			count_bad: u32,
-		},
-		/// We received a batch of `RcPreimageLegacyStatus` that we are going to integrate.
-		PreimageLegacyStatusBatchReceived {
-			/// How many preimage legacy status are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of `RcPreimageLegacyStatus` that we received.
-		PreimageLegacyStatusBatchProcessed {
-			/// How many preimage legacy status were successfully integrated.
-			count_good: u32,
-			/// How many preimage legacy status failed to integrate.
-			count_bad: u32,
-		},
-		/// Received a batch of `RcNomPoolsMessage` that we are going to integrate.
-		NomPoolsMessagesBatchReceived {
-			/// How many nom pools messages are in the batch.
-			count: u32,
-		},
-		/// Processed a batch of `RcNomPoolsMessage` that we received.
-		NomPoolsMessagesBatchProcessed {
-			/// How many nom pools messages were successfully integrated.
-			count_good: u32,
-			/// How many nom pools messages failed to integrate.
-			count_bad: u32,
-		},
 		/// We received a batch of messages that will be integrated into a pallet.
-		BatchReceived {
-			pallet: PalletEventName,
-			count: u32,
-		},
+		BatchReceived { pallet: PalletEventName, count: u32 },
 		/// We processed a batch of messages for this pallet.
-		BatchProcessed {
-			pallet: PalletEventName,
-			count_good: u32,
-			count_bad: u32,
-		},
-		/// We received a batch of referendums that we are going to integrate.
-		ReferendumsBatchReceived {
-			/// How many referendums are in the batch.
-			count: u32,
-		},
-		/// We processed a batch of referendums that we received.
-		ReferendumsBatchProcessed {
-			/// How many referendums were successfully integrated.
-			count_good: u32,
-			/// How many referendums failed to integrate.
-			count_bad: u32,
-		},
-		ReferendaProcessed,
-		SchedulerMessagesReceived {
-			/// How many scheduler messages are in the batch.
-			count: u32,
-		},
-		SchedulerMessagesProcessed {
-			/// How many scheduler messages were successfully integrated.
-			count_good: u32,
-			/// How many scheduler messages failed to integrate.
-			count_bad: u32,
-		},
-		ConvictionVotingMessagesReceived {
-			/// How many conviction voting messages are in the batch.
-			count: u32,
-		},
-		ConvictionVotingMessagesProcessed {
-			/// How many conviction voting messages were successfully integrated.
-			count_good: u32,
-		},
-		AssetRatesReceived {
-			/// How many asset rates are in the batch.
-			count: u32,
-		},
-		AssetRatesProcessed {
-			/// How many asset rates were successfully integrated.
-			count_good: u32,
-			/// How many asset rates failed to integrate.
-			count_bad: u32,
-		},
+		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::pallet]
@@ -458,18 +341,36 @@ pub mod pallet {
 
 		/// Receive accounts from the Relay Chain.
 		///
-		/// The accounts that sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
+		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::AhWeightInfo::receive_accounts(accounts.len() as u32))]
+		#[pallet::weight({
+			let mut total = Weight::zero();
+			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
+				T::AhWeightInfo::receive_liquid_accounts
+			} else {
+				T::AhWeightInfo::receive_accounts
+			};
+			for account in accounts.iter() {
+				let weight = if total.is_zero() {
+					weight_of(account)(1)
+				} else {
+					weight_of(account)(1).saturating_sub(weight_of(account)(0))
+				};
+				total = total.saturating_add(weight);
+			}
+			total
+		})]
 		pub fn receive_accounts(
 			origin: OriginFor<T>,
 			accounts: Vec<RcAccountFor<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_accounts(accounts)?;
+			let res = Self::do_receive_accounts(accounts);
 
-			Ok(())
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Receive multisigs from the Relay Chain.
@@ -485,19 +386,27 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_multisigs(accounts).map_err(Into::into)
+			let res = Self::do_receive_multisigs(accounts);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
+		#[pallet::weight(0)] // TODO
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_proxies(proxies).map_err(Into::into)
+			let res = Self::do_receive_proxies(proxies);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Receive proxy announcements from the Relay Chain.
@@ -509,7 +418,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_proxy_announcements(announcements).map_err(Into::into)
+			let res = Self::do_receive_proxy_announcements(announcements);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(4)]
@@ -519,7 +432,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_preimage_chunks(chunks).map_err(Into::into)
+			let res = Self::do_receive_preimage_chunks(chunks);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(5)]
@@ -529,7 +446,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_preimage_request_statuses(request_status).map_err(Into::into)
+			let res = Self::do_receive_preimage_request_statuses(request_status);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(6)]
@@ -539,7 +460,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_preimage_legacy_statuses(legacy_status).map_err(Into::into)
+			let res = Self::do_receive_preimage_legacy_statuses(legacy_status);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(7)]
@@ -549,7 +474,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_nom_pools_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_nom_pools_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(8)]
@@ -559,7 +488,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_vesting_schedules(schedules).map_err(Into::into)
+			let res = Self::do_receive_vesting_schedules(schedules);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(9)]
@@ -569,7 +502,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_fast_unstake_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_fast_unstake_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
@@ -584,8 +521,12 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue)
-				.map_err(Into::into)
+			let res =
+				Self::do_receive_referenda_values(referendum_count, deciding_count, track_queue);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Receive referendums from the Relay Chain.
@@ -596,7 +537,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_referendums(referendums).map_err(Into::into)
+			let res = Self::do_receive_referendums(referendums);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(12)]
@@ -606,7 +551,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_claims(messages).map_err(Into::into)
+			let res = Self::do_receive_claims(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(13)]
@@ -616,7 +565,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_bags_list_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_bags_list_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(14)]
@@ -626,7 +579,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_scheduler_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_scheduler_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(15)]
@@ -636,7 +593,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_indices(indices).map_err(Into::into)
+			let res = Self::do_receive_indices(indices);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(16)]
@@ -646,7 +607,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_conviction_voting_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_conviction_voting_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(17)]
@@ -656,7 +621,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_bounties_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_bounties_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(18)]
@@ -666,7 +635,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_asset_rates(rates).map_err(Into::into)
+			let res = Self::do_receive_asset_rates(rates);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		#[pallet::call_index(19)]
@@ -676,7 +649,25 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_crowdloan_messages(messages).map_err(Into::into)
+			let res = Self::do_receive_crowdloan_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
+		#[pallet::call_index(20)]
+		pub fn receive_referenda_metadata(
+			origin: OriginFor<T>,
+			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_referenda_metadata(metadata);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
 		}
 
 		/// Set the migration stage.
@@ -698,7 +689,27 @@ pub mod pallet {
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			AhTotalIssuanceBefore::<T>::put(<T as Config>::Currency::total_issuance());
+			defensive_assert!(
+				<T as Config>::Currency::total_balance(&T::CheckingAccount::get()) == 0
+			);
+
 			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Finish the migration.
+		///
+		/// This is typically called by the Relay Chain to signal the migration has finished.
+		#[pallet::call_index(110)]
+		pub fn finish_migration(
+			origin: OriginFor<T>,
+			data: MigrationFinishedData,
+		) -> DispatchResult {
+			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
+			Self::finish_accounts_migration(data.rc_balance_kept.into())?;
+			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
 	}
@@ -706,11 +717,42 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-			Weight::zero()
+			T::AhWeightInfo::on_finalize()
+		}
+
+		fn on_finalize(_: BlockNumberFor<T>) {
+			let (processed, _) = DmpDataMessageCounts::<T>::get();
+			if processed == 0 {
+				return;
+			}
+			log::info!(
+				target: LOG_TARGET,
+				"Sending XCM message to update XCM data message processed count: {}",
+				processed
+			);
+			let res = Self::send_xcm(types::RcMigratorCall::UpdateAhMsgProcessedCount(processed));
+			defensive_assert!(
+				res.is_ok(),
+				"Failed to send XCM message to update XCM data message processed count"
+			);
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Increments the number of XCM messages received from the Relay Chain.
+		fn increment_msg_received_count(with_error: bool) {
+			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
+			let processed = processed + 1;
+			let processed_with_error = processed_with_error + if with_error { 1 } else { 0 };
+			DmpDataMessageCounts::<T>::put((processed, processed_with_error));
+			log::debug!(
+				target: LOG_TARGET,
+				"Increment XCM message processed, total processed: {}, failed: {}",
+				processed,
+				processed_with_error
+			);
+		}
+
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
@@ -727,7 +769,7 @@ pub mod pallet {
 
 		/// Send a single XCM message.
 		pub fn send_xcm(call: types::RcMigratorCall) -> Result<(), Error<T>> {
-			log::info!(target: LOG_TARGET, "Sending XCM message");
+			log::debug!(target: LOG_TARGET, "Sending XCM message");
 
 			let call = types::RcPalletConfig::RcmController(call);
 
@@ -737,7 +779,7 @@ pub mod pallet {
 					check_origin: None,
 				},
 				Instruction::Transact {
-					origin_kind: OriginKind::Superuser,
+					origin_kind: OriginKind::Xcm,
 					require_weight_at_most: Weight::from_all(1), // TODO
 					call: call.encode().into(),
 				},
@@ -750,6 +792,15 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		pub fn teleport_tracking() -> Option<(T::AccountId, MintLocation)> {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_finished() {
+				Some((T::CheckingAccount::get(), MintLocation::Local))
+			} else {
+				None
+			}
+		}
 	}
 
 	impl<T: Config> pallet_rc_migrator::types::MigrationStatus for Pallet<T> {
@@ -758,6 +809,19 @@ pub mod pallet {
 		}
 		fn is_finished() -> bool {
 			AhMigrationStage::<T>::get().is_finished()
+		}
+	}
+
+	// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
+		fn contains(asset: &Asset, origin: &Location) -> bool {
+			let stage = AhMigrationStage::<T>::get();
+			if stage.is_ongoing() {
+				TrustedTeleportersDuring::contains(asset, origin)
+			} else {
+				// before and after migration use normal filter
+				TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+			}
 		}
 	}
 }

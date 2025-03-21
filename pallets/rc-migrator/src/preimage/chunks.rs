@@ -54,7 +54,12 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		let last_key = loop {
 			let (next_key_inner, mut last_offset) = match next_key {
 				None => {
-					let Some(next_key) = Self::next_key(None) else {
+					let (maybe_next_key, skipped) = Self::next_key();
+					// Remove skipped storage items that won't be migrated
+					for (old_hash, old_len) in skipped {
+						alias::PreimageFor::<T>::remove((old_hash, old_len));
+					}
+					let Some(next_key) = maybe_next_key else {
 						// No more preimages
 						break None;
 					};
@@ -62,8 +67,14 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				},
 				Some(((hash, len), offset)) if offset < len => ((hash, len), offset),
 				Some(((hash, len), _)) => {
-					// Get the next key
-					let Some(next_key) = Self::next_key(Some((hash, len))) else {
+					// Remove the previous key for which the migration is complete.
+					alias::PreimageFor::<T>::remove((hash, len));
+					// Get the next key and remove the ones skipped before that.
+					let (next_key_maybe, skipped) = Self::next_key();
+					for (old_hash, old_len) in skipped {
+						alias::PreimageFor::<T>::remove((old_hash, old_len));
+					}
+					let Some(next_key) = next_key_maybe else {
 						break None;
 					};
 					(next_key, 0)
@@ -71,8 +82,14 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			};
 			// Load the preimage
 			let Some(preimage) = alias::PreimageFor::<T>::get(next_key_inner) else {
-				defensive!("Storage corruption");
-				next_key = Self::next_key(Some(next_key_inner)).map(|(hash, len)| ((hash, len), 0));
+				defensive!("Storage corruption {:?}", next_key_inner);
+				// Remove the previous key for which the migration failed.
+				alias::PreimageFor::<T>::remove(next_key_inner);
+				let (next_key_maybe, skipped) = Self::next_key();
+				for (old_hash, old_len) in skipped {
+					alias::PreimageFor::<T>::remove((old_hash, old_len));
+				}
+				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
 			};
 			debug_assert!(last_offset < preimage.len() as u32);
@@ -88,7 +105,13 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 
 			let Ok(bounded_chunk) = BoundedVec::try_from(chunk_bytes.clone()).defensive() else {
 				defensive!("Unreachable");
-				next_key = Self::next_key(Some(next_key_inner)).map(|(hash, len)| ((hash, len), 0));
+				// Remove the previous key for which the migration failed.
+				alias::PreimageFor::<T>::remove(next_key_inner);
+				let (next_key_maybe, skipped) = Self::next_key();
+				for (old_hash, old_len) in skipped {
+					alias::PreimageFor::<T>::remove((old_hash, old_len));
+				}
+				next_key = next_key_maybe.map(|(hash, len)| ((hash, len), 0));
 				continue;
 			};
 
@@ -121,9 +144,11 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		}
 
 		if !batch.is_empty() {
-			Pallet::<T>::send_chunked_xcm(batch, |batch| {
-				types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				batch,
+				|batch| types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch },
+				|_| Weight::from_all(1), // TODO
+			)?;
 		}
 
 		Ok(last_key)
@@ -131,32 +156,32 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 }
 
 impl<T: Config> PreimageChunkMigrator<T> {
-	fn next_key(key: Option<(H256, u32)>) -> Option<(H256, u32)> {
-		match key {
-			None => alias::PreimageFor::<T>::iter_keys(),
-			Some((hash, len)) => alias::PreimageFor::<T>::iter_keys_from(
-				alias::PreimageFor::<T>::hashed_key_for((hash, len)),
-			),
-		}
-		// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
-		// loop, but it cannot be exploited since the pallet does not allow to add more items to
-		// the `StatusFor` map anymore.
-		.skip_while(|(hash, _)| {
-			if !alias::RequestStatusFor::<T>::contains_key(hash) {
-				log::info!(
-					"Ignoring old preimage that is not in the request status map: {:?}",
-					hash
-				);
-				debug_assert!(
-					alias::StatusFor::<T>::contains_key(hash),
-					"Preimage must be tracked somewhere"
-				);
-				true
-			} else {
-				false
-			}
-		})
-		.next()
+	// Returns the next key to migrated and all the legacy preimages skipped before that, which will
+	// be deleted
+	fn next_key() -> (Option<(H256, u32)>, Vec<(H256, u32)>) {
+		let mut skipped = Vec::new();
+		let next_key_maybe = alias::PreimageFor::<T>::iter_keys()
+			// Skip all preimages that are tracked by the old `StatusFor` map. This is an unbounded
+			// loop, but it cannot be exploited since the pallet does not allow to add more items to
+			// the `StatusFor` map anymore.
+			.skip_while(|(hash, len)| {
+				if !alias::RequestStatusFor::<T>::contains_key(hash) {
+					log::info!(
+						"Ignoring old preimage that is not in the request status map: {:?}",
+						hash
+					);
+					skipped.push((*hash, *len));
+					debug_assert!(
+						alias::StatusFor::<T>::contains_key(hash),
+						"Preimage must be tracked somewhere"
+					);
+					true
+				} else {
+					false
+				}
+			})
+			.next();
+		(next_key_maybe, skipped)
 	}
 }
 
@@ -164,23 +189,21 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 	type RcPrePayload = Vec<(H256, u32)>;
 
 	fn pre_check() -> Self::RcPrePayload {
+		let all_keys = alias::PreimageFor::<T>::iter_keys().count();
+		let good_keys = alias::PreimageFor::<T>::iter_keys()
+			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
+			.count();
+		log::info!("Migrating {} keys out of {}", good_keys, all_keys);
 		alias::PreimageFor::<T>::iter_keys()
 			.filter(|(hash, _)| alias::RequestStatusFor::<T>::contains_key(hash))
 			.collect()
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload) {
-		for (hash, len) in rc_pre_payload {
-			if !alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::error!(
-					"migrated key in Preimage::PreimageFor is still present on the relay chain"
-				);
-			}
-			// TODO: fix failing check and change log to assert below
-			// assert!(
-			// 	 !alias::PreimageFor::<T>::contains_key((hash, len)),
-			//	 "migrated key in Preimage::PreimageFor is still present on the relay chain"
-			// );
-		}
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		assert_eq!(
+			alias::PreimageFor::<T>::iter_keys().count(),
+			0,
+			"Preimage::PreimageFor is not empty on relay chain after migration"
+		);
 	}
 }

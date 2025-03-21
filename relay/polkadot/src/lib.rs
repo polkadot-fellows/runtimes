@@ -238,7 +238,7 @@ pub struct OriginPrivilegeCmp;
 impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 
 		match (left, right) {
@@ -1095,23 +1095,23 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			),
 			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
+				RuntimeCall::Treasury(..)
+					| RuntimeCall::Bounties(..)
+					| RuntimeCall::Utility(..)
+					| RuntimeCall::ChildBounties(..)
+					| RuntimeCall::ConvictionVoting(..)
+					| RuntimeCall::Referenda(..)
+					| RuntimeCall::Whitelist(..)
 			),
 			ProxyType::Staking => {
 				matches!(
 					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
+					RuntimeCall::Staking(..)
+						| RuntimeCall::Session(..)
+						| RuntimeCall::Utility(..)
+						| RuntimeCall::FastUnstake(..)
+						| RuntimeCall::VoterList(..)
+						| RuntimeCall::NominationPools(..)
 				)
 			},
 			ProxyType::NominationPools => {
@@ -1122,19 +1122,19 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			},
 			ProxyType::Auction => matches!(
 				c,
-				RuntimeCall::Auctions(..) |
-					RuntimeCall::Crowdloan(..) |
-					RuntimeCall::Registrar(..) |
-					RuntimeCall::Slots(..)
+				RuntimeCall::Auctions(..)
+					| RuntimeCall::Crowdloan(..)
+					| RuntimeCall::Registrar(..)
+					| RuntimeCall::Slots(..)
 			),
 			ProxyType::ParaRegistration => matches!(
 				c,
-				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. }) |
-					RuntimeCall::Registrar(paras_registrar::Call::register { .. }) |
-					RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
-					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
-					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. }) |
-					RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
+				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. })
+					| RuntimeCall::Registrar(paras_registrar::Call::register { .. })
+					| RuntimeCall::Utility(pallet_utility::Call::batch { .. })
+					| RuntimeCall::Utility(pallet_utility::Call::batch_all { .. })
+					| RuntimeCall::Utility(pallet_utility::Call::force_batch { .. })
+					| RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
 			),
 		}
 	}
@@ -1565,9 +1565,18 @@ impl OnSwap for SwapLeases {
 	}
 }
 
+// Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
+const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
+
 parameter_types! {
-	pub RcMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, u64::MAX); // TODO set the actual max weight
-	pub AhMigratorMaxWeight: Weight = Weight::from_parts(10_000_000_000, 5*1024*1024); // TODO set the actual max weight
+	// Exvivalent to `polkadot_asset_hub_runtime::MessageQueueServiceWeight`.
+	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
+	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
+	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get(); // ~ 0.2 sec + 2 mb
+	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block; // TODO set the actual max weight
 	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
 }
 
@@ -1593,8 +1602,10 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = (); // TODO: weights::pallet_rc_migrator::WeightInfo;
-	type AhWeightInfo = (); // TODO: weights::pallet_ah_migrator::WeightInfo;
+	// TODO: weights::pallet_rc_migrator::WeightInfo
+	type RcWeightInfo = ();
+	// TODO: weights::pallet_ah_migrator::WeightInfo
+	type AhWeightInfo = ();
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
@@ -1713,6 +1724,8 @@ construct_runtime! {
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 
 		// Relay Chain Migrator
+		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
+		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
 	}
 }
@@ -2122,7 +2135,7 @@ pub(crate) mod restore_corrupted_ledgers {
 						stash.clone(),
 					);
 					err_migration += 1;
-					continue
+					continue;
 				};
 
 				// restore currupted ledger.
@@ -2142,7 +2155,7 @@ pub(crate) mod restore_corrupted_ledgers {
 							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
 							err
 						);
-						continue
+						continue;
 					},
 				};
 
@@ -2995,7 +3008,7 @@ sp_api::impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use frame_benchmarking::baseline::Pallet as Baseline;
 			use xcm::latest::prelude::*;
-			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, LocalCheckAccount, SovereignAccountOf};
+			use xcm_config::{XcmConfig, AssetHubLocation, TokenLocation, TeleportTracking, SovereignAccountOf};
 
 			impl pallet_session_benchmarking::Config for Runtime {}
 			impl pallet_offences_benchmarking::Config for Runtime {}
@@ -3108,7 +3121,7 @@ sp_api::impl_runtime_apis! {
 			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 				type TransactAsset = Balances;
 
-				type CheckedAccount = LocalCheckAccount;
+				type CheckedAccount = TeleportTracking;
 				type TrustedTeleporter = TrustedTeleporter;
 				type TrustedReserve = TrustedReserve;
 
@@ -3313,8 +3326,8 @@ mod test_fees {
 		};
 
 		let mut active = target_voters;
-		while weight_with(active).all_lte(OffchainSolutionWeightLimit::get()) ||
-			active == target_voters
+		while weight_with(active).all_lte(OffchainSolutionWeightLimit::get())
+			|| active == target_voters
 		{
 			active += 1;
 		}
@@ -3428,8 +3441,8 @@ mod multiplier_tests {
 	#[test]
 	fn multiplier_can_grow_from_zero() {
 		let minimum_multiplier = MinimumMultiplier::get();
-		let target = TargetBlockFullness::get() *
-			BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
+		let target = TargetBlockFullness::get()
+			* BlockWeights::get().get(DispatchClass::Normal).max_total.unwrap();
 		// if the min is too small, then this will not change, and we are doomed forever.
 		// the weight is 1/100th bigger than target.
 		run_with_system_weight(target.saturating_mul(101) / 100, || {
@@ -3678,7 +3691,7 @@ mod remote_tests {
 	#[tokio::test]
 	async fn dispatch_all_proposals() {
 		if var("RUN_OPENGOV_TEST").is_err() {
-			return
+			return;
 		}
 
 		sp_tracing::try_init_simple();
@@ -3724,7 +3737,7 @@ mod remote_tests {
 	#[tokio::test]
 	async fn run_migrations() {
 		if var("RUN_MIGRATION_TESTS").is_err() {
-			return
+			return;
 		}
 
 		sp_tracing::try_init_simple();

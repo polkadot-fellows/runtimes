@@ -45,6 +45,7 @@ pub const UNITS: u128 = 10_000_000_000;
 pub trait ParametersFactory<RcMultisig, RcAccount, RcClaimsMessage, RcProxy, RcProxyAnnouncement> {
 	fn create_multisig(n: u8) -> RcMultisig;
 	fn create_account(n: u8) -> RcAccount;
+	fn create_liquid_account(n: u8) -> RcAccount;
 	fn create_vesting_msg(n: u8) -> RcClaimsMessage;
 	fn create_proxy(n: u8) -> RcProxy;
 	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement;
@@ -117,6 +118,29 @@ where
 		}
 	}
 
+	fn create_liquid_account(
+		n: u8,
+	) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
+		let who: AccountId32 = [n; 32].into();
+		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+			&who,
+			<T as pallet_multisig::Config>::Currency::minimum_balance(),
+		);
+
+		RcAccount {
+			who,
+			free: UNITS,
+			reserved: 0,
+			frozen: 0,
+			holds: vec![],
+			freezes: vec![],
+			locks: vec![],
+			unnamed_reserve: 0,
+			consumers: 1,
+			providers: 1,
+		}
+	}
+
 	fn create_vesting_msg(n: u8) -> RcClaimsMessage<AccountId32, u128, u32> {
 		RcClaimsMessage::Vesting { who: EthereumAddress([n; 20]), schedule: (100, 200, 300) }
 	}
@@ -153,6 +177,17 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 #[benchmarks(where T: pallet_balances::Config)]
 mod benchmarks {
 	use super::*;
+
+	#[benchmark]
+	fn on_finalize() {
+		let block_num = BlockNumberFor::<T>::from(1u32);
+		DmpDataMessageCounts::<T>::put((1, 0));
+
+		#[block]
+		{
+			Pallet::<T>::on_finalize(block_num)
+		}
+	}
 
 	#[benchmark]
 	fn receive_multisigs_from_snap(n: Linear<1, 255>) {
@@ -206,6 +241,18 @@ mod benchmarks {
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(Event::AccountBatchProcessed { count_good: n, count_bad: 0 }.into());
+	}
+
+	#[benchmark]
+	fn receive_liquid_accounts(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_liquid_account(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		receive_accounts(RawOrigin::Root, messages);
 
 		assert_last_event::<T>(Event::AccountBatchProcessed { count_good: n, count_bad: 0 }.into());
 	}

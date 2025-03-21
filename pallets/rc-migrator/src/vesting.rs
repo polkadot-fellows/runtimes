@@ -88,9 +88,11 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(messages, |messages| {
-				types::AhMigratorCall::ReceiveVestingSchedules { messages }
-			})?;
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::ReceiveVestingSchedules { messages },
+				|_| Weight::from_all(1), // TODO
+			)?;
 		}
 
 		Ok(inner_key)

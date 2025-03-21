@@ -25,11 +25,12 @@ use xcm::latest::prelude::*;
 /// Relay Chain Hold Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum RcHoldReason {
-	#[codec(index = 10u8)]
+	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
-	// TODO
-	// #[codec(index = 98u8)]
-	// StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	#[codec(index = 98)]
+	StateTrieMigration(pallet_state_trie_migration::HoldReason),
+	#[codec(index = 41)]
+	DelegatedStaking(pallet_delegated_staking::HoldReason),
 }
 
 impl Default for RcHoldReason {
@@ -86,6 +87,7 @@ pub enum RcProxyType {
 	CancelProxy = 6,
 	Auction = 7,
 	NominationPools = 8,
+	ParaRegistration = 9,
 }
 
 pub struct RcToProxyType;
@@ -99,6 +101,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 			RcProxyType::CancelProxy => Ok(ProxyType::CancelProxy),
 			RcProxyType::Auction => Err(p), // Does not exist on AH
 			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
+			RcProxyType::ParaRegistration => Err(p), // Does not exist on AH
 		}
 	}
 }

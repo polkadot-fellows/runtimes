@@ -41,3 +41,12 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["full", "macros"], workspace = true }
 xcm-builder = { workspace = true, default-features = true }
 xcm-emulator = { workspace = true }
+scale-info = { workspace = true, default-features = true }
+pallet-proxy = { workspace = true, default-features = true }
+sp-application-crypto = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+hex = { workspace = true }
+pallet-whitelist = { workspace = true, default-features = true }
+pallet-bounties = { workspace = true, default-features = true }
+cumulus-pallet-parachain-system = { workspace = true }
+pallet-xcm = { workspace = true, default-features = true }
