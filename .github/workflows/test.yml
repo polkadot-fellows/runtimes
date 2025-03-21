@@ -386,5 +386,6 @@ jobs:
       - build-chain-spec-generator
       - zombienet-smoke
       - ecosystem-tests
+      - ahm-unit-test
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
