@@ -21,8 +21,7 @@ use super::{
 };
 use crate::ForeignAssetsInstance;
 use assets_common::{
-	matching::{FromNetwork, IsForeignConcreteAsset},
-	matching::{FromSiblingParachain, ParentLocation},
+	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{
@@ -50,8 +49,7 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
 	DenyThenTry, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FrameTransactionalProcessor,
 	FungibleAdapter, FungiblesAdapter, GlobalConsensusParachainConvertsFor, HashedDescription,
-	MintLocation,
-	IsConcrete, LocalMint, MatchedConvertedConcreteId, NoChecking, ParentAsSuperuser,
+	IsConcrete, LocalMint, MatchedConvertedConcreteId, MintLocation, NoChecking, ParentAsSuperuser,
 	ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
 	SingleAssetExchangeAdapter, SovereignPaidRemoteExporter, SovereignSignedViaLocation,
