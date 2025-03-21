@@ -54,7 +54,6 @@ pub mod xcm_config;
 use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
-use frame_support::traits::ContainsPair;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
@@ -62,7 +61,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Contains, Defensive, LockableCurrency, ReservableCurrency,
+		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency,
 	},
 	weights::{Weight, WeightMeter},
 };
@@ -281,9 +280,9 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(
 			self,
-			MigrationStage::Pending
-				| MigrationStage::Scheduled { .. }
-				| MigrationStage::MigrationDone
+			MigrationStage::Pending |
+				MigrationStage::Scheduled { .. } |
+				MigrationStage::MigrationDone
 		)
 	}
 }
