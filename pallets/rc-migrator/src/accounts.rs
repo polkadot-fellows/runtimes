@@ -306,29 +306,14 @@ impl<T: Config> AccountsMigrator<T> {
 			return Err(Error::OutOfWeight);
 		}
 
-		let rc_state = Self::get_rc_state(&who);
-
-		let (rc_reserve, rc_free_min) = match rc_state {
-			AccountState::Preserve => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Preserve account '{:?}' on Relay Chain",
-					who.to_ss58check(),
-				);
-				return Ok(None);
-			},
-			AccountState::Part { reserved } => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
-					who.to_ss58check(),
-					&reserved,
-				);
-				(reserved, <T as Config>::Currency::minimum_balance())
-			},
-			// migrate the entire account
-			AccountState::Migrate => (0, 0),
-		};
+		if let AccountState::Preserve = Self::get_rc_state(&who) {
+			log::debug!(
+				target: LOG_TARGET,
+				"Preserve account '{:?}' on Relay Chain",
+				who.to_ss58check(),
+			);
+			return Ok(None);
+		}
 
 		log::debug!(
 			target: LOG_TARGET,
@@ -439,6 +424,31 @@ impl<T: Config> AccountsMigrator<T> {
 			<T as Config>::Currency::remove_lock(lock.id, &who);
 		}
 
+		let rc_state = Self::get_rc_state(&who);
+		let (rc_reserve, rc_free_min) = match rc_state {
+			AccountState::Part { reserved } => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
+					who.to_ss58check(),
+					&reserved,
+				);
+				(reserved, <T as Config>::Currency::minimum_balance())
+			},
+			// migrate the entire account
+			AccountState::Migrate => (0, 0),
+			// this should not happen bc AccountState::Preserve is checked at the very beginning.
+			_ => {
+				log::warn!(
+					target: LOG_TARGET,
+					"Unexpected account state for '{:?}' on Relay Chain: {:?}",
+					who.to_ss58check(),
+					rc_state,
+				);
+				return Err(Error::FailedToWithdrawAccount);
+			},
+		};
+
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
 		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
 			.checked_sub(rc_reserve)
@@ -512,13 +522,13 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let an_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
-		if ah_weight.try_consume(an_receive_weight).is_err() {
+		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		if ah_weight.try_consume(ah_receive_weight).is_err() {
 			log::debug!(
 				target: LOG_TARGET,
 				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
 				ah_weight,
-				an_receive_weight
+				ah_receive_weight
 			);
 			return Err(Error::OutOfWeight);
 		}
