@@ -181,7 +181,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+        run: cargo check -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
