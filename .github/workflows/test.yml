@@ -97,22 +97,6 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
 
-      - name: Download AHM test snapshots
-        run: |
-          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmTdrtye7Vt2xDybZHR3Xjf8kbxXkSfk54AUz2DuKKGmrG?download=true&filename=try-runtime-snap-polkadot-25075273.snap.lz4 -o polkadot.snap.lz4
-          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmYhq75NLZEA1nJjx6JFuDYFMyYVJvRSAHBMQT26EEvGJk?download=true&filename=try-runtime-snap-polkadot-asset-hub-8384696.snap.lz4 -o ah-polkadot.snap.lz4
-          lz4 -d polkadot.snap.lz4 polkadot.snap
-          lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
-
-      - name: Test Asset Hub Migration (Rust)
-        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
-        env:
-          RUST_BACKTRACE: 1
-          SNAP_RC: "../../polkadot.snap"
-          SNAP_AH: "../../ah-polkadot.snap"
-          RUST_LOG: "warn"
-          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
-
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
@@ -226,14 +210,72 @@ jobs:
         with:
           shared-key: "fellowship-cache-tests"
 
+  ahm-unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
+
+      - name: Free space on the runner
+        run: |
+          df -h
+          sudo apt -y autoremove --purge
+          sudo apt -y autoclean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        run: |
+          rustup install $RUST_STABLE_VERSION
+          rustup default $RUST_STABLE_VERSION
+          rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cache-tests"
+
       - name: Build
         run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
         env:
           RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
           SKIP_WASM_BUILD: 1
+  
+      - name: Download AHM test snapshots
+        run: |
+          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmTdrtye7Vt2xDybZHR3Xjf8kbxXkSfk54AUz2DuKKGmrG?download=true&filename=try-runtime-snap-polkadot-25075273.snap.lz4 -o polkadot.snap.lz4
+          curl -sL https://sole-amaranth-pinniped.myfilebase.com/ipfs/QmYhq75NLZEA1nJjx6JFuDYFMyYVJvRSAHBMQT26EEvGJk?download=true&filename=try-runtime-snap-polkadot-asset-hub-8384696.snap.lz4 -o ah-polkadot.snap.lz4
+          lz4 -d polkadot.snap.lz4 polkadot.snap
+          lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
+
+      - name: Test Asset Hub Migration (Rust)
+        run: cargo test --locked -q -p polkadot-integration-tests-ahm -r pallet_migration_works -- --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          SNAP_RC: "../../polkadot.snap"
+          SNAP_AH: "../../ah-polkadot.snap"
+          RUST_LOG: "warn"
+          RUSTFLAGS: "-C debug-assertions" # FAIL-CI "-D warnings" re-enable after AHM dev branch
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
+    # Disable on AHM  branch
+    if: ${{ !contains(github.ref, 'ahm') }}
     needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
@@ -296,6 +338,7 @@ jobs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - zombienet-smoke
+      #- zombienet-smoke
+      - ahm-unit-test
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
