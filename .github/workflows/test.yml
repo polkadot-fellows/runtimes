@@ -261,6 +261,8 @@ jobs:
 
       - name: Zombienet smoke test
         timeout-minutes: 20
+        env:
+          RUST_TEST_NOCAPTURE: 1
         run: |
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml dump_docker_images
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml dump_docker_binary_versions
