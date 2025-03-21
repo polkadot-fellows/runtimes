@@ -445,7 +445,7 @@ impl<T: Config> AccountsMigrator<T> {
 					who.to_ss58check(),
 					rc_state,
 				);
-				return Err("Unexpected account state".into());
+				return Err(Error::FailedToWithdrawAccount);
 			},
 		};
 
