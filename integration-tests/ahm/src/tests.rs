@@ -310,8 +310,8 @@ async fn migration_works() {
 
 	let mut rc_block_count = 0;
 	// finish the loop when the migration is done.
-	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get())
-		!= RcMigrationStage::MigrationDone
+	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
+		RcMigrationStage::MigrationDone
 	{
 		// execute next RC block.
 		let dmp_messages = rc.execute_with(|| {
