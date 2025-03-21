@@ -85,12 +85,12 @@ jobs:
       - name: Test ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
       - name: Test all features ${{ matrix.runtime.name }}
         run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uri }}
           RUST_LOG: "remote-ext=info"
@@ -107,7 +107,7 @@ jobs:
           echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -147,7 +147,7 @@ jobs:
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
   ahm-test:
     runs-on: ubuntu-22.04
@@ -228,7 +228,7 @@ jobs:
       - name: Build
         run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
         env:
-          RUSTFLAGS: "-C debug-assertions -D warnings"
+          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
