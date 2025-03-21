@@ -116,7 +116,7 @@ impl RcMigrationCheck for ProxiesStillWork {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		() // No OP
+		()
 	}
 }
 
