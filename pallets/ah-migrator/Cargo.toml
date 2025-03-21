@@ -59,6 +59,8 @@ pallet-ah-ops = { workspace = true }
 [features]
 default = ["std"]
 std = [
+	"assets-common/std",
+	"assets-common/std",
 	"chrono/std",
 	"codec/std",
 	"cumulus-primitives-core/std",
@@ -88,8 +90,12 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-treasury/std",
 	"pallet-vesting/std",
+	"parachains-common/std",
+	"parachains-common/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
+	"polkadot-runtime-constants/std",
+	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
@@ -98,9 +104,15 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"xcm-builder/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
+	"xcm-executor/std",
 	"xcm/std",
 ]
 runtime-benchmarks = [
+	"assets-common/runtime-benchmarks",
+	"assets-common/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -126,10 +138,15 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

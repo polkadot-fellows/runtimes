@@ -41,3 +41,4 @@ target/
 **/__pycache__/
 *.snap
 *.json
+*.lz4

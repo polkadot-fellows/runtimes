@@ -77,6 +77,9 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
+[dev-dependencies]
+parachains-runtimes-test-utils = { workspace = true }
+
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
 
@@ -169,7 +172,9 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
