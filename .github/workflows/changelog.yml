@@ -5,13 +5,10 @@ name: Verify Changelog
 
 on:
   push:
-    branches: ["never"]
-  # Disabled on AHM PRs
-  #push:
-  #  branches: ["main", "release-*"]
-  #pull_request:
-  #  types: [opened, reopened, synchronize, edited]
-  #workflow_dispatch:
+    branches: ["main", "release-*"]
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+  workflow_dispatch:
 
 # cancel previous runs
 concurrency:
