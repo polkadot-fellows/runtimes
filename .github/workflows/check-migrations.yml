@@ -5,9 +5,12 @@ name: Check Migrations
 
 on:
   push:
-    branches: ["main", "release-*"]
-  pull_request:
-  workflow_dispatch:
+    branches: ["never"]
+  # Disabled on AHM PRs
+  #push:
+  #  branches: ["main", "release-*"]
+  #pull_request:
+  #workflow_dispatch:
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is
 # triggered (ref https://stackoverflow.com/a/72408109)
