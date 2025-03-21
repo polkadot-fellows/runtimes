@@ -195,11 +195,17 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
+<<<<<<< HEAD
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
+=======
+>>>>>>> origin/main
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -212,8 +218,9 @@ jobs:
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
+<<<<<<< HEAD
           shared-key: "fellowship-cache-tests"
 
       - name: Build
@@ -267,6 +274,8 @@ jobs:
       - name: Fetch cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
+=======
+>>>>>>> origin/main
           shared-key: "fellowship-cache-zombienet-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
@@ -386,6 +395,9 @@ jobs:
       - build-chain-spec-generator
       - zombienet-smoke
       - ecosystem-tests
+<<<<<<< HEAD
       - ahm-unit-test
+=======
+>>>>>>> origin/main
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

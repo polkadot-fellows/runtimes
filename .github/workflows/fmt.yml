@@ -24,8 +24,14 @@ jobs:
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rustfmt"
+          toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
+
+      - name: Install taplo
         run: |
-          rustup toolchain install "nightly-$RUST_NIGHTLY_VERSION" --profile minimal --component rustfmt
           cargo install taplo-cli --version $TAPLO_VERSION
 
       - name: Rustfmt (check)

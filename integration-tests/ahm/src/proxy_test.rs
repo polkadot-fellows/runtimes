@@ -53,9 +53,9 @@ pub enum Permission {
 }
 
 // Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
-impl Convert<polkadot_runtime::ProxyType, Permission> for Permission {
-	fn convert(proxy: polkadot_runtime::ProxyType) -> Self {
-		use polkadot_runtime::ProxyType::*;
+impl Convert<polkadot_runtime_constants::proxy::ProxyType, Permission> for Permission {
+	fn convert(proxy: polkadot_runtime_constants::proxy::ProxyType) -> Self {
+		use polkadot_runtime_constants::proxy::ProxyType::*;
 
 		match proxy {
 			Any => Permission::Any,
@@ -104,7 +104,7 @@ impl RcMigrationCheck for ProxiesStillWork {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				let permission = Permission::convert(proxy.proxy_type);
+				let permission = Permission::convert(proxy.proxy_type.0);
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
 					.or_insert_with(Vec::new)

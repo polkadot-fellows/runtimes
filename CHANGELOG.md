@@ -4,31 +4,54 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.4.2] 07.03.2025
+
+### Added
+
+- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama. ‼️ Builders: Please read the docs and the implications around the lifetime of a proxy on a remote chain. ‼️ ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
+- Enabled state-trie-migration for Kusama and Polkadot Asset Hubs ([polkadot-fellows/runtimes/pull/604](https://github.com/polkadot-fellows/runtimes/pull/604))
+
+### Fixed
+
+- Correct weights of the scheduler pallet to avoid failing fellowship proposals ([polkadot-fellows/runtimes#614](https://github.com/polkadot-fellows/runtimes/pull/614))
+
+## [1.4.1] 26.02.2025
+
+### Fixed
+
+- Fix an issue related to staking in combination with nomination pools ([polkadot-fellows/runtimes/pull/608](https://github.com/polkadot-fellows/runtimes/pull/608))
+
+## [1.4.0] 07.02.2025
 
 ### Fixed
 
 - Fix missing Encointer democracy pallet hook needed for enactment ([polkadot-fellows/runtimes/pull/508](https://github.com/polkadot-fellows/runtimes/pull/508))
 - Improve benchmark configuration: fix storage whitelist in benchmarks ([polkadot-fellows/runtimes/pull/525](https://github.com/polkadot-fellows/runtimes/pull/525))
-
-### Fixed
-
+- Coretime chain: allow cross-chain region transfers ([polkadot-fellows/runtimes/pull/483](https://github.com/polkadot-fellows/runtimes/pull/483))
+- Unstake the last remaining corrupt ledger ([polkadot-fellows/runtimes/pull/538](https://github.com/polkadot-fellows/runtimes/pull/538))
 - Disallow `add_sub` and `set_subs` from `NonTransfer` proxy type in people chain runtimes ([polkadot-fellows/runtimes#518](https://github.com/polkadot-fellows/runtimes/pull/518))
+- Added the `XcmRecorder` config item to all runtimes so `local_xcm` can be returned from `DryRunApi` ([polkadot-fellows/runtimes#576](https://github.com/polkadot-fellows/runtimes/pull/576))
 
 ### Added
 
+- Asset Hubs: added an AssetExchanger to be able to swap tokens using the xcm executor, even for delivery fees ([polkadot-fellows/runtimes#539](https://github.com/polkadot-fellows/runtimes/pull/539)).
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
+- Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable as fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
 
 - ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
 - Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
-
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
+- Snowbridge: Add support for bridging Ether ([polkadot-fellows/runtimes#548](https://github.com/polkadot-fellows/runtimes/pull/548))
 
 ### Changed
 
 - Kusama Treasury: remove funding to the Kappa Sigma Mu Society and disable burn ([polkadot-fellows/runtimes#507](https://github.com/polkadot-fellows/runtimes/pull/507))
 - Kusama Treasury: allow burn parameters to be set via OpenGov ([polkadot-fellows/runtimes#511](https://github.com/polkadot-fellows/runtimes/pull/511))
 - Remove Snowbridge create agent and channel extrinsics. ([polkadot-fellows/runtimes#506](https://github.com/polkadot-fellows/runtimes/pull/506))
+- Update the XCM `Weigher` from `FixedWeightBounds` to `WeightInfoBounds` with benchmarked weights for Polkadot Collectives ([polkadot-fellows/runtimes#547](https://github.com/polkadot-fellows/runtimes/pull/547))
+- Increase max PoV size to 10Mib on Kusama ([polkadot-fellows/runtimes#553](https://github.com/polkadot-fellows/runtimes/pull/553))
+- Update to Polkadot SDK `stable2409-4` ([polkadot-fellows/runtimes#558](https://github.com/polkadot-fellows/runtimes/pull/558))
+- Asset Hubs: disable vested transfers as preparation for the Asset Hub Migration ([polkadot-fellows/runtime#579](https://github.com/polkadot-fellows/runtimes/pull/579))
 
 #### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
 
