@@ -53,8 +53,8 @@ parameter_types! {
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
-fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
-	bridge_hub_test_utils::CollatorSessionKeys::new(
+fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
+	CollatorSessionKeys::new(
 		AccountId::from(Alice),
 		AccountId::from(Alice),
 		SessionKeys { aura: AuraId::from(Alice.public()) },

@@ -16,6 +16,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub mod weights;
 
 pub use self::currency::DOLLARS;
@@ -152,13 +154,128 @@ pub mod system_parachain {
 /// Polkadot Treasury pallet instance.
 pub const TREASURY_PALLET_ID: u8 = 19;
 
+pub mod proxy {
+	use pallet_remote_proxy::ProxyDefinition;
+	use polkadot_primitives::{AccountId, BlakeTwo256, BlockNumber, Hash};
+	use sp_runtime::traits::Convert;
+
+	/// The type used to represent the kinds of proxying allowed.
+	#[derive(
+		Copy,
+		Clone,
+		Eq,
+		PartialEq,
+		Ord,
+		PartialOrd,
+		codec::Encode,
+		codec::Decode,
+		core::fmt::Debug,
+		codec::MaxEncodedLen,
+		scale_info::TypeInfo,
+		Default,
+	)]
+	pub enum ProxyType {
+		#[default]
+		Any = 0,
+		NonTransfer = 1,
+		Governance = 2,
+		Staking = 3,
+		// Skip 4 as it is now removed (was SudoBalances)
+		// Skip 5 as it was IdentityJudgement
+		CancelProxy = 6,
+		Auction = 7,
+		NominationPools = 8,
+		ParaRegistration = 9,
+	}
+
+	/// Remote proxy interface that uses the relay chain as remote location.
+	pub struct RemoteProxyInterface<LocalProxyType, ProxyDefinitionConverter>(
+		core::marker::PhantomData<(LocalProxyType, ProxyDefinitionConverter)>,
+	);
+
+	impl<
+			LocalProxyType,
+			ProxyDefinitionConverter: Convert<
+				ProxyDefinition<AccountId, ProxyType, BlockNumber>,
+				Option<ProxyDefinition<AccountId, LocalProxyType, BlockNumber>>,
+			>,
+		> pallet_remote_proxy::RemoteProxyInterface<AccountId, LocalProxyType, BlockNumber>
+		for RemoteProxyInterface<LocalProxyType, ProxyDefinitionConverter>
+	{
+		type RemoteAccountId = AccountId;
+
+		type RemoteProxyType = ProxyType;
+
+		type RemoteBlockNumber = BlockNumber;
+
+		type RemoteHash = Hash;
+
+		type RemoteHasher = BlakeTwo256;
+
+		fn block_to_storage_root(
+			validation_data: &polkadot_primitives::PersistedValidationData,
+		) -> Option<(Self::RemoteBlockNumber, <Self::RemoteHasher as sp_core::Hasher>::Out)> {
+			Some((validation_data.relay_parent_number, validation_data.relay_parent_storage_root))
+		}
+
+		fn local_to_remote_account_id(local: &AccountId) -> Option<Self::RemoteAccountId> {
+			Some(local.clone())
+		}
+
+		fn remote_to_local_proxy_defintion(
+			remote: ProxyDefinition<
+				Self::RemoteAccountId,
+				Self::RemoteProxyType,
+				Self::RemoteBlockNumber,
+			>,
+		) -> Option<ProxyDefinition<AccountId, LocalProxyType, BlockNumber>> {
+			ProxyDefinitionConverter::convert(remote)
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn create_remote_proxy_proof(
+			caller: &AccountId,
+			proxy: &AccountId,
+		) -> (pallet_remote_proxy::RemoteProxyProof<Self::RemoteBlockNumber>, BlockNumber, Hash) {
+			use codec::Encode;
+			use sp_trie::TrieMut;
+
+			let (mut db, mut root) = sp_trie::MemoryDB::<BlakeTwo256>::default_with_root();
+			let mut trie =
+				sp_trie::TrieDBMutBuilder::<sp_trie::LayoutV1<_>>::new(&mut db, &mut root).build();
+
+			let proxy_definition =
+				alloc::vec![ProxyDefinition::<AccountId, ProxyType, BlockNumber> {
+					delegate: caller.clone(),
+					proxy_type: ProxyType::default(),
+					delay: 0,
+				}];
+
+			trie.insert(&Self::proxy_definition_storage_key(proxy), &proxy_definition.encode())
+				.unwrap();
+			drop(trie);
+
+			(
+				pallet_remote_proxy::RemoteProxyProof::RelayChain {
+					proof: db.drain().into_values().map(|d| d.0).collect(),
+					block: 1,
+				},
+				1,
+				root,
+			)
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::{
 		currency::{CENTS, DOLLARS, MILLICENTS},
 		fee::WeightToFee,
+		proxy::ProxyType,
 	};
 	use crate::weights::ExtrinsicBaseWeight;
+	use codec::{Decode, Encode};
 	use frame_support::weights::WeightToFee as WeightToFeeT;
 	use polkadot_runtime_common::MAXIMUM_BLOCK_WEIGHT;
 
@@ -179,5 +296,33 @@ mod tests {
 		let x = WeightToFee::weight_to_fee(&ExtrinsicBaseWeight::get());
 		let y = CENTS / 10;
 		assert!(x.max(y) - x.min(y) < MILLICENTS);
+	}
+
+	#[derive(
+		Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, sp_runtime::RuntimeDebug,
+	)]
+	pub enum OldProxyType {
+		Any,
+		NonTransfer,
+		Governance,
+		Staking,
+		SudoBalances,
+		IdentityJudgement,
+	}
+
+	#[test]
+	fn proxy_type_decodes_correctly() {
+		for (i, j) in vec![
+			(OldProxyType::Any, ProxyType::Any),
+			(OldProxyType::NonTransfer, ProxyType::NonTransfer),
+			(OldProxyType::Governance, ProxyType::Governance),
+			(OldProxyType::Staking, ProxyType::Staking),
+		]
+		.into_iter()
+		{
+			assert_eq!(i.encode(), j.encode());
+		}
+		assert!(ProxyType::decode(&mut &OldProxyType::SudoBalances.encode()[..]).is_err());
+		assert!(ProxyType::decode(&mut &OldProxyType::IdentityJudgement.encode()[..]).is_err());
 	}
 }

@@ -72,6 +72,8 @@ std = [
 	"pallet-vesting/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
+	"polkadot-runtime-constants/std",
+	"polkadot-runtime-constants/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde",
@@ -80,10 +82,11 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"sp-std/std",
-	"xcm/std",
-	"polkadot-runtime-constants/std",
 	"xcm-builder/std",
-	"xcm-executor/std"
+	"xcm-builder/std",
+	"xcm-executor/std",
+	"xcm-executor/std",
+	"xcm/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -107,11 +110,12 @@ runtime-benchmarks = [
 	"pallet-vesting/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks"
+	"xcm-executor/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

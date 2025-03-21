@@ -19,6 +19,7 @@ jobs:
           echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
           echo "version=$(.github/changelog-processor.py CHANGELOG.md --print-latest-version)" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
+
   runtime-matrix:
     needs: [ collect-release-information ]
     if: needs.collect-release-information.outputs.should-release == '1'
@@ -32,6 +33,7 @@ jobs:
           TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
           echo $TASKS
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
+
   build-runtimes:
     needs: [ runtime-matrix ]
     continue-on-error: true
