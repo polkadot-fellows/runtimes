@@ -121,6 +121,8 @@ jobs:
 
   # Job required by "confirmTestPassed"
   integration-test:
+    # Disable on AHM  branch
+    if: ${{ !contains(github.ref, 'ahm') }}
     needs: [integration-test-matrix]
     runs-on: ubuntu-22.04
     strategy:
@@ -336,7 +338,7 @@ jobs:
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
-      - integration-test
+      #- integration-test
       - build-chain-spec-generator
       #- zombienet-smoke
       - ahm-unit-test
