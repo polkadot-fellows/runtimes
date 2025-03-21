@@ -188,7 +188,6 @@ jobs:
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
