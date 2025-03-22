@@ -180,7 +180,7 @@ jobs:
           shared-key: "fellowship-cache-chain-spec-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
+      - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=runtime-benchmarks,all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
