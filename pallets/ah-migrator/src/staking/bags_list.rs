@@ -88,6 +88,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
 		let mut ah_messages = Vec::new();
 
 		// Collect current state
