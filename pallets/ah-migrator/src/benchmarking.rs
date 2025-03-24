@@ -229,7 +229,12 @@ mod benchmarks {
 		_(RawOrigin::Root, messages);
 
 		assert_last_event::<T>(
-			Event::MultisigBatchProcessed { count_good: n, count_bad: 0 }.into(),
+			Event::BatchProcessed {
+				pallet: PalletEventName::Multisig,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
 		);
 	}
 
@@ -242,7 +247,14 @@ mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
 
-		assert_last_event::<T>(Event::AccountBatchProcessed { count_good: n, count_bad: 0 }.into());
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Balances,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
 	}
 
 	#[benchmark]
@@ -254,7 +266,14 @@ mod benchmarks {
 		#[extrinsic_call]
 		receive_accounts(RawOrigin::Root, messages);
 
-		assert_last_event::<T>(Event::AccountBatchProcessed { count_good: n, count_bad: 0 }.into());
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Balances,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
 	}
 
 	#[benchmark]
@@ -266,7 +285,10 @@ mod benchmarks {
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
 
-		assert_last_event::<T>(Event::ClaimsBatchProcessed { count_good: n, count_bad: 0 }.into());
+		assert_last_event::<T>(
+			Event::BatchProcessed { pallet: PalletEventName::Claims, count_good: n, count_bad: 0 }
+				.into(),
+		);
 	}
 
 	#[benchmark]
@@ -279,7 +301,12 @@ mod benchmarks {
 		_(RawOrigin::Root, messages);
 
 		assert_last_event::<T>(
-			Event::ProxyProxiesBatchProcessed { count_good: n, count_bad: 0 }.into(),
+			Event::BatchProcessed {
+				pallet: PalletEventName::ProxyProxies,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
 		);
 	}
 
@@ -295,7 +322,12 @@ mod benchmarks {
 		_(RawOrigin::Root, messages);
 
 		assert_last_event::<T>(
-			Event::ProxyAnnouncementsBatchProcessed { count_good: n, count_bad: 0 }.into(),
+			Event::BatchProcessed {
+				pallet: PalletEventName::ProxyAnnouncements,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
 		);
 	}
 }
