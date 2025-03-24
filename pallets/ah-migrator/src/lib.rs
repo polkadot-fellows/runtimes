@@ -187,9 +187,8 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
-	use crate::xcm_config::TrustedTeleportersDuring;
+	use crate::xcm_config::{TrustedTeleportersBeforeAfter, TrustedTeleportersDuring};
 	use frame_support::traits::ContainsPair;
-	use pallet_rc_migrator::xcm_config::TrustedTeleportersBeforeAndAfter;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -869,7 +868,7 @@ pub mod pallet {
 				TrustedTeleportersDuring::contains(asset, origin)
 			} else {
 				// before and after migration use normal filter
-				TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+				TrustedTeleportersBeforeAfter::contains(asset, origin)
 			}
 		}
 	}
