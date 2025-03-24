@@ -49,12 +49,10 @@ pub enum RcTreasuryMessage<
 	Deactivated(Balance),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
-	Spends(
-		(
-			SpendIndex,
-			alias::SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>,
-		),
-	),
+	Spends {
+		id: SpendIndex,
+		status: alias::SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId>,
+	},
 	// TODO: migrate with new sdk version
 	// LastSpendPeriod(BlockNumber),
 	Funds,
@@ -146,7 +144,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							alias::Spends::<T>::remove(&key);
-							messages.push(RcTreasuryMessage::Spends((key, value)));
+							messages.push(RcTreasuryMessage::Spends { id: key, status: value });
 							TreasuryStage::Spends(Some(key))
 						},
 						// TODO: TreasuryStage::LastSpendPeriod
@@ -189,6 +187,8 @@ pub mod alias {
 	use super::*;
 
 	/// Alias for private item [`pallet_treasury::SpendCount`].
+	///
+	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L335
 	#[frame_support::storage_alias(pallet_name)]
 	pub type SpendCount<T: pallet_treasury::Config> =
 		StorageValue<pallet_treasury::Pallet<T>, SpendIndex, ValueQuery>;
@@ -196,6 +196,8 @@ pub mod alias {
 	/// Spends that have been approved and being processed.
 	///
 	/// Copy of [`pallet_treasury::Spends`].
+	///
+	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L340
 	#[frame_support::storage_alias(pallet_name)]
 	pub type Spends<T: pallet_treasury::Config> = StorageMap<
 		pallet_treasury::Pallet<T>,
@@ -214,6 +216,8 @@ pub mod alias {
 	/// Info regarding an approved treasury spend.
 	///
 	/// Copy of [`pallet_treasury::SpendStatus`].
+	///
+	/// Source: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/substrate/frame/treasury/src/lib.rs#L181
 	#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, Debug, TypeInfo)]
 	pub struct SpendStatus<AssetKind, AssetBalance, Beneficiary, BlockNumber, PaymentId> {

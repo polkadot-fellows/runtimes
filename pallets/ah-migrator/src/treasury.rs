@@ -63,7 +63,7 @@ impl<T: Config> Pallet<T> {
 			RcTreasuryMessage::SpendCount(spend_count) => {
 				treasury_alias::SpendCount::<T>::put(spend_count);
 			},
-			RcTreasuryMessage::Spends((spend_index, spend)) => {
+			RcTreasuryMessage::Spends { id: spend_index, status: spend } => {
 				let treasury_alias::SpendStatus {
 					asset_kind,
 					amount,

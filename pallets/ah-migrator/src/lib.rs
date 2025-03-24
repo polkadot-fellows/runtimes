@@ -276,7 +276,8 @@ pub mod pallet {
 		/// Asset Hub Treasury accounts migrating to the new treasury account address (same account
 		/// address that was used on the Relay Chain).
 		///
-		/// The asset list should not include the native asset.
+		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
+		/// list should not include the native asset.
 		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
