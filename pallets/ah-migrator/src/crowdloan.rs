@@ -17,6 +17,7 @@ use crate::*;
 use chrono::TimeZone;
 use cumulus_primitives_core::ParaId;
 use pallet_rc_migrator::crowdloan::{CrowdloanMigrator, RcCrowdloanMessage};
+use pallet_rc_migrator::types::AccountIdOf;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_crowdloan_messages(
@@ -169,9 +170,15 @@ where
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
+	/// Pre-migration payload for crowdloan data:
+	/// - `ParaId`: The parachain identifier
+	/// - Inner Vec contains contributions, where each tuple is:
+	///   - `BlockNumberFor<T>`: The block number at which this deposit can be unreserved
+	///   - `AccountId`: The depositor account
+	///   - `BalanceOf<T>`: The reserved amount
 	type RcPrePayload = Vec<(
 		ParaId,
-		Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
+		Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
 	)>;
 	type AhPrePayload = ();
 

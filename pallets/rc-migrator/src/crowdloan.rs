@@ -302,20 +302,36 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
+	/// Pre-migration payload for crowdloan data:
+	/// - `ParaId`: The parachain identifier
+	/// - Inner Vec contains contributions, where each tuple is:
+	///   - `BlockNumberFor<T>`: The block number at which this deposit can be unreserved
+	///   - `AccountId`: The depositor account
+	///   - `BalanceOf<T>`: The reserved amount
 	type RcPrePayload = Vec<(ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>)>;
 
 	fn pre_check() -> Self::RcPrePayload {
+		// Iterate through all crowdloan funds and collect their contributions
 		pallet_crowdloan::Funds::<T>::iter()
 			.map(|(para_id, fund)| {
-				let contributions: Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)> =
-					pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-						.map(|(contributor, (amount, block_number_bytes))| {
-							let block_number: BlockNumberFor<T> =
-								BlockNumberFor::<T>::decode(&mut &block_number_bytes[..])
-									.unwrap_or_default();
-							(block_number, contributor, amount.try_into().unwrap_or_default())
-						})
-						.collect();
+				// For each fund, collect all contributions into a vector
+				let contributions = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+					.map(|(contributor, (amount, encoded_block_number))| {
+						// Decode the block number from bytes, defaulting to 0 if decoding fails
+						let block_number = BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
+							.unwrap_or_default();
+						
+						// Create a tuple of (block_number, contributor, amount)
+						// Convert amount to the expected balance type, defaulting to 0 if conversion fails
+						(
+							block_number,
+							contributor,
+							amount.try_into().unwrap_or_default()
+						)
+					})
+					.collect();
+
+				// Return tuple of parachain ID and its contributions
 				(para_id, contributions)
 			})
 			.collect()
@@ -324,25 +340,42 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		use std::collections::BTreeMap;
 
+		// Collect current state of crowdloan funds and their contributions
 		let current_map: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> =
 			pallet_crowdloan::Funds::<T>::iter()
 				.map(|(para_id, fund)| {
-					let contributions: Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)> =
-						pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-							.map(|(contributor, (amount, block_number_bytes))| {
-								let block_number: BlockNumberFor<T> =
-									BlockNumberFor::<T>::decode(&mut &block_number_bytes[..])
-										.unwrap_or_default();
-								(block_number, contributor, amount.try_into().unwrap_or_default())
-							})
-							.collect();
-					(para_id, contributions)
-				})
-				.collect();
+					// For each fund, collect all its contributions
+					let contributions = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+						.map(|(contributor, (amount, encoded_block_number))| {
+							// Decode the block number from bytes
+							let block_number = BlockNumberFor::<T>::decode(
+								&mut &encoded_block_number[..]
+							).unwrap_or_default();
 
-		assert!(current_map.is_empty(), "Current crowdloan data should be empty after migration");
+							// Create a tuple of (block_number, contributor, amount)
+							(
+								block_number,
+								contributor,
+								amount.try_into().unwrap_or_default()
+							)
+						})
+						.collect();
 
+				(para_id, contributions)
+			})
+			.collect();
+
+		// Verify that all data has been properly migrated
+		assert!(
+			current_map.is_empty(),
+			"Current crowdloan data should be empty after migration"
+		);
+
+		// Double check that no funds remain
 		let funds_empty = pallet_crowdloan::Funds::<T>::iter().next().is_none();
-		assert!(funds_empty, "pallet_crowdloan::Funds should be empty after migration");
+		assert!(
+			funds_empty,
+			"pallet_crowdloan::Funds should be empty after migration"
+		);
 	}
 }
