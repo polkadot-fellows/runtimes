@@ -17,7 +17,7 @@
 //! Config for the nomination pools.
 
 use crate::*;
-use pallet_nomination_pools::{adapter::*, BondType};
+use pallet_nomination_pools::{adapter, BondType};
 use sp_runtime::{DispatchError, DispatchResult, FixedU128};
 use sp_staking::{EraIndex, Stake};
 
@@ -50,35 +50,35 @@ impl pallet_nomination_pools::Config for Runtime {
 
 /// Mock do not use.
 pub struct MockStakeAdapter;
-impl StakeStrategy for MockStakeAdapter {
+impl adapter::StakeStrategy for MockStakeAdapter {
 	type Balance = crate::Balance;
 	type AccountId = <Runtime as frame_system::Config>::AccountId;
 	type CoreStaking = StakingMock;
 
-	fn strategy_type() -> StakeStrategyType {
+	fn strategy_type() -> adapter::StakeStrategyType {
 		unimplemented!()
 	}
 
 	fn transferable_balance(
-		_pool_account: Pool<Self::AccountId>,
-		_member_account: Member<Self::AccountId>,
+		_pool_account: adapter::Pool<Self::AccountId>,
+		_member_account: adapter::Member<Self::AccountId>,
 	) -> Self::Balance {
 		unimplemented!()
 	}
 
-	fn total_balance(_pool_account: Pool<Self::AccountId>) -> Option<Self::Balance> {
+	fn total_balance(_pool_account: adapter::Pool<Self::AccountId>) -> Option<Self::Balance> {
 		unimplemented!()
 	}
 
 	fn member_delegation_balance(
-		_member_account: Member<Self::AccountId>,
+		_member_account: adapter::Member<Self::AccountId>,
 	) -> Option<Self::Balance> {
 		unimplemented!()
 	}
 
 	fn pledge_bond(
-		_who: Member<Self::AccountId>,
-		_pool_account: Pool<Self::AccountId>,
+		_who: adapter::Member<Self::AccountId>,
+		_pool_account: adapter::Pool<Self::AccountId>,
 		_reward_account: &Self::AccountId,
 		_amount: Self::Balance,
 		_bond_type: BondType,
@@ -87,25 +87,25 @@ impl StakeStrategy for MockStakeAdapter {
 	}
 
 	fn member_withdraw(
-		_who: Member<Self::AccountId>,
-		_pool_account: Pool<Self::AccountId>,
+		_who: adapter::Member<Self::AccountId>,
+		_pool_account: adapter::Pool<Self::AccountId>,
 		_amount: Self::Balance,
 		_num_slashing_spans: u32,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn dissolve(_pool_account: Pool<Self::AccountId>) -> DispatchResult {
+	fn dissolve(_pool_account: adapter::Pool<Self::AccountId>) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn pending_slash(_pool_account: Pool<Self::AccountId>) -> Self::Balance {
+	fn pending_slash(_pool_account: adapter::Pool<Self::AccountId>) -> Self::Balance {
 		unimplemented!()
 	}
 
 	fn member_slash(
-		_who: Member<Self::AccountId>,
-		_pool_account: Pool<Self::AccountId>,
+		_who: adapter::Member<Self::AccountId>,
+		_pool_account: adapter::Pool<Self::AccountId>,
 		_amount: Self::Balance,
 		_maybe_reporter: Option<Self::AccountId>,
 	) -> DispatchResult {
@@ -113,15 +113,15 @@ impl StakeStrategy for MockStakeAdapter {
 	}
 
 	fn migrate_nominator_to_agent(
-		_agent: Pool<Self::AccountId>,
+		_agent: adapter::Pool<Self::AccountId>,
 		_reward_account: &Self::AccountId,
 	) -> DispatchResult {
 		unimplemented!()
 	}
 
 	fn migrate_delegation(
-		_agent: Pool<Self::AccountId>,
-		_delegator: Member<Self::AccountId>,
+		_agent: adapter::Pool<Self::AccountId>,
+		_delegator: adapter::Member<Self::AccountId>,
 		_value: Self::Balance,
 	) -> DispatchResult {
 		unimplemented!()
