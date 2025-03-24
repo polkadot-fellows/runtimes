@@ -262,10 +262,10 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 		}
 
 		let new_preimages = alias::PreimageFor::<T>::iter_keys().count();
-		// TODO: fix, it currently fails to migrate item with hash
+		// Pallet scheduler currently unrequests and deletes preimage with hash
 		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 		if new_preimages != rc_pre_payload.len() {
-			log::error!(
+			log::warn!(
 				"Preimage::PreimageFor and relay chain payload have different size: {} vs {}",
 				new_preimages,
 				rc_pre_payload.len(),
@@ -274,11 +274,11 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 
 		// All items have been successfully migrated from the relay chain
 		for (hash, len) in rc_pre_payload.iter() {
-			// TODO: fix, it currently fails to migrate item with hash
+			// Pallet scheduler currently unrequests and deletes preimage with hash
 			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 			if !alias::PreimageFor::<T>::contains_key((hash, len)) {
-				log::error!(
-					"missing relay chain item in assetHub for Preimage::PreimageFor {:?} {:?}",
+				log::warn!(
+					"Relay chain Preimage::PreimageFor storage item with key {:?} {:?} is not found on assethub",
 					hash,
 					len,
 				);
@@ -287,9 +287,12 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 
 		// All AssetHub items came from the relay chain
 		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
-			if !rc_pre_payload.contains(&(hash, len)) {
-				log::error!("Asset Hub migrated item from Preimage::PreimageFor was not present in the relay chain payload {:?} {:?}", hash, len);
-			}
+			assert!(
+				rc_pre_payload.contains(&(hash, len)), 
+				"Asset Hub migrated Preimage::PreimageFor storage item with key {:?} {:?} was not present on the relay chain", 
+				hash, 
+				len
+			);
 		}
 
 		// Integrity check that all preimages have the correct hash and length
@@ -318,10 +321,10 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 	// The payload should come from the relay chain pre-check method on the same pallet
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		let new_requests_len = alias::RequestStatusFor::<T>::iter_keys().count();
-		// TODO: fix, it currently fails to migrate item with hash
-		// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e
+		// Pallet scheduler currently unrequests and deletes preimage with hash
+			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 		if new_requests_len != rc_pre_payload.len() {
-			log::error!(
+			log::warn!(
 				"Preimage::RequestStatusFor and relay chain payload have different size: {} vs {}",
 				new_requests_len,
 				rc_pre_payload.len(),
@@ -329,22 +332,16 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 		}
 
 		for (hash, requested) in rc_pre_payload.iter() {
-			// TODO: fix, it currently fails to migrate item with hash
-			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e
+			// Pallet scheduler currently unrequests and deletes preimage with hash
+			// 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e and len 42
 			if !alias::RequestStatusFor::<T>::contains_key(hash) {
-				log::error!(
-					"missing relay chain migrated item in assetHub for Preimage::RequestStatusFor {:?} {:?}",
-					hash,
-					requested
+				log::warn!(
+					"Relay chain Preimage::RequestStatusFor storage item with key {:?} is not found on assethub",
+					hash
 				);
 			} else {
 				match alias::RequestStatusFor::<T>::get(hash).unwrap() {
 					alias::RequestStatus::Unrequested { len, .. } => {
-						// FIXME Giuseppe
-						/*assert!(
-							!requested,
-							"Requested preimage in the relay chain has become unrequested on assetHub"
-						);*/
 						assert!(
 							alias::PreimageFor::<T>::contains_key((hash, len)),
 							"Preimage::RequestStatusFor is missing preimage"
@@ -353,7 +350,8 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					alias::RequestStatus::Requested { maybe_len: Some(len), .. } => {
 						assert!(
 							requested,
-							"Unrequested preimage in the relay chain has become requested on assetHub"
+							"Unrequested preimage with hash {:?} in the relay chain has become requested on assetHub",
+							hash
 						);
 						assert!(
 							alias::PreimageFor::<T>::contains_key((hash, len)),
@@ -363,7 +361,8 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 					alias::RequestStatus::Requested { .. } => {
 						assert!(
 							requested,
-							"Unrequested preimage in the relay chain has become requested on assetHub"
+							"Unrequested preimage with hash {:?} in the relay chain has become requested on assetHub",
+							hash
 						);
 					},
 				}
@@ -371,18 +370,17 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 		}
 
 		for hash in alias::RequestStatusFor::<T>::iter_keys() {
-			if !rc_pre_payload.contains(&(hash, true)) && !rc_pre_payload.contains(&(hash, false)) {
-				log::error!(
-					"Asset Hub migrated item from Preimage::RequestStatusFor was not present in the relay chain payload {:?}",
-					hash
-				);
-			}
+			assert!(
+				rc_pre_payload.contains(&(hash, true)) || rc_pre_payload.contains(&(hash, false)),
+				"Asset Hub migrated Preimage::RequestStatusFor storage item with key {:?} was not present on the relay chain", 
+				hash
+			);
 		}
 
 		assert_eq!(
 			alias::PreimageFor::<T>::iter_keys().count(),
 			alias::RequestStatusFor::<T>::iter_keys().count(),
-			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths"
+			"Preimage::PreimageFor and Preimage::RequestStatusFor have different lengths on Asset Hub"
 		);
 	}
 }
