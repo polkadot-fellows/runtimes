@@ -2108,8 +2108,9 @@ mod benches {
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
 
+	use xcm_builder::MintLocation;
 	use xcm_config::{
-		AssetHubLocation, LocalCheckAccount, SovereignAccountOf, TokenLocation, XcmConfig,
+		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
 	};
 
 	impl pallet_session_benchmarking::Config for Runtime {}
@@ -2211,6 +2212,7 @@ mod benches {
 			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
+		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
