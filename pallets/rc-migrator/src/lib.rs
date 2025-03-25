@@ -462,9 +462,12 @@ pub mod pallet {
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
 		#[pallet::weight({0})] // TODO: weight
-		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
+		pub fn force_set_stage(
+			origin: OriginFor<T>,
+			stage: Box<MigrationStageOf<T>>,
+		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::transition(stage);
+			Self::transition(*stage);
 			Ok(())
 		}
 
