@@ -110,7 +110,7 @@ impl<T: Config> Pallet<T> {
 		id: u32,
 		referendum: RcReferendumInfoOf<T, ()>,
 	) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating referendum {}", id);
+		log::debug!(target: LOG_TARGET, "Integrating referendum id: {}, info: {:?}", id, referendum);
 
 		let referendum: ReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
