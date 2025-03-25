@@ -15061,11 +15061,14 @@ name = "system-parachains-common"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "pallet-treasury",
  "parity-scale-codec",
  "polkadot-runtime-common",
  "scale-info",
  "sp-api",
+ "sp-core 34.0.0",
  "sp-runtime 39.0.5",
+ "sp-std",
  "staging-xcm",
  "staging-xcm-executor",
 ]

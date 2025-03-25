@@ -30,7 +30,7 @@ use xcm_executor::traits::ConvertLocation;
 	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
 )]
 pub enum VersionedLocatableAccount {
-	// TODO: remove the V3 variant
+	// TODO: remove the V3 variant when V5 is available
 	#[codec(index = 3)]
 	V3 { location: xcm::v3::Location, account_id: xcm::v3::Location },
 	#[codec(index = 4)]
@@ -109,6 +109,44 @@ where
 			VersionedLocatableAsset::V4 { location, asset_id } if location.is_here() =>
 				Ok(asset_id.clone().0),
 			_ => Err(()),
+		}
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarks {
+	use super::*;
+	use frame_support::traits::Get;
+	use pallet_treasury::ArgumentsFactory as TreasuryArgumentsFactory;
+	use sp_core::ConstU8;
+	use sp_std::marker::PhantomData;
+
+	/// Provides factory methods for the `AssetKind` and the `Beneficiary` that are applicable for
+	/// the payout made by [`LocalPay`].
+	///
+	/// ### Parameters:
+	/// - `PalletId`: The ID of the assets registry pallet.
+	/// - `AssetId`: The ID of the asset that will be created for the benchmark within `PalletId`.
+	pub struct LocalPayArguments<PalletId = ConstU8<0>>(PhantomData<PalletId>);
+	impl<PalletId: Get<u8>>
+		TreasuryArgumentsFactory<VersionedLocatableAsset, VersionedLocatableAccount>
+		for LocalPayArguments<PalletId>
+	{
+		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
+			VersionedLocatableAsset::V4 {
+				location: Location::new(0, []),
+				asset_id: Location::new(
+					0,
+					[PalletInstance(PalletId::get()), GeneralIndex(seed.into())],
+				)
+				.into(),
+			}
+		}
+		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocatableAccount {
+			VersionedLocatableAccount::V4 {
+				location: Location::new(0, []),
+				account_id: Location::new(0, [AccountId32 { network: None, id: seed }]),
+			}
 		}
 	}
 }

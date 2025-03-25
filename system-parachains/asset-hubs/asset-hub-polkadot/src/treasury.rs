@@ -46,9 +46,10 @@ impl pallet_treasury::Config for Runtime {
 	type Paymaster = LocalPay<NativeAndAssets, TreasuryAccount, xcm_config::LocationToAccountId>;
 	type BalanceConverter = AssetRateWithNative;
 	type PayoutPeriod = PayoutSpendPeriod;
-	// TODO polkadot_runtime_common::impls::benchmarks::TreasuryArguments;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmarking::MockedTreasuryArguments;
+	type BenchmarkHelper = system_parachains_common::pay::benchmarks::LocalPayArguments<
+		xcm_config::TrustBackedAssetsPalletIndex,
+	>;
 }
 
 parameter_types! {
@@ -117,21 +118,4 @@ impl pallet_asset_rate::Config for Runtime {
 	type AssetKind = <Runtime as pallet_treasury::Config>::AssetKind;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
-}
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking {
-	use super::*;
-
-	pub struct MockedTreasuryArguments;
-	impl pallet_treasury::ArgumentsFactory<VersionedLocatableAsset, VersionedLocatableAccount>
-		for MockedTreasuryArguments
-	{
-		fn create_asset_kind(_seed: u32) -> VersionedLocatableAsset {
-			todo!()
-		}
-		fn create_beneficiary(_seed: [u8; 32]) -> VersionedLocatableAccount {
-			todo!()
-		}
-	}
 }
