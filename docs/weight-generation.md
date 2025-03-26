@@ -1,7 +1,7 @@
 # Weight Generation
 
 To generate weights for a runtime. 
-Weights generation is using self-hosted runner which is provided by [Amforc](https://amforc.com/), the rest commands are using standard Github runners on `ubuntu-latest` or `ubuntu-20.04`.
+Weights generation is using self-hosted runner which is provided by [Amforc](https://amforc.com/), the rest commands are using standard Github runners on `ubuntu-latest` or `ubuntu-22.04`.
 Self-hosted runner for benchmarks is configured to meet requirements of reference hardware for running validators https://wiki.polkadot.network/docs/maintain-guides-how-to-validate-polkadot#reference-hardware
 
 In a PR run the actions through comment:
