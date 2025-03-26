@@ -15,12 +15,36 @@
 
 use super::*;
 use codec::DecodeAll;
-use frame_support::pallet_prelude::TypeInfo;
+use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
 use frame_system::pallet_prelude::BlockNumberFor;
+use pallet_ah_migrator::LOG_TARGET;
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocatableAsset};
+use sp_core::Get;
 use sp_runtime::traits::{Convert, TryConvert};
 use system_parachains_common::pay::VersionedLocatableAccount;
 use xcm::latest::prelude::*;
+
+/// Treasury accounts migrating to the new treasury account address (same account address that was
+/// used on the Relay Chain).
+pub struct TreasuryAccounts;
+impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
+	fn get() -> (AccountId, Vec<Location>) {
+		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
+		(
+			xcm_config::RelayTreasuryPalletAccount::get(),
+			vec![
+				// USDT
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),
+				// USDC
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1337)]),
+				// DED
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(30)]),
+				// STINK
+				Location::new(0, [PalletInstance(assets_id), GeneralIndex(42069)]),
+			],
+		)
+	}
+}
 
 /// Relay Chain Hold Reason
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -181,7 +205,7 @@ pub enum RcTreasuryCall {
 		asset_kind: Box<VersionedLocatableAsset>,
 		#[codec(compact)]
 		amount: Balance,
-		beneficiary: VersionedLocation,
+		beneficiary: Box<VersionedLocation>,
 		valid_from: Option<BlockNumber>,
 	},
 	/// Claim a spend.
@@ -221,7 +245,7 @@ impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 		let rc_call = match RcRuntimeCall::decode_all(&mut a) {
 			Ok(rc_call) => rc_call,
 			Err(e) => {
-				log::error!("Failed to decode RC call with error: {:?}", e);
+				log::error!(target: LOG_TARGET, "Failed to decode RC call with error: {:?}", e);
 				return Err(a)
 			},
 		};
@@ -233,7 +257,11 @@ impl RcToAhCall {
 		match rc_call {
 			RcRuntimeCall::Utility(RcUtilityCall::dispatch_as { as_origin, call }) => {
 				let origin = RcToAhPalletsOrigin::try_convert(*as_origin).map_err(|err| {
-					log::error!("Failed to decode RC dispatch_as origin: {:?}", err);
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to decode RC dispatch_as origin: {:?}",
+						err
+					);
 				})?;
 				Ok(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::dispatch_as {
 					as_origin: Box::new(origin),
@@ -267,25 +295,8 @@ impl RcToAhCall {
 				beneficiary,
 				valid_from,
 			}) => {
-				let asset_kind =
-					LocatableAssetConverter::try_convert(*asset_kind).map_err(|_| {
-						log::error!("Failed to convert RC asset kind to latest version");
-					})?;
-				if asset_kind.location != Location::new(0, Parachain(1000)) {
-					log::error!("Unsupported RC asset kind location: {:?}", asset_kind.location);
-					return Err(());
-				};
-				let asset_kind = VersionedLocatableAsset::V4 {
-					location: Location::here(),
-					asset_id: asset_kind.asset_id,
-				};
-				let beneficiary = beneficiary.try_into().map_err(|_| {
-					log::error!("Failed to convert RC beneficiary type to the latest version");
-				})?;
-				let beneficiary = VersionedLocatableAccount::V4 {
-					location: Location::here(),
-					account_id: beneficiary,
-				};
+				let (asset_kind, beneficiary) =
+					RcToAhTreasurySpend::convert((*asset_kind, *beneficiary))?;
 				Ok(RuntimeCall::Treasury(pallet_treasury::Call::<Runtime>::spend {
 					asset_kind: Box::new(asset_kind),
 					amount,
@@ -296,8 +307,11 @@ impl RcToAhCall {
 			RcRuntimeCall::Treasury(inner_call) => {
 				let call =
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
-						log::error!("Failed to decode inner RC call into inner AH call: {:?}", err);
-						()
+						log::error!(
+							target: LOG_TARGET,
+							"Failed to decode inner RC call into inner AH call: {:?}",
+							err
+						);
 					})?;
 				Ok(RuntimeCall::Treasury(call))
 			},
@@ -305,10 +319,10 @@ impl RcToAhCall {
 				let call =
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
+							target: LOG_TARGET,
 							"Failed to decode RC Referenda call to AH Referenda call: {:?}",
 							err
 						);
-						()
 					})?;
 				Ok(RuntimeCall::Referenda(call))
 			},
@@ -316,10 +330,10 @@ impl RcToAhCall {
 				let call =
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
+							target: LOG_TARGET,
 							"Failed to decode RC Bounties call to AH Bounties call: {:?}",
 							err
 						);
-						()
 					})?;
 				Ok(RuntimeCall::Bounties(call))
 			},
@@ -327,13 +341,53 @@ impl RcToAhCall {
 				let call =
 					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
 						log::error!(
+							target: LOG_TARGET,
 							"Failed to decode RC ChildBounties call to AH ChildBounties call: {:?}",
 							err
 						);
-						()
 					})?;
 				Ok(RuntimeCall::ChildBounties(call))
 			},
 		}
+	}
+}
+
+/// Convert RC Treasury Spend (AssetKind, Beneficiary) parameters to AH Treasury Spend (AssetKind,
+/// Beneficiary) parameters.
+pub struct RcToAhTreasurySpend;
+impl
+	Convert<
+		(VersionedLocatableAsset, VersionedLocation),
+		Result<(VersionedLocatableAsset, VersionedLocatableAccount), ()>,
+	> for RcToAhTreasurySpend
+{
+	fn convert(
+		rc: (VersionedLocatableAsset, VersionedLocation),
+	) -> Result<(VersionedLocatableAsset, VersionedLocatableAccount), ()> {
+		let (asset_kind, beneficiary) = rc;
+		let asset_kind = LocatableAssetConverter::try_convert(asset_kind).map_err(|_| {
+			log::error!(target: LOG_TARGET, "Failed to convert RC asset kind to latest version");
+		})?;
+		if asset_kind.location != Location::new(0, Parachain(1000)) {
+			log::error!(
+				target: LOG_TARGET,
+				"Unsupported RC asset kind location: {:?}",
+				asset_kind.location
+			);
+			return Err(());
+		};
+		let asset_kind = VersionedLocatableAsset::V4 {
+			location: Location::here(),
+			asset_id: asset_kind.asset_id,
+		};
+		let beneficiary = beneficiary.try_into().map_err(|_| {
+			log::error!(
+				target: LOG_TARGET,
+				"Failed to convert RC beneficiary type to the latest version"
+			);
+		})?;
+		let beneficiary =
+			VersionedLocatableAccount::V4 { location: Location::here(), account_id: beneficiary };
+		Ok((asset_kind, beneficiary))
 	}
 }

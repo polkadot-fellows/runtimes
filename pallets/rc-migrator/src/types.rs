@@ -93,6 +93,8 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
+	#[codec(index = 21)]
+	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 101)]
 	StartMigration,
 }

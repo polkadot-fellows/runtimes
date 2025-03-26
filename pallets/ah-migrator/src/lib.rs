@@ -47,6 +47,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
+pub mod treasury;
 pub mod types;
 pub mod vesting;
 pub mod xcm_config;
@@ -59,6 +60,8 @@ use frame_support::{
 	storage::{transactional::with_transaction_opaque_err, TransactionOutcome},
 	traits::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
+		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
+		tokens::{Fortitude, Pay, Preservation},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
@@ -79,11 +82,12 @@ use pallet_rc_migrator::{
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
+	treasury::RcTreasuryMessage,
 	vesting::RcVestingSchedule,
 	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
-use polkadot_runtime_common::claims as pallet_claims;
+use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
@@ -105,6 +109,16 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
+	<T as frame_system::Config>::AccountId,
+	pallet_treasury::BalanceOf<T, ()>,
+	pallet_treasury::AssetBalanceOf<T, ()>,
+	BlockNumberFor<T>,
+	VersionedLocatableAsset,
+	VersionedLocation,
+	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
+>;
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum PalletEventName {
 	Indices,
@@ -113,6 +127,7 @@ pub enum PalletEventName {
 	BagsList,
 	Vesting,
 	Bounties,
+	Treasury,
 	Balances,
 	Multisig,
 	Claims,
@@ -172,9 +187,8 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
-	use crate::xcm_config::TrustedTeleportersDuring;
+	use crate::xcm_config::{TrustedTeleportersBeforeAfter, TrustedTeleportersDuring};
 	use frame_support::traits::ContainsPair;
-	use pallet_rc_migrator::xcm_config::TrustedTeleportersBeforeAndAfter;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -214,6 +228,8 @@ pub mod pallet {
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
 			+ LockableCurrency<Self::AccountId, Balance = u128>;
+		/// All supported assets registry.
+		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
@@ -256,6 +272,24 @@ pub mod pallet {
 		type SendXcm: SendXcm;
 		/// Weight information for extrinsics in this pallet.
 		type AhWeightInfo: WeightInfo;
+		/// Asset Hub Treasury accounts migrating to the new treasury account address (same account
+		/// address that was used on the Relay Chain).
+		///
+		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
+		/// list should not include the native asset.
+		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
+		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
+		/// Asset Hub (AssetKind, Beneficiary) parameters.
+		type RcToAhTreasurySpend: Convert<
+			(VersionedLocatableAsset, VersionedLocation),
+			Result<
+				(
+					<Self as pallet_treasury::Config>::AssetKind,
+					<Self as pallet_treasury::Config>::Beneficiary,
+				),
+				(),
+			>,
+		>;
 		/// Helper type for benchmarking.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: benchmarking::ParametersFactory<
@@ -670,6 +704,20 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[pallet::call_index(21)]
+		pub fn receive_treasury_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcTreasuryMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_treasury_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
@@ -820,7 +868,7 @@ pub mod pallet {
 				TrustedTeleportersDuring::contains(asset, origin)
 			} else {
 				// before and after migration use normal filter
-				TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+				TrustedTeleportersBeforeAfter::contains(asset, origin)
 			}
 		}
 	}

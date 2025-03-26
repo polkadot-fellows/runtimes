@@ -179,3 +179,55 @@ pub mod alias {
 		BagOf<T>,
 	>;
 }
+
+#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
+pub enum GenericBagsListMessage<AccountId, Score> {
+	Node { id: AccountId, node: alias::Node<AccountId, Score> },
+	Bag { score: Score, bag: alias::Bag<AccountId> },
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for BagsListMigrator<T> {
+	type RcPrePayload = Vec<GenericBagsListMessage<T::AccountId, T::Score>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut messages = Vec::new();
+
+		// Collect ListNodes
+		for (id, node) in alias::ListNodes::<T>::iter() {
+			messages.push(GenericBagsListMessage::Node {
+				id: id.clone(),
+				node: alias::Node {
+					id: node.id,
+					prev: node.prev,
+					next: node.next,
+					bag_upper: node.bag_upper,
+					score: node.score,
+				},
+			});
+		}
+
+		// Collect ListBags
+		for (score, bag) in alias::ListBags::<T>::iter() {
+			messages.push(GenericBagsListMessage::Bag {
+				score,
+				bag: alias::Bag { head: bag.head, tail: bag.tail },
+			});
+		}
+
+		messages
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		assert!(
+			alias::ListNodes::<T>::iter().next().is_none(),
+			"ListNodes should be empty after migration"
+		);
+		assert!(
+			alias::ListBags::<T>::iter().next().is_none(),
+			"ListBags should be empty after migration"
+		);
+
+		log::info!("All bags list data successfully migrated and cleared from the Relay Chain.");
+	}
+}

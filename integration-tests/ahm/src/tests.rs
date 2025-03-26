@@ -63,6 +63,8 @@ type RcChecks = (
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
 	pallet_rc_migrator::vesting::VestingMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
+	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
+	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	// other pallets go here
 	ProxiesStillWork,
 );
@@ -75,6 +77,8 @@ type AhChecks = (
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::vesting::VestingMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
+	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
+	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	// other pallets go here
 	ProxiesStillWork,
 );

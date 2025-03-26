@@ -18,7 +18,7 @@ use crate::*;
 use frame_support::traits::{ClassCountOf, DefensiveTruncateFrom};
 use pallet_conviction_voting::TallyOf;
 use pallet_rc_migrator::conviction_voting::{
-	alias, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
+	alias, ConvictionVotingMigrator, RcConvictionVotingMessage, RcConvictionVotingMessageOf,
 };
 
 impl<T: Config> Pallet<T> {
@@ -75,5 +75,42 @@ impl<T: Config> Pallet<T> {
 				balance_per_class,
 			);
 		pallet_conviction_voting::ClassLocksFor::<T>::insert(account_id, balance_per_class);
+	}
+}
+
+impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
+	type RcPrePayload = Vec<RcConvictionVotingMessageOf<T>>;
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		assert!(
+			alias::VotingFor::<T>::iter().next().is_none(),
+			"VotingFor should be empty before migration starts"
+		);
+		assert!(
+			pallet_conviction_voting::ClassLocksFor::<T>::iter().next().is_none(),
+			"ClassLocksFor should be empty before migration starts"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		assert!(!rc_pre_payload.is_empty(), "RC pre-payload should not be empty during post_check");
+		let mut ah_messages = Vec::new();
+
+		for (account_id, class, voting) in alias::VotingFor::<T>::iter() {
+			ah_messages.push(RcConvictionVotingMessage::VotingFor(account_id, class, voting));
+		}
+
+		for (account_id, balance_per_class) in pallet_conviction_voting::ClassLocksFor::<T>::iter()
+		{
+			let balance_per_class: Vec<_> = balance_per_class.into_iter().collect();
+			ah_messages
+				.push(RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class));
+		}
+
+		assert_eq!(
+            rc_pre_payload, ah_messages,
+            "Conviction voting data mismatch: Asset Hub data differs from original Relay Chain data"
+        );
 	}
 }
