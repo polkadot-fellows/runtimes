@@ -18,16 +18,15 @@ use sp_core::{sr25519, storage::Storage};
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, get_account_id_from_seed,
+	xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use xcm::prelude::*;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
-use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use integration_tests_helpers::common::WETH;
+use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
@@ -122,7 +121,7 @@ pub fn genesis() -> Storage {
 					),
 					EthereumSovereignAccount::get(),
 					true,
-					ED,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()

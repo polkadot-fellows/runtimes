@@ -14,4 +14,7 @@
 // limitations under the License.
 use hex_literal::hex;
 
+// Weth (Wrapped Ether) contract address on Ethereum mainnet.
 pub const WETH: [u8; 20] = hex!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+// The minimum Ether balance required for an account to exist. Matches value on Polkadot mainnet.
+pub const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;

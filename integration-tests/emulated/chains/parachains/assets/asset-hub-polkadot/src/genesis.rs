@@ -17,19 +17,18 @@
 use sp_core::storage::Storage;
 
 // Cumulus
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed,
+	xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_core::sr25519;
 use xcm::prelude::*;
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
-use emulated_integration_tests_common::xcm_emulator::ConvertLocation;
-use integration_tests_helpers::common::WETH;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
@@ -141,7 +140,7 @@ pub fn genesis() -> Storage {
 					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
 					EthereumSovereignAccount::get(),
 					true,
-					ED,
+					MIN_ETHER_BALANCE,
 				),
 				// Weth
 				(
@@ -154,7 +153,7 @@ pub fn genesis() -> Storage {
 					),
 					EthereumSovereignAccount::get(),
 					true,
-					ED,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()
