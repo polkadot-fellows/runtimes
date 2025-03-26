@@ -1,0 +1,30 @@
+port RUNTIME FOLDER:
+	#!/usr/bin/env sh
+
+	pwd
+	echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
+	cp -R ./ {{FOLDER}}
+
+	# Replacements in the Cargo.toml:
+	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
+	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/^polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
+	# Toggle the default feature
+	perl -pi -e 's/"ahm-test-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
+
+	if [ "{{RUNTIME}}" = "westend" ]; then
+		just sdk-cargo-toml-replaces {{FOLDER}}
+	fi
+
+	cd {{FOLDER}}
+	cargo fetch
+	zepter
+	SKIP_WASM_BUILD=1 RUST_BACKTRACE=1 SNAP_RC="../../{{RUNTIME}}.snap" SNAP_AH="../../ah-{{RUNTIME}}.snap" RUST_LOG="warn" cargo test -p polkadot-integration-tests-ahm --profile testnet pallet_migration_works -- --nocapture
+
+sdk-cargo-toml-replaces FOLDER:
+	perl -pi -e 's/authority-discovery-primitives/sp-authority-discovery/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/babe-primitives/sp-consensus-babe/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/beefy-primitives/sp-consensus-beefy/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/grandpa/sp-consensus-grandpa/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/runtime-parachains/polkadot-runtime-parachains/' {{FOLDER}}/Cargo.toml

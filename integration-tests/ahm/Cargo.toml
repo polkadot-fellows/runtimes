@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version.workspace = true
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -50,3 +50,10 @@ pallet-whitelist = { workspace = true, default-features = true }
 pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
+
+[features]
+ahm-test-westend = []
+ahm-test-polkadot = []
+
+# This will be changed by our porting script
+default = ["ahm-test-polkadot"]

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{AhMigrator, Block as AssetHubBlock, Runtime as AssetHub};
 use codec::Decode;
 use cumulus_primitives_core::{

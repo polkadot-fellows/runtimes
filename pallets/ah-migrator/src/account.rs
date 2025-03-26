@@ -196,7 +196,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// The expected output should contain the data stored in asset hub before the migration.
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let check_account = T::CheckingAccount::get();
-		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		let _checking_balance = <T as Config>::Currency::total_balance(&check_account);
 		//assert_eq!(checking_balance, 100000000); // TODO Adrian
 	}
 
@@ -206,8 +206,8 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let ah_total_issuance = <T as Config>::Currency::total_issuance();
+	fn post_check(_rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let _ah_total_issuance = <T as Config>::Currency::total_issuance();
 		// assert RC total issuance before == AH total issuance after
 		// assert_eq!(rc_total_issuance_before, ah_total_issuance); // TODO Adrian
 	}

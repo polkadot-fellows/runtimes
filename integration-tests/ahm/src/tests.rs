@@ -31,6 +31,8 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
+use crate::porting_prelude::*;
+
 use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -117,6 +119,7 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
+#[cfg(not(feature = "ahm-test-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();

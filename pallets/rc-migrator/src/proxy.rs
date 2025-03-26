@@ -114,7 +114,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+				|_len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
 			)?;
 		}
 
