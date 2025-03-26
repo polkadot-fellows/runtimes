@@ -106,7 +106,7 @@ pub fn genesis() -> Storage {
 				// Ether
 				(
 					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
-					EthereumSovereignAccount::get(),
+					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
 					true,
 					ED,
 				),
@@ -119,7 +119,7 @@ pub fn genesis() -> Storage {
 							AccountKey20 { network: None, key: WETH.into() },
 						],
 					),
-					EthereumSovereignAccount::get(),
+					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
 					true,
 					MIN_ETHER_BALANCE,
 				),
