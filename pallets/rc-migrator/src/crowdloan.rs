@@ -315,21 +315,20 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
 		pallet_crowdloan::Funds::<T>::iter()
 			.map(|(para_id, fund)| {
 				// For each fund, collect all contributions into a vector
-				let contributions = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-					.map(|(contributor, (amount, encoded_block_number))| {
-						// Decode the block number from bytes, defaulting to 0 if decoding fails
-						let block_number = BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
-							.unwrap_or_default();
-						
-						// Create a tuple of (block_number, contributor, amount)
-						// Convert amount to the expected balance type, defaulting to 0 if conversion fails
-						(
-							block_number,
-							contributor,
-							amount.try_into().unwrap_or_default()
-						)
-					})
-					.collect();
+				let contributions =
+					pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+						.map(|(contributor, (amount, encoded_block_number))| {
+							// Decode the block number from bytes, defaulting to 0 if decoding fails
+							let block_number =
+								BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
+									.unwrap_or_default();
+
+							// Create a tuple of (block_number, contributor, amount)
+							// Convert amount to the expected balance type, defaulting to 0 if
+							// conversion fails
+							(block_number, contributor, amount.try_into().unwrap_or_default())
+						})
+						.collect();
 
 				// Return tuple of parachain ID and its contributions
 				(para_id, contributions)
@@ -345,37 +344,28 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
 			pallet_crowdloan::Funds::<T>::iter()
 				.map(|(para_id, fund)| {
 					// For each fund, collect all its contributions
-					let contributions = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-						.map(|(contributor, (amount, encoded_block_number))| {
-							// Decode the block number from bytes
-							let block_number = BlockNumberFor::<T>::decode(
-								&mut &encoded_block_number[..]
-							).unwrap_or_default();
+					let contributions =
+						pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+							.map(|(contributor, (amount, encoded_block_number))| {
+								// Decode the block number from bytes
+								let block_number =
+									BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
+										.unwrap_or_default();
 
-							// Create a tuple of (block_number, contributor, amount)
-							(
-								block_number,
-								contributor,
-								amount.try_into().unwrap_or_default()
-							)
-						})
-						.collect();
+								// Create a tuple of (block_number, contributor, amount)
+								(block_number, contributor, amount.try_into().unwrap_or_default())
+							})
+							.collect();
 
-				(para_id, contributions)
-			})
-			.collect();
+					(para_id, contributions)
+				})
+				.collect();
 
 		// Verify that all data has been properly migrated
-		assert!(
-			current_map.is_empty(),
-			"Current crowdloan data should be empty after migration"
-		);
+		assert!(current_map.is_empty(), "Current crowdloan data should be empty after migration");
 
 		// Double check that no funds remain
 		let funds_empty = pallet_crowdloan::Funds::<T>::iter().next().is_none();
-		assert!(
-			funds_empty,
-			"pallet_crowdloan::Funds should be empty after migration"
-		);
+		assert!(funds_empty, "pallet_crowdloan::Funds should be empty after migration");
 	}
 }
