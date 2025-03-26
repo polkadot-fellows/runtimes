@@ -287,7 +287,11 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageChunkMigrator<T> {
 
 		// All AssetHub items came from the relay chain
 		for (hash, len) in alias::PreimageFor::<T>::iter_keys() {
-			assert!(rc_pre_payload.contains(&(hash, len)), "Asset Hub migrated Preimage::PreimageFor storage item with key {:?} {:?} was not present on the relay chain", hash, len);
+			// Preimages for referendums that did not pass on the relay chain can be noted when
+			// migrating to Asset Hub.
+			if !rc_pre_payload.contains(&(hash, len)) {
+				log::warn!("Asset Hub migrated Preimage::PreimageFor storage item with key {:?} {:?} was not present on the relay chain", hash, len);
+			}
 		}
 
 		// Integrity check that all preimages have the correct hash and length
@@ -365,11 +369,11 @@ impl<T: Config> crate::types::AhMigrationCheck for PreimageRequestStatusMigrator
 		}
 
 		for hash in alias::RequestStatusFor::<T>::iter_keys() {
-			assert!(
-				rc_pre_payload.contains(&(hash, true)) || rc_pre_payload.contains(&(hash, false)),
-				"Asset Hub migrated Preimage::RequestStatusFor storage item with key {:?} was not present on the relay chain", 
-				hash
-			);
+			// Preimages for referendums that did not pass on the relay chain can be noted when
+			// migrating to Asset Hub.
+			if !rc_pre_payload.contains(&(hash, true)) && !rc_pre_payload.contains(&(hash, false)) {
+				log::warn!("Asset Hub migrated Preimage::RequestStatusFor storage item with key {:?} was not present on the relay chain", hash);
+			}
 		}
 
 		assert_eq!(
