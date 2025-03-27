@@ -28,6 +28,8 @@ pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
 pub use xcm_emulator::Chain;
 
+pub mod common;
+
 /// TODO: when bumping to polkadot-sdk v1.8.0,
 /// remove this crate altogether and get the macros from `emulated-integration-tests-common`.
 /// TODO: backport this macros to polkadot-sdk
@@ -400,6 +402,72 @@ macro_rules! test_chain_can_claim_assets {
 				));
 				let balance_after = <$sender_para as [<$sender_para Pallet>]>::Balances::free_balance(&receiver);
 				assert_eq!(balance_after, balance_before + $amount);
+			});
+		}
+	};
+}
+
+/// note: $asset needs to be prefunded outside this function
+#[macro_export]
+macro_rules! create_pool_with_native_on {
+	( $chain:ident, $asset:expr, $is_foreign:expr, $asset_owner:expr ) => {
+		emulated_integration_tests_common::impls::paste::paste! {
+			<$chain>::execute_with(|| {
+				type RuntimeEvent = <$chain as Chain>::RuntimeEvent;
+				let owner = $asset_owner;
+				let signed_owner = <$chain as Chain>::RuntimeOrigin::signed(owner.clone());
+				let native_asset: Location = Parent.into();
+
+				if $is_foreign {
+					assert_ok!(<$chain as [<$chain Pallet>]>::ForeignAssets::mint(
+						signed_owner.clone(),
+						$asset.clone().into(),
+						owner.clone().into(),
+						10_000_000_000_000, // For it to have more than enough.
+					));
+				} else {
+					let asset_id = match $asset.interior.last() {
+						Some(GeneralIndex(id)) => *id as u32,
+						_ => unreachable!(),
+					};
+					assert_ok!(<$chain as [<$chain Pallet>]>::Assets::mint(
+						signed_owner.clone(),
+						asset_id.into(),
+						owner.clone().into(),
+						10_000_000_000_000, // For it to have more than enough.
+					));
+				}
+
+				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::create_pool(
+					signed_owner.clone(),
+					Box::new(native_asset.clone()),
+					Box::new($asset.clone()),
+				));
+
+				assert_expected_events!(
+					$chain,
+					vec![
+						RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+					]
+				);
+
+				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::add_liquidity(
+					signed_owner,
+					Box::new(native_asset),
+					Box::new($asset),
+					1_000_000_000_000,
+					2_000_000_000_000, // $asset is worth half of native_asset
+					0,
+					0,
+					owner.into()
+				));
+
+				assert_expected_events!(
+					$chain,
+					vec![
+						RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded { .. }) => {},
+					]
+				);
 			});
 		}
 	};

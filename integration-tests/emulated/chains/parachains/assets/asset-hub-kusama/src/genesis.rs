@@ -18,17 +18,20 @@ use sp_core::{sr25519, storage::Storage};
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, get_account_id_from_seed,
+	xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
+use asset_hub_kusama_runtime::xcm_config::bridging::to_polkadot::EthereumNetwork;
 
 frame_support::parameter_types! {
 	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
@@ -40,6 +43,12 @@ frame_support::parameter_types! {
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+	pub EthereumSovereignAccount: AccountId = GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(
+		&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		),
+	).unwrap();
 }
 
 pub fn genesis() -> Storage {
@@ -93,6 +102,26 @@ pub fn genesis() -> Storage {
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,
+				),
+				// Ether
+				(
+					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
+					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
+					true,
+					ED,
+				),
+				// Weth
+				(
+					Location::new(
+						2,
+						[
+							GlobalConsensus(EthereumNetwork::get()),
+							AccountKey20 { network: None, key: WETH.into() },
+						],
+					),
+					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
+					true,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()
