@@ -140,3 +140,6 @@ try-runtime = [
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+
+[features]
+ahm-tests-polkadot = []
