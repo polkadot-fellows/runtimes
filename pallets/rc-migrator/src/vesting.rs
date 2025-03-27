@@ -130,6 +130,7 @@ impl<T: Config> crate::types::RcMigrationCheck for VestingMigrator<T> {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage "Vesting::Vesting::rc_post::empty"
 		assert!(
 			pallet_vesting::Vesting::<T>::iter().next().is_none(),
 			"Vesting storage should be empty after migration"

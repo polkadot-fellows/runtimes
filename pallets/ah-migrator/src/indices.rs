@@ -53,9 +53,13 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 	type AhPrePayload = Vec<RcIndicesIndexOf<T>>;
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		pallet_indices::Accounts::<T>::iter()
+		let indices = pallet_indices::Accounts::<T>::iter()
 			.map(|(index, (who, deposit, frozen))| RcIndicesIndex { index, who, deposit, frozen })
-			.collect()
+			.collect::<Vec<_>>();
+
+		assert!(indices.is_empty(), "Assert storage 'Indices::Accounts::ah_pre::empty'");
+
+		indices
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
@@ -69,6 +73,8 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 
 		// Note that by using BTreeMaps, we implicitly check the case that an AH entry is not
 		// overwritten by a RC entry since we iterate over the RC entries first before the collect.
+		// Assert storage "Indices::Accounts::ah_post::correct"
+		// Assert storage "Indices::Accounts::ah_post::length"
 		assert_eq!(all_pre, all_post, "RC and AH indices are present");
 	}
 }
