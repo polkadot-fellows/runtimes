@@ -180,15 +180,14 @@ jobs:
           shared-key: "fellowship-cache-chain-spec-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+      - name: Check
+        run: cargo check -p chain-spec-generator --release --locked -q --features=runtime-benchmarks,all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
@@ -220,7 +219,12 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --features fast-runtime --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
 
       - name: Zombienet smoke test
         timeout-minutes: 20
