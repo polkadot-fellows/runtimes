@@ -537,6 +537,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
+				c,
 				RuntimeCall::System(_) |
 					RuntimeCall::ParachainSystem(_) |
 					RuntimeCall::Timestamp(_) |
