@@ -499,18 +499,39 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
+			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::Balances { .. } |
-				// `purchase`, `renew`, `transfer` and `purchase_credit` are pretty self explanatory.
-				RuntimeCall::Broker(pallet_broker::Call::purchase { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::renew { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::transfer { .. }) |
-				RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }) |
-				// `pool` doesn't transfer, but it defines the account to be paid for contributions
-				RuntimeCall::Broker(pallet_broker::Call::pool { .. }) |
-				// `assign` is essentially a transfer of a region NFT
-				RuntimeCall::Broker(pallet_broker::Call::assign { .. })
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::ParachainInfo(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Aura(_) |
+					RuntimeCall::AuraExt(_) |
+					RuntimeCall::XcmpQueue(_) |
+					RuntimeCall::CumulusXcm(_) |
+					RuntimeCall::MessageQueue(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Broker(pallet_broket::Call::configure { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::reserve { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::unreserve { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::set_lease { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::start_sales { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::partition { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::claim_revenue { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::drop_region { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::drop_contribution { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::drop_history { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::drop_renewal { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::request_core_count { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::notify_core_count { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::notify_revenu { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::enable_auto_renew { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::disable_auto_renew { .. }) |
+					RuntimeCall::Broker(pallet_broket::Call::swap_leases { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

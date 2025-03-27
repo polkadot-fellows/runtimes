@@ -488,15 +488,42 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
+			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::Balances { .. } |
-				// `request_judgement` puts up a deposit to transfer to a registrar
-				RuntimeCall::Identity(pallet_identity::Call::request_judgement { .. }) |
-				// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
-				// account, should not be allowed.
-				RuntimeCall::Identity(pallet_identity::Call::add_sub { .. }) |
-				RuntimeCall::Identity(pallet_identity::Call::set_subs { .. })
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::ParachainInfo(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Aura(_) |
+					RuntimeCall::AuraExt(_) |
+					RuntimeCall::XcmpQueue(_) |
+					RuntimeCall::CumulusXcm(_) |
+					RuntimeCall::MessageQueue(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Identity(pallet_identity::Call::add_registrar { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::clear_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::cancel_request { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fee { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_account_id { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_fields { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::kill_identity { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::rename_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::remove_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::quit_sub { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::add_username_authority { .. }) |
+					RuntimeCall::Identity(
+						pallet_identity::Call::remove_username_authority { .. }
+					) | RuntimeCall::Identity(pallet_identity::Call::set_username_for { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::accept_username { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::remove_expired_approval { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::set_primary_username { .. }) |
+					RuntimeCall::Identity(pallet_identity::Call::remove_dangling_username { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

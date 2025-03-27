@@ -186,8 +186,34 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer =>
-				!matches!(c, RuntimeCall::Balances { .. } | RuntimeCall::EncointerBalances { .. }),
+			ProxyType::NonTransfer => matches!(
+					c,
+					RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::RandomnessCollectiveFlip(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::ParachainInfo(_) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Aura(_) |
+					RuntimeCall::AuraExt(_) |
+					RuntimeCall::XcmpQueue(_) |
+					RuntimeCall::CumulusXcm(_) |
+					RuntimeCall::MessageQueue(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::Scheduler(_) |
+					RuntimeCall::Collective(_) |
+					RuntimeCall::Membership(_) |
+					RuntimeCall::EncointerScheduler(_) |
+					RuntimeCall::EncointerCeremonies(_) |
+					RuntimeCall::EncointerCommunities(_) |
+					RuntimeCall::EncointerBazaar(_) |
+					RuntimeCall::EncointerReputationCommitments(_) |
+					RuntimeCall::EncointerFaucet(_) |
+					RuntimeCall::EncointerDemocracy(_) |
+					RuntimeCall::EncointerTreasuries(_) |
+			),
 			ProxyType::BazaarEdit => matches!(
 				c,
 				RuntimeCall::EncointerBazaar(EncointerBazaarCall::create_offering { .. }) |

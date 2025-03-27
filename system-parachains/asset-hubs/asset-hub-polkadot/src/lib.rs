@@ -479,15 +479,27 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
-			ProxyType::NonTransfer => !matches!(
+			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::Balances { .. } |
-					RuntimeCall::Assets { .. } |
-					RuntimeCall::Nfts { .. } |
-					RuntimeCall::Uniques { .. } |
-					// We allow calling `vest` and merging vesting schedules, but obviously not
-					// vested transfers.
-					RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. })
+				RuntimeCall::System(_) |
+					RuntimeCall::ParachainSystem(_) |
+					RuntimeCall::Timestamp(_) |
+					RuntimeCall::ParachainInfo(_) |
+					RuntimeCall::Vesting(pallet_versing::Call::vest { .. }) |
+					RuntimeCall::Vesting(pallet_versing::Call::vest_other { .. }) |
+					RuntimeCall::Vesting(pallet_versing::Call::merge_schedules { .. }) |
+					RuntimeCall::CollatorSelection(_) |
+					RuntimeCall::Session(_) |
+					RuntimeCall::Aura(_) |
+					RuntimeCall::AuraExt(_) |
+					RuntimeCall::XcmpQueue(_) |
+					RuntimeCall::CumulusXcm(_) |
+					RuntimeCall::ToKusamaXcmRouter(_) |
+					RuntimeCall::MessageQueue(_) |
+					RuntimeCall::Utility(_) |
+					RuntimeCall::Multisig(_) |
+					RuntimeCall::Proxy(_) |
+					RuntimeCall::StateTrieMigration(_)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
