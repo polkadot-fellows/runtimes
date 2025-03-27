@@ -1313,6 +1313,9 @@ mod benches {
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
 		[pallet_ah_migrator, AhMigrator]
+		[pallet_bags_list, VoterList]
+		[pallet_fast_unstake, FastUnstake]
+		[pallet_claims, Claims]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges
