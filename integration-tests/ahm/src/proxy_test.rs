@@ -125,8 +125,9 @@ impl AhMigrationCheck for ProxiesStillWork {
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Not empty in this case
 		assert!(
-			pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
+			!pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
 			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
 		);
 	}

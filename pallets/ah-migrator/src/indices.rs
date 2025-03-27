@@ -55,7 +55,7 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let indices = pallet_indices::Accounts::<T>::iter()
 			.map(|(index, (who, deposit, frozen))| RcIndicesIndex { index, who, deposit, frozen })
-			.collect();
+			.collect::<Vec<_>>();
 
 		assert!(indices.is_empty(), "Assert storage 'Indices::Accounts::ah_pre::empty'");
 
