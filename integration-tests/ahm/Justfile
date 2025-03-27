@@ -1,8 +1,12 @@
+help:
+	@echo "Port the Asset Hub Migration Tests to another runtime (Westend or Kusama)."
+	@echo "Will assume runtime.snap and ah-runtime.snap to be present in the root folder."
+	@echo "Example: just port westend ~polkadot-sdk/cumulus/test/ahm"
+
 port RUNTIME FOLDER:
 	#!/usr/bin/env sh
 
-	pwd
-	echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
+	@echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
 	cp -R ./ {{FOLDER}}
 
 	# Replacements in the Cargo.toml:
