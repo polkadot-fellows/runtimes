@@ -509,6 +509,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
 					RuntimeCall::Proxy(_) |
+					// We don't allow `purchase`, `renew`, `transfer`, `purchase_credit`,
+					// `pool` doesn't transfer, but it defines the account to be paid for contributions,
+					// `assign` is essentially a transfer of a region NFT.
 					RuntimeCall::Broker(pallet_broket::Call::configure { .. }) |
 					RuntimeCall::Broker(pallet_broket::Call::reserve { .. }) |
 					RuntimeCall::Broker(pallet_broket::Call::unreserve { .. }) |

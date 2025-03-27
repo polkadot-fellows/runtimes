@@ -498,6 +498,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
 					RuntimeCall::Proxy(_) |
+					// We don't allow:
+					// `request_judgement` puts up a deposit to transfer to a registrar,
+					// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
+					// account, should not be allowed.
 					RuntimeCall::Identity(pallet_identity::Call::add_registrar { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::set_identity { .. }) |
 					RuntimeCall::Identity(pallet_identity::Call::clear_identity { .. }) |
