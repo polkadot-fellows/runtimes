@@ -53,7 +53,9 @@ pallet-xcm = { workspace = true, default-features = true }
 
 [features]
 ahm-test-westend = []
-ahm-test-polkadot = []
+ahm-test-polkadot = [
+	"pallet-rc-migrator/ahm-test-polkadot"
+]
 
 # This will be changed by our porting script
 default = ["ahm-test-polkadot"]
