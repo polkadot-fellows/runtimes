@@ -53,12 +53,13 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BountyDepositBase: Balance = DOLLARS;
+	// where `176` is the size of the `Bounty` struct in bytes.
+	pub const BountyDepositBase: Balance = system_para_deposit(0, 176);
+	// per byte for the bounty description.
+	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
 	pub const BountyUpdatePeriod: BlockNumber = 90 * RC_DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
-	// TODO: update deposits
-	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
 	pub const CuratorDepositMin: Balance = 10 * DOLLARS;
 	pub const CuratorDepositMax: Balance = 200 * DOLLARS;

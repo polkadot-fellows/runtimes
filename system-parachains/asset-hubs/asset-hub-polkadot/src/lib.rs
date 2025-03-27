@@ -1085,7 +1085,7 @@ pub struct OriginPrivilegeCmp;
 impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 
 		match (left, right) {
@@ -1122,7 +1122,7 @@ impl pallet_claims::Config for Runtime {
 	type Prefix = PalletClaimsPrefix;
 	/// Only Root can move a claim.
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = pallet_claims::TestWeightInfo; // TODOweights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = pallet_claims::TestWeightInfo; // TODO weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 impl pallet_ah_ops::Config for Runtime {

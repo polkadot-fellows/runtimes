@@ -170,6 +170,7 @@ pub enum RcRuntimeCall {
 	// TODO: variant set code for Relay Chain
 	// TODO: variant set code for Parachains
 	// TODO: whitelisted caller
+	// TODO: remark
 	#[codec(index = 19u8)]
 	Treasury(RcTreasuryCall),
 	#[codec(index = 21u8)]

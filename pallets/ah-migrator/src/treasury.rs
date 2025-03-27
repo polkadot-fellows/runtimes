@@ -53,9 +53,6 @@ impl<T: Config> Pallet<T> {
 			RcTreasuryMessage::Proposals((proposal_index, proposal)) => {
 				pallet_treasury::Proposals::<T>::insert(proposal_index, proposal);
 			},
-			RcTreasuryMessage::Deactivated(deactivated) => {
-				pallet_treasury::Deactivated::<T>::put(deactivated);
-			},
 			RcTreasuryMessage::Approvals(approvals) => {
 				let approvals = BoundedVec::<_, <T as pallet_treasury::Config>::MaxApprovals>::defensive_truncate_from(approvals);
 				pallet_treasury::Approvals::<T>::put(approvals);
