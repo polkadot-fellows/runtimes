@@ -4946,13 +4946,12 @@ name = "governance-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
- "bridge-hub-polkadot-runtime",
  "collectives-polkadot-runtime",
- "coretime-polkadot-runtime",
  "emulated-integration-tests-common",
  "frame-support",
  "frame-system",
  "integration-tests-helpers",
+ "pallet-preimage",
  "pallet-utility",
  "pallet-whitelist",
  "pallet-xcm",
