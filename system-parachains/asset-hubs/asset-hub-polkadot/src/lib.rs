@@ -1060,7 +1060,7 @@ parameter_types! {
 }
 
 impl pallet_preimage::Config for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
@@ -1107,7 +1107,7 @@ impl pallet_scheduler::Config for Runtime {
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
-	type WeightInfo = (); // TODO: weights::pallet_scheduler::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
 }
@@ -1122,7 +1122,7 @@ impl pallet_claims::Config for Runtime {
 	type Prefix = PalletClaimsPrefix;
 	/// Only Root can move a claim.
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = pallet_claims::TestWeightInfo; // TODO weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 impl pallet_ah_ops::Config for Runtime {
@@ -1153,8 +1153,7 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
-	// TODO: weights::pallet_ah_migrator::WeightInfo;
-	type AhWeightInfo = ();
+	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
 	type TreasuryAccounts = migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = migration::RcToAhTreasurySpend;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -1313,9 +1312,10 @@ mod benches {
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
 		[pallet_ah_migrator, AhMigrator]
-		[pallet_bags_list, VoterList]
-		[pallet_fast_unstake, FastUnstake]
-		[pallet_claims, Claims]
+		[polkadot_runtime_common::claims, Claims]
+		// TODO: [pallet_bags_list, VoterList]
+		// TODO: [pallet_fast_unstake, FastUnstake]
+
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

@@ -38,7 +38,7 @@ impl pallet_treasury::Config for Runtime {
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
-	type WeightInfo = (); // TODO: weights::pallet_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendOrigin = TreasurySpender;
 	type AssetKind = VersionedLocatableAsset;
 	type Beneficiary = VersionedLocatableAccount;
@@ -79,7 +79,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
-	type WeightInfo = (); // TODO: weights::pallet_bounties::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -91,7 +91,7 @@ impl pallet_child_bounties::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MaxActiveChildBountyCount = MaxActiveChildBountyCount;
 	type ChildBountyValueMinimum = ChildBountyValueMinimum;
-	type WeightInfo = (); // TODO: weights::pallet_child_bounties::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_child_bounties::WeightInfo<Runtime>;
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
@@ -110,7 +110,7 @@ pub type AssetRateWithNative = UnityOrOuterConversion<
 >;
 
 impl pallet_asset_rate::Config for Runtime {
-	type WeightInfo = (); // TODO weights::pallet_asset_rate::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_asset_rate::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type CreateOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RemoveOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;

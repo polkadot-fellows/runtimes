@@ -18,7 +18,7 @@
 use crate::*;
 use frame_support::traits::Currency;
 use pallet_vesting::MaxVestingSchedulesGet;
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::vec::Vec;
 
 pub type BalanceOf<T> = <<T as pallet_vesting::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,

@@ -35,7 +35,7 @@ parameter_types! {
 }
 
 impl pallet_conviction_voting::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_conviction_voting::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_conviction_voting::WeightInfo<Self>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type VoteLockingPeriod = VoteLockingPeriod;
@@ -67,7 +67,7 @@ parameter_types! {
 }
 
 impl pallet_whitelist::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_whitelist::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin = EitherOfDiverse<
@@ -79,7 +79,7 @@ impl pallet_whitelist::Config for Runtime {
 }
 
 impl pallet_referenda::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_referenda::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_referenda::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;

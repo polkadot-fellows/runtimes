@@ -54,6 +54,7 @@ pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use weights_ah::WeightInfo;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -84,7 +85,6 @@ use pallet_rc_migrator::{
 	},
 	treasury::RcTreasuryMessage,
 	vesting::RcVestingSchedule,
-	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
