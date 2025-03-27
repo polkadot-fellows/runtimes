@@ -3,4 +3,4 @@ coverage ahm_dry_run_repo="../ahm-dryrun":
 
     runtimes=$(pwd)
     cd {{ahm_dry_run_repo}}
-    just conformance update $runtimes
+    just coverage update $runtimes
