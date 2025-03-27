@@ -192,17 +192,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::ParachainSystem(_) |
 					RuntimeCall::RandomnessCollectiveFlip(_) |
 					RuntimeCall::Timestamp(_) |
-					RuntimeCall::ParachainInfo(_) |
 					RuntimeCall::CollatorSelection(_) |
 					RuntimeCall::Session(_) |
-					RuntimeCall::Aura(_) |
-					RuntimeCall::AuraExt(_) |
-					RuntimeCall::XcmpQueue(_) |
-					RuntimeCall::CumulusXcm(_) |
-					RuntimeCall::MessageQueue(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Proxy(_) |
-					RuntimeCall::Scheduler(_) |
 					RuntimeCall::Collective(_) |
 					RuntimeCall::Membership(_) |
 					RuntimeCall::EncointerScheduler(_) |

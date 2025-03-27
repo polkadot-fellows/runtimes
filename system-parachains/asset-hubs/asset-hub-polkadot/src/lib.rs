@@ -484,22 +484,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::System(_) |
 					RuntimeCall::ParachainSystem(_) |
 					RuntimeCall::Timestamp(_) |
-					RuntimeCall::ParachainInfo(_) |
 					RuntimeCall::Vesting(pallet_versing::Call::vest { .. }) |
 					RuntimeCall::Vesting(pallet_versing::Call::vest_other { .. }) |
 					RuntimeCall::Vesting(pallet_versing::Call::merge_schedules { .. }) |
 					RuntimeCall::CollatorSelection(_) |
 					RuntimeCall::Session(_) |
-					RuntimeCall::Aura(_) |
-					RuntimeCall::AuraExt(_) |
-					RuntimeCall::XcmpQueue(_) |
-					RuntimeCall::CumulusXcm(_) |
-					RuntimeCall::ToKusamaXcmRouter(_) |
-					RuntimeCall::MessageQueue(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
 					RuntimeCall::Proxy(_) |
-					RuntimeCall::StateTrieMigration(_)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,

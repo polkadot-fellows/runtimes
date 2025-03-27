@@ -329,19 +329,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::System(_) |
 					RuntimeCall::ParachainSystem(_) |
 					RuntimeCall::Timestamp(_) |
-					RuntimeCall::ParachainInfo(_) |
 					RuntimeCall::CollatorSelection(_) |
 					RuntimeCall::Session(_) |
-					RuntimeCall::Aura(_) |
-					RuntimeCall::AuraExt(_) |
-					RuntimeCall::XcmpQueue(_) |
-					RuntimeCall::CumulusXcm(_) |
-					RuntimeCall::MessageQueue(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
 					RuntimeCall::Proxy(_) |
 					RuntimeCall::Preimage(_) |
-					RuntimeCall::Scheduler(_) |
 					RuntimeCall::Alliance(_) |
 					RuntimeCall::AllianceMotion(_) |
 					RuntimeCall::FellowshipCollective(_) |
