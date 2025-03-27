@@ -125,11 +125,15 @@ impl AhMigrationCheck for ProxiesStillWork {
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		() // No OP
+		assert!(
+			pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
+			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
+		);
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
+			// Assert storage "Proxy::Proxies::ah_post::correct"
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
 			if entry.is_empty() {
 				// FIXME possibly bug

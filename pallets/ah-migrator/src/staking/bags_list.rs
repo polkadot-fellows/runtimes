@@ -77,10 +77,13 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Assert storage "VoterList::ListNodes::ah_pre::empty"
 		assert!(
 			alias::ListNodes::<T>::iter().next().is_none(),
 			"ListNodes should be empty before migration starts"
 		);
+
+		// Assert storage "VoterList::ListBags::ah_pre::empty"
 		assert!(
 			alias::ListBags::<T>::iter().next().is_none(),
 			"ListBags should be empty before migration starts"
@@ -112,6 +115,8 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 			});
 		}
 
+		// Assert storage "VoterList::ListNodes::ah_post::correct"
+		// Assert storage "VoterList::ListBags::ah_post::correct"
 		assert_eq!(
 			rc_pre_payload, ah_messages,
 			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"

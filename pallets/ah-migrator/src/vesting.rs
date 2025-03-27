@@ -99,10 +99,7 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let vesting_schedules: Vec<_> = pallet_vesting::Vesting::<T>::iter().collect();
-		assert!(
-			vesting_schedules.is_empty(),
-			"Vesting schedules should be empty before migration starts"
-		);
+		assert!(vesting_schedules.is_empty(), "Assert storage 'Vesting::Vesting::ah_pre::empty'");
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
@@ -137,6 +134,8 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 			})
 			.collect();
 
+		// Assert storage "Vesting::Vesting::ah_post::correct"
+		// Assert storage "Vesting::Vesting::ah_post::length"
 		assert_eq!(
 			rc_pre,
 			all_post,

@@ -224,6 +224,6 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 
 	fn post_check(_: Self::RcPrePayload) {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert_eq!(count, 0, "All proxies are removed from the relay");
+		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
 	}
 }
