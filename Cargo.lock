@@ -1456,7 +1456,9 @@ name = "bp-bridge-hub-kusama"
 version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
+ "bp-header-chain",
  "bp-messages",
+ "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1472,8 +1474,9 @@ name = "bp-bridge-hub-polkadot"
 version = "1.0.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
+ "bp-header-chain",
  "bp-messages",
- "bp-polkadot-bulletin",
+ "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
  "kusama-runtime-constants",
@@ -1500,19 +1503,6 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-core 34.0.0",
  "sp-runtime 39.0.5",
- "sp-std",
-]
-
-[[package]]
-name = "bp-kusama"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
  "sp-std",
 ]
 
@@ -1545,37 +1535,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-core 34.0.0",
- "sp-runtime 39.0.5",
- "sp-std",
-]
-
-[[package]]
-name = "bp-polkadot"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
- "sp-std",
-]
-
-[[package]]
-name = "bp-polkadot-bulletin"
-version = "0.15.0"
-source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
-dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
  "sp-runtime 39.0.5",
  "sp-std",
 ]
@@ -1766,10 +1725,8 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-runtime",
@@ -1844,7 +1801,6 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "static_assertions",
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
@@ -1912,10 +1868,8 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-runtime",
@@ -2002,7 +1956,6 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "static_assertions",
  "substrate-wasm-builder",
  "system-parachains-constants",
  "tuplex",
