@@ -76,6 +76,10 @@ impl<T: Config> Pallet<T> {
 					&contributor
 				)));
 
+				// Deactivate the amount since it cannot be used for Gov.
+				// Originally deactivated by the pallet: https://github.com/paritytech/polkadot-sdk/blob/b82ef548cfa4ca2107967e114cac7c3006c0780c/polkadot/runtime/common/src/crowdloan/mod.rs#L793
+				<T as Config>::Currency::deactivate(amount);
+
 				pallet_ah_ops::RcCrowdloanContribution::<T>::insert(
 					(withdraw_block, para_id, &contributor),
 					(crowdloan_account, amount),

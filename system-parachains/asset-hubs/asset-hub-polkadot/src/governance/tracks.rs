@@ -16,8 +16,6 @@
 
 //! Track configurations for governance.
 
-// TODO: RC_DAYS, RC_MINUTES should be RC_RC_DAYS, RC_MINUTES, etc.
-
 use super::*;
 
 // From https://github.com/polkadot-fellows/runtimes/blob/f29ef4bf7fc7039a9a62f0fd4e9abd95bfee6436/relay/polkadot/src/governance/tracks.rs#L21-L334

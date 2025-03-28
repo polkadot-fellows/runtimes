@@ -148,7 +148,6 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	Initializing,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
-	// TODO: Initializing?
 	/// Migrating account balances.
 	AccountsMigrationOngoing {
 		// Last migrated account
@@ -572,12 +571,10 @@ pub mod pallet {
 					match res {
 						Ok(None) => {
 							// accounts migration is completed
-							// TODO publish event
 							Self::transition(MigrationStage::AccountsMigrationDone);
 						},
 						Ok(Some(last_key)) => {
 							// accounts migration continues with the next block
-							// TODO publish event
 							Self::transition(MigrationStage::AccountsMigrationOngoing {
 								last_key: Some(last_key),
 							});
@@ -589,6 +586,7 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AccountsMigrationDone => {
+					AccountsMigrator::<T>::finish_balances_migration();
 					// Note: swap this out for faster testing to skip some migrations
 					Self::transition(MigrationStage::MultisigMigrationInit);
 				},
@@ -610,12 +608,10 @@ pub mod pallet {
 					match res {
 						Ok(None) => {
 							// multisig migration is completed
-							// TODO publish event
 							Self::transition(MigrationStage::MultisigMigrationDone);
 						},
 						Ok(Some(last_key)) => {
 							// multisig migration continues with the next block
-							// TODO publish event
 							Self::transition(MigrationStage::MultisigMigrationOngoing {
 								last_key: Some(last_key),
 							});
