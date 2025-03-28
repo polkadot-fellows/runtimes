@@ -56,6 +56,7 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
+	// TODO: wrong - before/during/after migration setup?
 	pub const GovernanceLocation: Location = Location::parent();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just DOT.
