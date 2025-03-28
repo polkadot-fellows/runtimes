@@ -14,19 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Helper imports to make it easy to run the AHM integration tests for different runtimes.
+
 #![cfg(test)]
 
 pub mod mock;
 pub mod proxy_test;
 pub mod tests;
-
-// Sanity checks
-#[cfg(not(any(feature = "ahm-test-polkadot", feature = "ahm-test-westend")))]
-compile_error!(
-	"You must enable exactly one of the features: `ahm-test-polkadot` or `ahm-test-westend`"
-);
-#[cfg(all(feature = "ahm-test-polkadot", feature = "ahm-test-westend"))]
-compile_error!("Cannot enable multiple `ahm-test-*` features at once");
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
@@ -59,6 +53,7 @@ pub mod porting_prelude {
 	}
 	pub use import_alias::*;
 
+	// Convenience aliases:
 	pub use asset_hub_polkadot_runtime::Runtime as AhRuntime;
 	pub use polkadot_runtime::Runtime as RcRuntime;
 
@@ -67,4 +62,14 @@ pub mod porting_prelude {
 	pub use polkadot_runtime as rc_proxy_definition;
 	#[cfg(feature = "ahm-test-polkadot")]
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
+}
+
+#[doc(hidden)]
+mod sanity_checks {
+	#[cfg(not(any(feature = "ahm-test-polkadot", feature = "ahm-test-westend")))]
+	compile_error!(
+		"You must enable exactly one of the features: `ahm-test-polkadot` or `ahm-test-westend`"
+	);
+	#[cfg(all(feature = "ahm-test-polkadot", feature = "ahm-test-westend"))]
+	compile_error!("Cannot enable multiple `ahm-test-*` features at once");
 }

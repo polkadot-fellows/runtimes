@@ -1,8 +1,10 @@
+# Print help
 help:
-	@echo "Port the Asset Hub Migration Tests to another runtime (Westend or Kusama)."
-	@echo "Will assume runtime.snap and ah-runtime.snap to be present in the root folder."
-	@echo "Example: just port westend ~polkadot-sdk/cumulus/test/ahm"
+	@just --list
 
+# Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
+# Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
+# Example: just port westend ~polkadot-sdk/cumulus/test/ahm
 port RUNTIME FOLDER:
 	#!/usr/bin/env sh
 
@@ -24,8 +26,17 @@ port RUNTIME FOLDER:
 	cd {{FOLDER}}
 	cargo fetch
 	zepter
-	SKIP_WASM_BUILD=1 RUST_BACKTRACE=1 SNAP_RC="../../{{RUNTIME}}.snap" SNAP_AH="../../ah-{{RUNTIME}}.snap" RUST_LOG="warn" cargo test -p polkadot-integration-tests-ahm --profile testnet pallet_migration_works -- --nocapture
 
+	# Actually run the test
+	export SKIP_WASM_BUILD=1
+	export RUST_BACKTRACE=1
+	export SNAP_RC="../../{{RUNTIME}}.snap"
+	export SNAP_AH="../../ah-{{RUNTIME}}.snap"
+	export RUST_LOG="warn"
+
+	cargo test -p polkadot-integration-tests-ahm --profile testnet pallet_migration_works -- --nocapture
+
+# The runtimes repo renamed some dependencies that the SDK does not have renamed.
 sdk-cargo-toml-replaces FOLDER:
 	perl -pi -e 's/authority-discovery-primitives/sp-authority-discovery/' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/babe-primitives/sp-consensus-babe/' {{FOLDER}}/Cargo.toml
