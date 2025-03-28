@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version = "0.1.0" # Wont work in the SDK otherwise
+version = "0.1.0"                                                      # Wont work in the SDK otherwise
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -53,9 +53,7 @@ pallet-xcm = { workspace = true, default-features = true }
 
 [features]
 ahm-test-westend = []
-ahm-test-polkadot = [
-	"pallet-rc-migrator/ahm-test-polkadot"
-]
+ahm-test-polkadot = ["pallet-rc-migrator/ahm-test-polkadot"]
 
 # This will be changed by our porting script
 default = ["ahm-test-polkadot"]
