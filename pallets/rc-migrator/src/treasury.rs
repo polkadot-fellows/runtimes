@@ -23,7 +23,8 @@ pub enum TreasuryStage {
 	#[default]
 	ProposalCount,
 	Proposals(Option<ProposalIndex>),
-	Deactivated,
+	// should not be migrated since automatically updated `on_initialize`.
+	// Deactivated,
 	Approvals,
 	SpendCount,
 	Spends(Option<SpendIndex>),
@@ -46,7 +47,6 @@ pub enum RcTreasuryMessage<
 > {
 	ProposalCount(ProposalIndex),
 	Proposals((ProposalIndex, Proposal<AccountId, Balance>)),
-	Deactivated(Balance),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
 	Spends {
@@ -117,13 +117,8 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 							messages.push(RcTreasuryMessage::Proposals((key, value)));
 							TreasuryStage::Proposals(Some(key))
 						},
-						None => TreasuryStage::Deactivated,
+						None => TreasuryStage::Approvals,
 					}
-				},
-				TreasuryStage::Deactivated => {
-					let deactivated = pallet_treasury::Deactivated::<T>::take();
-					messages.push(RcTreasuryMessage::Deactivated(deactivated));
-					TreasuryStage::Approvals
 				},
 				TreasuryStage::Approvals => {
 					let approvals = pallet_treasury::Approvals::<T>::take();

@@ -35,12 +35,14 @@ parameter_types! {
 }
 
 impl pallet_conviction_voting::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_conviction_voting::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_conviction_voting::WeightInfo<Self>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type VoteLockingPeriod = VoteLockingPeriod;
-	type MaxVotes = ConstU32<512>; // TODO check with weight
-								// TODO: review
+	// TODO: the `512` value is migrated from Relay Chain.
+	// Check that weights are sane, an overly large value can lead to extrinsics with large weight
+	// estimation: see `delegate` for instance.
+	type MaxVotes = ConstU32<512>;
 	type MaxTurnout =
 		frame_support::traits::tokens::currency::ActiveIssuanceOf<Balances, Self::AccountId>;
 	type Polls = Referenda;
@@ -65,7 +67,7 @@ parameter_types! {
 }
 
 impl pallet_whitelist::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_whitelist::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin = EitherOfDiverse<
@@ -77,7 +79,7 @@ impl pallet_whitelist::Config for Runtime {
 }
 
 impl pallet_referenda::Config for Runtime {
-	type WeightInfo = (); // TODO: weights::pallet_referenda::WeightInfo<Self>;
+	type WeightInfo = weights::pallet_referenda::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -85,7 +87,7 @@ impl pallet_referenda::Config for Runtime {
 	type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
 	type CancelOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumCanceller>;
 	type KillOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumKiller>;
-	type Slash = (); // TODO: Treasury;
+	type Slash = Treasury;
 	type Votes = pallet_conviction_voting::VotesOf<Runtime>;
 	type Tally = pallet_conviction_voting::TallyOf<Runtime>;
 	type SubmissionDeposit = SubmissionDeposit;
