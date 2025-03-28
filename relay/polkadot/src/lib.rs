@@ -67,7 +67,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
 		ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
@@ -708,7 +708,12 @@ impl pallet_staking::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+
+	fn filter(who: &AccountId) -> bool {
+		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
+	}
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1429,7 +1434,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = pallet_staking::AllStakers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_staking::AllStakers<Runtime>;
 }
 
 parameter_types! {
@@ -2900,8 +2906,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
