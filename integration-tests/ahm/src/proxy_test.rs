@@ -25,12 +25,15 @@
 
 use crate::porting_prelude::*;
 
-use frame_support::{pallet_prelude::*, traits::Currency};
+use frame_support::{
+	pallet_prelude::*,
+	traits::{Currency, Defensive},
+};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
 use sp_runtime::{
-	traits::{TryConvert, Dispatchable},
+	traits::{Dispatchable, TryConvert},
 	AccountId32,
 };
 use std::{collections::BTreeMap, str::FromStr};
@@ -55,7 +58,9 @@ pub enum Permission {
 
 // Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
 impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
-	fn try_convert(proxy: rc_proxy_definition::ProxyType) -> Result<Self, rc_proxy_definition::ProxyType> {
+	fn try_convert(
+		proxy: rc_proxy_definition::ProxyType,
+	) -> Result<Self, rc_proxy_definition::ProxyType> {
 		use rc_proxy_definition::ProxyType::*;
 
 		Ok(match proxy {
@@ -108,7 +113,11 @@ impl RcMigrationCheck for ProxiesStillWork {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				let permission = Permission::try_convert(proxy.proxy_type.0).expect("Proxy could not be converted");
+				let Ok(permission) = Permission::try_convert(proxy.proxy_type.0)
+					.defensive_proof("Proxy could not be converted")
+				else {
+					continue;
+				};
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
 					.or_insert_with(Vec::new)
