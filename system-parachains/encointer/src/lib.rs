@@ -205,7 +205,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::EncointerReputationCommitments(_) |
 					RuntimeCall::EncointerFaucet(_) |
 					RuntimeCall::EncointerDemocracy(_) |
-					RuntimeCall::EncointerTreasuries(_) |
+					RuntimeCall::EncointerTreasuries(_)
 			),
 			ProxyType::BazaarEdit => matches!(
 				c,
