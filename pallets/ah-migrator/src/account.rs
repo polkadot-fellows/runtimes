@@ -188,7 +188,7 @@ impl<T: Config> Pallet<T> {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	// rc_total_issuance_before
-	type RcPrePayload = BalanceOf<T>;
+	type RcPrePayload = (BalanceOf<T>, BalanceOf<T>);
 	type AhPrePayload = ();
 
 	/// Run some checks on asset hub before the migration and store intermediate payload.
@@ -197,7 +197,11 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let check_account = T::CheckingAccount::get();
 		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		//assert_eq!(checking_balance, 100000000); // TODO Adrian
+		assert_eq!(
+			checking_balance,
+			<T as Config>::Currency::minimum_balance(),
+			"Checking account on Asset Hub should have only existential deposit before migration."
+		);
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
@@ -206,9 +210,25 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let ah_total_issuance = <T as Config>::Currency::total_issuance();
-		// assert RC total issuance before == AH total issuance after
-		// assert_eq!(rc_total_issuance_before, ah_total_issuance); // TODO Adrian
+	fn post_check(
+		(_rc_total_issuance_before, rc_checking_balance_before): Self::RcPrePayload,
+		_: Self::AhPrePayload,
+	) {
+		// Check that checking account balance is correct
+		let ah_check_account = T::CheckingAccount::get();
+		let ah_checking_balance = <T as Config>::Currency::total_balance(&ah_check_account);
+		assert_eq!(
+			ah_checking_balance,
+			rc_checking_balance_before + <T as Config>::Currency::minimum_balance(),
+			"Checking balance mismatch: RC checking balance has not been fully migrated to AH"
+		);
+
+		// Check that no failed accounts remain in storage
+		assert!(
+			RcAccounts::<T>::iter().next().is_none(),
+			"Failed accounts should not remain in storage after migration"
+		);
+
+		// TODO: check that the total issuance is correct
 	}
 }
