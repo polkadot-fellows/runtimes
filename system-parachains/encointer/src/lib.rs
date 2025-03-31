@@ -190,7 +190,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					c,
 					RuntimeCall::System(_) |
 					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::RandomnessCollectiveFlip(_) |
 					RuntimeCall::Timestamp(_) |
 					RuntimeCall::CollatorSelection(_) |
 					RuntimeCall::Session(_) |

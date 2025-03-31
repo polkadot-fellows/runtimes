@@ -486,14 +486,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Timestamp(_) |
 					// We allow calling `vest` and merging vesting schedules, but obviously not
 					// vested transfers.
-					RuntimeCall::Vesting(pallet_versing::Call::vest { .. }) |
-					RuntimeCall::Vesting(pallet_versing::Call::vest_other { .. }) |
-					RuntimeCall::Vesting(pallet_versing::Call::merge_schedules { .. }) |
+					RuntimeCall::Vesting(pallet_vesting::Call::vest { .. }) |
+					RuntimeCall::Vesting(pallet_vesting::Call::vest_other { .. }) |
+					RuntimeCall::Vesting(pallet_vesting::Call::merge_schedules { .. }) |
 					RuntimeCall::CollatorSelection(_) |
 					RuntimeCall::Session(_) |
 					RuntimeCall::Utility(_) |
 					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
+					RuntimeCall::Proxy(_)
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
