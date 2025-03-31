@@ -289,8 +289,6 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 }
 
 impl<T: Config> AccountsMigrator<T> {
-	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
-
 	/// Migrate a single account out of the Relay chain and return it.
 	///
 	/// The account on the relay chain is modified as part of this operation.
@@ -534,6 +532,11 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		Ok(Some(withdrawn_account))
+	}
+
+	/// Actions to be done after the accounts migration is finished.
+	pub fn finish_balances_migration() {
+		pallet_balances::InactiveIssuance::<T>::put(0);
 	}
 
 	/// Check if the account can be withdrawn and migrated to AH.

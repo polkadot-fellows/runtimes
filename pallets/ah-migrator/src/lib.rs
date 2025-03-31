@@ -54,6 +54,7 @@ pub mod xcm_config;
 
 pub use pallet::*;
 pub use pallet_rc_migrator::{types::ZeroWeightOr, weights_ah};
+pub use weights_ah::WeightInfo;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -84,7 +85,6 @@ use pallet_rc_migrator::{
 	},
 	treasury::RcTreasuryMessage,
 	vesting::RcVestingSchedule,
-	weights_ah::WeightInfo,
 };
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
@@ -231,6 +231,8 @@ pub mod pallet {
 		/// All supported assets registry.
 		type Assets: FungiblesMutate<Self::AccountId>;
 		/// XCM check account.
+		/// 
+		/// Note: the account ID is the same for Polkadot/Kusama Relay and Asset Hub Chains.
 		type CheckingAccount: Get<Self::AccountId>;
 		/// Relay Chain Hold Reasons.
 		///
@@ -370,9 +372,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// TODO: Currently, we use `debug_assert!` for easy test checks against a production
-		// snapshot.
-
 		/// Receive accounts from the Relay Chain.
 		///
 		/// The accounts sent with `pallet_rc_migrator::Pallet::migrate_accounts` function.

@@ -107,6 +107,6 @@ impl<T: Config> crate::types::RcMigrationCheck for IndicesMigrator<T> {
 
 	fn post_check(_: Self::RcPrePayload) {
 		let index = pallet_indices::Accounts::<T>::iter().collect::<Vec<_>>();
-		assert_eq!(index, vec![], "All indices should be removed from the Relay");
+		assert_eq!(index, vec![], "Assert storage 'Indices::Accounts::rc_post::empty'");
 	}
 }

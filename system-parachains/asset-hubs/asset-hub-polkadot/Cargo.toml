@@ -349,6 +349,9 @@ std = [
 	"xcm/std",
 ]
 
+# Set timing constants (e.g. session period) to faster versions to speed up testing.
+fast-runtime = []
+
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
 metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 
