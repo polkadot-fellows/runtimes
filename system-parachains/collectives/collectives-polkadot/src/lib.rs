@@ -339,13 +339,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::AllianceMotion(_) |
 					RuntimeCall::FellowshipCollective(_) |
 					RuntimeCall::FellowshipReferenda(_) |
-					RuntimeCall::FellowshipOrigins(_) |
 					RuntimeCall::FellowshipCore(_) |
 					RuntimeCall::FellowshipSalary(_) |
 					RuntimeCall::FellowshipTreasury(_) |
 					RuntimeCall::AmbassadorCollective(_) |
 					RuntimeCall::AmbassadorReferenda(_) |
-					RuntimeCall::AmbassadorOrigins(_) |
 					RuntimeCall::AmbassadorCore(_) |
 					RuntimeCall::AmbassadorSalary(_) |
 					RuntimeCall::AmbassadorTreasury(_)
