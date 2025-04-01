@@ -1673,7 +1673,6 @@ construct_runtime! {
 	}
 }
 
-
 #[cfg(feature = "zombie-bite-sudo")] // FAIL-CI
 construct_runtime! {
 	pub enum Runtime

@@ -135,7 +135,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 	}
 }
 
-#[cfg(feature="zombie-bite-sudo")] // FAIL-CI
+#[cfg(feature = "zombie-bite-sudo")] // FAIL-CI
 #[allow(clippy::type_complexity)]
 fn polkadot_testnet_genesis(
 	initial_authorities: Vec<(
