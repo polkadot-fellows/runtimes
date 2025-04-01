@@ -1669,7 +1669,7 @@ construct_runtime! {
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 
-		#[cfg(feature="zombie-bite-sudo")]
+		#[cfg(feature="zombie-bite-sudo")] // FAIL-CI
 		Sudo: pallet_sudo = 250,
 
 		// Relay Chain Migrator
