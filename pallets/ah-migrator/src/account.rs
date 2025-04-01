@@ -202,6 +202,30 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			<T as Config>::Currency::minimum_balance(),
 			"Checking account on Asset Hub should have only existential deposit before migration."
 		);
+
+		// Assert storage "Balances::Locks::ah_pre::empty"
+		assert!(
+			pallet_balances::Locks::<T>::iter().next().is_none(),
+			"No locks should exist before migration"
+		);
+
+		// Assert storage "Balances::Reserves::ah_pre::empty"
+		assert!(
+			pallet_balances::Reserves::<T>::iter().next().is_none(),
+			"No reserves should exist before migration"
+		);
+
+		// Assert storage "Balances::Holds::ah_pre::empty"
+		assert!(
+			pallet_balances::Holds::<T>::iter().next().is_none(),
+			"No holds should exist before migration"
+		);
+
+		// Assert storage "Balances::Freezes::ah_pre::empty"
+		assert!(
+			pallet_balances::Freezes::<T>::iter().next().is_none(),
+			"No freezes should exist before migration"
+		);
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
