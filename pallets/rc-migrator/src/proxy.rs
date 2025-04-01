@@ -22,6 +22,7 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
+use pallet_proxy::BlockNumberFor;
 
 pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -114,7 +115,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|_| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+				|_len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
 			)?;
 		}
 

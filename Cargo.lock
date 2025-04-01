@@ -10038,7 +10038,7 @@ dependencies = [
 
 [[package]]
 name = "polkadot-integration-tests-ahm"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
  "cumulus-pallet-parachain-system",
