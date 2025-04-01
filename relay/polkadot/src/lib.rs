@@ -19,7 +19,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
-
 // AHM enable to easily add sudo key in genesis
 #![feature(stmt_expr_attributes)]
 
@@ -1679,7 +1678,7 @@ construct_runtime! {
 	}
 }
 
-#[cfg(feature="zombie-bite-sudo")]
+#[cfg(feature = "zombie-bite-sudo")]
 impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
