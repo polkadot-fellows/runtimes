@@ -1553,6 +1553,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 }
 
+#[cfg(not(feature = "zombie-bite-sudo"))]
 construct_runtime! {
 	pub enum Runtime
 	{
