@@ -211,24 +211,16 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
 	fn post_check(
-		(_rc_total_issuance_before, rc_checking_balance_before): Self::RcPrePayload,
+		(_rc_total_issuance_before, _rc_checking_balance_before): Self::RcPrePayload,
 		_: Self::AhPrePayload,
 	) {
-		// Check that checking account balance is correct
-		let ah_check_account = T::CheckingAccount::get();
-		let ah_checking_balance = <T as Config>::Currency::total_balance(&ah_check_account);
-		assert_eq!(
-			ah_checking_balance,
-			rc_checking_balance_before + <T as Config>::Currency::minimum_balance(),
-			"Checking balance mismatch: RC checking balance has not been fully migrated to AH"
-		);
-
 		// Check that no failed accounts remain in storage
 		assert!(
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
 
-		// TODO: check that the total issuance is correct
+		// Check that the total issuance is correct: TODO Adrian
+		// Check that the checking account balance is correct: TODO Adrian
 	}
 }

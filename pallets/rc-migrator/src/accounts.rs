@@ -821,7 +821,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					let free_balance = <T as Config>::Currency::reducible_balance(
 						&who,
-						Preservation::Preserve,
+						Preservation::Expendable,
 						Fortitude::Polite,
 					);
 					let reserved_balance = reserved + <T as Config>::Currency::minimum_balance();
