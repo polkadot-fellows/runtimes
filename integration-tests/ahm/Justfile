@@ -5,11 +5,14 @@ help:
 # Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
 # Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
 # Example: just port westend ~polkadot-sdk/cumulus/test/ahm
-port RUNTIME FOLDER:
-	#!/usr/bin/env sh
+port RUNTIME SDK FOLDER:
+	#!/usr/bin/env bash
+	set -e
 
-	@echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
-	cp -R ./ {{FOLDER}}
+	echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
+	cp -R ./ {{SDK}}/cumulus/test/ahm/
+	cp -R ../../pallets/rc-migrator/ {{SDK}}/cumulus/pallets/
+	cp -R ../../pallets/ah-migrator/ {{SDK}}/cumulus/pallets/
 
 	# Replacements in the Cargo.toml:
 	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
@@ -22,6 +25,8 @@ port RUNTIME FOLDER:
 	if [ "{{RUNTIME}}" = "westend" ]; then
 		just sdk-cargo-toml-replaces {{FOLDER}}
 	fi
+
+	perl -pi -e 's#members\s*=\s*\[#members = [\n\t"cumulus/pallets/rc-migrator",\n\t"cumulus/pallets/ah-migrator",\n\t"cumulus/test/ahm",#' {{SDK}}/Cargo.toml
 
 	cd {{FOLDER}}
 	cargo fetch
