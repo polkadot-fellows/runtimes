@@ -20,8 +20,12 @@ use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset};
 use cumulus_primitives_core::ParaId;
 use frame_support::parameter_types;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
-use polkadot_runtime_constants::system_parachain::*;
 use xcm::latest::prelude::*;
+
+#[cfg(feature = "ahm-test-polkadot")]
+use polkadot_runtime_constants::system_parachain::*;
+#[cfg(feature = "ahm-test-westend")]
+use westend_runtime_constants::system_parachain::*;
 
 parameter_types! {
 	pub const AssetHubParaId: ParaId = ParaId::new(ASSET_HUB_ID);

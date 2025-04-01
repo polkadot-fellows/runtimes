@@ -1335,7 +1335,10 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
+						#[cfg(feature = "ahm-test-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
+						#[cfg(feature = "ahm-test-westend")]
+						fallback_max_weight: Some(weight_at_most(batch_len)),
 						call: call.encode().into(),
 					},
 				]);
@@ -1384,7 +1387,10 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
+					#[cfg(feature = "ahm-test-polkadot")]
 					require_weight_at_most: weight_at_most,
+					#[cfg(feature = "ahm-test-westend")]
+					fallback_max_weight: Some(weight_at_most),
 					call: call.encode().into(),
 				},
 			]);

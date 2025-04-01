@@ -42,7 +42,7 @@ port RUNTIME SDK FOLDER:
 	export SNAP_AH="../../ah-{{RUNTIME}}.snap"
 	export RUST_LOG="warn"
 
-	cargo test -p polkadot-integration-tests-ahm --profile testnet pallet_migration_works -- --nocapture
+	cargo test -p polkadot-integration-tests-ahm --features "ahm-test-{{RUNTIME}}" --profile testnet pallet_migration_works -- --nocapture
 
 test-cargo-toml-replaces FOLDER RUNTIME:
 	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
