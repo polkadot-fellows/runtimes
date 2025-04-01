@@ -399,6 +399,11 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 
 		// Process crowdloan funds and contributions
 		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+			let para_id = if para_id == ParaId::from(2030) {
+				ParaId::from(3356)
+			} else {
+				para_id
+			};
 			let leases = pallet_slots::Leases::<T>::get(para_id);
 			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
 				.defensive()
