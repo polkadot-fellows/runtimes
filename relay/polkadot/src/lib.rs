@@ -20,6 +20,9 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 
+// AHM enable to easily add sudo key in genesis
+#![feature(stmt_expr_attributes)]
+
 use pallet_transaction_payment::FungibleAdapter;
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
@@ -1666,11 +1669,21 @@ construct_runtime! {
 		Mmr: pallet_mmr = 201,
 		BeefyMmrLeaf: pallet_beefy_mmr = 202,
 
+		#[cfg(feature="zombie-bite-sudo")]
+		Sudo: pallet_sudo = 250,
+
 		// Relay Chain Migrator
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
 	}
+}
+
+#[cfg(feature="zombie-bite-sudo")]
+impl pallet_sudo::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type WeightInfo = ();
 }
 
 /// The address format for describing accounts.

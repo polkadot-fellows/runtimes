@@ -115,6 +115,9 @@ sp-debug-derive = { workspace = true }
 # just for the coretime migration
 polkadot-parachain-primitives = { workspace = true }
 
+# just for use with zombie-bite to test migration
+pallet-sudo = { workspace = true, optional = true }
+
 [dev-dependencies]
 approx = { workspace = true }
 sp-keyring = { workspace = true }
@@ -188,6 +191,7 @@ std = [
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-sudo?/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -352,3 +356,5 @@ fast-runtime = []
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
 force-debug = ["sp-debug-derive/force-debug"]
+
+zombie-bite-sudo = ["dep:pallet-sudo"]
