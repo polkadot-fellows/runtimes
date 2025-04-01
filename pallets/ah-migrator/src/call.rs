@@ -24,6 +24,7 @@ impl<T: Config> Pallet<T> {
 	pub fn map_rc_ah_call(
 		rc_bounded_call: &BoundedCallOf<T>,
 	) -> Result<BoundedCallOf<T>, Error<T>> {
+		log::warn!("PREIMAGESCOUNT: {:?}", alias::PreimageFor::<T>::iter_keys().count());
 		let encoded_call = if let Ok(e) = Self::fetch_preimage(rc_bounded_call) {
 			e
 		} else {
