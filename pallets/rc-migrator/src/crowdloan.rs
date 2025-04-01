@@ -300,44 +300,139 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 	Ok(last_period_end_block)
 }
 
-#[cfg(feature = "std")]
-impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T> {
-	/// Pre-migration payload for crowdloan data:
-	/// - `ParaId`: The parachain identifier
-	/// - Inner Vec contains contributions, where each tuple is:
-	///   - `BlockNumberFor<T>`: The block number at which this deposit can be unreserved
-	///   - `AccountId`: The depositor account
-	///   - `BalanceOf<T>`: The reserved amount
-	type RcPrePayload = Vec<(ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>)>;
+#[derive(Debug, Clone)]
+pub enum PreCheckMessage<BlockNumber, AccountId, Balance> {
+	// LeaseReserve {
+	// 	unreserve_block: u32,
+	// 	account: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// },
+	// CrowdloanContribution {
+	// 	withdraw_block: u32,
+	// 	contributor: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// 	crowdloan_account: String,
+	// },
+	// CrowdloanReserve {
+	// 	unreserve_block: u32,
+	// 	depositor: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// },
+	LeaseReserve {
+		unreserve_block: BlockNumber,
+		account: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+	},
+	CrowdloanContribution {
+		withdraw_block: BlockNumber,
+		contributor: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+		crowdloan_account: AccountId,
+	},
+	CrowdloanReserve {
+		unreserve_block: BlockNumber,
+		depositor: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+	},
+}
+
+impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
+	where
+	crate::BalanceOf<T>:
+		From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+	crate::BalanceOf<T>:
+		From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+{
+	type RcPrePayload = Vec<PreCheckMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		// Iterate through all crowdloan funds and collect their contributions
-		pallet_crowdloan::Funds::<T>::iter()
-			.map(|(para_id, fund)| {
-				// For each fund, collect all contributions into a vector
-				let contributions =
-					pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-						.map(|(contributor, (amount, encoded_block_number))| {
-							// Decode the block number from bytes, defaulting to 0 if decoding fails
-							let block_number =
-								BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
-									.unwrap_or_default();
+		let mut all_messages = Vec::new();
 
-							// Create a tuple of (block_number, contributor, amount)
-							// Convert amount to the expected balance type, defaulting to 0 if
-							// conversion fails
-							(block_number, contributor, amount.try_into().unwrap_or_default())
-						})
-						.collect();
+		// Process leases
+		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
+			// Stay consistent with migrate_many: remap for leases
+			let para_id = if para_id == ParaId::from(2030) {
+				ParaId::from(3356)
+			} else {
+				para_id
+			};
 
-				// Return tuple of parachain ID and its contributions
-				(para_id, contributions)
-			})
-			.collect()
+			let Some(last_lease) = leases.last() else {
+				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+				continue;
+			};
+			let Some((lease_acc, _)) = last_lease else {
+				continue;
+			};
+
+			let amount: crate::BalanceOf<T> = leases.iter()
+				.flatten()
+				.map(|(_acc, amount)| amount)
+				.max()
+				.cloned()
+				.unwrap_or_default()
+				.into();
+
+			if amount == 0u32.into() {
+				defensive_assert!(para_id < ParaId::from(2000), "Only system chains are allowed to have zero lease reserve");
+				continue;
+			}
+
+			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
+				.defensive()
+				.map_err(|_| Error::<T>::Unreachable)
+				.unwrap_or_default();
+
+			all_messages.push(PreCheckMessage::LeaseReserve {
+				unreserve_block: block_number,
+				account: lease_acc.clone(),
+				para_id,
+				amount,
+			});
+		}
+
+		// Process crowdloan funds and contributions
+		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+			let leases = pallet_slots::Leases::<T>::get(para_id);
+			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
+				.defensive()
+				.map_err(|_| Error::<T>::Unreachable)
+				.unwrap_or_default();
+
+			let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
+			let contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
+
+			for (contributor, (amount, _)) in contributions_iter {
+				all_messages.push(PreCheckMessage::CrowdloanContribution {
+					withdraw_block: block_number,
+					contributor,
+					para_id,
+					amount: amount.into(),
+					crowdloan_account: crowdloan_account.clone(),
+				});
+			}
+
+			if !leases.is_empty() {
+				all_messages.push(PreCheckMessage::CrowdloanReserve {
+					unreserve_block: block_number,
+					depositor: fund.depositor,
+					para_id,
+					amount: fund.deposit.into(),
+				});
+			}
+		}
+
+		all_messages
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
-		use std::collections::BTreeMap;
+		use sp_std::collections::btree_map::BTreeMap;
 
 		// Collect current state of crowdloan funds and their contributions
 		let current_map: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> =

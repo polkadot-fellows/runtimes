@@ -17,7 +17,7 @@ use crate::*;
 use chrono::TimeZone;
 use cumulus_primitives_core::ParaId;
 use pallet_rc_migrator::{
-	crowdloan::{CrowdloanMigrator, RcCrowdloanMessage},
+	crowdloan::{CrowdloanMigrator, PreCheckMessage, RcCrowdloanMessage},
 	types::AccountIdOf,
 };
 
@@ -172,13 +172,8 @@ where
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
-	/// Pre-migration payload for crowdloan data:
-	/// - `ParaId`: The parachain identifier
-	/// - Inner Vec contains contributions, where each tuple is:
-	///   - `BlockNumberFor<T>`: The block number at which this deposit can be unreserved
-	///   - `AccountId`: The depositor account
-	///   - `BalanceOf<T>`: The reserved amount
-	type RcPrePayload = Vec<(ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>)>;
+	type RcPrePayload =
+		Vec<PreCheckMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>>;
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -198,51 +193,104 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		// - storage_iter: Iterator over storage items
 		// - error_msg: Custom error message for assertion failure
 		fn verify_reserves<T: Config, I>(
-			reserves_pre: &BTreeMap<(BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>>,
+			reserves_pre: &BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>>,
 			storage_iter: I,
 			error_msg: &str,
 		) where
 			I: Iterator<Item = ((BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>)>,
 		{
-			let reserves_post: BTreeMap<_, _> = storage_iter.collect();
+			let mut reserves_post: BTreeMap<
+				ParaId,
+				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+			> = BTreeMap::new();
+			for ((block_number, para_id, account), amount) in storage_iter {
+				reserves_post.entry(para_id).or_insert_with(Vec::new).push((
+					block_number,
+					account,
+					amount,
+				));
+			}
 			assert_eq!(reserves_pre, &reserves_post, "{}", error_msg);
 		}
 
-		let rc_pre: BTreeMap<
+		let mut rc_contributions: BTreeMap<
+			(BlockNumberFor<T>, ParaId, AccountIdOf<T>),
+			BalanceOf<T>,
+		> = BTreeMap::new();
+		let mut rc_lease_reserves: BTreeMap<
 			ParaId,
-			Vec<(BlockNumberFor<T>, <T as frame_system::Config>::AccountId, BalanceOf<T>)>,
-		> = rc_pre_payload.iter().cloned().collect();
+			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+		> = BTreeMap::new();
+		let mut rc_crowdloan_reserves: BTreeMap<
+			ParaId,
+			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+		> = BTreeMap::new();
 
-		let all_post: BTreeMap<_, _> = pallet_ah_ops::RcCrowdloanContribution::<T>::iter()
-			.map(|((block_number, para_id, contributor), (_, amount))| {
-				(para_id, vec![(block_number, contributor, amount)])
-			})
-			.collect();
+		for message in rc_pre_payload {
+			match message {
+				PreCheckMessage::CrowdloanContribution {
+					withdraw_block,
+					contributor,
+					para_id,
+					amount,
+					..
+				} => {
+					rc_contributions
+						.entry((withdraw_block, para_id, contributor))
+						.and_modify(|e| *e = e.saturating_add(amount))
+						.or_insert(amount);
+				},
+				PreCheckMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
+					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
+						unreserve_block,
+						account,
+						amount,
+					));
+				},
+				PreCheckMessage::CrowdloanReserve {
+					unreserve_block,
+					depositor,
+					para_id,
+					amount,
+				} => {
+					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
+						unreserve_block,
+						depositor,
+						amount,
+					));
+				},
+			}
+		}
 
-		assert_eq!(
-			rc_pre, all_post,
-			"Crowdloan data mismatch: Asset Hub data differs from original Relay Chain data"
-		);
+		// Verify contributions
+		let mut contributions_post: BTreeMap<
+			(BlockNumberFor<T>, ParaId, AccountIdOf<T>),
+			BalanceOf<T>,
+		> = BTreeMap::new();
+		for ((block_number, para_id, contributor), (_, amount)) in
+			pallet_ah_ops::RcCrowdloanContribution::<T>::iter()
+		{
+			contributions_post
+				.entry((block_number, para_id, contributor))
+				.and_modify(|e| *e = e.saturating_add(amount))
+				.or_insert(amount);
+		}
 
-		// Transform pre-migration payload into a format suitable for reserves comparison
-		let reserves_pre: BTreeMap<_, _> = rc_pre_payload
-			.iter()
-			.flat_map(|(para_id, entries)| {
-				entries.iter().map(move |(block_number, account_id, amount)| {
-					((block_number.clone(), para_id.clone(), account_id.clone()), *amount)
-				})
-			})
-			.collect();
-
+		// Verify lease reserves
 		verify_reserves::<T, _>(
-			&reserves_pre,
+			&rc_lease_reserves,
 			pallet_ah_ops::RcLeaseReserve::<T>::iter(),
 			"Lease reserve data mismatch: Asset Hub data differs from original Relay Chain data",
 		);
+
+		// Verify crowdloan reserves
 		verify_reserves::<T, _>(
-			&reserves_pre,
+			&rc_crowdloan_reserves,
 			pallet_ah_ops::RcCrowdloanReserve::<T>::iter(),
 			"Crowdloan reserve data mismatch: Asset Hub data differs from original Relay Chain data",
 		);
+
+		// Verify contributions
+		assert_eq!(&rc_contributions, &contributions_post, "Crowdloan contribution data mismatch: Asset Hub data differs from original Relay Chain data");
 	}
 }
