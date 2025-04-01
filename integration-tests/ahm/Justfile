@@ -11,22 +11,25 @@ port RUNTIME SDK FOLDER:
 
 	echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
 	cp -R ./ {{SDK}}/cumulus/test/ahm/
-	cp -R ../../pallets/rc-migrator/ {{SDK}}/cumulus/pallets/
-	cp -R ../../pallets/ah-migrator/ {{SDK}}/cumulus/pallets/
+	cp -R ../../pallets/rc-migrator {{SDK}}/cumulus/pallets/
+	cp -R ../../pallets/ah-migrator {{SDK}}/cumulus/pallets/
+	cp -R ../../pallets/ah-ops {{SDK}}/cumulus/pallets/
 
-	# Replacements in the Cargo.toml:
-	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
-	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
-	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
-	perl -pi -e 's/^polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
-	# Toggle the default feature
-	perl -pi -e 's/"ahm-test-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
+	# Add to workspace
+	perl -pi -e 's#members\s*=\s*\[#members = [\n\t"cumulus/pallets/rc-migrator",\n\t"cumulus/pallets/ah-migrator",\n\t"cumulus/test/ahm",\n\t"cumulus/pallets/ah-ops",#' {{SDK}}/Cargo.toml
+	perl -pi -e 's#\[workspace.dependencies\]#\[workspace.dependencies\]\npallet-rc-migrator = { path = "cumulus/pallets/rc-migrator" }\npallet-ah-migrator = { path = "cumulus/pallets/ah-migrator" }\npallet-ah-ops = { path = "cumulus/pallets/ah-ops" }#' {{SDK}}/Cargo.toml
+
+	just test-cargo-toml-replaces {{SDK}}/cumulus/test/ahm {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-migrator {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-ops {{RUNTIME}}
 
 	if [ "{{RUNTIME}}" = "westend" ]; then
-		just sdk-cargo-toml-replaces {{FOLDER}}
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/test/ahm
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-migrator
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-ops
 	fi
-
-	perl -pi -e 's#members\s*=\s*\[#members = [\n\t"cumulus/pallets/rc-migrator",\n\t"cumulus/pallets/ah-migrator",\n\t"cumulus/test/ahm",#' {{SDK}}/Cargo.toml
 
 	cd {{FOLDER}}
 	cargo fetch
@@ -40,6 +43,14 @@ port RUNTIME SDK FOLDER:
 	export RUST_LOG="warn"
 
 	cargo test -p polkadot-integration-tests-ahm --profile testnet pallet_migration_works -- --nocapture
+
+test-cargo-toml-replaces FOLDER RUNTIME:
+	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
+	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
+	# Toggle the default feature
+	perl -pi -e 's/"ahm-test-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
 
 # The runtimes repo renamed some dependencies that the SDK does not have renamed.
 sdk-cargo-toml-replaces FOLDER:

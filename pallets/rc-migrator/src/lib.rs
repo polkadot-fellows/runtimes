@@ -80,7 +80,6 @@ use preimage::{
 };
 use proxy::*;
 use referenda::ReferendaStage;
-use runtime_parachains::hrmp;
 use sp_core::{crypto::Ss58Codec, H256};
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
@@ -96,6 +95,12 @@ use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
+
+#[cfg(feature = "ahm-test-polkadot")]
+use runtime_parachains::hrmp;
+// For westend
+#[cfg(not(feature = "ahm-test-polkadot"))]
+use polkadot_runtime_parachains::hrmp;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::rc-migrator";
@@ -122,6 +127,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 	conviction_voting::alias::ClassOf<T>,
 	<T as pallet_asset_rate::Config>::AssetKind,
+	scheduler::SchedulerBlockNumberFor<T>
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -133,7 +139,7 @@ pub enum PalletEventName {
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> {
+pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber> {
 	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
@@ -235,7 +241,7 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	BagsListMigrationDone,
 	SchedulerMigrationInit,
 	SchedulerMigrationOngoing {
-		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
+		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
@@ -271,8 +277,8 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	MigrationDone,
 }
 
-impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
-	MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
+impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber>
+	MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber>
 {
 	/// Whether the migration is finished.
 	///
@@ -295,8 +301,8 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind>
+impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber> std::str::FromStr
+	for MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber>
 {
 	type Err = std::string::String;
 

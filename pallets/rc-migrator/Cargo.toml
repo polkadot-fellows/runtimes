@@ -142,3 +142,4 @@ try-runtime = [
 ]
 
 ahm-test-polkadot = []
+ahm-test-westend = []
