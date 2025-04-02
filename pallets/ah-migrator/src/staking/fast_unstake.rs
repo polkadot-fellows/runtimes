@@ -73,7 +73,7 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
 	type AhPrePayload = ();
 
-	fn pre_check(rc_pre: Self::RcPrePayload) -> Self::AhPrePayload {
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// AH pre: Verify no entries are present
 		assert!(
 			alias::Head::<T>::get().is_none(),
