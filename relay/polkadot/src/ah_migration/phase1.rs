@@ -134,6 +134,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
 		RcMigrator(..) => (ON, ON),
+		#[cfg(feature = "zombie-bite-sudo")]
+		Sudo(..) => (ON, ON),
 		// Exhaustive match. Compiler ensures that we did not miss any.
 	}
 }
