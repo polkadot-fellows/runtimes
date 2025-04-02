@@ -27,6 +27,15 @@ jobs:
           echo "reviews=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[].state]')" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Wait for Docker
+        timeout-minutes: 2
+        run: |
+          while ! docker info > /dev/null 2>&1; do
+            echo "Waiting for Docker to start..."
+            sleep 1
+          done
+          echo "Docker is ready!"
+          docker --version
       - name: Get the GitHub handle of the fellows
         uses: paritytech/get-fellows-action@v1.3.0
         id: fellows
