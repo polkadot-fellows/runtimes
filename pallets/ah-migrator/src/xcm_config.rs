@@ -22,7 +22,7 @@ use frame_support::parameter_types;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use xcm::latest::prelude::*;
 
-#[cfg(feature = "ahm-test-polkadot")]
+//#[cfg(feature = "ahm-test-polkadot")]
 use polkadot_runtime_constants::system_parachain::*;
 #[cfg(feature = "ahm-test-westend")]
 use westend_runtime_constants::system_parachain::*;

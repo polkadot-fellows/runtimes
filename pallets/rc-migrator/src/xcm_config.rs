@@ -20,7 +20,7 @@ use frame_support::parameter_types;
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
-#[cfg(feature = "ahm-test-polkadot")]
+//#[cfg(feature = "ahm-test-polkadot")]
 use polkadot_runtime_constants::system_parachain::*;
 #[cfg(feature = "ahm-test-westend")]
 use westend_runtime_constants::system_parachain::*;

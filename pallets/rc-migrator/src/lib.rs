@@ -96,10 +96,10 @@ use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
 
-#[cfg(feature = "ahm-test-polkadot")]
+//#[cfg(feature = "ahm-test-polkadot")]
 use runtime_parachains::hrmp;
 // For westend
-#[cfg(not(feature = "ahm-test-polkadot"))]
+#[cfg(feature = "ahm-test-westend")]
 use polkadot_runtime_parachains::hrmp;
 
 /// The log target of this pallet.
@@ -1335,7 +1335,7 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						#[cfg(feature = "ahm-test-polkadot")]
+						//#[cfg(feature = "ahm-test-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
 						#[cfg(feature = "ahm-test-westend")]
 						fallback_max_weight: Some(weight_at_most(batch_len)),
@@ -1387,7 +1387,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					#[cfg(feature = "ahm-test-polkadot")]
+					//#[cfg(feature = "ahm-test-polkadot")]
 					require_weight_at_most: weight_at_most,
 					#[cfg(feature = "ahm-test-westend")]
 					fallback_max_weight: Some(weight_at_most),
