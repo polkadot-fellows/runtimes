@@ -16,6 +16,7 @@
 
 use crate::*;
 use pallet_asset_rate::ConversionRateToNative;
+use sp_runtime::FixedU128;
 
 pub struct AssetRateMigrator<T> {
 	pub _phantom: PhantomData<T>,
@@ -78,5 +79,24 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 		}
 
 		Ok(last_key)
+	}
+}
+
+impl<T: Config> crate::types::RcMigrationCheck for AssetRateMigrator<T> {
+	type RcPrePayload = Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let entries: Vec<_> = ConversionRateToNative::<T>::iter().collect();
+
+		// RC pre: Collect all entries
+		entries
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// RC post: Ensure that entries have been deleted
+		assert!(
+			ConversionRateToNative::<T>::iter().next().is_none(),
+			"Assert storage 'AssetRate::ConversionRateToNative::rc_post::deleted'"
+		);
 	}
 }
