@@ -3484,7 +3484,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18e4fdb82bd54a12e42fb58a800dcae6b9e13982238ce2296dc3570b92148e1f"
 dependencies = [
  "data-encoding",
- "syn 2.0.100",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -14287,9 +14287,9 @@ dependencies = [
 
 [[package]]
 name = "sp-api-proc-macro"
-version = "21.0.1"
+version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7f0aaf5b0a497f17b702be21c7280bd5bf5a2b0f054fbcdaf12ccbfadd90433"
+checksum = "37f8b9621cfa68a45d6f9c124e672b8f6780839a6c95279a7877d244fef8d1dc"
 dependencies = [
  "Inflector",
  "blake2 0.10.6",
