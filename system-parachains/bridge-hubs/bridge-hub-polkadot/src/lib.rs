@@ -148,22 +148,6 @@ parameter_types! {
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased and/or un-applied
-	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	pallet_bridge_messages::migration::v1::MigrationToV1<
-		Runtime,
-		bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance,
-	>,
-	bridge_to_kusama_config::migration::StaticToDynamicLanes,
-	frame_support::migrations::RemoveStorage<
-		BridgeKusamaMessagesPalletName,
-		OutboundLanesCongestedSignalsKey,
-		RocksDbWeight,
-	>,
-	pallet_bridge_relayers::migration::v1::MigrationToV1<
-		Runtime,
-		bridge_to_kusama_config::RelayersForLegacyLaneIdsMessagesInstance,
-	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
