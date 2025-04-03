@@ -46,6 +46,7 @@ pub mod weights;
 pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
@@ -1080,11 +1081,16 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ConvictionVotingMigrationDone => {
+					#[cfg(feature = "ahm-westend")]
+					Self::transition(MigrationStage::BountiesMigrationDone);
+					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::BountiesMigrationInit);
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationInit => {
 					Self::transition(MigrationStage::BountiesMigrationOngoing { last_key: None });
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::BountiesMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match bounties::BountiesMigrator::<T>::migrate_many(
