@@ -50,6 +50,8 @@ code-substitute SDK:
 	just code-substitute-pallet pallet_bounties {{SDK}}
 	just code-substitute-pallet pallet_scheduler {{SDK}}
 	just code-substitute-pallet pallet_nomination_pools {{SDK}}
+	perl -pi -e 's/\+ pallet_referenda::Config</+ pallet_referenda::Config<BlockNumberProvider = frame_system::Pallet<Self>, /' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+	perl -pi -e 's/\+ pallet_referenda::Config</+ pallet_referenda::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider, /' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 
 code-substitute-pallet PALLET SDK:
 	perl -pi -e 's/\+ {{PALLET}}::Config$/+ {{PALLET}}::Config<BlockNumberProvider = frame_system::Pallet<Self>>/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
