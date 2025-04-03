@@ -60,6 +60,7 @@ runtime-benchmarks = [
 	"bridge-hub-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-polkadot-system-emulated-network/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
@@ -75,8 +76,7 @@ runtime-benchmarks = [
 	"snowbridge-pallet-system/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks"
 ]

@@ -222,6 +222,10 @@ std = [
 ]
 
 runtime-benchmarks = [
+	"bp-asset-hub-kusama/runtime-benchmarks",
+	"bp-asset-hub-polkadot/runtime-benchmarks",
+	"bp-bridge-hub-kusama/runtime-benchmarks",
+	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-runtime-common/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
@@ -266,10 +270,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"bp-asset-hub-kusama/runtime-benchmarks",
-	"bp-asset-hub-polkadot/runtime-benchmarks",
-	"bp-bridge-hub-kusama/runtime-benchmarks",
-	"bp-bridge-hub-polkadot/runtime-benchmarks"
 ]
 
 try-runtime = [

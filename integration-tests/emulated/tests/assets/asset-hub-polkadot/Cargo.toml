@@ -48,6 +48,7 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -55,12 +56,11 @@ runtime-benchmarks = [
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
-	"polkadot-runtime/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks"
 ]

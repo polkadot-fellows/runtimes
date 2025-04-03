@@ -29,5 +29,5 @@ runtime-benchmarks = [
 	"coretime-polkadot-emulated-chain/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"people-polkadot-emulated-chain/runtime-benchmarks",
-	"polkadot-emulated-chain/runtime-benchmarks"
+	"polkadot-emulated-chain/runtime-benchmarks",
 ]

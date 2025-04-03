@@ -31,5 +31,5 @@ runtime-benchmarks = [
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks"
+	"parachains-common/runtime-benchmarks",
 ]

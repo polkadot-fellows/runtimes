@@ -46,5 +46,5 @@ runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"system-parachains-constants/runtime-benchmarks"
+	"system-parachains-constants/runtime-benchmarks",
 ]

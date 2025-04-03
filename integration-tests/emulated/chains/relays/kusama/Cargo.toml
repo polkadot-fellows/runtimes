@@ -30,7 +30,7 @@ kusama-runtime = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
+	"kusama-runtime/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"kusama-runtime/runtime-benchmarks"
 ]

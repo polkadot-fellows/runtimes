@@ -26,5 +26,5 @@ runtime-benchmarks = [
 	"collectives-polkadot-runtime/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"parachains-common/runtime-benchmarks"
+	"parachains-common/runtime-benchmarks",
 ]

@@ -32,5 +32,5 @@ runtime-benchmarks = [
 	"kusama-emulated-chain/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
-	"people-kusama-runtime/runtime-benchmarks"
+	"people-kusama-runtime/runtime-benchmarks",
 ]

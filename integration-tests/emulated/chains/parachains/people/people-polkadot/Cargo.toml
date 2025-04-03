@@ -32,5 +32,5 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
-	"polkadot-runtime-constants/runtime-benchmarks"
+	"polkadot-runtime-constants/runtime-benchmarks",
 ]

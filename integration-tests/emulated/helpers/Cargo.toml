@@ -28,5 +28,5 @@ runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
-	"pallet-xcm/runtime-benchmarks"
+	"pallet-xcm/runtime-benchmarks",
 ]
