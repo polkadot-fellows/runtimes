@@ -28,7 +28,7 @@
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000,
+    "blocktime": 6000,
     "try_runtime_args": "--overwrite-state-version 1"
   },
   {

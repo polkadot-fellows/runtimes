@@ -21,7 +21,7 @@ use frame_support::{
 	parameter_types, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_identity::{Data, IdentityInformationProvider};
-use parachains_common::{impls::ToParentTreasury, DAYS};
+use parachains_common::impls::ToParentTreasury;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Verify},

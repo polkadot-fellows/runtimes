@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
   `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
+- Enable Async Backing for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/659](https://github.com/polkadot-fellows/runtimes/pull/659))
 
 ## [1.4.2] 07.03.2025
 
