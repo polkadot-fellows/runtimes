@@ -84,6 +84,7 @@ use pallet_rc_migrator::{
 		nom_pools::*,
 	},
 	treasury::RcTreasuryMessage,
+	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
 use pallet_referenda::TrackIdOf;
@@ -175,11 +176,11 @@ impl MigrationStage {
 	}
 }
 
-/// Further data coming from Relay Chain alongside the signal that migration has finished.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub struct MigrationFinishedData {
-	/// Total native token balance NOT migrated from Relay Chain
-	pub rc_balance_kept: u128,
+/// Helper struct storing certain balances before the migration.
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub struct BalancesBefore<Balance: Default> {
+	pub checking_account: Balance,
+	pub total_issuance: Balance,
 }
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
@@ -323,7 +324,7 @@ pub mod pallet {
 	/// of the migration. Since teleports are disabled during migration, the total issuance will not
 	/// change for other reason than the migration itself.
 	#[pallet::storage]
-	pub type AhTotalIssuanceBefore<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -737,10 +738,17 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
-			AhTotalIssuanceBefore::<T>::put(<T as Config>::Currency::total_issuance());
-			defensive_assert!(
-				<T as Config>::Currency::total_balance(&T::CheckingAccount::get()) == 0
+			let checking_account = T::CheckingAccount::get();
+			let balances_before = BalancesBefore {
+				checking_account: <T as Config>::Currency::total_balance(&checking_account),
+				total_issuance: <T as Config>::Currency::total_issuance(),
+			};
+			log::info!(
+				target: LOG_TARGET,
+				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
+				balances_before.checking_account, balances_before.total_issuance
 			);
+			AhBalancesBefore::<T>::put(balances_before);
 
 			Self::transition(MigrationStage::DataMigrationOngoing);
 			Ok(())
@@ -752,10 +760,10 @@ pub mod pallet {
 		#[pallet::call_index(110)]
 		pub fn finish_migration(
 			origin: OriginFor<T>,
-			data: MigrationFinishedData,
+			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::finish_accounts_migration(data.rc_balance_kept.into())?;
+			Self::finish_accounts_migration(data.rc_balance_kept)?;
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
@@ -863,12 +871,19 @@ pub mod pallet {
 	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
 		fn contains(asset: &Asset, origin: &Location) -> bool {
 			let stage = AhMigrationStage::<T>::get();
-			if stage.is_ongoing() {
+			log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
+			let result = if stage.is_ongoing() {
 				TrustedTeleportersDuring::contains(asset, origin)
 			} else {
 				// before and after migration use normal filter
 				TrustedTeleportersBeforeAfter::contains(asset, origin)
-			}
+			};
+			log::trace!(
+				target: "xcm::IsTeleport::contains",
+				"asset: {:?} origin {:?} result {:?}",
+				asset, origin, result
+			);
+			result
 		}
 	}
 }
