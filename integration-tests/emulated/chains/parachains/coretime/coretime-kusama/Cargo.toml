@@ -22,4 +22,9 @@ emulated-integration-tests-common = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"coretime-kusama-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks"
+]

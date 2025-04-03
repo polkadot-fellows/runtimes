@@ -27,4 +27,9 @@ emulated-integration-tests-common = { workspace = true }
 bridge-hub-kusama-runtime = { workspace = true }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"bridge-hub-common/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks"
+]

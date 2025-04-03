@@ -153,6 +153,10 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"bp-asset-hub-kusama/runtime-benchmarks",
+	"bp-asset-hub-polkadot/runtime-benchmarks",
+	"bp-bridge-hub-kusama/runtime-benchmarks",
+	"bp-bridge-hub-polkadot/runtime-benchmarks"
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",

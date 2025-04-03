@@ -27,4 +27,12 @@ polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"polkadot-emulated-chain/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks"
+]

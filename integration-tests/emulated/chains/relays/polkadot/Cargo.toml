@@ -30,4 +30,11 @@ polkadot-runtime-constants = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
 
 [features]
-runtime-benchmarks = []
+runtime-benchmarks = [
+	"pallet-staking/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks"
+]
