@@ -41,3 +41,4 @@ std = [
 	"sp-runtime/std",
 	"system-parachains-constants/std",
 ]
+runtime-benchmarks = []

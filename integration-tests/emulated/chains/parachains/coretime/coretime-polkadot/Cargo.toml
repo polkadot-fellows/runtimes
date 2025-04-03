@@ -20,3 +20,6 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 coretime-polkadot-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = []

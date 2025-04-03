@@ -38,3 +38,6 @@ kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 coretime-kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
+
+[features]
+runtime-benchmarks = []

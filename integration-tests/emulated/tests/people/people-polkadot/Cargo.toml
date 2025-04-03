@@ -36,3 +36,6 @@ polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 people-polkadot-runtime = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
+
+[features]
+runtime-benchmarks = []

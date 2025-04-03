@@ -24,3 +24,6 @@ kusama-runtime-constants = { workspace = true, default-features = true }
 # Local
 people-kusama-runtime = { workspace = true }
 kusama-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = []

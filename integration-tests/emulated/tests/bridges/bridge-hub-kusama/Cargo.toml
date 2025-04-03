@@ -52,3 +52,6 @@ snowbridge-router-primitives = { workspace = true, default-features = true }
 snowbridge-pallet-system = { workspace = true, default-features = true }
 snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
 snowbridge-pallet-inbound-queue-fixtures = { workspace = true }
+
+[features]
+runtime-benchmarks = []

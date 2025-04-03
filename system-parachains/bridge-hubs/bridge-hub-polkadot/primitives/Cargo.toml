@@ -47,3 +47,4 @@ std = [
 	"system-parachains-constants/std",
 	"xcm/std",
 ]
+runtime-benchmarks = []

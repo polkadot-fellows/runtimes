@@ -41,3 +41,6 @@ integration-tests-helpers = { workspace = true }
 polkadot-runtime = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
 system-parachains-constants = { workspace = true, default-features = true }
+
+[features]
+runtime-benchmarks = []

@@ -20,3 +20,6 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 coretime-kusama-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = []

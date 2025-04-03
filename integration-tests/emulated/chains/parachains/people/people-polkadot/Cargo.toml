@@ -24,3 +24,6 @@ polkadot-runtime-constants = { workspace = true, default-features = true }
 # Local
 people-polkadot-runtime = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = []

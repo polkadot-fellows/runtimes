@@ -25,3 +25,6 @@ polkadot-parachain-primitives = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = []
