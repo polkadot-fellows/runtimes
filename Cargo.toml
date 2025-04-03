@@ -231,7 +231,7 @@ sp-state-machine = { version = "0.44.0", default-features = false }
 sp-storage = { version = "22.0.0", default-features = false }
 sp-tracing = { version = "17.0.1", default-features = false }
 sp-transaction-pool = { version = "35.0.0", default-features = false }
-sp-trie = { version = "38.0.0" }
+sp-trie = { version = "38.0.0", default-features = false }
 sp-version = { version = "38.0.0", default-features = false }
 sp-weights = { version = "31.0.0", default-features = false }
 substrate-wasm-builder = { version = "25.0.0" }
