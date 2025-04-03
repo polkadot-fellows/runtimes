@@ -28,7 +28,6 @@
 //!   inducted into [AmbassadorCore](pallet_core_fellowship)).
 //! - Ambassador Program Sub-Treasury (via [AmbassadorTreasury](pallet_treasury)).
 
-pub mod migrations;
 pub mod origins;
 mod tracks;
 
