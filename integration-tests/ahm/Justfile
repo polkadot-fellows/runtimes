@@ -50,7 +50,7 @@ test-cargo-toml-replaces FOLDER RUNTIME:
 	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
 	# Toggle the default feature
-	perl -pi -e 's/"ahm-test-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"ahm-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
 
 # The runtimes repo renamed some dependencies that the SDK does not have renamed.
 sdk-cargo-toml-replaces FOLDER:

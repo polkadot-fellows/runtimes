@@ -141,5 +141,5 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-ahm-test-polkadot = []
-ahm-test-westend = []
+ahm-polkadot = []
+ahm-westend = []

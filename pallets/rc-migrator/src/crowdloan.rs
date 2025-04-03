@@ -126,7 +126,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
 					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
-					if cfg!(feature = "ahm-test-polkadot") {
+					if cfg!(feature = "ahm-polkadot") {
 						let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
 						if leases.is_empty() {
 							defensive!("Bifrost fund maybe already ended, remove this");

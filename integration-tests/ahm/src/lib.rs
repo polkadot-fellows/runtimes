@@ -25,11 +25,11 @@ pub mod tests;
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
 	// Dependency renaming depending on runtimes or SDK names:
-	#[cfg(feature = "ahm-test-polkadot")]
+	#[cfg(feature = "ahm-polkadot")]
 	pub mod dependency_alias {
 		// Polkadot it is the canonical code
 	}
-	#[cfg(feature = "ahm-test-westend")]
+	#[cfg(feature = "ahm-westend")]
 	pub mod dependency_alias {
 		// Westend lives in the Polkadot SDK - it has different dependency names:
 		pub use polkadot_runtime_parachains as runtime_parachains;
@@ -41,11 +41,11 @@ pub mod porting_prelude {
 	pub use dependency_alias::*;
 
 	// Import renaming depending on runtimes or SDK names:
-	#[cfg(feature = "ahm-test-polkadot")]
+	#[cfg(feature = "ahm-polkadot")]
 	pub mod import_alias {
 		// Polkadot is canon
 	}
-	#[cfg(feature = "ahm-test-westend")]
+	#[cfg(feature = "ahm-westend")]
 	pub mod import_alias {
 		pub use asset_hub_westend_runtime as asset_hub_polkadot_runtime;
 		pub use westend_runtime as polkadot_runtime;
@@ -58,18 +58,18 @@ pub mod porting_prelude {
 	pub use polkadot_runtime::Runtime as RcRuntime;
 
 	// Westend does not support remote proxies, so we have to figure out the import location:
-	#[cfg(feature = "ahm-test-westend")]
+	#[cfg(feature = "ahm-westend")]
 	pub use polkadot_runtime as rc_proxy_definition;
-	#[cfg(feature = "ahm-test-polkadot")]
+	#[cfg(feature = "ahm-polkadot")]
 	pub use polkadot_runtime_constants::proxy as rc_proxy_definition;
 }
 
 #[doc(hidden)]
 mod sanity_checks {
-	#[cfg(not(any(feature = "ahm-test-polkadot", feature = "ahm-test-westend")))]
+	#[cfg(not(any(feature = "ahm-polkadot", feature = "ahm-westend")))]
 	compile_error!(
-		"You must enable exactly one of the features: `ahm-test-polkadot` or `ahm-test-westend`"
+		"You must enable exactly one of the features: `ahm-polkadot` or `ahm-westend`"
 	);
-	#[cfg(all(feature = "ahm-test-polkadot", feature = "ahm-test-westend"))]
+	#[cfg(all(feature = "ahm-polkadot", feature = "ahm-westend"))]
 	compile_error!("Cannot enable multiple `ahm-test-*` features at once");
 }

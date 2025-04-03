@@ -177,9 +177,9 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-ahm-test-polkadot = [
-	"pallet-rc-migrator/ahm-test-polkadot"
+ahm-polkadot = [
+	"pallet-rc-migrator/ahm-polkadot"
 ]
-ahm-test-westend = [
-	"pallet-rc-migrator/ahm-test-westend"
+ahm-westend = [
+	"pallet-rc-migrator/ahm-westend"
 ]

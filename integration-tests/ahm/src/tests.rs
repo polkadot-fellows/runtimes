@@ -119,7 +119,7 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
-#[cfg(not(feature = "ahm-test-westend"))] // No auctions on Westend
+#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();

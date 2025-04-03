@@ -73,7 +73,7 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 			NominationPools => Permission::NominationPools,
 			ParaRegistration => Permission::ParaRegistration,
 
-			#[cfg(feature = "ahm-test-westend")]
+			#[cfg(feature = "ahm-westend")]
 			SudoBalances | IdentityJudgement => return Err(proxy),
 		})
 	}
@@ -206,7 +206,7 @@ impl ProxiesStillWork {
 			assert!(!Self::can_transfer(delegatee, delegator), "Only `Any` can transfer");
 		}
 
-		#[cfg(not(feature = "ahm-test-westend"))] // Westend has no Governance
+		#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
 		{
 			let allowed_governance = permissions.contains(&Permission::Any) ||
 				permissions.contains(&Permission::NonTransfer) ||
@@ -229,7 +229,7 @@ impl ProxiesStillWork {
 		// Alice cannot transfer
 		assert!(!Self::can_transfer(&alice, &delegator), "Alice cannot transfer");
 		// Alice cannot do governance
-		#[cfg(not(feature = "ahm-test-westend"))]
+		#[cfg(not(feature = "ahm-westend"))]
 		assert!(!Self::can_governance(&alice, &delegator), "Alice cannot do governance");
 	}
 
@@ -269,7 +269,7 @@ impl ProxiesStillWork {
 	/// Check that the `delegatee` can do governance on behalf of the `delegator`.
 	///
 	/// Currently only checks the `bounties::propose_bounty` call.
-	#[cfg(not(feature = "ahm-test-westend"))] // Westend has no Governance
+	#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
 	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
 		frame_support::hypothetically!({
 			Self::fund_accounts(delegatee, delegator);
@@ -333,7 +333,7 @@ impl ProxiesStillWork {
 	}
 
 	/// Check if there is a `BountyProposed` event.
-	#[cfg(not(feature = "ahm-test-westend"))]
+	#[cfg(not(feature = "ahm-westend"))]
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(

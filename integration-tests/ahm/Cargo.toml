@@ -52,14 +52,14 @@ cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 
 [features]
-ahm-test-westend = [
-	"pallet-ah-migrator/ahm-test-westend",
-	"pallet-rc-migrator/ahm-test-westend"
+ahm-westend = [
+	"pallet-ah-migrator/ahm-westend",
+	"pallet-rc-migrator/ahm-westend"
 ]
-ahm-test-polkadot = [
-	"pallet-rc-migrator/ahm-test-polkadot",
-	"pallet-ah-migrator/ahm-test-polkadot"
+ahm-polkadot = [
+	"pallet-rc-migrator/ahm-polkadot",
+	"pallet-ah-migrator/ahm-polkadot"
 ]
 
 # This will be changed by our porting script
-default = ["ahm-test-polkadot"]
+default = ["ahm-polkadot"]

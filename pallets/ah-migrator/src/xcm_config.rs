@@ -22,10 +22,10 @@ use frame_support::parameter_types;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use xcm::latest::prelude::*;
 
-//#[cfg(feature = "ahm-test-polkadot")]
-use polkadot_runtime_constants::system_parachain::*;
-#[cfg(feature = "ahm-test-westend")]
-use westend_runtime_constants::system_parachain::*;
+#[cfg(feature = "ahm-polkadot")]
+use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+#[cfg(feature = "ahm-westend")]
+use westend_runtime_constants::system_parachain::ASSET_HUB_ID;
 
 parameter_types! {
 	pub const AssetHubParaId: ParaId = ParaId::new(ASSET_HUB_ID);
