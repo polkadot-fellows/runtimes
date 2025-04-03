@@ -52,9 +52,10 @@ pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
 
-use crate::accounts::MigratedBalances;
-use crate::types::MigrationFinishedData;
-use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
+use crate::{
+	accounts::MigratedBalances, types::MigrationFinishedData,
+	xcm_config::TrustedTeleportersBeforeAndAfter,
+};
 use accounts::AccountsMigrator;
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
