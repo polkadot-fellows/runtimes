@@ -22,6 +22,7 @@ pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum BountiesStage {
 	#[default]
 	BountyCount,

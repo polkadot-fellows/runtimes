@@ -18,7 +18,7 @@ use crate::*;
 use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 
 /// Stage of the scheduler pallet migration.
-#[derive(Encode, Decode, Clone, Defau lt, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum TreasuryStage {
 	#[default]

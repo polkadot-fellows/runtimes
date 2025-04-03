@@ -120,6 +120,7 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
@@ -178,6 +179,7 @@ impl MigrationStage {
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct MigrationFinishedData {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: u128,
@@ -828,6 +830,9 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
+					#[cfg(feature = "stable2503")]
+					fallback_max_weight: None,
+					#[cfg(not(feature = "stable2503"))]
 					require_weight_at_most: Weight::from_all(1), // TODO
 					call: call.encode().into(),
 				},

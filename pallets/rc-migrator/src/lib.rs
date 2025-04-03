@@ -131,6 +131,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum PalletEventName {
 	FastUnstake,
 	BagsList,
