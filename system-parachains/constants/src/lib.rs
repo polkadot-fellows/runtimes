@@ -62,7 +62,7 @@ pub const TREASURY_PALLET_ID: PalletId = PalletId(*b"py/trsry");
 ///
 /// Once all system chains have migrated to the new async backing mechanism, the parameters
 /// in this namespace will replace those currently defined in `super::*`.
-pub mod fast {
+pub mod async_backing {
 	use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
 	pub use parachains_common::BlockNumber;
 	use sp_runtime::Perbill;
