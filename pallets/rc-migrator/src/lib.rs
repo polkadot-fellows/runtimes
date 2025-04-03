@@ -96,7 +96,7 @@ use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
 
-//#[cfg(feature = "ahm-polkadot")]
+#[cfg(feature = "ahm-polkadot")]
 use runtime_parachains::hrmp;
 // For westend
 #[cfg(feature = "ahm-westend")]
@@ -139,6 +139,7 @@ pub enum PalletEventName {
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber> {
 	/// The migration has not yet started but will start in the future.
 	#[default]
@@ -1335,7 +1336,7 @@ pub mod pallet {
 						// Additionally the call will not be executed if `require_weight_at_most` is
 						// lower than the actual weight of the call.
 						// TODO: we can remove ths with XCMv5
-						//#[cfg(feature = "ahm-polkadot")]
+						#[cfg(feature = "ahm-polkadot")]
 						require_weight_at_most: weight_at_most(batch_len),
 						#[cfg(feature = "ahm-westend")]
 						fallback_max_weight: Some(weight_at_most(batch_len)),
@@ -1387,7 +1388,7 @@ pub mod pallet {
 					// Additionally the call will not be executed if `require_weight_at_most` is
 					// lower than the actual weight of the call.
 					// TODO: we can remove ths with XCMv5
-					//#[cfg(feature = "ahm-polkadot")]
+					#[cfg(feature = "ahm-polkadot")]
 					require_weight_at_most: weight_at_most,
 					#[cfg(feature = "ahm-westend")]
 					fallback_max_weight: Some(weight_at_most),

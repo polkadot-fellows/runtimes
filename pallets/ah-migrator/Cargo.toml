@@ -181,5 +181,7 @@ ahm-polkadot = [
 	"pallet-rc-migrator/ahm-polkadot"
 ]
 ahm-westend = [
+	"stable2503",
 	"pallet-rc-migrator/ahm-westend"
 ]
+stable2503 = []

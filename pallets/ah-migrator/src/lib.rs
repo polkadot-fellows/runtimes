@@ -147,6 +147,7 @@ pub enum PalletEventName {
 
 /// The migration stage on the Asset Hub.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum MigrationStage {
 	/// The migration has not started but will start in the future.
 	#[default]

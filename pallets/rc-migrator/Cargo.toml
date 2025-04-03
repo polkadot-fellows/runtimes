@@ -142,4 +142,5 @@ try-runtime = [
 ]
 
 ahm-polkadot = []
-ahm-westend = []
+ahm-westend = ["stable2503"]
+stable2503 = []

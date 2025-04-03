@@ -29,6 +29,7 @@ port RUNTIME SDK FOLDER:
 		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator
 		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-migrator
 		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-ops
+		just code-substitute {{SDK}}
 	fi
 
 	cd {{FOLDER}}
@@ -42,7 +43,17 @@ port RUNTIME SDK FOLDER:
 	export SNAP_AH="../../ah-{{RUNTIME}}.snap"
 	export RUST_LOG="warn"
 
-	cargo test -p polkadot-integration-tests-ahm --features "ahm-test-{{RUNTIME}}" --profile testnet pallet_migration_works -- --nocapture
+	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet pallet_migration_works -- --nocapture
+
+code-substitute SDK:
+	just code-substitute-pallet pallet_proxy {{SDK}}
+	just code-substitute-pallet pallet_bounties {{SDK}}
+	just code-substitute-pallet pallet_scheduler {{SDK}}
+	just code-substitute-pallet pallet_nomination_pools {{SDK}}
+
+code-substitute-pallet PALLET SDK:
+	perl -pi -e 's/\+ {{PALLET}}::Config$/+ {{PALLET}}::Config<BlockNumberProvider = frame_system::Pallet<Self>>/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+	perl -pi -e 's/\+ {{PALLET}}::Config$/+ {{PALLET}}::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 
 test-cargo-toml-replaces FOLDER RUNTIME:
 	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
@@ -50,7 +61,7 @@ test-cargo-toml-replaces FOLDER RUNTIME:
 	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
 	# Toggle the default feature
-	perl -pi -e 's/"ahm-polkadot"/"ahm-test-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"ahm-polkadot"/"ahm-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
 
 # The runtimes repo renamed some dependencies that the SDK does not have renamed.
 sdk-cargo-toml-replaces FOLDER:
