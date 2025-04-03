@@ -24,3 +24,11 @@ xcm = { workspace = true, default-features = true }
 # Runtimes
 kusama-emulated-chain = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"penpal-runtime/runtime-benchmarks",
+]

@@ -13,10 +13,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
+  `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
 - Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
 - Migration to XCMv5 ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
 - Changed from `SignedExtension` to `TransactionExtension` ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
 - `sp-std` removed from runtimes ([polkadot-fellows/runtimes/pull/605](https://github.com/polkadot-fellows/runtimes/pull/605))
+
+## [1.4.2] 07.03.2025
+
+### Added
+
+- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama. ‼️ Builders: Please read the docs and the implications around the lifetime of a proxy on a remote chain. ‼️ ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
+- Enabled state-trie-migration for Kusama and Polkadot Asset Hubs ([polkadot-fellows/runtimes/pull/604](https://github.com/polkadot-fellows/runtimes/pull/604))
+
+### Fixed
+
+- Correct weights of the scheduler pallet to avoid failing fellowship proposals ([polkadot-fellows/runtimes#614](https://github.com/polkadot-fellows/runtimes/pull/614))
+
+## [1.4.1] 26.02.2025
+
+### Fixed
+
+- Fix an issue related to staking in combination with nomination pools ([polkadot-fellows/runtimes/pull/608](https://github.com/polkadot-fellows/runtimes/pull/608))
 
 ## [1.4.0] 07.02.2025
 

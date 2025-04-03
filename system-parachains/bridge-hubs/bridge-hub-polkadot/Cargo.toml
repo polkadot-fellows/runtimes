@@ -93,8 +93,6 @@ bp-parachains = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
-bp-kusama = { workspace = true }
-bp-polkadot = { workspace = true }
 bp-xcm-bridge-hub = { workspace = true }
 bp-xcm-bridge-hub-router = { workspace = true }
 bridge-hub-common = { workspace = true }
@@ -124,7 +122,6 @@ bridge-runtime-common = { features = [
 ], workspace = true, default-features = true }
 pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
-static_assertions = { workspace = true }
 snowbridge-runtime-test-common = { workspace = true }
 snowbridge-pallet-ethereum-client-fixtures = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
@@ -137,11 +134,9 @@ std = [
 	"bp-bridge-hub-kusama/std",
 	"bp-bridge-hub-polkadot/std",
 	"bp-header-chain/std",
-	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
 	"bp-polkadot-core/std",
-	"bp-polkadot/std",
 	"bp-relayers/std",
 	"bp-runtime/std",
 	"bp-xcm-bridge-hub-router/std",
@@ -238,6 +233,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"kusama-runtime-constants/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bridge-grandpa/runtime-benchmarks",
 	"pallet-bridge-messages/runtime-benchmarks",
@@ -255,6 +251,7 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
@@ -265,6 +262,7 @@ runtime-benchmarks = [
 	"snowbridge-runtime-common/runtime-benchmarks",
 	"snowbridge-runtime-test-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",

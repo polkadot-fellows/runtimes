@@ -22,6 +22,7 @@ use crate::{
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, PolkadotXcm, Runtime,
 	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubPolkadot, XcmpQueue,
 };
+pub use bp_bridge_hub_polkadot::bp_polkadot;
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,

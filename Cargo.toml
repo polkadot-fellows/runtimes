@@ -23,12 +23,9 @@ bp-asset-hub-polkadot = { path = "system-parachains/asset-hubs/asset-hub-polkado
 bp-bridge-hub-cumulus = { version = "0.19.0", default-features = false }
 bp-bridge-hub-kusama = { path = "system-parachains/bridge-hubs/bridge-hub-kusama/primitives", default-features = false }
 bp-bridge-hub-polkadot = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot/primitives", default-features = false }
-bp-header-chain = { version = "0.19.0", default-features = false }
-bp-kusama = { version = "0.17.0", default-features = false }
-bp-messages = { version = "0.19.0", default-features = false }
-bp-parachains = { version = "0.19.0", default-features = false }
-bp-polkadot = { version = "0.17.0", default-features = false }
-bp-polkadot-bulletin = { version = "0.16.0", default-features = false }
+bp-header-chain = { version = "0.18.1", default-features = false }
+bp-messages = { version = "0.18.0", default-features = false }
+bp-parachains = { version = "0.18.0", default-features = false }
 bp-polkadot-core = { version = "0.19.0", default-features = false }
 bp-relayers = { version = "0.19.0", default-features = false }
 bp-runtime = { version = "0.19.0", default-features = false }
@@ -147,6 +144,7 @@ pallet-proxy = { version = "39.1.0", default-features = false }
 pallet-ranked-collective = { version = "39.0.0", default-features = false }
 pallet-recovery = { version = "39.1.0", default-features = false }
 pallet-referenda = { version = "39.1.0", default-features = false }
+pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
 pallet-salary = { version = "24.0.0", default-features = false }
 pallet-scheduler = { version = "40.1.0", default-features = false }
 pallet-session = { version = "39.0.0", default-features = false }
@@ -229,6 +227,7 @@ sp-offchain = { version = "35.0.0", default-features = false }
 sp-runtime = { version = "40.1.0", default-features = false }
 sp-session = { version = "37.0.0", default-features = false }
 sp-staking = { version = "37.0.0", default-features = false }
+sp-state-machine = { version = "0.43.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 sp-storage = { version = "22.0.0", default-features = false }
 sp-tracing = { version = "17.0.1", default-features = false }
@@ -236,7 +235,6 @@ sp-transaction-pool = { version = "35.0.0", default-features = false }
 sp-trie = { version = "38.0.0" }
 sp-version = { version = "38.0.0", default-features = false }
 sp-weights = { version = "31.0.0", default-features = false }
-static_assertions = { version = "1.1.0" }
 substrate-wasm-builder = { version = "25.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
@@ -284,6 +282,7 @@ members = [
 	"integration-tests/emulated/tests/people/people-kusama",
 	"integration-tests/emulated/tests/people/people-polkadot",
 	"integration-tests/zombienet",
+	"pallets/remote-proxy",
 	"relay/common",
 	"relay/kusama",
 	"relay/kusama/constants",
