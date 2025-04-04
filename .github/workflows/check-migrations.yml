@@ -64,7 +64,7 @@ jobs:
           # When running on relay, we don't need weight checks.
           EXTRA_FLAGS="${{ matrix.runtime.extra_args }}"
           if [[ "${{ matrix.runtime.is_relay }}" == "true" ]]; then
-            EXTRA_FLAGS+="--no-weight-warnings"
+            EXTRA_FLAGS+=" --no-weight-warnings"
             echo "Disabling weight checks since we are on a relay"
 
             echo "Disabling try-state checks on the relay"

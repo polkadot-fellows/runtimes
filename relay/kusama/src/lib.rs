@@ -31,7 +31,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use core::{cmp::Ordering, marker::PhantomData};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
-	traits::{EnsureOrigin, EnsureOriginWithArg, OnRuntimeUpgrade},
+	traits::{EnsureOrigin, EnsureOriginWithArg},
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
 use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIMESLICE_PERIOD};
@@ -59,12 +59,14 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::Saturating;
 
 use runtime_parachains::{
-	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
-	configuration::{ActiveConfigHrmpChannelSizeAndCapacityRatio, WeightInfo},
-	coretime, disputes as parachains_disputes,
-	disputes::slashing as parachains_slashing,
-	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
-	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	assigner_coretime as parachains_assigner_coretime,
+	configuration::{
+		self as parachains_configuration, ActiveConfigHrmpChannelSizeAndCapacityRatio,
+	},
+	coretime,
+	disputes::{self as parachains_disputes, slashing as parachains_slashing},
+	dmp as parachains_dmp, hrmp as parachains_hrmp,
+	inclusion::{self as parachains_inclusion, AggregateMessageOrigin, UmpQueueId},
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
@@ -1900,61 +1902,6 @@ pub type TxExtension = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-pub struct NominationPoolsMigrationV4OldPallet;
-impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
-	fn get() -> Perbill {
-		Perbill::from_percent(10)
-	}
-}
-
-parameter_types! {
-	// This is used to limit max pools that migrates in the runtime upgrade. This is set to
-	// ~existing_pool_count * 2 to also account for any new pools getting created before the
-	// migration is actually executed.
-	pub const MaxPoolsToMigrate: u32 = 500;
-}
-
-const NEW_MAX_POV: u32 = 10 * 1024 * 1024;
-
-pub struct Activate10MbPovs;
-impl OnRuntimeUpgrade for Activate10MbPovs {
-	#[cfg(feature = "try-runtime")]
-	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		// The pre-upgrade state doesn't matter
-		Ok(vec![])
-	}
-
-	fn on_runtime_upgrade() -> Weight {
-		match parachains_configuration::Pallet::<Runtime>::set_max_pov_size(
-			frame_system::RawOrigin::Root.into(),
-			NEW_MAX_POV,
-		) {
-			Ok(()) =>
-				weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_config_with_u32(),
-			Err(e) => {
-				log::warn!(
-					target: LOG_TARGET,
-					"Failed to set max PoV size. Error: {e:?}"
-				);
-				Weight::zero()
-			},
-		}
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		let pending = parachains_configuration::PendingConfigs::<Runtime>::get();
-		let Some((_, last_pending)) = pending.last() else {
-			return Err(sp_runtime::TryRuntimeError::CannotLookup);
-		};
-		frame_support::ensure!(
-			last_pending.max_pov_size == NEW_MAX_POV,
-			"Setting max PoV size to 10 Mb should be pending"
-		);
-		Ok(())
-	}
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1970,162 +1917,10 @@ pub mod migrations {
 	pub type Unreleased = (
 		parachains_shared::migration::MigrateToV1<Runtime>,
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
-		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
-		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
-		parachains_inclusion::migration::MigrateToV1<Runtime>,
-		parachains_on_demand::migration::MigrateV0ToV1<Runtime>,
-		restore_corrupted_ledgers::Migrate<Runtime>,
-		// Migrate NominationPools to `DelegateStake` adapter. This is an unversioned upgrade.
-		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
-			Runtime,
-			MaxPoolsToMigrate,
-		>,
-		Activate10MbPovs,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
-}
-
-/// Migration to fix current corrupted staking ledgers in Kusama.
-///
-/// It consists of:
-/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
-///   * Root origin;
-///   * Default `None` paramters.
-/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
-///   stash's free balance.
-///
-/// The stashes associated with corrupted ledgers that will be "migrated" are set in
-/// [`CorruptedStashes`].
-///
-/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
-/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
-pub(crate) mod restore_corrupted_ledgers {
-	use super::*;
-
-	use frame_support::traits::{Currency, OnRuntimeUpgrade};
-	use frame_system::RawOrigin;
-
-	use pallet_staking::WeightInfo;
-	use sp_staking::StakingAccount;
-
-	parameter_types! {
-		pub CorruptedStashes: Vec<AccountId> = vec![
-			// stash account ESGsxFePah1qb96ooTU4QJMxMKUG7NZvgTig3eJxP9f3wLa
-			hex_literal::hex!["52559f2c7324385aade778eca4d7837c7492d92ee79b66d6b416373066869d2e"].into(),
-			// stash account DggTJdwWEbPS4gERc3SRQL4heQufMeayrZGDpjHNC1iEiui
-			hex_literal::hex!["31162f413661f3f5351169299728ab6139725696ac6f98db9665e8b76d73d300"].into(),
-			// stash account Du2LiHk1D1kAoaQ8wsx5jiNEG5CNRQEg6xME5iYtGkeQAJP
-			hex_literal::hex!["3a8012a52ec2715e711b1811f87684fe6646fc97a276043da7e75cd6a6516d29"].into(),
-		];
-	}
-
-	pub struct Migrate<T>(PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
-		fn on_runtime_upgrade() -> Weight {
-			let mut total_weight: Weight = Default::default();
-			let mut ok_migration = 0;
-			let mut err_migration = 0;
-
-			for stash in CorruptedStashes::get().into_iter() {
-				let stash_account: T::AccountId = if let Ok(stash_account) =
-					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
-				{
-					stash_account
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
-						stash.clone(),
-					);
-					err_migration += 1;
-					continue
-				};
-
-				// restore currupted ledger.
-				match pallet_staking::Pallet::<T>::restore_ledger(
-					RawOrigin::Root.into(),
-					stash_account.clone(),
-					None,
-					None,
-					None,
-				) {
-					Ok(_) => (), // proceed.
-					Err(err) => {
-						// note: after first migration run, restoring ledger will fail with
-						// `staking::pallet::Error::<T>CannotRestoreLedger`.
-						log::error!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
-							err
-						);
-						continue
-					},
-				};
-
-				// check if restored ledger total is higher than the stash's free balance. If
-				// that's the case, force unstake the ledger.
-				let weight = if let Ok(ledger) = pallet_staking::Pallet::<T>::ledger(
-					StakingAccount::Stash(stash_account.clone()),
-				) {
-					// force unstake the ledger.
-					if ledger.total > T::Currency::free_balance(&stash_account) {
-						let slashing_spans = 10; // default slashing spans for migration.
-						let _ = pallet_staking::Pallet::<T>::force_unstake(
-							RawOrigin::Root.into(),
-							stash_account.clone(),
-							slashing_spans,
-						)
-						.inspect_err(|err| {
-							log::error!(
-								target: LOG_TARGET,
-								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
-								err
-							);
-							err_migration += 1;
-						});
-
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
-							stash_account,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
-					} else {
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored.",
-							stash,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-					}
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
-					);
-					err_migration += 1;
-					<T::WeightInfo>::restore_ledger()
-				};
-
-				total_weight.saturating_accrue(weight);
-			}
-
-			log::info!(
-				target: LOG_TARGET,
-				"migrations::corrupted_ledgers: done. success: {}, error: {}",
-				ok_migration, err_migration
-			);
-
-			total_weight
-		}
-	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
