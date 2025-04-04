@@ -290,6 +290,16 @@ fn send_token_from_ethereum_to_penpal() {
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
+	PenpalB::execute_with(|| {
+		assert_ok!(<PenpalB as Chain>::System::set_storage(
+			<PenpalB as Chain>::RuntimeOrigin::root(),
+			vec![(
+				PenpalCustomizableAssetFromSystemAssetHub::key().to_vec(),
+				Location::new(2, [GlobalConsensus(Ethereum { chain_id: CHAIN_ID })]).encode(),
+			)],
+		));
+	});
+
 	// Create asset on the Penpal parachain.
 	PenpalB::execute_with(|| {
 		// Set the trusted asset location from AH, in this case, Ethereum.
@@ -301,11 +311,12 @@ fn send_token_from_ethereum_to_penpal() {
 			)],
 		));
 
-		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::create(
-			<PenpalB as Chain>::RuntimeOrigin::signed(PenpalBSender::get()),
+		assert_ok!(<PenpalB as PenpalBPallet>::ForeignAssets::force_create(
+			<PenpalB as Chain>::RuntimeOrigin::root(),
 			weth_asset_location.clone(),
 			asset_hub_sovereign.clone().into(),
-			1000,
+			true,
+			1000
 		));
 
 		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_location));
