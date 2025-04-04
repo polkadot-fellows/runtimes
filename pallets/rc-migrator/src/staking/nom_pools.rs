@@ -109,9 +109,16 @@ impl<T: Config> PalletMigration for NomPoolsMigrator<T> {
 		let mut inner_key = current_key.unwrap_or(NomPoolsStage::StorageValues);
 		let mut messages = Vec::new();
 
+		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
+
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
+				.is_err() || ah_weight
+				.try_consume(item_weight_of(
+					T::AhWeightInfo::receive_nom_pools_messages,
+					messages.len() as u32,
+				))
 				.is_err()
 			{
 				if messages.is_empty() {

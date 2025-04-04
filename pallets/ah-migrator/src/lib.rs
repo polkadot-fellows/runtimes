@@ -508,7 +508,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight({1})] // TODO
+		#[pallet::weight(T::AhWeightInfo::receive_nom_pools_messages(messages.len() as u32))]
 		pub fn receive_nom_pools_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcNomPoolsMessage<T>>,
@@ -523,7 +523,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight({1})] // TODO
+		#[pallet::weight(T::AhWeightInfo::receive_vesting_schedules(schedules.len() as u32))]
 		pub fn receive_vesting_schedules(
 			origin: OriginFor<T>,
 			schedules: Vec<RcVestingSchedule<T>>,

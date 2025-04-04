@@ -57,6 +57,8 @@ pub trait WeightInfo {
 	fn receive_claims(n: u32, ) -> Weight;
 	fn receive_proxy_proxies(n: u32, ) -> Weight;
 	fn receive_proxy_announcements(n: u32, ) -> Weight;
+	fn receive_vesting_schedules(n: u32, ) -> Weight;
+	fn receive_nom_pools_messages(n: u32, ) -> Weight;
 }
 
 /// Weights for `pallet_ah_migrator` using the Substrate node and recommended hardware.
@@ -175,6 +177,48 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
+	/// Storage: `Vesting::Vesting` (r:255 w:255)
+	/// Proof: `Vesting::Vesting` (`max_values`: None, `max_size`: Some(1057), added: 3532, mode: `MaxEncodedLen`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `Vesting::StorageVersion` (r:0 w:1)
+	/// Proof: `Vesting::StorageVersion` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 255]`.
+	fn receive_vesting_schedules(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `242`
+		//  Estimated: `1493 + n * (3532 ±0)`
+		// Minimum execution time: 30_000_000 picoseconds.
+		Weight::from_parts(92_649_295, 1493)
+			// Standard Error: 264_757
+			.saturating_add(Weight::from_parts(18_790_861, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 3532).saturating_mul(n.into()))
+	}
+	/// Storage: `NominationPools::SubPoolsStorage` (r:255 w:255)
+	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::CounterForSubPoolsStorage` (r:1 w:1)
+	/// Proof: `NominationPools::CounterForSubPoolsStorage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 255]`.
+	fn receive_nom_pools_messages(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `340`
+		//  Estimated: `1493 + n * (3672 ±0)`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(47_716_652, 1493)
+			// Standard Error: 85_077
+			.saturating_add(Weight::from_parts(4_045_964, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
+	}
 }
 
 // For backwards compatibility and tests.
@@ -291,5 +335,47 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
+	}
+	/// Storage: `Vesting::Vesting` (r:255 w:255)
+	/// Proof: `Vesting::Vesting` (`max_values`: None, `max_size`: Some(1057), added: 3532, mode: `MaxEncodedLen`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `Vesting::StorageVersion` (r:0 w:1)
+	/// Proof: `Vesting::StorageVersion` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 255]`.
+	fn receive_vesting_schedules(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `242`
+		//  Estimated: `1493 + n * (3532 ±0)`
+		// Minimum execution time: 30_000_000 picoseconds.
+		Weight::from_parts(92_649_295, 1493)
+			// Standard Error: 264_757
+			.saturating_add(Weight::from_parts(18_790_861, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(RocksDbWeight::get().writes(2_u64))
+			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 3532).saturating_mul(n.into()))
+	}
+	/// Storage: `NominationPools::SubPoolsStorage` (r:255 w:255)
+	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
+	/// Storage: `NominationPools::CounterForSubPoolsStorage` (r:1 w:1)
+	/// Proof: `NominationPools::CounterForSubPoolsStorage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// The range of component `n` is `[1, 255]`.
+	fn receive_nom_pools_messages(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `340`
+		//  Estimated: `1493 + n * (3672 ±0)`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(47_716_652, 1493)
+			// Standard Error: 85_077
+			.saturating_add(Weight::from_parts(4_045_964, 0).saturating_mul(n.into()))
+			.saturating_add(RocksDbWeight::get().reads(2_u64))
+			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(RocksDbWeight::get().writes(2_u64))
+			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 3672).saturating_mul(n.into()))
 	}
 }
