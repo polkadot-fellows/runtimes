@@ -62,7 +62,7 @@ pub fn build_congestion_message<RuntimeCall>(
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		Transact {
 			origin_kind: OriginKind::Xcm,
-			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
+			fallback_max_weight: Some(XcmBridgeHubRouterTransactCallMaxWeight::get()),
 			call: Call::ToPolkadotXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
 				bridge_id,
 				is_congested,

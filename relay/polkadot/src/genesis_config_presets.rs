@@ -17,6 +17,8 @@
 //! Genesis configs presets for the Polkadot runtime
 
 use crate::*;
+#[cfg(not(feature = "std"))]
+use alloc::format;
 use babe_primitives::AuthorityId as BabeId;
 use pallet_staking::{Forcing, StakerStatus};
 use polkadot_primitives::{AccountPublic, AssignmentId, AsyncBackingParams};
@@ -25,9 +27,6 @@ use runtime_parachains::configuration::HostConfiguration;
 use sp_core::{sr25519, Pair, Public};
 use sp_genesis_builder::PresetId;
 use sp_runtime::{traits::IdentifyAccount, Perbill};
-#[cfg(not(feature = "std"))]
-use sp_std::alloc::format;
-use sp_std::vec::Vec;
 
 /// Helper function to generate a crypto pair from seed
 fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -227,14 +226,17 @@ pub fn polkadot_development_config_genesis() -> serde_json::Value {
 
 /// Provides the names of the predefined genesis configs for this runtime.
 pub fn preset_names() -> Vec<PresetId> {
-	vec![PresetId::from("development"), PresetId::from("local_testnet")]
+	vec![
+		PresetId::from(sp_genesis_builder::DEV_RUNTIME_PRESET),
+		PresetId::from(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET),
+	]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
-pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
-	let patch = match id.try_into() {
-		Ok("development") => polkadot_development_config_genesis(),
-		Ok("local_testnet") => polkadot_local_testnet_genesis(),
+pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<Vec<u8>> {
+	let patch = match id.as_ref() {
+		sp_genesis_builder::DEV_RUNTIME_PRESET => polkadot_development_config_genesis(),
+		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => polkadot_local_testnet_genesis(),
 		_ => return None,
 	};
 	Some(

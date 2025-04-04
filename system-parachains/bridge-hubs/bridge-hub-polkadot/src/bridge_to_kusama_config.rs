@@ -38,7 +38,7 @@ use frame_support::{
 use frame_system::{EnsureNever, EnsureRoot};
 use pallet_bridge_messages::LaneIdOf;
 use pallet_bridge_relayers::extension::{
-	BridgeRelayersSignedExtension, WithMessagesExtensionConfig,
+	BridgeRelayersTransactionExtension, WithMessagesExtensionConfig,
 };
 use pallet_xcm_bridge_hub::{BridgeId, XcmAsPlainPayload};
 use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
@@ -158,7 +158,7 @@ pub type FromKusamaMessageBlobDispatcher = BridgeBlobDispatcher<
 >;
 
 /// Signed extension that refunds relayers that are delivering messages from the Kusama parachain.
-pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersSignedExtension<
+pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersTransactionExtension<
 	Runtime,
 	WithMessagesExtensionConfig<
 		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
@@ -306,6 +306,7 @@ where
 		bp_runtime::AccountIdOf<pallet_xcm_bridge_hub::ThisChainOf<R, XBHI>>,
 	>,
 {
+	use alloc::boxed::Box;
 	use pallet_xcm_bridge_hub::{Bridge, BridgeId, BridgeState};
 	use sp_runtime::traits::Zero;
 	use xcm::VersionedInteriorLocation;
@@ -321,15 +322,13 @@ where
 	pallet_xcm_bridge_hub::Bridges::<R, XBHI>::insert(
 		bridge_id,
 		Bridge {
-			bridge_origin_relative_location: sp_std::boxed::Box::new(
-				sibling_parachain.clone().into(),
-			),
-			bridge_origin_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_source.clone()),
-			),
-			bridge_destination_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_destination),
-			),
+			bridge_origin_relative_location: Box::new(sibling_parachain.clone().into()),
+			bridge_origin_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_source.clone(),
+			)),
+			bridge_destination_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_destination,
+			)),
 			state: BridgeState::Opened,
 			bridge_owner_account: C::convert_location(&sibling_parachain).expect("valid AccountId"),
 			deposit: Zero::zero(),
@@ -385,6 +384,7 @@ mod tests {
 			with_bridged_chain_messages_instance: WithBridgeHubKusamaMessagesInstance,
 			this_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
 			bridged_chain: bp_bridge_hub_kusama::BridgeHubKusama,
+			expected_payload_type: XcmAsPlainPayload,
 		);
 
 		assert_complete_with_parachain_bridge_constants::<

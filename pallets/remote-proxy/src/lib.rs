@@ -280,7 +280,7 @@ pub mod pallet {
 			(WeightInfoOf::<T, I>::remote_proxy()
 				// AccountData for inner call origin accountdata.
 				.saturating_add(T::DbWeight::get().reads_writes(1, 1))
-				.saturating_add(di.weight),
+				.saturating_add(di.call_weight),
 			di.class)
 		})]
 		pub fn remote_proxy(
@@ -360,7 +360,7 @@ pub mod pallet {
 			(WeightInfoOf::<T, I>::remote_proxy_with_registered_proof()
 				// AccountData for inner call origin accountdata.
 				.saturating_add(T::DbWeight::get().reads_writes(1, 1))
-				.saturating_add(di.weight),
+				.saturating_add(di.call_weight),
 			di.class)
 		})]
 		pub fn remote_proxy_with_registered_proof(

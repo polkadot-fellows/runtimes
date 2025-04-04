@@ -52,3 +52,31 @@ snowbridge-router-primitives = { workspace = true, default-features = true }
 snowbridge-pallet-system = { workspace = true, default-features = true }
 snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
 snowbridge-pallet-inbound-queue-fixtures = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"bp-bridge-hub-polkadot/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"kusama-polkadot-system-emulated-network/runtime-benchmarks",
+	"pallet-asset-conversion/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-bridge-messages/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-system-emulated-network/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
+	"snowbridge-pallet-inbound-queue-fixtures/runtime-benchmarks",
+	"snowbridge-pallet-outbound-queue/runtime-benchmarks",
+	"snowbridge-pallet-system/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+	"xcm-runtime-apis/runtime-benchmarks",
+]

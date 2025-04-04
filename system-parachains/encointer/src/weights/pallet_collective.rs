@@ -20,20 +20,20 @@
 //! DATE: 2025-01-05, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
 //! HOSTNAME: `ggwpez-ref-hw`, CPU: `AMD EPYC 7232P 8-Core Processor`
-//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./encointer-kusama-chain-spec.json")`, DB CACHE: 1024
+//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("./collectives-polkadot-chain-spec.json")`, DB CACHE: 1024
 
 // Executed Command:
 // ./target/production/polkadot-parachain
 // benchmark
 // pallet
-// --chain=./encointer-kusama-chain-spec.json
+// --chain=./collectives-polkadot-chain-spec.json
 // --steps=50
 // --repeat=20
 // --pallet=pallet_collective
 // --extrinsic=*
 // --wasm-execution=compiled
 // --heap-pages=4096
-// --output=./encointer-kusama-weights/
+// --output=./collectives-polkadot-weights/
 // --header=./file_header.txt
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
@@ -47,28 +47,28 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_collective`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
-	/// Storage: `Collective::Members` (r:1 w:1)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:0)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Voting` (r:100 w:100)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Prime` (r:0 w:1)
-	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:1)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:0)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:100 w:100)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Prime` (r:0 w:1)
+	/// Proof: `AllianceMotion::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[0, 100]`.
 	/// The range of component `n` is `[0, 100]`.
 	/// The range of component `p` is `[0, 100]`.
 	fn set_members(m: u32, _n: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0 + m * (3232 ±0) + p * (3190 ±0)`
-		//  Estimated: `15762 + m * (1967 ±23) + p * (4332 ±23)`
-		// Minimum execution time: 21_070_000 picoseconds.
-		Weight::from_parts(21_290_000, 0)
-			.saturating_add(Weight::from_parts(0, 15762))
-			// Standard Error: 79_601
-			.saturating_add(Weight::from_parts(5_960_886, 0).saturating_mul(m.into()))
-			// Standard Error: 79_601
-			.saturating_add(Weight::from_parts(10_953_057, 0).saturating_mul(p.into()))
+		//  Estimated: `15728 + m * (1967 ±23) + p * (4332 ±23)`
+		// Minimum execution time: 21_820_000 picoseconds.
+		Weight::from_parts(21_900_000, 0)
+			.saturating_add(Weight::from_parts(0, 15728))
+			// Standard Error: 93_008
+			.saturating_add(Weight::from_parts(7_004_235, 0).saturating_mul(m.into()))
+			// Standard Error: 93_008
+			.saturating_add(Weight::from_parts(11_965_429, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(p.into())))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -76,227 +76,261 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 1967).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 4332).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `b` is `[2, 1024]`.
 	/// The range of component `m` is `[1, 100]`.
 	fn execute(b: u32, m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `103 + m * (32 ±0)`
-		//  Estimated: `1589 + m * (32 ±0)`
-		// Minimum execution time: 17_660_000 picoseconds.
-		Weight::from_parts(16_711_274, 0)
-			.saturating_add(Weight::from_parts(0, 1589))
-			// Standard Error: 15
-			.saturating_add(Weight::from_parts(1_513, 0).saturating_mul(b.into()))
-			// Standard Error: 164
-			.saturating_add(Weight::from_parts(14_369, 0).saturating_mul(m.into()))
+		//  Measured:  `69 + m * (32 ±0)`
+		//  Estimated: `1555 + m * (32 ±0)`
+		// Minimum execution time: 19_350_000 picoseconds.
+		Weight::from_parts(18_561_099, 0)
+			.saturating_add(Weight::from_parts(0, 1555))
+			// Standard Error: 17
+			.saturating_add(Weight::from_parts(1_508, 0).saturating_mul(b.into()))
+			// Standard Error: 181
+			.saturating_add(Weight::from_parts(11_946, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(m.into()))
 	}
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:1 w:0)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:1 w:0)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `b` is `[2, 1024]`.
 	/// The range of component `m` is `[1, 100]`.
 	fn propose_execute(b: u32, m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `103 + m * (32 ±0)`
-		//  Estimated: `3569 + m * (32 ±0)`
-		// Minimum execution time: 21_750_000 picoseconds.
-		Weight::from_parts(20_918_679, 0)
-			.saturating_add(Weight::from_parts(0, 3569))
+		//  Measured:  `69 + m * (32 ±0)`
+		//  Estimated: `3535 + m * (32 ±0)`
+		// Minimum execution time: 23_740_000 picoseconds.
+		Weight::from_parts(22_730_846, 0)
+			.saturating_add(Weight::from_parts(0, 3535))
 			// Standard Error: 19
-			.saturating_add(Weight::from_parts(1_638, 0).saturating_mul(b.into()))
-			// Standard Error: 198
-			.saturating_add(Weight::from_parts(21_057, 0).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(1_623, 0).saturating_mul(b.into()))
+			// Standard Error: 203
+			.saturating_add(Weight::from_parts(20_060, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(m.into()))
 	}
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:1 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalCount` (r:1 w:1)
-	/// Proof: `Collective::ProposalCount` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Voting` (r:0 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:1 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalCount` (r:1 w:1)
+	/// Proof: `AllianceMotion::ProposalCount` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `b` is `[2, 1024]`.
 	/// The range of component `m` is `[2, 100]`.
 	/// The range of component `p` is `[1, 100]`.
 	fn propose_proposed(b: u32, m: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `393 + m * (32 ±0) + p * (36 ±0)`
-		//  Estimated: `3785 + m * (33 ±0) + p * (36 ±0)`
-		// Minimum execution time: 27_960_000 picoseconds.
-		Weight::from_parts(29_986_172, 0)
-			.saturating_add(Weight::from_parts(0, 3785))
-			// Standard Error: 93
-			.saturating_add(Weight::from_parts(2_541, 0).saturating_mul(b.into()))
-			// Standard Error: 973
-			.saturating_add(Weight::from_parts(20_635, 0).saturating_mul(m.into()))
-			// Standard Error: 961
-			.saturating_add(Weight::from_parts(173_787, 0).saturating_mul(p.into()))
+		//  Measured:  `359 + m * (32 ±0) + p * (36 ±0)`
+		//  Estimated: `3751 + m * (33 ±0) + p * (36 ±0)`
+		// Minimum execution time: 29_850_000 picoseconds.
+		Weight::from_parts(31_614_923, 0)
+			.saturating_add(Weight::from_parts(0, 3751))
+			// Standard Error: 91
+			.saturating_add(Weight::from_parts(2_771, 0).saturating_mul(b.into()))
+			// Standard Error: 957
+			.saturating_add(Weight::from_parts(20_322, 0).saturating_mul(m.into()))
+			// Standard Error: 945
+			.saturating_add(Weight::from_parts(180_014, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(Weight::from_parts(0, 33).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 36).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Voting` (r:1 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:1 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[5, 100]`.
 	fn vote(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `842 + m * (64 ±0)`
-		//  Estimated: `4306 + m * (64 ±0)`
-		// Minimum execution time: 28_480_000 picoseconds.
-		Weight::from_parts(28_856_877, 0)
-			.saturating_add(Weight::from_parts(0, 4306))
-			// Standard Error: 499
-			.saturating_add(Weight::from_parts(35_107, 0).saturating_mul(m.into()))
+		//  Measured:  `808 + m * (64 ±0)`
+		//  Estimated: `4272 + m * (64 ±0)`
+		// Minimum execution time: 30_350_000 picoseconds.
+		Weight::from_parts(31_729_832, 0)
+			.saturating_add(Weight::from_parts(0, 4272))
+			// Standard Error: 569
+			.saturating_add(Weight::from_parts(21_513, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(Weight::from_parts(0, 64).saturating_mul(m.into()))
 	}
-	/// Storage: `Collective::Voting` (r:1 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:0 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:1 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[4, 100]`.
 	/// The range of component `p` is `[1, 100]`.
 	fn close_early_disapproved(m: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `431 + m * (64 ±0) + p * (36 ±0)`
-		//  Estimated: `3876 + m * (65 ±0) + p * (36 ±0)`
-		// Minimum execution time: 31_720_000 picoseconds.
-		Weight::from_parts(33_106_420, 0)
-			.saturating_add(Weight::from_parts(0, 3876))
-			// Standard Error: 821
-			.saturating_add(Weight::from_parts(20_923, 0).saturating_mul(m.into()))
-			// Standard Error: 801
-			.saturating_add(Weight::from_parts(164_458, 0).saturating_mul(p.into()))
+		//  Measured:  `397 + m * (64 ±0) + p * (36 ±0)`
+		//  Estimated: `3842 + m * (65 ±0) + p * (36 ±0)`
+		// Minimum execution time: 33_600_000 picoseconds.
+		Weight::from_parts(34_748_890, 0)
+			.saturating_add(Weight::from_parts(0, 3842))
+			// Standard Error: 777
+			.saturating_add(Weight::from_parts(21_999, 0).saturating_mul(m.into()))
+			// Standard Error: 758
+			.saturating_add(Weight::from_parts(172_945, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 65).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 36).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Voting` (r:1 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:1 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:1 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:1 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `b` is `[2, 1024]`.
 	/// The range of component `m` is `[4, 100]`.
 	/// The range of component `p` is `[1, 100]`.
 	fn close_early_approved(b: u32, m: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `733 + b * (1 ±0) + m * (64 ±0) + p * (40 ±0)`
-		//  Estimated: `4050 + b * (1 ±0) + m * (66 ±0) + p * (40 ±0)`
-		// Minimum execution time: 44_110_000 picoseconds.
-		Weight::from_parts(47_267_105, 0)
-			.saturating_add(Weight::from_parts(0, 4050))
-			// Standard Error: 189
-			.saturating_add(Weight::from_parts(2_611, 0).saturating_mul(b.into()))
-			// Standard Error: 2_002
-			.saturating_add(Weight::from_parts(23_387, 0).saturating_mul(m.into()))
-			// Standard Error: 1_952
-			.saturating_add(Weight::from_parts(216_394, 0).saturating_mul(p.into()))
+		//  Measured:  `699 + b * (1 ±0) + m * (64 ±0) + p * (40 ±0)`
+		//  Estimated: `4016 + b * (1 ±0) + m * (66 ±0) + p * (40 ±0)`
+		// Minimum execution time: 45_510_000 picoseconds.
+		Weight::from_parts(50_018_006, 0)
+			.saturating_add(Weight::from_parts(0, 4016))
+			// Standard Error: 288
+			.saturating_add(Weight::from_parts(2_804, 0).saturating_mul(b.into()))
+			// Standard Error: 2_968
+			.saturating_add(Weight::from_parts(226_999, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(b.into()))
 			.saturating_add(Weight::from_parts(0, 66).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 40).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Voting` (r:1 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Prime` (r:1 w:0)
-	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:0 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:1 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Prime` (r:1 w:0)
+	/// Proof: `AllianceMotion::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `m` is `[4, 100]`.
 	/// The range of component `p` is `[1, 100]`.
 	fn close_disapproved(m: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `451 + m * (64 ±0) + p * (36 ±0)`
-		//  Estimated: `3896 + m * (65 ±0) + p * (36 ±0)`
-		// Minimum execution time: 34_850_000 picoseconds.
-		Weight::from_parts(36_128_611, 0)
-			.saturating_add(Weight::from_parts(0, 3896))
-			// Standard Error: 757
-			.saturating_add(Weight::from_parts(23_373, 0).saturating_mul(m.into()))
-			// Standard Error: 739
-			.saturating_add(Weight::from_parts(162_443, 0).saturating_mul(p.into()))
+		//  Measured:  `495 + m * (48 ±0) + p * (36 ±0)`
+		//  Estimated: `3935 + m * (49 ±0) + p * (36 ±0)`
+		// Minimum execution time: 35_261_000 picoseconds.
+		Weight::from_parts(36_868_717, 0)
+			.saturating_add(Weight::from_parts(0, 3935))
+			// Standard Error: 931
+			.saturating_add(Weight::from_parts(22_147, 0).saturating_mul(m.into()))
+			// Standard Error: 908
+			.saturating_add(Weight::from_parts(180_200, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
-			.saturating_add(Weight::from_parts(0, 65).saturating_mul(m.into()))
+			.saturating_add(Weight::from_parts(0, 49).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 36).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Voting` (r:1 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Members` (r:1 w:0)
-	/// Proof: `Collective::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Prime` (r:1 w:0)
-	/// Proof: `Collective::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:1 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:1 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Members` (r:1 w:0)
+	/// Proof: `AllianceMotion::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Prime` (r:1 w:0)
+	/// Proof: `AllianceMotion::Prime` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:1 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// The range of component `b` is `[2, 1024]`.
 	/// The range of component `m` is `[4, 100]`.
 	/// The range of component `p` is `[1, 100]`.
 	fn close_approved(b: u32, m: u32, p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `753 + b * (1 ±0) + m * (64 ±0) + p * (40 ±0)`
-		//  Estimated: `4070 + b * (1 ±0) + m * (66 ±0) + p * (40 ±0)`
-		// Minimum execution time: 46_810_000 picoseconds.
-		Weight::from_parts(51_555_063, 0)
-			.saturating_add(Weight::from_parts(0, 4070))
-			// Standard Error: 183
-			.saturating_add(Weight::from_parts(2_249, 0).saturating_mul(b.into()))
-			// Standard Error: 1_936
-			.saturating_add(Weight::from_parts(16_883, 0).saturating_mul(m.into()))
-			// Standard Error: 1_887
-			.saturating_add(Weight::from_parts(210_563, 0).saturating_mul(p.into()))
+		//  Measured:  `719 + b * (1 ±0) + m * (64 ±0) + p * (40 ±0)`
+		//  Estimated: `4036 + b * (1 ±0) + m * (66 ±0) + p * (40 ±0)`
+		// Minimum execution time: 48_160_000 picoseconds.
+		Weight::from_parts(54_781_513, 0)
+			.saturating_add(Weight::from_parts(0, 4036))
+			// Standard Error: 283
+			.saturating_add(Weight::from_parts(2_199, 0).saturating_mul(b.into()))
+			// Standard Error: 2_916
+			.saturating_add(Weight::from_parts(221_407, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 1).saturating_mul(b.into()))
 			.saturating_add(Weight::from_parts(0, 66).saturating_mul(m.into()))
 			.saturating_add(Weight::from_parts(0, 40).saturating_mul(p.into()))
 	}
-	/// Storage: `Collective::Proposals` (r:1 w:1)
-	/// Proof: `Collective::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::Voting` (r:0 w:1)
-	/// Proof: `Collective::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Collective::ProposalOf` (r:0 w:1)
-	/// Proof: `Collective::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `p` is `[1, 100]`.
 	fn disapprove_proposal(p: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `260 + p * (32 ±0)`
-		//  Estimated: `1745 + p * (32 ±0)`
-		// Minimum execution time: 17_360_000 picoseconds.
-		Weight::from_parts(18_959_576, 0)
-			.saturating_add(Weight::from_parts(0, 1745))
-			// Standard Error: 504
-			.saturating_add(Weight::from_parts(156_965, 0).saturating_mul(p.into()))
+		//  Measured:  `226 + p * (32 ±0)`
+		//  Estimated: `1711 + p * (32 ±0)`
+		// Minimum execution time: 18_920_000 picoseconds.
+		Weight::from_parts(20_452_656, 0)
+			.saturating_add(Weight::from_parts(0, 1711))
+			// Standard Error: 603
+			.saturating_add(Weight::from_parts(156_269, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
+	}
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 100]`.
+	fn kill(d: u32, p: u32) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `226 + p * (32 ±0)`
+		//  Estimated: `1711 + p * (32 ±0)`
+		// Minimum execution time: 18_920_000 picoseconds.
+		Weight::from_parts(20_452_656, 0)
+			.saturating_add(Weight::from_parts(0, 1711))
+			// Standard Error: 603
+			.saturating_add(Weight::from_parts(156_269, 0).saturating_mul(d.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 32).saturating_mul(p.into()))
+	}
+	/// Storage: `AllianceMotion::Proposals` (r:1 w:1)
+	/// Proof: `AllianceMotion::Proposals` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::Voting` (r:0 w:1)
+	/// Proof: `AllianceMotion::Voting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `AllianceMotion::ProposalOf` (r:0 w:1)
+	/// Proof: `AllianceMotion::ProposalOf` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `p` is `[1, 100]`.
+	fn release_proposal_cost() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `226 + p * (32 ±0)`
+		//  Estimated: `1711 + p * (32 ±0)`
+		// Minimum execution time: 18_920_000 picoseconds.
+		Weight::from_parts(20_452_656, 0)
+			.saturating_add(Weight::from_parts(0, 1711))
+			// Standard Error: 603
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }
