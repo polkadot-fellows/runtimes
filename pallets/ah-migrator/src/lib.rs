@@ -260,7 +260,9 @@ pub mod pallet {
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 		/// Some part of the Relay Chain origins used in Governance.
-		type RcPalletsOrigin: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcPalletsOrigin: Parameter + Default;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
@@ -302,6 +304,8 @@ pub mod pallet {
 			RcProxyAnnouncementOf<Self>,
 			RcVestingSchedule<Self>,
 			RcNomPoolsMessage<Self>,
+			RcFastUnstakeMessage<Self>,
+			RcReferendumInfoOf<Self, ()>,
 		>;
 	}
 

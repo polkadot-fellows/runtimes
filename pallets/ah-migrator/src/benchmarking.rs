@@ -26,13 +26,14 @@
 
 use crate::*;
 use frame_benchmarking::v2::*;
-use frame_support::traits::{tokens::IdAmount, Currency};
+use frame_support::traits::{schedule::DispatchTime, tokens::IdAmount, Currency, VoteTally};
 use frame_system::RawOrigin;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	proxy::{RcProxy, RcProxyAnnouncement},
 };
+use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -47,6 +48,8 @@ pub trait ParametersFactory<
 	RcProxyAnnouncement,
 	RcVestingSchedule,
 	RcNomPoolsMessage,
+	RcFastUnstakeMessage,
+	RcReferendumInfo,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -57,6 +60,8 @@ pub trait ParametersFactory<
 	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement;
 	fn create_vesting_schedule(n: u8) -> RcVestingSchedule;
 	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
+	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage;
+	fn create_referendum_info(n: u8) -> (u32, RcReferendumInfo);
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -69,6 +74,8 @@ impl<T: Config>
 		RcProxyAnnouncement<AccountId32, u128>,
 		RcVestingSchedule<T>,
 		RcNomPoolsMessage<T>,
+		RcFastUnstakeMessage<T>,
+		RcReferendumInfoOf<T, ()>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -206,6 +213,35 @@ where
 				SubPools { no_era: UnbondPool { points: n.into(), balance: n.into() }, with_era },
 			),
 		}
+	}
+
+	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage<T> {
+		RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
+	}
+
+	fn create_referendum_info(n: u8) -> (u32, RcReferendumInfoOf<T, ()>) {
+		let id = n.into();
+		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
+		let track_id = tracks.iter().next().unwrap().0;
+		let deposit = Deposit { who: [n; 32].into(), amount: n.into() };
+		let call: <T as frame_system::Config>::RuntimeCall =
+			frame_system::Call::remark { remark: vec![n; 2048] }.into();
+		(
+			id,
+			ReferendumInfo::Ongoing(ReferendumStatus {
+				track: track_id,
+				origin: Default::default(),
+				proposal: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
+				enactment: DispatchTime::At(n.into()),
+				submitted: n.into(),
+				submission_deposit: deposit.clone(),
+				decision_deposit: Some(deposit),
+				deciding: None,
+				tally: TallyOf::<T, ()>::new(track_id),
+				in_queue: false,
+				alarm: None,
+			}),
+		)
 	}
 }
 
@@ -400,6 +436,103 @@ mod benchmarks {
 		assert_last_event::<T>(
 			Event::BatchProcessed {
 				pallet: PalletEventName::NomPools,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_fast_unstake_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_fast_unstake(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::FastUnstake,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_referenda_values() {
+		let referendum_count = 50;
+		let mut deciding_count = vec![];
+		let mut track_queue = vec![];
+
+		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
+		for (i, (id, _)) in tracks.iter().enumerate() {
+			deciding_count.push((id.clone(), (i as u32).into()));
+
+			track_queue.push((
+				id.clone(),
+				vec![
+					(i as u32, (i as u32).into());
+					<T as pallet_referenda::Config>::MaxQueued::get() as usize
+				],
+			));
+		}
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, referendum_count, deciding_count, track_queue);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ReferendaValues,
+				count_good: 1,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_active_referendums(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_referendum_info(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		receive_referendums(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ReferendaReferendums,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_complete_referendums(n: Linear<1, 255>) {
+		let mut referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)> = vec![];
+		for i in 0..n {
+			let i_as_byte: u8 = i.try_into().unwrap();
+			let deposit = Deposit { who: [i_as_byte; 32].into(), amount: n.into() };
+			referendums.push((
+				i,
+				ReferendumInfo::Approved(i.into(), Some(deposit.clone()), Some(deposit)),
+			));
+		}
+
+		#[extrinsic_call]
+		receive_referendums(RawOrigin::Root, referendums);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ReferendaReferendums,
 				count_good: n,
 				count_bad: 0,
 			}
