@@ -50,3 +50,40 @@ pallet-whitelist = { workspace = true, default-features = true }
 pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
+frame-benchmarking = { workspace = true, default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	"cumulus-pallet-parachain-system/std",
+	"hex/std",
+	"log/std",
+	"frame-benchmarking/std"
+]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-ah-migrator/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-bounties/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
+	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+	"pallet-whitelist/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks"
+]

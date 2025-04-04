@@ -15,6 +15,8 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 #[cfg(test)]
+pub mod bench;
+#[cfg(test)]
 pub mod mock;
 #[cfg(test)]
 pub mod proxy_test;

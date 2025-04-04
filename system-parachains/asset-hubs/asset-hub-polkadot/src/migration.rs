@@ -47,7 +47,7 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 }
 
 /// Relay Chain Hold Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
@@ -64,7 +64,7 @@ impl Default for RcHoldReason {
 }
 
 /// Relay Chain Freeze Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcFreezeReason {
 	#[codec(index = 39u8)]
 	NominationPools(pallet_nomination_pools::FreezeReason),
