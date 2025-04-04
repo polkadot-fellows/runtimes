@@ -67,7 +67,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -708,7 +708,12 @@ impl pallet_staking::Config for Runtime {
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+
+	fn filter(who: &AccountId) -> bool {
+		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
+	}
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1429,7 +1434,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = pallet_staking::AllStakers<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_staking::AllStakers<Runtime>;
 }
 
 parameter_types! {
@@ -2540,8 +2546,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -3078,6 +3084,58 @@ mod multiplier_tests {
 			});
 			blocks += 1;
 		}
+	}
+}
+
+#[cfg(test)]
+mod staking_tests {
+	use super::*;
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
+	#[test]
+	fn accounts_cannot_dual_stake() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let stake = ExistentialDeposit::get() * 10;
+			// Given a solo staker
+			let solo_staker = AccountId::from([1u8; 32]);
+			Balances::set_balance(&solo_staker, 3 * stake);
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(solo_staker.clone()),
+				stake,
+				pallet_staking::RewardDestination::Stash
+			));
+
+			// And a pooled staker
+			let pooled_staker = AccountId::from([2u8; 32]);
+			Balances::set_balance(&pooled_staker, 3 * stake);
+			assert_ok!(NominationPools::create(
+				RuntimeOrigin::signed(pooled_staker.clone()),
+				stake,
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into()
+			));
+
+			// Then the solo staker cannot join a pool.
+			assert_noop!(
+				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
+				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
+			);
+
+			// And the pooled staker cannot solo-stake.
+			assert_noop!(
+				pallet_staking::Pallet::<Runtime>::bond(
+					RuntimeOrigin::signed(pooled_staker),
+					stake,
+					pallet_staking::RewardDestination::Stash,
+				),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_staking::Error::<Runtime>::Restricted`.
+				pallet_staking::Error::<Runtime>::BoundNotMet
+			);
+		});
 	}
 }
 

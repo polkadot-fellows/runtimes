@@ -385,6 +385,7 @@ mod tests {
 			with_bridged_chain_messages_instance: WithBridgeHubPolkadotMessagesInstance,
 			this_chain: bp_bridge_hub_kusama::BridgeHubKusama,
 			bridged_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
+			expected_payload_type: XcmAsPlainPayload,
 		);
 
 		assert_complete_with_parachain_bridge_constants::<
