@@ -188,7 +188,7 @@ impl<T: Config> Pallet<T> {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 	type RcPrePayload =
-		(Vec<ProposalIndex>, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>);
+		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
 	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -225,7 +225,24 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		);
 	}
 
-	fn post_check((proposals, approvals, spends): Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(
+		(proposals, proposals_count, approvals, spends, spends_count): Self::RcPrePayload,
+		_: Self::AhPrePayload,
+	) {
+		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
+		assert_eq!(
+			pallet_treasury::ProposalCount::<T>::get(),
+			proposals_count,
+			"ProposalCount on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
+		assert_eq!(
+			treasury_alias::SpendCount::<T>::get(),
+			spends_count,
+			"SpendCount on Asset Hub should match RC value"
+		);
+
 		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
 		assert_eq!(
 			pallet_treasury::Proposals::<T>::iter_keys().count() as u32,
