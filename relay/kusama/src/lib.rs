@@ -28,7 +28,7 @@ use alloc::{
 	vec::Vec,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
-use core::{cmp::Ordering, marker::PhantomData};
+use core::cmp::Ordering;
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	traits::{EnsureOrigin, EnsureOriginWithArg},
