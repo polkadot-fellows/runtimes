@@ -32,7 +32,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod accounts;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -50,11 +52,13 @@ pub mod asset_rate;
 pub mod bounties;
 pub mod conviction_voting;
 pub mod scheduler;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
 
 use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
 use accounts::AccountsMigrator;
+#[cfg(not(feature = "ahm-westend"))]
 use claims::{ClaimsMigrator, ClaimsStage};
 use frame_support::{
 	pallet_prelude::*,
@@ -73,8 +77,10 @@ use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
 use pallet_balances::AccountData;
 use polkadot_parachain_primitives::primitives::Id as ParaId;
+#[cfg(not(feature = "ahm-westend"))]
+use polkadot_runtime_common::claims as pallet_claims;
 use polkadot_runtime_common::{
-	claims as pallet_claims, crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
+	crowdloan as pallet_crowdloan, paras_registrar, slots as pallet_slots,
 };
 use preimage::{
 	PreimageChunkMigrator, PreimageLegacyRequestStatusMigrator, PreimageRequestStatusMigrator,
@@ -173,7 +179,9 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	},
 	MultisigMigrationDone,
 
+	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationInit,
+	#[cfg(not(feature = "ahm-westend"))]
 	ClaimsMigrationOngoing {
 		current_key: Option<ClaimsStage<AccountId>>,
 	},
@@ -253,7 +261,9 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	},
 	ConvictionVotingMigrationDone,
 
+	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationInit,
+	#[cfg(not(feature = "ahm-westend"))]
 	BountiesMigrationOngoing {
 		last_key: Option<bounties::BountiesStage>,
 	},
@@ -265,13 +275,17 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	},
 	AssetRateMigrationDone,
 
+	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationInit,
+	#[cfg(not(feature = "ahm-westend"))]
 	CrowdloanMigrationOngoing {
 		last_key: Option<crowdloan::CrowdloanStage>,
 	},
 	CrowdloanMigrationDone,
 
+	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationInit,
+	#[cfg(not(feature = "ahm-westend"))]
 	TreasuryMigrationOngoing {
 		last_key: Option<treasury::TreasuryStage>,
 	},
@@ -312,14 +326,17 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		Ok(match s {
 			"skip-accounts" => MigrationStage::AccountsMigrationDone,
+			#[cfg(not(feature = "ahm-westend"))]
 			"crowdloan" => MigrationStage::CrowdloanMigrationInit,
 			"preimage" => MigrationStage::PreimageMigrationInit,
 			"referenda" => MigrationStage::ReferendaMigrationInit,
 			"multisig" => MigrationStage::MultisigMigrationInit,
 			"voting" => MigrationStage::ConvictionVotingMigrationInit,
+			#[cfg(not(feature = "ahm-westend"))]
 			"bounties" => MigrationStage::BountiesMigrationInit,
 			"asset_rate" => MigrationStage::AssetRateMigrationInit,
 			"indices" => MigrationStage::IndicesMigrationInit,
+			#[cfg(not(feature = "ahm-westend"))]
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
@@ -346,7 +363,7 @@ pub mod pallet {
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
-		+ pallet_claims::Config
+		//+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -357,8 +374,8 @@ pub mod pallet {
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
-		+ pallet_bounties::Config
-		+ pallet_treasury::Config
+		//+ pallet_bounties::Config
+		//+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
@@ -631,11 +648,16 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::MultisigMigrationDone => {
+					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::ClaimsMigrationInit);
+					#[cfg(feature = "ahm-westend")]
+					Self::transition(MigrationStage::ClaimsMigrationDone);
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationInit => {
 					Self::transition(MigrationStage::ClaimsMigrationOngoing { current_key: None });
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::ClaimsMigrationOngoing { current_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match ClaimsMigrator::<T>::migrate_many(current_key, &mut weight_counter) {
@@ -1150,11 +1172,16 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::AssetRateMigrationDone => {
+					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::CrowdloanMigrationInit);
+					#[cfg(feature = "ahm-westend")]
+					Self::transition(MigrationStage::CrowdloanMigrationDone);
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationInit => {
 					Self::transition(MigrationStage::CrowdloanMigrationOngoing { last_key: None });
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::CrowdloanMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match crowdloan::CrowdloanMigrator::<T>::migrate_many(
@@ -1182,11 +1209,16 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::CrowdloanMigrationDone => {
+					#[cfg(not(feature = "ahm-westend"))]
 					Self::transition(MigrationStage::TreasuryMigrationInit);
+					#[cfg(feature = "ahm-westend")]
+					Self::transition(MigrationStage::TreasuryMigrationDone);
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationInit => {
 					Self::transition(MigrationStage::TreasuryMigrationOngoing { last_key: None });
 				},
+				#[cfg(not(feature = "ahm-westend"))]
 				MigrationStage::TreasuryMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
 						match treasury::TreasuryMigrator::<T>::migrate_many(

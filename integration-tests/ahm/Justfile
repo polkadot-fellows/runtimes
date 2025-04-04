@@ -39,8 +39,8 @@ port RUNTIME SDK FOLDER:
 	# Actually run the test
 	export SKIP_WASM_BUILD=1
 	export RUST_BACKTRACE=1
-	export SNAP_RC="../../{{RUNTIME}}.snap"
-	export SNAP_AH="../../ah-{{RUNTIME}}.snap"
+	export SNAP_RC="/Users/vados/{{RUNTIME}}.snap"
+	export SNAP_AH="/Users/vados/ah-{{RUNTIME}}.snap"
 	export RUST_LOG="warn"
 
 	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet pallet_migration_works -- --nocapture

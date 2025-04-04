@@ -21,6 +21,7 @@ pub use frame_system::pallet_prelude::BlockNumberFor as SchedulerBlockNumberFor;
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum SchedulerStage<BlockNumber> {
 	#[default]
 	IncompleteSince,
@@ -32,6 +33,7 @@ pub enum SchedulerStage<BlockNumber> {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcSchedulerMessage<BlockNumber, Scheduled> {
 	IncompleteSince(BlockNumber),
 	Agenda((BlockNumber, Vec<Option<Scheduled>>)),
@@ -156,6 +158,7 @@ pub mod alias {
 	/// Information regarding an item to be executed in the future.
 	// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L148
 	#[derive(Clone, RuntimeDebug, Encode, Decode, MaxEncodedLen, TypeInfo, PartialEq, Eq)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct Scheduled<Call, BlockNumber, PalletsOrigin> {
 		/// The unique identity for this task, if there is one.
 		pub maybe_id: Option<TaskName>,

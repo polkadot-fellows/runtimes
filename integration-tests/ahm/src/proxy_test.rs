@@ -113,10 +113,23 @@ impl RcMigrationCheck for ProxiesStillWork {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				let Ok(permission) = Permission::try_convert(proxy.proxy_type.0)
-					.defensive_proof("Proxy could not be converted")
-				else {
-					continue;
+				#[cfg(not(feature = "ahm-westend"))]
+				let inner = proxy.proxy_type.0;
+				#[cfg(feature = "ahm-westend")] // Westend does not have remote proxies
+				let inner = proxy.proxy_type;
+
+				let permission = match Permission::try_convert(inner) {
+					Ok(permission) => permission,
+					Err(e) => {
+						#[cfg(feature = "ahm-westend")]
+						if inner == westend_runtime::ProxyType::IdentityJudgement || inner == westend_runtime::ProxyType::SudoBalances {
+							// These cannot be converted currently TODO
+							continue;
+						}
+
+						defensive!("Proxy could not be converted: {:?}", e);
+						continue;
+					}
 				};
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))

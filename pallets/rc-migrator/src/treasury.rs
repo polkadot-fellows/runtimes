@@ -37,6 +37,7 @@ pub enum TreasuryStage {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcTreasuryMessage<
 	AccountId,
 	Balance,
@@ -59,6 +60,7 @@ pub enum RcTreasuryMessage<
 	Funds,
 }
 
+#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,

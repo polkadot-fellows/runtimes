@@ -35,10 +35,13 @@ pub mod account;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod call;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
 pub mod conviction_voting;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -47,6 +50,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod types;
 pub mod vesting;
@@ -69,11 +73,17 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
+
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::claims::RcClaimsMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::treasury::RcTreasuryMessage;
+
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
-	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
-	crowdloan::RcCrowdloanMessageOf,
 	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
@@ -83,7 +93,6 @@ use pallet_rc_migrator::{
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
 	},
-	treasury::RcTreasuryMessage,
 	vesting::RcVestingSchedule,
 };
 use pallet_referenda::TrackIdOf;
@@ -109,6 +118,7 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -200,7 +210,7 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		+ pallet_claims::Config
+		//+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -211,8 +221,8 @@ pub mod pallet {
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
-		+ pallet_bounties::Config
-		+ pallet_treasury::Config
+		//+ pallet_bounties::Config
+		//+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 		+ pallet_ah_ops::Config
@@ -282,9 +292,11 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
+		#[cfg(not(feature = "ahm-westend"))]
 		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
+		#[cfg(not(feature = "ahm-westend"))]
 		type RcToAhTreasurySpend: Convert<
 			(VersionedLocatableAsset, VersionedLocation),
 			Result<
@@ -580,6 +592,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
 		pub fn receive_claims(
 			origin: OriginFor<T>,
@@ -650,6 +663,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
@@ -678,6 +692,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
 		pub fn receive_crowdloan_messages(
 			origin: OriginFor<T>,
@@ -706,6 +721,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
 		pub fn receive_treasury_messages(
 			origin: OriginFor<T>,
