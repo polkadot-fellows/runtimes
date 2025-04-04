@@ -72,6 +72,7 @@ use frame_support::{
 	},
 	weights::{Weight, WeightMeter},
 };
+use frame_support::traits::VariantCount;
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
@@ -359,7 +360,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
-		+ pallet_balances::Config<Balance = u128>
+		+ pallet_balances::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason, Balance = u128>
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
@@ -379,7 +380,9 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
+		+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason>
 	{
+		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.

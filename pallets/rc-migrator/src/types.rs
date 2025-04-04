@@ -99,6 +99,9 @@ pub enum AhMigratorCall<T: Config> {
 	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
+	#[codec(index = 30)]
+	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
+	ReceiveStakingMessages { messages: Vec<staking::staking::RcStakingMessageOf<T>> },
 	#[codec(index = 101)]
 	StartMigration,
 }

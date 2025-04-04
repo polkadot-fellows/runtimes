@@ -45,6 +45,7 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 sp-staking = { workspace = true }
+frame-election-provider-support = { workspace = true }
 
 [features]
 default = ["std"]
@@ -142,5 +143,6 @@ try-runtime = [
 ]
 
 ahm-polkadot = []
-ahm-westend = ["stable2503"]
+ahm-westend = ["stable2503", "ahm-staking-migration"]
 stable2503 = []
+ahm-staking-migration = []

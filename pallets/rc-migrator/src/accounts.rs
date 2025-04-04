@@ -358,7 +358,7 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		let ed = <T as Config>::Currency::minimum_balance();
-		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
+		let holds: Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {

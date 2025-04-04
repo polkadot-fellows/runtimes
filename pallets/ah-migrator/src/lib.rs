@@ -71,6 +71,7 @@ use frame_support::{
 		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
 	},
 };
+use frame_support::traits::VariantCount;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 
@@ -92,6 +93,7 @@ use pallet_rc_migrator::{
 		bags_list::RcBagsListMessage,
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
+		*
 	},
 	vesting::RcVestingSchedule,
 };
@@ -154,6 +156,7 @@ pub enum PalletEventName {
 	Scheduler,
 	ConvictionVoting,
 	AssetRates,
+	Staking,
 }
 
 /// The migration stage on the Asset Hub.
@@ -226,7 +229,9 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 		+ pallet_ah_ops::Config
+		+ pallet_staking::Config
 	{
+		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
@@ -235,7 +240,7 @@ pub mod pallet {
 		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
+			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
 			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
@@ -363,6 +368,8 @@ pub mod pallet {
 		FailedToIntegrateVestingSchedule,
 		/// Checking account overflow or underflow.
 		FailedToCalculateCheckingAccount,
+		/// Vector did not fit into its compile-time bound.
+		FailedToBoundVector,
 		Unreachable,
 	}
 
@@ -730,6 +737,21 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			let res = Self::do_receive_treasury_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
+		#[cfg(feature = "ahm-staking-migration")]
+		#[pallet::call_index(30)]
+		pub fn receive_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcStakingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			
+			let res = Self::do_receive_staking_messages(messages);
 
 			Self::increment_msg_received_count(res.is_err());
 
