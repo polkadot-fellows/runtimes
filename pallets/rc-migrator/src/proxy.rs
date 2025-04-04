@@ -92,6 +92,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				(proxies.into_inner(), deposit),
 				weight_counter,
 				&mut ah_weight,
+				batch.len() as u32,
 			) {
 				Ok(proxy) => {
 					pallet_proxy::Proxies::<T>::remove(&acc);
@@ -114,7 +115,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|_| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+				|n| T::AhWeightInfo::receive_proxy_proxies(n),
 			)?;
 		}
 
@@ -136,12 +137,16 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		),
 		weight_counter: &mut WeightMeter,
 		ah_weight: &mut WeightMeter,
+		batch_len: u32,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
 		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
 			return Err(OutOfWeightError);
 		}
 
-		if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_proxies(1)).is_err() {
+		if ah_weight
+			.try_consume(item_weight_of(T::AhWeightInfo::receive_proxy_proxies, batch_len))
+			.is_err()
+		{
 			return Err(OutOfWeightError);
 		}
 
@@ -187,7 +192,13 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				break;
 			}
 
-			if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_announcements(1)).is_err() {
+			if ah_weight
+				.try_consume(item_weight_of(
+					T::AhWeightInfo::receive_proxy_announcements,
+					batch.len() as u32,
+				))
+				.is_err()
+			{
 				break;
 			}
 
@@ -202,7 +213,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
 					announcements: batch,
 				},
-				|len| T::AhWeightInfo::receive_proxy_announcements(len),
+				|n| T::AhWeightInfo::receive_proxy_announcements(n),
 			)?;
 		}
 

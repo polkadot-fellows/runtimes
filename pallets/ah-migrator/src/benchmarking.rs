@@ -26,10 +26,7 @@
 
 use crate::*;
 use frame_benchmarking::v2::*;
-use frame_support::{
-	traits::{tokens::IdAmount, Currency},
-	weights::WeightMeter,
-};
+use frame_support::traits::{tokens::IdAmount, Currency};
 use frame_system::RawOrigin;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
@@ -42,13 +39,24 @@ use pallet_rc_migrator::{
 /// Equivalent to Polkadot `UNITS`, which is larger than Kusama `UNITS`.
 pub const UNITS: u128 = 10_000_000_000;
 
-pub trait ParametersFactory<RcMultisig, RcAccount, RcClaimsMessage, RcProxy, RcProxyAnnouncement> {
+pub trait ParametersFactory<
+	RcMultisig,
+	RcAccount,
+	RcClaimsMessage,
+	RcProxy,
+	RcProxyAnnouncement,
+	RcVestingSchedule,
+	RcNomPoolsMessage,
+>
+{
 	fn create_multisig(n: u8) -> RcMultisig;
 	fn create_account(n: u8) -> RcAccount;
 	fn create_liquid_account(n: u8) -> RcAccount;
 	fn create_vesting_msg(n: u8) -> RcClaimsMessage;
 	fn create_proxy(n: u8) -> RcProxy;
 	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement;
+	fn create_vesting_schedule(n: u8) -> RcVestingSchedule;
+	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -59,6 +67,8 @@ impl<T: Config>
 		RcClaimsMessage<AccountId32, u128, u32>,
 		RcProxy<AccountId32, u128, T::RcProxyType, u32>,
 		RcProxyAnnouncement<AccountId32, u128>,
+		RcVestingSchedule<T>,
+		RcNomPoolsMessage<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -109,9 +119,9 @@ where
 			free,
 			reserved,
 			frozen,
-			holds,
-			freezes,
-			locks,
+			holds: holds.try_into().unwrap(),
+			freezes: freezes.try_into().unwrap(),
+			locks: locks.try_into().unwrap(),
 			unnamed_reserve,
 			consumers: 1,
 			providers: 1,
@@ -132,9 +142,9 @@ where
 			free: UNITS,
 			reserved: 0,
 			frozen: 0,
-			holds: vec![],
-			freezes: vec![],
-			locks: vec![],
+			holds: Default::default(),
+			freezes: Default::default(),
+			locks: Default::default(),
 			unnamed_reserve: 0,
 			consumers: 1,
 			providers: 1,
@@ -168,13 +178,42 @@ where
 
 		RcProxyAnnouncement { depositor: creator, deposit }
 	}
+
+	fn create_vesting_schedule(n: u8) -> RcVestingSchedule<T> {
+		let max_schedule = pallet_vesting::MaxVestingSchedulesGet::<T>::get();
+		let schedule = pallet_vesting::VestingInfo::new(n.into(), n.into(), n.into());
+		RcVestingSchedule {
+			who: [n; 32].into(),
+			schedules: vec![schedule; max_schedule as usize].try_into().unwrap(),
+		}
+	}
+
+	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage<T> {
+		use pallet_nomination_pools::TotalUnbondingPools;
+		use pallet_rc_migrator::staking::nom_pools_alias::{SubPools, UnbondPool};
+
+		let mut with_era = BoundedBTreeMap::<_, _, _>::new();
+		for i in 0..TotalUnbondingPools::<T>::get() {
+			let key = i.into();
+			with_era
+				.try_insert(key, UnbondPool { points: n.into(), balance: n.into() })
+				.unwrap();
+		}
+
+		RcNomPoolsMessage::SubPoolsStorage {
+			sub_pools: (
+				n.into(),
+				SubPools { no_era: UnbondPool { points: n.into(), balance: n.into() }, with_era },
+			),
+		}
+	}
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-#[benchmarks(where T: pallet_balances::Config)]
+#[benchmarks]
 mod benchmarks {
 	use super::*;
 
@@ -331,6 +370,71 @@ mod benchmarks {
 			.into(),
 		);
 	}
+
+	#[benchmark]
+	fn receive_vesting_schedules(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_vesting_schedule(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed { pallet: PalletEventName::Vesting, count_good: n, count_bad: 0 }
+				.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_nom_pools_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_nom_sub_pool(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::NomPools,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	// #[cfg(test)]
+	// impl_benchmark_test_suite!(
+	// 	Pallet,
+	// 	sp_io::TestExternalities::from(
+	// 		<frame_system::GenesisConfig::<asset_hub_polkadot_runtime::Runtime> as
+	// sp_runtime::BuildStorage>::build_storage( 			&frame_system::GenesisConfig::default()).
+	// unwrap() 		),
+	// 	asset_hub_polkadot_runtime::Runtime,
+	// );
+
+	// 	#[cfg(test)]
+	// 	mod bench_test {
+	// 		use super::*;
+	// 		use sp_runtime::BuildStorage;
+
+	// 		pub fn new_test_ext() -> sp_io::TestExternalities {
+	// 			let t =
+	// frame_system::GenesisConfig::<asset_hub_polkadot_runtime::Runtime>::default().
+	// build_storage().unwrap(); 			t.into()
+	// 		}
+
+	// 		impl_benchmark_test_suite!(
+	// 			Pallet,
+	// 			crate::benchmarking::benchmarks::bench_test::new_test_ext(),
+	// 			asset_hub_polkadot_runtime::Runtime,
+	// 			benchmarks_path = benchmarking,
+	// 		);
+	// 	}
 }
 
 /// Unwrap something that does not implement Debug. Otherwise we would need to require

@@ -63,7 +63,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency,
+		Contains, ContainsPair, Defensive, DefensiveTruncateFrom, LockableCurrency,
+		ReservableCurrency,
 	},
 	weights::{Weight, WeightMeter},
 };
@@ -1345,6 +1346,7 @@ pub mod pallet {
 				}
 			}
 
+			log::info!(target: LOG_TARGET, "Sent {} XCM batches", batch_count);
 			Ok(batch_count)
 		}
 
@@ -1446,6 +1448,18 @@ pub mod pallet {
 		fn is_finished() -> bool {
 			RcMigrationStage::<T>::get().is_finished()
 		}
+	}
+}
+
+/// Returns the weight for a single item in a batch.
+///
+/// If the next item in the batch is the first one, it includes the base weight of the
+/// `weight_of`, otherwise, it does not.
+pub fn item_weight_of(weight_of: impl Fn(u32) -> Weight, batch_len: u32) -> Weight {
+	if batch_len == 0 {
+		weight_of(1)
+	} else {
+		weight_of(1).saturating_sub(weight_of(0))
 	}
 }
 

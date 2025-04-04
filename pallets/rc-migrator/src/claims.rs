@@ -66,7 +66,9 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err() || ah_weight.try_consume(T::AhWeightInfo::receive_claims(1)).is_err()
+				.is_err() || ah_weight
+				.try_consume(item_weight_of(T::AhWeightInfo::receive_claims, messages.len() as u32))
+				.is_err()
 			{
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
@@ -163,7 +165,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveClaimsMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|n| T::AhWeightInfo::receive_claims(n),
 			)?;
 		}
 
