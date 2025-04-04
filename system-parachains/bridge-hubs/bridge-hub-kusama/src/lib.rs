@@ -149,38 +149,6 @@ parameter_types! {
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased and/or un-applied
-	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	frame_support::migrations::RemovePallet<
-		EthereumInboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumOutboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumBeaconClientName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumSystemName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	pallet_bridge_messages::migration::v1::MigrationToV1<
-		Runtime,
-		bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
-	>,
-	bridge_to_polkadot_config::migration::StaticToDynamicLanes,
-	frame_support::migrations::RemoveStorage<
-		BridgePolkadotMessagesPalletName,
-		OutboundLanesCongestedSignalsKey,
-		RocksDbWeight,
-	>,
-	pallet_bridge_relayers::migration::v1::MigrationToV1<
-		Runtime,
-		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
-	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
