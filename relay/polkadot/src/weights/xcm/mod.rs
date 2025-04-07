@@ -278,7 +278,7 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 		assets: &BoundedVec<AssetTransferFilter, MaxAssetTransferFilters>,
 		_xcm: &Xcm<()>,
 	) -> Weight {
-		let mut base_weight = XcmBalancesWeight::<Runtime>::initiate_transfer();
+		let base_weight = XcmBalancesWeight::<Runtime>::initiate_transfer();
 		let mut weight = if let Some(remote_fees) = remote_fees {
 			let fees = remote_fees.inner();
 			fees.weigh_assets(base_weight)
