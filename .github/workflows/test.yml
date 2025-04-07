@@ -149,7 +149,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
 
-  ahm-test:
+  ahm-test-polkadot:
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous runs
@@ -194,7 +194,7 @@ jobs:
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
 
-  westend-ahm-test:
+  ahm-test-westend:
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous runs
@@ -237,7 +237,9 @@ jobs:
           cargo install just zepter --locked -q
 
       - name: Test Asset Hub Migration (Westend)
-        run: just port westend polkadot-sdk polkadot-sdk/cumulus/test/ahm
+        run: |
+          cd integration-tests/ahm
+          just port westend polkadot-sdk polkadot-sdk/cumulus/test/ahm
         env:
           RUST_BACKTRACE: 1
           RUST_LOG: "warn"
