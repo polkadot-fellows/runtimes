@@ -372,7 +372,6 @@ pub mod pallet {
 		+ hrmp::Config
 		+ paras_registrar::Config
 		+ pallet_multisig::Config
-		//+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -383,12 +382,14 @@ pub mod pallet {
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
-		//+ pallet_bounties::Config
-		//+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason>
+		+ pallet_staking::Config // Not on Westend
+		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on Westend
+		+ pallet_claims::Config // Not on Westend
+		+ pallet_bounties::Config // Not on Westend
+		+ pallet_treasury::Config // Not on Westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.

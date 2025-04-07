@@ -213,7 +213,6 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		//+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -224,12 +223,13 @@ pub mod pallet {
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
-		//+ pallet_bounties::Config
-		//+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 		+ pallet_ah_ops::Config
-		+ pallet_staking::Config
+		+ pallet_claims::Config // Not on Westend
+		+ pallet_bounties::Config // Not on Westend
+		+ pallet_treasury::Config // Not on Westend
+		//+ pallet_staking::Config // Only on Westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
