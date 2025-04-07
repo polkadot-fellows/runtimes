@@ -525,8 +525,10 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
 
 			// assert.
-			let unused_amount =
-				unused_asset.fungible.get(&asset_1_location_latest.clone().into()).map_or(0, |a| *a);
+			let unused_amount = unused_asset
+				.fungible
+				.get(&asset_1_location_latest.clone().into())
+				.map_or(0, |a| *a);
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance + asset_fee);
 
@@ -570,8 +572,14 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
 			let native_location = DotLocationV4::get();
-			let foreign_location =
-				xcm::v4::Location { parents: 1, interior: (xcm::v4::Junction::Parachain(1234), xcm::v4::Junction::GeneralIndex(12345)).into() };
+			let foreign_location = xcm::v4::Location {
+				parents: 1,
+				interior: (
+					xcm::v4::Junction::Parachain(1234),
+					xcm::v4::Junction::GeneralIndex(12345),
+				)
+					.into(),
+			};
 			// bob's initial balance for native and `asset1` assets.
 			let initial_balance = 200 * UNITS;
 			// liquidity for both arms of (native, asset1) pool.
@@ -626,8 +634,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
 
 			// assert.
-			let unused_amount =
-				unused_asset.fungible.get(&v5_location.into()).map_or(0, |a| *a);
+			let unused_amount = unused_asset.fungible.get(&v5_location.into()).map_or(0, |a| *a);
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(
 				ForeignAssets::total_issuance(foreign_location.clone()),
