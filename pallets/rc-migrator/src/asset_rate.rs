@@ -96,7 +96,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AssetRateMigrator<T> {
 		// RC post: Ensure that entries have been deleted
 		assert!(
 			ConversionRateToNative::<T>::iter().next().is_none(),
-			"Assert storage 'AssetRate::ConversionRateToNative::rc_post::deleted'"
+			"Assert storage 'AssetRate::ConversionRateToNative::rc_post::removed'"
 		);
 	}
 }
