@@ -187,6 +187,7 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
+	// (proposals ids, historical proposals count, approvals ids, spends, historical spends count)
 	type RcPrePayload =
 		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
 	type AhPrePayload = ();
@@ -229,14 +230,14 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		(proposals, proposals_count, approvals, spends, spends_count): Self::RcPrePayload,
 		_: Self::AhPrePayload,
 	) {
-		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
+		// Assert storage 'Treasury::ProposalCount::ah_post::correct'
 		assert_eq!(
 			pallet_treasury::ProposalCount::<T>::get(),
 			proposals_count,
 			"ProposalCount on Asset Hub should match RC value"
 		);
 
-		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
+		// Assert storage 'Treasury::SpendCount::ah_post::correct'
 		assert_eq!(
 			treasury_alias::SpendCount::<T>::get(),
 			spends_count,
@@ -257,7 +258,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 			"Proposals on Asset Hub should match RC proposals"
 		);
 
-		// Assert storage 'Treasury::Approvals::ah_post::consistent'
+		// Assert storage 'Treasury::Approvals::ah_post::correct'
 		assert_eq!(
 			pallet_treasury::Approvals::<T>::get().into_inner(),
 			approvals,

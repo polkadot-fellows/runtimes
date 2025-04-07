@@ -247,7 +247,7 @@ pub type RcSpendStatusOf<T> = RcSpendStatus<
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
-	// (proposals ids, proposals count, approvals ids, spends, spends count)
+	// (proposals ids, historicalproposals count, approvals ids, spends, historical spends count)
 	type RcPrePayload =
 		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
 
@@ -274,7 +274,7 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 	}
 
 	fn post_check(_rc_payload: Self::RcPrePayload) {
-		// Assert storage 'Treasury::ProposalCount::rc_post::zero'
+		// Assert storage 'Treasury::ProposalCount::rc_post::empty'
 		assert_eq!(
 			pallet_treasury::ProposalCount::<T>::get(),
 			0,
@@ -293,7 +293,7 @@ impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
 			"Proposals should be empty on relay chain after migration"
 		);
 
-		// Assert storage 'Treasury::SpendCount::rc_post::zero'
+		// Assert storage 'Treasury::SpendCount::rc_post::empty'
 		assert_eq!(
 			alias::SpendCount::<T>::get(),
 			0,
