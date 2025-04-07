@@ -496,7 +496,7 @@ pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
 impl pallet_assets::BenchmarkHelper<xcm::v4::Location> for XcmBenchmarkHelper {
 	fn create_asset_id_parameter(id: u32) -> xcm::v4::Location {
-		Location::new(1, xcm::v4::Junction::Parachain(id))
+		xcm::v4::Location::new(1, xcm::v4::Junction::Parachain(id))
 	}
 }
 

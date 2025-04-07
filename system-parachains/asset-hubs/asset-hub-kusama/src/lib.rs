@@ -1119,7 +1119,9 @@ impl
 		AssetConversionAssetIdFor<Runtime>,
 	> for AssetConversionTxHelper
 {
-	fn create_asset_id_parameter(seed: u32) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
+	fn create_asset_id_parameter(
+		seed: u32,
+	) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
 		// Use a different parachain' foreign assets pallet so that the asset is indeed foreign.
 		let asset_id = xcm::v4::Location::new(
 			1,
