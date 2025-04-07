@@ -89,6 +89,7 @@ use pallet_rc_migrator::{
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
+use scheduler::RcSchedulerMessageOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -306,6 +307,8 @@ pub mod pallet {
 			RcNomPoolsMessage<Self>,
 			RcFastUnstakeMessage<Self>,
 			RcReferendumInfoOf<Self, ()>,
+			RcSchedulerMessageOf<Self>,
+			RcBagsListMessage<Self>,
 		>;
 	}
 
@@ -627,7 +630,7 @@ pub mod pallet {
 		#[pallet::weight({1})] // TODO
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
-			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
+			messages: Vec<RcSchedulerMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

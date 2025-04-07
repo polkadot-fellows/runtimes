@@ -26,14 +26,22 @@
 
 use crate::*;
 use frame_benchmarking::v2::*;
-use frame_support::traits::{schedule::DispatchTime, tokens::IdAmount, Currency, VoteTally};
+use frame_support::traits::{
+	schedule::{v3::TaskName, DispatchTime},
+	tokens::IdAmount,
+	Currency, VoteTally,
+};
 use frame_system::RawOrigin;
+use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	proxy::{RcProxy, RcProxyAnnouncement},
+	scheduler::{alias::Scheduled, RcSchedulerMessage},
+	staking::nom_pools_alias::{SubPools, UnbondPool},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
+use pallet_scheduler::TaskAddress;
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -50,6 +58,8 @@ pub trait ParametersFactory<
 	RcNomPoolsMessage,
 	RcFastUnstakeMessage,
 	RcReferendumInfo,
+	RcSchedulerMessage,
+	RcBagsListMessage,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -62,6 +72,9 @@ pub trait ParametersFactory<
 	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
 	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage;
 	fn create_referendum_info(n: u8) -> (u32, RcReferendumInfo);
+	fn create_scheduler_agenda(n: u8) -> RcSchedulerMessage;
+	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
+	fn create_bags_list(n: u8) -> RcBagsListMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -76,6 +89,8 @@ impl<T: Config>
 		RcNomPoolsMessage<T>,
 		RcFastUnstakeMessage<T>,
 		RcReferendumInfoOf<T, ()>,
+		RcSchedulerMessageOf<T>,
+		RcBagsListMessage<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -196,9 +211,6 @@ where
 	}
 
 	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage<T> {
-		use pallet_nomination_pools::TotalUnbondingPools;
-		use pallet_rc_migrator::staking::nom_pools_alias::{SubPools, UnbondPool};
-
 		let mut with_era = BoundedBTreeMap::<_, _, _>::new();
 		for i in 0..TotalUnbondingPools::<T>::get() {
 			let key = i.into();
@@ -242,6 +254,39 @@ where
 				alarm: None,
 			}),
 		)
+	}
+
+	fn create_scheduler_agenda(n: u8) -> RcSchedulerMessageOf<T> {
+		let call: <T as frame_system::Config>::RuntimeCall =
+			frame_system::Call::remark { remark: vec![n; 2048] }.into();
+		let scheduled = Scheduled {
+			maybe_id: Some([n; 32]),
+			priority: n,
+			call: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
+			maybe_periodic: None,
+			origin: Default::default(),
+		};
+		// one task but big, 2048 byte call.
+		RcSchedulerMessage::Agenda((n.into(), vec![Some(scheduled)]))
+	}
+
+	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessageOf<T> {
+		RcSchedulerMessage::Lookup(([n; 32], (n.into(), n.into())))
+	}
+
+	fn create_bags_list(n: u8) -> RcBagsListMessage<T> {
+		use pallet_rc_migrator::staking::bags_list::alias::Node;
+
+		RcBagsListMessage::Node {
+			id: [n; 32].into(),
+			node: Node {
+				id: [n; 32].into(),
+				prev: Some([n; 32].into()),
+				next: Some([n; 32].into()),
+				bag_upper: n.into(),
+				score: n.into(),
+			},
+		}
 	}
 }
 
@@ -540,40 +585,145 @@ pub mod benchmarks {
 		);
 	}
 
-	// #[cfg(test)]
-	// impl_benchmark_test_suite!(
-	// 	Pallet,
-	// 	sp_io::TestExternalities::from(
-	// 		<frame_system::GenesisConfig::<asset_hub_polkadot_runtime::Runtime> as
-	// sp_runtime::BuildStorage>::build_storage( 			&frame_system::GenesisConfig::default()).
-	// unwrap() 		),
-	// 	asset_hub_polkadot_runtime::Runtime,
-	// );
+	#[benchmark]
+	fn receive_scheduler_agenda(n: Linear<1, 255>) {
+		let agendas = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_scheduler_agenda(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
 
-	// 	#[cfg(test)]
-	// 	mod bench_test {
-	// 		use super::*;
-	// 		use sp_runtime::BuildStorage;
+		#[extrinsic_call]
+		receive_scheduler_messages(RawOrigin::Root, agendas);
 
-	// 		pub fn new_test_ext() -> sp_io::TestExternalities {
-	// 			let t =
-	// frame_system::GenesisConfig::<asset_hub_polkadot_runtime::Runtime>::default().
-	// build_storage().unwrap(); 			t.into()
-	// 		}
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Scheduler,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
 
-	// 		impl_benchmark_test_suite!(
-	// 			Pallet,
-	// 			crate::benchmarking::benchmarks::bench_test::new_test_ext(),
-	// 			asset_hub_polkadot_runtime::Runtime,
-	// 			benchmarks_path = benchmarking,
-	// 		);
-	// 	}
+	#[benchmark]
+	fn receive_scheduler_lookup(n: Linear<1, 255>) {
+		let lookups = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_scheduler_lookup(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
 
+		#[extrinsic_call]
+		receive_scheduler_messages(RawOrigin::Root, lookups);
 
-	// Have to write this manually for every benchmark
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Scheduler,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_bags_list_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_bags_list(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::BagsList,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_on_finalize<T: Config>() {
+		_on_finalize::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_proxy_proxies<T: Config>(n: u32) {
+		_receive_proxy_proxies::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_proxy_announcements<T: Config>(n: u32) {
+		_receive_proxy_announcements::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_claims<T: Config>(n: u32) {
+		_receive_claims::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_nom_pools_messages<T: Config>(n: u32) {
+		_receive_nom_pools_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_vesting_schedules<T: Config>(n: u32) {
+		_receive_vesting_schedules::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_fast_unstake_messages<T: Config>(n: u32) {
+		_receive_fast_unstake_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_referenda_values<T: Config>() {
+		_receive_referenda_values::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_active_referendums<T: Config>(n: u32) {
+		_receive_active_referendums::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_complete_referendums<T: Config>(n: u32) {
+		_receive_complete_referendums::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_accounts<T: Config>(n: u32) {
+		_receive_accounts::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_liquid_accounts<T: Config>(n: u32) {
+		_receive_liquid_accounts::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_scheduler_agenda<T: Config>(n: u32) {
+		_receive_scheduler_agenda::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_scheduler_lookup<T: Config>(n: u32) {
+		_receive_scheduler_lookup::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_bags_list_messages<T: Config>(n: u32) {
+		_receive_bags_list_messages::<T>(n, true)
 	}
 }
 
