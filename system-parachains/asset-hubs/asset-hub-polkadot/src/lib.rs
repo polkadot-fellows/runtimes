@@ -126,7 +126,7 @@ use system_parachains_constants::{
 };
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
-	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
+	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
 use xcm_config::{
 	DotLocation, DotLocationV4, FellowshipLocation, ForeignAssetsConvertedConcreteId,
@@ -141,7 +141,6 @@ pub use sp_runtime::BuildStorage;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
-use xcm::prelude::XcmVersion;
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -1681,7 +1680,7 @@ impl_runtime_apis! {
 		fn dry_run_call(
 			origin: OriginCaller,
 			call: RuntimeCall,
-			result_xcms_version: XcmVersion
+			result_xcms_version: XcmVersion,
 		) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
 			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
