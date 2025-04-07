@@ -385,11 +385,11 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_staking::Config // Not on Westend
-		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on Westend
-		+ pallet_claims::Config // Not on Westend
-		+ pallet_bounties::Config // Not on Westend
-		+ pallet_treasury::Config // Not on Westend
+		+ pallet_staking::Config // Not on westend
+		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
+		+ pallet_claims::Config // Not on westend
+		+ pallet_bounties::Config // Not on westend
+		+ pallet_treasury::Config // Not on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.

@@ -226,10 +226,10 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 		+ pallet_ah_ops::Config
-		+ pallet_claims::Config // Not on Westend
-		+ pallet_bounties::Config // Not on Westend
-		+ pallet_treasury::Config // Not on Westend
-		//+ pallet_staking::Config // Only on Westend
+		+ pallet_claims::Config // Not on westend
+		+ pallet_bounties::Config // Not on westend
+		+ pallet_treasury::Config // Not on westend
+		//+ pallet_staking::Config // Only on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
