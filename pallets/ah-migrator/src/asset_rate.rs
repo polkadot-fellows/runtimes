@@ -70,7 +70,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AssetRateMigrator<T> {
 		assert_eq!(
 			rc_pre_payload.len(),
 			ah_entries.len(),
-			"AssetRate::ConversionRateToNative::ah_post - Number of entries is incorrect"
+			"Assert storage 'AssetRate::ConversionRateToNative::ah_post::length'"
 		);
 
 		// AH post: Verify entry values match
