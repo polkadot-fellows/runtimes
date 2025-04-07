@@ -77,15 +77,15 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 		// AH pre: Verify no entries are present
 		assert!(
 			alias::Head::<T>::get().is_none(),
-			"FastUnstake::Head::ah_pre - No entries should be present"
+			"Assert storage 'FastUnstake::Head::ah_pre::empty'"
 		);
 		assert!(
 			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
-			"FastUnstake::Queue::ah_pre - No entries should be present"
+			"Assert storage 'FastUnstake::Queue::ah_pre::empty'"
 		);
 		assert!(
 			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
-			"FastUnstake::ErasToCheckPerBlock::ah_pre - No entries should be present"
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::ah_pre::empty'"
 		);
 	}
 
@@ -99,27 +99,27 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 		// Verify Head is None
 		assert!(
 			alias::Head::<T>::get().is_none(),
-			"FastUnstake::Head::ah_post - Head should be None"
+			"Assert storage 'FastUnstake::Head::ah_post::correct'"
 		);
 
 		// Verify Queue entries
 		assert_eq!(
 			queue.len(),
 			ah_queue.len(),
-			"FastUnstake::Queue::ah_post - Number of entries is incorrect"
+			"Assert storage 'FastUnstake::Queue::ah_post::length'"
 		);
 		// Verify Queue values match
 		for (pre_entry, post_entry) in queue.iter().zip(ah_queue.iter()) {
 			assert_eq!(
 				pre_entry, post_entry,
-				"FastUnstake::Queue::ah_post - Entry values are incorrect"
+				"Assert storage 'FastUnstake::Queue::ah_post::correct'"
 			);
 		}
 
 		// Verify ErasToCheckPerBlock
 		assert_eq!(
 			eras_to_check, ah_eras_to_check,
-			"FastUnstake::ErasToCheckPerBlock::ah_post - Value is incorrect"
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::ah_post::correct'"
 		);
 	}
 }

@@ -163,7 +163,7 @@ impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
 
 		assert!(
 			alias::Head::<T>::get().is_none(),
-			"Assert storage 'FastUnstake::Head::rc_pre::empty'"
+			"Staking Heads must be empty on the relay chain before the migration"
 		);
 
 		(queue, eras_to_check)
@@ -173,15 +173,15 @@ impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
 		// RC post: Ensure that entries have been deleted
 		assert!(
 			alias::Head::<T>::get().is_none(),
-			"Assert storage 'FastUnstake::Head::rc_post::deleted'"
+			"Assert storage 'FastUnstake::Head::rc_post::empty'"
 		);
 		assert!(
 			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
-			"Assert storage 'FastUnstake::Queue::rc_post::deleted'"
+			"Assert storage 'FastUnstake::Queue::rc_post::empty'"
 		);
 		assert!(
 			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
-			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::deleted'"
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::empty'"
 		);
 	}
 }
