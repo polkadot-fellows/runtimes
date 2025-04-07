@@ -204,7 +204,6 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
 					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
-						inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
 						// Dont really care about memos, but we can add them, if needed.
 						if !memo.is_empty() {
 							log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
