@@ -214,7 +214,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 		}
 
 		let mut rc_contributions: BTreeMap<
-			(BlockNumberFor<T>, ParaId, AccountIdOf<T>),
+			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
 			BalanceOf<T>,
 		> = BTreeMap::new();
 		let mut rc_lease_reserves: BTreeMap<
@@ -236,7 +236,7 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 					..
 				} => {
 					rc_contributions
-						.entry((withdraw_block, para_id, contributor))
+						.entry((para_id, withdraw_block, contributor))
 						.and_modify(|e| *e = e.saturating_add(amount))
 						.or_insert(amount);
 				},
@@ -264,14 +264,14 @@ impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
 
 		// Verify contributions
 		let mut contributions_post: BTreeMap<
-			(BlockNumberFor<T>, ParaId, AccountIdOf<T>),
+			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
 			BalanceOf<T>,
 		> = BTreeMap::new();
-		for ((block_number, para_id, contributor), (_, amount)) in
+		for ((withdraw_block, para_id, contributor), (_, amount)) in
 			pallet_ah_ops::RcCrowdloanContribution::<T>::iter()
 		{
 			contributions_post
-				.entry((block_number, para_id, contributor))
+				.entry((para_id, withdraw_block, contributor))
 				.and_modify(|e| *e = e.saturating_add(amount))
 				.or_insert(amount);
 		}
