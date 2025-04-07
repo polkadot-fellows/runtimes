@@ -77,7 +77,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AssetRateMigrator<T> {
 		for (pre_entry, post_entry) in rc_pre_payload.iter().zip(ah_entries.iter()) {
 			assert_eq!(
 				pre_entry, post_entry,
-				"AssetRate::ConversionRateToNative::ah_post - Entry values are incorrect"
+				"Assert storage 'AssetRate::ConversionRateToNative::ah_post::correct'"
 			);
 		}
 	}
