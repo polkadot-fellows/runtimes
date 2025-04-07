@@ -261,7 +261,7 @@ pub mod pallet {
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
 		type RcFreezeReason: Parameter + Default;
 		/// Relay Chain to Asset Hub Hold Reasons mapping.
-		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
+		type RcToAhHoldReason: Convert<Self::RcHoldReason, <Self as Config>::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping.
 		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.

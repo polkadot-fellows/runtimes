@@ -63,3 +63,5 @@ ahm-polkadot = [
 
 # This will be changed by our porting script
 default = ["ahm-polkadot"]
+stable2503 = []
+ahm-staking-migration = []

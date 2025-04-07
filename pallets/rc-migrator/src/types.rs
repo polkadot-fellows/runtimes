@@ -101,7 +101,7 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
 	#[codec(index = 30)]
 	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
-	ReceiveStakingMessages { messages: Vec<staking::staking::RcStakingMessageOf<T>> },
+	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
 	#[codec(index = 101)]
 	StartMigration,
 }

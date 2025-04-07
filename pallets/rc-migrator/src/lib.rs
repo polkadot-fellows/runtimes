@@ -292,6 +292,14 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	},
 	TreasuryMigrationDone,
 
+	#[cfg(feature = "ahm-staking-migration")]
+	StakingMigrationInit,
+	#[cfg(feature = "ahm-staking-migration")]
+	StakingMigrationOngoing {
+		next_key: Option<staking::StakingStage<AccountId>>,
+	},
+	StakingMigrationDone,
+
 	MigrationDone,
 }
 
@@ -391,7 +399,7 @@ pub mod pallet {
 		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
+			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
 			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>
@@ -1249,6 +1257,41 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::TreasuryMigrationDone => {
+					#[cfg(feature = "ahm-staking-migration")]
+					Self::transition(MigrationStage::StakingMigrationInit);
+					#[cfg(not(feature = "ahm-staking-migration"))]
+					Self::transition(MigrationStage::StakingMigrationDone);
+				},
+				#[cfg(feature = "ahm-staking-migration")]
+				MigrationStage::StakingMigrationInit => {
+					Self::transition(MigrationStage::StakingMigrationOngoing { next_key: None });
+				},
+				#[cfg(feature = "ahm-staking-migration")]
+				MigrationStage::StakingMigrationOngoing { next_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match staking::StakingMigrator::<T>::migrate_many(
+							next_key,
+							&mut weight_counter,
+						) {
+							Ok(next_key) => TransactionOutcome::Commit(Ok(next_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::StakingMigrationDone);
+						},
+						Ok(Some(next_key)) => {
+							Self::transition(MigrationStage::StakingMigrationOngoing { next_key: Some(next_key) });
+						},
+						e => {
+							defensive!("Error while migrating staking: {:?}", e);
+						},
+					}
+				},
+				MigrationStage::StakingMigrationDone => {
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
