@@ -1109,27 +1109,30 @@ pub type Executive = frame_executive::Executive<
 pub struct AssetConversionTxHelper;
 
 #[cfg(feature = "runtime-benchmarks")]
+pub type AssetConversionAssetIdFor<T> = <T as pallet_asset_conversion_tx_payment::Config>::AssetId;
+
+#[cfg(feature = "runtime-benchmarks")]
 impl
 	pallet_asset_conversion_tx_payment::BenchmarkHelperTrait<
 		AccountId,
-		cumulus_primitives_core::Location,
-		cumulus_primitives_core::Location,
+		AssetConversionAssetIdFor<Runtime>,
+		AssetConversionAssetIdFor<Runtime>,
 	> for AssetConversionTxHelper
 {
-	fn create_asset_id_parameter(seed: u32) -> (xcm::prelude::Location, xcm::prelude::Location) {
+	fn create_asset_id_parameter(seed: u32) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
 		// Use a different parachain' foreign assets pallet so that the asset is indeed foreign.
-		let asset_id = xcm::prelude::Location::new(
+		let asset_id = xcm::v4::Location::new(
 			1,
 			[
-				cumulus_primitives_core::Junction::Parachain(3000),
-				cumulus_primitives_core::Junction::PalletInstance(53),
-				cumulus_primitives_core::Junction::GeneralIndex(seed.into()),
+				xcm::v4::Junction::Parachain(3000),
+				xcm::v4::Junction::PalletInstance(53),
+				xcm::v4::Junction::GeneralIndex(seed.into()),
 			],
 		);
 		(asset_id.clone(), asset_id)
 	}
 
-	fn setup_balances_and_pool(asset_id: cumulus_primitives_core::Location, account: AccountId) {
+	fn setup_balances_and_pool(asset_id: AssetConversionAssetIdFor<Runtime>, account: AccountId) {
 		use alloc::boxed::Box;
 		use frame_support::{assert_ok, traits::fungibles::Mutate};
 
