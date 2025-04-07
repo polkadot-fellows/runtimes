@@ -255,7 +255,7 @@ impl<Call> XcmWeightInfo<Call> for CoretimePolkadotXcmWeight<Call> {
 			let extra = assets.weigh_assets(XcmFungibleWeight::<Runtime>::initiate_transfer());
 			weight = weight.saturating_add(extra);
 		}
-	weight
+		weight
 	}
 	fn execute_with_origin(
 		_descendant_origin: &Option<InteriorLocation>,
