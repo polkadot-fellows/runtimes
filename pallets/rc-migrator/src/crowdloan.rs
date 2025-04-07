@@ -409,7 +409,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			// Use the leases we have already processed and remapped
 			let leases = processed_leases.get(&para_id)
 				.cloned()
-				.unwrap_or_default;
+				.unwrap_or_default();
 			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
 				.defensive()
 				.map_err(|_| Error::<T>::Unreachable)
@@ -447,33 +447,44 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 	fn post_check(_: Self::RcPrePayload) {
 		use sp_std::collections::btree_map::BTreeMap;
 
-		// Collect current state of crowdloan funds and their contributions
-		let current_map: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> =
-			pallet_crowdloan::Funds::<T>::iter()
-				.map(|(para_id, fund)| {
-					// For each fund, collect all its contributions
-					let contributions =
-						pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
-							.map(|(contributor, (amount, encoded_block_number))| {
-								// Decode the block number from bytes
-								let block_number =
-									BlockNumberFor::<T>::decode(&mut &encoded_block_number[..])
-										.unwrap_or_default();
+		// Process leases first, similar to pre_check
+		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
+		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
+			// Remap Bifrost para_id consistently with pre_check
+			let remapped_para_id = if para_id == ParaId::from(2030) {
+				ParaId::from(3356)
+			} else {
+				para_id
+			};
+			processed_leases.insert(remapped_para_id, leases);
+		}
 
-								// Create a tuple of (block_number, contributor, amount)
-								(block_number, contributor, amount.try_into().unwrap_or_default())
-							})
-							.collect();
-
-					(para_id, contributions)
+		// Process crowdloan funds and their contributions
+		let mut crowdloan_data: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> = BTreeMap::new();
+		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+			// Collect all contributions for this fund
+			let contributions: Vec<_> = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+				.map(|(contributor, (amount, _memo))| {
+					// We don't need to decode block numbers here since we just want to verify everything is empty
+					(BlockNumberFor::<T>::default(), contributor, amount.try_into().unwrap_or_default())
 				})
 				.collect();
 
-		// Verify that all data has been properly migrated
-		assert!(current_map.is_empty(), "Current crowdloan data should be empty after migration");
+			if !contributions.is_empty() {
+				crowdloan_data.insert(para_id, contributions);
+			}
+		}
 
-		// Double check that no funds remain
-		let funds_empty = pallet_crowdloan::Funds::<T>::iter().next().is_none();
-		assert!(funds_empty, "pallet_crowdloan::Funds should be empty after migration");
+		// Verify that all crowdloan data has been properly migrated
+		assert!(
+			crowdloan_data.is_empty(),
+			"Crowdloan contributions should be empty after migration"
+		);
+
+		// Verify that no funds remain in the pallet
+		assert!(
+			pallet_crowdloan::Funds::<T>::iter().next().is_none(),
+			"pallet_crowdloan::Funds should be empty after migration"
+		);
 	}
 }
