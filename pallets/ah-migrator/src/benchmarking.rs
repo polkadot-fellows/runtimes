@@ -250,7 +250,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 }
 
 #[benchmarks]
-mod benchmarks {
+pub mod benchmarks {
 	use super::*;
 
 	#[benchmark]
@@ -568,6 +568,13 @@ mod benchmarks {
 	// 			benchmarks_path = benchmarking,
 	// 		);
 	// 	}
+
+
+	// Have to write this manually for every benchmark
+	#[cfg(feature = "std")]
+	pub fn test_receive_multisigs<T: Config>(n: u32) {
+		_receive_multisigs::<T>(n, true /* enable checks */)
+	}
 }
 
 /// Unwrap something that does not implement Debug. Otherwise we would need to require

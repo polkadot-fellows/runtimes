@@ -14,27 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use asset_hub_polkadot_runtime::Runtime;
+use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use frame_benchmarking::v2::*;
 use frame_support::assert_ok;
 use pallet_ah_migrator::{benchmarking, benchmarking::*, Pallet};
 use sp_runtime::BuildStorage;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	let t = frame_system::GenesisConfig::<AssetHub>::default().build_storage().unwrap();
 	t.into()
 }
 
-//  #[test]
-//  fn test_benchmarks() {
-//    new_test_ext().execute_with(|| {
-//      assert_ok!(pallet_ah_migrator::Pallet::<Runtime>::test_benchmark_receive_multisigs());
-//    });
-//  }
-
-// impl_benchmark_test_suite!(
-// 	Pallet,
-// 	crate::bench::new_test_ext(),
-// 	asset_hub_polkadot_runtime::Runtime,
-// 	benchmarks_path = benchmarking,
-// );
+#[test]
+fn test_benchmarks() {
+  new_test_ext().execute_with(|| {
+    pallet_ah_migrator::benchmarking::test_receive_multisigs::<AssetHub>(1);
+  });
+}
