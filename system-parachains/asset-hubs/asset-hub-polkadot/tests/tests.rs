@@ -47,7 +47,7 @@ use system_parachains_constants::{
 };
 use xcm::latest::prelude::{Assets as XcmAssets, *};
 use xcm_builder::WithLatestLocationConverter;
-use xcm_executor::traits::{ConvertLocation, JustTry};
+use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
@@ -80,7 +80,7 @@ fn slot_durations() -> SlotDurations {
 fn setup_pool_for_paying_fees_with_foreign_assets(
 	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 		AccountId,
-		Location,
+		xcm::v4::Location,
 		Balance,
 	),
 ) {
@@ -88,7 +88,7 @@ fn setup_pool_for_paying_fees_with_foreign_assets(
 
 	// setup a pool to pay fees with `foreign_asset_id_location` tokens
 	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = Location::parent();
+	let native_asset = xcm::v4::Location::parent();
 	let pool_liquidity: Balance =
 		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
 
@@ -155,7 +155,7 @@ fn test_assets_balances_api_works() {
 		.execute_with(|| {
 			let local_asset_id = 1;
 			let foreign_asset_id_location =
-				Location::new(1, [Junction::Parachain(1234), Junction::GeneralIndex(12345)]);
+				xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1234), xcm::v4::Junction::GeneralIndex(12345)]);
 
 			// check before
 			assert_eq!(Assets::balance(local_asset_id, AccountId::from(ALICE)), 0);
@@ -333,11 +333,11 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	Runtime,
 	XcmConfig,
 	ForeignAssetsInstance,
-	Location,
-	JustTry,
+	xcm::v4::Location,
+	WithLatestLocationConverter<xcm::v4::Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
-	Location::new(1, [Junction::Parachain(1313), Junction::GeneralIndex(12345)]),
+	xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1313), xcm::v4::Junction::GeneralIndex(12345)]),
 	Box::new(|| {
 		assert!(Assets::asset_ids().collect::<Vec<_>>().is_empty());
 	}),
@@ -346,14 +346,14 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	})
 );
 
-asset_test_utils::include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works!(
+include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works!(
 	Runtime,
 	XcmConfig,
 	WeightToFee,
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
-	Location,
-	WithLatestLocationConverter<Location>,
+	xcm::v4::Location,
+	WithLatestLocationConverter<xcm::v4::Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	AssetDeposit::get(),
@@ -430,13 +430,13 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
 	let staking_pot = StakingPot::get();
 
-	let foreign_asset_id_location =
-		Location::new(2, [Junction::GlobalConsensus(NetworkId::Kusama)]);
+	let foreign_asset_id_location_v4 =
+		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
 	let foreign_asset_create_params =
-		(foreign_asset_owner, foreign_asset_id_location.clone(), foreign_asset_id_minimum_balance);
+		(foreign_asset_owner, foreign_asset_id_location_v4.clone(), foreign_asset_id_minimum_balance);
 
 	remove_when_updated_to_stable2409::receive_reserve_asset_deposited_from_different_consensus_works::<
             Runtime,
@@ -470,7 +470,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // check now foreign asset for staking pot
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location.clone(),
+                        foreign_asset_id_location_v4.clone(),
                         &staking_pot
                     ),
                     0
@@ -484,7 +484,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // staking pot receives no foreign assets
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location.clone(),
+                        foreign_asset_id_location_v4.clone(),
                         &staking_pot
                     ),
                     0
@@ -499,13 +499,13 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
 	let staking_pot = <pallet_collator_selection::Pallet<Runtime>>::account_id();
 
-	let foreign_asset_id_location =
-		Location::new(2, [Junction::GlobalConsensus(NetworkId::Kusama)]);
+	let foreign_asset_id_location_v4 =
+		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
 	let foreign_asset_create_params =
-		(foreign_asset_owner, foreign_asset_id_location.clone(), foreign_asset_id_minimum_balance);
+		(foreign_asset_owner, foreign_asset_id_location_v4.clone(), foreign_asset_id_minimum_balance);
 
 	remove_when_updated_to_stable2409::receive_reserve_asset_deposited_from_different_consensus_works::<
 			Runtime,
@@ -530,7 +530,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 				// check block author before
 				assert_eq!(
 					ForeignAssets::balance(
-						foreign_asset_id_location.clone(),
+						foreign_asset_id_location_v4.clone(),
 						&block_author_account
 					),
 					0
@@ -540,7 +540,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_suffic
 				// `TakeFirstAssetTrader` puts fees to the block author
 				assert!(
 					ForeignAssets::balance(
-						foreign_asset_id_location.clone(),
+						foreign_asset_id_location_v4.clone(),
 						&block_author_account
 					) > 0
 				);
@@ -834,9 +834,9 @@ pub mod remove_when_updated_to_stable2409 {
 		<WeightToFee as frame_support::weights::WeightToFee>::Balance: From<u128> + Into<u128>,
 		SovereignAccountOf: ConvertLocation<AccountIdOf<Runtime>>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<Location> + Into<Location>,
+			From<xcm::v4::Location> + Into<xcm::v4::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<Location> + Into<Location>,
+			From<xcm::v4::Location> + Into<xcm::v4::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128>,
 		<Runtime as frame_system::Config>::AccountId:
@@ -848,17 +848,22 @@ pub mod remove_when_updated_to_stable2409 {
 	{
 		// foreign parachain with the same consensus currency as asset
 		let foreign_para_id = 2222;
-		let foreign_asset_id_location = Location {
+		let foreign_asset_id_location = xcm::v4::Location {
 			parents: 1,
-			interior: [Junction::Parachain(foreign_para_id), Junction::GeneralIndex(1234567)]
+			interior: [xcm::v4::Junction::Parachain(foreign_para_id), xcm::v4::Junction::GeneralIndex(1234567)]
 				.into(),
 		};
+		let foreign_asset_id_location_latest = Location::new(
+			1,
+			[Parachain(foreign_para_id), GeneralIndex(1234567)]
+		);
 
 		// foreign creator, which can be sibling parachain to match ForeignCreators
 		let foreign_creator =
-			Location { parents: 1, interior: [Parachain(foreign_para_id)].into() };
+			xcm::v4::Location { parents: 1, interior: [xcm::v4::Junction::Parachain(foreign_para_id)].into() };
+		let foreign_creator_latest: Location = foreign_creator.try_into().unwrap();
 		let foreign_creator_as_account_id =
-			SovereignAccountOf::convert_location(&foreign_creator).expect("");
+			SovereignAccountOf::convert_location(&foreign_creator_latest).expect("");
 
 		// we want to buy execution with local relay chain currency
 		let buy_execution_fee_amount =
@@ -951,12 +956,12 @@ pub mod remove_when_updated_to_stable2409 {
 					},
 					// Process teleported asset
 					ReceiveTeleportedAsset(Assets::from(vec![Asset {
-						id: AssetId(foreign_asset_id_location.clone()),
+						id: AssetId(foreign_asset_id_location_latest.clone()),
 						fun: Fungible(teleported_foreign_asset_amount),
 					}])),
 					DepositAsset {
 						assets: Wild(AllOf {
-							id: AssetId(foreign_asset_id_location.clone()),
+							id: AssetId(foreign_asset_id_location_latest.clone()),
 							fun: WildFungibility::Fungible,
 						}),
 						beneficiary: Location {
@@ -973,7 +978,7 @@ pub mod remove_when_updated_to_stable2409 {
 				let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
 
 				let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
-					foreign_creator,
+					foreign_creator_latest,
 					xcm,
 					&mut hash,
 					RuntimeHelper::<Runtime, ()>::xcm_max_weight(XcmReceivedFrom::Sibling),
@@ -1042,7 +1047,7 @@ pub mod remove_when_updated_to_stable2409 {
 					// Make sure the target account has enough native asset to pay for delivery fees
 					let delivery_fees =
 						xcm_helpers::teleport_assets_delivery_fees::<XcmConfig::XcmSender>(
-							(foreign_asset_id_location.clone(), asset_to_teleport_away).into(),
+							(foreign_asset_id_location_latest.clone(), asset_to_teleport_away).into(),
 							0,
 							Unlimited,
 							dest_beneficiary.clone(),
@@ -1059,7 +1064,7 @@ pub mod remove_when_updated_to_stable2409 {
 							RuntimeHelper::<Runtime, ()>::origin_of(target_account.clone()),
 							dest,
 							dest_beneficiary,
-							(foreign_asset_id_location.clone(), asset_to_teleport_away),
+							(foreign_asset_id_location_latest.clone(), asset_to_teleport_away),
 							Some((runtime_para_id, foreign_para_id)),
 							included_head,
 							&alice,
@@ -1157,7 +1162,7 @@ pub mod remove_when_updated_to_stable2409 {
 		block_author_account: AccountIdOf<Runtime>,
 		(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 			AccountIdOf<Runtime>,
-			Location,
+			xcm::v4::Location,
 			u128,
 		),
 		foreign_asset_id_amount_to_transfer: u128,
@@ -1183,9 +1188,9 @@ pub mod remove_when_updated_to_stable2409 {
 		BalanceOf<Runtime>: From<Balance> + Into<Balance>,
 		XcmConfig: xcm_executor::Config,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<Location> + Into<Location>,
+			From<xcm::v4::Location> + Into<xcm::v4::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<Location> + Into<Location>,
+			From<xcm::v4::Location> + Into<xcm::v4::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128> + From<u128>,
 		<Runtime as frame_system::Config>::AccountId: Into<<<Runtime as frame_system::Config>::RuntimeOrigin as OriginTrait>::AccountId>
@@ -1245,7 +1250,7 @@ pub mod remove_when_updated_to_stable2409 {
 				additional_checks_before();
 
 				let expected_assets = Assets::from(vec![Asset {
-					id: AssetId(foreign_asset_id_location.clone()),
+					id: AssetId(foreign_asset_id_location.clone().try_into().unwrap()),
 					fun: Fungible(foreign_asset_id_amount_to_transfer),
 				}]);
 				let expected_beneficiary = Location::new(
@@ -1262,7 +1267,7 @@ pub mod remove_when_updated_to_stable2409 {
 					ClearOrigin,
 					BuyExecution {
 						fees: Asset {
-							id: AssetId(foreign_asset_id_location.clone()),
+							id: AssetId(foreign_asset_id_location.clone().try_into().unwrap()),
 							fun: Fungible(foreign_asset_id_amount_to_transfer),
 						},
 						weight_limit: Unlimited,
@@ -1416,3 +1421,356 @@ fn location_conversion_works() {
 		assert_eq!(got, expected, "{}", tc.description);
 	}
 }
+
+pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
+	use crate::RuntimeOrigin;
+	use super::RuntimeHelper;
+	use asset_test_utils::{AccountIdOf, assert_metadata, BalanceOf, ValidatorIdOf, XcmReceivedFrom, ExtBuilder, CollatorSessionKeys};
+	use frame_support::{assert_noop, assert_ok, traits::{OriginTrait, fungibles::InspectEnumerable}};
+	use parachains_common::Balance;
+	use sp_core::Encode;
+	use sp_runtime::{DispatchError, Saturating, Weight, traits::{StaticLookup, MaybeEquivalence}};
+	use xcm::prelude::*;
+	use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+
+	/// Test-case makes sure that `Runtime` can create and manage `ForeignAssets`
+pub fn create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works<
+	Runtime,
+	XcmConfig,
+	WeightToFee,
+	SovereignAccountOf,
+	ForeignAssetsPalletInstance,
+	AssetId,
+	AssetIdConverter,
+>(
+	collator_session_keys: CollatorSessionKeys<Runtime>,
+	existential_deposit: BalanceOf<Runtime>,
+	asset_deposit: BalanceOf<Runtime>,
+	metadata_deposit_base: BalanceOf<Runtime>,
+	metadata_deposit_per_byte: BalanceOf<Runtime>,
+	alice_account: AccountIdOf<Runtime>,
+	bob_account: AccountIdOf<Runtime>,
+	runtime_call_encode: Box<
+		dyn Fn(pallet_assets::Call<Runtime, ForeignAssetsPalletInstance>) -> Vec<u8>,
+	>,
+	unwrap_pallet_assets_event: Box<
+		dyn Fn(Vec<u8>) -> Option<pallet_assets::Event<Runtime, ForeignAssetsPalletInstance>>,
+	>,
+	additional_checks_before: Box<dyn Fn()>,
+	additional_checks_after: Box<dyn Fn()>,
+) where
+	Runtime: frame_system::Config
+		+ pallet_balances::Config
+		+ pallet_session::Config
+		+ pallet_xcm::Config
+		+ parachain_info::Config
+		+ pallet_collator_selection::Config
+		+ cumulus_pallet_parachain_system::Config
+		+ pallet_assets::Config<ForeignAssetsPalletInstance>
+		+ pallet_timestamp::Config,
+	AccountIdOf<Runtime>: Into<[u8; 32]>,
+	ValidatorIdOf<Runtime>: From<AccountIdOf<Runtime>>,
+	BalanceOf<Runtime>: From<Balance>,
+	XcmConfig: xcm_executor::Config,
+	WeightToFee: frame_support::weights::WeightToFee<Balance = Balance>,
+	<WeightToFee as frame_support::weights::WeightToFee>::Balance: From<u128> + Into<u128>,
+	SovereignAccountOf: ConvertLocation<AccountIdOf<Runtime>>,
+	<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
+		From<AssetId> + Into<AssetId>,
+	<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
+		From<AssetId> + Into<AssetId>,
+	<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
+		From<Balance> + Into<u128>,
+	<Runtime as frame_system::Config>::AccountId:
+		Into<<<Runtime as frame_system::Config>::RuntimeOrigin as OriginTrait>::AccountId>,
+	<<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source:
+		From<<Runtime as frame_system::Config>::AccountId>,
+	ForeignAssetsPalletInstance: 'static,
+	AssetId: Clone,
+	AssetIdConverter: MaybeEquivalence<xcm::v4::Location, AssetId>,
+	<Runtime as frame_system::Config>::AccountId: Into<sp_runtime::AccountId32>,
+	<Runtime as frame_system::Config>::RuntimeOrigin: From<RuntimeOrigin>
+{
+	// foreign parachain with the same consensus currency as asset
+	let foreign_asset_id_location = xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(2222), xcm::v4::Junction::GeneralIndex(1234567)]);
+	let asset_id = AssetIdConverter::convert(&foreign_asset_id_location).unwrap();
+
+	// foreign creator, which can be sibling parachain to match ForeignCreators
+	let foreign_creator = Location { parents: 1, interior: [Parachain(2222)].into() };
+	let foreign_creator_as_account_id =
+		SovereignAccountOf::convert_location(&foreign_creator).expect("");
+
+	// we want to buy execution with local relay chain currency
+	let buy_execution_fee_amount =
+		WeightToFee::weight_to_fee(&Weight::from_parts(90_000_000_000, 0));
+	let buy_execution_fee =
+		Asset { id: AssetId(Location::parent()), fun: Fungible(buy_execution_fee_amount) };
+
+	const ASSET_NAME: &str = "My super coin";
+	const ASSET_SYMBOL: &str = "MY_S_COIN";
+	let metadata_deposit_per_byte_eta = metadata_deposit_per_byte
+		.saturating_mul(((ASSET_NAME.len() + ASSET_SYMBOL.len()) as u128).into());
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(collator_session_keys.collators())
+		.with_session_keys(collator_session_keys.session_keys())
+		.with_balances(vec![(
+			foreign_creator_as_account_id.clone(),
+			existential_deposit +
+				asset_deposit +
+				metadata_deposit_base +
+				metadata_deposit_per_byte_eta +
+				buy_execution_fee_amount.into() +
+				buy_execution_fee_amount.into(),
+		)])
+		.with_tracing()
+		.build()
+		.execute_with(|| {
+			assert!(<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::asset_ids()
+				.collect::<Vec<_>>()
+				.is_empty());
+			assert_eq!(
+				<pallet_balances::Pallet<Runtime>>::free_balance(&foreign_creator_as_account_id),
+				existential_deposit +
+					asset_deposit + metadata_deposit_base +
+					metadata_deposit_per_byte_eta +
+					buy_execution_fee_amount.into() +
+					buy_execution_fee_amount.into()
+			);
+			additional_checks_before();
+
+			// execute XCM with Transacts to create/manage foreign assets by foreign governance
+			// prepare data for xcm::Transact(create)
+			let foreign_asset_create = runtime_call_encode(pallet_assets::Call::<
+				Runtime,
+				ForeignAssetsPalletInstance,
+			>::create {
+				id: asset_id.clone().into(),
+				// admin as sovereign_account
+				admin: foreign_creator_as_account_id.clone().into(),
+				min_balance: 1.into(),
+			});
+			// prepare data for xcm::Transact(set_metadata)
+			let foreign_asset_set_metadata = runtime_call_encode(pallet_assets::Call::<
+				Runtime,
+				ForeignAssetsPalletInstance,
+			>::set_metadata {
+				id: asset_id.clone().into(),
+				name: Vec::from(ASSET_NAME),
+				symbol: Vec::from(ASSET_SYMBOL),
+				decimals: 12,
+			});
+			// prepare data for xcm::Transact(set_team - change just freezer to Bob)
+			let foreign_asset_set_team = runtime_call_encode(pallet_assets::Call::<
+				Runtime,
+				ForeignAssetsPalletInstance,
+			>::set_team {
+				id: asset_id.clone().into(),
+				issuer: foreign_creator_as_account_id.clone().into(),
+				admin: foreign_creator_as_account_id.clone().into(),
+				freezer: bob_account.clone().into(),
+			});
+
+			// lets simulate this was triggered by relay chain from local consensus sibling
+			// parachain
+			let xcm = Xcm(vec![
+				WithdrawAsset(buy_execution_fee.clone().into()),
+				BuyExecution { fees: buy_execution_fee.clone(), weight_limit: Unlimited },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					call: foreign_asset_create.into(),
+					fallback_max_weight: None,
+				},
+				Transact {
+					origin_kind: OriginKind::SovereignAccount,
+					call: foreign_asset_set_metadata.into(),
+					fallback_max_weight: None,
+				},
+				Transact {
+					origin_kind: OriginKind::SovereignAccount,
+					call: foreign_asset_set_team.into(),
+					fallback_max_weight: None,
+				},
+				ExpectTransactStatus(MaybeErrorCode::Success),
+			]);
+
+			// messages with different consensus should go through the local bridge-hub
+			let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+
+			// execute xcm as XcmpQueue would do
+			let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+				foreign_creator.clone(),
+				xcm,
+				&mut hash,
+				RuntimeHelper::xcm_max_weight(XcmReceivedFrom::Sibling),
+				Weight::zero(),
+			);
+			assert_ok!(outcome.ensure_complete());
+
+			// check events
+			let mut events = <frame_system::Pallet<Runtime>>::events()
+				.into_iter()
+				.filter_map(|e| unwrap_pallet_assets_event(e.event.encode()));
+			assert!(events.any(|e| matches!(e, pallet_assets::Event::Created { .. })));
+			assert!(events.any(|e| matches!(e, pallet_assets::Event::MetadataSet { .. })));
+			assert!(events.any(|e| matches!(e, pallet_assets::Event::TeamChanged { .. })));
+
+			// check assets after
+			assert!(!<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::asset_ids()
+				.collect::<Vec<_>>()
+				.is_empty());
+
+			// check update metadata
+			use frame_support::traits::fungibles::roles::Inspect as InspectRoles;
+			assert_eq!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::owner(
+					asset_id.clone().into()
+				),
+				Some(foreign_creator_as_account_id.clone())
+			);
+			assert_eq!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::admin(
+					asset_id.clone().into()
+				),
+				Some(foreign_creator_as_account_id.clone())
+			);
+			assert_eq!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::issuer(
+					asset_id.clone().into()
+				),
+				Some(foreign_creator_as_account_id.clone())
+			);
+			assert_eq!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::freezer(
+					asset_id.clone().into()
+				),
+				Some(bob_account.clone())
+			);
+			assert!(
+				<pallet_balances::Pallet<Runtime>>::free_balance(&foreign_creator_as_account_id) >=
+					existential_deposit + buy_execution_fee_amount.into(),
+				"Free balance: {:?} should be ge {:?}",
+				<pallet_balances::Pallet<Runtime>>::free_balance(&foreign_creator_as_account_id),
+				existential_deposit + buy_execution_fee_amount.into()
+			);
+			assert_metadata::<
+				pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>,
+				AccountIdOf<Runtime>,
+			>(asset_id.clone(), ASSET_NAME, ASSET_SYMBOL, 12);
+
+			// check if changed freezer, can freeze
+			assert_noop!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::freeze(
+					RuntimeHelper::origin_of(bob_account.clone().into()).into(),
+					asset_id.clone().into(),
+					alice_account.clone().into()
+				),
+				pallet_assets::Error::<Runtime, ForeignAssetsPalletInstance>::NoAccount
+			);
+			assert_noop!(
+				<pallet_assets::Pallet<Runtime, ForeignAssetsPalletInstance>>::freeze(
+					RuntimeHelper::origin_of(foreign_creator_as_account_id.clone().into()).into(),
+					asset_id.into(),
+					alice_account.into()
+				),
+				pallet_assets::Error::<Runtime, ForeignAssetsPalletInstance>::NoPermission
+			);
+
+			// lets try create asset for different parachain(3333) (foreign_creator(2222) can create
+			// just his assets)
+			let foreign_asset_id_location =
+				xcm::v4::Location { parents: 1, interior: [xcm::v4::Junction::Parachain(3333), xcm::v4::Junction::GeneralIndex(1234567)].into() };
+			let asset_id = AssetIdConverter::convert(&foreign_asset_id_location).unwrap();
+
+			// prepare data for xcm::Transact(create)
+			let foreign_asset_create = runtime_call_encode(pallet_assets::Call::<
+				Runtime,
+				ForeignAssetsPalletInstance,
+			>::create {
+				id: asset_id.into(),
+				// admin as sovereign_account
+				admin: foreign_creator_as_account_id.clone().into(),
+				min_balance: 1.into(),
+			});
+			let xcm = Xcm(vec![
+				WithdrawAsset(buy_execution_fee.clone().into()),
+				BuyExecution { fees: buy_execution_fee.clone(), weight_limit: Unlimited },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					call: foreign_asset_create.into(),
+					fallback_max_weight: None,
+				},
+				ExpectTransactStatus(MaybeErrorCode::from(DispatchError::BadOrigin.encode())),
+			]);
+
+			// messages with different consensus should go through the local bridge-hub
+			let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+
+			// execute xcm as XcmpQueue would do
+			let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+				foreign_creator,
+				xcm,
+				&mut hash,
+				RuntimeHelper::xcm_max_weight(XcmReceivedFrom::Sibling),
+				Weight::zero(),
+			);
+			assert_ok!(outcome.ensure_complete());
+
+			additional_checks_after();
+		})
+	}
+
+	#[macro_export]
+macro_rules! include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works(
+	(
+		$runtime:path,
+		$xcm_config:path,
+		$weight_to_fee:path,
+		$sovereign_account_of:path,
+		$assets_pallet_instance:path,
+		$asset_id:path,
+		$asset_id_converter:path,
+		$collator_session_key:expr,
+		$existential_deposit:expr,
+		$asset_deposit:expr,
+		$metadata_deposit_base:expr,
+		$metadata_deposit_per_byte:expr,
+		$runtime_call_encode:expr,
+		$unwrap_pallet_assets_event:expr,
+		$additional_checks_before:expr,
+		$additional_checks_after:expr
+	) => {
+		#[test]
+		fn create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works() {
+			const ALICE: [u8; 32] = [1u8; 32];
+			let alice_account = parachains_common::AccountId::from(ALICE);
+			const BOB: [u8; 32] = [2u8; 32];
+			let bob_account = parachains_common::AccountId::from(BOB);
+
+			use asset_test_utils::test_cases;
+
+			test_cases::create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works::<
+				$runtime,
+				$xcm_config,
+				$weight_to_fee,
+				$sovereign_account_of,
+				$assets_pallet_instance,
+				$asset_id,
+				$asset_id_converter
+			>(
+				$collator_session_key,
+				$existential_deposit,
+				$asset_deposit,
+				$metadata_deposit_base,
+				$metadata_deposit_per_byte,
+				alice_account,
+				bob_account,
+				$runtime_call_encode,
+				$unwrap_pallet_assets_event,
+				$additional_checks_before,
+				$additional_checks_after
+			)
+		}
+	}
+);
+} 
