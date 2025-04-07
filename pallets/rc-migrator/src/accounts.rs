@@ -803,6 +803,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 			match acc_state {
 				AccountState::Migrate => {
 					// Account should be fully migrated
+					// Assert storage "Balances::Account::rc_post::empty"
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					assert_eq!(
 						total_balance,
@@ -811,7 +812,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Locks::rc_post::migrated_empty"
+					// Assert storage "Balances::Locks::rc_post::empty"
 					let locks = pallet_balances::Locks::<T>::get(&who);
 					assert!(
 						locks.is_empty(),
@@ -819,7 +820,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Holds::rc_post::migrated_empty"
+					// Assert storage "Balances::Holds::rc_post::empty"
 					let holds = pallet_balances::Holds::<T>::get(&who);
 					assert!(
 						holds.is_empty(),
@@ -827,7 +828,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Freezes::rc_post::migrated_empty"
+					// Assert storage "Balances::Freezes::rc_post::empty"
 					let freezes = pallet_balances::Freezes::<T>::get(&who);
 					assert!(
 						freezes.is_empty(),
@@ -835,7 +836,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Reserves::rc_post::migrated_empty"
+					// Assert storage "Balances::Reserves::rc_post::empty"
 					let reserved = <T as Config>::Currency::reserved_balance(&who);
 					assert_eq!(
 						reserved,
@@ -864,14 +865,14 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Account::rc_post::part_reserved_match"
+					// Assert storage "Balances::Account::rc_post::empty"
 					assert_eq!(
 						total_balance, reserved_balance,
 						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Locks::rc_post::part_empty"
+					// Assert storage "Balances::Locks::rc_post::empty"
 					let locks = pallet_balances::Locks::<T>::get(&who);
 					assert!(
 						locks.is_empty(),
@@ -879,7 +880,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Holds::rc_post::part_empty"
+					// Assert storage "Balances::Holds::rc_post::empty"
 					let holds = pallet_balances::Holds::<T>::get(&who);
 					assert!(
 						holds.is_empty(),
@@ -887,7 +888,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					// Assert storage "Balances::Freezes::rc_post::part_empty"
+					// Assert storage "Balances::Freezes::rc_post::empty"
 					let freezes = pallet_balances::Freezes::<T>::get(&who);
 					assert!(
 						freezes.is_empty(),
