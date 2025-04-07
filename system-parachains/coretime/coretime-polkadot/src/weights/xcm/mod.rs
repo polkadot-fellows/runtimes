@@ -239,7 +239,7 @@ impl<Call> XcmWeightInfo<Call> for CoretimePolkadotXcmWeight<Call> {
 		_dest: &Location,
 		remote_fees: &Option<AssetTransferFilter>,
 		_preserve_origin: &bool,
-		assets: &Vec<AssetTransferFilter>,
+		assets: &BoundedVec<AssetTransferFilter, MaxAssetTransferFilters>,
 		_xcm: &Xcm<()>,
 	) -> Weight {
 		let base_weight = XcmFungibleWeight::<Runtime>::initiate_transfer();
@@ -249,6 +249,7 @@ impl<Call> XcmWeightInfo<Call> for CoretimePolkadotXcmWeight<Call> {
 		} else {
 			base_weight
 		};
+
 		for asset_filter in assets {
 			let assets = asset_filter.inner();
 			let extra = assets.weigh_assets(XcmFungibleWeight::<Runtime>::initiate_transfer());

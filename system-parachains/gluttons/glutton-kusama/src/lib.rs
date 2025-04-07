@@ -50,7 +50,7 @@ pub mod genesis_config_presets;
 pub mod weights;
 pub mod xcm_config;
 
-use alloc::{borrow::Cow, string::String, vec, vec::Vec};
+use alloc::{borrow::Cow, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::AggregateMessageOrigin;
 use sp_api::impl_runtime_apis;
@@ -93,7 +93,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("glutton"),
 	impl_name: Cow::Borrowed("glutton"),
 	authoring_version: 1,
-	spec_version: 1_004_000,
+	spec_version: 1_004_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -448,7 +448,7 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, String> {
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 
 			let mut batches = Vec::<BenchmarkBatch>::new();

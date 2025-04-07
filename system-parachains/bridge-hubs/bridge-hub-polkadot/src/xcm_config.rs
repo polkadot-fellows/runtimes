@@ -17,7 +17,7 @@
 use crate::XcmOverBridgeHubKusama;
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balances,
+	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balance, Balances,
 	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
 	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
@@ -232,7 +232,7 @@ impl xcm_executor::Config for XcmConfig {
 		WaivedLocations,
 		(
 			XcmExportFeeToSibling<
-				bp_polkadot::Balance,
+				Balance,
 				AccountId,
 				DotRelayLocation,
 				EthereumNetwork,

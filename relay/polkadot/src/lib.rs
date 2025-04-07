@@ -24,7 +24,6 @@ extern crate alloc;
 
 use alloc::{
 	collections::{BTreeMap, VecDeque},
-	string::String,
 	vec,
 	vec::Vec,
 };
@@ -51,7 +50,9 @@ use runtime_parachains::{
 	initializer as parachains_initializer, on_demand as parachains_on_demand,
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
-	runtime_api_impl::v11 as parachains_runtime_api_impl,
+	runtime_api_impl::{
+		v11 as parachains_runtime_api_impl, vstaging as parachains_runtime_api_impl_vstaging,
+	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
@@ -74,9 +75,9 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, OnRuntimeUpgrade, PrivilegeCmp,
-		ProcessMessage, ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -133,7 +134,7 @@ pub use sp_runtime::BuildStorage;
 
 /// Constant values used within the runtime.
 use polkadot_runtime_constants::{
-	currency::*, fee::*, system_parachain, time::*, TREASURY_PALLET_ID,
+	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
 // Weights used in the runtime.
@@ -167,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_004_000,
+	spec_version: 1_004_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -707,13 +708,18 @@ impl pallet_staking::Config for Runtime {
 	type VoterList = VoterList;
 	type TargetList = UseValidatorsMap<Self>;
 	type NominationsQuota = pallet_staking::FixedNominationsQuota<{ MaxNominations::get() }>;
-	type MaxUnlockingChunks = frame_support::traits::ConstU32<32>;
-	type HistoryDepth = frame_support::traits::ConstU32<84>;
+	type MaxUnlockingChunks = ConstU32<32>;
+	type HistoryDepth = ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5314>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
+	// TODO: this will come back later (stable25XY)
+	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	fn filter(who: &AccountId) -> bool {
+		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
+	}
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1013,7 +1019,10 @@ parameter_types! {
 	pub const MaxPending: u16 = 32;
 }
 
-/// The type used to represent the kinds of proxying allowed.
+/// Transparent wrapper around the actual [`ProxyType`].
+///
+/// This is done to have [`ProxyType`] declared in a different crate (constants) and being able to
+/// implement [`InstanceFilter`] in this crate.
 #[derive(
 	Copy,
 	Clone,
@@ -1025,60 +1034,21 @@ parameter_types! {
 	Decode,
 	RuntimeDebug,
 	MaxEncodedLen,
-	scale_info::TypeInfo,
+	Default,
 )]
-pub enum ProxyType {
-	Any = 0,
-	NonTransfer = 1,
-	Governance = 2,
-	Staking = 3,
-	// Skip 4 as it is now removed (was SudoBalances)
-	// Skip 5 as it was IdentityJudgement
-	CancelProxy = 6,
-	Auction = 7,
-	NominationPools = 8,
-	ParaRegistration = 9,
-}
+pub struct TransparentProxyType<T>(T);
 
-#[cfg(test)]
-mod proxy_type_tests {
-	use super::*;
+impl<T: scale_info::TypeInfo> scale_info::TypeInfo for TransparentProxyType<T> {
+	type Identity = T::Identity;
 
-	#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug)]
-	pub enum OldProxyType {
-		Any,
-		NonTransfer,
-		Governance,
-		Staking,
-		SudoBalances,
-		IdentityJudgement,
-	}
-
-	#[test]
-	fn proxy_type_decodes_correctly() {
-		for (i, j) in vec![
-			(OldProxyType::Any, ProxyType::Any),
-			(OldProxyType::NonTransfer, ProxyType::NonTransfer),
-			(OldProxyType::Governance, ProxyType::Governance),
-			(OldProxyType::Staking, ProxyType::Staking),
-		]
-		.into_iter()
-		{
-			assert_eq!(i.encode(), j.encode());
-		}
-		assert!(ProxyType::decode(&mut &OldProxyType::SudoBalances.encode()[..]).is_err());
-		assert!(ProxyType::decode(&mut &OldProxyType::IdentityJudgement.encode()[..]).is_err());
+	fn type_info() -> scale_info::Type {
+		T::type_info()
 	}
 }
 
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
-}
-impl InstanceFilter<RuntimeCall> for ProxyType {
+impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 	fn filter(&self, c: &RuntimeCall) -> bool {
-		match self {
+		match self.0 {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
@@ -1163,8 +1133,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			),
 		}
 	}
+
 	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
+		match (self.0, o.0) {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
@@ -1178,7 +1149,7 @@ impl pallet_proxy::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type ProxyType = ProxyType;
+	type ProxyType = TransparentProxyType<ProxyType>;
 	type ProxyDepositBase = ProxyDepositBase;
 	type ProxyDepositFactor = ProxyDepositFactor;
 	type MaxProxies = MaxProxies;
@@ -1493,6 +1464,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
+	// TODO: this will come back later (stable25XY)
+	// type Filter = pallet_staking::AllStakers<Runtime>;
 }
 
 parameter_types! {
@@ -1705,221 +1678,6 @@ pub type TxExtension = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-pub struct NominationPoolsMigrationV4OldPallet;
-impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
-	fn get() -> Perbill {
-		Perbill::zero()
-	}
-}
-
-/// Migration to remove deprecated judgement proxies.
-mod clear_judgement_proxies {
-	use super::*;
-
-	use frame_support::{
-		pallet_prelude::{TypeInfo, ValueQuery},
-		storage_alias,
-		traits::{Currency, OnRuntimeUpgrade, ReservableCurrency},
-		Twox64Concat,
-	};
-	use frame_system::pallet_prelude::BlockNumberFor;
-	use pallet_proxy::ProxyDefinition;
-	use sp_runtime::{BoundedVec, Saturating};
-
-	/// ProxyType including the deprecated `IdentityJudgement`.
-	#[derive(
-		Copy,
-		Clone,
-		Eq,
-		PartialEq,
-		Ord,
-		PartialOrd,
-		Encode,
-		Decode,
-		RuntimeDebug,
-		MaxEncodedLen,
-		TypeInfo,
-	)]
-	pub enum PrevProxyType {
-		Any = 0,
-		NonTransfer = 1,
-		Governance = 2,
-		Staking = 3,
-		// Skip 4 as it is now removed (was SudoBalances)
-		IdentityJudgement = 5,
-		CancelProxy = 6,
-		Auction = 7,
-		NominationPools = 8,
-	}
-
-	type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
-
-	type PrevProxiesValue<T> = (
-		BoundedVec<ProxyDefinition<AccountId, PrevProxyType, BlockNumberFor<T>>, MaxProxies>,
-		BalanceOf<T>,
-	);
-
-	/// Proxies including the deprecated `IdentityJudgement` type.
-	#[storage_alias]
-	pub type Proxies<T: pallet_proxy::Config> = StorageMap<
-		pallet_proxy::Pallet<T>,
-		Twox64Concat,
-		AccountId,
-		PrevProxiesValue<T>,
-		ValueQuery,
-	>;
-
-	pub struct Migration;
-	impl OnRuntimeUpgrade for Migration {
-		/// Compute the expected post-upgrade state for Proxies storage, and the reserved value
-		/// for all accounts with a proxy.
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			let mut expected_proxies: BTreeMap<AccountId, PrevProxiesValue<Runtime>> =
-				BTreeMap::new();
-			let mut expected_reserved_amounts: BTreeMap<AccountId, Balance> = BTreeMap::new();
-
-			for (who, (mut proxies, old_deposit)) in Proxies::<Runtime>::iter().collect::<Vec<_>>()
-			{
-				let proxies_len_before = proxies.len() as u64;
-				proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
-				let proxies_len_after = proxies.len() as u64;
-
-				let new_deposit = pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
-
-				let current_reserved =
-					<Balances as ReservableCurrency<AccountId>>::reserved_balance(&who);
-
-				// Update the deposit only if proxies were removed and the deposit decreased.
-				if new_deposit < old_deposit && proxies_len_after < proxies_len_before {
-					// If there're no proxies left, they should be removed
-					if proxies.is_empty() {
-						expected_proxies.insert(who.clone(), (proxies, new_deposit));
-					}
-					expected_reserved_amounts
-						.insert(who, current_reserved.saturating_sub(old_deposit - new_deposit));
-				} else {
-					// Deposit should not change. If any proxies needed to be removed, this
-					// won't impact that.
-					expected_proxies.insert(who.clone(), (proxies, old_deposit));
-					expected_reserved_amounts.insert(who, current_reserved);
-				}
-			}
-
-			let pre_upgrade_state = (expected_proxies, expected_reserved_amounts);
-			Ok(pre_upgrade_state.encode())
-		}
-
-		fn on_runtime_upgrade() -> Weight {
-			let mut reads = 0u64;
-			let mut writes = 0u64;
-			let mut proxies_removed_total = 0u64;
-
-			Proxies::<Runtime>::translate(
-				|who: AccountId, (mut proxies, old_deposit): PrevProxiesValue<Runtime>| {
-					// Remove filter out IdentityJudgement proxies.
-					let proxies_len_before = proxies.len() as u64;
-					proxies.retain(|proxy| proxy.proxy_type != PrevProxyType::IdentityJudgement);
-					let proxies_len_after = proxies.len() as u64;
-
-					let deposit = if proxies_len_before > proxies_len_after {
-						log::info!(
-							"Removing {} IdentityJudgement proxies for {:?}",
-							proxies_len_before - proxies_len_after,
-							&who
-						);
-						proxies_removed_total
-							.saturating_accrue(proxies_len_before - proxies_len_after);
-
-						let new_deposit =
-							pallet_proxy::Pallet::<Runtime>::deposit(proxies.len() as u32);
-
-						// Be kind and don't increase the deposit in case it increased (can
-						// happen if param change).
-						let deposit = new_deposit.min(old_deposit);
-						if deposit < old_deposit {
-							writes.saturating_inc();
-							<Balances as ReservableCurrency<AccountId>>::unreserve(
-								&who,
-								old_deposit - deposit,
-							);
-						}
-
-						deposit
-					} else {
-						// Nothing to do, use the old deposit.
-						old_deposit
-					};
-
-					reads.saturating_accrue(proxies_len_before + 1);
-					writes.saturating_accrue(proxies_len_after + 1);
-
-					// No need to keep the k/v around if there're no proxies left.
-					match proxies.is_empty() {
-						true => {
-							debug_assert_eq!(deposit, 0);
-							None
-						},
-						false => Some((proxies, deposit)),
-					}
-				},
-			);
-
-			log::info!("Removed {} IdentityJudgement proxies in total", proxies_removed_total);
-			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			use frame_support::ensure;
-			use sp_runtime::TryRuntimeError;
-
-			let (expected_proxies, expected_total_reserved): (
-				BTreeMap<AccountId, PrevProxiesValue<Runtime>>,
-				BTreeMap<AccountId, Balance>,
-			) = Decode::decode(&mut &state[..]).expect("Failed to decode pre-upgrade state");
-
-			// Check Proxies storage is as expected
-			for (who, (proxies, deposit)) in Proxies::<Runtime>::iter() {
-				match expected_proxies.get(&who) {
-					Some((expected_proxies, expected_deposit)) => {
-						ensure!(&proxies == expected_proxies, "Unexpected Proxy");
-						ensure!(&deposit == expected_deposit, "Unexpected deposit");
-					},
-					None => {
-						return Err(TryRuntimeError::Other("Missing Proxy"));
-					},
-				}
-			}
-
-			// Check the total reserved amounts for every account is as expected
-			for (who, expected_reserved) in expected_total_reserved.iter() {
-				let current_reserved =
-					<Balances as ReservableCurrency<AccountId>>::reserved_balance(who);
-
-				ensure!(current_reserved == *expected_reserved, "Reserved balance mismatch");
-			}
-
-			// Check there are no extra entries in the expected state that are not in the
-			// current state
-			for (who, _) in expected_proxies.iter() {
-				if !Proxies::<Runtime>::contains_key(who) {
-					return Err(TryRuntimeError::Other("Extra entry in expected state"));
-				}
-			}
-
-			Ok(())
-		}
-	}
-}
-
-parameter_types! {
-	pub const IdentityPalletName: &'static str = "Identity";
-	pub const IdentityMigratorPalletName: &'static str = "IdentityMigrator";
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1930,90 +1688,22 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
+	use pallet_balances::WeightInfo;
 
 	parameter_types! {
-		// This is used to bound number of pools migrating in the runtime upgrade.  This is set to
-		// ~existing_pool_count * 2 to also account for any new pools getting created before the
-		// migration is actually executed.
-		pub const MaxPoolsToMigrate: u32 = 500;
+		/// Weight for balance unreservations
+		pub BalanceTransferAllowDeath: Weight = weights::pallet_balances::WeightInfo::<Runtime>::transfer_allow_death();
 	}
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
-		parachains_inclusion::migration::MigrateToV1<Runtime>,
-		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
-		frame_support::migrations::RemovePallet<
-			IdentityPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		frame_support::migrations::RemovePallet<
-			IdentityMigratorPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		clear_judgement_proxies::Migration,
-		// Migrate NominationPools to `DelegateStake` adapter.
-		pallet_nomination_pools::migration::unversioned::DelegationStakeMigration<
-			Runtime,
-			MaxPoolsToMigrate,
-		>,
-		restore_corrupt_ledger_2::Migrate,
+		parachains_shared::migration::MigrateToV1<Runtime>,
+		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
+		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
-}
-
-pub mod restore_corrupt_ledger_2 {
-	use super::*;
-	use frame_system::RawOrigin;
-	use pallet_staking::WeightInfo;
-
-	parameter_types! {
-		// see https://polkadot.subscan.io/tools/format_transform, this is the public key of
-		// 12gmcL9eej9jRBFT26vZLF4b7aAe4P9aEYHGHFzJdmf5arPi
-		pub CorruptStash: AccountId = hex_literal::hex!(
-			"4a90f8d375290b428e580408f18359f66ef367f0f8d1d56c5d3e002ad29c8e00"
-		).into();
-	}
-	pub struct Migrate;
-	impl OnRuntimeUpgrade for Migrate {
-		fn on_runtime_upgrade() -> frame_election_provider_support::Weight {
-			// ensure this only runs once, in the 1.4.0 release
-			if System::last_runtime_upgrade_spec_version() < 1_004_000 {
-				let _ = pallet_staking::Pallet::<Runtime>::force_unstake(
-					RawOrigin::Root.into(),
-					CorruptStash::get(),
-					0,
-				);
-				log::info!(
-					target: LOG_TARGET,
-					"migrations: force unstaked {:?}",
-					CorruptStash::get()
-				);
-				<Runtime as pallet_staking::Config>::WeightInfo::force_unstake(0)
-			} else {
-				Default::default()
-			}
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-			let found_corrupted =
-				pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_some();
-			Ok(found_corrupted.encode())
-		}
-
-		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-			let found_corrupted: bool = Decode::decode(&mut &state[..])
-				.map_err(|_| sp_runtime::TryRuntimeError::Corruption)?;
-			if found_corrupted {
-				assert!(pallet_staking::Ledger::<Runtime>::get(CorruptStash::get()).is_none());
-			}
-			Ok(())
-		}
-	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2442,7 +2132,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(11)]
+	#[api_version(12)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2605,6 +2295,10 @@ sp_api::impl_runtime_apis! {
 
 		fn candidates_pending_availability(para_id: ParaId) -> Vec<CommittedCandidateReceipt<Hash>> {
 			parachains_runtime_api_impl::candidates_pending_availability::<Runtime>(para_id)
+		}
+
+		fn validation_code_bomb_limit() -> u32 {
+			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
 		}
 	}
 
@@ -2905,8 +2599,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -2977,7 +2671,7 @@ sp_api::impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<
 			Vec<frame_benchmarking::BenchmarkBatch>,
-			String,
+			alloc::string::String,
 		> {
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
@@ -3150,10 +2844,11 @@ mod test {
 
 	#[test]
 	fn check_whitelist() {
-		let whitelist: HashSet<String> = AllPalletsWithSystem::whitelisted_storage_keys()
-			.iter()
-			.map(|e| HexDisplay::from(&e.key).to_string())
-			.collect();
+		let whitelist: HashSet<alloc::string::String> =
+			AllPalletsWithSystem::whitelisted_storage_keys()
+				.iter()
+				.map(|e| HexDisplay::from(&e.key).to_string())
+				.collect();
 
 		// Block number
 		assert!(
@@ -3445,6 +3140,58 @@ mod multiplier_tests {
 			});
 			blocks += 1;
 		}
+	}
+}
+
+#[cfg(test)]
+mod staking_tests {
+	use super::*;
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
+	#[test]
+	fn accounts_cannot_dual_stake() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let stake = ExistentialDeposit::get() * 10;
+			// Given a solo staker
+			let solo_staker = AccountId::from([1u8; 32]);
+			Balances::set_balance(&solo_staker, 3 * stake);
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(solo_staker.clone()),
+				stake,
+				pallet_staking::RewardDestination::Stash
+			));
+
+			// And a pooled staker
+			let pooled_staker = AccountId::from([2u8; 32]);
+			Balances::set_balance(&pooled_staker, 3 * stake);
+			assert_ok!(NominationPools::create(
+				RuntimeOrigin::signed(pooled_staker.clone()),
+				stake,
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into()
+			));
+
+			// Then the solo staker cannot join a pool.
+			assert_noop!(
+				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
+				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
+			);
+
+			// And the pooled staker cannot solo-stake.
+			assert_noop!(
+				pallet_staking::Pallet::<Runtime>::bond(
+					RuntimeOrigin::signed(pooled_staker),
+					stake,
+					pallet_staking::RewardDestination::Stash,
+				),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_staking::Error::<Runtime>::Restricted`.
+				pallet_staking::Error::<Runtime>::BoundNotMet
+			);
+		});
 	}
 }
 

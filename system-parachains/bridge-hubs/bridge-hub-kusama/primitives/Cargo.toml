@@ -16,6 +16,8 @@ system-parachains-constants = { workspace = true }
 
 # Bridge Dependencies
 bp-bridge-hub-cumulus = { workspace = true }
+bp-header-chain = { workspace = true }
+bp-polkadot-core = { workspace = true }
 bp-runtime = { workspace = true }
 bp-messages = { workspace = true }
 
@@ -23,17 +25,28 @@ bp-messages = { workspace = true }
 frame-support = { workspace = true }
 sp-api = { workspace = true }
 sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
 	"bp-bridge-hub-cumulus/std",
+	"bp-header-chain/std",
 	"bp-messages/std",
+	"bp-polkadot-core/std",
 	"bp-runtime/std",
 	"frame-support/std",
 	"kusama-runtime-constants/std",
 	"polkadot-runtime-constants/std",
 	"sp-api/std",
 	"sp-runtime/std",
+	"sp-std/std",
 	"system-parachains-constants/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"kusama-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"system-parachains-constants/runtime-benchmarks",
 ]

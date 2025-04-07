@@ -25,3 +25,11 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 bridge-hub-polkadot-runtime = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"bridge-hub-common/runtime-benchmarks",
+	"bridge-hub-polkadot-runtime/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+]

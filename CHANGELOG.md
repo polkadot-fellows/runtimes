@@ -8,18 +8,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-#### From [#605](https://github.com/polkadot-fellows/runtimes/pull/605)
-
-- Now each system extension has its own weight, defined by `ExtensionWeightInfo`.
-- Parachains define the default `CoreSelector` strategy. 
+- Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+- Parachains define the default `CoreSelector` strategy, according to [`RFC-0103`](https://polkadot-fellows.github.io/RFCs/approved/0103-introduce-core-index-commitment.html) ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+- Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+  - Added Trusted Query API calls ([paritytech/polkadot-sdk/pull/6039](https://github.com/paritytech/polkadot-sdk/pull/6039))
+  - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
+  - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
+  - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
 
 ### Changed
 
-#### From [#605](https://github.com/polkadot-fellows/runtimes/pull/605)
+- Apply patch for stable2409-6 ([polkadot-fellows/runtimes/pull/623](https://github.com/polkadot-fellows/runtimes/pull/623))
+- Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
+- chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
+  `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
+- Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+  - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
+  - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
+  - Staking: page information to staking::PayoutStarted event ([paritytech/polkadot-sdk/pull/5984](https://github.com/paritytech/polkadot-sdk/pull/5984))
+  - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
+  - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
+  - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
 
-- Migration to XCMv5.
-- Changed from `SignedExtension` to `TransactionExtension`.
-- `sp-std` removed from runtimes.
+## [1.4.2] 07.03.2025
+
+### Added
+
+- Adds support for remote proxies on AssetHub Polkadot and AssetHub Kusama. ‼️ Builders: Please read the docs and the implications around the lifetime of a proxy on a remote chain. ‼️ ([polkadot-fellows/runtimes#535](https://github.com/polkadot-fellows/runtimes/pull/535))
+- Enabled state-trie-migration for Kusama and Polkadot Asset Hubs ([polkadot-fellows/runtimes/pull/604](https://github.com/polkadot-fellows/runtimes/pull/604))
+
+### Fixed
+
+- Correct weights of the scheduler pallet to avoid failing fellowship proposals ([polkadot-fellows/runtimes#614](https://github.com/polkadot-fellows/runtimes/pull/614))
+
+## [1.4.1] 26.02.2025
+
+### Fixed
+
+- Fix an issue related to staking in combination with nomination pools ([polkadot-fellows/runtimes/pull/608](https://github.com/polkadot-fellows/runtimes/pull/608))
 
 ## [1.4.0] 07.02.2025
 
