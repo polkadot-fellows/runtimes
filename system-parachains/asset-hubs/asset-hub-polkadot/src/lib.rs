@@ -556,7 +556,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Assets { .. } |
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
-						RuntimeCall::Nfts { .. } | RuntimeCall::Uniques { .. }
+						RuntimeCall::Nfts { .. } |
+						RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -647,9 +648,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					c,
 					//RuntimeCall::Staking(..) |
 					RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) | RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
-					                                                             *RuntimeCall::VoterList(..)
-					                                                             */
+						RuntimeCall::Utility(..) |
+						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
+					                                   *RuntimeCall::VoterList(..)
+					                                   */
 				)
 			},
 			ProxyType::NominationPools => {
