@@ -150,6 +150,11 @@ parameter_types! {
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
+	// Unreleased
+	bridge_to_kusama_config::migration::MigrateToXcm5<
+		Runtime,
+		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
