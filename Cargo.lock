@@ -852,15 +852,16 @@ dependencies = [
 
 [[package]]
 name = "asset-test-utils"
-version = "21.0.1"
+version = "21.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2f8b8b8457da21efca38489b4f047b172095df9d28bdb1dc127d478232872e8"
+checksum = "d2c8582c1d453909c9369da5c01791a5ddb431a396f47c307541de5a0b2c5fb7"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
+ "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
  "pallet-collator-selection",
@@ -878,13 +879,14 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
 name = "assets-common"
-version = "0.19.0"
+version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbc3f06ce539d73b2689d71cdbe52ed787e968ec2ca4310d6507f5e284be053f"
+checksum = "7867f233943a76314a4e332dc1d02ba2145898ef1a90ce7721bd778c6936ffda"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -1564,9 +1566,9 @@ dependencies = [
 
 [[package]]
 name = "bp-runtime"
-version = "0.19.0"
+version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94e7186d520ee9882efdd645103d412dcdd1228e89db7dd041e4b192b610018e"
+checksum = "27578789ca57c0ee3a2f4b95dce0be3012234535b8c806583f8727a032890355"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9803,9 +9805,9 @@ dependencies = [
 
 [[package]]
 name = "parachains-runtimes-test-utils"
-version = "20.0.1"
+version = "20.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe94b41d4015b9b567fcd888f4df2f020c365b36ca1ca1b3608f856d5f85fe8c"
+checksum = "bc0f4bee34575de7d012b11e64156103cf9f17096ef2c235417d28d56b26a098"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcmp-queue",
@@ -9819,6 +9821,7 @@ dependencies = [
  "pallet-session",
  "pallet-timestamp",
  "pallet-xcm",
+ "parachains-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "sp-consensus-aura",
@@ -9830,6 +9833,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-executor",
  "substrate-wasm-builder",
+ "xcm-runtime-apis",
 ]
 
 [[package]]
@@ -17237,9 +17241,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-runtime-apis"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7716c51ff45cce72209e56b1d2e98c3b61f5207a87f9bf90c65eecdb6f576e2e"
+checksum = "ffd97b4d476b2444e55b40ac29474011138d9d891c8ffe480eadaf93e6778794"
 dependencies = [
  "frame-support",
  "parity-scale-codec",

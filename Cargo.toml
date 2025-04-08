@@ -12,8 +12,8 @@ asset-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/pa
 asset-hub-kusama-runtime = { path = "system-parachains/asset-hubs/asset-hub-kusama" }
 asset-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/assets/asset-hub-polkadot" }
 asset-hub-polkadot-runtime = { path = "system-parachains/asset-hubs/asset-hub-polkadot" }
-asset-test-utils = { version = "21.0.1" }
-assets-common = { version = "0.19.0", default-features = false }
+asset-test-utils = { version = "21.0.2" }
+assets-common = { version = "0.19.1", default-features = false }
 authority-discovery-primitives = { version = "35.0.0", default-features = false, package = "sp-authority-discovery" }
 babe-primitives = { version = "0.41.0", default-features = false, package = "sp-consensus-babe" }
 beefy-primitives = { version = "23.0.0", default-features = false, package = "sp-consensus-beefy" }
@@ -28,7 +28,7 @@ bp-messages = { version = "0.19.0", default-features = false }
 bp-parachains = { version = "0.19.0", default-features = false }
 bp-polkadot-core = { version = "0.19.0", default-features = false }
 bp-relayers = { version = "0.19.0", default-features = false }
-bp-runtime = { version = "0.19.0", default-features = false }
+bp-runtime = { version = "0.19.1", default-features = false }
 bp-xcm-bridge-hub = { version = "0.5.0", default-features = false }
 bp-xcm-bridge-hub-router = { version = "0.15.0", default-features = false }
 bridge-hub-common = { version = "0.12.0", default-features = false }
@@ -171,7 +171,7 @@ pallet-xcm-bridge-hub = { version = "0.14.2", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.16.0", default-features = false }
 parachain-info = { version = "0.18.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "19.0.0", default-features = false }
-parachains-runtimes-test-utils = { version = "20.0.1" }
+parachains-runtimes-test-utils = { version = "20.0.2" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.27.1" }
