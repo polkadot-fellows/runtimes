@@ -85,6 +85,7 @@ pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+kusama-runtime-constants = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
@@ -108,9 +109,6 @@ system-parachains-constants = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
-
-[dev-dependencies]
-kusama-runtime-constants = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]

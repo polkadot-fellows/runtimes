@@ -1410,7 +1410,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Err(BenchmarkError::Skip)
+			Ok((
+				Location::new(1, [Parachain(1001)]),
+				Location::new(1, [Parachain(1001), AccountId32 { id: [111u8; 32], network: None }]),
+			))
 		}
 	}
 

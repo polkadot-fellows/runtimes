@@ -68,7 +68,7 @@ impl WeighAssets for AssetFilter {
 			// only 1 kind of fungible asset.
 			Self::Wild(AllOf { .. } | AllOfCounted { .. }) => balances_weight,
 			Self::Wild(AllCounted(count)) =>
-				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
+				balances_weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
 			Self::Wild(All) => balances_weight.saturating_mul(MAX_ASSETS),
 		}
 	}
