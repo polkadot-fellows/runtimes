@@ -15,7 +15,10 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf};
+use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf, BountiesMigrator};
+use pallet_bounties::{Bounty, BountyIndex};
+
+pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bounties_messages(
@@ -77,5 +80,91 @@ impl<T: Config> Pallet<T> {
 
 		log::debug!(target: LOG_TARGET, "Processed bounties message");
 		Ok(())
+	}
+}
+
+impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
+	type RcPrePayload = (
+		BountyIndex,
+		Vec<(BountyIndex, Bounty<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>)>,
+		Vec<(BountyIndex, BoundedVec<u8, <T as pallet_bounties::Config>::MaximumReasonLength>)>,
+		BoundedVec<BountyIndex, <T as pallet_treasury::Config>::MaxApprovals>,
+	);
+	type AhPrePayload = ();
+
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+
+		// "Assert storage 'Bounties::BountyCount::ah_pre::empty'"
+		assert_eq!(
+			pallet_bounties::BountyCount::<T>::get(),
+			Default::default(),
+			"Bounty count should be empty on asset hub before migration"
+		);
+
+		// "Assert storage 'Bounties::Bounties::ah_pre::empty'"
+		assert!(
+			pallet_bounties::Bounties::<T>::iter().next().is_none(),
+			"The Bounties map should be empty on asset hub before migration"
+		);
+
+		// "Assert storage 'Bounties::BountyDescriptions::ah_pre::empty'"
+		assert!(
+			pallet_bounties::BountyDescriptions::<T>::iter().next().is_none(),
+			"The Bounty Descriptions map should be empty on asset hub before migration"
+		);
+
+		"Assert storage 'Bounties::BountyApprovals::ah_pre::empty'"
+		assert!(
+			pallet_bounties::BountyApprovals::<T>::get().is_empty(),
+			"The Bounty Approvals vec should be empty on asset hub before migration"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		let (rc_count, rc_bounties, rc_descriptions, rc_approvals) = rc_pre_payload;
+
+		// Assert storage 'Bounties::BountyCount::ah_post::correct'
+		assert_eq!(
+			pallet_bounties::BountyCount::<T>::get(), 
+			rc_count,
+			"Bounty count on Asset Hub should match the RC value"
+		);
+
+		// Assert storage 'Bounties::Bounties::ah_post::length'
+		assert_eq!(
+			pallet_bounties::Bounties::<T>::iter_keys().count() as u32,
+			rc_bounties.len() as u32,
+			"Bounties map length on Asset Hub should match the RC value"
+		);
+
+		// Assert storage 'Bounties::Bounties::ah_post::correct'
+		assert_eq!(
+			pallet_bounties::Bounties::<T>::iter().collect::<Vec<_>>(),
+			rc_bounties, 
+			"Bounties map value on Asset Hub should match the RC value"
+		);
+
+		// Assert storage 'Bounties::BountyDescriptions::ah_post::length'
+		let ah_descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter().collect();
+		assert_eq!(
+			pallet_bounties::BountyDescriptions::<T>::iter_keys().count() as u32,
+			rc_descriptions.len(),
+			"Bounty description map length on Asset Hub should match RC value"
+			
+		);
+
+		// Assert storage 'Bounties::BountyDescriptions::ah_post::correct'
+		assert_eq!(
+			pallet_bounties::BountyDescriptions::<T>::iter().collect::<Vec<_>>(),
+			rc_descriptions,
+			"Bount descript map value on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Bounties::BountyApprovals::ah_post::correct'
+		assert_eq!(
+			pallet_bounties::BountyApprovals::<T>::get(),
+			rc_approvals, 
+			"Bount approvals vec value on Asset Hub should match RC values"
+		);
 	}
 }
