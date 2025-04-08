@@ -67,9 +67,7 @@ pub mod porting_prelude {
 #[doc(hidden)]
 mod sanity_checks {
 	#[cfg(not(any(feature = "ahm-polkadot", feature = "ahm-westend")))]
-	compile_error!(
-		"You must enable exactly one of the features: `ahm-polkadot` or `ahm-westend`"
-	);
+	compile_error!("You must enable exactly one of the features: `ahm-polkadot` or `ahm-westend`");
 	#[cfg(all(feature = "ahm-polkadot", feature = "ahm-westend"))]
 	compile_error!("Cannot enable multiple `ahm-test-*` features at once");
 }

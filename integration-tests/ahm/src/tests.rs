@@ -76,9 +76,7 @@ type RcChecks = (
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
-pub type RcPolkadotChecks = (
-	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
-);
+pub type RcPolkadotChecks = (pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,);
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type RcPolkadotChecks = ();
@@ -100,11 +98,10 @@ type AhChecks = (
 	ProxiesStillWork,
 );
 
-// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains (like AH Westend)
+// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
+// (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
-pub type AhPolkadotChecks = (
-	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
-);
+pub type AhPolkadotChecks = (pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,);
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type AhPolkadotChecks = ();

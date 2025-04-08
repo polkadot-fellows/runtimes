@@ -122,14 +122,16 @@ impl RcMigrationCheck for ProxiesStillWork {
 					Ok(permission) => permission,
 					Err(e) => {
 						#[cfg(feature = "ahm-westend")]
-						if inner == westend_runtime::ProxyType::IdentityJudgement || inner == westend_runtime::ProxyType::SudoBalances {
+						if inner == westend_runtime::ProxyType::IdentityJudgement ||
+							inner == westend_runtime::ProxyType::SudoBalances
+						{
 							// These cannot be converted currently TODO
 							continue;
 						}
 
 						defensive!("Proxy could not be converted: {:?}", e);
 						continue;
-					}
+					},
 				};
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
