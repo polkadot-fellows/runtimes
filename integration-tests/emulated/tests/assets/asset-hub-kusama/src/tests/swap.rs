@@ -117,7 +117,8 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocationV4::get());
-	let asset_location_on_penpal: xcm::v4::Location = PenpalLocalTeleportableToAssetHub::get().try_into().unwrap();
+	let asset_location_on_penpal: xcm::v4::Location =
+		PenpalLocalTeleportableToAssetHub::get().try_into().unwrap();
 	let foreign_asset_at_asset_hub_kusama =
 		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
@@ -266,7 +267,8 @@ fn cannot_create_pool_from_pool_assets() {
 
 #[test]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
-	let asset_native: xcm::v4::Location = asset_hub_kusama_runtime::xcm_config::KsmLocationV4::get();
+	let asset_native: xcm::v4::Location =
+		asset_hub_kusama_runtime::xcm_config::KsmLocationV4::get();
 	let asset_one = xcm::v4::Location {
 		parents: 0,
 		interior: [
