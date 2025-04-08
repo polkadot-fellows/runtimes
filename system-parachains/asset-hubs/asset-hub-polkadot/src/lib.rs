@@ -1765,10 +1765,11 @@ impl pallet_state_trie_migration::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type SignedDepositPerItem = MigrationSignedDepositPerItem;
 	type SignedDepositBase = MigrationSignedDepositBase;
-	// An origin that can control the whole pallet: Should be a Fellowship member or the controller of the migration.
+	// An origin that can control the whole pallet: Should be a Fellowship member or the controller
+	// of the migration.
 	type ControlOrigin = EitherOfDiverse<
 		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
-		EnsureSignedBy<MigControllerRoot, AccountId>
+		EnsureSignedBy<MigControllerRoot, AccountId>,
 	>;
 	type SignedFilter = EnsureSignedBy<MigController, AccountId>;
 
