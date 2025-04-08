@@ -238,8 +238,8 @@ jobs:
 
       - name: Test Asset Hub Migration (Westend)
         run: |
-          cd integration-tests/ahm
           SDK=$PWD/polkadot-sdk
+          cd integration-tests/ahm
           just port westend $SDK $SDK/cumulus/test/ahm
         env:
           RUST_BACKTRACE: 1
