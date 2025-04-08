@@ -133,6 +133,7 @@ pallet-nft-fractionalization = { version = "22.1.0", default-features = false }
 pallet-nfts = { version = "33.1.0", default-features = false }
 pallet-nfts-runtime-api = { version = "25.0.0", default-features = false }
 pallet-nis = { version = "39.1.0", default-features = false }
+pallet-migrations = { version = "9.1.0", default-features = false }
 pallet-nomination-pools = { version = "37.0.1", default-features = false }
 pallet-nomination-pools-benchmarking = { version = "37.1.0", default-features = false }
 pallet-nomination-pools-runtime-api = { version = "35.0.0", default-features = false }

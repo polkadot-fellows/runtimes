@@ -9069,6 +9069,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-migrations"
+version = "9.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29562636a51560b0478cbef3524f32c45bdf2e7496e21e61af4bd5e66ef899dd"
+dependencies = [
+ "cfg-if",
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-mmr"
 version = "39.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10149,6 +10168,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-multisig",
  "pallet-proxy",
  "pallet-session",
@@ -10257,6 +10277,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-identity",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-multisig",
  "pallet-proxy",
  "pallet-session",
