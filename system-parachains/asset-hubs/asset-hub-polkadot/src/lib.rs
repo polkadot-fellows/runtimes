@@ -171,7 +171,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemint"),
 	impl_name: create_runtime_str!("statemint"),
 	authoring_version: 1,
-	spec_version: 1_004_002,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -556,8 +556,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Assets { .. } |
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+						RuntimeCall::Nfts { .. } | RuntimeCall::Uniques { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -648,10 +647,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					c,
 					//RuntimeCall::Staking(..) |
 					RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
-					                                   *RuntimeCall::VoterList(..)
-					                                   */
+						RuntimeCall::Utility(..) | RuntimeCall::NominationPools(..) /*RuntimeCall::FastUnstake(..) |
+					                                                             *RuntimeCall::VoterList(..)
+					                                                             */
 				)
 			},
 			ProxyType::NominationPools => {
