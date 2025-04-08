@@ -310,6 +310,7 @@ pub mod pallet {
 			RcSchedulerMessageOf<Self>,
 			RcBagsListMessage<Self>,
 			RcIndicesIndexOf<Self>,
+			RcConvictionVotingMessageOf<Self>,
 		>;
 	}
 

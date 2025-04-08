@@ -26,12 +26,16 @@
 
 use crate::*;
 use frame_benchmarking::v2::*;
-use frame_support::traits::{schedule::DispatchTime, tokens::IdAmount, Currency, VoteTally};
+use frame_support::traits::{
+	schedule::DispatchTime, tokens::IdAmount, Currency, Polling, VoteTally,
+};
 use frame_system::RawOrigin;
+use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	claims::{alias::EthereumAddress, RcClaimsMessage},
+	conviction_voting::RcConvictionVotingMessage,
 	indices::RcIndicesIndex,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::{alias::Scheduled, RcSchedulerMessage},
@@ -60,6 +64,7 @@ pub trait ParametersFactory<
 	RcSchedulerMessage,
 	RcBagsListMessage,
 	RcIndicesIndex,
+	RcConvictionVotingMessage,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -76,6 +81,7 @@ pub trait ParametersFactory<
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
 	fn create_indices_index(n: u8) -> RcIndicesIndex;
+	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -93,6 +99,7 @@ impl<T: Config>
 		RcSchedulerMessageOf<T>,
 		RcBagsListMessage<T>,
 		RcIndicesIndexOf<T>,
+		RcConvictionVotingMessageOf<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -296,6 +303,42 @@ where
 			deposit: n.into(),
 			frozen: false,
 		}
+	}
+
+	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessageOf<T> {
+		let class = <T as pallet_conviction_voting::Config>::Polls::classes()
+			.iter()
+			.skip(n as usize)
+			.next()
+			.unwrap()
+			.clone();
+		let votes = BoundedVec::<(_, AccountVote<_>), _>::try_from(
+			(0..<T as pallet_conviction_voting::Config<()>>::MaxVotes::get())
+				.map(|_| {
+					let index = <T as pallet_conviction_voting::Config>::Polls::create_ongoing(
+						class.clone(),
+					)
+					.unwrap();
+					(
+						index,
+						AccountVote::Standard {
+							vote: Vote { aye: true, conviction: Default::default() },
+							balance: n.into(),
+						},
+					)
+				})
+				.collect::<Vec<_>>(),
+		)
+		.unwrap();
+		RcConvictionVotingMessage::VotingFor(
+			[n; 32].into(),
+			class,
+			Voting::Casting(Casting {
+				votes,
+				delegations: Delegations { votes: n.into(), capital: n.into() },
+				prior: Default::default(),
+			}),
+		)
 	}
 }
 
@@ -670,6 +713,27 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn receive_conviction_voting_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_conviction_vote(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ConvictionVoting,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -753,6 +817,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_indices<T: Config>(n: u32) {
 		_receive_indices::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_conviction_voting_messages<T: Config>(n: u32) {
+		_receive_conviction_voting_messages::<T>(n, true)
 	}
 }
 
