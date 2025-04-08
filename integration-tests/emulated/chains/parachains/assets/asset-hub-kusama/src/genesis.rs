@@ -23,7 +23,6 @@ use emulated_integration_tests_common::{
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
@@ -31,11 +30,11 @@ pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
 	pub AssetHubKusamaAssetOwner: AccountId = Keyring::Alice.to_account_id();
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Parachain(penpal_emulated_chain::PARA_ID_A),
-				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub PenpalATeleportableAssetLocation: xcm::v4::Location
+		= xcm::v4::Location::new(1, [
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
