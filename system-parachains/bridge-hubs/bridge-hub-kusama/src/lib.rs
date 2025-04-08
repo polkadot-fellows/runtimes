@@ -151,6 +151,11 @@ parameter_types! {
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
+	// Unreleased
+	bridge_to_polkadot_config::migration::MigrateToXcm5<
+		Runtime,
+		bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );

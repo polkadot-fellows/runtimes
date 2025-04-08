@@ -17,10 +17,10 @@ use collectives_polkadot_runtime::{Block, Runtime, RuntimeCall, RuntimeOrigin};
 
 #[test]
 fn xcm_payment_api_works() {
-    parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
-        Runtime,
-        RuntimeCall,
-        RuntimeOrigin,
-        Block,
-    >();
+	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		Block,
+	>();
 }

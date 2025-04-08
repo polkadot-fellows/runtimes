@@ -30,7 +30,7 @@ use asset_hub_kusama_runtime::{
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
 	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, SessionKeys,	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
+	RuntimeOrigin, SessionKeys, ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
 	SLOT_DURATION,
 };
 use asset_test_utils::{
