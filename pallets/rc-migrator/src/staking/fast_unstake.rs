@@ -156,6 +156,39 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
+	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+
+	fn pre_check() -> Self::RcPrePayload {
+		let queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
+		let eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
+
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Staking Heads must be empty on the relay chain before the migration"
+		);
+
+		(queue, eras_to_check)
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// RC post: Ensure that entries have been deleted
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Assert storage 'FastUnstake::Head::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
+			"Assert storage 'FastUnstake::Queue::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::empty'"
+		);
+	}
+}
+
 pub mod alias {
 	use super::*;
 	use frame_support::traits::Currency;
