@@ -71,6 +71,7 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
+	bounties::RcBountiesMessageOf,
 	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
 	crowdloan::RcCrowdloanMessageOf,
@@ -311,6 +312,8 @@ pub mod pallet {
 			RcBagsListMessage<Self>,
 			RcIndicesIndexOf<Self>,
 			RcConvictionVotingMessageOf<Self>,
+			RcBountiesMessageOf<Self>,
+			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
 		>;
 	}
 
@@ -677,7 +680,7 @@ pub mod pallet {
 		#[pallet::weight({1})] // TODO
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
+			messages: Vec<RcBountiesMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

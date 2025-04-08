@@ -30,10 +30,13 @@ use frame_support::traits::{
 	schedule::DispatchTime, tokens::IdAmount, Currency, Polling, VoteTally,
 };
 use frame_system::RawOrigin;
+use pallet_asset_rate::AssetKindFactory;
+use pallet_bounties::BountyStatus;
 use pallet_conviction_voting::{AccountVote, Casting, Delegations, Vote, Voting};
 use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
+	bounties::{alias::Bounty, RcBountiesMessage},
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	conviction_voting::RcConvictionVotingMessage,
 	indices::RcIndicesIndex,
@@ -65,6 +68,8 @@ pub trait ParametersFactory<
 	RcBagsListMessage,
 	RcIndicesIndex,
 	RcConvictionVotingMessage,
+	RcBountiesMessage,
+	RcAssetKindMessage,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -82,6 +87,8 @@ pub trait ParametersFactory<
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
 	fn create_indices_index(n: u8) -> RcIndicesIndex;
 	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessage;
+	fn create_bounties_message(n: u8) -> RcBountiesMessage;
+	fn create_asset_rate(n: u8) -> RcAssetKindMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -100,6 +107,8 @@ impl<T: Config>
 		RcBagsListMessage<T>,
 		RcIndicesIndexOf<T>,
 		RcConvictionVotingMessageOf<T>,
+		RcBountiesMessageOf<T>,
+		(<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -338,6 +347,27 @@ where
 				delegations: Delegations { votes: n.into(), capital: n.into() },
 				prior: Default::default(),
 			}),
+		)
+	}
+
+	fn create_bounties_message(n: u8) -> RcBountiesMessageOf<T> {
+		RcBountiesMessage::Bounties((
+			n.into(),
+			Bounty {
+				proposer: [n; 32].into(),
+				value: n.into(),
+				fee: n.into(),
+				curator_deposit: n.into(),
+				bond: n.into(),
+				status: BountyStatus::Active { curator: [n; 32].into(), update_due: n.into() },
+			},
+		))
+	}
+
+	fn create_asset_rate(n: u8) -> (<T as pallet_asset_rate::Config>::AssetKind, FixedU128) {
+		(
+			<T as pallet_asset_rate::Config>::BenchmarkHelper::create_asset_kind(n.into()),
+			FixedU128::from_u32(n as u32),
 		)
 	}
 }
@@ -734,6 +764,46 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn receive_bounties_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_bounties_message(i.try_into().unwrap())
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Bounties,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_asset_rates(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_asset_rate(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::AssetRates,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -822,6 +892,16 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_conviction_voting_messages<T: Config>(n: u32) {
 		_receive_conviction_voting_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_bounties_messages<T: Config>(n: u32) {
+		_receive_bounties_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_asset_rates<T: Config>(n: u32) {
+		_receive_asset_rates::<T>(n, true)
 	}
 }
 
