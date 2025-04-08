@@ -283,10 +283,14 @@ fn send_token_from_ethereum_to_penpal() {
 
 	// The Weth asset location, identified by the contract address on Ethereum
 	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
-	let weth_asset_location: xcm::v4::Location =
-		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network, xcm::v4::Junction::AccountKey20 { network: None, key: WETH }).into();
-	let weth_asset_location_latest: Location =
-		weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_location: xcm::v4::Location = (
+		xcm::v4::Parent,
+		xcm::v4::Parent,
+		v4_ethereum_network,
+		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+	)
+		.into();
+	let weth_asset_location_latest: Location = weth_asset_location.clone().try_into().unwrap();
 	// Converts the Weth asset location into an asset ID
 	let weth_asset_id = weth_asset_location.clone();
 
@@ -322,7 +326,9 @@ fn send_token_from_ethereum_to_penpal() {
 			1000
 		));
 
-		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(weth_asset_location_latest));
+		assert!(<PenpalB as PenpalBPallet>::ForeignAssets::asset_exists(
+			weth_asset_location_latest
+		));
 	});
 
 	AssetHubPolkadot::execute_with(|| {
@@ -658,7 +664,8 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
 	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
-	let ether_location: xcm::v4::Location = (xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network).into();
+	let ether_location: xcm::v4::Location =
+		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network).into();
 
 	// Register Ether as foreign asset on AH.
 	AssetHubPolkadot::execute_with(|| {
@@ -699,8 +706,13 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	register_weth_token_from_ethereum_to_asset_hub();
 
 	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
-	let weth_location: xcm::v4::Location =
-		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network, xcm::v4::Junction::AccountKey20 { network: None, key: WETH }).into();
+	let weth_location: xcm::v4::Location = (
+		xcm::v4::Parent,
+		xcm::v4::Parent,
+		v4_ethereum_network,
+		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+	)
+		.into();
 	// Perform a roundtrip transfer of WETH
 	send_token_from_ethereum_to_asset_hub_and_back_works(WETH.into(), TOKEN_AMOUNT, weth_location);
 }

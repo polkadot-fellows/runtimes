@@ -38,9 +38,11 @@ fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 	amount: u128,
 ) -> (xcm::v4::Location, xcm::v5::Location, xcm::v4::Location, xcm::v5::Location) {
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
-	let dot_at_polkadot_parachains_latest: Location = dot_at_polkadot_parachains.clone().try_into().unwrap();
+	let dot_at_polkadot_parachains_latest: Location =
+		dot_at_polkadot_parachains.clone().try_into().unwrap();
 	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
-	let dot_at_asset_hub_kusama_latest: Location = dot_at_asset_hub_kusama.clone().try_into().unwrap();
+	let dot_at_asset_hub_kusama_latest: Location =
+		dot_at_asset_hub_kusama.clone().try_into().unwrap();
 	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true);
 
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
@@ -54,7 +56,12 @@ fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 		sender.clone(),
 		amount * 2,
 	);
-	(dot_at_polkadot_parachains, dot_at_polkadot_parachains_latest, dot_at_asset_hub_kusama, dot_at_asset_hub_kusama_latest)
+	(
+		dot_at_polkadot_parachains,
+		dot_at_polkadot_parachains_latest,
+		dot_at_asset_hub_kusama,
+		dot_at_asset_hub_kusama_latest,
+	)
 }
 
 fn send_assets_from_penpal_polkadot_through_polkadot_ah_to_kusama_ah(
@@ -125,7 +132,8 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let sender = AssetHubPolkadotSender::get();
 	let receiver = AssetHubKusamaReceiver::get();
 	let dot_at_asset_hub_polkadot = dot_at_ah_polkadot();
-	let dot_at_asset_hub_polkadot_latest: Location = dot_at_asset_hub_polkadot.clone().try_into().unwrap();
+	let dot_at_asset_hub_polkadot_latest: Location =
+		dot_at_asset_hub_polkadot.clone().try_into().unwrap();
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 
 	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
@@ -188,7 +196,8 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	// Now let's send over USDTs + wETH (and pay fees with USDT)
 	/////////////////////////////////////////////////////////////
 	let usdt_at_asset_hub_polkadot = usdt_at_ah_polkadot();
-	let usdt_at_asset_hub_polkadot_latest: Location = usdt_at_asset_hub_polkadot.clone().try_into().unwrap();
+	let usdt_at_asset_hub_polkadot_latest: Location =
+		usdt_at_asset_hub_polkadot.clone().try_into().unwrap();
 	let bridged_usdt_at_asset_hub_kusama = bridged_usdt_at_ah_kusama();
 	// wETH has same relative location on both Polkadot and Kusama AssetHubs
 	let bridged_weth_at_ah = weth_at_asset_hubs();
@@ -267,7 +276,8 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let sender = AssetHubPolkadotSender::get();
 	let receiver = AssetHubKusamaReceiver::get();
 	let bridged_ksm_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();
-	let bridged_ksm_at_asset_hub_polkadot_latest: Location = bridged_ksm_at_asset_hub_polkadot.clone().try_into().unwrap();
+	let bridged_ksm_at_asset_hub_polkadot_latest: Location =
+		bridged_ksm_at_asset_hub_polkadot.clone().try_into().unwrap();
 	let prefund_accounts = vec![(sender.clone(), prefund_amount)];
 	create_foreign_on_ah_polkadot(
 		bridged_ksm_at_asset_hub_polkadot.clone(),
@@ -294,7 +304,8 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	// send back KSMs, use them for fees
 	send_assets_over_bridge(|| {
 		let destination = asset_hub_kusama_location();
-		let assets: Assets = (bridged_ksm_at_asset_hub_polkadot_latest.clone(), amount_to_send).into();
+		let assets: Assets =
+			(bridged_ksm_at_asset_hub_polkadot_latest.clone(), amount_to_send).into();
 		let fee_idx = 0;
 		assert_ok!(send_assets_from_asset_hub_polkadot(destination, assets, fee_idx));
 	});
@@ -419,7 +430,8 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 #[test]
 fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama() {
 	let ksm_at_polkadot_parachains = bridged_ksm_at_ah_polkadot();
-	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone().try_into().unwrap();
+	let ksm_at_polkadot_parachains_latest: Location =
+		ksm_at_polkadot_parachains.clone().try_into().unwrap();
 	let amount = ASSET_HUB_POLKADOT_ED * 10_000_000;
 	let sender = PenpalBSender::get();
 	let receiver = AssetHubKusamaReceiver::get();
