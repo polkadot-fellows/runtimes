@@ -187,7 +187,8 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let assets_owner = PenpalAssetOwner::get();
 	// Foreign asset used: bridged KSM
 	let foreign_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000_000;
-	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(Kusama)]);
+	let ksm_at_polkadot_parachains = xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone().try_into().unwrap();
 
 	// Configure destination chain to trust AH as reserve of KSM
 	PenpalB::execute_with(|| {
@@ -200,7 +201,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		));
 	});
 	PenpalB::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -223,7 +224,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(Parent, native_amount_to_send).into(),
-		(ksm_at_polkadot_parachains.clone(), foreign_amount_to_send).into(),
+		(ksm_at_polkadot_parachains_latest.clone(), foreign_amount_to_send).into(),
 	];
 	let fee_asset_id = AssetId(Parent.into());
 	let fee_asset_item = assets.iter().position(|a| a.id == fee_asset_id).unwrap() as u32;
@@ -255,7 +256,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	});
 	let receiver_ksm_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &receiver)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &receiver)
 	});
 
 	// Set assertions and dispatchables
@@ -276,7 +277,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	});
 	let receiver_ksm_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &receiver)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
 	// Sender's balance is reduced by amount sent plus delivery fees
@@ -310,7 +311,8 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 
 	// Foreign asset used: bridged KSM
 	let foreign_amount_to_send = ASSET_HUB_POLKADOT_ED * 10_000_000;
-	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(Kusama)]);
+	let ksm_at_polkadot_parachains = xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone().try_into().unwrap();
 
 	// Configure destination chain to trust AH as reserve of KSM
 	PenpalB::execute_with(|| {
@@ -323,7 +325,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 		));
 	});
 	PenpalB::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -346,7 +348,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	);
 	PenpalB::mint_foreign_asset(
 		<PenpalB as Chain>::RuntimeOrigin::signed(assets_owner.clone()),
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		sender.clone(),
 		foreign_amount_to_send * 2,
 	);
@@ -369,7 +371,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(Parent, native_amount_to_send).into(),
-		(ksm_at_polkadot_parachains.clone(), foreign_amount_to_send).into(),
+		(ksm_at_polkadot_parachains_latest.clone(), foreign_amount_to_send).into(),
 	];
 	let fee_asset_id = AssetId(Parent.into());
 	let fee_asset_item = assets.iter().position(|a| a.id == fee_asset_id).unwrap() as u32;
@@ -396,7 +398,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	});
 	let sender_ksm_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let receiver_native_before = test.receiver.balance;
 	let receiver_ksm_before = AssetHubPolkadot::execute_with(|| {
@@ -417,7 +419,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	});
 	let sender_ksm_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let receiver_native_after = test.receiver.balance;
 	let receiver_ksm_after = AssetHubPolkadot::execute_with(|| {
@@ -479,7 +481,8 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 
 	// Register KSM as foreign asset and transfer it around the Polkadot ecosystem
-	let ksm_at_polkadot_parachains = Location::new(2, [GlobalConsensus(Kusama)]);
+	let ksm_at_polkadot_parachains = xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
+	let ksm_at_polkadot_parachains_latest: Location = ksm_at_polkadot_parachains.clone().try_into().unwrap();
 	AssetHubPolkadot::force_create_foreign_asset(
 		ksm_at_polkadot_parachains.clone(),
 		assets_owner.clone(),
@@ -488,14 +491,14 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		vec![],
 	);
 	PenpalB::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
 		vec![],
 	);
 	PenpalA::force_create_foreign_asset(
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -511,7 +514,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	);
 	PenpalB::mint_foreign_asset(
 		<PenpalB as Chain>::RuntimeOrigin::signed(assets_owner.clone()),
-		ksm_at_polkadot_parachains.clone(),
+		ksm_at_polkadot_parachains_latest.clone(),
 		sender.clone(),
 		ksm_to_send * 2,
 	);
@@ -530,7 +533,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(dot_location.clone(), dot_to_send).into(),
-		(ksm_at_polkadot_parachains.clone(), ksm_to_send).into(),
+		(ksm_at_polkadot_parachains_latest.clone(), ksm_to_send).into(),
 	];
 	let fee_asset_id: AssetId = dot_location.clone().into();
 	let fee_asset_item = assets.iter().position(|a| a.id == fee_asset_id).unwrap() as u32;
@@ -557,7 +560,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 	let sender_ksm_before = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let dot_in_sender_reserve_on_ahp_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_of_sender_on_ah.clone()).free;
@@ -577,7 +580,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 	let receiver_ksm_before = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &receiver)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &receiver)
 	});
 
 	// Set assertions and dispatchables
@@ -594,7 +597,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 	let sender_ksm_after = PenpalB::execute_with(|| {
 		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
 	});
 	let ksm_in_sender_reserve_on_ahp_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
@@ -614,7 +617,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 	let receiver_ksm_after = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &receiver)
+		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &receiver)
 	});
 
 	// Sender's balance is reduced by amount sent plus delivery fees
