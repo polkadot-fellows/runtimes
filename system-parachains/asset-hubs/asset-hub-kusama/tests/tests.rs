@@ -27,10 +27,11 @@ use asset_hub_kusama_runtime::{
 		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
-	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, ExistentialDeposit,
-	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
-	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue, SLOT_DURATION,
+	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
+	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
+	MetadataDepositPerByte, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeOrigin, SessionKeys,	ToPolkadotXcmRouterInstance, TrustBackedAssetsInstance, XcmpQueue,
+	SLOT_DURATION,
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys,
@@ -1794,4 +1795,21 @@ fn location_conversion_works() {
 
 		assert_eq!(got, expected, "{}", tc.description);
 	}
+}
+
+#[test]
+fn xcm_payment_api_works() {
+	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		Block,
+	>();
+	// TODO: uncomment when migrated to the XCMv5 or patched `xcm_payment_api_with_pools_works`
+	// asset_test_utils::test_cases::xcm_payment_api_with_pools_works::<
+	// 	Runtime,
+	// 	RuntimeCall,
+	// 	RuntimeOrigin,
+	// 	Block,
+	// >();
 }
