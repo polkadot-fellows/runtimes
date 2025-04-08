@@ -139,10 +139,10 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 {
 	/// Check if the total account balance is liquid.
 	pub fn is_liquid(&self) -> bool {
-		self.unnamed_reserve.is_zero()
-			&& self.freezes.is_empty()
-			&& self.locks.is_empty()
-			&& self.holds.is_empty()
+		self.unnamed_reserve.is_zero() &&
+			self.freezes.is_empty() &&
+			self.locks.is_empty() &&
+			self.holds.is_empty()
 	}
 }
 
