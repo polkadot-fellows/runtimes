@@ -68,6 +68,10 @@ type RcChecks = (
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
+	pallet_rc_migrator::multisig::MultisigMigrator<
+		Polkadot,
+		<polkadot_runtime::Runtime as pallet_rc_migrator::Config>::RcWeightInfo,
+	>,
 	// other pallets go here
 	ProxiesStillWork,
 );
@@ -85,6 +89,10 @@ type AhChecks = (
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
+	pallet_rc_migrator::multisig::MultisigMigrator<
+		AssetHub,
+		<asset_hub_polkadot_runtime::Runtime as pallet_ah_migrator::Config>::AhWeightInfo,
+	>,
 	// other pallets go here
 	ProxiesStillWork,
 );

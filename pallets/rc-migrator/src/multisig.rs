@@ -18,6 +18,7 @@
 #![doc = include_str!("multisig.md")]
 
 use frame_support::traits::Currency;
+use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};
@@ -117,6 +118,10 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 		loop {
 			let kv = iter.next();
 			let Some((k1, k2, multisig)) = kv else {
+				// Remove the last key from storage if it exists
+				if let Some((id, call_hash)) = last_key {
+					aliases::Multisigs::<T>::remove(id, call_hash);
+				}
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
 				break;
@@ -136,7 +141,10 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 				},
 			}
 
-			// TODO delete old
+			// Remove the last key from storage if it exists
+			if let Some((id, call_hash)) = last_key {
+				aliases::Multisigs::<T>::remove(id, call_hash);
+			}
 			last_key = Some((k1, k2));
 		}
 
@@ -188,5 +196,35 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 		}
 
 		Ok(RcMultisig { creator: ms.depositor, deposit: ms.deposit, details: Some(k1) })
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: pallet_multisig::Config, W> crate::types::RcMigrationCheck for MultisigMigrator<T, W> {
+	// List of multisig account ids with non-zero balance on Relay Chain before migration
+	type RcPrePayload = Vec<AccountIdOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		// Collect all multisig operations from storage
+		let multisig_ids = aliases::Multisigs::<T>::iter()
+			.map(|(multisig_id, _, _)| multisig_id)
+			.filter(|multisig_id| {
+				let multisig_balance =
+					<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
+						<T as frame_system::Config>::AccountId,
+					>>::total_balance(multisig_id);
+				!multisig_balance.is_zero()
+			})
+			.collect::<Vec<_>>();
+
+		multisig_ids
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage 'Multisig::Multisigs::rc_post::empty'
+		assert!(
+			pallet_multisig::Multisigs::<T>::iter().next().is_none(),
+			"Multisig storage should be empty on the relay chain after migration"
+		);
 	}
 }

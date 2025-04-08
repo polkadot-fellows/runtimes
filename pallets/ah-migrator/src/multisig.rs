@@ -17,6 +17,7 @@
 
 use crate::*;
 use hex_literal::hex;
+use pallet_rc_migrator::types::AccountIdOf;
 
 /// These multisigs have historical issues where the deposit is missing for the creator.
 const KNOWN_BAD_MULTISIGS: &[AccountId32] = &[
@@ -78,5 +79,33 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config, W> crate::types::AhMigrationCheck for MultisigMigrator<T, W> {
+	// List of multisig account ids with non-zero balance on Relay Chain before migration
+	type RcPrePayload = Vec<AccountIdOf<T>>;
+	// Number of multisigs on Asset Hub before migration
+	type AhPrePayload = u32;
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		pallet_multisig::Multisigs::<T>::iter_keys().count() as u32
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+		// Assert storage 'Multisig::Multisigs::ah_post::correct'
+		assert_eq!(
+			pallet_multisig::Multisigs::<T>::iter_keys().count() as u32,
+			ah_pre_payload,
+			"Number of multisigs on Asset Hub should be the same before and after migration"
+		);
+		for account_id in rc_pre_payload {
+			assert!(
+				frame_system::Account::<T>::contains_key(&account_id),
+				"Multisig account {:?} from Relay Chain should be present on Asset Hub",
+				account_id.to_ss58check()
+			);
+		}
 	}
 }
