@@ -26,22 +26,21 @@
 
 use crate::*;
 use frame_benchmarking::v2::*;
-use frame_support::traits::{
-	schedule::{v3::TaskName, DispatchTime},
-	tokens::IdAmount,
-	Currency, VoteTally,
-};
+use frame_support::traits::{schedule::DispatchTime, tokens::IdAmount, Currency, VoteTally};
 use frame_system::RawOrigin;
 use pallet_nomination_pools::TotalUnbondingPools;
 use pallet_proxy::ProxyDefinition;
 use pallet_rc_migrator::{
 	claims::{alias::EthereumAddress, RcClaimsMessage},
+	indices::RcIndicesIndex,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::{alias::Scheduled, RcSchedulerMessage},
-	staking::nom_pools_alias::{SubPools, UnbondPool},
+	staking::{
+		bags_list::alias::Node,
+		nom_pools_alias::{SubPools, UnbondPool},
+	},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
-use pallet_scheduler::TaskAddress;
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -60,6 +59,7 @@ pub trait ParametersFactory<
 	RcReferendumInfo,
 	RcSchedulerMessage,
 	RcBagsListMessage,
+	RcIndicesIndex,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -75,6 +75,7 @@ pub trait ParametersFactory<
 	fn create_scheduler_agenda(n: u8) -> RcSchedulerMessage;
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
+	fn create_indices_index(n: u8) -> RcIndicesIndex;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -91,6 +92,7 @@ impl<T: Config>
 		RcReferendumInfoOf<T, ()>,
 		RcSchedulerMessageOf<T>,
 		RcBagsListMessage<T>,
+		RcIndicesIndexOf<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -275,8 +277,6 @@ where
 	}
 
 	fn create_bags_list(n: u8) -> RcBagsListMessage<T> {
-		use pallet_rc_migrator::staking::bags_list::alias::Node;
-
 		RcBagsListMessage::Node {
 			id: [n; 32].into(),
 			node: Node {
@@ -286,6 +286,15 @@ where
 				bag_upper: n.into(),
 				score: n.into(),
 			},
+		}
+	}
+
+	fn create_indices_index(n: u8) -> RcIndicesIndexOf<T> {
+		return RcIndicesIndex {
+			index: n.into(),
+			who: [n; 32].into(),
+			deposit: n.into(),
+			frozen: false,
 		}
 	}
 }
@@ -646,6 +655,21 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn receive_indices(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_indices_index(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed { pallet: PalletEventName::Indices, count_good: n, count_bad: 0 }
+				.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -724,6 +748,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_bags_list_messages<T: Config>(n: u32) {
 		_receive_bags_list_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_indices<T: Config>(n: u32) {
+		_receive_indices::<T>(n, true)
 	}
 }
 

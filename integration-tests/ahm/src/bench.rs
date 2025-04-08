@@ -81,4 +81,7 @@ fn test_benchmarks() {
 	new_test_ext().execute_with(|| {
 		test_receive_bags_list_messages::<AssetHub>(BENCHMARK_N);
 	});
+	new_test_ext().execute_with(|| {
+		test_receive_indices::<AssetHub>(BENCHMARK_N);
+	});
 }

@@ -309,6 +309,7 @@ pub mod pallet {
 			RcReferendumInfoOf<Self, ()>,
 			RcSchedulerMessageOf<Self>,
 			RcBagsListMessage<Self>,
+			RcIndicesIndexOf<Self>,
 		>;
 	}
 
