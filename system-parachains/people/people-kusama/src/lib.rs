@@ -227,6 +227,8 @@ parameter_types! {
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
+	type BlockWeights = RuntimeBlockWeights;
+	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
 	type Nonce = Nonce;
 	type Hash = Hash;
