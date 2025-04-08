@@ -83,8 +83,8 @@ impl<T: Config> Pallet<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: Config, W> crate::types::AhMigrationCheck for MultisigMigrator<T, W> {
-	// List of multisig account ids with non-zero balance on Relay Chain before migration
+impl<T: Config> crate::types::AhMigrationCheck for MultisigMigrationChecker<T> {
+	// Vec of multisig account ids with non-zero balance on the relay chain before migration
 	type RcPrePayload = Vec<AccountIdOf<T>>;
 	// Number of multisigs on Asset Hub before migration
 	type AhPrePayload = u32;
@@ -101,6 +101,7 @@ impl<T: Config, W> crate::types::AhMigrationCheck for MultisigMigrator<T, W> {
 			"Number of multisigs on Asset Hub should be the same before and after migration"
 		);
 		for account_id in rc_pre_payload {
+			// Assert storage 'Multisig::Multisigs::ah_post::consistent'
 			assert!(
 				frame_system::Account::<T>::contains_key(&account_id),
 				"Multisig account {:?} from Relay Chain should be present on Asset Hub",

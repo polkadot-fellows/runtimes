@@ -199,23 +199,26 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 	}
 }
 
+/// Struct used to check the multisig migration in integration tests.
+pub struct MultisigMigrationChecker<T>(sp_std::marker::PhantomData<T>);
+
 #[cfg(feature = "std")]
-impl<T: pallet_multisig::Config, W> crate::types::RcMigrationCheck for MultisigMigrator<T, W> {
-	// List of multisig account ids with non-zero balance on Relay Chain before migration
+impl<T: Config> RcMigrationCheck for MultisigMigrationChecker<T> {
+	// Vec of multisig account ids with non-zero balance on the relay chain before migration
 	type RcPrePayload = Vec<AccountIdOf<T>>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		// Collect all multisig operations from storage
-		let multisig_ids = aliases::Multisigs::<T>::iter()
-			.map(|(multisig_id, _, _)| multisig_id)
-			.filter(|multisig_id| {
-				let multisig_balance =
-					<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
-						<T as frame_system::Config>::AccountId,
-					>>::total_balance(multisig_id);
-				!multisig_balance.is_zero()
-			})
-			.collect::<Vec<_>>();
+		let mut multisig_ids = Vec::new();
+		// Collect all multisig account ids with non-zero balance from storage
+		for (multisig_id, _, _) in aliases::Multisigs::<T>::iter() {
+			let multisig_balance =
+				<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
+					<T as frame_system::Config>::AccountId,
+				>>::total_balance(&multisig_id);
+			if !multisig_balance.is_zero() {
+				multisig_ids.push(multisig_id);
+			}
+		}
 
 		multisig_ids
 	}
