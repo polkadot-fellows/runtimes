@@ -71,7 +71,7 @@ impl<T: Config> Pallet<T> {
 			},
 			RcBountiesMessage::Bounties((index, bounty)) => {
 				log::debug!(target: LOG_TARGET, "Integrating bounty: {:?}", index);
-				pallet_bounties::Bounties::<T>::insert(index, bounty);
+				pallet_rc_migrator::bounties::alias::Bounties::<T>::insert(index, bounty);
 			},
 		}
 

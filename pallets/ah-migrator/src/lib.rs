@@ -71,6 +71,7 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
+	bounties::RcBountiesMessageOf,
 	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
 	crowdloan::RcCrowdloanMessageOf,
@@ -80,7 +81,7 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::RcBagsListMessage,
-		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
+		fast_unstake::RcFastUnstakeMessage,
 		nom_pools::*,
 	},
 	treasury::RcTreasuryMessage,
@@ -89,6 +90,7 @@ use pallet_rc_migrator::{
 use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
+use scheduler::RcSchedulerMessageOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -184,7 +186,7 @@ pub struct MigrationFinishedData {
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
-#[frame_support::pallet(dev_mode)]
+#[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use crate::xcm_config::{TrustedTeleportersBeforeAfter, TrustedTeleportersDuring};
@@ -194,7 +196,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
 		+ pallet_claims::Config
@@ -237,11 +239,11 @@ pub mod pallet {
 		/// Relay Chain Hold Reasons.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcHoldReason: Parameter + Default;
+		type RcHoldReason: Parameter + Default + MaxEncodedLen;
 		/// Relay Chain Freeze Reasons.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcFreezeReason: Parameter + Default;
+		type RcFreezeReason: Parameter + Default + MaxEncodedLen;
 		/// Relay Chain to Asset Hub Hold Reasons mapping.
 		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping.
@@ -260,7 +262,9 @@ pub mod pallet {
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 		/// Some part of the Relay Chain origins used in Governance.
-		type RcPalletsOrigin: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcPalletsOrigin: Parameter + Default;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
@@ -300,6 +304,20 @@ pub mod pallet {
 			RcClaimsMessageOf<Self>,
 			RcProxyOf<Self, Self::RcProxyType>,
 			RcProxyAnnouncementOf<Self>,
+			RcVestingSchedule<Self>,
+			RcNomPoolsMessage<Self>,
+			RcFastUnstakeMessage<Self>,
+			RcReferendumInfoOf<Self, ()>,
+			RcSchedulerMessageOf<Self>,
+			RcBagsListMessage<Self>,
+			RcIndicesIndexOf<Self>,
+			RcConvictionVotingMessageOf<Self>,
+			RcBountiesMessageOf<Self>,
+			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
+			RcCrowdloanMessageOf<Self>,
+			RcTreasuryMessageOf<Self>,
+			RcPreimageLegacyStatusOf<Self>,
+			RcPreimageRequestStatusOf<Self>,
 		>;
 	}
 
@@ -381,7 +399,9 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				T::AhWeightInfo::receive_accounts
+				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
+				// `require_weight_at_most` not required
+				T::AhWeightInfo::receive_liquid_accounts
 			};
 			for account in accounts.iter() {
 				let weight = if total.is_zero() {
@@ -428,7 +448,7 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)] // TODO
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
@@ -459,6 +479,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_preimage_chunks(
 			origin: OriginFor<T>,
 			chunks: Vec<RcPreimageChunk>,
@@ -473,6 +494,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_preimage_request_status(
 			origin: OriginFor<T>,
 			request_status: Vec<RcPreimageRequestStatusOf<T>>,
@@ -487,6 +509,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_preimage_legacy_status(
 			origin: OriginFor<T>,
 			legacy_status: Vec<RcPreimageLegacyStatusOf<T>>,
@@ -501,6 +524,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
+		#[pallet::weight(T::AhWeightInfo::receive_nom_pools_messages(messages.len() as u32))]
 		pub fn receive_nom_pools_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcNomPoolsMessage<T>>,
@@ -515,6 +539,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
+		#[pallet::weight(T::AhWeightInfo::receive_vesting_schedules(schedules.len() as u32))]
 		pub fn receive_vesting_schedules(
 			origin: OriginFor<T>,
 			schedules: Vec<RcVestingSchedule<T>>,
@@ -529,6 +554,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(9)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_fast_unstake_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcFastUnstakeMessage<T>>,
@@ -544,6 +570,7 @@ pub mod pallet {
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
 		#[pallet::call_index(10)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
@@ -564,6 +591,7 @@ pub mod pallet {
 
 		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(11)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -578,6 +606,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(12)]
+		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
 			origin: OriginFor<T>,
 			messages: Vec<RcClaimsMessageOf<T>>,
@@ -592,6 +621,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(13)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcBagsListMessage<T>>,
@@ -606,9 +636,10 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(14)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
-			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
+			messages: Vec<RcSchedulerMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -620,6 +651,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(15)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_indices(
 			origin: OriginFor<T>,
 			indices: Vec<RcIndicesIndexOf<T>>,
@@ -634,6 +666,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(16)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcConvictionVotingMessageOf<T>>,
@@ -648,9 +681,10 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(17)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
+			messages: Vec<RcBountiesMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -662,6 +696,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(18)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_asset_rates(
 			origin: OriginFor<T>,
 			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
@@ -676,6 +711,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(19)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_crowdloan_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcCrowdloanMessageOf<T>>,
@@ -690,6 +726,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(20)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_referenda_metadata(
 			origin: OriginFor<T>,
 			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
@@ -704,6 +741,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(21)]
+		#[pallet::weight({1})] // TODO
 		pub fn receive_treasury_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcTreasuryMessageOf<T>>,
@@ -722,6 +760,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(100)]
+		#[pallet::weight({1})] // TODO
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(stage);
@@ -733,6 +772,7 @@ pub mod pallet {
 		/// This is typically called by the Relay Chain to start the migration on the Asset Hub and
 		/// receive a handshake message indicating the Asset Hub's readiness.
 		#[pallet::call_index(101)]
+		#[pallet::weight({1})] // TODO
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
@@ -750,6 +790,7 @@ pub mod pallet {
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
 		#[pallet::call_index(110)]
+		#[pallet::weight({1})] // TODO
 		pub fn finish_migration(
 			origin: OriginFor<T>,
 			data: MigrationFinishedData,

@@ -124,7 +124,13 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
-			match Self::migrate_single(k1.clone(), multisig, rc_weight, ah_weight) {
+			match Self::migrate_single(
+				k1.clone(),
+				multisig,
+				rc_weight,
+				ah_weight,
+				batch.len() as u32,
+			) {
 				Ok(ms) => batch.push(ms), // TODO continue here
 				// Account does not need to be migrated
 				// Not enough weight, lets try again in the next block since we made some progress.
@@ -163,7 +169,7 @@ impl<T: Config, W: AhWeightInfo> PalletMigration for MultisigMigrator<T, W> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch },
-				|len| T::AhWeightInfo::receive_multisigs(len),
+				|n| W::receive_multisigs(n),
 			)?;
 		}
 
@@ -177,13 +183,14 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 		ms: aliases::MultisigOf<T>,
 		rc_weight: &mut WeightMeter,
 		ah_weight: &mut WeightMeter,
+		batch_len: u32,
 	) -> Result<RcMultisigOf<T>, OutOfWeightError> {
 		// TODO weight
 		if rc_weight.try_consume(Weight::from_all(1_000)).is_err() {
 			return Err(OutOfWeightError);
 		}
 
-		if ah_weight.try_consume(W::receive_multisigs(1)).is_err() {
+		if ah_weight.try_consume(item_weight_of(W::receive_multisigs, batch_len)).is_err() {
 			return Err(OutOfWeightError);
 		}
 
