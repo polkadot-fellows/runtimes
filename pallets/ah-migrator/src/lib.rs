@@ -81,7 +81,7 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::RcBagsListMessage,
-		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
+		fast_unstake::RcFastUnstakeMessage,
 		nom_pools::*,
 	},
 	treasury::RcTreasuryMessage,

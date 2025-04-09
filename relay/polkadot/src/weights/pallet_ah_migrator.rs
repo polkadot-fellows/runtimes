@@ -192,6 +192,7 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo f
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2603).saturating_mul(n.into()))
 	}
+
 	/// Storage: `Vesting::Vesting` (r:255 w:255)
 	/// Proof: `Vesting::Vesting` (`max_values`: None, `max_size`: Some(1057), added: 3532, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)

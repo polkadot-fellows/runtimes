@@ -18,6 +18,7 @@
 //! Fast unstake migration logic.
 
 use crate::*;
+use pallet_rc_migrator::staking::fast_unstake::{alias, FastUnstakeMigrator, RcFastUnstakeMessage};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_fast_unstake_messages(
@@ -62,5 +63,61 @@ impl<T: Config> Pallet<T> {
 		}
 
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
+	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// AH pre: Verify no entries are present
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Assert storage 'FastUnstake::Head::ah_pre::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
+			"Assert storage 'FastUnstake::Queue::ah_pre::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::ah_pre::empty'"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let (queue, eras_to_check) = rc_pre_payload;
+
+		// AH post: Verify entries are correctly migrated
+		let ah_queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
+		let ah_eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
+
+		// Verify Head is None
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Assert storage 'FastUnstake::Head::ah_post::correct'"
+		);
+
+		// Verify Queue entries
+		assert_eq!(
+			queue.len(),
+			ah_queue.len(),
+			"Assert storage 'FastUnstake::Queue::ah_post::length'"
+		);
+		// Verify Queue values match
+		for (pre_entry, post_entry) in queue.iter().zip(ah_queue.iter()) {
+			assert_eq!(
+				pre_entry, post_entry,
+				"Assert storage 'FastUnstake::Queue::ah_post::correct'"
+			);
+		}
+
+		// Verify ErasToCheckPerBlock
+		assert_eq!(
+			eras_to_check, ah_eras_to_check,
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::ah_post::correct'"
+		);
 	}
 }

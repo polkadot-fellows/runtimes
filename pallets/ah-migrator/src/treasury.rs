@@ -15,7 +15,10 @@
 // limitations under the License.
 
 use crate::*;
-use pallet_rc_migrator::treasury::alias as treasury_alias;
+use pallet_rc_migrator::treasury::{
+	alias as treasury_alias, RcSpendStatus, RcSpendStatusOf, TreasuryMigrator,
+};
+use pallet_treasury::{ProposalIndex, SpendIndex};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_treasury_messages(messages: Vec<RcTreasuryMessageOf<T>>) -> DispatchResult {
@@ -179,5 +182,109 @@ impl<T: Config> Pallet<T> {
 				e
 			),
 		};
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
+	// (proposals ids, historical proposals count, approvals ids, spends, historical spends count)
+	type RcPrePayload =
+		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Assert storage 'Treasury::ProposalCount::ah_pre::empty'
+		assert_eq!(
+			pallet_treasury::ProposalCount::<T>::get(),
+			0,
+			"ProposalCount should be 0 on Asset Hub before migration"
+		);
+
+		// Assert storage 'Treasury::Approvals::ah_pre::empty'
+		assert!(
+			pallet_treasury::Approvals::<T>::get().is_empty(),
+			"Approvals should be empty on Asset Hub before migration"
+		);
+
+		// Assert storage 'Treasury::Proposals::ah_pre::empty'
+		assert!(
+			pallet_treasury::Proposals::<T>::iter().next().is_none(),
+			"Proposals should be empty on Asset Hub before migration"
+		);
+
+		// Assert storage 'Treasury::SpendCount::ah_pre::empty'
+		assert_eq!(
+			treasury_alias::SpendCount::<T>::get(),
+			0,
+			"SpendCount should be 0 on Asset Hub before migration"
+		);
+
+		// Assert storage 'Treasury::Spends::ah_pre::empty'
+		assert!(
+			treasury_alias::Spends::<T>::iter().next().is_none(),
+			"Spends should be empty on Asset Hub before migration"
+		);
+	}
+
+	fn post_check(
+		(proposals, proposals_count, approvals, spends, spends_count): Self::RcPrePayload,
+		_: Self::AhPrePayload,
+	) {
+		// Assert storage 'Treasury::ProposalCount::ah_post::correct'
+		assert_eq!(
+			pallet_treasury::ProposalCount::<T>::get(),
+			proposals_count,
+			"ProposalCount on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::SpendCount::ah_post::correct'
+		assert_eq!(
+			treasury_alias::SpendCount::<T>::get(),
+			spends_count,
+			"SpendCount on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
+		assert_eq!(
+			pallet_treasury::Proposals::<T>::iter_keys().count() as u32,
+			proposals.len() as u32,
+			"ProposalCount on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::Proposals::ah_post::consistent'
+		assert_eq!(
+			proposals,
+			pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>(),
+			"Proposals on Asset Hub should match RC proposals"
+		);
+
+		// Assert storage 'Treasury::Approvals::ah_post::correct'
+		assert_eq!(
+			pallet_treasury::Approvals::<T>::get().into_inner(),
+			approvals,
+			"Approvals on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
+		assert_eq!(
+			treasury_alias::Spends::<T>::iter_keys().count() as u32,
+			spends.len() as u32,
+			"SpendCount on Asset Hub should match RC value"
+		);
+
+		// Assert storage 'Treasury::Spends::ah_post::consistent'
+		let mut ah_spends = Vec::new();
+		for (spend_id, spend) in treasury_alias::Spends::<T>::iter() {
+			ah_spends.push((
+				spend_id,
+				RcSpendStatus {
+					amount: spend.amount,
+					valid_from: spend.valid_from,
+					expire_at: spend.expire_at,
+					status: spend.status,
+				},
+			));
+		}
+		assert_eq!(ah_spends.len(), spends.len(), "Spends on Asset Hub should match RC values");
 	}
 }
