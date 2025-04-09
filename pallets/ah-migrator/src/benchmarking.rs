@@ -47,8 +47,10 @@ use pallet_rc_migrator::{
 		bags_list::alias::Node,
 		nom_pools_alias::{SubPools, UnbondPool},
 	},
+	treasury::{alias::SpendStatus, RcTreasuryMessage},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
+use pallet_treasury::{ArgumentsFactory, PaymentState};
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -72,6 +74,7 @@ pub trait ParametersFactory<
 	RcBountiesMessage,
 	RcAssetKindMessage,
 	RcCrowdloanMessage,
+	RcTreasuryMessage,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -92,6 +95,7 @@ pub trait ParametersFactory<
 	fn create_bounties(n: u8) -> RcBountiesMessage;
 	fn create_asset_rate(n: u8) -> RcAssetKindMessage;
 	fn create_crowdloan(n: u8) -> RcCrowdloanMessage;
+	fn create_treasury(n: u8) -> RcTreasuryMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -113,6 +117,7 @@ impl<T: Config>
 		RcBountiesMessageOf<T>,
 		(<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
 		RcCrowdloanMessageOf<T>,
+		RcTreasuryMessageOf<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -382,6 +387,27 @@ where
 			para_id: (n as u32).into(),
 			amount: n.into(),
 			crowdloan_account: [n.into(); 32].into(),
+		}
+	}
+
+	fn create_treasury(n: u8) -> RcTreasuryMessageOf<T> {
+		RcTreasuryMessage::Spends {
+			id: n.into(),
+			status: SpendStatus {
+				asset_kind: VersionedLocatableAsset::V4 {
+					location: Location::new(0, [Parachain(1000)]),
+					asset_id: Location::new(0, [PalletInstance(n.into()), GeneralIndex(n.into())])
+						.into(),
+				},
+				amount: n.into(),
+				beneficiary: VersionedLocation::V4(Location::new(
+					0,
+					[xcm::latest::Junction::AccountId32 { network: None, id: [n; 32].into() }],
+				)),
+				valid_from: n.into(),
+				expire_at: n.into(),
+				status: PaymentState::Pending,
+			},
 		}
 	}
 }
@@ -852,6 +878,25 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn receive_treasury_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_treasury(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Treasury,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -960,6 +1005,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_referenda_metadata<T: Config>(n: u32) {
 		_receive_referenda_metadata::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_treasury_messages<T: Config>(n: u32) {
+		_receive_treasury_messages::<T>(n, true)
 	}
 }
 

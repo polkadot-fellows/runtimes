@@ -315,6 +315,7 @@ pub mod pallet {
 			RcBountiesMessageOf<Self>,
 			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
 			RcCrowdloanMessageOf<Self>,
+			RcTreasuryMessageOf<Self>,
 		>;
 	}
 
