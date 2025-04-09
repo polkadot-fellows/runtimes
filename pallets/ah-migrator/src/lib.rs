@@ -196,7 +196,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
 		+ pallet_claims::Config
@@ -314,6 +314,7 @@ pub mod pallet {
 			RcConvictionVotingMessageOf<Self>,
 			RcBountiesMessageOf<Self>,
 			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
+			RcCrowdloanMessageOf<Self>,
 		>;
 	}
 

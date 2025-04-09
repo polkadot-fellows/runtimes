@@ -39,6 +39,7 @@ use pallet_rc_migrator::{
 	bounties::{alias::Bounty, RcBountiesMessage},
 	claims::{alias::EthereumAddress, RcClaimsMessage},
 	conviction_voting::RcConvictionVotingMessage,
+	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::{alias::Scheduled, RcSchedulerMessage},
@@ -70,6 +71,7 @@ pub trait ParametersFactory<
 	RcConvictionVotingMessage,
 	RcBountiesMessage,
 	RcAssetKindMessage,
+	RcCrowdloanMessage,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -87,8 +89,9 @@ pub trait ParametersFactory<
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
 	fn create_indices_index(n: u8) -> RcIndicesIndex;
 	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessage;
-	fn create_bounties_message(n: u8) -> RcBountiesMessage;
+	fn create_bounties(n: u8) -> RcBountiesMessage;
 	fn create_asset_rate(n: u8) -> RcAssetKindMessage;
+	fn create_crowdloan(n: u8) -> RcCrowdloanMessage;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -109,6 +112,7 @@ impl<T: Config>
 		RcConvictionVotingMessageOf<T>,
 		RcBountiesMessageOf<T>,
 		(<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
+		RcCrowdloanMessageOf<T>,
 	> for BenchmarkFactory<T>
 where
 	T::AccountId: From<AccountId32>,
@@ -350,7 +354,7 @@ where
 		)
 	}
 
-	fn create_bounties_message(n: u8) -> RcBountiesMessageOf<T> {
+	fn create_bounties(n: u8) -> RcBountiesMessageOf<T> {
 		RcBountiesMessage::Bounties((
 			n.into(),
 			Bounty {
@@ -369,6 +373,16 @@ where
 			<T as pallet_asset_rate::Config>::BenchmarkHelper::create_asset_kind(n.into()),
 			FixedU128::from_u32(n as u32),
 		)
+	}
+
+	fn create_crowdloan(n: u8) -> RcCrowdloanMessageOf<T> {
+		RcCrowdloanMessage::CrowdloanContribution {
+			withdraw_block: n.into(),
+			contributor: [n.into(); 32].into(),
+			para_id: (n as u32).into(),
+			amount: n.into(),
+			crowdloan_account: [n.into(); 32].into(),
+		}
 	}
 }
 
@@ -767,9 +781,7 @@ pub mod benchmarks {
 	#[benchmark]
 	fn receive_bounties_messages(n: Linear<1, 255>) {
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_bounties_message(i.try_into().unwrap())
-			})
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_bounties(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -797,6 +809,25 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::BatchProcessed {
 				pallet: PalletEventName::AssetRates,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn receive_crowdloan_messages(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| <<T as Config>::BenchmarkHelper>::create_crowdloan(i.try_into().unwrap()))
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::Crowdloan,
 				count_good: n,
 				count_bad: 0,
 			}
@@ -902,6 +933,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_asset_rates<T: Config>(n: u32) {
 		_receive_asset_rates::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_crowdloan_messages<T: Config>(n: u32) {
+		_receive_crowdloan_messages::<T>(n, true)
 	}
 }
 

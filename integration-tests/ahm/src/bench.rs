@@ -93,4 +93,7 @@ fn test_benchmarks() {
 	new_test_ext().execute_with(|| {
 		test_receive_asset_rates::<AssetHub>(BENCHMARK_N);
 	});
+	new_test_ext().execute_with(|| {
+		test_receive_crowdloan_messages::<AssetHub>(BENCHMARK_N);
+	});
 }
