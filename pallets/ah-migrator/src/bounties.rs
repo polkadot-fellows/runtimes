@@ -15,8 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf, BountiesMigrator};
-use pallet_bounties::{Bounty, BountyIndex};
+use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf, BountiesMigrator, RcPrePayload};
 
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
@@ -84,20 +83,14 @@ impl<T: Config> Pallet<T> {
 }
 
 impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
-	type RcPrePayload = (
-		BountyIndex,
-		Vec<(BountyIndex, Bounty<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>)>,
-		Vec<(BountyIndex, BoundedVec<u8, <T as pallet_bounties::Config>::MaximumReasonLength>)>,
-		BoundedVec<BountyIndex, <T as pallet_treasury::Config>::MaxApprovals>,
-	);
+	type RcPrePayload = RcPrePayload<T>;
 	type AhPrePayload = ();
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
-
 		// "Assert storage 'Bounties::BountyCount::ah_pre::empty'"
 		assert_eq!(
 			pallet_bounties::BountyCount::<T>::get(),
-			Default::default(),
+			0,
 			"Bounty count should be empty on asset hub before migration"
 		);
 
@@ -113,7 +106,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 			"The Bounty Descriptions map should be empty on asset hub before migration"
 		);
 
-		"Assert storage 'Bounties::BountyApprovals::ah_pre::empty'"
+		// "Assert storage 'Bounties::BountyApprovals::ah_pre::empty'"
 		assert!(
 			pallet_bounties::BountyApprovals::<T>::get().is_empty(),
 			"The Bounty Approvals vec should be empty on asset hub before migration"
@@ -145,12 +138,10 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::length'
-		let ah_descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter().collect();
 		assert_eq!(
 			pallet_bounties::BountyDescriptions::<T>::iter_keys().count() as u32,
-			rc_descriptions.len(),
-			"Bounty description map length on Asset Hub should match RC value"
-			
+			rc_descriptions.len() as u32,
+			"Bounty description map length on Asset Hub should match RC value"	
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::correct'

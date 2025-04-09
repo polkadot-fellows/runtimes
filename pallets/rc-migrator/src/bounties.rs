@@ -158,13 +158,15 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 	}
 }
 
+pub type RcPrePayload<T> = (
+	BountyIndex,
+	Vec<(BountyIndex, Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>)>,
+	Vec<(BountyIndex, BoundedVec<u8, <T as pallet_bounties::Config>::MaximumReasonLength>)>,
+	BoundedVec<BountyIndex, <T as pallet_treasury::Config>::MaxApprovals>,
+);
+
 impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
-	type RcPrePayload = (
-		BountyCount,
-		Vec<(BountyIndex, Bounty<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>)>,
-		Vec<(BountyIndex, BoundedVec<u8, <T as BountiesConfig>::MaximumReasonLength>)>,
-		BoundedVec<BountyIndex, <T as TreasuryConfig>::MaxApprovals>,
-	);
+	type RcPrePayload = RcPrePayload<T>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let count = pallet_bounties::BountyCount::<T>::get();
@@ -178,7 +180,7 @@ impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
 		// Assert storage 'Bounties::BountyCount::rc_post::empty'
 		assert_eq!(
 			pallet_bounties::BountyCount::<T>::get(),
-			Default::default(),
+			0,
 			"Bounty count should be 0 on RC after migration"
 		);
 
