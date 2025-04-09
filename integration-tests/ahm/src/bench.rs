@@ -96,4 +96,7 @@ fn test_benchmarks() {
 	new_test_ext().execute_with(|| {
 		test_receive_crowdloan_messages::<AssetHub>(BENCHMARK_N);
 	});
+	new_test_ext().execute_with(|| {
+		test_receive_referenda_metadata::<AssetHub>(BENCHMARK_N);
+	});
 }

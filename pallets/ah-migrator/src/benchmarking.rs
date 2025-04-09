@@ -835,6 +835,23 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn receive_referenda_metadata(n: Linear<1, 255>) {
+		let messages = (0..n).map(|i| (i.into(), H256::from([i as u8; 32]))).collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::ReferendaMetadata,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -938,6 +955,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_crowdloan_messages<T: Config>(n: u32) {
 		_receive_crowdloan_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_referenda_metadata<T: Config>(n: u32) {
+		_receive_referenda_metadata::<T>(n, true)
 	}
 }
 
