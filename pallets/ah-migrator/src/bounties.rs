@@ -153,7 +153,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 
 		// Assert storage 'Bounties::BountyApprovals::ah_post::correct'
 		assert_eq!(
-			pallet_bounties::BountyApprovals::<T>::get(),
+			pallet_bounties::BountyApprovals::<T>::get().into_inner(),
 			rc_approvals, 
 			"Bounty approvals vec value on Asset Hub should match RC values"
 		);
