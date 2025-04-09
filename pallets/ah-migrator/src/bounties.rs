@@ -82,6 +82,7 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+#[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 	type RcPrePayload = RcPrePayload<T>;
 	type AhPrePayload = ();

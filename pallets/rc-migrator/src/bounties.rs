@@ -158,6 +158,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 	}
 }
 
+// (BountyCount, Bounties, BountyDescriptions, BountyApprovals)
 pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(
@@ -168,6 +169,7 @@ pub type RcPrePayload<T> = (
 	Vec<BountyIndex>,
 );
 
+#[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
 	type RcPrePayload = RcPrePayload<T>;
 
