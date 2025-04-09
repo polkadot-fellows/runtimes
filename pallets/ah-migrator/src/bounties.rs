@@ -15,7 +15,9 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf, BountiesMigrator, RcPrePayload};
+use pallet_rc_migrator::bounties::{
+	BountiesMigrator, RcBountiesMessage, RcBountiesMessageOf, RcPrePayload,
+};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bounties_messages(
@@ -116,7 +118,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 
 		// Assert storage 'Bounties::BountyCount::ah_post::correct'
 		assert_eq!(
-			pallet_bounties::BountyCount::<T>::get(), 
+			pallet_bounties::BountyCount::<T>::get(),
 			rc_count,
 			"Bounty count on Asset Hub should match the RC value"
 		);
@@ -131,7 +133,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		// Assert storage 'Bounties::Bounties::ah_post::correct'
 		assert_eq!(
 			pallet_bounties::Bounties::<T>::iter().collect::<Vec<_>>(),
-			rc_bounties, 
+			rc_bounties,
 			"Bounties map value on Asset Hub should match the RC value"
 		);
 
@@ -139,14 +141,14 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		assert_eq!(
 			pallet_bounties::BountyDescriptions::<T>::iter_keys().count() as u32,
 			rc_descriptions.len() as u32,
-			"Bounty description map length on Asset Hub should match RC value"	
+			"Bounty description map length on Asset Hub should match RC value"
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::correct'
 		assert_eq!(
-			pallet_bounties::BountyDescriptions::<T>::iter().map(|(key, bounded_vec)| {
-				(key, bounded_vec.into_inner())
-			}).collect::<Vec<_>>(),
+			pallet_bounties::BountyDescriptions::<T>::iter()
+				.map(|(key, bounded_vec)| { (key, bounded_vec.into_inner()) })
+				.collect::<Vec<_>>(),
 			rc_descriptions,
 			"Bounty descriptions map value on Asset Hub should match RC value"
 		);
@@ -154,7 +156,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		// Assert storage 'Bounties::BountyApprovals::ah_post::correct'
 		assert_eq!(
 			pallet_bounties::BountyApprovals::<T>::get().into_inner(),
-			rc_approvals, 
+			rc_approvals,
 			"Bounty approvals vec value on Asset Hub should match RC values"
 		);
 	}
