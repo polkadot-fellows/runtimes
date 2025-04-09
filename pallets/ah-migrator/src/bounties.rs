@@ -17,8 +17,6 @@
 use crate::*;
 use pallet_rc_migrator::bounties::{RcBountiesMessage, RcBountiesMessageOf, BountiesMigrator, RcPrePayload};
 
-pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
-
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_bounties_messages(
 		messages: Vec<RcBountiesMessageOf<T>>,
