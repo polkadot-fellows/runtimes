@@ -57,6 +57,8 @@ use pallet_treasury::PaymentState;
 /// Equivalent to Polkadot `UNITS`, which is larger than Kusama `UNITS`.
 pub const UNITS: u128 = 10_000_000_000;
 
+type CurrencyOf<T> = pallet_balances::Pallet<T>;
+
 pub trait ParametersFactory<
 	RcMultisig,
 	RcAccount,
@@ -120,9 +122,6 @@ impl<T: Config>
 		RcTreasuryMessageOf<T>,
 	> for BenchmarkFactory<T>
 where
-	T::AccountId: From<AccountId32>,
-	<<T as pallet_multisig::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
-	<<T as pallet_proxy::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
 	<<T as pallet_conviction_voting::Config>::Polls as Polling<
 		pallet_conviction_voting::TallyOf<T, ()>,
 	>>::Index: From<u8>,
@@ -130,21 +129,17 @@ where
 	fn create_multisig(n: u8) -> RcMultisig<AccountId32, u128> {
 		let creator: AccountId32 = [n; 32].into();
 		let deposit: u128 = UNITS;
-		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
-			&creator,
-			(deposit * 10).into(),
-		);
-		let _ =
-			<T as pallet_multisig::Config>::Currency::reserve(&creator, deposit.into()).unwrap();
+		let _ = CurrencyOf::<T>::deposit_creating(&creator, (deposit * 10).into());
+		let _ = CurrencyOf::<T>::reserve(&creator, deposit.into()).unwrap();
 
 		RcMultisig { creator, deposit, details: Some([2u8; 32].into()) }
 	}
 
 	fn create_account(n: u8) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
 		let who: AccountId32 = [n; 32].into();
-		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+		let _ = CurrencyOf::<T>::deposit_creating(
 			&who,
-			<T as pallet_multisig::Config>::Currency::minimum_balance(),
+			<CurrencyOf<T> as Currency<_>>::minimum_balance(),
 		);
 
 		let hold_amount = UNITS;
@@ -184,9 +179,9 @@ where
 		n: u8,
 	) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
 		let who: AccountId32 = [n; 32].into();
-		let _ = <T as pallet_multisig::Config>::Currency::deposit_creating(
+		let _ = CurrencyOf::<T>::deposit_creating(
 			&who,
-			<T as pallet_multisig::Config>::Currency::minimum_balance(),
+			<CurrencyOf<T> as Currency<_>>::minimum_balance(),
 		);
 
 		RcAccount {
@@ -221,12 +216,8 @@ where
 	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement<AccountId32, u128> {
 		let creator: AccountId32 = [n; 32].into();
 		let deposit: u128 = UNITS;
-		let _ = <T as pallet_proxy::Config>::Currency::deposit_creating(
-			&creator,
-			(deposit * 10).into(),
-		);
-		let _ =
-			<T as pallet_multisig::Config>::Currency::reserve(&creator, deposit.into()).unwrap();
+		let _ = CurrencyOf::<T>::deposit_creating(&creator, (deposit * 10).into());
+		let _ = CurrencyOf::<T>::reserve(&creator, deposit.into()).unwrap();
 
 		RcProxyAnnouncement { depositor: creator, deposit }
 	}
