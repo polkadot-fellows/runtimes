@@ -220,3 +220,10 @@ fn test_bench_finish_migration() {
 		test_finish_migration::<AssetHub>();
 	});
 }
+
+#[test]
+fn test_bench_receive_preimage_legacy_status() {
+	new_test_ext().execute_with(|| {
+		test_receive_preimage_legacy_status::<AssetHub>(BENCHMARK_N);
+	});
+}

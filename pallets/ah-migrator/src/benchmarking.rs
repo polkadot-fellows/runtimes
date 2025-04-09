@@ -77,6 +77,7 @@ pub trait ParametersFactory<
 	RcAssetKindMessage,
 	RcCrowdloanMessage,
 	RcTreasuryMessage,
+	RcPreimageLegacyStatus,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -98,6 +99,7 @@ pub trait ParametersFactory<
 	fn create_asset_rate(n: u8) -> RcAssetKindMessage;
 	fn create_crowdloan(n: u8) -> RcCrowdloanMessage;
 	fn create_treasury(n: u8) -> RcTreasuryMessage;
+	fn create_preimage_legacy_status(n: u8) -> RcPreimageLegacyStatus;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -120,11 +122,14 @@ impl<T: Config>
 		(<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
 		RcCrowdloanMessageOf<T>,
 		RcTreasuryMessageOf<T>,
+		RcPreimageLegacyStatusOf<T>,
 	> for BenchmarkFactory<T>
 where
 	<<T as pallet_conviction_voting::Config>::Polls as Polling<
 		pallet_conviction_voting::TallyOf<T, ()>,
 	>>::Index: From<u8>,
+	<<T as pallet_preimage::Config>::Currency as Currency<sp_runtime::AccountId32>>::Balance:
+		From<u128>,
 {
 	fn create_multisig(n: u8) -> RcMultisig<AccountId32, u128> {
 		let creator: AccountId32 = [n; 32].into();
@@ -399,6 +404,15 @@ where
 				status: PaymentState::Pending,
 			},
 		}
+	}
+
+	fn create_preimage_legacy_status(n: u8) -> RcPreimageLegacyStatusOf<T> {
+		let depositor: AccountId32 = [n; 32].into();
+		let deposit = <CurrencyOf<T> as Currency<_>>::minimum_balance();
+		let _ = CurrencyOf::<T>::deposit_creating(&depositor, (deposit * 10).into());
+		let _ = CurrencyOf::<T>::reserve(&depositor, deposit.into()).unwrap();
+
+		RcPreimageLegacyStatusOf::<T> { hash: [n; 32].into(), depositor, deposit: deposit.into() }
 	}
 }
 
@@ -888,6 +902,29 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_preimage_legacy_status(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_preimage_legacy_status(
+					i.try_into().unwrap(),
+				)
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::PreimageLegacyStatus,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
 
@@ -1055,6 +1092,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_finish_migration<T: Config>() {
 		_finish_migration::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_preimage_legacy_status<T: Config>(n: u32) {
+		_receive_preimage_legacy_status::<T>(n, true)
 	}
 }
 

@@ -316,6 +316,7 @@ pub mod pallet {
 			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
 			RcCrowdloanMessageOf<Self>,
 			RcTreasuryMessageOf<Self>,
+			RcPreimageLegacyStatusOf<Self>,
 		>;
 	}
 
