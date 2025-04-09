@@ -330,6 +330,7 @@ where
 	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessageOf<T> {
 		let class = <T as pallet_conviction_voting::Config>::Polls::classes()
 			.iter()
+			.cycle()
 			.skip(n as usize)
 			.next()
 			.unwrap()
