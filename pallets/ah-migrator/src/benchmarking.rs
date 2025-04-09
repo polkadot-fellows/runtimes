@@ -50,7 +50,7 @@ use pallet_rc_migrator::{
 	treasury::{alias::SpendStatus, RcTreasuryMessage},
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
-use pallet_treasury::{ArgumentsFactory, PaymentState};
+use pallet_treasury::PaymentState;
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -123,6 +123,9 @@ where
 	T::AccountId: From<AccountId32>,
 	<<T as pallet_multisig::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
 	<<T as pallet_proxy::Config>::Currency as Currency<T::AccountId>>::Balance: From<u128>,
+	<<T as pallet_conviction_voting::Config>::Polls as Polling<
+		pallet_conviction_voting::TallyOf<T, ()>,
+	>>::Index: From<u8>,
 {
 	fn create_multisig(n: u8) -> RcMultisig<AccountId32, u128> {
 		let creator: AccountId32 = [n; 32].into();
@@ -333,12 +336,8 @@ where
 		let votes = BoundedVec::<(_, AccountVote<_>), _>::try_from(
 			(0..<T as pallet_conviction_voting::Config<()>>::MaxVotes::get())
 				.map(|_| {
-					let index = <T as pallet_conviction_voting::Config>::Polls::create_ongoing(
-						class.clone(),
-					)
-					.unwrap();
 					(
-						index,
+						n.into(),
 						AccountVote::Standard {
 							vote: Vote { aye: true, conviction: Default::default() },
 							balance: n.into(),
@@ -897,6 +896,46 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark]
+	fn force_set_stage() {
+		let stage = MigrationStage::DataMigrationOngoing;
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, stage.clone());
+
+		assert_last_event::<T>(
+			Event::StageTransition { old: MigrationStage::Pending, new: stage }.into(),
+		);
+	}
+
+	#[benchmark]
+	fn start_migration() {
+		#[extrinsic_call]
+		_(RawOrigin::Root);
+
+		assert_last_event::<T>(
+			Event::StageTransition {
+				old: MigrationStage::Pending,
+				new: MigrationStage::DataMigrationOngoing,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn finish_migration() {
+		#[extrinsic_call]
+		_(RawOrigin::Root, MigrationFinishedData { rc_balance_kept: 100 });
+
+		assert_last_event::<T>(
+			Event::StageTransition {
+				old: MigrationStage::Pending,
+				new: MigrationStage::MigrationDone,
+			}
+			.into(),
+		);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_receive_multisigs<T: Config>(n: u32) {
 		_receive_multisigs::<T>(n, true /* enable checks */)
@@ -1010,6 +1049,21 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_treasury_messages<T: Config>(n: u32) {
 		_receive_treasury_messages::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_set_stage<T: Config>() {
+		_force_set_stage::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_start_migration<T: Config>() {
+		_start_migration::<T>(true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_finish_migration<T: Config>() {
+		_finish_migration::<T>(true)
 	}
 }
 

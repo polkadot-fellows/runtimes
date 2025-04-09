@@ -23,83 +23,200 @@ use pallet_ah_migrator::benchmarking::*;
 use sp_runtime::BuildStorage;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let t = frame_system::GenesisConfig::<AssetHub>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::<AssetHub>::default().build_storage().unwrap();
+
+	pallet_xcm::GenesisConfig::<AssetHub> {
+		safe_xcm_version: Some(xcm::latest::VERSION),
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| AssetHubSystem::set_block_number(1));
 	ext
 }
 
-#[test]
-fn test_benchmarks() {
-	const BENCHMARK_N: u32 = 10;
+const BENCHMARK_N: u32 = 10;
 
+#[test]
+fn test_bench_receive_multisigs() {
 	new_test_ext().execute_with(|| {
 		test_receive_multisigs::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_on_finalize() {
 	new_test_ext().execute_with(|| {
 		test_on_finalize::<AssetHub>();
 	});
+}
+
+#[test]
+fn test_bench_receive_proxy_proxies() {
 	new_test_ext().execute_with(|| {
 		test_receive_proxy_proxies::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_proxy_announcements() {
 	new_test_ext().execute_with(|| {
 		test_receive_proxy_announcements::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_claims() {
 	new_test_ext().execute_with(|| {
 		test_receive_claims::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_nom_pools_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_nom_pools_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_vesting_schedules() {
 	new_test_ext().execute_with(|| {
 		test_receive_vesting_schedules::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_fast_unstake_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_fast_unstake_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_referenda_values() {
 	new_test_ext().execute_with(|| {
 		test_receive_referenda_values::<AssetHub>();
 	});
+}
+
+#[test]
+fn test_bench_receive_active_referendums() {
 	new_test_ext().execute_with(|| {
 		test_receive_active_referendums::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_complete_referendums() {
 	new_test_ext().execute_with(|| {
 		test_receive_complete_referendums::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_accounts() {
 	new_test_ext().execute_with(|| {
 		test_receive_accounts::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_liquid_accounts() {
 	new_test_ext().execute_with(|| {
 		test_receive_liquid_accounts::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_scheduler_agenda() {
 	new_test_ext().execute_with(|| {
 		test_receive_scheduler_agenda::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_scheduler_lookup() {
 	new_test_ext().execute_with(|| {
 		test_receive_scheduler_lookup::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_bags_list_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_bags_list_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_indices() {
 	new_test_ext().execute_with(|| {
 		test_receive_indices::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_conviction_voting_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_conviction_voting_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_bounties_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_bounties_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_asset_rates() {
 	new_test_ext().execute_with(|| {
 		test_receive_asset_rates::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_crowdloan_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_crowdloan_messages::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_referenda_metadata() {
 	new_test_ext().execute_with(|| {
 		test_receive_referenda_metadata::<AssetHub>(BENCHMARK_N);
 	});
+}
+
+#[test]
+fn test_bench_receive_treasury_messages() {
 	new_test_ext().execute_with(|| {
 		test_receive_treasury_messages::<AssetHub>(BENCHMARK_N);
+	});
+}
+
+#[test]
+fn test_bench_force_set_stage() {
+	new_test_ext().execute_with(|| {
+		test_force_set_stage::<AssetHub>();
+	});
+}
+
+#[test]
+fn test_bench_start_migration() {
+	new_test_ext().execute_with(|| {
+		test_start_migration::<AssetHub>();
+	});
+}
+
+#[test]
+fn test_bench_finish_migration() {
+	new_test_ext().execute_with(|| {
+		test_finish_migration::<AssetHub>();
 	});
 }
