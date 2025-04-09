@@ -27,7 +27,8 @@
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::{
-	schedule::DispatchTime, tokens::IdAmount, Currency, Polling, VoteTally,
+	schedule::DispatchTime, tokens::IdAmount, Consideration, Currency, Footprint, Polling,
+	VoteTally,
 };
 use frame_system::RawOrigin;
 use pallet_asset_rate::AssetKindFactory;
@@ -41,6 +42,7 @@ use pallet_rc_migrator::{
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
+	preimage::alias::RequestStatus as PreimageRequestStatus,
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::{alias::Scheduled, RcSchedulerMessage},
 	staking::{
@@ -78,6 +80,7 @@ pub trait ParametersFactory<
 	RcCrowdloanMessage,
 	RcTreasuryMessage,
 	RcPreimageLegacyStatus,
+	RcPreimageRequestStatus,
 >
 {
 	fn create_multisig(n: u8) -> RcMultisig;
@@ -100,6 +103,7 @@ pub trait ParametersFactory<
 	fn create_crowdloan(n: u8) -> RcCrowdloanMessage;
 	fn create_treasury(n: u8) -> RcTreasuryMessage;
 	fn create_preimage_legacy_status(n: u8) -> RcPreimageLegacyStatus;
+	fn create_preimage_request_status(n: u8) -> RcPreimageRequestStatus;
 }
 
 pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
@@ -123,6 +127,7 @@ impl<T: Config>
 		RcCrowdloanMessageOf<T>,
 		RcTreasuryMessageOf<T>,
 		RcPreimageLegacyStatusOf<T>,
+		RcPreimageRequestStatusOf<T>,
 	> for BenchmarkFactory<T>
 where
 	<<T as pallet_conviction_voting::Config>::Polls as Polling<
@@ -413,6 +418,24 @@ where
 		let _ = CurrencyOf::<T>::reserve(&depositor, deposit.into()).unwrap();
 
 		RcPreimageLegacyStatusOf::<T> { hash: [n; 32].into(), depositor, deposit: deposit.into() }
+	}
+
+	fn create_preimage_request_status(n: u8) -> RcPreimageRequestStatusOf<T> {
+		let preimage = vec![n; 512];
+		let hash = T::Preimage::note(preimage.into()).unwrap();
+
+		let depositor: AccountId32 = [n; 32].into();
+		let old_footprint = Footprint::from_parts(1, 1024);
+		<T as pallet_preimage::Config>::Consideration::ensure_successful(&depositor, old_footprint);
+		let consideration =
+			<T as pallet_preimage::Config>::Consideration::new(&depositor, old_footprint).unwrap();
+		RcPreimageRequestStatusOf::<T> {
+			hash,
+			request_status: PreimageRequestStatus::Unrequested {
+				ticket: (depositor, consideration),
+				len: 512, // smaller than old footprint
+			},
+		}
 	}
 }
 
@@ -925,6 +948,29 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn receive_preimage_request_status(n: Linear<1, 255>) {
+		let messages = (0..n)
+			.map(|i| {
+				<<T as Config>::BenchmarkHelper>::create_preimage_request_status(
+					i.try_into().unwrap(),
+				)
+			})
+			.collect::<Vec<_>>();
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, messages);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::PreimageRequestStatus,
+				count_good: n,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
 
@@ -1097,6 +1143,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_preimage_legacy_status<T: Config>(n: u32) {
 		_receive_preimage_legacy_status::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_preimage_request_status<T: Config>(n: u32) {
+		_receive_preimage_request_status::<T>(n, true)
 	}
 }
 

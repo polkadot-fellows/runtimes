@@ -317,6 +317,7 @@ pub mod pallet {
 			RcCrowdloanMessageOf<Self>,
 			RcTreasuryMessageOf<Self>,
 			RcPreimageLegacyStatusOf<Self>,
+			RcPreimageRequestStatusOf<Self>,
 		>;
 	}
 

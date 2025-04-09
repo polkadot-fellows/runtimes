@@ -227,3 +227,10 @@ fn test_bench_receive_preimage_legacy_status() {
 		test_receive_preimage_legacy_status::<AssetHub>(BENCHMARK_N);
 	});
 }
+
+#[test]
+fn test_bench_receive_preimage_request_status() {
+	new_test_ext().execute_with(|| {
+		test_receive_preimage_request_status::<AssetHub>(BENCHMARK_N);
+	});
+}
