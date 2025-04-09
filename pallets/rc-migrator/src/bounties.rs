@@ -161,8 +161,8 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 pub type RcPrePayload<T> = (
 	BountyIndex,
 	Vec<(BountyIndex, Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>)>,
-	Vec<(BountyIndex, BoundedVec<u8, <T as pallet_bounties::Config>::MaximumReasonLength>)>,
-	BoundedVec<BountyIndex, <T as pallet_treasury::Config>::MaxApprovals>,
+	Vec<(BountyIndex, Vec<u8>)>,
+	Vec<BountyIndex>,
 );
 
 impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
@@ -171,8 +171,10 @@ impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
 	fn pre_check() -> Self::RcPrePayload {
 		let count = pallet_bounties::BountyCount::<T>::get();
 		let bounties: Vec<_> = pallet_bounties::Bounties::<T>::iter().collect();
-		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter().collect();
-		let approvals = pallet_bounties::BountyApprovals::<T>::get();
+		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter().map(|(key, bounded_vec)| {
+            (key, bounded_vec.into_inner())
+        }).collect();
+		let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
 		(count, bounties, descriptions, approvals)
 	}
 

@@ -146,16 +146,18 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::correct'
 		assert_eq!(
-			pallet_bounties::BountyDescriptions::<T>::iter().collect::<Vec<_>>(),
+			pallet_bounties::BountyDescriptions::<T>::iter().map(|(key, bounded_vec)| {
+				(key, bounded_vec.into_inner())
+			}).collect::<Vec<_>>(),
 			rc_descriptions,
-			"Bount descript map value on Asset Hub should match RC value"
+			"Bounty descriptions map value on Asset Hub should match RC value"
 		);
 
 		// Assert storage 'Bounties::BountyApprovals::ah_post::correct'
 		assert_eq!(
 			pallet_bounties::BountyApprovals::<T>::get(),
 			rc_approvals, 
-			"Bount approvals vec value on Asset Hub should match RC values"
+			"Bounty approvals vec value on Asset Hub should match RC values"
 		);
 	}
 }
