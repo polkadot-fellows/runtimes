@@ -52,6 +52,7 @@ default = ["std"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
@@ -88,10 +89,10 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"frame-election-provider-support/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
@@ -118,9 +119,9 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"frame-election-provider-support/runtime-benchmarks"
 ]
 try-runtime = [
+	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-asset-rate/try-runtime",
@@ -142,10 +143,9 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
-	"frame-election-provider-support/try-runtime"
 ]
 
 ahm-polkadot = []
-ahm-westend = ["stable2503", "ahm-staking-migration"]
+ahm-westend = ["ahm-staking-migration", "stable2503"]
 stable2503 = []
 ahm-staking-migration = []

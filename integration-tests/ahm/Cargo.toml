@@ -54,20 +54,17 @@ pallet-xcm = { workspace = true, default-features = true }
 [features]
 ahm-westend = [
 	"pallet-ah-migrator/ahm-westend",
-	"pallet-rc-migrator/ahm-westend"
+	"pallet-rc-migrator/ahm-westend",
 ]
 ahm-polkadot = [
+	"pallet-ah-migrator/ahm-polkadot",
 	"pallet-rc-migrator/ahm-polkadot",
-	"pallet-ah-migrator/ahm-polkadot"
 ]
 
 # This will be changed by our porting script
 default = ["ahm-polkadot"]
-stable2503 = [
-	"pallet-ah-migrator/stable2503",
-	"pallet-rc-migrator/stable2503"
-]
+stable2503 = ["pallet-ah-migrator/stable2503", "pallet-rc-migrator/stable2503"]
 ahm-staking-migration = [
 	"pallet-ah-migrator/ahm-staking-migration",
-	"pallet-rc-migrator/ahm-staking-migration"
+	"pallet-rc-migrator/ahm-staking-migration",
 ]
