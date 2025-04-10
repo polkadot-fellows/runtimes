@@ -17,6 +17,8 @@
 #[cfg(test)]
 pub mod mock;
 #[cfg(test)]
+pub mod multisig_test;
+#[cfg(test)]
 pub mod proxy_test;
 #[cfg(test)]
 pub mod tests;

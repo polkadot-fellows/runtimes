@@ -31,7 +31,7 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use super::{mock::*, proxy_test::ProxiesStillWork};
+use super::{mock::*, multisig_test::MultisigsStillWork, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -56,6 +56,9 @@ use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
+	// This should run before the accounts migration because it creates a sample multisig account
+	// with balance on the relay chain that needs to be migrated.
+	MultisigsStillWork,
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
@@ -74,6 +77,7 @@ type RcChecks = (
 );
 
 type AhChecks = (
+	MultisigsStillWork,
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,

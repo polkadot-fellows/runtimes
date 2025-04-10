@@ -26,6 +26,7 @@ pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
+pallet-multisig = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
