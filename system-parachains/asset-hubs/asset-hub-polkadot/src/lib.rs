@@ -63,14 +63,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
-mod migration;
+pub(crate) mod ah_migration;
 pub mod staking;
 pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
 use core::cmp::Ordering;
-
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
@@ -80,7 +79,7 @@ use assets_common::{
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
-use migration::{RcToAhFreezeReason, RcToAhHoldReason};
+use ah_migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
@@ -103,6 +102,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::traits::TheseExcept;
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -113,7 +113,7 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice,
+		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice,
 		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
@@ -218,7 +218,7 @@ impl Contains<RuntimeCall> for VestedTransferCalls {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<VestedTransferCalls>;
+	type BaseCallFilter = TheseExcept<AhMigrator, VestedTransferCalls>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -1141,22 +1141,24 @@ impl pallet_ah_migrator::Config for Runtime {
 	type Currency = Balances;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
-	type RcHoldReason = migration::RcHoldReason;
-	type RcFreezeReason = migration::RcFreezeReason;
+	type RcHoldReason = ah_migration::RcHoldReason;
+	type RcFreezeReason = ah_migration::RcFreezeReason;
 	type RcToAhHoldReason = RcToAhHoldReason;
 	type RcToAhFreezeReason = RcToAhFreezeReason;
-	type RcProxyType = migration::RcProxyType;
-	type RcToProxyType = migration::RcToProxyType;
-	type RcToAhDelay = migration::RcToAhDelay;
+	type RcProxyType = ah_migration::RcProxyType;
+	type RcToProxyType = ah_migration::RcToProxyType;
+	type RcToAhDelay = ah_migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type RcToAhCall = migration::RcToAhCall;
-	type RcPalletsOrigin = migration::RcPalletsOrigin;
-	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
+	type RcToAhCall = ah_migration::RcToAhCall;
+	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
+	type RcToAhPalletsOrigin = ah_migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
-	type TreasuryAccounts = migration::TreasuryAccounts;
-	type RcToAhTreasurySpend = migration::RcToAhTreasurySpend;
+	type TreasuryAccounts = ah_migration::TreasuryAccounts;
+	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
+	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
+	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }
