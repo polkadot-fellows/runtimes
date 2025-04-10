@@ -85,11 +85,11 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		assert!(
 			alias::VotingFor::<T>::iter().next().is_none(),
-			"VotingFor should be empty before migration starts"
+			"Assert storage 'ConvictionVoting::VotingFor::ah_pre::empty'"
 		);
 		assert!(
 			pallet_conviction_voting::ClassLocksFor::<T>::iter().next().is_none(),
-			"ClassLocksFor should be empty before migration starts"
+			"Assert storage 'ConvictionVoting::ClassLocksFor::ah_pre::empty'"
 		);
 	}
 
@@ -108,6 +108,8 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 				.push(RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class));
 		}
 
+		// Assert storage "ConvictionVoting::VotingFor::ah_post::correct"
+		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::correct"
 		assert_eq!(
             rc_pre_payload, ah_messages,
             "Conviction voting data mismatch: Asset Hub data differs from original Relay Chain data"

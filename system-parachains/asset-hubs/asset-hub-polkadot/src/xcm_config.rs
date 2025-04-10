@@ -21,7 +21,7 @@ use super::{
 };
 use crate::ForeignAssetsInstance;
 use assets_common::{
-	matching::{FromNetwork, FromSiblingParachain, IsForeignConcreteAsset, ParentLocation},
+	matching::{FromNetwork, IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
 };
 use frame_support::{

@@ -23,7 +23,8 @@ pub enum TreasuryStage {
 	#[default]
 	ProposalCount,
 	Proposals(Option<ProposalIndex>),
-	Deactivated,
+	// should not be migrated since automatically updated `on_initialize`.
+	// Deactivated,
 	Approvals,
 	SpendCount,
 	Spends(Option<SpendIndex>),
@@ -46,7 +47,6 @@ pub enum RcTreasuryMessage<
 > {
 	ProposalCount(ProposalIndex),
 	Proposals((ProposalIndex, Proposal<AccountId, Balance>)),
-	Deactivated(Balance),
 	Approvals(Vec<ProposalIndex>),
 	SpendCount(SpendIndex),
 	Spends {
@@ -68,7 +68,7 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<<T as pallet_treasury::Config>::Paymaster as Pay>::Id,
 >;
 
-pub struct TreasuryMigrator<T: Config> {
+pub struct TreasuryMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
@@ -117,13 +117,8 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 							messages.push(RcTreasuryMessage::Proposals((key, value)));
 							TreasuryStage::Proposals(Some(key))
 						},
-						None => TreasuryStage::Deactivated,
+						None => TreasuryStage::Approvals,
 					}
-				},
-				TreasuryStage::Deactivated => {
-					let deactivated = pallet_treasury::Deactivated::<T>::take();
-					messages.push(RcTreasuryMessage::Deactivated(deactivated));
-					TreasuryStage::Approvals
 				},
 				TreasuryStage::Approvals => {
 					let approvals = pallet_treasury::Approvals::<T>::take();
@@ -233,5 +228,82 @@ pub mod alias {
 		pub expire_at: BlockNumber,
 		/// The status of the payout/claim.
 		pub status: pallet_treasury::PaymentState<PaymentId>,
+	}
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RcSpendStatus<AssetBalance, BlockNumber, PaymentId> {
+	pub amount: AssetBalance,
+	pub valid_from: BlockNumber,
+	pub expire_at: BlockNumber,
+	pub status: PaymentId,
+}
+
+pub type RcSpendStatusOf<T> = RcSpendStatus<
+	pallet_treasury::AssetBalanceOf<T, ()>,
+	BlockNumberFor<T>,
+	pallet_treasury::PaymentState<<<T as pallet_treasury::Config>::Paymaster as Pay>::Id>,
+>;
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for TreasuryMigrator<T> {
+	// (proposals ids, historicalproposals count, approvals ids, spends, historical spends count)
+	type RcPrePayload =
+		(Vec<ProposalIndex>, u32, Vec<ProposalIndex>, Vec<(SpendIndex, RcSpendStatusOf<T>)>, u32);
+
+	fn pre_check() -> Self::RcPrePayload {
+		// Store the counts and approvals before migration
+		let proposals = pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>();
+		let proposals_count = pallet_treasury::ProposalCount::<T>::get();
+		let approvals = pallet_treasury::Approvals::<T>::get().into_inner();
+		let spends = alias::Spends::<T>::iter()
+			.map(|(spend_id, spend_status)| {
+				(
+					spend_id,
+					RcSpendStatus {
+						amount: spend_status.amount,
+						valid_from: spend_status.valid_from,
+						expire_at: spend_status.expire_at,
+						status: spend_status.status,
+					},
+				)
+			})
+			.collect::<Vec<_>>();
+		let spends_count = alias::SpendCount::<T>::get();
+		(proposals, proposals_count, approvals, spends, spends_count)
+	}
+
+	fn post_check(_rc_payload: Self::RcPrePayload) {
+		// Assert storage 'Treasury::ProposalCount::rc_post::empty'
+		assert_eq!(
+			pallet_treasury::ProposalCount::<T>::get(),
+			0,
+			"ProposalCount should be 0 on relay chain after migration"
+		);
+
+		// Assert storage 'Treasury::Approvals::rc_post::empty'
+		assert!(
+			pallet_treasury::Approvals::<T>::get().is_empty(),
+			"Approvals should be empty on relay chain after migration"
+		);
+
+		// Assert storage 'Treasury::Proposals::rc_post::empty'
+		assert!(
+			pallet_treasury::Proposals::<T>::iter().next().is_none(),
+			"Proposals should be empty on relay chain after migration"
+		);
+
+		// Assert storage 'Treasury::SpendCount::rc_post::empty'
+		assert_eq!(
+			alias::SpendCount::<T>::get(),
+			0,
+			"SpendCount should be 0 on relay chain after migration"
+		);
+
+		// Assert storage 'Treasury::Spends::rc_post::empty'
+		assert!(
+			alias::Spends::<T>::iter().next().is_none(),
+			"Spends should be empty on relay chain after migration"
+		);
 	}
 }

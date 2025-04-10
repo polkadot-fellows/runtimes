@@ -114,7 +114,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+				|_| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
 			)?;
 		}
 
@@ -224,6 +224,6 @@ impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
 
 	fn post_check(_: Self::RcPrePayload) {
 		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
-		assert_eq!(count, 0, "All proxies are removed from the relay");
+		assert_eq!(count, 0, "Assert storage 'Proxy::Proxies::rc_post::empty'");
 	}
 }
