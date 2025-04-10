@@ -21,6 +21,7 @@ use sp_runtime::traits::Zero;
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum ConvictionVotingStage<AccountId, Class> {
 	VotingFor(Option<(AccountId, Class)>),
 	ClassLocksFor(Option<AccountId>),
@@ -28,6 +29,7 @@ pub enum ConvictionVotingStage<AccountId, Class> {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcConvictionVotingMessage<AccountId, Class, Voting, Balance> {
 	VotingFor(AccountId, Class, Voting),
 	ClassLocksFor(AccountId, Vec<(Class, Balance)>),
