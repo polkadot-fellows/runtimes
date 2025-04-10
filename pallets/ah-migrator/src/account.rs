@@ -161,9 +161,9 @@ impl<T: Config> Pallet<T> {
 	pub fn has_existential_deposit(
 		account: &RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
 	) -> bool {
-		frame_system::Pallet::<T>::providers(&account.who) > 0
-			|| <T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free)
-				>= <T as pallet::Config>::Currency::minimum_balance()
+		frame_system::Pallet::<T>::providers(&account.who) > 0 ||
+			<T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free) >=
+				<T as pallet::Config>::Currency::minimum_balance()
 	}
 
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {

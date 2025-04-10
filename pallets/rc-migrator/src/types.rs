@@ -110,6 +110,7 @@ pub enum AhMigratorCall<T: Config> {
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct MigrationFinishedData<Balance: Default> {
 	/// Total native token balance NOT migrated from Relay Chain
 	pub rc_balance_kept: Balance,
