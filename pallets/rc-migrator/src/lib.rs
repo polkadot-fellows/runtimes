@@ -536,8 +536,7 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
-						// TODO: weight
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, Weight::from_all(1)) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::Initializing);
 							},
@@ -597,7 +596,7 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T, T::AhWeightInfo>::migrate_many(
+						match MultisigMigrator::<T, T::AhWeightInfo, T::MaxAhWeight>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						) {

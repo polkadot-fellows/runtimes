@@ -520,7 +520,7 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
 			log::debug!(
 				target: LOG_TARGET,
@@ -578,7 +578,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Get the weight for importing a single account on Asset Hub.
 	///
 	/// The base weight is only included for the first imported account.
-	pub fn get_ah_receive_account_weight(batch_len: u32, account: &AccountFor<T>) -> Weight {
+	pub fn weight_ah_receive_account(batch_len: u32, account: &AccountFor<T>) -> Weight {
 		let weight_of = if account.is_liquid() {
 			T::AhWeightInfo::receive_liquid_accounts
 		} else {

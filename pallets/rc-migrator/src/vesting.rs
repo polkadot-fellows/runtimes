@@ -52,16 +52,9 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 		let mut inner_key = current_key;
 		let mut messages = Vec::new();
 
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
-
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err() || ah_weight
-				.try_consume(item_weight_of(
-					T::AhWeightInfo::receive_vesting_schedules,
-					messages.len() as u32,
-				))
 				.is_err()
 			{
 				if messages.is_empty() {
@@ -70,11 +63,16 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!("Weight allowed very big batch, stopping");
-				break;
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_vesting_schedules(messages.len() as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
-
 			let mut iter = match inner_key {
 				Some(who) => pallet_vesting::Vesting::<T>::iter_from_key(who),
 				None => pallet_vesting::Vesting::<T>::iter(),

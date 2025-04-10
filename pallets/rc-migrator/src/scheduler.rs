@@ -38,6 +38,13 @@ pub enum RcSchedulerMessage<BlockNumber, Scheduled> {
 	Lookup((TaskName, TaskAddress<BlockNumber>)),
 }
 
+impl<BlockNumber, Scheduled> RcSchedulerMessage<BlockNumber, Scheduled> {
+	/// Returns true if this message is an Agenda variant.
+	pub fn is_agenda(&self) -> bool {
+		matches!(self, Self::Agenda(_))
+	}
+}
+
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, alias::ScheduledOf<T>>;
 
 pub struct SchedulerMigrator<T: Config> {
@@ -53,12 +60,24 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(SchedulerStage::IncompleteSince);
 		let mut messages = Vec::new();
+		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if ah_weight_counter
+				.try_consume(Self::weight_ah_scheduler_message(messages.len() as u32, &last_key))
+				.is_err()
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -131,7 +150,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		Pallet::<T>::send_chunked_xcm_and_track(
 			messages,
 			|messages| types::AhMigratorCall::<T>::ReceiveSchedulerMessages { messages },
-			|_| Weight::from_all(1), // TODO
+			|len| T::AhWeightInfo::receive_scheduler_lookup(len),
 		)?;
 
 		if last_key == SchedulerStage::Finished {
@@ -139,6 +158,25 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		} else {
 			Ok(Some(last_key))
 		}
+	}
+}
+
+impl<T: Config> SchedulerMigrator<T> {
+	/// Get the weight for importing a single scheduler message on Asset Hub.
+	///
+	/// The base weight is only included for the first imported scheduler message.
+	fn weight_ah_scheduler_message(
+		batch_len: u32,
+		stage: &SchedulerStage<BlockNumberFor<T>>,
+	) -> Weight {
+		let weight_of = if matches!(stage, SchedulerStage::Agenda(_)) {
+			// TODO: use `T::AhWeightInfo::receive_scheduler_agenda` with xcm v5, where
+			// `require_weight_at_most` not required
+			T::AhWeightInfo::receive_scheduler_lookup
+		} else {
+			T::AhWeightInfo::receive_scheduler_lookup
+		};
+		item_weight_of(weight_of, batch_len)
 	}
 }
 

@@ -18,7 +18,7 @@ use crate::*;
 use call::BoundedCallOf;
 use frame_support::traits::{schedule::v3::Anon, DefensiveTruncateFrom};
 use pallet_referenda::{
-	BalanceOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor, ReferendumStatus,
+	BalanceOf, DecidingCount, ReferendumCount, ReferendumInfoFor, ReferendumStatus,
 	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue,
 };
 
@@ -29,7 +29,7 @@ use pallet_referenda::{
 /// final local `pallet_referenda::ReferendumInfoFor::<T, ()>`.
 ///
 /// Reflects: `pallet_referenda::ReferendumInfoOf::<T, ()>`.
-pub type RcReferendumInfoOf<T, I> = ReferendumInfo<
+pub type RcReferendumInfoOf<T, I = ()> = ReferendumInfo<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,
 	BlockNumberFor<T>,

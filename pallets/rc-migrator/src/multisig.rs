@@ -97,15 +97,14 @@ type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
-pub struct MultisigMigrator<T, W> {
-	_marker: sp_std::marker::PhantomData<(T, W)>,
+pub struct MultisigMigrator<T, W, L> {
+	_marker: sp_std::marker::PhantomData<(T, W, L)>,
 }
 
-impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
+impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrator<T, W, L> {
 	pub fn migrate_out_many(
 		mut last_key: Option<(T::AccountId, [u8; 32])>,
 		rc_weight: &mut WeightMeter,
-		ah_weight: &mut WeightMeter,
 	) -> Result<(Vec<RcMultisigOf<T>>, Option<(T::AccountId, [u8; 32])>), Error<T>> {
 		let mut batch = Vec::new();
 		let mut iter = match last_key.clone() {
@@ -124,13 +123,7 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
-			match Self::migrate_single(
-				k1.clone(),
-				multisig,
-				rc_weight,
-				ah_weight,
-				batch.len() as u32,
-			) {
+			match Self::migrate_single(k1.clone(), multisig, rc_weight, batch.len() as u32) {
 				Ok(ms) => batch.push(ms), // TODO continue here
 				// Account does not need to be migrated
 				// Not enough weight, lets try again in the next block since we made some progress.
@@ -150,7 +143,7 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 	}
 }
 
-impl<T: Config, W: AhWeightInfo> PalletMigration for MultisigMigrator<T, W> {
+impl<T: Config, W: AhWeightInfo, L: Get<Weight>> PalletMigration for MultisigMigrator<T, W, L> {
 	type Key = (T::AccountId, [u8; 32]);
 	type Error = Error<T>;
 
@@ -161,9 +154,7 @@ impl<T: Config, W: AhWeightInfo> PalletMigration for MultisigMigrator<T, W> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Error<T>> {
-		// we should not send more than we allocated on AH for the migration.
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
-		let (batch, last_key) = Self::migrate_out_many(last_key, weight_counter, &mut ah_weight)?;
+		let (batch, last_key) = Self::migrate_out_many(last_key, weight_counter)?;
 
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(
@@ -177,12 +168,11 @@ impl<T: Config, W: AhWeightInfo> PalletMigration for MultisigMigrator<T, W> {
 	}
 }
 
-impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
+impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrator<T, W, L> {
 	fn migrate_single(
 		k1: AccountIdOf<T>,
 		ms: aliases::MultisigOf<T>,
 		rc_weight: &mut WeightMeter,
-		ah_weight: &mut WeightMeter,
 		batch_len: u32,
 	) -> Result<RcMultisigOf<T>, OutOfWeightError> {
 		// TODO weight
@@ -190,7 +180,8 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 			return Err(OutOfWeightError);
 		}
 
-		if ah_weight.try_consume(item_weight_of(W::receive_multisigs, batch_len)).is_err() {
+		if L::get().any_lt(W::receive_multisigs(batch_len)) {
+			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
 			return Err(OutOfWeightError);
 		}
 

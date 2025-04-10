@@ -75,6 +75,16 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 					break;
 				}
 			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
 			if messages.len() > 10_000 {
 				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
 				break;
@@ -141,7 +151,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		Pallet::<T>::send_chunked_xcm_and_track(
 			messages,
 			|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-			|_| Weight::from_all(1), // TODO
+			|len| T::AhWeightInfo::receive_bounties_messages(len),
 		)?;
 
 		if last_key == BountiesStage::Finished {
