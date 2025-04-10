@@ -68,9 +68,10 @@ impl RcMigrationCheck for MultisigsStillWork {
 	type RcPrePayload = (MultisigSummary, u128);
 
 	fn pre_check() -> Self::RcPrePayload {
+		// Create a sample multisig on the relay chain.
 		let multisig_info = Self::create_sample_multisig_rc();
 		let balance = 1000000000000;
-		// A non-zero balance would force the multisig account to be migrated to Asset Hub.
+		// A non-zero balance will force the multisig account to be migrated to Asset Hub.
 		Self::transfer_rc_balance(
 			multisig_info.depositor.clone(),
 			multisig_info.multisig_id.clone(),
@@ -111,7 +112,7 @@ impl AhMigrationCheck for MultisigsStillWork {
 			),
 			"Sample multisig should have been correctly recreated on Asset Hub."
 		);
-		// Check that the multisig balance from the relay chain is preserved..
+		// Check that the multisig balance from the relay chain is preserved.
 		assert_eq!(
 			pallet_balances::Pallet::<RelayRuntime>::total_balance(&multisig_info.multisig_id),
 			balance,
