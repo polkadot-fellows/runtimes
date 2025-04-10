@@ -314,6 +314,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::Fr
 			"indices" => MigrationStage::IndicesMigrationInit,
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
+			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -1346,7 +1347,7 @@ pub mod pallet {
 				}
 			}
 
-			log::info!(target: LOG_TARGET, "Sent {} XCM batches", batch_count);
+			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
 			Ok(batch_count)
 		}
 
