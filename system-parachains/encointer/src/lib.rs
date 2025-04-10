@@ -37,6 +37,7 @@ extern crate alloc;
 pub mod genesis_config_presets;
 mod weights;
 pub mod xcm_config;
+mod treasuries_xcm_payout;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -570,6 +571,14 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
+	type AssetKind =  crate::treasuries_xcm_payout::SupportedPayouts;
+	type Paymaster = crate::treasuries_xcm_payout::PayoutOverXcmAtAssetHub<
+		crate::xcm_config::XcmRouter,
+		crate::PolkadotXcm,
+		ConstU32<{ 6 * HOURS }>,
+		AccountId,
+		Self::AssetKind,
+	>;
 }
 
 impl pallet_aura::Config for Runtime {
