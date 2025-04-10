@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version.workspace = true
+version = "0.1.0"                                                      # Wont work in the SDK otherwise
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -51,3 +51,21 @@ pallet-whitelist = { workspace = true, default-features = true }
 pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
+
+[features]
+ahm-westend = [
+	"pallet-ah-migrator/ahm-westend",
+	"pallet-rc-migrator/ahm-westend",
+]
+ahm-polkadot = [
+	"pallet-ah-migrator/ahm-polkadot",
+	"pallet-rc-migrator/ahm-polkadot",
+]
+
+# This will be changed by our porting script
+default = ["ahm-polkadot"]
+stable2503 = ["pallet-ah-migrator/stable2503", "pallet-rc-migrator/stable2503"]
+ahm-staking-migration = [
+	"pallet-ah-migrator/ahm-staking-migration",
+	"pallet-rc-migrator/ahm-staking-migration",
+]

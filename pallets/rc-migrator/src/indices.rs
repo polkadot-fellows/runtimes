@@ -28,6 +28,7 @@ pub struct IndicesMigrator<T> {
 }
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcIndicesIndex<AccountIndex, AccountId, Balance> {
 	pub index: AccountIndex,
 	pub who: AccountId,

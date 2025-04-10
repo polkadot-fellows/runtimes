@@ -17,9 +17,13 @@
 //! XCM configurations for the Relay Chain for the AHM migration.
 
 use frame_support::parameter_types;
-use polkadot_runtime_constants::system_parachain::*;
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
+
+#[cfg(feature = "ahm-polkadot")]
+use polkadot_runtime_constants::system_parachain::*;
+#[cfg(feature = "ahm-westend")]
+use westend_runtime_constants::system_parachain::*;
 
 parameter_types! {
 	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
