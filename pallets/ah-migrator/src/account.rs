@@ -208,7 +208,6 @@ impl<T: Config> Pallet<T> {
 			.checked_sub(balances_before.checking_account)
 			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?;
 		<T as Config>::Currency::make_free_balance_be(&checking_account, balance_after);
-		<<T as Config>::Currency as Currency<_>>::deactivate(balance_after);
 		Ok(())
 	}
 }
@@ -270,7 +269,8 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			"Failed accounts should not remain in storage after migration"
 		);
 
-		// TODO: run post migration sanity checks like:
+		// TODO: Giuseppe @re-gius
+		//   run post migration sanity checks like:
 		//    - rc_migrated_out == ah_migrated_in - failed accounts
 	}
 }

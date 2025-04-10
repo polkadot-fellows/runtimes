@@ -563,6 +563,11 @@ pub mod pallet {
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
 					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
+					RcMigratedBalance::<T>::mutate(|tracker| {
+						// initialize `kept` balance as total issuance, we'll substract from it as
+						// we migrate accounts
+						tracker.kept = <T as Config>::Currency::total_issuance();
+					});
 
 					Self::transition(MigrationStage::AccountsMigrationOngoing { last_key: None });
 				},

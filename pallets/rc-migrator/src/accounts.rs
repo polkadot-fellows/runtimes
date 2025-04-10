@@ -752,11 +752,6 @@ impl<T: Config> AccountsMigrator<T> {
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}
-		RcMigratedBalance::<T>::mutate(|tracker| {
-			// initialize `kept` balance as total issuance, we'll substract from it as we migrate
-			// accounts
-			tracker.kept = <T as Config>::Currency::total_issuance();
-		});
 
 		// TODO: define actual weight
 		Weight::from_all(1)
