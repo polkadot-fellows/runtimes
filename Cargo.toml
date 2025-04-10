@@ -261,6 +261,7 @@ zombienet-sdk = { version = "0.2.4" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
+pallets-common = { path = "pallets/common", default-features = false }
 
 [workspace]
 resolver = "2"
@@ -297,6 +298,7 @@ members = [
 	"integration-tests/zombienet",
 	"pallets/ah-migrator",
 	"pallets/ah-ops",
+	"pallets/common",
 	"pallets/rc-migrator",
 	"pallets/remote-proxy",
 	"relay/common",

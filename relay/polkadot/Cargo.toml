@@ -104,6 +104,7 @@ polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 relay-common = { workspace = true }
+pallets-common = { workspace = true }
 
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -197,6 +198,7 @@ std = [
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm/std",
+	"pallets-common/std",
 	"polkadot-parachain-primitives/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",

@@ -1982,6 +1982,7 @@ dependencies = [
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -2502,6 +2503,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -2856,6 +2858,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -9347,6 +9350,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallets-common"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "staging-xcm",
+ "staging-xcm-executor",
+]
+
+[[package]]
 name = "parachains-common"
 version = "18.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?branch=bkchr-fix-the-thing#b6a646d1f72dbfb50cb83230bbc0309d2f659357"
@@ -9863,6 +9879,7 @@ dependencies = [
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parachains-common",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -10215,6 +10232,7 @@ dependencies = [
  "pallet-whitelist",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
+ "pallets-common",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-primitives",
