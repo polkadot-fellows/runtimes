@@ -102,11 +102,6 @@ impl AhMigrationCheck for MultisigsStillWork {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
 		let (multisig_info, balance) = rc_pre_payload;
-		assert_eq!(
-			pallet_balances::Pallet::<RelayRuntime>::total_balance(&multisig_info.multisig_id),
-			balance,
-			"Sample multisig account balance should have been migrated to Asset Hub with the correct balance."
-		);
 		// Recreating the multisig on Asset Hub should work.
 		let call_hash = Self::recreate_multisig_ah(&multisig_info);
 		assert!(
@@ -115,6 +110,12 @@ impl AhMigrationCheck for MultisigsStillWork {
 				call_hash.clone()
 			),
 			"Sample multisig should have been correctly recreated on Asset Hub."
+		);
+		// Check that the multisig balance from the relay chain is preserved..
+		assert_eq!(
+			pallet_balances::Pallet::<RelayRuntime>::total_balance(&multisig_info.multisig_id),
+			balance,
+			"Sample multisig account balance should have been migrated to Asset Hub with the correct balance."
 		);
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
 		pallet_multisig::Multisigs::<AssetHubRuntime>::remove(
