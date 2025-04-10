@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumInfoFor, TrackQueue};
+use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumIndex, ReferendumInfoFor, ReferendumInfoOf, TrackIdOf, TrackQueue, VotesOf};
 
 /// The stages of the referenda pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
@@ -234,8 +234,8 @@ pub type RcPrePayload<T> = (
 	Vec<(TrackIdOf<T, ()>, u32)>,
 	Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
 	Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
-	Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
-)
+	Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
+);
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T>
