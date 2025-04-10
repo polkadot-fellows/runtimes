@@ -71,16 +71,9 @@ use frame_support::{
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
+use frame_support::traits::Contains;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
-
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::claims::RcClaimsMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::treasury::RcTreasuryMessage;
-
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
@@ -90,9 +83,8 @@ use pallet_rc_migrator::{
 	proxy::*,
 	staking::{
 		bags_list::RcBagsListMessage,
-		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
+		fast_unstake::{RcFastUnstakeMessage},
 		nom_pools::*,
-		*,
 	},
 	vesting::RcVestingSchedule,
 };
@@ -108,6 +100,13 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
+
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::claims::RcClaimsMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
@@ -311,6 +310,13 @@ pub mod pallet {
 				(),
 			>,
 		>;
+
+		// Calls that are allowed during the migration.
+		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		// Calls that are allowed after the migration finished.
+		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
 		/// Helper type for benchmarking.
 		#[cfg(feature = "runtime-benchmarks")]
 		type BenchmarkHelper: benchmarking::ParametersFactory<
@@ -913,5 +919,29 @@ pub mod pallet {
 				TrustedTeleportersBeforeAfter::contains(asset, origin)
 			}
 		}
+	}
+}
+
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = AhMigrationStage::<T>::get();
+
+		// We have to return whether the call is allowed:
+		const ALLOWED: bool = true;
+		const FORBIDDEN: bool = false;
+
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::AhIntraMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
+		ALLOWED
 	}
 }
