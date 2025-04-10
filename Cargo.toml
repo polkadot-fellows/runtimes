@@ -317,3 +317,21 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+encointer-balances-tx-payment = { path = "../encointer-pallets/balances-tx-payment" }
+encointer-balances-tx-payment-rpc-runtime-api = { path = "../encointer-pallets/balances-tx-payment/rpc/runtime-api" }
+encointer-primitives = { path = "../encointer-pallets/primitives" }
+pallet-encointer-balances = { path = "../encointer-pallets/balances" }
+pallet-encointer-bazaar = { path = "../encointer-pallets/bazaar" }
+pallet-encointer-bazaar-rpc-runtime-api = { path = "../encointer-pallets/bazaar/rpc/runtime-api" }
+pallet-encointer-ceremonies = { path = "../encointer-pallets/ceremonies" }
+pallet-encointer-ceremonies-rpc-runtime-api = { path = "../encointer-pallets/ceremonies/rpc/runtime-api" }
+pallet-encointer-communities = { path = "../encointer-pallets/communities" }
+pallet-encointer-communities-rpc-runtime-api = { path = "../encointer-pallets/communities/rpc/runtime-api" }
+pallet-encointer-democracy = { path = "../encointer-pallets/democracy" }
+pallet-encointer-faucet = { path = "../encointer-pallets/faucet" }
+pallet-encointer-reputation-commitments = { path = "../encointer-pallets/reputation-commitments" }
+pallet-encointer-scheduler = { path = "../encointer-pallets/scheduler" }
+pallet-encointer-treasuries = { path = "../encointer-pallets/treasuries" }
+pallet-encointer-treasuries-rpc-runtime-api = { path = "../encointer-pallets/treasuries/rpc/runtime-api" }
