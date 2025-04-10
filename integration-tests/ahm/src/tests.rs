@@ -31,6 +31,8 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
+use crate::porting_prelude::*;
+
 use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
@@ -57,7 +59,6 @@ use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
-	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -67,15 +68,24 @@ type RcChecks = (
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
-	// other pallets go here
+	RcPolkadotChecks,
+	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
 );
 
+// Checks that are specific to Polkadot, and not available on other chains (like Westend)
+#[cfg(feature = "ahm-polkadot")]
+pub type RcPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+);
+
+#[cfg(not(feature = "ahm-polkadot"))]
+pub type RcPolkadotChecks = ();
+
 type AhChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
-	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
@@ -85,11 +95,22 @@ type AhChecks = (
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
-	// other pallets go here
+	AhPolkadotChecks,
+	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
 );
+
+// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
+// (like AH Westend)
+#[cfg(feature = "ahm-polkadot")]
+pub type AhPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+);
+
+#[cfg(not(feature = "ahm-polkadot"))]
+pub type AhPolkadotChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
@@ -135,6 +156,7 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
+#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();

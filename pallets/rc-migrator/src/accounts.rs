@@ -80,6 +80,7 @@ use sp_runtime::traits::Zero;
 
 /// Account type meant to transfer data between RC and AH.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// The account address
 	pub who: AccountId,
@@ -148,6 +149,7 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 
 /// The state for the Relay Chain accounts.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.
 	Migrate,
@@ -181,6 +183,7 @@ pub type AccountFor<T> = Account<
 
 /// Helper struct tracking total balance kept on RC and total migrated.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct MigratedBalances<Balance: Default> {
 	pub kept: Balance,
 	pub migrated: Balance,
@@ -363,7 +366,7 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		let ed = <T as Config>::Currency::minimum_balance();
-		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
+		let holds: Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {

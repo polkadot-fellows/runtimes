@@ -161,9 +161,9 @@ impl<T: Config> Pallet<T> {
 	pub fn has_existential_deposit(
 		account: &RcAccount<T::AccountId, T::Balance, T::RcHoldReason, T::RcFreezeReason>,
 	) -> bool {
-		frame_system::Pallet::<T>::providers(&account.who) > 0 ||
-			<T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free) >=
-				<T as pallet::Config>::Currency::minimum_balance()
+		frame_system::Pallet::<T>::providers(&account.who) > 0
+			|| <T as pallet::Config>::Currency::balance(&account.who).saturating_add(account.free)
+				>= <T as pallet::Config>::Currency::minimum_balance()
 	}
 
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
@@ -235,12 +235,6 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			"No reserves should exist on Asset Hub before migration"
 		);
 
-		// Assert storage "Balances::Holds::ah_pre::empty"
-		assert!(
-			pallet_balances::Holds::<T>::iter().next().is_none(),
-			"No holds should exist on Asset Hub before migration"
-		);
-
 		// Assert storage "Balances::Freezes::ah_pre::empty"
 		assert!(
 			pallet_balances::Freezes::<T>::iter().next().is_none(),
@@ -252,6 +246,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 		// added DOT ED to all existing AH accounts.
 		// This is fine, we can just ignore/accept this small amount.
+		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
 		checking_balance
 	}

@@ -20,6 +20,7 @@ use crate::{types::*, *};
 use alias::UnstakeRequest;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum FastUnstakeStage<AccountId> {
 	StorageValues,
 	Queue(Option<AccountId>),
@@ -38,6 +39,7 @@ pub enum FastUnstakeStage<AccountId> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 	StorageValues { values: FastUnstakeStorageValues<T> },
 	Queue { member: (T::AccountId, alias::BalanceOf<T>) },
@@ -56,6 +58,7 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
 	pub eras_to_check_per_block: u32,
@@ -212,6 +215,7 @@ pub mod alias {
 		MaxEncodedLen,
 	)]
 	#[scale_info(skip_type_params(T))]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct UnstakeRequest<T: pallet_fast_unstake::Config> {
 		/// This list of stashes are being processed in this request, and their corresponding
 		/// deposit.

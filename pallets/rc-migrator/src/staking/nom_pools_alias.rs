@@ -34,6 +34,7 @@ use sp_staking::EraIndex;
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RewardPool<T: pallet_nomination_pools::Config> {
 	/// The last recorded value of the reward counter.
 	///
@@ -67,6 +68,7 @@ pub struct RewardPool<T: pallet_nomination_pools::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct SubPools<T: pallet_nomination_pools::Config> {
 	/// A general, era agnostic pool of funds that have fully unbonded. The pools
 	/// of `Self::with_era` will lazily be merged into into this pool if they are
@@ -89,6 +91,7 @@ pub struct SubPools<T: pallet_nomination_pools::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct UnbondPool<T: pallet_nomination_pools::Config> {
 	/// The points in this pool.
 	pub points: BalanceOf<T>,
