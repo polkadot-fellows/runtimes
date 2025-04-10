@@ -49,7 +49,7 @@ pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 pub type RcBountiesMessageOf<T> =
 	RcBountiesMessage<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>;
 
-pub struct BountiesMigrator<T: Config> {
+pub struct BountiesMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
@@ -157,5 +157,58 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 			);
 			Ok(Some(last_key))
 		}
+	}
+}
+
+// (BountyCount, Bounties, BountyDescriptions, BountyApprovals)
+pub type RcPrePayload<T> = (
+	BountyIndex,
+	Vec<(
+		BountyIndex,
+		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
+	)>,
+	Vec<(BountyIndex, Vec<u8>)>,
+	Vec<BountyIndex>,
+);
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
+	type RcPrePayload = RcPrePayload<T>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let count = pallet_bounties::BountyCount::<T>::get();
+		let bounties: Vec<_> = pallet_bounties::Bounties::<T>::iter().collect();
+		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter()
+			.map(|(key, bounded_vec)| (key, bounded_vec.into_inner()))
+			.collect();
+		let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
+		(count, bounties, descriptions, approvals)
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Bounties::BountyCount::rc_post::empty'
+		assert_eq!(
+			pallet_bounties::BountyCount::<T>::get(),
+			0,
+			"Bounty count should be 0 on RC after migration"
+		);
+
+		// Assert storage 'Bounties::Bounties::rc_post::empty'
+		assert!(
+			pallet_bounties::Bounties::<T>::iter().next().is_none(),
+			"Bounties map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Bounties::BountyDescriptions::rc_post::empty'
+		assert!(
+			pallet_bounties::BountyDescriptions::<T>::iter().next().is_none(),
+			"Bount descriptions map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Bounties::BountyApprovals::rc_post::empty'
+		assert!(
+			pallet_bounties::BountyApprovals::<T>::get().is_empty(),
+			"Bounty Approvals vec should be empty on RC after migration"
+		);
 	}
 }
