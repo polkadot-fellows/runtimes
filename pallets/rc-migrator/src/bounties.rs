@@ -15,8 +15,8 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_bounties::{Bounty, BountyIndex};
 use frame_system::pallet_prelude::BlockNumberFor;
+use pallet_bounties::{Bounty, BountyIndex};
 
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 

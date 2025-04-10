@@ -16,8 +16,8 @@
 
 use super::*;
 use frame_support::traits::schedule::v3::TaskName;
-use pallet_scheduler::{RetryConfig, TaskAddress};
 pub use frame_system::pallet_prelude::BlockNumberFor as SchedulerBlockNumberFor;
+use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
@@ -41,7 +41,8 @@ pub enum RcSchedulerMessage<BlockNumber, Scheduled> {
 	Lookup((TaskName, TaskAddress<BlockNumber>)),
 }
 
-pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<SchedulerBlockNumberFor<T>, alias::ScheduledOf<T>>;
+pub type RcSchedulerMessageOf<T> =
+	RcSchedulerMessage<SchedulerBlockNumberFor<T>, alias::ScheduledOf<T>>;
 
 pub struct SchedulerMigrator<T: Config> {
 	_phantom: PhantomData<T>,

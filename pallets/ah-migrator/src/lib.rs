@@ -68,10 +68,9 @@ use frame_support::{
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::{Fortitude, Pay, Preservation},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
-		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
+		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
-use frame_support::traits::VariantCount;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 
@@ -93,7 +92,7 @@ use pallet_rc_migrator::{
 		bags_list::RcBagsListMessage,
 		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
 		nom_pools::*,
-		*
+		*,
 	},
 	vesting::RcVestingSchedule,
 };
@@ -750,7 +749,7 @@ pub mod pallet {
 			messages: Vec<RcStakingMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
-			
+
 			let res = Self::do_receive_staking_messages(messages);
 
 			Self::increment_msg_received_count(res.is_err());

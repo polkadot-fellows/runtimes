@@ -216,7 +216,6 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			"No reserves should exist on Asset Hub before migration"
 		);
 
-
 		// Assert storage "Balances::Freezes::ah_pre::empty"
 		assert!(
 			pallet_balances::Freezes::<T>::iter().next().is_none(),

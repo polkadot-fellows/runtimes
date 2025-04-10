@@ -68,11 +68,10 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency,
+		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 };
-use frame_support::traits::VariantCount;
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
 use multisig::MultisigMigrator;
@@ -135,7 +134,7 @@ pub type MigrationStageOf<T> = MigrationStage<
 	<T as pallet_bags_list::Config<pallet_bags_list::Instance1>>::Score,
 	conviction_voting::alias::ClassOf<T>,
 	<T as pallet_asset_rate::Config>::AssetKind,
-	scheduler::SchedulerBlockNumberFor<T>
+	scheduler::SchedulerBlockNumberFor<T>,
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -149,7 +148,14 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
-pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber> {
+pub enum MigrationStage<
+	AccountId,
+	BlockNumber,
+	BagsListScore,
+	VotingClass,
+	AssetKind,
+	SchedulerBlockNumber,
+> {
 	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
@@ -327,8 +333,16 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 }
 
 #[cfg(feature = "std")]
-impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber> std::str::FromStr
-	for MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber>
+impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlockNumber>
+	std::str::FromStr
+	for MigrationStage<
+		AccountId,
+		BlockNumber,
+		BagsListScore,
+		VotingClass,
+		AssetKind,
+		SchedulerBlockNumber,
+	>
 {
 	type Err = std::string::String;
 
