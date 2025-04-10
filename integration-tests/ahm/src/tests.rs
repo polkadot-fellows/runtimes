@@ -59,7 +59,6 @@ use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
-	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -77,14 +76,16 @@ type RcChecks = (
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
-pub type RcPolkadotChecks = (pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,);
+pub type RcPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+);
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
-	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
@@ -103,7 +104,10 @@ type AhChecks = (
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
 // (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
-pub type AhPolkadotChecks = (pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,);
+pub type AhPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+);
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type AhPolkadotChecks = ();
