@@ -282,7 +282,7 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// The Weth asset location, identified by the contract address on Ethereum
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
+	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
 	let weth_asset_location: xcm::v4::Location = (
 		xcm::v4::Parent,
 		xcm::v4::Parent,
@@ -663,7 +663,7 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
+	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
 	let ether_location: xcm::v4::Location =
 		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network).into();
 
@@ -705,7 +705,7 @@ fn send_weth_asset_from_asset_hub_to_ethereum() {
 	// Register WETH on Asset Hub
 	register_weth_token_from_ethereum_to_asset_hub();
 
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
+	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
 	let weth_location: xcm::v4::Location = (
 		xcm::v4::Parent,
 		xcm::v4::Parent,
@@ -890,7 +890,7 @@ fn make_register_token_message() -> InboundQueueFixture {
 }
 
 fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u128) {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().try_into().unwrap();
+	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
 	let weth_asset_location = xcm::v4::Location::new(
 		2,
 		[v4_ethereum_network.into(), xcm::v4::Junction::AccountKey20 { network: None, key: WETH }],
