@@ -29,6 +29,7 @@ use xcm::{opaque::lts::Weight, prelude::*};
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 use pallet_encointer_treasuries::Payout;
 use xcm::v5::Junctions::X2;
+use crate::xcm_config::KsmLocation;
 
 /// Payout an asset at asset hub.
 ///
@@ -80,7 +81,7 @@ for PayoutOverXcmAtAssetHub<
 
         let message = Xcm(vec![
             DescendOrigin(AccountId32 { network: None, id: from.clone().into() }.into()),
-            PayFees { asset: Asset { id: asset_id(asset_kind.clone()), fun: Fungible(amount) }},
+            PayFees { asset: Asset { id: KsmLocation::get().into(), fun: Fungible(amount) }},
             SetAppendix(Xcm(vec![
                 SetFeesMode { jit_withdraw: true },
                 ReportError(QueryResponseInfo {
