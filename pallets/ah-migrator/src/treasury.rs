@@ -281,10 +281,10 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 					amount: spend.amount,
 					valid_from: spend.valid_from,
 					expire_at: spend.expire_at,
-					status: spend.status,
+					status: spend.status.clone(),
 				},
 			));
 		}
-		assert_eq!(ah_spends.len(), spends.len(), "Spends on Asset Hub should match RC values");
+		assert_eq!(ah_spends, spends, "Spends on Asset Hub should match RC values");
 	}
 }
