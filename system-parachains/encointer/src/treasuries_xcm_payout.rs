@@ -82,8 +82,9 @@ for PayoutOverXcmAtAssetHub<
 
         let message = Xcm(vec![
             DescendOrigin(AccountId32 { network: None, id: from.clone().into() }.into()),
-            WithdrawAsset(vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM) }].into()),
-            PayFees { asset: (KsmLocation::get(), ONE_KSM).into()},
+            WithdrawAsset(vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into()),
+            PayFees { asset: (KsmLocation::get(), 10).into()},
+            WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
             SetAppendix(Xcm(vec![
                 SetFeesMode { jit_withdraw: true },
                 ReportError(QueryResponseInfo {
@@ -94,7 +95,7 @@ for PayoutOverXcmAtAssetHub<
             ])),
             TransferAsset {
                 beneficiary: AccountId32 { network: None, id: to.clone().into() }.into(),
-                assets:(asset_id(asset_kind.clone()), amount).into(),
+                assets: (asset_id(asset_kind.clone()), amount).into(),
             },
         ]);
 
