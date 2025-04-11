@@ -234,7 +234,7 @@ pub type RcPrePayload<T> = (
 	Vec<(TrackIdOf<T, ()>, u32)>,
 	Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
 	Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
-	Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
+	Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
 );
 
 #[cfg(feature = "std")]
