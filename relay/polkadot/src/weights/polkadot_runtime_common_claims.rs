@@ -163,4 +163,22 @@ impl<T: frame_system::Config> polkadot_runtime_common::claims::WeightInfo for We
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
+	/// Storage: `Claims::Claims` (r:1 w:2)
+	/// Proof: `Claims::Claims` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Claims::Vesting` (r:1 w:2)
+	/// Proof: `Claims::Vesting` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Claims::Signing` (r:1 w:2)
+	/// Proof: `Claims::Signing` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Claims::Preclaims` (r:1 w:1)
+	/// Proof: `Claims::Preclaims` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn prevalidate_attests() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `406`
+		//  Estimated: `3871`
+		// Minimum execution time: 35_420_000 picoseconds.
+		Weight::from_parts(37_110_000, 0)
+			.saturating_add(Weight::from_parts(0, 3871))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(7))
+	}
 }

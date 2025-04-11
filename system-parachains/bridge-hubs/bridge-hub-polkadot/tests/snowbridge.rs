@@ -22,7 +22,7 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
+	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
 	UncheckedExtrinsic,
 };
 use codec::{Decode, Encode};
@@ -387,7 +387,7 @@ fn construct_extrinsic(
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
-	let extra: SignedExtra = (
+	let extra: TxExtension = (
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),

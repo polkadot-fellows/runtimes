@@ -154,7 +154,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -191,7 +191,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -273,7 +273,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: assign_core_call.encode().into(),
 			},
 		]);

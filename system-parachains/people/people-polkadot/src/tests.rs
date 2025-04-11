@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{xcm_config::LocationToAccountId, Block, Runtime, RuntimeCall, RuntimeOrigin};
+use crate::xcm_config::LocationToAccountId;
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -124,6 +124,7 @@ fn location_conversion_works() {
 
 #[test]
 fn xcm_payment_api_works() {
+	use crate::{Block, Runtime, RuntimeCall, RuntimeOrigin};
 	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
 		Runtime,
 		RuntimeCall,

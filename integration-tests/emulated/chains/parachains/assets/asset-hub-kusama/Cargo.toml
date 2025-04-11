@@ -11,6 +11,7 @@ publish = false
 
 # Substrate
 sp-core = { workspace = true, default-features = true }
+sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 
 # Cumulus
@@ -24,3 +25,14 @@ polkadot-parachain-primitives = { workspace = true }
 asset-hub-kusama-runtime = { workspace = true }
 kusama-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"kusama-emulated-chain/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+]

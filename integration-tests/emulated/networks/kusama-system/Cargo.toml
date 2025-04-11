@@ -19,3 +19,13 @@ kusama-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 people-kusama-emulated-chain = { workspace = true }
 coretime-kusama-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-kusama-emulated-chain/runtime-benchmarks",
+	"bridge-hub-kusama-emulated-chain/runtime-benchmarks",
+	"coretime-kusama-emulated-chain/runtime-benchmarks",
+	"kusama-emulated-chain/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"people-kusama-emulated-chain/runtime-benchmarks",
+]

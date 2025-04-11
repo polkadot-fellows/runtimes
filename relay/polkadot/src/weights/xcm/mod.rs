@@ -18,11 +18,14 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::Runtime;
-use sp_std::prelude::*;
-use xcm::{latest::prelude::*, DoubleEncoded};
-
+use alloc::vec::Vec;
+use frame_election_provider_support::BoundedVec;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmBalancesWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
+use xcm::{
+	latest::{prelude::*, AssetTransferFilter},
+	DoubleEncoded,
+};
 
 /// Types of asset supported by the Polkadot runtime.
 pub enum AssetTypes {
@@ -65,7 +68,7 @@ impl WeighAssets for AssetFilter {
 			// only 1 kind of fungible asset.
 			Self::Wild(AllOf { .. } | AllOfCounted { .. }) => balances_weight,
 			Self::Wild(AllCounted(count)) =>
-				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
+				balances_weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
 			Self::Wild(All) => balances_weight.saturating_mul(MAX_ASSETS),
 		}
 	}
@@ -111,7 +114,7 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 	}
 	fn transact(
 		_origin_kind: &OriginKind,
-		_require_weight_at_most: &Weight,
+		_fallback_max_weight: &Option<Weight>,
 		_call: &DoubleEncoded<RuntimeCall>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::transact()
@@ -264,6 +267,48 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for PolkadotXcmWeight<RuntimeCall> 
 	}
 	fn unpaid_execution(_: &WeightLimit, _: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::unpaid_execution()
+	}
+	fn pay_fees(_asset: &Asset) -> Weight {
+		XcmGeneric::<Runtime>::pay_fees()
+	}
+	fn initiate_transfer(
+		_dest: &Location,
+		remote_fees: &Option<AssetTransferFilter>,
+		_preserve_origin: &bool,
+		assets: &BoundedVec<AssetTransferFilter, MaxAssetTransferFilters>,
+		_xcm: &Xcm<()>,
+	) -> Weight {
+		let base_weight = XcmBalancesWeight::<Runtime>::initiate_transfer();
+		let mut weight = if let Some(remote_fees) = remote_fees {
+			let fees = remote_fees.inner();
+			fees.weigh_assets(base_weight)
+		} else {
+			base_weight
+		};
+
+		for asset_filter in assets {
+			let assets = asset_filter.inner();
+			let extra = assets.weigh_assets(XcmBalancesWeight::<Runtime>::initiate_transfer());
+			weight = weight.saturating_add(extra);
+		}
+		weight
+	}
+	fn execute_with_origin(
+		_descendant_origin: &Option<InteriorLocation>,
+		_xcm: &Xcm<RuntimeCall>,
+	) -> Weight {
+		XcmGeneric::<Runtime>::execute_with_origin()
+	}
+	fn set_hints(hints: &BoundedVec<Hint, HintNumVariants>) -> Weight {
+		let mut weight = Weight::zero();
+		for hint in hints {
+			match hint {
+				AssetClaimer { .. } => {
+					weight = weight.saturating_add(XcmGeneric::<Runtime>::asset_claimer());
+				},
+			}
+		}
+		weight
 	}
 }
 

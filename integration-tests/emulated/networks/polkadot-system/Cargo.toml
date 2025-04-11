@@ -20,3 +20,14 @@ coretime-polkadot-emulated-chain = { workspace = true }
 penpal-emulated-chain = { workspace = true }
 polkadot-emulated-chain = { workspace = true }
 people-polkadot-emulated-chain = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-polkadot-emulated-chain/runtime-benchmarks",
+	"bridge-hub-polkadot-emulated-chain/runtime-benchmarks",
+	"collectives-polkadot-emulated-chain/runtime-benchmarks",
+	"coretime-polkadot-emulated-chain/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"people-polkadot-emulated-chain/runtime-benchmarks",
+	"polkadot-emulated-chain/runtime-benchmarks",
+]

@@ -77,6 +77,20 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		Weight::from_parts(1_070_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
+	pub(crate) fn pay_fees() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 2_899_000 picoseconds.
+		Weight::from_parts(3_090_000, 0)
+	}
+	pub(crate) fn asset_claimer() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 669_000 picoseconds.
+		Weight::from_parts(714_000, 0)
+	}
 	/// Storage: `PolkadotXcm::Queries` (r:1 w:0)
 	/// Proof: `PolkadotXcm::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	pub(crate) fn query_response() -> Weight {
@@ -135,6 +149,13 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		// Minimum execution time: 1_050_000 picoseconds.
 		Weight::from_parts(1_140_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
+	}
+	pub(crate) fn execute_with_origin() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 790_000 picoseconds.
+		Weight::from_parts(843_000, 0)
 	}
 	pub(crate) fn clear_origin() -> Weight {
 		// Proof Size summary in bytes:
@@ -332,6 +353,17 @@ impl<T: frame_system::Config> WeightInfo<T> {
 		// Minimum execution time: 960_000 picoseconds.
 		Weight::from_parts(1_010_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
+	}
+	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
+	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	pub(crate) fn universal_origin() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `32`
+		//  Estimated: `1489`
+		// Minimum execution time: 7_410_000 picoseconds.
+		Weight::from_parts(7_671_000, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			.saturating_add(T::DbWeight::get().reads(1))
 	}
 	pub(crate) fn set_fees_mode() -> Weight {
 		// Proof Size summary in bytes:

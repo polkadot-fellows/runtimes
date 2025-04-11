@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use super::*;
+use core::{cmp::Ordering, marker::PhantomData};
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
 	traits::{Currency, Get, Imbalance, OnUnbalanced, OriginTrait, PrivilegeCmp},
@@ -21,7 +22,6 @@ use frame_support::{
 use pallet_alliance::{ProposalIndex, ProposalProvider};
 use parachains_common::impls::NegativeImbalance;
 use sp_runtime::DispatchError;
-use sp_std::{cmp::Ordering, marker::PhantomData, prelude::*};
 use xcm_executor::traits::ConvertLocation;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;

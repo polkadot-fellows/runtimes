@@ -23,7 +23,7 @@ pub mod tx_payment {
 		ensure,
 		pallet_prelude::{InvalidTransaction, TransactionValidityError},
 		traits::{
-			tokens::{Fortitude, Precision, Preservation},
+			tokens::{Fortitude, Precision, Preservation, WithdrawConsequence},
 			Defensive, OnUnbalanced, SameOrOther,
 		},
 	};
@@ -119,6 +119,33 @@ pub mod tx_payment {
 			// implement `Imbalanced` trait.
 			OU::on_unbalanced(adjusted_paid);
 			Ok(())
+		}
+
+		fn can_withdraw_fee(
+			who: &T::AccountId,
+			_call: &T::RuntimeCall,
+			_dispatch_info: &DispatchInfoOf<T::RuntimeCall>,
+			fee: Self::Balance,
+			_tip: Self::Balance,
+		) -> Result<(), TransactionValidityError> {
+			if fee.is_zero() {
+				return Ok(());
+			}
+
+			match F::can_withdraw(A::get(), who, fee) {
+				WithdrawConsequence::Success => Ok(()),
+				_ => Err(InvalidTransaction::Payment.into()),
+			}
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn endow_account(who: &T::AccountId, amount: Self::Balance) {
+			let _ = F::deposit(A::get(), who, amount, Precision::BestEffort);
+		}
+
+		#[cfg(feature = "runtime-benchmarks")]
+		fn minimum_balance() -> Self::Balance {
+			F::minimum_balance(A::get())
 		}
 	}
 }

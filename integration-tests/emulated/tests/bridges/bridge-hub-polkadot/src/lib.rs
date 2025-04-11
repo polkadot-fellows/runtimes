@@ -22,7 +22,7 @@ pub use sp_runtime::DispatchError;
 pub use xcm::{
 	latest::ParentThen,
 	prelude::{AccountId32 as AccountId32Junction, *},
-	v4::{
+	v5::{
 		self, Error,
 		NetworkId::{Kusama as KusamaId, Polkadot as PolkadotId},
 	},

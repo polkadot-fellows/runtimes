@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(not(feature = "std"))]
+use alloc::format;
+use alloc::vec::Vec;
 use parachains_common::AuraId;
 use polkadot_primitives::{AccountId, AccountPublic};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
-#[cfg(not(feature = "std"))]
-use sp_std::alloc::format;
-use sp_std::vec::Vec;
 
 /// Invulnerable Collators
 pub fn invulnerables() -> Vec<(parachains_common::AccountId, AuraId)> {
