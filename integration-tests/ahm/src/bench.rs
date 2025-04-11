@@ -103,9 +103,9 @@ fn test_bench_receive_referenda_values() {
 }
 
 #[test]
-fn test_bench_receive_active_referendums() {
+fn test_bench_receive_single_active_referendums() {
 	new_test_ext().execute_with(|| {
-		test_receive_active_referendums::<AssetHub>(BENCHMARK_N);
+		test_receive_single_active_referendums::<AssetHub>(BENCHMARK_N);
 	});
 }
 
@@ -131,9 +131,9 @@ fn test_bench_receive_liquid_accounts() {
 }
 
 #[test]
-fn test_bench_receive_scheduler_agenda() {
+fn test_bench_receive_single_scheduler_agenda() {
 	new_test_ext().execute_with(|| {
-		test_receive_scheduler_agenda::<AssetHub>(BENCHMARK_N);
+		test_receive_single_scheduler_agenda::<AssetHub>(BENCHMARK_N);
 	});
 }
 

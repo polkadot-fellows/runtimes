@@ -92,8 +92,8 @@ pub trait ParametersFactory<
 	fn create_vesting_schedule(n: u8) -> RcVestingSchedule;
 	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
 	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage;
-	fn create_referendum_info(n: u8) -> (u32, RcReferendumInfo);
-	fn create_scheduler_agenda(n: u8) -> RcSchedulerMessage;
+	fn create_referendum_info(m: u32) -> (u32, RcReferendumInfo);
+	fn create_scheduler_agenda(m: u32) -> RcSchedulerMessage;
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
 	fn create_indices_index(n: u8) -> RcIndicesIndex;
@@ -262,21 +262,21 @@ where
 		RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
 	}
 
-	fn create_referendum_info(n: u8) -> (u32, RcReferendumInfoOf<T, ()>) {
-		let id = n.into();
+	fn create_referendum_info(m: u32) -> (u32, RcReferendumInfoOf<T, ()>) {
+		let id = m;
 		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
 		let track_id = tracks.iter().next().unwrap().0;
-		let deposit = Deposit { who: [n; 32].into(), amount: n.into() };
+		let deposit = Deposit { who: [1; 32].into(), amount: m.into() };
 		let call: <T as frame_system::Config>::RuntimeCall =
-			frame_system::Call::remark { remark: vec![n; 2048] }.into();
+			frame_system::Call::remark { remark: vec![1u8; m as usize] }.into();
 		(
 			id,
 			ReferendumInfo::Ongoing(ReferendumStatus {
 				track: track_id,
 				origin: Default::default(),
 				proposal: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
-				enactment: DispatchTime::At(n.into()),
-				submitted: n.into(),
+				enactment: DispatchTime::At(m.into()),
+				submitted: m.into(),
 				submission_deposit: deposit.clone(),
 				decision_deposit: Some(deposit),
 				deciding: None,
@@ -287,18 +287,18 @@ where
 		)
 	}
 
-	fn create_scheduler_agenda(n: u8) -> RcSchedulerMessageOf<T> {
+	fn create_scheduler_agenda(m: u32) -> RcSchedulerMessageOf<T> {
+		let m_u8: u8 = (m % 255).try_into().unwrap();
 		let call: <T as frame_system::Config>::RuntimeCall =
-			frame_system::Call::remark { remark: vec![n; 2048] }.into();
+			frame_system::Call::remark { remark: vec![m_u8; m as usize] }.into();
 		let scheduled = Scheduled {
-			maybe_id: Some([n; 32]),
-			priority: n,
+			maybe_id: Some([m_u8; 32]),
+			priority: m_u8,
 			call: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
 			maybe_periodic: None,
 			origin: Default::default(),
 		};
-		// one task but big, 2048 byte call.
-		RcSchedulerMessage::Agenda((n.into(), vec![Some(scheduled)]))
+		RcSchedulerMessage::Agenda((m.into(), vec![Some(scheduled)]))
 	}
 
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessageOf<T> {
@@ -689,13 +689,11 @@ pub mod benchmarks {
 		);
 	}
 
-	#[benchmark]
-	fn receive_active_referendums(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_referendum_info(i.try_into().unwrap())
-			})
-			.collect::<Vec<_>>();
+	#[benchmark(pov_mode = MaxEncodedLen {
+		Preimage::PreimageFor: Measured
+	})]
+	fn receive_single_active_referendums(m: Linear<1, 4000000>) {
+		let messages = vec![<<T as Config>::BenchmarkHelper>::create_referendum_info(m)];
 
 		#[extrinsic_call]
 		receive_referendums(RawOrigin::Root, messages);
@@ -703,7 +701,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::BatchProcessed {
 				pallet: PalletEventName::ReferendaReferendums,
-				count_good: n,
+				count_good: 1,
 				count_bad: 0,
 			}
 			.into(),
@@ -735,13 +733,11 @@ pub mod benchmarks {
 		);
 	}
 
-	#[benchmark]
-	fn receive_scheduler_agenda(n: Linear<1, 255>) {
-		let agendas = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_scheduler_agenda(i.try_into().unwrap())
-			})
-			.collect::<Vec<_>>();
+	#[benchmark(pov_mode = MaxEncodedLen {
+		Preimage::PreimageFor: Measured
+	})]
+	fn receive_single_scheduler_agenda(m: Linear<1, 4000000>) {
+		let agendas = vec![<<T as Config>::BenchmarkHelper>::create_scheduler_agenda(m)];
 
 		#[extrinsic_call]
 		receive_scheduler_messages(RawOrigin::Root, agendas);
@@ -749,7 +745,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::BatchProcessed {
 				pallet: PalletEventName::Scheduler,
-				count_good: n,
+				count_good: 1,
 				count_bad: 0,
 			}
 			.into(),
@@ -1057,8 +1053,8 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_active_referendums<T: Config>(n: u32) {
-		_receive_active_referendums::<T>(n, true)
+	pub fn test_receive_single_active_referendums<T: Config>(n: u32) {
+		_receive_single_active_referendums::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
@@ -1077,8 +1073,8 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_scheduler_agenda<T: Config>(n: u32) {
-		_receive_scheduler_agenda::<T>(n, true)
+	pub fn test_receive_single_scheduler_agenda<T: Config>(m: u32) {
+		_receive_single_scheduler_agenda::<T>(m, true)
 	}
 
 	#[cfg(feature = "std")]

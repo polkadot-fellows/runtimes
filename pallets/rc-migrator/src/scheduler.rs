@@ -105,7 +105,11 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					match iter.next() {
 						Some((key, value)) => {
 							alias::Agenda::<T>::remove(&key);
-							messages.push(RcSchedulerMessage::Agenda((key, value.into_inner())));
+							if value.len() > 0 {
+								// there are many agendas with no tasks, so we skip them
+								let agenda = value.into_inner();
+								messages.push(RcSchedulerMessage::Agenda((key, agenda)));
+							}
 							SchedulerStage::Agenda(Some(key))
 						},
 						None => SchedulerStage::Retries(None),

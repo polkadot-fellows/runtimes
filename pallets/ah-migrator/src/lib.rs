@@ -587,26 +587,31 @@ pub mod pallet {
 
 		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(11)]
-		#[pallet::weight({
-			let mut total = Weight::zero();
-			let weight_of = |info: &RcReferendumInfoOf<T, ()>| {
-				if matches!(info, ReferendumInfo::Ongoing(_)) {
-					// TODO: use `receive_active_referendums` with xcm v5
-					T::AhWeightInfo::receive_complete_referendums
-				} else {
-					T::AhWeightInfo::receive_complete_referendums
-				}
-			};
-			for (_, info) in referendums.iter() {
-				let weight = if total.is_zero() {
-					weight_of(info)(1)
-				} else {
-					weight_of(info)(1).saturating_sub(weight_of(info)(0))
-				};
-				total = total.saturating_add(weight);
-			}
-			total
-		})]
+		// TODO: use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for (_, info) in referendums.iter() {
+		// 		let weight = match info {
+		// 			ReferendumInfo::Ongoing(status) => {
+		// 				let len = status.proposal.len().defensive_unwrap_or(
+		// 					// should not happen, but we pick some sane call length.
+		// 					512,
+		// 				);
+		// 				T::AhWeightInfo::receive_single_active_referendums(len)
+		// 			},
+		// 			_ =>
+		// 				if total.is_zero() {
+		// 					T::AhWeightInfo::receive_complete_referendums(1)
+		// 				} else {
+		// 					T::AhWeightInfo::receive_complete_referendums(1)
+		// 						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
+		// 				},
+		// 		};
+		// 		total = total.saturating_add(weight);
+		// 	}
+		// 	total
+		// })]
+		#[pallet::weight(T::AhWeightInfo::receive_complete_referendums(referendums.len() as u32))]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,

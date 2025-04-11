@@ -63,9 +63,9 @@ pub trait WeightInfo {
 	fn receive_nom_pools_messages(n: u32, ) -> Weight;
 	fn receive_fast_unstake_messages(n: u32, ) -> Weight;
 	fn receive_referenda_values() -> Weight;
-	fn receive_active_referendums(n: u32, ) -> Weight;
+	fn receive_single_active_referendums(m: u32, ) -> Weight;
 	fn receive_complete_referendums(n: u32, ) -> Weight;
-	fn receive_scheduler_agenda(n: u32, ) -> Weight;
+	fn receive_single_scheduler_agenda(m: u32, ) -> Weight;
 	fn receive_scheduler_lookup(n: u32, ) -> Weight;
 	fn receive_bags_list_messages(n: u32, ) -> Weight;
 	fn receive_indices(n: u32, ) -> Weight;
@@ -302,30 +302,28 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(34_u64))
 	}
-	/// Storage: `Preimage::PreimageFor` (r:255 w:255)
-	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::StatusFor` (r:255 w:0)
+	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
+	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::RequestStatusFor` (r:255 w:255)
+	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:255)
+	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:1)
 	/// Proof: `Referenda::ReferendumInfoFor` (`max_values`: None, `max_size`: Some(936), added: 3411, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_active_referendums(n: u32, ) -> Weight {
+	/// The range of component `m` is `[1, 4000000]`.
+	fn receive_single_active_referendums(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `199 + n * (2146 ±0)`
-		//  Estimated: `1493 + n * (4196819 ±0)`
-		// Minimum execution time: 48_000_000 picoseconds.
-		Weight::from_parts(23_097_960, 1493)
-			// Standard Error: 2_844_520
-			.saturating_add(Weight::from_parts(35_592_079, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().reads((3_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
-			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 4196819).saturating_mul(n.into()))
+		//  Measured:  `291 + m * (1 ±0)`
+		//  Estimated: `3756 + m * (1 ±0)`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(21_000_000, 3756)
+			// Standard Error: 22
+			.saturating_add(Weight::from_parts(2_505, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(4_u64))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
@@ -344,30 +342,28 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `Preimage::PreimageFor` (r:255 w:255)
-	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::StatusFor` (r:255 w:0)
+	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
+	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::RequestStatusFor` (r:255 w:255)
+	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Scheduler::Agenda` (r:0 w:255)
+	/// Storage: `Scheduler::Agenda` (r:0 w:1)
 	/// Proof: `Scheduler::Agenda` (`max_values`: None, `max_size`: Some(38963), added: 41438, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_scheduler_agenda(n: u32, ) -> Weight {
+	/// The range of component `m` is `[1, 4000000]`.
+	fn receive_single_scheduler_agenda(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `199 + n * (2146 ±0)`
-		//  Estimated: `1493 + n * (4196819 ±0)`
-		// Minimum execution time: 52_000_000 picoseconds.
-		Weight::from_parts(52_000_000, 1493)
-			// Standard Error: 861_662
-			.saturating_add(Weight::from_parts(33_819_631, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(1_u64))
-			.saturating_add(T::DbWeight::get().reads((3_u64).saturating_mul(n.into())))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
-			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 4196819).saturating_mul(n.into()))
+		//  Measured:  `291 + m * (1 ±0)`
+		//  Estimated: `3756 + m * (1 ±0)`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(23_000_000, 3756)
+			// Standard Error: 16
+			.saturating_add(Weight::from_parts(2_466, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(4_u64))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
@@ -837,30 +833,28 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(34_u64))
 	}
-	/// Storage: `Preimage::PreimageFor` (r:255 w:255)
-	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::StatusFor` (r:255 w:0)
+	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
+	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::RequestStatusFor` (r:255 w:255)
+	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:255)
+	/// Storage: `Referenda::ReferendumInfoFor` (r:0 w:1)
 	/// Proof: `Referenda::ReferendumInfoFor` (`max_values`: None, `max_size`: Some(936), added: 3411, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_active_referendums(n: u32, ) -> Weight {
+	/// The range of component `m` is `[1, 4000000]`.
+	fn receive_single_active_referendums(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `199 + n * (2146 ±0)`
-		//  Estimated: `1493 + n * (4196819 ±0)`
-		// Minimum execution time: 48_000_000 picoseconds.
-		Weight::from_parts(23_097_960, 1493)
-			// Standard Error: 2_844_520
-			.saturating_add(Weight::from_parts(35_592_079, 0).saturating_mul(n.into()))
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().reads((3_u64).saturating_mul(n.into())))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
-			.saturating_add(RocksDbWeight::get().writes((3_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 4196819).saturating_mul(n.into()))
+		//  Measured:  `291 + m * (1 ±0)`
+		//  Estimated: `3756 + m * (1 ±0)`
+		// Minimum execution time: 21_000_000 picoseconds.
+		Weight::from_parts(21_000_000, 3756)
+			// Standard Error: 22
+			.saturating_add(Weight::from_parts(2_505, 0).saturating_mul(m.into()))
+			.saturating_add(RocksDbWeight::get().reads(4_u64))
+			.saturating_add(RocksDbWeight::get().writes(4_u64))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
@@ -879,30 +873,28 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(n.into())))
 	}
-	/// Storage: `Preimage::PreimageFor` (r:255 w:255)
-	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::StatusFor` (r:255 w:0)
+	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
+	/// Storage: `Preimage::StatusFor` (r:1 w:0)
 	/// Proof: `Preimage::StatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
-	/// Storage: `Preimage::RequestStatusFor` (r:255 w:255)
+	/// Storage: `Preimage::RequestStatusFor` (r:1 w:1)
 	/// Proof: `Preimage::RequestStatusFor` (`max_values`: None, `max_size`: Some(91), added: 2566, mode: `MaxEncodedLen`)
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Scheduler::Agenda` (r:0 w:255)
+	/// Storage: `Scheduler::Agenda` (r:0 w:1)
 	/// Proof: `Scheduler::Agenda` (`max_values`: None, `max_size`: Some(38963), added: 41438, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 255]`.
-	fn receive_scheduler_agenda(n: u32, ) -> Weight {
+	/// The range of component `m` is `[1, 4000000]`.
+	fn receive_single_scheduler_agenda(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `199 + n * (2146 ±0)`
-		//  Estimated: `1493 + n * (4196819 ±0)`
-		// Minimum execution time: 52_000_000 picoseconds.
-		Weight::from_parts(52_000_000, 1493)
-			// Standard Error: 861_662
-			.saturating_add(Weight::from_parts(33_819_631, 0).saturating_mul(n.into()))
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().reads((3_u64).saturating_mul(n.into())))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
-			.saturating_add(RocksDbWeight::get().writes((3_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 4196819).saturating_mul(n.into()))
+		//  Measured:  `291 + m * (1 ±0)`
+		//  Estimated: `3756 + m * (1 ±0)`
+		// Minimum execution time: 23_000_000 picoseconds.
+		Weight::from_parts(23_000_000, 3756)
+			// Standard Error: 16
+			.saturating_add(Weight::from_parts(2_466, 0).saturating_mul(m.into()))
+			.saturating_add(RocksDbWeight::get().reads(4_u64))
+			.saturating_add(RocksDbWeight::get().writes(4_u64))
+			.saturating_add(Weight::from_parts(0, 1).saturating_mul(m.into()))
 	}
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)

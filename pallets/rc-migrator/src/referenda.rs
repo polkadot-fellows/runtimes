@@ -235,13 +235,21 @@ impl<T: Config> ReferendaMigrator<T> {
 	///
 	/// The base weight is only included for the first imported referendum info.
 	pub fn weight_ah_referendum_info(batch_len: u32, info: &ReferendumInfoOf<T, ()>) -> Weight {
-		let weight_of = if matches!(info, ReferendumInfo::Ongoing(_)) {
-			// TODO: use `T::AhWeightInfo::receive_active_referendums` with xcm v5, where
-			// `require_weight_at_most` not required
-			T::AhWeightInfo::receive_complete_referendums
-		} else {
-			T::AhWeightInfo::receive_complete_referendums
-		};
-		item_weight_of(weight_of, batch_len)
+		match info {
+			ReferendumInfo::Ongoing(status) => {
+				let len = status.proposal.len().defensive_unwrap_or(
+					// should not happen, but we pick some sane call length.
+					512,
+				);
+				T::AhWeightInfo::receive_single_active_referendums(len)
+			},
+			_ =>
+				if batch_len == 0 {
+					T::AhWeightInfo::receive_complete_referendums(1)
+				} else {
+					T::AhWeightInfo::receive_complete_referendums(1)
+						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
+				},
+		}
 	}
 }
