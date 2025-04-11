@@ -82,6 +82,8 @@ parameter_types! {
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
+	pub PoolAssetsPalletLocationV4: xcm::v4::Location =
+		xcm::v4::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.

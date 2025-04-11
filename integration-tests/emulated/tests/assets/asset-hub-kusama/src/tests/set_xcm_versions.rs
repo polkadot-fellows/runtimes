@@ -67,7 +67,7 @@ fn system_para_sets_relay_xcm_supported_version() {
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
-		AssetHubKusama::assert_dmp_queue_complete(Some(Weight::from_parts(1_019_210_000, 200_000)));
+		AssetHubKusama::assert_dmp_queue_complete(Some(Weight::from_parts(120_650_000, 0)));
 
 		assert_expected_events!(
 			AssetHubKusama,
