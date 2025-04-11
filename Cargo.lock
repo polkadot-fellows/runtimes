@@ -14767,9 +14767,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm"
-version = "15.0.2"
+version = "15.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0da1cd9035c55d89bd68c1dee872f17d18165685746fe13342937e70b67e5795"
+checksum = "b570c175519cb507fd7c16d69c43f77e87853cc7cc0d88bf4aabca028775363b"
 dependencies = [
  "array-bytes",
  "bounded-collections",

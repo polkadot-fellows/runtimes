@@ -238,7 +238,7 @@ sp-weights = { version = "31.0.0", default-features = false }
 substrate-wasm-builder = { version = "25.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
-xcm = { version = "15.0.2", default-features = false, package = "staging-xcm" }
+xcm = { version = "15.0.3", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "18.1.0", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.17.1" }
 xcm-executor = { version = "18.0.2", default-features = false, package = "staging-xcm-executor" }
