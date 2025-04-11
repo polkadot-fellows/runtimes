@@ -17,7 +17,7 @@
 //! Test that relay chain multisigs can be re-created on Asset Hub.
 //!
 //! This is additional to the tests in the AH and RC migrator pallets. Those tests just check that
-//! a sample multisig account with non-zero balance on the relay chain is correctly migtated to
+//! a sample multisig account with non-zero balance on the relay chain is correctly migrated to
 //! Asset Hub. Moreover, it checks that the multisig signatories can re-create the same multisig on
 //! Asset Hub while preserving its balance.
 //!
@@ -44,7 +44,7 @@ type AssetHubRuntimeCall = asset_hub_polkadot_runtime::RuntimeCall;
 ///
 /// This tests that multisig accounts created on the relay chain and having a non-zero balance are
 /// correctly migrated to Asset Hub and the corresponding multisigs can be re-created on Asset Hub.
-pub struct MultisigsStillWork;
+pub struct MultisigsAccoundIdStaysTheSame;
 
 /// A Multisig account summary.
 #[derive(Clone, PartialEq, Eq, RuntimeDebug)]
@@ -61,7 +61,7 @@ pub struct MultisigSummary {
 	pub call_hash: [u8; 32],
 }
 
-impl RcMigrationCheck for MultisigsStillWork {
+impl RcMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
 	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
@@ -90,15 +90,20 @@ impl RcMigrationCheck for MultisigsStillWork {
 	}
 }
 
-impl AhMigrationCheck for MultisigsStillWork {
+impl AhMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
 	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
 	type RcPrePayload = (MultisigSummary, u128);
 	type AhPrePayload = ();
 
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		()
+	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+		let (multisig_info, _) = rc_pre_payload;
+		assert_eq!(
+			pallet_balances::Pallet::<AssetHubRuntime>::total_balance(&multisig_info.multisig_id),
+			0,
+			"Sample multisig account should have no balance on Asset Hub before migration."
+		);
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
@@ -114,7 +119,7 @@ impl AhMigrationCheck for MultisigsStillWork {
 		);
 		// Check that the multisig balance from the relay chain is preserved.
 		assert_eq!(
-			pallet_balances::Pallet::<RelayRuntime>::total_balance(&multisig_info.multisig_id),
+			pallet_balances::Pallet::<AssetHubRuntime>::total_balance(&multisig_info.multisig_id),
 			balance,
 			"Sample multisig account balance should have been migrated to Asset Hub with the correct balance."
 		);
@@ -134,7 +139,7 @@ impl AhMigrationCheck for MultisigsStillWork {
 	}
 }
 
-impl MultisigsStillWork {
+impl MultisigsAccoundIdStaysTheSame {
 	// Create a sample multisig on the Relay chain.
 	fn create_sample_multisig_rc() -> MultisigSummary {
 		let basti =
