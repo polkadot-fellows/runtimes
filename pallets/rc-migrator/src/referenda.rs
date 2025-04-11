@@ -26,7 +26,7 @@ pub enum ReferendaStage {
 	ReferendumInfo(Option<u32>),
 }
 
-pub struct ReferendaMigrator<T: Config> {
+pub struct ReferendaMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
@@ -234,7 +234,7 @@ pub type RcPrePayload<T> = (
 	Vec<(TrackIdOf<T, ()>, u32)>,
 	Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
 	Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
-	Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
+	Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
 );
 
 #[cfg(feature = "std")]

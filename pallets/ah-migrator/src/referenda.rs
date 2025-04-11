@@ -19,9 +19,9 @@ use call::BoundedCallOf;
 use frame_support::traits::{schedule::v3::Anon, DefensiveTruncateFrom};
 use pallet_referenda::{
 	BalanceOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor, ReferendumStatus,
-	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue,
+	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue, MetadataOf
 };
-use pallet_rc_migrator::referenda::RcPrePayload;
+use pallet_rc_migrator::referenda::{RcPrePayload, ReferendaMigrator};
 
 /// ReferendumInfoOf for RC.
 ///
@@ -195,7 +195,7 @@ impl<T: Config> Pallet<T> {
 
 		for (id, hash) in metadata {
 			log::debug!(target: LOG_TARGET, "Integrating referendum {} metadata", id);
-			pallet_referenda::MetadataOf::<T, ()>::insert(id, hash);
+			MetadataOf::<T, ()>::insert(id, hash);
 			log::debug!(target: LOG_TARGET, "Referendum {} integrated", id);
 		}
 
@@ -317,7 +317,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 
 		// Assert storage 'Referenda::DecidingCount::ah_post::correct'
 		assert_eq!(
-			DecidingCount::<T, ()>::iter().collect(),
+			DecidingCount::<T, ()>::iter().collect::<Vec<_>>(),
 			rc_deciding,
 			"DecidingCount on AH post migration should match the pre migration RC value"
 		);
@@ -333,7 +333,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 		assert_eq!(
 			TrackQueue::<T, ()>::iter()
 			.map(|(track_id, queue)| (track_id, queue.into_inner()))
-			.collect(),
+			.collect::<Vec<_>>(),
 			rc_queue,
 			"TrackQueue on AH post migration should match the pre migration RC value"
 		);
@@ -347,13 +347,13 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 
 		// Assert storage 'Referenda::MetadataOf::ah_post::correct'
 		assert_eq!(
-			MetadataOf::<T, ()>::iter().collect(),
+			MetadataOf::<T, ()>::iter().collect::<Vec<_>>(),
 			rc_metadata,
 			"MetadataOf on AH post migration should match the pre migration RC value"
 		);
 
 		// Convert incoming pre RC referendum values to supposed AH values (whittled duplicate from above).
-		pub fn convert_rc_referendum<T>(
+		pub fn convert_rc_referendum<T: Config>(
 			referendum: RcReferendumInfoOf<T, ()>,
 		) -> ReferendumInfoOf<T, ()> {
 			let referendum: ReferendumInfoOf<T, ()> = match referendum {
@@ -361,25 +361,25 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 					// TODO: use referenda block provider
 					let now = frame_system::Pallet::<T>::block_number();
 	
-					let origin = match T::RcToAhPalletsOrigin::try_convert(rc_status.origin.clone()) {
+					let origin = match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
 						Ok(origin) => origin,
 						Err(_) => {
 							let cancelled_info = ReferendumInfo::Cancelled(
 								now,
-								Some(rc_status.submission_deposit),
-								rc_status.decision_deposit,
+								Some(status.submission_deposit),
+								status.decision_deposit,
 							);
 							return cancelled_info;
 						},
 					};
 	
-					let proposal = match crate::Pallet::<T>::map_rc_ah_call(&rc_status.proposal) {
+					let proposal = match crate::Pallet::<T>::map_rc_ah_call(&status.proposal) {
 						Ok(proposal) => proposal,
 						Err(_) => {
 							let cancelled_info = ReferendumInfo::Cancelled(
 								now,
-								Some(rc_status.submission_deposit),
-								rc_status.decision_deposit,
+								Some(status.submission_deposit),
+								status.decision_deposit,
 							);
 							return cancelled_info;
 						},
@@ -411,20 +411,20 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 			referendum
 		}
 
-		let ref_converted = rc_referenda.iter()
-		.map(|(ref_index, referenda)| (ref_index, convert_rc_referendum(referenda)))
+		let ref_converted: Vec<_> = rc_referenda.iter()
+		.map(|(ref_index, referenda)| (*ref_index, convert_rc_referendum::<T>(referenda.clone())))
 		.collect();
 
 		// Assert storage 'Referenda::ReferendumInfoFor::ah_post::length'
 		assert_eq!(
-			alias::ReferendumInfoFor::<T, ()>::iter_keys().count() as u32,
+			alias::ReferendumInfoFor::<T>::iter_keys().count() as u32,
 			ref_converted.len() as u32,
 			"ReferendumInfoFor length on AH post migration should match the RC length post conversion"
 		);
 
 		// Assert storage 'Referenda::ReferendumInfoFor::ah_post::correct'
 		assert_eq!(
-			ReferendumInfoFor::<T, ()>::iter().collect(),
+			ReferendumInfoFor::<T, ()>::iter().collect::<Vec<_>>(),
 			ref_converted,
 			"ReferendumInfoFor on AH post migration should match the RC value post conversion"
 		);
