@@ -19,6 +19,7 @@
 use alloc::vec;
 use core::marker::PhantomData;
 use codec::{Decode, Encode, MaxEncodedLen};
+use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::pallet_prelude::TypeInfo;
 use frame_support::parameter_types;
 use frame_support::traits::{
@@ -81,7 +82,8 @@ for PayoutOverXcmAtAssetHub<
 
         let message = Xcm(vec![
             DescendOrigin(AccountId32 { network: None, id: from.clone().into() }.into()),
-            PayFees { asset: Asset { id: KsmLocation::get().into(), fun: Fungible(amount) }},
+            WithdrawAsset(vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM) }].into()),
+            PayFees { asset: (KsmLocation::get(), ONE_KSM).into()},
             SetAppendix(Xcm(vec![
                 SetFeesMode { jit_withdraw: true },
                 ReportError(QueryResponseInfo {
@@ -92,7 +94,7 @@ for PayoutOverXcmAtAssetHub<
             ])),
             TransferAsset {
                 beneficiary: AccountId32 { network: None, id: to.clone().into() }.into(),
-                assets: vec![Asset { id: asset_id(asset_kind.clone()), fun: Fungible(amount) }].into(),
+                assets:(asset_id(asset_kind.clone()), amount).into(),
             },
         ]);
 
