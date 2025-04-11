@@ -125,6 +125,16 @@ async fn pallet_migration_works() {
 	// Pre-checks on the Asset Hub
 	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
+	// Run relay chain, sends start signal to AH
+	let dmp_messages = rc_migrate(&mut rc);
+	// AH process start signal, send back ack
+	ah_migrate(&mut ah, dmp_messages);
+	// no upward messaging support in this test yet, just manually advance the stage
+	rc.execute_with(|| {
+		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::AccountsMigrationInit);
+	});
+	rc.commit_all().unwrap();
+
 	// Migrate the Relay Chain
 	let dmp_messages = rc_migrate(&mut rc);
 

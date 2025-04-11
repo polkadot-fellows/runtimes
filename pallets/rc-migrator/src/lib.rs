@@ -56,7 +56,10 @@ pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
 
-use crate::xcm_config::TrustedTeleportersBeforeAndAfter;
+use crate::{
+	accounts::MigratedBalances, types::MigrationFinishedData,
+	xcm_config::TrustedTeleportersBeforeAndAfter,
+};
 use accounts::AccountsMigrator;
 #[cfg(not(feature = "ahm-westend"))]
 use claims::{ClaimsMigrator, ClaimsStage};
@@ -306,6 +309,7 @@ pub enum MigrationStage<
 	},
 	StakingMigrationDone,
 
+	SignalMigrationFinish,
 	MigrationDone,
 }
 
@@ -451,6 +455,10 @@ pub mod pallet {
 		FailedToWithdrawAccount,
 		/// Indicates that the specified block number is in the past.
 		PastBlockNumber,
+		/// Balance accounting overflow.
+		BalanceOverflow,
+		/// Balance accounting underflow.
+		BalanceUnderflow,
 	}
 
 	#[pallet::event]
@@ -477,7 +485,8 @@ pub mod pallet {
 
 	/// Helper storage item to store the total balance that should be kept on Relay Chain.
 	#[pallet::storage]
-	pub type RcBalanceKept<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+	pub type RcMigratedBalance<T: Config> =
+		StorageValue<_, MigratedBalances<T::Balance>, ValueQuery>;
 
 	/// The total number of XCM data messages sent to the Asset Hub and the number of XCM messages
 	/// the Asset Hub has confirmed as processed.
@@ -606,6 +615,11 @@ pub mod pallet {
 				MigrationStage::AccountsMigrationInit => {
 					// TODO: weights
 					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
+					RcMigratedBalance::<T>::mutate(|tracker| {
+						// initialize `kept` balance as total issuance, we'll substract from it as
+						// we migrate accounts
+						tracker.kept = <T as Config>::Currency::total_issuance();
+					});
 
 					Self::transition(MigrationStage::AccountsMigrationOngoing { last_key: None });
 				},
@@ -1307,6 +1321,26 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::StakingMigrationDone => {
+					Self::transition(MigrationStage::SignalMigrationFinish);
+				},
+				MigrationStage::SignalMigrationFinish => {
+					// TODO: weight
+					let tracker = RcMigratedBalance::<T>::get();
+					let data = MigrationFinishedData {
+						rc_balance_kept: tracker.kept,
+					};
+					let call = types::AhMigratorCall::<T>::FinishMigration { data };
+					match Self::send_xcm(call, Weight::from_all(1)) {
+						Ok(_) => {
+							Self::transition(MigrationStage::MigrationDone);
+						},
+						Err(_) => {
+							defensive!(
+								"Failed to send FinishMigration message to AH, \
+								retry with the next block"
+							);
+						},
+					}
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
@@ -1590,12 +1624,19 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		let stage = RcMigrationStage::<T>::get();
-		if stage.is_ongoing() {
+		log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
+		let result = if stage.is_ongoing() {
 			// during migration, no teleports (in or out) allowed
 			false
 		} else {
 			// before and after migration use normal filter
 			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
-		}
+		};
+		log::trace!(
+			target: "xcm::IsTeleport::contains",
+			"asset: {:?} origin {:?} result {:?}",
+			asset, origin, result
+		);
+		result
 	}
 }
