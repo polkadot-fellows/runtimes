@@ -967,6 +967,49 @@ pub mod benchmarks {
 		);
 	}
 
+	#[benchmark(pov_mode = MaxEncodedLen {
+		Preimage::PreimageFor: Measured
+	})]
+	fn receive_preimage_chunk(m: Linear<1, 80>) {
+		use pallet_rc_migrator::preimage::{
+			alias::{PreimageFor, MAX_SIZE},
+			chunks::CHUNK_SIZE,
+		};
+		use sp_runtime::traits::Hash;
+
+		let m_u8: u8 = (m % 255).try_into().unwrap();
+		let preimage_len = m * CHUNK_SIZE;
+		let preimage = vec![m_u8; preimage_len as usize];
+		let hash = <T as frame_system::Config>::Hashing::hash_of(&preimage);
+		let preimage_rc_part = preimage[(preimage_len - CHUNK_SIZE) as usize..].to_vec();
+		let preimage_ah_part = preimage[..(preimage_len - CHUNK_SIZE) as usize].to_vec();
+
+		if preimage_ah_part.len() > 0 {
+			let preimage_ah_part: BoundedVec<u8, ConstU32<MAX_SIZE>> =
+				preimage_ah_part.try_into().unwrap();
+			PreimageFor::<T>::insert((hash, preimage_len), preimage_ah_part);
+		}
+
+		let chunk = RcPreimageChunk {
+			preimage_hash: hash,
+			preimage_len,
+			chunk_byte_offset: preimage_len - CHUNK_SIZE,
+			chunk_bytes: preimage_rc_part.try_into().unwrap(),
+		};
+
+		#[extrinsic_call]
+		receive_preimage_chunks(RawOrigin::Root, vec![chunk]);
+
+		assert_last_event::<T>(
+			Event::BatchProcessed {
+				pallet: PalletEventName::PreimageChunk,
+				count_good: 1,
+				count_bad: 0,
+			}
+			.into(),
+		);
+	}
+
 	#[benchmark]
 	fn force_set_stage() {
 		let stage = MigrationStage::DataMigrationOngoing;
@@ -1145,6 +1188,11 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_receive_preimage_request_status<T: Config>(n: u32) {
 		_receive_preimage_request_status::<T>(n, true)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_receive_preimage_chunk<T: Config>(m: u32) {
+		_receive_preimage_chunk::<T>(m, true)
 	}
 }
 

@@ -40,6 +40,23 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 const BENCHMARK_N: u32 = 10;
 
 #[test]
+fn test_bench_receive_preimage_chunk() {
+	use pallet_rc_migrator::preimage::{alias::MAX_SIZE, chunks::CHUNK_SIZE};
+
+	assert_eq!(
+		MAX_SIZE / CHUNK_SIZE,
+		84,
+		"upper bound of `m` for `receive_preimage_chunk` benchmark should be updated"
+	);
+
+	new_test_ext().execute_with(|| {
+		test_receive_preimage_chunk::<AssetHub>(1);
+		test_receive_preimage_chunk::<AssetHub>(3);
+		test_receive_preimage_chunk::<AssetHub>(80);
+	});
+}
+
+#[test]
 fn test_bench_receive_multisigs() {
 	new_test_ext().execute_with(|| {
 		test_receive_multisigs::<AssetHub>(BENCHMARK_N);

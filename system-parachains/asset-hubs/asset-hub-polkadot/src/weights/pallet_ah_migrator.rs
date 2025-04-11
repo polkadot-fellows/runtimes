@@ -48,6 +48,23 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_ah_migrator`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
+	/// Storage: `Preimage::PreimageFor` (r:1 w:1)
+	/// Proof: `Preimage::PreimageFor` (`max_values`: None, `max_size`: Some(4194344), added: 4196819, mode: `Measured`)
+	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// The range of component `m` is `[1, 80]`.
+	fn receive_preimage_chunk(m: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0 + m * (49900 ±0)`
+		//  Estimated: `3616 + m * (48976 ±70)`
+		// Minimum execution time: 37_000_000 picoseconds.
+		Weight::from_parts(37_000_000, 3616)
+			// Standard Error: 718_695
+			.saturating_add(Weight::from_parts(45_762_198, 0).saturating_mul(m.into()))
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
+			.saturating_add(Weight::from_parts(0, 48976).saturating_mul(m.into()))
+	}
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
