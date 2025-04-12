@@ -228,7 +228,6 @@ impl<T: Config> ReferendaMigrator<T> {
 	}
 }
 
-// (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
 pub type RcPrePayload<T> = (
     ReferendumIndex,
     Vec<(TrackIdOf<T, ()>, u32)>,
@@ -250,6 +249,7 @@ impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T>
 			.collect();
 		let metadata: Vec<_> = MetadataOf::<T, ()>::iter().collect();
 		let referenda: Vec<_> = ReferendumInfoFor::<T, ()>::iter().collect();
+		// (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
 		(count, deciding_count, track_queue, metadata, referenda).encode()
 	}
 

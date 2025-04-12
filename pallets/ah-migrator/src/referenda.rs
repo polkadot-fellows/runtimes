@@ -371,7 +371,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 		// --- ReferendumInfoOf checks, some special reconstruction logic required ---
 
 		// Function to convert a single RC ReferendumInfo to its expected AH form.
-		// A whittled version of the function used for the actual migration above ^.
+		// A whittled version of `do_recieve_referendum` used for the actual migration above ^.
 		fn convert_rc_to_ah_referendum<T: Config>(
 			rc_info: RcReferendumInfoOf<T, ()>,
 		) -> AhReferendumInfoOf<T, ()>
@@ -429,8 +429,9 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 			}
 		}
 
-		// Check if referendums are equal, ignoring the `Moment` field as block numbers vary between
-		// migration and the above reconstruction.
+		// Check if referendums are equal, ignoring the `Moment` field when comparing
+		// `ReferendumInfo::Cancelled`s as block numbers vary between migration and the 
+		// `convert_rc_to_ah_referendum` reconstruction.
 		fn referendums_equal<T: Config>(
 			ref1: &AhReferendumInfoOf<T, ()>,
 			ref2: &AhReferendumInfoOf<T, ()>,
@@ -466,7 +467,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 			"ReferendumInfoFor length on AH post migration should match the RC length post conversion"
 		);
 
-		// Not sure order if guaranteed due to insertion then collection vs in place updating in the reconstruction
+		// Not sure if order is guaranteed due to insertion then collection vs in place updating in the reconstruction
 		// so sort just in case.  
 		current_ah_referenda.sort_by_key(|(index, _)| *index);
         expected_ah_referenda.sort_by_key(|(index, _)| *index);
