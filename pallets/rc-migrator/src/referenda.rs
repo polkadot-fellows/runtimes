@@ -15,10 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_referenda::{
-	DecidingCount, MetadataOf, ReferendumCount, ReferendumIndex, ReferendumInfoFor,
-	ReferendumInfoOf, TrackIdOf, TrackQueue, VotesOf,
-};
+use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumInfoFor, TrackQueue};
 
 /// The stages of the referenda pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
