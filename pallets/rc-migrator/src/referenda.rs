@@ -228,14 +228,6 @@ impl<T: Config> ReferendaMigrator<T> {
 	}
 }
 
-pub type RcPrePayload<T> = (
-    ReferendumIndex,
-    Vec<(TrackIdOf<T, ()>, u32)>,
-    Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
-    Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>, 
-    Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
-);
-
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T>
 {
