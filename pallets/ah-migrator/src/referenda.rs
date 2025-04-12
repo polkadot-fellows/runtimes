@@ -435,7 +435,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			ref2: &AhReferendumInfoOf<T, ()>,
 		) -> bool {
 			match (ref1, ref2) {
-				// Special case: Cancelled vs Cancelled
+				// Special case: Cancelled vs Cancelled.
 				(
 					AhReferendumInfoOf::<T, ()>::Cancelled(_moment1, sd1, dd1),
 					AhReferendumInfoOf::<T, ()>::Cancelled(_moment2, sd2, dd2),
@@ -445,13 +445,12 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 				},
 
 				// Other enum variants.
-				(info1_variant, info2_variant)
-					if core::mem::discriminant(info1_variant) ==
-						core::mem::discriminant(info2_variant) =>
+				(ref1_variant, ref2_variant)
+					if core::mem::discriminant(ref1_variant) ==
+						core::mem::discriminant(ref2_variant) =>
 					ref1 == ref2,
 
-				// If the variants themselves are different (e.g., Ongoing vs Approved), they are
-				// not equal.
+				// Variants are different (e.g., Ongoing vs Approved), they are not equal.
 				_ => false,
 			}
 		}
