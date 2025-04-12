@@ -19,9 +19,9 @@ use call::BoundedCallOf;
 use frame_support::traits::{schedule::v3::Anon, DefensiveTruncateFrom};
 use pallet_referenda::{
 	BalanceOf, DecidingCount, ReferendumCount, ReferendumInfo, ReferendumInfoFor, ReferendumStatus,
-	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue, MetadataOf
+	ScheduleAddressOf, TallyOf, TrackIdOf, TrackQueue, MetadataOf, ReferendumIndex, VotesOf,
 };
-use pallet_rc_migrator::referenda::{RcPrePayload, ReferendaMigrator};
+use pallet_rc_migrator::referenda::ReferendaMigrator;
 
 /// ReferendumInfoOf for RC.
 ///
@@ -56,7 +56,7 @@ pub type RcReferendumStatusOf<T, I> = ReferendumStatus<
 >;
 
 /// Asset Hub ReferendumInfoOf.
-pub type ReferendumInfoOf<T, I> = ReferendumInfo<
+pub type AhReferendumInfoOf<T, I> = ReferendumInfo<
 	TrackIdOf<T, I>,
 	<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 	BlockNumberFor<T>,
@@ -68,7 +68,7 @@ pub type ReferendumInfoOf<T, I> = ReferendumInfo<
 >;
 
 /// ReferendumStatusOf for Asset Hub.
-pub type ReferendumStatusOf<T, I> = ReferendumStatus<
+pub type AhReferendumStatusOf<T, I> = ReferendumStatus<
 	TrackIdOf<T, I>,
 	<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 	BlockNumberFor<T>,
@@ -113,7 +113,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), Error<T>> {
 		log::debug!(target: LOG_TARGET, "Integrating referendum id: {}, info: {:?}", id, referendum);
 
-		let referendum: ReferendumInfoOf<T, ()> = match referendum {
+		let referendum: AhReferendumInfoOf<T, ()> = match referendum {
 			ReferendumInfo::Ongoing(status) => {
 				let cancel_referendum = |id, status: RcReferendumStatusOf<T, ()>| {
 					if let Some((_, last_alarm)) = status.alarm {
@@ -153,7 +153,7 @@ impl<T: Config> Pallet<T> {
 					return Ok(());
 				};
 
-				let status = ReferendumStatusOf::<T, ()> {
+				let status = AhReferendumStatusOf::<T, ()> {
 					track: status.track,
 					origin,
 					proposal,
@@ -250,16 +250,25 @@ pub mod alias {
 		pallet_referenda::Pallet<T, ()>,
 		Blake2_128Concat,
 		ReferendumIndex,
-		ReferendumInfoOf<T, ()>,
+		AhReferendumInfoOf<T, ()>,
 	>;
 }
 // TODO: shift referendums' time block by the time of the migration
 // TODO: schedule `one_fewer_deciding` for referendums canceled during migration
 
+// (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
+pub type RcPrePayload<T> = (
+    ReferendumIndex,
+    Vec<(TrackIdOf<T, ()>, u32)>,
+    Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
+    Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>, 
+    Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
+);
+
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 {
-	type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>;
 	type AhPrePayload = ();
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -298,8 +307,15 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		let decoded_payload = match <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..]) {
+			Ok(payload) => payload,
+			Err(e) => {
+				// Handle decoding error - panic is common in tests, or assert/return error
+				panic!("Failed to decode RcPrePayload bytes: {:?}", e);
+			}
+		};
 		let (rc_count, rc_deciding, rc_queue, rc_metadata, rc_referenda) =
-			rc_pre_payload;
+			decoded_payload; 
 
 		// Assert storage 'Referenda::ReferendumCount::ah_post::correct'
 		assert_eq!(
@@ -352,81 +368,118 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T>
 			"MetadataOf on AH post migration should match the pre migration RC value"
 		);
 
-		// Convert incoming pre RC referendum values to supposed AH values (whittled duplicate from above).
-		pub fn convert_referendum<T: Config>(
-			referendum: pallet_referenda::ReferendumInfoOf<T, ()>,
-		) -> ReferendumInfoOf<T, ()> {
-			let referendum: ReferendumInfoOf<T, ()> = match referendum {
-				ReferendumInfo::Ongoing(status) => {
-					// TODO: use referenda block provider
-					let now = frame_system::Pallet::<T>::block_number();
-	
-					 let origin = status.origin; // match T::RcToAhPalletsOrigin::try_convert(status.origin.clone()) {
-					// 	Ok(origin) => origin,
-					// 	Err(_) => {
-					// 		let cancelled_info = ReferendumInfo::Cancelled(
-					// 			now,
-					// 			Some(status.submission_deposit),
-					// 			status.decision_deposit,
-					// 		);
-					// 		return cancelled_info;
-					// 	},
-					// };
-	
-					let proposal  = match crate::Pallet::<T>::map_rc_ah_call(&status.proposal) {
-						Ok(proposal) => proposal,
+		// --- ReferendumInfoOf checks, some special reconstruction logic required ---
+
+		// Function to convert a single RC ReferendumInfo to its expected AH form.
+		// A whittled version of the function used for the actual migration above ^.
+		fn convert_rc_to_ah_referendum<T: Config>(
+			rc_info: RcReferendumInfoOf<T, ()>,
+		) -> AhReferendumInfoOf<T, ()>
+		{
+			match rc_info {
+				ReferendumInfo::Ongoing(rc_status) => {
+					// --- Mimic do_receive_referendum logic ---
+					let ah_origin = match T::RcToAhPalletsOrigin::try_convert(rc_status.origin.clone()) {
+						Ok(origin) => origin,
 						Err(_) => {
-							let cancelled_info = ReferendumInfo::Cancelled(
+							// Origin conversion failed, return cancelled.
+							let now = frame_system::Pallet::<T>::block_number();
+							return AhReferendumInfoOf::<T,()>::Cancelled(
 								now,
-								Some(status.submission_deposit),
-								status.decision_deposit,
+								Some(rc_status.submission_deposit),
+								rc_status.decision_deposit,
 							);
-							return cancelled_info;
 						},
 					};
-	
-					let status = ReferendumStatusOf::<T, ()> {
-						track: status.track,
-						origin,
-						proposal,
-						enactment: status.enactment,
-						submitted: status.submitted,
-						submission_deposit: status.submission_deposit,
-						decision_deposit: status.decision_deposit,
-						deciding: status.deciding,
-						tally: status.tally,
-						in_queue: status.in_queue,
-						alarm: status.alarm,
+
+					let ah_proposal = match crate::Pallet::<T>::map_rc_ah_call(&rc_status.proposal) {
+						Ok(proposal) => proposal,
+						Err(_) => {
+							// Call conversion failed, return cancelled.
+							let now = frame_system::Pallet::<T>::block_number();
+							return AhReferendumInfoOf::<T,()>::Cancelled(
+								now,
+								Some(rc_status.submission_deposit),
+								rc_status.decision_deposit,
+							);
+						},
 					};
-	
-					ReferendumInfo::Ongoing(status)
+
+					// Construct the AH status using converted parts
+					let ah_status = AhReferendumStatusOf::<T, ()> {
+						track: rc_status.track,
+						origin: ah_origin, // Use converted origin
+						proposal: ah_proposal, // Use converted proposal
+						enactment: rc_status.enactment,
+						submitted: rc_status.submitted,
+						submission_deposit: rc_status.submission_deposit,
+						decision_deposit: rc_status.decision_deposit,
+						deciding: rc_status.deciding,
+						tally: rc_status.tally,
+						in_queue: rc_status.in_queue,
+						alarm: rc_status.alarm,
+					};
+					AhReferendumInfoOf::<T,()>::Ongoing(ah_status)
 				},
-				ReferendumInfo::Approved(a, b, c) => ReferendumInfo::Approved(a, b, c),
-				ReferendumInfo::Rejected(a, b, c) => ReferendumInfo::Rejected(a, b, c),
-				ReferendumInfo::Cancelled(a, b, c) => ReferendumInfo::Cancelled(a, b, c),
-				ReferendumInfo::TimedOut(a, b, c) => ReferendumInfo::TimedOut(a, b, c),
-				ReferendumInfo::Killed(a) => ReferendumInfo::Killed(a),
-			};
-	
-			referendum
+				ReferendumInfo::Approved(a, b, c) => AhReferendumInfoOf::<T,()>::Approved(a, b, c),
+				ReferendumInfo::Rejected(a, b, c) => AhReferendumInfoOf::<T,()>::Rejected(a, b, c),
+				ReferendumInfo::Cancelled(a, b, c) => AhReferendumInfoOf::<T,()>::Cancelled(a, b, c),
+				ReferendumInfo::TimedOut(a, b, c) => AhReferendumInfoOf::<T,()>::TimedOut(a, b, c),
+				ReferendumInfo::Killed(a) => AhReferendumInfoOf::<T,()>::Killed(a),
+			}
 		}
 
-		let ref_converted: Vec<_> = rc_referenda.iter()
-		.map(|(ref_index, referenda)| (*ref_index, convert_referendum::<T>(referenda.clone())))
+		// Check if referendums are equal, ignoring the `Moment` field as block numbers vary between
+		// migration and the above reconstruction.
+		fn referendums_equal<T: Config>(
+			ref1: &AhReferendumInfoOf<T, ()>,
+			ref2: &AhReferendumInfoOf<T, ()>,
+		) -> bool {
+			match (ref1, ref2) {
+				// Special case: Cancelled vs Cancelled
+				(AhReferendumInfoOf::<T, ()>::Cancelled(_moment1, sd1, dd1), AhReferendumInfoOf::<T, ()>::Cancelled(_moment2, sd2, dd2)) => {
+					// Compare only the deposits
+					sd1 == sd2 && dd1 == dd2
+				}
+		
+				// Other enum variants.
+				(info1_variant, info2_variant) if core::mem::discriminant(info1_variant) == core::mem::discriminant(info2_variant) => {
+					 ref1 == ref2
+				}
+		
+				// If the variants themselves are different (e.g., Ongoing vs Approved), they are not equal.
+				_ => false,
+			}
+		}
+
+		// Convert referenda from RcPrePayload to expected values.
+		let mut expected_ah_referenda: Vec<_> = rc_referenda.iter()
+		.map(|(ref_index, referenda)| (*ref_index, convert_rc_to_ah_referendum::<T>(referenda.clone())))
 		.collect();
+		// Grab values on AH.
+		let mut current_ah_referenda = alias::ReferendumInfoFor::<T>::iter().collect::<Vec<_>>();
 
 		// Assert storage 'Referenda::ReferendumInfoFor::ah_post::length'
 		assert_eq!(
-			alias::ReferendumInfoFor::<T>::iter_keys().count() as u32,
-			ref_converted.len() as u32,
+			current_ah_referenda.len() as u32,
+			expected_ah_referenda.len() as u32,
 			"ReferendumInfoFor length on AH post migration should match the RC length post conversion"
 		);
 
+		// Not sure order if guaranteed due to insertion then collection vs in place updating in the reconstruction
+		// so sort just in case.  
+		current_ah_referenda.sort_by_key(|(index, _)| *index);
+        expected_ah_referenda.sort_by_key(|(index, _)| *index);
+
 		// Assert storage 'Referenda::ReferendumInfoFor::ah_post::correct'
-		assert_eq!(
-			alias::ReferendumInfoFor::<T>::iter().collect::<Vec<_>>(),
-			ref_converted,
-			"ReferendumInfoFor on AH post migration should match the RC value post conversion"
-		);
+		for i in 0..current_ah_referenda.len() {
+			assert!(
+				referendums_equal::<T>(
+					&current_ah_referenda[i].1,
+					&expected_ah_referenda[i].1
+				),
+				"ReferendumInfoFor on AH post migration should match the RC value post conversion, mismatch for ref {}", current_ah_referenda[i].0
+			);
+		}
 	}
 }

@@ -230,17 +230,17 @@ impl<T: Config> ReferendaMigrator<T> {
 
 // (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
 pub type RcPrePayload<T> = (
-	ReferendumIndex,
-	Vec<(TrackIdOf<T, ()>, u32)>,
-	Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
-	Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
-	Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
+    ReferendumIndex,
+    Vec<(TrackIdOf<T, ()>, u32)>,
+    Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)> )>,
+    Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>, 
+    Vec<(ReferendumIndex, ReferendumInfoOf<T, ()>)>,
 );
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T>
 {
-	type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let count = ReferendumCount::<T, ()>::get();
@@ -250,7 +250,7 @@ impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T>
 			.collect();
 		let metadata: Vec<_> = MetadataOf::<T, ()>::iter().collect();
 		let referenda: Vec<_> = ReferendumInfoFor::<T, ()>::iter().collect();
-		(count, deciding_count, track_queue, metadata, referenda)
+		(count, deciding_count, track_queue, metadata, referenda).encode()
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
