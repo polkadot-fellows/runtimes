@@ -236,6 +236,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"kusama-runtime-constants/std"
 ]
 
 

@@ -1475,7 +1475,11 @@ pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
 	use xcm::prelude::*;
 	use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
+	pub type MaybeAssetsEvent<Runtime, ForeignAssetsPalletInstance> =
+		Option<pallet_assets::Event<Runtime, ForeignAssetsPalletInstance>>;
+
 	/// Test-case makes sure that `Runtime` can create and manage `ForeignAssets`
+	#[allow(clippy::too_many_arguments)]
 	pub fn create_and_manage_foreign_assets_for_local_consensus_parachain_assets_works<
 		Runtime,
 		XcmConfig,
@@ -1496,7 +1500,7 @@ pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
 			dyn Fn(pallet_assets::Call<Runtime, ForeignAssetsPalletInstance>) -> Vec<u8>,
 		>,
 		unwrap_pallet_assets_event: Box<
-			dyn Fn(Vec<u8>) -> Option<pallet_assets::Event<Runtime, ForeignAssetsPalletInstance>>,
+			dyn Fn(Vec<u8>) -> MaybeAssetsEvent<Runtime, ForeignAssetsPalletInstance>,
 		>,
 		additional_checks_before: Box<dyn Fn()>,
 		additional_checks_after: Box<dyn Fn()>,

@@ -437,7 +437,7 @@ pub mod pallet {
 					>|
 					 -> bool {
 						x.delegate == who &&
-							force_proxy_type.as_ref().map_or(true, |y| &x.proxy_type == y)
+							force_proxy_type.as_ref().is_none_or(|y| &x.proxy_type == y)
 					};
 
 					proxy_definitions
