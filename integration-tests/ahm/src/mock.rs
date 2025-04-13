@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{AhMigrator, Block as AssetHubBlock, Runtime as AssetHub};
 use codec::Decode;
 use cumulus_primitives_core::{
@@ -158,7 +160,7 @@ pub fn set_initial_migration_stage(
 			log::info!("Setting start stage: {:?}", &stage);
 			RcMigrationStage::from_str(&stage).expect("Invalid start stage")
 		} else {
-			RcMigrationStage::AccountsMigrationInit
+			RcMigrationStage::Scheduled { block_number: 0u32.into() }
 		};
 		RcMigrationStageStorage::<Polkadot>::put(stage.clone());
 		stage
@@ -195,9 +197,16 @@ pub fn rc_migrate(
 			let new_dmps = DownwardMessageQueues::<Polkadot>::take(para_id);
 			dmps.extend(new_dmps);
 
-			if RcMigrationStageStorage::<Polkadot>::get() == RcMigrationStage::MigrationDone {
-				log::info!("Migration done");
-				break dmps;
+			match RcMigrationStageStorage::<Polkadot>::get() {
+				RcMigrationStage::Initializing => {
+					log::info!("Migration initializing, waiting for AH signal");
+					break dmps;
+				},
+				RcMigrationStage::MigrationDone => {
+					log::info!("Migration done");
+					break dmps;
+				},
+				_ => (),
 			}
 		}
 	});

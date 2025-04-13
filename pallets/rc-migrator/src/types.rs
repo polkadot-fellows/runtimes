@@ -73,6 +73,7 @@ pub enum AhMigratorCall<T: Config> {
 	},
 	#[codec(index = 11)]
 	ReceiveReferendums { referendums: Vec<(u32, ReferendumInfoOf<T, ()>)> },
+	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 12)]
 	ReceiveClaimsMessages { messages: Vec<claims::RcClaimsMessageOf<T>> },
 	#[codec(index = 13)]
@@ -85,18 +86,34 @@ pub enum AhMigratorCall<T: Config> {
 	ReceiveConvictionVotingMessages {
 		messages: Vec<conviction_voting::RcConvictionVotingMessageOf<T>>,
 	},
+	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 17)]
 	ReceiveBountiesMessages { messages: Vec<bounties::RcBountiesMessageOf<T>> },
 	#[codec(index = 18)]
 	ReceiveAssetRates { asset_rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)> },
+	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 19)]
 	ReceiveCrowdloanMessages { messages: Vec<crowdloan::RcCrowdloanMessageOf<T>> },
 	#[codec(index = 20)]
 	ReceiveReferendaMetadata { metadata: Vec<(u32, <T as frame_system::Config>::Hash)> },
+	#[cfg(not(feature = "ahm-westend"))]
 	#[codec(index = 21)]
 	ReceiveTreasuryMessages { messages: Vec<treasury::RcTreasuryMessageOf<T>> },
+	#[codec(index = 30)]
+	#[cfg(feature = "ahm-staking-migration")] // Staking migration not yet enabled
+	ReceiveStakingMessages { messages: Vec<staking::RcStakingMessageOf<T>> },
 	#[codec(index = 101)]
 	StartMigration,
+	#[codec(index = 110)]
+	FinishMigration { data: MigrationFinishedData<BalanceOf<T>> },
+}
+
+/// Further data coming from Relay Chain alongside the signal that migration has finished.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+pub struct MigrationFinishedData<Balance: Default> {
+	/// Total native token balance NOT migrated from Relay Chain
+	pub rc_balance_kept: Balance,
 }
 
 /// Copy of `ParaInfo` type from `paras_registrar` pallet.

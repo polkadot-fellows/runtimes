@@ -1531,6 +1531,7 @@ impl Contains<Location> for ContainsAssetHub {
 }
 
 impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
 	type ManagerOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,

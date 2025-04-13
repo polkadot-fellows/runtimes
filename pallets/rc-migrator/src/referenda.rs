@@ -19,6 +19,7 @@ use pallet_referenda::{DecidingCount, MetadataOf, ReferendumCount, ReferendumInf
 
 /// The stages of the referenda pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum ReferendaStage {
 	#[default]
 	StorageValues,
