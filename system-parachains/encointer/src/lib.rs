@@ -873,12 +873,26 @@ mod benches {
 		}
 	}
 
+	parameter_types! {
+		pub AssetHubParaId: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+		pub AssetHubLocation: Location = ParentThen(Parachain(AssetHubParaId::get().into()).into()).into();
+	}
+
 	impl pallet_xcm::benchmarking::Config for Runtime {
-		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
-			xcm_config::XcmConfig,
-			ExistentialDepositAsset,
-			PriceForParentDelivery,
-		>;
+		type DeliveryHelper = (
+			cumulus_primitives_utility::ToParentDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForParentDelivery,
+			>,
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				xcm_config::XcmConfig,
+				ExistentialDepositAsset,
+				PriceForSiblingParachainDelivery,
+				AssetHubParaId,
+				ParachainSystem,
+			>,
+		);
 		fn reachable_dest() -> Option<Location> {
 			Some(Parent.into())
 		}
@@ -893,6 +907,22 @@ mod benches {
 
 		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
 			None
+		}
+
+		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+			// Only supports native token teleports to system parachain
+			let native_location = Parent.into();
+			let dest = AssetHubLocation::get();
+
+			// TODO: Remove below line once we update to polkadot-sdk stable2503
+			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
+				AssetHubParaId::get(),
+			);
+
+			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+				native_location,
+				dest,
+			)
 		}
 
 		fn get_asset() -> Asset {
