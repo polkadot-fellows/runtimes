@@ -40,7 +40,7 @@ mod weights;
 pub mod xcm_config;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, Encode, MaxEncodedLen};
