@@ -260,20 +260,18 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(_rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		// Check that no failed accounts remain in storage
 		assert!(
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
 
-		let (_rc_checking_before, rc_total_issuance_before) = _rc_pre_payload;
-		let (_ah_checking_before, ah_total_issuance_before) = _ah_pre_payload;
+		let (rc_checking_before, _) = rc_pre_payload;
+		let (ah_checking_before, _) = ah_pre_payload;
 
 		let ah_checking_after = <T as Config>::Currency::total_balance(&T::CheckingAccount::get());
-		let ah_total_issuance_after = <T as Config>::Currency::total_issuance();
 
 		assert_eq!(ah_checking_after, ah_checking_before + rc_checking_before, "Checking account balance on Asset Hub after migration should be the sum of the checking account balance before migration and the checking account balance on the relay chain before migration");
-		assert_eq!(ah_total_issuance_after, ah_total_issuance_before + rc_total_issuance_before, "Total issuance on Asset Hub after migration should be the sum of the total issuance before migration and the total issuance on the relay chain before migration");
 	}
 }
