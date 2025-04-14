@@ -35,30 +35,16 @@ use std::str::FromStr;
 // toggle here if you need "generics" for Kusama or Westend
 #[cfg(feature = "ahm-polkadot")]
 type RelayRuntime = polkadot_runtime::Runtime;
-#[cfg(feature = "ahm-westend")]
-type RelayRuntime = westend_runtime::Runtime;
 #[cfg(feature = "ahm-polkadot")]
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
-#[cfg(feature = "ahm-westend")]
-type AssetHubRuntime = asset_hub_westend_runtime::Runtime;
-
 #[cfg(feature = "ahm-polkadot")]
 type RelayRuntimeOrigin = polkadot_runtime::RuntimeOrigin;
-#[cfg(feature = "ahm-westend")]
-type RelayRuntimeOrigin = westend_runtime::RuntimeOrigin;
 #[cfg(feature = "ahm-polkadot")]
 type AssetHubRuntimeOrigin = asset_hub_polkadot_runtime::RuntimeOrigin;
-#[cfg(feature = "ahm-westend")]
-type AssetHubRuntimeOrigin = asset_hub_westend_runtime::RuntimeOrigin;
-
 #[cfg(feature = "ahm-polkadot")]
 type RelayRuntimeCall = polkadot_runtime::RuntimeCall;
-#[cfg(feature = "ahm-westend")]
-type RelayRuntimeCall = westend_runtime::RuntimeCall;
 #[cfg(feature = "ahm-polkadot")]
 type AssetHubRuntimeCall = asset_hub_polkadot_runtime::RuntimeCall;
-#[cfg(feature = "ahm-westend")]
-type AssetHubRuntimeCall = asset_hub_westend_runtime::RuntimeCall;
 
 /// Multisig accounts created on the relay chain can be re-created on Asset Hub.
 ///
@@ -81,6 +67,7 @@ pub struct MultisigSummary {
 	pub call_hash: [u8; 32],
 }
 
+#[cfg(feature = "ahm-polkadot")]
 impl RcMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
@@ -110,6 +97,7 @@ impl RcMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	}
 }
 
+#[cfg(feature = "ahm-polkadot")]
 impl AhMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
@@ -159,6 +147,7 @@ impl AhMigrationCheck for MultisigsAccoundIdStaysTheSame {
 	}
 }
 
+#[cfg(feature = "ahm-polkadot")]
 impl MultisigsAccoundIdStaysTheSame {
 	// Create a sample multisig on the Relay chain.
 	fn create_sample_multisig_rc() -> MultisigSummary {
