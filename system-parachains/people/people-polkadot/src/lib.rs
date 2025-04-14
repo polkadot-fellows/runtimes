@@ -646,8 +646,7 @@ mod benches {
 		}
 
 		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
-			// People only supports teleports to system parachain.
-			// Relay/native token can be teleported between Coretime and AssetHub.
+			// Only supports native token teleports to system parachain
 			let native_location = Parent.into();
 			let dest = AssetHubLocation::get();
 
