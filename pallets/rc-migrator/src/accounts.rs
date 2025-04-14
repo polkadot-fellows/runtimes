@@ -814,7 +814,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 
 	fn post_check(rc_total_issuance_before: Self::RcPrePayload) {
 		// Check that all accounts have been processed correctly
-		let mut kept = 0;
 		for (who, acc_state) in RcAccounts::<T>::iter() {
 			match acc_state {
 				AccountState::Migrate => {
@@ -864,7 +863,10 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 				AccountState::Preserve => {
 					// Account should be fully preserved
 					let total_balance = <T as Config>::Currency::total_balance(&who);
-					kept += total_balance;
+					assert!(
+						total_balance >= <T as Config>::Currency::minimum_balance(),
+						"Preserved accounts on the relay chain after migration should have at least the existential deposit as balance"
+					);
 				},
 				AccountState::Part { reserved } => {
 					// Account should have only the reserved amount
@@ -874,7 +876,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						Preservation::Expendable,
 						Fortitude::Polite,
 					);
-					let reserved_balance = reserved + <T as Config>::Currency::minimum_balance();
 					assert_eq!(
 						free_balance, 0,
 						"Account {:?} should have no free balance on the relay chain after migration",
@@ -883,7 +884,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 
 					// Assert storage "Balances::Account::rc_post::empty"
 					assert_eq!(
-						total_balance, reserved_balance,
+						total_balance, reserved + <T as Config>::Currency::minimum_balance(),
 						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
 						who.to_ss58check()
 					);
@@ -911,8 +912,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						"Account {:?} should have no freezes on the relay chain after migration",
 						who.to_ss58check()
 					);
-
-					kept += reserved;
 				},
 			}
 		}
@@ -926,13 +925,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 		);
 		let total_issuance = <T as Config>::Currency::total_issuance();
 		let tracker = RcMigratedBalance::<T>::get();
-		// Check that total kept balance matches the one computed before the migration
-		// TODO: Giuseppe @re-gius
-		// assert_eq!(
-		// 	kept, tracker.kept,
-		// 	"Mismatch for total balance kept on the relay chain: after migration ({}) != computed
-		// before migration ({})", 	kept, tracker.kept,
-		// );
 		// verify total issuance hasn't changed for any other reason than the migrated funds
 		assert_eq!(total_issuance, rc_total_issuance_before - tracker.migrated);
 		assert_eq!(total_issuance, tracker.kept);
