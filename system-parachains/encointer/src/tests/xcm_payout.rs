@@ -24,6 +24,7 @@ use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{assert_ok, parameter_types};
 use frame_support::traits::fungible::Mutate;
+use frame_support::traits::fungibles::Mutate as FungiblesMutate;
 use parachains_common::{AccountId, BlockNumber};
 use xcm::{
 	latest::{BodyId, BodyPart, InteriorLocation, Xcm},
@@ -58,7 +59,7 @@ parameter_types! {
 /// Scenario:
 /// Account #3 on the local chain, parachain 42, controls an amount of funds on parachain 2.
 /// [`PayOverXcm::pay`] creates the correct message for account #3 to pay another account, account
-/// #5, on parachain 2, remotely, in its native token.
+/// #5, on parachain 1000, remotely, in its native token.
 #[test]
 fn payout_over_xcm_works() {
 	let sender = AccountId::new([1u8; 32]);
@@ -72,6 +73,7 @@ fn payout_over_xcm_works() {
 	let amount = ONE_KSM;
 
 	new_test_ext().execute_with(|| {
+		mock::Assets::set_balance(0, &sender,10* ONE_KSM);
 		mock::Balances::set_balance(&sender, 10 * ONE_KSM);
 
 		// Check starting balance
@@ -85,10 +87,12 @@ fn payout_over_xcm_works() {
 			AssetKind,
 			LocatableAssetKindConverter,
 			AliasesIntoAccountId32<AnyNetwork, AccountId>,
-		>::pay(&sender, &recipient, asset_kind, amount));
+		>::pay(&sender, &recipient, asset_kind.clone(), amount));
 
 		let expected_message = Xcm(vec![
+			// Change the origin to the local account on the target chain
 			DescendOrigin(AccountId32 { id: sender.into(), network: None }.into()),
+			// Assume that we always pay in native for now
 			WithdrawAsset(
 				vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into(),
 			),
@@ -104,8 +108,7 @@ fn payout_over_xcm_works() {
 			])),
 			TransferAsset {
 				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
-				// assets: (asset_id(asset_kind.clone()), amount).into(),
-				assets: (KsmLocation::get(), amount).into(),
+				assets: (asset_kind.asset_id, amount).into(),
 			},
 		]);
 		let expected_hash = fake_message_hash(&expected_message);
