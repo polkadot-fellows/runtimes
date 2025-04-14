@@ -18,9 +18,10 @@
 //! correct destination
 
 use super::{*, mock::*, xcm_mock::*};
-use crate::treasuries_xcm_payout::PayoutOverXcmAtAssetHub;
+use crate::treasuries_xcm_payout::{asset_id, AssetHubLocation, PayoutOverXcmAtAssetHub, SupportedPayouts};
 use pallet_encointer_treasuries::Payout;
 use codec::{Decode, Encode};
+use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{assert_ok, parameter_types};
 use parachains_common::{AccountId, BlockNumber};
 use xcm::{
@@ -30,6 +31,7 @@ use xcm::{
 use xcm::v5::prelude::*;
 use xcm_executor::XcmExecutor;
 use kusama_runtime_constants::currency::UNITS;
+use crate::xcm_config::KsmLocation;
 
 /// Type representing both a location and an asset that is held at that location.
 /// The id of the held asset is relative to the location where it is being held.
@@ -61,8 +63,7 @@ parameter_types! {
 fn payout_over_xcm_works() {
 	let sender = AccountId::new([1u8; 32]);
 	let recipient = AccountId::new([5u8; 32]);
-	let asset_kind =
-		AssetKind { destination: (Parent, Parachain(2)).into(), asset_id: Here.into() };
+	let asset_kind = SupportedPayouts::Usdt;
 	let amount = 10 * UNITS;
 
 	new_test_ext().execute_with(|| {
@@ -74,30 +75,34 @@ fn payout_over_xcm_works() {
 			TestQueryHandler<TestConfig, BlockNumber>,
 			Timeout,
 			AccountId,
-			AssetKind,
+			SupportedPayouts,
 		>::pay(&sender, &recipient, asset_kind, amount));
 
 		let expected_message = Xcm(vec![
-			DescendOrigin(AccountId32 { id: SenderAccount::get().into(), network: None }.into()),
-			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			DescendOrigin(AccountId32 { id: sender.into(), network: None }.into()),
+			WithdrawAsset(
+				vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into(),
+			),
+			PayFees { asset: (KsmLocation::get(), 10).into() },
+			WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
-					destination: (Parent, Parachain(42)).into(),
+					destination: AssetHubLocation::get(),
 					query_id: 1,
 					max_weight: Weight::zero(),
 				}),
 			])),
 			TransferAsset {
-				assets: (Here, amount).into(),
-				beneficiary: AccountId32 { id: recipient.clone().into(), network: None }.into(),
+				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
+				assets: (asset_id(asset_kind.clone()), amount).into(),
 			},
 		]);
 		let expected_hash = fake_message_hash(&expected_message);
 
 		assert_eq!(
 			sent_xcm(),
-			vec![((Parent, Parachain(2)).into(), expected_message, expected_hash)]
+			vec![((Parent, Parachain(1000)).into(), expected_message, expected_hash)]
 		);
 
 		let (_, message, mut hash) = sent_xcm()[0].clone();
@@ -106,13 +111,15 @@ fn payout_over_xcm_works() {
 
 		// Execute message in parachain 2 with parachain 42's origin
 		let origin = (Parent, Parachain(42));
-		XcmExecutor::<XcmConfig>::prepare_and_execute(
+		let result = XcmExecutor::<XcmConfig>::prepare_and_execute(
 			origin,
 			message,
 			&mut hash,
 			Weight::MAX,
 			Weight::zero(),
 		);
+
+		assert_eq!(result, Outcome::Complete { used: Weight::zero() });
 		assert_eq!(mock::Assets::balance(0, &recipient), amount);
 	});
 }
