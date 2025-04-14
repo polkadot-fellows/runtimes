@@ -679,6 +679,8 @@ mod benches {
 			ExistentialDeposit::get()
 		).into());
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
+		pub AssetHubParaId: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+		pub AssetHubLocation: Location = ParentThen(Parachain(AssetHubParaId::get().into()).into()).into();
 	}
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
@@ -732,6 +734,23 @@ mod benches {
 				},
 				ParentThen(Parachain(RandomParaId::get().into()).into()).into(),
 			))
+		}
+
+		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+			// Coretime only supports teleports to system parachain.
+			// Relay/native token can be teleported between Coretime and AssetHub.
+			let native_location = Parent.into();
+			let dest = AssetHubLocation::get();
+
+			// TODO: Remove below line once we update to polkadot-sdk stable2503
+			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
+				AssetHubParaId::get(),
+			);
+
+			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+				native_location,
+				dest,
+			)
 		}
 
 		fn get_asset() -> Asset {
