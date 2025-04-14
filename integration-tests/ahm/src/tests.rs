@@ -60,7 +60,6 @@ use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 type RcChecks = (
 	// This should run before the accounts migration because it creates a sample multisig account
 	// with balance on the relay chain that needs to be migrated.
-	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
@@ -81,6 +80,7 @@ type RcChecks = (
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
+	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 );
@@ -89,7 +89,6 @@ pub type RcPolkadotChecks = (
 pub type RcPolkadotChecks = ();
 
 type AhChecks = (
-	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
@@ -111,6 +110,7 @@ type AhChecks = (
 // (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
+	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 );
