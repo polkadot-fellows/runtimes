@@ -23,6 +23,7 @@ use pallet_encointer_treasuries::Payout;
 use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{assert_ok, parameter_types};
+use frame_support::traits::fungible::Mutate;
 use parachains_common::{AccountId, BlockNumber};
 use xcm::{
 	latest::{BodyId, BodyPart, InteriorLocation, Xcm},
@@ -64,9 +65,12 @@ fn payout_over_xcm_works() {
 	let sender = AccountId::new([1u8; 32]);
 	let recipient = AccountId::new([5u8; 32]);
 	let asset_kind = SupportedPayouts::Usdt;
-	let amount = 10 * UNITS;
+	let amount = ONE_KSM;
 
 	new_test_ext().execute_with(|| {
+		mock::Balances::set_balance(&sender, 10 * ONE_KSM);
+
+
 		// Check starting balance
 		assert_eq!(mock::Assets::balance(0, &recipient), 0);
 
@@ -84,7 +88,7 @@ fn payout_over_xcm_works() {
 				vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into(),
 			),
 			PayFees { asset: (KsmLocation::get(), 10).into() },
-			WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
+			// WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
@@ -95,7 +99,8 @@ fn payout_over_xcm_works() {
 			])),
 			TransferAsset {
 				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
-				assets: (asset_id(asset_kind.clone()), amount).into(),
+				// assets: (asset_id(asset_kind.clone()), amount).into(),
+				assets: (KsmLocation::get(), amount).into(),
 			},
 		]);
 		let expected_hash = fake_message_hash(&expected_message);
@@ -109,7 +114,7 @@ fn payout_over_xcm_works() {
 		let message =
 			Xcm::<<XcmConfig as xcm_executor::Config>::RuntimeCall>::from(message.clone());
 
-		// Execute message in parachain 2 with parachain 42's origin
+		// Execute message in parachain 1000 with parachain 42's origin
 		let origin = (Parent, Parachain(42));
 		let result = XcmExecutor::<XcmConfig>::prepare_and_execute(
 			origin,

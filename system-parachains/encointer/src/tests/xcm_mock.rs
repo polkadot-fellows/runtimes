@@ -472,12 +472,14 @@ parameter_types! {
 	pub static ExecutorUniversalLocation: InteriorLocation
 		= (ByGenesis([0; 32]), Parachain(42)).into();
 	pub UnitWeightCost: Weight = Weight::from_parts(10, 10);
+
+	pub static ParaFortyTwo: Location = Location::new(1, [Parachain(42)]);
 }
 parameter_types! {
 	// Nothing is allowed to be paid/unpaid by default.
 	pub static AllowExplicitUnpaidFrom: Vec<Location> = vec![];
 	pub static AllowUnpaidFrom: Vec<Location> = vec![];
-	pub static AllowPaidFrom: Vec<Location> = vec![];
+	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get().into()];
 	pub static AllowSubsFrom: Vec<Location> = vec![];
 	// 1_000_000_000_000 => 1 unit of asset for 1 unit of ref time weight.
 	// 1024 * 1024 => 1 unit of asset for 1 unit of proof size weight.
