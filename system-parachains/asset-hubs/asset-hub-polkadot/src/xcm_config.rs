@@ -40,7 +40,7 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
-use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
+use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
