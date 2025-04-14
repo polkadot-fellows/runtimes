@@ -63,7 +63,8 @@ impl<T: Config> PalletMigration for IndicesMigrator<T> {
 					break;
 				}
 			}
-			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_indices(messages.len() as u32))
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_indices((messages.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {

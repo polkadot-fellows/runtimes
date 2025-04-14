@@ -64,7 +64,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_scheduler_lookup(messages.len() as u32))
+				.any_lt(T::AhWeightInfo::receive_scheduler_lookup((messages.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {

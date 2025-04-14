@@ -140,7 +140,7 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			return Err(OutOfWeightError);
 		}
 
-		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch_len)) {
+		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch_len + 1)) {
 			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
 			return Err(OutOfWeightError);
 		}
@@ -187,7 +187,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_proxy_announcements(batch.len() as u32))
+				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 				break;

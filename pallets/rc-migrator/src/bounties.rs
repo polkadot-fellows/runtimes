@@ -76,7 +76,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				}
 			}
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))
+				.any_lt(T::AhWeightInfo::receive_bounties_messages((messages.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {

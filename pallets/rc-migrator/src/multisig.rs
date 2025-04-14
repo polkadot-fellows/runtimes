@@ -180,7 +180,7 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrat
 			return Err(OutOfWeightError);
 		}
 
-		if L::get().any_lt(W::receive_multisigs(batch_len)) {
+		if L::get().any_lt(W::receive_multisigs(batch_len + 1)) {
 			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
 			return Err(OutOfWeightError);
 		}

@@ -111,7 +111,7 @@ impl<T: Config> ReferendaMigrator<T> {
 			}
 
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_referenda_metadata(batch.len() as u32))
+				.any_lt(T::AhWeightInfo::receive_referenda_metadata((batch.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {

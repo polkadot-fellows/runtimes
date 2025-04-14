@@ -45,7 +45,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 
 		let new_next_key = loop {
 			if T::MaxAhWeight::get()
-				.any_lt(T::AhWeightInfo::receive_preimage_request_status(batch.len() as u32))
+				.any_lt(T::AhWeightInfo::receive_preimage_request_status((batch.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
