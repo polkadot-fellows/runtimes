@@ -804,15 +804,17 @@ impl<T: Config> AccountsMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
-	// rc_total_issuance_before
-	type RcPrePayload = BalanceOf<T>;
+	// (rc_checking_before, rc_total_issuance_before)
+	type RcPrePayload = (BalanceOf<T>, BalanceOf<T>);
 
 	fn pre_check() -> Self::RcPrePayload {
-		// Store total issuance and checking account balance before migration
-		<T as Config>::Currency::total_issuance()
+		let total_issuance = <T as Config>::Currency::total_issuance();
+		let checking_balance = <T as Config>::Currency::total_balance(&T::CheckingAccount::get());
+		(checking_balance, total_issuance)
 	}
 
-	fn post_check(rc_total_issuance_before: Self::RcPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+		let (_rc_checking_before, rc_total_issuance_before) = rc_pre_payload;
 		// Check that all accounts have been processed correctly
 		for (who, acc_state) in RcAccounts::<T>::iter() {
 			match acc_state {

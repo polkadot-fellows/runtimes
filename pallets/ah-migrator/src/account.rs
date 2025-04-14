@@ -214,10 +214,10 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
-	// rc_total_issuance_before
-	type RcPrePayload = BalanceOf<T>;
-	// ah_checking_account_before
-	type AhPrePayload = BalanceOf<T>;
+	// (rc_checking_before, rc_total_issuance_before)
+	type RcPrePayload = (BalanceOf<T>, BalanceOf<T>);
+	// (ah_checking_before, ah_total_issuance_before)
+	type AhPrePayload = (BalanceOf<T>, BalanceOf<T>);
 
 	/// Run some checks on asset hub before the migration and store intermediate payload.
 	///
@@ -248,7 +248,10 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		// This is fine, we can just ignore/accept this small amount.
 		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
-		checking_balance
+
+		let total_issuance = <T as Config>::Currency::total_issuance();
+
+		(checking_balance, total_issuance)
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
@@ -257,15 +260,18 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(_rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Check that no failed accounts remain in storage
 		assert!(
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
 
-		// TODO: Giuseppe @re-gius
-		//   run post migration sanity checks like:
-		//    - rc_migrated_out == ah_migrated_in - failed accounts
-	}
+		let (_rc_checking_before, rc_total_issuance_before) = _rc_pre_payload;
+		let (_ah_checking_before, ah_total_issuance_before) = _ah_pre_payload;
+
+		let ah_checking_after = <T as Config>::Currency::total_balance(&T::CheckingAccount::get());
+		let ah_total_issuance_after = <T as Config>::Currency::total_issuance();
+		
+		assert_eq!(ah_checking_after, ah_checking_before + rc_checking_before, "Checking account balance on Asset Hub after migration should be the sum of the checking account balance before migration and the checking account balance on the relay chain before migration");
 }
