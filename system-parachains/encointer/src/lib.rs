@@ -35,9 +35,12 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+mod treasuries_xcm_payout;
 mod weights;
 pub mod xcm_config;
-mod treasuries_xcm_payout;
+
+#[cfg(test)]
+mod tests;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -571,7 +574,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
-	type AssetKind =  crate::treasuries_xcm_payout::SupportedPayouts;
+	type AssetKind = crate::treasuries_xcm_payout::SupportedPayouts;
 	type Paymaster = crate::treasuries_xcm_payout::PayoutOverXcmAtAssetHub<
 		crate::xcm_config::XcmRouter,
 		crate::PolkadotXcm,
