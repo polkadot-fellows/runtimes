@@ -272,6 +272,8 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 
 		let ah_checking_after = <T as Config>::Currency::total_balance(&T::CheckingAccount::get());
 		let ah_total_issuance_after = <T as Config>::Currency::total_issuance();
-		
+
 		assert_eq!(ah_checking_after, ah_checking_before + rc_checking_before, "Checking account balance on Asset Hub after migration should be the sum of the checking account balance before migration and the checking account balance on the relay chain before migration");
+		assert_eq!(ah_total_issuance_after, ah_total_issuance_before + rc_total_issuance_before, "Total issuance on Asset Hub after migration should be the sum of the total issuance before migration and the total issuance on the relay chain before migration");
+	}
 }
