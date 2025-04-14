@@ -475,7 +475,15 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight({1})] // TODO
+		#[pallet::weight({1})]
+		// TODO use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for chunk in chunks.iter() {
+		// 		total = total.saturating_add(T::AhWeightInfo::receive_preimage_chunk(chunk.
+		// chunk_byte_offset / chunks::CHUNK_SIZE)); 	}
+		// 	total
+		// })]
 		pub fn receive_preimage_chunks(
 			origin: OriginFor<T>,
 			chunks: Vec<RcPreimageChunk>,

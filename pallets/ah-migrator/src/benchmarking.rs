@@ -42,7 +42,9 @@ use pallet_rc_migrator::{
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::alias::RequestStatus as PreimageRequestStatus,
+	preimage::alias::{
+		chunks::CHUNK_SIZE, PreimageFor, RequestStatus as PreimageRequestStatus, MAX_SIZE,
+	},
 	proxy::{RcProxy, RcProxyAnnouncement},
 	scheduler::{alias::Scheduled, RcSchedulerMessage},
 	staking::{
@@ -53,6 +55,7 @@ use pallet_rc_migrator::{
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
+use sp_runtime::traits::Hash;
 
 /// The minimum amount used for deposits, transfers, etc.
 ///
@@ -971,12 +974,6 @@ pub mod benchmarks {
 		Preimage::PreimageFor: Measured
 	})]
 	fn receive_preimage_chunk(m: Linear<1, 80>) {
-		use pallet_rc_migrator::preimage::{
-			alias::{PreimageFor, MAX_SIZE},
-			chunks::CHUNK_SIZE,
-		};
-		use sp_runtime::traits::Hash;
-
 		let m_u8: u8 = (m % 255).try_into().unwrap();
 		let preimage_len = m * CHUNK_SIZE;
 		let preimage = vec![m_u8; preimage_len as usize];
