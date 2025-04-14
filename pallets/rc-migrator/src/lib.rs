@@ -238,6 +238,9 @@ pub enum MigrationStage<AccountId, BlockNumber, BagsListScore, VotingClass, Asse
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<BlockNumber>>,
 	},
+	SchedulerAgendaMigrationOngoing {
+		last_key: Option<BlockNumber>,
+	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
 	ConvictionVotingMigrationOngoing {
@@ -315,6 +318,7 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind> std::str::Fr
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
 			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
+			"scheduler" => MigrationStage::SchedulerMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -1026,10 +1030,36 @@ pub mod pallet {
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::SchedulerMigrationDone);
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing { last_key: None });
 						},
 						Ok(Some(last_key)) => {
 							Self::transition(MigrationStage::SchedulerMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating scheduler: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::SchedulerAgendaMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match scheduler::SchedulerAgendaMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SchedulerMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},

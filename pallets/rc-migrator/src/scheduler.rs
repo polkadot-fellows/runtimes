@@ -23,7 +23,6 @@ use pallet_scheduler::{RetryConfig, TaskAddress};
 pub enum SchedulerStage<BlockNumber> {
 	#[default]
 	IncompleteSince,
-	Agenda(Option<BlockNumber>),
 	Retries(Option<TaskAddress<BlockNumber>>),
 	Lookup(Option<TaskName>),
 	Finished,
@@ -31,21 +30,13 @@ pub enum SchedulerStage<BlockNumber> {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub enum RcSchedulerMessage<BlockNumber, Scheduled> {
+pub enum RcSchedulerMessage<BlockNumber> {
 	IncompleteSince(BlockNumber),
-	Agenda((BlockNumber, Vec<Option<Scheduled>>)),
 	Retries((TaskAddress<BlockNumber>, RetryConfig<BlockNumber>)),
 	Lookup((TaskName, TaskAddress<BlockNumber>)),
 }
 
-impl<BlockNumber, Scheduled> RcSchedulerMessage<BlockNumber, Scheduled> {
-	/// Returns true if this message is an Agenda variant.
-	pub fn is_agenda(&self) -> bool {
-		matches!(self, Self::Agenda(_))
-	}
-}
-
-pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, alias::ScheduledOf<T>>;
+pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>>;
 
 pub struct SchedulerMigrator<T: Config> {
 	_phantom: PhantomData<T>,
@@ -60,7 +51,6 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(SchedulerStage::IncompleteSince);
 		let mut messages = Vec::new();
-		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		loop {
 			if weight_counter
@@ -73,9 +63,8 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					break;
 				}
 			}
-			if ah_weight_counter
-				.try_consume(Self::weight_ah_scheduler_message(messages.len() as u32, &last_key))
-				.is_err()
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_scheduler_lookup(messages.len() as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
@@ -94,26 +83,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 					if let Some(since) = pallet_scheduler::IncompleteSince::<T>::take() {
 						messages.push(RcSchedulerMessage::IncompleteSince(since));
 					}
-					SchedulerStage::Agenda(None)
-				},
-				SchedulerStage::Agenda(last_key) => {
-					let mut iter = if let Some(last_key) = last_key {
-						alias::Agenda::<T>::iter_from_key(last_key)
-					} else {
-						alias::Agenda::<T>::iter()
-					};
-					match iter.next() {
-						Some((key, value)) => {
-							alias::Agenda::<T>::remove(&key);
-							if value.len() > 0 {
-								// there are many agendas with no tasks, so we skip them
-								let agenda = value.into_inner();
-								messages.push(RcSchedulerMessage::Agenda((key, agenda)));
-							}
-							SchedulerStage::Agenda(Some(key))
-						},
-						None => SchedulerStage::Retries(None),
-					}
+					SchedulerStage::Retries(None)
 				},
 				SchedulerStage::Retries(last_key) => {
 					let mut iter = if let Some(last_key) = last_key {
@@ -165,22 +135,91 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 	}
 }
 
-impl<T: Config> SchedulerMigrator<T> {
-	/// Get the weight for importing a single scheduler message on Asset Hub.
-	///
-	/// The base weight is only included for the first imported scheduler message.
-	fn weight_ah_scheduler_message(
-		batch_len: u32,
-		stage: &SchedulerStage<BlockNumberFor<T>>,
-	) -> Weight {
-		let weight_of = if matches!(stage, SchedulerStage::Agenda(_)) {
-			// TODO: use `T::AhWeightInfo::receive_scheduler_agenda` with xcm v5, where
-			// `require_weight_at_most` not required
-			T::AhWeightInfo::receive_scheduler_lookup
-		} else {
-			T::AhWeightInfo::receive_scheduler_lookup
+pub struct SchedulerAgendaMigrator<T: Config> {
+	_phantom: PhantomData<T>,
+}
+
+impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
+	type Key = BlockNumberFor<T>;
+	type Error = Error<T>;
+	fn migrate_many(
+		mut last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Self::Error> {
+		let mut messages = Vec::new();
+		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
+
+		let last_key = loop {
+			if weight_counter
+				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
+				.is_err()
+			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break last_key;
+				}
+			}
+			if messages.len() > 10_000 {
+				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
+				break last_key;
+			}
+
+			let maybe_agenda = if let Some(last_key) = last_key {
+				alias::Agenda::<T>::iter_from_key(last_key).next()
+			} else {
+				alias::Agenda::<T>::iter().next()
+			};
+
+			let Some((block, agenda)) = maybe_agenda else {
+				break None;
+			};
+
+			// check if AH can handle the weight of the next agenda
+			for maybe_task in agenda.iter() {
+				// generally there is only one task per agenda
+				let Some(task) = maybe_task else {
+					continue;
+				};
+				let preimage_len = task.call.len().defensive_unwrap_or(
+					// should not happen, but we assume some sane call length.
+					512,
+				);
+				if ah_weight_counter
+					.try_consume(T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len))
+					.is_err()
+				{
+					log::info!(
+						"AH weight limit reached at batch length {}, stopping",
+						messages.len()
+					);
+					if messages.is_empty() {
+						return Err(Error::OutOfWeight);
+					} else {
+						break;
+					}
+				}
+			}
+
+			last_key = Some(block);
+			alias::Agenda::<T>::remove(&block);
+
+			if agenda.len() == 0 {
+				// there are many agendas with no tasks, so we skip them
+				continue;
+			}
+
+			let agenda = agenda.into_inner();
+			messages.push((block, agenda));
 		};
-		item_weight_of(weight_of, batch_len)
+
+		Pallet::<T>::send_chunked_xcm_and_track(
+			messages,
+			|messages| types::AhMigratorCall::<T>::ReceiveSchedulerAgendaMessages { messages },
+			|_| Weight::from_all(1),
+		)?;
+
+		Ok(last_key)
 	}
 }
 

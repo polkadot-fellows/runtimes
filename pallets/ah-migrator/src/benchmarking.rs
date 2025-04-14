@@ -42,11 +42,12 @@ use pallet_rc_migrator::{
 	conviction_voting::RcConvictionVotingMessage,
 	crowdloan::RcCrowdloanMessage,
 	indices::RcIndicesIndex,
-	preimage::alias::{
-		chunks::CHUNK_SIZE, PreimageFor, RequestStatus as PreimageRequestStatus, MAX_SIZE,
+	preimage::{
+		alias::{PreimageFor, RequestStatus as PreimageRequestStatus, MAX_SIZE},
+		CHUNK_SIZE,
 	},
 	proxy::{RcProxy, RcProxyAnnouncement},
-	scheduler::{alias::Scheduled, RcSchedulerMessage},
+	scheduler::RcSchedulerMessage,
 	staking::{
 		bags_list::alias::Node,
 		nom_pools_alias::{SubPools, UnbondPool},
@@ -55,6 +56,7 @@ use pallet_rc_migrator::{
 };
 use pallet_referenda::{Deposit, ReferendumInfo, ReferendumStatus, TallyOf, TracksInfo};
 use pallet_treasury::PaymentState;
+use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
 
 /// The minimum amount used for deposits, transfers, etc.
@@ -96,7 +98,6 @@ pub trait ParametersFactory<
 	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
 	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage;
 	fn create_referendum_info(m: u32) -> (u32, RcReferendumInfo);
-	fn create_scheduler_agenda(m: u32) -> RcSchedulerMessage;
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
 	fn create_bags_list(n: u8) -> RcBagsListMessage;
 	fn create_indices_index(n: u8) -> RcIndicesIndex;
@@ -288,20 +289,6 @@ where
 				alarm: None,
 			}),
 		)
-	}
-
-	fn create_scheduler_agenda(m: u32) -> RcSchedulerMessageOf<T> {
-		let m_u8: u8 = (m % 255).try_into().unwrap();
-		let call: <T as frame_system::Config>::RuntimeCall =
-			frame_system::Call::remark { remark: vec![m_u8; m as usize] }.into();
-		let scheduled = Scheduled {
-			maybe_id: Some([m_u8; 32]),
-			priority: m_u8,
-			call: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
-			maybe_periodic: None,
-			origin: Default::default(),
-		};
-		RcSchedulerMessage::Agenda((m.into(), vec![Some(scheduled)]))
 	}
 
 	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessageOf<T> {
@@ -740,14 +727,25 @@ pub mod benchmarks {
 		Preimage::PreimageFor: Measured
 	})]
 	fn receive_single_scheduler_agenda(m: Linear<1, 4000000>) {
-		let agendas = vec![<<T as Config>::BenchmarkHelper>::create_scheduler_agenda(m)];
+		let m_u8: u8 = (m % 255).try_into().unwrap();
+		let call: <T as frame_system::Config>::RuntimeCall =
+			frame_system::Call::remark { remark: vec![m_u8; m as usize] }.into();
+		let scheduled = RcScheduledOf::<T> {
+			maybe_id: Some([m_u8; 32]),
+			priority: m_u8,
+			call: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
+			maybe_periodic: None,
+			origin: Default::default(),
+		};
+
+		let agendas = vec![(m.into(), vec![Some(scheduled)])];
 
 		#[extrinsic_call]
-		receive_scheduler_messages(RawOrigin::Root, agendas);
+		receive_scheduler_agenda_messages(RawOrigin::Root, agendas);
 
 		assert_last_event::<T>(
 			Event::BatchProcessed {
-				pallet: PalletEventName::Scheduler,
+				pallet: PalletEventName::SchedulerAgenda,
 				count_good: 1,
 				count_bad: 0,
 			}

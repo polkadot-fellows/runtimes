@@ -139,6 +139,7 @@ pub enum PalletEventName {
 	ReferendaMetadata,
 	ReferendaReferendums,
 	Scheduler,
+	SchedulerAgenda,
 	ConvictionVoting,
 	AssetRates,
 }
@@ -595,6 +596,7 @@ pub mod pallet {
 
 		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(11)]
+		#[pallet::weight(T::AhWeightInfo::receive_complete_referendums(referendums.len() as u32))]
 		// TODO: use with xcm v5
 		// #[pallet::weight({
 		// 	let mut total = Weight::zero();
@@ -619,7 +621,6 @@ pub mod pallet {
 		// 	}
 		// 	total
 		// })]
-		#[pallet::weight(T::AhWeightInfo::receive_complete_referendums(referendums.len() as u32))]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -664,26 +665,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(14)]
-		#[pallet::weight({
-			let mut total = Weight::zero();
-			let weight_of = |msg: &RcSchedulerMessageOf<T>| {
-				if msg.is_agenda() {
-					// TODO: use `receive_scheduler_agenda` with xcm v5
-					T::AhWeightInfo::receive_scheduler_lookup
-				} else {
-					T::AhWeightInfo::receive_scheduler_lookup
-				}
-			};
-			for msg in messages.iter() {
-				let weight = if total.is_zero() {
-					weight_of(msg)(1)
-				} else {
-					weight_of(msg)(1).saturating_sub(weight_of(msg)(0))
-				};
-				total = total.saturating_add(weight);
-			}
-			total
-		})]
+		#[pallet::weight(T::AhWeightInfo::receive_scheduler_lookup(messages.len() as u32))]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcSchedulerMessageOf<T>>,
@@ -796,6 +778,39 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			let res = Self::do_receive_treasury_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
+		#[pallet::call_index(22)]
+		#[pallet::weight({1})]
+		// TODO: use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for (_, agenda) in messages.iter() {
+		// 		for maybe_task in agenda {
+		// 			let Some(task) = maybe_task else {
+		// 				continue;
+		// 			};
+		// 			let preimage_len = task.call.len().defensive_unwrap_or(
+		// 				// should not happen, but we assume some sane call length.
+		// 				512,
+		// 			);
+		// 			total =
+		// total.saturating_add(T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len));
+		// 		}
+		// 	}
+		// 	total
+		// })]
+		pub fn receive_scheduler_agenda_messages(
+			origin: OriginFor<T>,
+			messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::RcScheduledOf<T>>>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_scheduler_agenda_messages(messages);
 
 			Self::increment_msg_received_count(res.is_err());
 

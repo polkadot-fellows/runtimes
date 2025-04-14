@@ -238,7 +238,7 @@ impl<T: Config> ReferendaMigrator<T> {
 		match info {
 			ReferendumInfo::Ongoing(status) => {
 				let len = status.proposal.len().defensive_unwrap_or(
-					// should not happen, but we pick some sane call length.
+					// should not happen, but we assume some sane call length.
 					512,
 				);
 				T::AhWeightInfo::receive_single_active_referendums(len)
