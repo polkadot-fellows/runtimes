@@ -293,29 +293,6 @@ pub mod pallet {
 				(),
 			>,
 		>;
-		/// Helper type for benchmarking.
-		#[cfg(feature = "runtime-benchmarks")]
-		type BenchmarkHelper: benchmarking::ParametersFactory<
-			RcMultisigOf<Self>,
-			RcAccountFor<Self>,
-			RcClaimsMessageOf<Self>,
-			RcProxyOf<Self, Self::RcProxyType>,
-			RcProxyAnnouncementOf<Self>,
-			RcVestingSchedule<Self>,
-			RcNomPoolsMessage<Self>,
-			RcFastUnstakeMessage<Self>,
-			RcReferendumInfoOf<Self, ()>,
-			RcSchedulerMessageOf<Self>,
-			RcBagsListMessage<Self>,
-			RcIndicesIndexOf<Self>,
-			RcConvictionVotingMessageOf<Self>,
-			RcBountiesMessageOf<Self>,
-			(<Self as pallet_asset_rate::Config>::AssetKind, FixedU128),
-			RcCrowdloanMessageOf<Self>,
-			RcTreasuryMessageOf<Self>,
-			RcPreimageLegacyStatusOf<Self>,
-			RcPreimageRequestStatusOf<Self>,
-		>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.

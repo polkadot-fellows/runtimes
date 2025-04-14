@@ -1156,8 +1156,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
 	type TreasuryAccounts = migration::TreasuryAccounts;
 	type RcToAhTreasurySpend = migration::RcToAhTreasurySpend;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

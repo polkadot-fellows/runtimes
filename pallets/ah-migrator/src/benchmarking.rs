@@ -59,382 +59,18 @@ use pallet_treasury::PaymentState;
 use scheduler::RcScheduledOf;
 use sp_runtime::traits::Hash;
 
-/// The minimum amount used for deposits, transfers, etc.
-///
-/// Equivalent to Polkadot `UNITS`, which is larger than Kusama `UNITS`.
-pub const UNITS: u128 = 10_000_000_000;
-
-type CurrencyOf<T> = pallet_balances::Pallet<T>;
-
-pub trait ParametersFactory<
-	RcMultisig,
-	RcAccount,
-	RcClaimsMessage,
-	RcProxy,
-	RcProxyAnnouncement,
-	RcVestingSchedule,
-	RcNomPoolsMessage,
-	RcFastUnstakeMessage,
-	RcReferendumInfo,
-	RcSchedulerMessage,
-	RcBagsListMessage,
-	RcIndicesIndex,
-	RcConvictionVotingMessage,
-	RcBountiesMessage,
-	RcAssetKindMessage,
-	RcCrowdloanMessage,
-	RcTreasuryMessage,
-	RcPreimageLegacyStatus,
-	RcPreimageRequestStatus,
->
-{
-	fn create_multisig(n: u8) -> RcMultisig;
-	fn create_account(n: u8) -> RcAccount;
-	fn create_liquid_account(n: u8) -> RcAccount;
-	fn create_vesting_msg(n: u8) -> RcClaimsMessage;
-	fn create_proxy(n: u8) -> RcProxy;
-	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement;
-	fn create_vesting_schedule(n: u8) -> RcVestingSchedule;
-	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage;
-	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage;
-	fn create_referendum_info(m: u32) -> (u32, RcReferendumInfo);
-	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessage;
-	fn create_bags_list(n: u8) -> RcBagsListMessage;
-	fn create_indices_index(n: u8) -> RcIndicesIndex;
-	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessage;
-	fn create_bounties(n: u8) -> RcBountiesMessage;
-	fn create_asset_rate(n: u8) -> RcAssetKindMessage;
-	fn create_crowdloan(n: u8) -> RcCrowdloanMessage;
-	fn create_treasury(n: u8) -> RcTreasuryMessage;
-	fn create_preimage_legacy_status(n: u8) -> RcPreimageLegacyStatus;
-	fn create_preimage_request_status(n: u8) -> RcPreimageRequestStatus;
-}
-
-pub struct BenchmarkFactory<T: Config>(PhantomData<T>);
-impl<T: Config>
-	ParametersFactory<
-		RcMultisig<AccountId32, u128>,
-		RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason>,
-		RcClaimsMessage<AccountId32, u128, u32>,
-		RcProxy<AccountId32, u128, T::RcProxyType, u32>,
-		RcProxyAnnouncement<AccountId32, u128>,
-		RcVestingSchedule<T>,
-		RcNomPoolsMessage<T>,
-		RcFastUnstakeMessage<T>,
-		RcReferendumInfoOf<T, ()>,
-		RcSchedulerMessageOf<T>,
-		RcBagsListMessage<T>,
-		RcIndicesIndexOf<T>,
-		RcConvictionVotingMessageOf<T>,
-		RcBountiesMessageOf<T>,
-		(<T as pallet_asset_rate::Config>::AssetKind, FixedU128),
-		RcCrowdloanMessageOf<T>,
-		RcTreasuryMessageOf<T>,
-		RcPreimageLegacyStatusOf<T>,
-		RcPreimageRequestStatusOf<T>,
-	> for BenchmarkFactory<T>
-where
-	<<T as pallet_conviction_voting::Config>::Polls as Polling<
-		pallet_conviction_voting::TallyOf<T, ()>,
-	>>::Index: From<u8>,
-	<<T as pallet_preimage::Config>::Currency as Currency<sp_runtime::AccountId32>>::Balance:
-		From<u128>,
-{
-	fn create_multisig(n: u8) -> RcMultisig<AccountId32, u128> {
-		let creator: AccountId32 = [n; 32].into();
-		let deposit: u128 = UNITS;
-		let _ = CurrencyOf::<T>::deposit_creating(&creator, (deposit * 10).into());
-		let _ = CurrencyOf::<T>::reserve(&creator, deposit.into()).unwrap();
-
-		RcMultisig { creator, deposit, details: Some([2u8; 32].into()) }
-	}
-
-	fn create_account(n: u8) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
-		let who: AccountId32 = [n; 32].into();
-		let _ = CurrencyOf::<T>::deposit_creating(
-			&who,
-			<CurrencyOf<T> as Currency<_>>::minimum_balance(),
-		);
-
-		let hold_amount = UNITS;
-		let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
-
-		let freeze_amount = 2 * UNITS;
-		let freezes = vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
-
-		let lock_amount = 3 * UNITS;
-		let locks = vec![pallet_balances::BalanceLock::<u128> {
-			id: [1u8; 8],
-			amount: lock_amount,
-			reasons: pallet_balances::Reasons::All,
-		}];
-
-		let unnamed_reserve = 4 * UNITS;
-
-		let free = UNITS + hold_amount + freeze_amount + lock_amount + unnamed_reserve;
-		let reserved = hold_amount + unnamed_reserve;
-		let frozen = freeze_amount + lock_amount;
-
-		RcAccount {
-			who,
-			free,
-			reserved,
-			frozen,
-			holds: holds.try_into().unwrap(),
-			freezes: freezes.try_into().unwrap(),
-			locks: locks.try_into().unwrap(),
-			unnamed_reserve,
-			consumers: 1,
-			providers: 1,
-		}
-	}
-
-	fn create_liquid_account(
-		n: u8,
-	) -> RcAccount<AccountId32, u128, T::RcHoldReason, T::RcFreezeReason> {
-		let who: AccountId32 = [n; 32].into();
-		let _ = CurrencyOf::<T>::deposit_creating(
-			&who,
-			<CurrencyOf<T> as Currency<_>>::minimum_balance(),
-		);
-
-		RcAccount {
-			who,
-			free: UNITS,
-			reserved: 0,
-			frozen: 0,
-			holds: Default::default(),
-			freezes: Default::default(),
-			locks: Default::default(),
-			unnamed_reserve: 0,
-			consumers: 1,
-			providers: 1,
-		}
-	}
-
-	fn create_vesting_msg(n: u8) -> RcClaimsMessage<AccountId32, u128, u32> {
-		RcClaimsMessage::Vesting { who: EthereumAddress([n; 20]), schedule: (100, 200, 300) }
-	}
-
-	fn create_proxy(n: u8) -> RcProxy<AccountId32, u128, T::RcProxyType, u32> {
-		let proxy_def = ProxyDefinition {
-			proxy_type: T::RcProxyType::default(),
-			delegate: [n; 32].into(),
-			delay: 100,
-		};
-		let proxies = vec![proxy_def; T::MaxProxies::get() as usize];
-
-		RcProxy { delegator: [n; 32].into(), deposit: 200, proxies }
-	}
-
-	fn create_proxy_announcement(n: u8) -> RcProxyAnnouncement<AccountId32, u128> {
-		let creator: AccountId32 = [n; 32].into();
-		let deposit: u128 = UNITS;
-		let _ = CurrencyOf::<T>::deposit_creating(&creator, (deposit * 10).into());
-		let _ = CurrencyOf::<T>::reserve(&creator, deposit.into()).unwrap();
-
-		RcProxyAnnouncement { depositor: creator, deposit }
-	}
-
-	fn create_vesting_schedule(n: u8) -> RcVestingSchedule<T> {
-		let max_schedule = pallet_vesting::MaxVestingSchedulesGet::<T>::get();
-		let schedule = pallet_vesting::VestingInfo::new(n.into(), n.into(), n.into());
-		RcVestingSchedule {
-			who: [n; 32].into(),
-			schedules: vec![schedule; max_schedule as usize].try_into().unwrap(),
-		}
-	}
-
-	fn create_nom_sub_pool(n: u8) -> RcNomPoolsMessage<T> {
-		let mut with_era = BoundedBTreeMap::<_, _, _>::new();
-		for i in 0..TotalUnbondingPools::<T>::get() {
-			let key = i.into();
-			with_era
-				.try_insert(key, UnbondPool { points: n.into(), balance: n.into() })
-				.unwrap();
-		}
-
-		RcNomPoolsMessage::SubPoolsStorage {
-			sub_pools: (
-				n.into(),
-				SubPools { no_era: UnbondPool { points: n.into(), balance: n.into() }, with_era },
-			),
-		}
-	}
-
-	fn create_fast_unstake(n: u8) -> RcFastUnstakeMessage<T> {
-		RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
-	}
-
-	fn create_referendum_info(m: u32) -> (u32, RcReferendumInfoOf<T, ()>) {
-		let id = m;
-		let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
-		let track_id = tracks.iter().next().unwrap().0;
-		let deposit = Deposit { who: [1; 32].into(), amount: m.into() };
-		let call: <T as frame_system::Config>::RuntimeCall =
-			frame_system::Call::remark { remark: vec![1u8; m as usize] }.into();
-		(
-			id,
-			ReferendumInfo::Ongoing(ReferendumStatus {
-				track: track_id,
-				origin: Default::default(),
-				proposal: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
-				enactment: DispatchTime::At(m.into()),
-				submitted: m.into(),
-				submission_deposit: deposit.clone(),
-				decision_deposit: Some(deposit),
-				deciding: None,
-				tally: TallyOf::<T, ()>::new(track_id),
-				in_queue: false,
-				alarm: None,
-			}),
-		)
-	}
-
-	fn create_scheduler_lookup(n: u8) -> RcSchedulerMessageOf<T> {
-		RcSchedulerMessage::Lookup(([n; 32], (n.into(), n.into())))
-	}
-
-	fn create_bags_list(n: u8) -> RcBagsListMessage<T> {
-		RcBagsListMessage::Node {
-			id: [n; 32].into(),
-			node: Node {
-				id: [n; 32].into(),
-				prev: Some([n; 32].into()),
-				next: Some([n; 32].into()),
-				bag_upper: n.into(),
-				score: n.into(),
-			},
-		}
-	}
-
-	fn create_indices_index(n: u8) -> RcIndicesIndexOf<T> {
-		return RcIndicesIndex {
-			index: n.into(),
-			who: [n; 32].into(),
-			deposit: n.into(),
-			frozen: false,
-		}
-	}
-
-	fn create_conviction_vote(n: u8) -> RcConvictionVotingMessageOf<T> {
-		let class = <T as pallet_conviction_voting::Config>::Polls::classes()
-			.iter()
-			.cycle()
-			.skip(n as usize)
-			.next()
-			.unwrap()
-			.clone();
-		let votes = BoundedVec::<(_, AccountVote<_>), _>::try_from(
-			(0..<T as pallet_conviction_voting::Config<()>>::MaxVotes::get())
-				.map(|_| {
-					(
-						n.into(),
-						AccountVote::Standard {
-							vote: Vote { aye: true, conviction: Default::default() },
-							balance: n.into(),
-						},
-					)
-				})
-				.collect::<Vec<_>>(),
-		)
-		.unwrap();
-		RcConvictionVotingMessage::VotingFor(
-			[n; 32].into(),
-			class,
-			Voting::Casting(Casting {
-				votes,
-				delegations: Delegations { votes: n.into(), capital: n.into() },
-				prior: Default::default(),
-			}),
-		)
-	}
-
-	fn create_bounties(n: u8) -> RcBountiesMessageOf<T> {
-		RcBountiesMessage::Bounties((
-			n.into(),
-			Bounty {
-				proposer: [n; 32].into(),
-				value: n.into(),
-				fee: n.into(),
-				curator_deposit: n.into(),
-				bond: n.into(),
-				status: BountyStatus::Active { curator: [n; 32].into(), update_due: n.into() },
-			},
-		))
-	}
-
-	fn create_asset_rate(n: u8) -> (<T as pallet_asset_rate::Config>::AssetKind, FixedU128) {
-		(
-			<T as pallet_asset_rate::Config>::BenchmarkHelper::create_asset_kind(n.into()),
-			FixedU128::from_u32(n as u32),
-		)
-	}
-
-	fn create_crowdloan(n: u8) -> RcCrowdloanMessageOf<T> {
-		RcCrowdloanMessage::CrowdloanContribution {
-			withdraw_block: n.into(),
-			contributor: [n.into(); 32].into(),
-			para_id: (n as u32).into(),
-			amount: n.into(),
-			crowdloan_account: [n.into(); 32].into(),
-		}
-	}
-
-	fn create_treasury(n: u8) -> RcTreasuryMessageOf<T> {
-		RcTreasuryMessage::Spends {
-			id: n.into(),
-			status: SpendStatus {
-				asset_kind: VersionedLocatableAsset::V4 {
-					location: Location::new(0, [Parachain(1000)]),
-					asset_id: Location::new(0, [PalletInstance(n.into()), GeneralIndex(n.into())])
-						.into(),
-				},
-				amount: n.into(),
-				beneficiary: VersionedLocation::V4(Location::new(
-					0,
-					[xcm::latest::Junction::AccountId32 { network: None, id: [n; 32].into() }],
-				)),
-				valid_from: n.into(),
-				expire_at: n.into(),
-				status: PaymentState::Pending,
-			},
-		}
-	}
-
-	fn create_preimage_legacy_status(n: u8) -> RcPreimageLegacyStatusOf<T> {
-		let depositor: AccountId32 = [n; 32].into();
-		let deposit = <CurrencyOf<T> as Currency<_>>::minimum_balance();
-		let _ = CurrencyOf::<T>::deposit_creating(&depositor, (deposit * 10).into());
-		let _ = CurrencyOf::<T>::reserve(&depositor, deposit.into()).unwrap();
-
-		RcPreimageLegacyStatusOf::<T> { hash: [n; 32].into(), depositor, deposit: deposit.into() }
-	}
-
-	fn create_preimage_request_status(n: u8) -> RcPreimageRequestStatusOf<T> {
-		let preimage = vec![n; 512];
-		let hash = T::Preimage::note(preimage.into()).unwrap();
-
-		let depositor: AccountId32 = [n; 32].into();
-		let old_footprint = Footprint::from_parts(1, 1024);
-		<T as pallet_preimage::Config>::Consideration::ensure_successful(&depositor, old_footprint);
-		let consideration =
-			<T as pallet_preimage::Config>::Consideration::new(&depositor, old_footprint).unwrap();
-		RcPreimageRequestStatusOf::<T> {
-			hash,
-			request_status: PreimageRequestStatus::Unrequested {
-				ticket: (depositor, consideration),
-				len: 512, // smaller than old footprint
-			},
-		}
-	}
-}
-
 fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-#[benchmarks]
+/// Type alias for the conviction voting index constraint
+pub type ConvictionVotingIndexOf<T> = <<T as pallet_conviction_voting::Config>::Polls as Polling<
+	pallet_conviction_voting::TallyOf<T, ()>,
+>>::Index;
+
+#[benchmarks(where
+	ConvictionVotingIndexOf<T>: From<u8>,
+)]
 pub mod benchmarks {
 	use super::*;
 
@@ -482,9 +118,20 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_multisigs(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_multisig(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_multisig = |n: u8| -> RcMultisigOf<T> {
+			let creator: AccountId32 = [n; 32].into();
+			let deposit =
+				<<T as pallet_multisig::Config>::Currency as Currency<_>>::minimum_balance();
+			let _ = <<T as pallet_multisig::Config>::Currency>::deposit_creating(
+				&creator,
+				deposit + deposit,
+			);
+			let _ = <<T as pallet_multisig::Config>::Currency>::reserve(&creator, deposit).unwrap();
+
+			RcMultisig { creator, deposit, details: Some([2u8; 32].into()) }
+		};
+
+		let messages = (0..n).map(|i| create_multisig(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -501,9 +148,46 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_accounts(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_account(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_account = |n: u8| -> RcAccountFor<T> {
+			let who: AccountId32 = [n; 32].into();
+			let ed = <pallet_balances::Pallet<T> as Currency<_>>::minimum_balance();
+			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
+
+			let hold_amount = ed;
+			let holds = vec![IdAmount { id: T::RcHoldReason::default(), amount: hold_amount }];
+
+			let freeze_amount = 2 * ed;
+			let freezes =
+				vec![IdAmount { id: T::RcFreezeReason::default(), amount: freeze_amount }];
+
+			let lock_amount = 3 * ed;
+			let locks = vec![pallet_balances::BalanceLock::<u128> {
+				id: [1u8; 8],
+				amount: lock_amount,
+				reasons: pallet_balances::Reasons::All,
+			}];
+
+			let unnamed_reserve = 4 * ed;
+
+			let free = ed + hold_amount + freeze_amount + lock_amount + unnamed_reserve;
+			let reserved = hold_amount + unnamed_reserve;
+			let frozen = freeze_amount + lock_amount;
+
+			RcAccount {
+				who,
+				free,
+				reserved,
+				frozen,
+				holds: holds.try_into().unwrap(),
+				freezes: freezes.try_into().unwrap(),
+				locks: locks.try_into().unwrap(),
+				unnamed_reserve,
+				consumers: 1,
+				providers: 1,
+			}
+		};
+
+		let messages = (0..n).map(|i| create_account(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -520,9 +204,27 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_liquid_accounts(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_liquid_account(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_liquid_account = |n: u8| -> RcAccountFor<T> {
+			let who: AccountId32 = [n; 32].into();
+			let ed = <pallet_balances::Pallet<T> as Currency<_>>::minimum_balance();
+			let _ = <pallet_balances::Pallet<T> as Currency<_>>::deposit_creating(&who, ed);
+
+			RcAccount {
+				who,
+				free: ed,
+				reserved: 0,
+				frozen: 0,
+				holds: Default::default(),
+				freezes: Default::default(),
+				locks: Default::default(),
+				unnamed_reserve: 0,
+				consumers: 1,
+				providers: 1,
+			}
+		};
+
+		let messages =
+			(0..n).map(|i| create_liquid_account(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		receive_accounts(RawOrigin::Root, messages);
@@ -539,9 +241,15 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_claims(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_vesting_msg(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_vesting_msg = |n: u8| -> RcClaimsMessageOf<T> {
+			RcClaimsMessage::Vesting {
+				who: EthereumAddress([n; 20]),
+				schedule: (100u32.into(), 200u32.into(), 300u32.into()),
+			}
+		};
+
+		let messages =
+			(0..n).map(|i| create_vesting_msg(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -554,9 +262,18 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_proxy_proxies(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_proxy(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_proxy = |n: u8| -> RcProxyOf<T, T::RcProxyType> {
+			let proxy_def = ProxyDefinition {
+				proxy_type: T::RcProxyType::default(),
+				delegate: [n; 32].into(),
+				delay: 100u32.into(),
+			};
+			let proxies = vec![proxy_def; T::MaxProxies::get() as usize];
+
+			RcProxy { delegator: [n; 32].into(), deposit: 200u32.into(), proxies }
+		};
+
+		let messages = (0..n).map(|i| create_proxy(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -573,10 +290,19 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_proxy_announcements(n: Linear<1, 255>) {
+		let create_proxy_announcement = |n: u8| -> RcProxyAnnouncementOf<T> {
+			let creator: AccountId32 = [n; 32].into();
+			let deposit = <<T as pallet_proxy::Config>::Currency as Currency<_>>::minimum_balance();
+			let _ = <<T as pallet_proxy::Config>::Currency>::deposit_creating(
+				&creator,
+				deposit + deposit,
+			);
+			let _ = <T as pallet_proxy::Config>::Currency::reserve(&creator, deposit).unwrap();
+			RcProxyAnnouncement { depositor: creator, deposit }
+		};
+
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_proxy_announcement(i.try_into().unwrap())
-			})
+			.map(|i| create_proxy_announcement(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -594,10 +320,17 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_vesting_schedules(n: Linear<1, 255>) {
+		let create_vesting_schedule = |n: u8| -> RcVestingSchedule<T> {
+			let max_schedule = pallet_vesting::MaxVestingSchedulesGet::<T>::get();
+			let schedule = pallet_vesting::VestingInfo::new(n.into(), n.into(), n.into());
+			RcVestingSchedule {
+				who: [n; 32].into(),
+				schedules: vec![schedule; max_schedule as usize].try_into().unwrap(),
+			}
+		};
+
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_vesting_schedule(i.try_into().unwrap())
-			})
+			.map(|i| create_vesting_schedule(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -611,9 +344,28 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_nom_pools_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_nom_sub_pool(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_nom_sub_pool = |n: u8| -> RcNomPoolsMessage<T> {
+			let mut with_era = BoundedBTreeMap::<_, _, _>::new();
+			for i in 0..TotalUnbondingPools::<T>::get() {
+				let key = i.into();
+				with_era
+					.try_insert(key, UnbondPool { points: n.into(), balance: n.into() })
+					.unwrap();
+			}
+
+			RcNomPoolsMessage::SubPoolsStorage {
+				sub_pools: (
+					n.into(),
+					SubPools {
+						no_era: UnbondPool { points: n.into(), balance: n.into() },
+						with_era,
+					},
+				),
+			}
+		};
+
+		let messages =
+			(0..n).map(|i| create_nom_sub_pool(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -630,9 +382,12 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_fast_unstake_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_fast_unstake(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_fast_unstake = |n: u8| -> RcFastUnstakeMessage<T> {
+			RcFastUnstakeMessage::Queue { member: ([n; 32].into(), n.into()) }
+		};
+
+		let messages =
+			(0..n).map(|i| create_fast_unstake(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -683,7 +438,32 @@ pub mod benchmarks {
 		Preimage::PreimageFor: Measured
 	})]
 	fn receive_single_active_referendums(m: Linear<1, 4000000>) {
-		let messages = vec![<<T as Config>::BenchmarkHelper>::create_referendum_info(m)];
+		let create_referendum_info = |m: u32| -> (u32, RcReferendumInfoOf<T, ()>) {
+			let id = m;
+			let tracks = <T as pallet_referenda::Config>::Tracks::tracks();
+			let track_id = tracks.iter().next().unwrap().0;
+			let deposit = Deposit { who: [1; 32].into(), amount: m.into() };
+			let call: <T as frame_system::Config>::RuntimeCall =
+				frame_system::Call::remark { remark: vec![1u8; m as usize] }.into();
+			(
+				id,
+				ReferendumInfo::Ongoing(ReferendumStatus {
+					track: track_id,
+					origin: Default::default(),
+					proposal: <T as pallet_referenda::Config>::Preimages::bound(call).unwrap(),
+					enactment: DispatchTime::At(m.into()),
+					submitted: m.into(),
+					submission_deposit: deposit.clone(),
+					decision_deposit: Some(deposit),
+					deciding: None,
+					tally: TallyOf::<T, ()>::new(track_id),
+					in_queue: false,
+					alarm: None,
+				}),
+			)
+		};
+
+		let messages = vec![create_referendum_info(m)];
 
 		#[extrinsic_call]
 		receive_referendums(RawOrigin::Root, messages);
@@ -755,10 +535,12 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_scheduler_lookup(n: Linear<1, 255>) {
+		let create_scheduler_lookup = |n: u8| -> RcSchedulerMessageOf<T> {
+			RcSchedulerMessage::Lookup(([n; 32], (n.into(), n.into())))
+		};
+
 		let lookups = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_scheduler_lookup(i.try_into().unwrap())
-			})
+			.map(|i| create_scheduler_lookup(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -776,9 +558,20 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_bags_list_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_bags_list(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_bags_list = |n: u8| -> RcBagsListMessage<T> {
+			RcBagsListMessage::Node {
+				id: [n; 32].into(),
+				node: Node {
+					id: [n; 32].into(),
+					prev: Some([n; 32].into()),
+					next: Some([n; 32].into()),
+					bag_upper: n.into(),
+					score: n.into(),
+				},
+			}
+		};
+
+		let messages = (0..n).map(|i| create_bags_list(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -795,9 +588,17 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_indices(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_indices_index(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_indices_index = |n: u8| -> RcIndicesIndexOf<T> {
+			return RcIndicesIndex {
+				index: n.into(),
+				who: [n; 32].into(),
+				deposit: n.into(),
+				frozen: false,
+			}
+		};
+
+		let messages =
+			(0..n).map(|i| create_indices_index(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -810,10 +611,41 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_conviction_voting_messages(n: Linear<1, 255>) {
+		let create_conviction_vote = |n: u8| -> RcConvictionVotingMessageOf<T> {
+			let class = <T as pallet_conviction_voting::Config>::Polls::classes()
+				.iter()
+				.cycle()
+				.skip(n as usize)
+				.next()
+				.unwrap()
+				.clone();
+			let votes = BoundedVec::<(_, AccountVote<_>), _>::try_from(
+				(0..<T as pallet_conviction_voting::Config<()>>::MaxVotes::get())
+					.map(|_| {
+						(
+							n.into(),
+							AccountVote::Standard {
+								vote: Vote { aye: true, conviction: Default::default() },
+								balance: n.into(),
+							},
+						)
+					})
+					.collect::<Vec<_>>(),
+			)
+			.unwrap();
+			RcConvictionVotingMessage::VotingFor(
+				[n; 32].into(),
+				class,
+				Voting::Casting(Casting {
+					votes,
+					delegations: Delegations { votes: n.into(), capital: n.into() },
+					prior: Default::default(),
+				}),
+			)
+		};
+
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_conviction_vote(i.try_into().unwrap())
-			})
+			.map(|i| create_conviction_vote(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -831,9 +663,21 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_bounties_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_bounties(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_bounties = |n: u8| -> RcBountiesMessageOf<T> {
+			RcBountiesMessage::Bounties((
+				n.into(),
+				Bounty {
+					proposer: [n; 32].into(),
+					value: n.into(),
+					fee: n.into(),
+					curator_deposit: n.into(),
+					bond: n.into(),
+					status: BountyStatus::Active { curator: [n; 32].into(), update_due: n.into() },
+				},
+			))
+		};
+
+		let messages = (0..n).map(|i| create_bounties(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -850,9 +694,15 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_asset_rates(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_asset_rate(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_asset_rate =
+			|n: u8| -> (<T as pallet_asset_rate::Config>::AssetKind, FixedU128) {
+				(
+					<T as pallet_asset_rate::Config>::BenchmarkHelper::create_asset_kind(n.into()),
+					FixedU128::from_u32(n as u32),
+				)
+			};
+
+		let messages = (0..n).map(|i| create_asset_rate(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -869,9 +719,17 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_crowdloan_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_crowdloan(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_crowdloan = |n: u8| -> RcCrowdloanMessageOf<T> {
+			RcCrowdloanMessage::CrowdloanContribution {
+				withdraw_block: n.into(),
+				contributor: [n.into(); 32].into(),
+				para_id: (n as u32).into(),
+				amount: n.into(),
+				crowdloan_account: [n.into(); 32].into(),
+			}
+		};
+
+		let messages = (0..n).map(|i| create_crowdloan(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -905,9 +763,31 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_treasury_messages(n: Linear<1, 255>) {
-		let messages = (0..n)
-			.map(|i| <<T as Config>::BenchmarkHelper>::create_treasury(i.try_into().unwrap()))
-			.collect::<Vec<_>>();
+		let create_treasury = |n: u8| -> RcTreasuryMessageOf<T> {
+			RcTreasuryMessage::Spends {
+				id: n.into(),
+				status: SpendStatus {
+					asset_kind: VersionedLocatableAsset::V4 {
+						location: Location::new(0, [Parachain(1000)]),
+						asset_id: Location::new(
+							0,
+							[PalletInstance(n.into()), GeneralIndex(n.into())],
+						)
+						.into(),
+					},
+					amount: n.into(),
+					beneficiary: VersionedLocation::V4(Location::new(
+						0,
+						[xcm::latest::Junction::AccountId32 { network: None, id: [n; 32].into() }],
+					)),
+					valid_from: n.into(),
+					expire_at: n.into(),
+					status: PaymentState::Pending,
+				},
+			}
+		};
+
+		let messages = (0..n).map(|i| create_treasury(i.try_into().unwrap())).collect::<Vec<_>>();
 
 		#[extrinsic_call]
 		_(RawOrigin::Root, messages);
@@ -924,12 +804,22 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_preimage_legacy_status(n: Linear<1, 255>) {
+		let create_preimage_legacy_status = |n: u8| -> RcPreimageLegacyStatusOf<T> {
+			let depositor: AccountId32 = [n; 32].into();
+			let deposit =
+				<<T as pallet_preimage::Config>::Currency as Currency<_>>::minimum_balance();
+			let _ = <<T as pallet_preimage::Config>::Currency>::deposit_creating(
+				&depositor,
+				deposit + deposit,
+			);
+			let _ =
+				<<T as pallet_preimage::Config>::Currency>::reserve(&depositor, deposit).unwrap();
+
+			RcPreimageLegacyStatusOf::<T> { hash: [n; 32].into(), depositor, deposit }
+		};
+
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_preimage_legacy_status(
-					i.try_into().unwrap(),
-				)
-			})
+			.map(|i| create_preimage_legacy_status(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -947,12 +837,30 @@ pub mod benchmarks {
 
 	#[benchmark]
 	fn receive_preimage_request_status(n: Linear<1, 255>) {
+		let create_preimage_request_status = |n: u8| -> RcPreimageRequestStatusOf<T> {
+			let preimage = vec![n; 512];
+			let hash = T::Preimage::note(preimage.into()).unwrap();
+
+			let depositor: AccountId32 = [n; 32].into();
+			let old_footprint = Footprint::from_parts(1, 1024);
+			<T as pallet_preimage::Config>::Consideration::ensure_successful(
+				&depositor,
+				old_footprint,
+			);
+			let consideration =
+				<T as pallet_preimage::Config>::Consideration::new(&depositor, old_footprint)
+					.unwrap();
+			RcPreimageRequestStatusOf::<T> {
+				hash,
+				request_status: PreimageRequestStatus::Unrequested {
+					ticket: (depositor, consideration),
+					len: 512, // smaller than old footprint
+				},
+			}
+		};
+
 		let messages = (0..n)
-			.map(|i| {
-				<<T as Config>::BenchmarkHelper>::create_preimage_request_status(
-					i.try_into().unwrap(),
-				)
-			})
+			.map(|i| create_preimage_request_status(i.try_into().unwrap()))
 			.collect::<Vec<_>>();
 
 		#[extrinsic_call]
@@ -1046,147 +954,263 @@ pub mod benchmarks {
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_multisigs<T: Config>(n: u32) {
+	pub fn test_receive_multisigs<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_multisigs::<T>(n, true /* enable checks */)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_on_finalize<T: Config>() {
+	pub fn test_on_finalize<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_on_finalize::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_proxy_proxies<T: Config>(n: u32) {
+	pub fn test_receive_proxy_proxies<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_proxy_proxies::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_proxy_announcements<T: Config>(n: u32) {
+	pub fn test_receive_proxy_announcements<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_proxy_announcements::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_claims<T: Config>(n: u32) {
+	pub fn test_receive_claims<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_claims::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_nom_pools_messages<T: Config>(n: u32) {
+	pub fn test_receive_nom_pools_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_nom_pools_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_vesting_schedules<T: Config>(n: u32) {
+	pub fn test_receive_vesting_schedules<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_vesting_schedules::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_fast_unstake_messages<T: Config>(n: u32) {
+	pub fn test_receive_fast_unstake_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_fast_unstake_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_referenda_values<T: Config>() {
+	pub fn test_receive_referenda_values<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_referenda_values::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_single_active_referendums<T: Config>(n: u32) {
+	pub fn test_receive_single_active_referendums<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_single_active_referendums::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_complete_referendums<T: Config>(n: u32) {
+	pub fn test_receive_complete_referendums<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_complete_referendums::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_accounts<T: Config>(n: u32) {
+	pub fn test_receive_accounts<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_accounts::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_liquid_accounts<T: Config>(n: u32) {
+	pub fn test_receive_liquid_accounts<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_liquid_accounts::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_single_scheduler_agenda<T: Config>(m: u32) {
+	pub fn test_receive_single_scheduler_agenda<T>(m: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_single_scheduler_agenda::<T>(m, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_scheduler_lookup<T: Config>(n: u32) {
+	pub fn test_receive_scheduler_lookup<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_scheduler_lookup::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_bags_list_messages<T: Config>(n: u32) {
+	pub fn test_receive_bags_list_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_bags_list_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_indices<T: Config>(n: u32) {
+	pub fn test_receive_indices<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_indices::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_conviction_voting_messages<T: Config>(n: u32) {
+	pub fn test_receive_conviction_voting_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_conviction_voting_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_bounties_messages<T: Config>(n: u32) {
+	pub fn test_receive_bounties_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_bounties_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_asset_rates<T: Config>(n: u32) {
+	pub fn test_receive_asset_rates<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_asset_rates::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_crowdloan_messages<T: Config>(n: u32) {
+	pub fn test_receive_crowdloan_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_crowdloan_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_referenda_metadata<T: Config>(n: u32) {
+	pub fn test_receive_referenda_metadata<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_referenda_metadata::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_treasury_messages<T: Config>(n: u32) {
+	pub fn test_receive_treasury_messages<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_treasury_messages::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_force_set_stage<T: Config>() {
+	pub fn test_force_set_stage<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_force_set_stage::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_start_migration<T: Config>() {
+	pub fn test_start_migration<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_start_migration::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_finish_migration<T: Config>() {
+	pub fn test_finish_migration<T>()
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_finish_migration::<T>(true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_preimage_legacy_status<T: Config>(n: u32) {
+	pub fn test_receive_preimage_legacy_status<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_preimage_legacy_status::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_preimage_request_status<T: Config>(n: u32) {
+	pub fn test_receive_preimage_request_status<T>(n: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_preimage_request_status::<T>(n, true)
 	}
 
 	#[cfg(feature = "std")]
-	pub fn test_receive_preimage_chunk<T: Config>(m: u32) {
+	pub fn test_receive_preimage_chunk<T>(m: u32)
+	where
+		T: Config,
+		ConvictionVotingIndexOf<T>: From<u8>,
+	{
 		_receive_preimage_chunk::<T>(m, true)
 	}
 }
