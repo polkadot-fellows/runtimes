@@ -18,7 +18,7 @@
 //! correct destination
 
 use super::{*, mock::*, xcm_mock::*};
-use crate::treasuries_xcm_payout::{asset_id, AssetHubLocation, PayoutOverXcmAtAssetHub, SupportedPayouts};
+use crate::treasuries_xcm_payout::{TransferOverXcm};
 use pallet_encointer_treasuries::Payout;
 use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
@@ -29,9 +29,8 @@ use xcm::{
 	latest::{BodyId, BodyPart, InteriorLocation, Xcm},
 	v5::{AssetId, Location, Parent},
 };
-use xcm::v5::prelude::*;
+use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId};
 use xcm_executor::XcmExecutor;
-use kusama_runtime_constants::currency::UNITS;
 use crate::xcm_config::KsmLocation;
 
 /// Type representing both a location and an asset that is held at that location.
@@ -42,12 +41,12 @@ pub struct AssetKind {
 	asset_id: AssetId,
 }
 
-// pub struct LocatableAssetKindConverter;
-// impl sp_runtime::traits::TryConvert<AssetKind, LocatableAssetId> for LocatableAssetKindConverter
-// {     fn try_convert(value: AssetKind) -> Result<LocatableAssetId, AssetKind> {
-//         Ok(LocatableAssetId { asset_id: value.asset_id, location: value.destination })
-//     }
-// }
+pub struct LocatableAssetKindConverter;
+impl sp_runtime::traits::TryConvert<AssetKind, LocatableAssetId> for LocatableAssetKindConverter {
+	fn try_convert(value: AssetKind) -> Result<LocatableAssetId, AssetKind> {
+		Ok(LocatableAssetId { asset_id: value.asset_id, location: value.destination })
+	}
+}
 
 parameter_types! {
 	pub SenderAccount: AccountId = AccountId::new([3u8; 32]);
@@ -64,22 +63,28 @@ parameter_types! {
 fn payout_over_xcm_works() {
 	let sender = AccountId::new([1u8; 32]);
 	let recipient = AccountId::new([5u8; 32]);
-	let asset_kind = SupportedPayouts::Usdt;
+
+	// transact the parents native asset on parachain 1000.
+	let asset_kind = AssetKind {
+		destination: (Parent, Parachain(1000)).into(),
+		asset_id: KsmLocation::get().into(),
+	};
 	let amount = ONE_KSM;
 
 	new_test_ext().execute_with(|| {
 		mock::Balances::set_balance(&sender, 10 * ONE_KSM);
 
-
 		// Check starting balance
 		assert_eq!(mock::Assets::balance(0, &recipient), 0);
 
-		assert_ok!(PayoutOverXcmAtAssetHub::<
+		assert_ok!(TransferOverXcm::<
 			TestMessageSender,
 			TestQueryHandler<TestConfig, BlockNumber>,
 			Timeout,
 			AccountId,
-			SupportedPayouts,
+			AssetKind,
+			LocatableAssetKindConverter,
+			AliasesIntoAccountId32<AnyNetwork, AccountId>,
 		>::pay(&sender, &recipient, asset_kind, amount));
 
 		let expected_message = Xcm(vec![
@@ -92,7 +97,7 @@ fn payout_over_xcm_works() {
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
-					destination: AssetHubLocation::get(),
+					destination: (Parent, Parachain(42)).into(),
 					query_id: 1,
 					max_weight: Weight::zero(),
 				}),
@@ -107,7 +112,7 @@ fn payout_over_xcm_works() {
 
 		assert_eq!(
 			sent_xcm(),
-			vec![((Parent, Parachain(1000)).into(), expected_message, expected_hash)]
+			vec![((Parent, Parachain(42)).into(), expected_message, expected_hash)]
 		);
 
 		let (_, message, mut hash) = sent_xcm()[0].clone();

@@ -16,7 +16,6 @@
 
 //! `PayOverXcm` struct for paying through XCM and getting the status back.
 
-use crate::xcm_config::KsmLocation;
 use alloc::vec;
 use codec::{Decode, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -27,25 +26,29 @@ use frame_support::{
 	traits::{tokens::PaymentStatus, Get},
 };
 use pallet_encointer_treasuries::Payout;
+use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*, v5::Junctions::X2};
+use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
 /// Payout an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
-pub struct PayoutOverXcmAtAssetHub<Router, Querier, Timeout, Beneficiary, AssetKind>(
-	PhantomData<(Router, Querier, Timeout, Beneficiary, AssetKind)>,
+pub struct TransferOverXcm<Router, Querier, Timeout, Transactors, AssetKind, AssetKindToLocatableAsset, TransactorRefToLocation>(
+	PhantomData<(Router, Querier, Timeout, Transactors, AssetKind, AssetKindToLocatableAsset, TransactorRefToLocation)>,
 );
 impl<
 		Router: SendXcm,
 		Querier: QueryHandler,
 		Timeout: Get<Querier::BlockNumber>,
-		AccountId: Clone + Into<[u8; 32]>,
-		AssetKind: Clone + Into<Location>,
-	> Payout for PayoutOverXcmAtAssetHub<Router, Querier, Timeout, AccountId, AssetKind>
+		Transactor: Clone + core::fmt::Debug,
+		AssetKind: Clone + core::fmt::Debug,
+		AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
+		TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
+	> Payout for TransferOverXcm<Router, Querier, Timeout, Transactor, AssetKind,  AssetKindToLocatableAsset, TransactorRefToLocation>
 {
 	type Balance = u128;
-	type AccountId = AccountId;
+	type AccountId = Transactor;
 	type AssetKind = AssetKind;
 	type Id = QueryId;
 	type Error = xcm::latest::Error;
@@ -56,16 +59,28 @@ impl<
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
-		let destination = AssetHubLocation::get();
+		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind)
+			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+		let LocatableAssetId { asset_id, location: asset_location } = locatable;
+		let destination = Querier::UniversalLocation::get()
+			.invert_target(&asset_location)
+			.map_err(|()| Self::Error::LocationNotInvertible)?;
+
+		let from = TransactorRefToLocation::try_convert(&from)
+			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+
+		let beneficiary = TransactorRefToLocation::try_convert(&to)
+			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+
 		let query_id =
-			Querier::new_query(asset_kind.clone().into(), Timeout::get(), from.clone().into());
+			Querier::new_query(asset_location.clone(), Timeout::get(), from.interior.clone());
 
 		let message = Xcm(vec![
-			DescendOrigin(AccountId32 { network: None, id: from.clone().into() }.into()),
+			DescendOrigin(from.interior),
 			WithdrawAsset(
-				vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into(),
+				vec![Asset { id: asset_id.clone(), fun: Fungible(ONE_KSM / 10) }].into(),
 			),
-			PayFees { asset: (KsmLocation::get(), 10).into() },
+			PayFees { asset: (asset_id.clone(), 10).into() },
 			// WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
@@ -76,9 +91,9 @@ impl<
 				}),
 			])),
 			TransferAsset {
-				beneficiary: AccountId32 { network: None, id: to.clone().into() }.into(),
+				beneficiary,
 				// assets: (asset_id(asset_kind.clone()), amount).into(),
-				assets: (KsmLocation::get(), amount).into(),
+				assets: (asset_id, amount).into(),
 			},
 		]);
 
@@ -136,6 +151,27 @@ impl From<SupportedPayouts> for Location {
 		}
 	}
 }
+
+pub struct LocatableSupportedPayoutConverter;
+impl TryConvert<SupportedPayouts, LocatableAssetId>
+for LocatableSupportedPayoutConverter
+{
+	fn try_convert(
+		asset: SupportedPayouts,
+	) -> Result<LocatableAssetId, SupportedPayouts> {
+		match asset {
+			SupportedPayouts::Usdt =>
+				Ok(LocatableAssetId {
+					asset_id: asset_id(asset),
+					location: Location {
+						parents: 1,
+						interior: X2([PalletInstance(50), GeneralIndex(1984)].into()),
+					},
+				})
+		}
+	}
+}
+
 
 pub fn asset_id<T: Into<Location>>(value: T) -> AssetId {
 	let location: Location = value.into();

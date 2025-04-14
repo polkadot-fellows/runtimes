@@ -15,12 +15,8 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use super::*;
-
 use frame_support::traits::{AsEnsureOriginWithArg, Nothing};
-
 use frame_support::derive_impl;
-
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{ConstU32, Everything},

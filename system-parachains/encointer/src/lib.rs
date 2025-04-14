@@ -113,6 +113,8 @@ use xcm::{
 	latest::prelude::{AssetId as XcmAssetId, BodyId},
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
+use xcm::latest::NetworkId;
+use xcm_builder::AliasesIntoAccountId32;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -568,19 +570,23 @@ impl pallet_encointer_democracy::Config for Runtime {
 
 parameter_types! {
 	pub const TreasuriesPalletId: PalletId = PalletId(*b"trsrysId");
+
+	pub const AnyNetwork: Option<NetworkId> = None;
 }
 impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
-	type AssetKind = crate::treasuries_xcm_payout::SupportedPayouts;
-	type Paymaster = crate::treasuries_xcm_payout::PayoutOverXcmAtAssetHub<
+	type AssetKind = SupportedPayouts;
+	type Paymaster = crate::treasuries_xcm_payout::TransferOverXcm<
 		crate::xcm_config::XcmRouter,
 		crate::PolkadotXcm,
 		ConstU32<{ 6 * HOURS }>,
 		AccountId,
 		Self::AssetKind,
+		LocatableSupportedPayoutConverter,
+		AliasesIntoAccountId32<AnyNetwork, AccountId>,
 	>;
 }
 
@@ -1070,6 +1076,7 @@ mod benches {
 
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
+use crate::treasuries_xcm_payout::{LocatableSupportedPayoutConverter, SupportedPayouts};
 
 impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
