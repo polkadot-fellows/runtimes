@@ -18,6 +18,9 @@ parachains-common = { workspace = true, default-features = true }
 cumulus-primitives-core = { workspace = true, default-features = true }
 emulated-integration-tests-common = { workspace = true }
 
+# Runtimes
+polkadot-runtime-constants = { workspace = true, default-features = true }
+
 # Local
 people-polkadot-runtime = { workspace = true }
 polkadot-emulated-chain = { workspace = true }

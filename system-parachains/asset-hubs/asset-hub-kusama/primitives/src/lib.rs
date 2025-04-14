@@ -18,11 +18,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use xcm::prelude::*;
 
 pub use bp_xcm_bridge_hub_router::XcmBridgeHubRouterCall;
+use xcm::latest::prelude::*;
 
 use system_parachains_constants::kusama::currency::*;
 
@@ -46,27 +48,31 @@ frame_support::parameter_types! {
 	/// Some sane weight to execute `xcm::Transact(pallet-xcm-bridge-hub-router::Call::report_bridge_status)`.
 	pub const XcmBridgeHubRouterTransactCallMaxWeight: Weight = Weight::from_parts(200_000_000, 6144);
 
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes congested.
-	pub CongestedMessage: Xcm<()> = build_congestion_message(true).into();
-	/// Message that is sent to the sibling Kusama Asset Hub when the with-Polkadot bridge becomes uncongested.
-	pub UncongestedMessage: Xcm<()> = build_congestion_message(false).into();
-
 	/// Should match the `AssetDeposit` of the `ForeignAssets` pallet on Asset Hub.
 	pub const CreateForeignAssetDeposit: u128 = system_para_deposit(1, 190);
 }
 
-fn build_congestion_message(is_congested: bool) -> sp_std::vec::Vec<Instruction<()>> {
-	sp_std::vec![
+/// Builds an (un)congestion XCM program with the `report_bridge_status` call for
+/// `ToPolkadotXcmRouter`.
+pub fn build_congestion_message<RuntimeCall>(
+	bridge_id: sp_core::H256,
+	is_congested: bool,
+) -> alloc::vec::Vec<Instruction<RuntimeCall>> {
+	alloc::vec![
 		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 		Transact {
 			origin_kind: OriginKind::Xcm,
 			require_weight_at_most: XcmBridgeHubRouterTransactCallMaxWeight::get(),
 			call: Call::ToPolkadotXcmRouter(XcmBridgeHubRouterCall::report_bridge_status {
-				bridge_id: Default::default(),
+				bridge_id,
 				is_congested,
 			})
 			.encode()
 			.into(),
-		}
+		},
+		ExpectTransactStatus(MaybeErrorCode::Success),
 	]
 }
+
+/// Identifier of AssetHubKusama in the Kusama relay chain.
+pub const ASSET_HUB_KUSAMA_PARACHAIN_ID: u32 = 1000;

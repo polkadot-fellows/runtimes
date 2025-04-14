@@ -21,7 +21,7 @@ if [ -z "$FRAMEWORK_REPO_PATH" ]; then
   pushd $framework_repo_path
   git sparse-checkout set --no-cone bridges/testing/framework
   git fetch --tags
-  git checkout polkadot-v1.11.0
+  git checkout polkadot-stable2409
   popd
 else
     framework_repo_path=$FRAMEWORK_REPO_PATH

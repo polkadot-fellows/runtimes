@@ -58,6 +58,7 @@ fn coretime_kusama_genesis(
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),

@@ -41,10 +41,9 @@ use xcm_builder::{
 	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, ChildParachainAsNative,
 	ChildParachainConvertsVia, DescribeAllTerminal, DescribeFamily, FrameTransactionalProcessor,
 	FungibleAdapter, HashedDescription, IsChildSystemParachain, IsConcrete, MintLocation,
-	OriginToPluralityVoice, SignedAccountId32AsNative, SignedToAccountId32,
+	OriginToPluralityVoice, SendXcmFeeToAccount, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
-	XcmFeeToAccount,
 };
 
 parameter_types! {
@@ -208,7 +207,7 @@ pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type XcmRecorder = ();
+	type XcmRecorder = XcmPallet;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
@@ -234,7 +233,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		XcmFeeToAccount<Self::AssetTransactor, AccountId, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	// No bridges on the Relay Chain
 	type MessageExporter = ();

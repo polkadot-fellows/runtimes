@@ -27,6 +27,7 @@ pub mod apis {
 	/// Both fields should be treated as best-effort, given that the inflation rate might not be
 	/// fully predict-able.
 	#[derive(scale_info::TypeInfo, codec::Encode, codec::Decode)]
+	#[cfg_attr(feature = "std", derive(Debug))]
 	pub struct InflationInfo {
 		/// The rate of inflation estimated per annum.
 		pub inflation: sp_runtime::Perquintill,

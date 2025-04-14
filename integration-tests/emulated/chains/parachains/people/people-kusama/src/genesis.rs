@@ -18,14 +18,21 @@ use sp_core::storage::Storage;
 
 // Cumulus
 use cumulus_primitives_core::ParaId;
-use emulated_integration_tests_common::{build_genesis_storage, collators, SAFE_XCM_VERSION};
+use emulated_integration_tests_common::{
+	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
+};
+use kusama_runtime_constants::currency::UNITS as KSM;
 use parachains_common::Balance;
 
+const ENDOWMENT: u128 = 1_000 * KSM;
 pub const PARA_ID: u32 = 1004;
 pub const ED: Balance = people_kusama_runtime::ExistentialDeposit::get();
 
 pub fn genesis() -> Storage {
 	let genesis_config = people_kusama_runtime::RuntimeGenesisConfig {
+		balances: people_kusama_runtime::BalancesConfig {
+			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+		},
 		system: people_kusama_runtime::SystemConfig::default(),
 		parachain_info: people_kusama_runtime::ParachainInfoConfig {
 			parachain_id: ParaId::from(PARA_ID),
@@ -47,6 +54,7 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		polkadot_xcm: people_kusama_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),

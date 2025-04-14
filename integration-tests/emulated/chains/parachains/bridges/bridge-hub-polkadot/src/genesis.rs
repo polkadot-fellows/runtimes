@@ -21,6 +21,7 @@ use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, get_account_id_from_seed, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
+use xcm::latest::prelude::*;
 
 pub const ASSET_HUB_PARA_ID: u32 = 1000;
 pub const PARA_ID: u32 = 1002;
@@ -52,6 +53,7 @@ pub fn genesis() -> Storage {
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		polkadot_xcm: bridge_hub_polkadot_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
@@ -68,6 +70,17 @@ pub fn genesis() -> Storage {
 		ethereum_system: bridge_hub_polkadot_runtime::EthereumSystemConfig {
 			para_id: PARA_ID.into(),
 			asset_hub_para_id: ASSET_HUB_PARA_ID.into(),
+			..Default::default()
+		},
+		xcm_over_bridge_hub_kusama: bridge_hub_polkadot_runtime::XcmOverBridgeHubKusamaConfig {
+			opened_bridges: vec![
+				// open PAH -> KAH bridge
+				(
+					Location::new(1, [Parachain(1000)]),
+					Junctions::from([Kusama.into(), Parachain(1000)]),
+					Some(bp_messages::LegacyLaneId([0, 0, 0, 1])),
+				),
+			],
 			..Default::default()
 		},
 		..Default::default()

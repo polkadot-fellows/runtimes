@@ -12,6 +12,7 @@ pub struct Images {
 	pub cumulus: String,
 }
 
+#[derive(Debug)]
 pub enum Provider {
 	Native,
 	K8s,

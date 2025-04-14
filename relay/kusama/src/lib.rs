@@ -25,10 +25,10 @@ extern crate alloc;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
-	traits::EnsureOriginWithArg,
+	traits::{EnsureOrigin, EnsureOriginWithArg},
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
+use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIMESLICE_PERIOD};
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateEvent,
@@ -58,13 +58,15 @@ use sp_std::{
 
 use runtime_parachains::{
 	assigner_coretime as parachains_assigner_coretime,
-	assigner_on_demand as parachains_assigner_on_demand, configuration as parachains_configuration,
-	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
-	coretime, disputes as parachains_disputes,
-	disputes::slashing as parachains_slashing,
-	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
-	inclusion::{AggregateMessageOrigin, UmpQueueId},
-	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
+	configuration::{
+		self as parachains_configuration, ActiveConfigHrmpChannelSizeAndCapacityRatio,
+	},
+	coretime,
+	disputes::{self as parachains_disputes, slashing as parachains_slashing},
+	dmp as parachains_dmp, hrmp as parachains_hrmp,
+	inclusion::{self as parachains_inclusion, AggregateMessageOrigin, UmpQueueId},
+	initializer as parachains_initializer, on_demand as parachains_on_demand,
+	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
 	runtime_api_impl::{
 		v10 as parachains_runtime_api_impl, vstaging as parachains_vstaging_api_impl,
@@ -77,6 +79,7 @@ use authority_discovery_primitives::AuthorityId as AuthorityDiscoveryId;
 use beefy_primitives::{
 	ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
 	mmr::{BeefyDataProvider, MmrLeafVersion},
+	OpaqueKeyOwnershipProof,
 };
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, NposSolution,
@@ -87,10 +90,11 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, EitherOf,
-		EitherOfDiverse, Everything, FromContains, InstanceFilter, KeyOwnerProofSystem,
-		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError, StorageMapShim,
-		WithdrawReasons,
+		fungible::HoldConsideration,
+		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
+		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, StorageMapShim, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, WeightMeter, WeightToFee as _},
 	PalletId,
@@ -108,7 +112,8 @@ use sp_runtime::{
 		Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128, KeyTypeId, Perbill, Percent, Permill, RuntimeDebug,
+	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
+	RuntimeDebug,
 };
 use sp_staking::SessionIndex;
 #[cfg(any(feature = "std", test))]
@@ -125,6 +130,7 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 use pallet_staking::UseValidatorsMap;
+use pallet_treasury::TreasuryAccountId;
 use sp_runtime::traits::Get;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -174,7 +180,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("kusama"),
 	impl_name: create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_003_003,
+	spec_version: 1_004_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -367,6 +373,7 @@ impl pallet_beefy::Config for Runtime {
 	type MaxNominators = MaxNominators;
 	type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
 	type OnNewValidatorSet = BeefyMmrLeaf;
+	type AncestryHelper = BeefyMmrLeaf;
 	type WeightInfo = ();
 	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
 	type EquivocationReportSystem =
@@ -380,6 +387,8 @@ impl pallet_mmr::Config for Runtime {
 	type WeightInfo = ();
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 	type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = parachains_paras::benchmarking::mmr_setup::MmrSetup<Runtime>;
 }
 
 /// MMR helper types.
@@ -432,6 +441,7 @@ impl pallet_beefy_mmr::Config for Runtime {
 	type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
 	type LeafExtra = H256;
 	type BeefyDataProvider = ParaHeadsRootProvider;
+	type WeightInfo = weights::pallet_beefy_mmr::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -633,6 +643,15 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
+#[derive(Default, MaxEncodedLen, Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Debug)]
+pub struct BurnDestinationAccount(pub Option<AccountId>);
+
+impl BurnDestinationAccount {
+	pub fn is_set(&self) -> bool {
+		self.0.is_some()
+	}
+}
+
 /// Dynamic params that can be adjusted at runtime.
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
@@ -670,6 +689,17 @@ pub mod dynamic_params {
 		#[codec(index = 4)]
 		pub static UseAuctionSlots: bool = true;
 	}
+
+	/// Parameters used by `pallet-treasury` to handle the burn process.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod treasury {
+		#[codec(index = 0)]
+		pub static BurnPortion: Permill = Permill::from_percent(0);
+
+		#[codec(index = 1)]
+		pub static BurnDestination: BurnDestinationAccount = Default::default();
+	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -695,6 +725,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 
 		match key {
 			Inflation(_) => frame_system::ensure_root(origin.clone()),
+			Treasury(_) =>
+				EitherOf::<EnsureRoot<AccountId>, GeneralAdmin>::ensure_origin(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
@@ -799,9 +831,14 @@ impl pallet_staking::Config for Runtime {
 	type HistoryDepth = frame_support::traits::ConstU32<84>;
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
-	type EventListeners = NominationPools;
+	type EventListeners = (NominationPools, DelegatedStaking);
 	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	fn filter(who: &AccountId) -> bool {
+		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
+	}
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -820,7 +857,6 @@ parameter_types! {
 	pub const ProposalBondMinimum: Balance = 2000 * CENTS;
 	pub const ProposalBondMaximum: Balance = GRAND;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
-	pub const Burn: Permill = Permill::from_perthousand(2);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
@@ -830,11 +866,43 @@ parameter_types! {
 	pub const TipCountdown: BlockNumber = DAYS;
 	pub const TipFindersFee: Percent = Percent::from_percent(20);
 	pub const TipReportDepositBase: Balance = 100 * CENTS;
-	pub const DataDepositPerByte: Balance = CENTS;
+	pub const DataDepositPerByte: Balance = CENTS / 10;
 	pub const MaxApprovals: u32 = 100;
 	pub const MaxAuthorities: u32 = 100_000;
 	pub const MaxKeys: u32 = 10_000;
 	pub const MaxPeerInHeartbeats: u32 = 10_000;
+}
+
+use frame_support::traits::{Currency, OnUnbalanced};
+
+pub type BalancesNegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+pub struct TreasuryBurnHandler;
+
+impl OnUnbalanced<BalancesNegativeImbalance> for TreasuryBurnHandler {
+	fn on_nonzero_unbalanced(amount: BalancesNegativeImbalance) {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if let BurnDestinationAccount(Some(account)) = destination {
+			// Must resolve into existing but better to be safe.
+			Balances::resolve_creating(&account, amount);
+		} else {
+			// If no account to destinate the funds to, just drop the
+			// imbalance.
+			<() as OnUnbalanced<_>>::on_nonzero_unbalanced(amount)
+		}
+	}
+}
+
+impl Get<Permill> for TreasuryBurnHandler {
+	fn get() -> Permill {
+		let destination = dynamic_params::treasury::BurnDestination::get();
+
+		if destination.is_set() {
+			dynamic_params::treasury::BurnPortion::get()
+		} else {
+			Permill::zero()
+		}
+	}
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -843,8 +911,8 @@ impl pallet_treasury::Config for Runtime {
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = SpendPeriod;
-	type Burn = Burn;
-	type BurnDestination = Society;
+	type Burn = TreasuryBurnHandler;
+	type BurnDestination = TreasuryBurnHandler;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
 	type SpendFunds = Bounties;
@@ -1101,7 +1169,10 @@ parameter_types! {
 	pub const MaxPending: u16 = 32;
 }
 
-/// The type used to represent the kinds of proxying allowed.
+/// Transparent wrapper around the actual [`ProxyType`].
+///
+/// This is done to have [`ProxyType`] declared in a different crate (constants) and being able to
+/// implement [`InstanceFilter`] in this crate.
 #[derive(
 	Copy,
 	Clone,
@@ -1113,39 +1184,21 @@ parameter_types! {
 	Decode,
 	RuntimeDebug,
 	MaxEncodedLen,
-	TypeInfo,
+	Default,
 )]
-pub enum ProxyType {
-	#[codec(index = 0)]
-	Any,
-	#[codec(index = 1)]
-	NonTransfer,
-	#[codec(index = 2)]
-	Governance,
-	#[codec(index = 3)]
-	Staking,
-	// Index 4 skipped. Formerly `IdentityJudgement`.
-	#[codec(index = 5)]
-	CancelProxy,
-	#[codec(index = 6)]
-	Auction,
-	#[codec(index = 7)]
-	Society,
-	#[codec(index = 8)]
-	NominationPools,
-	#[codec(index = 9)]
-	Spokesperson,
-}
+pub struct TransparentProxyType(ProxyType);
 
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
+impl scale_info::TypeInfo for TransparentProxyType {
+	type Identity = <ProxyType as TypeInfo>::Identity;
+
+	fn type_info() -> scale_info::Type {
+		ProxyType::type_info()
 	}
 }
 
-impl InstanceFilter<RuntimeCall> for ProxyType {
+impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
-		match self {
+		match self.0 {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
@@ -1239,10 +1292,19 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::System(frame_system::Call::remark { .. }) |
 					RuntimeCall::System(frame_system::Call::remark_with_event { .. })
 			),
+			ProxyType::ParaRegistration => matches!(
+				c,
+				RuntimeCall::Registrar(paras_registrar::Call::reserve { .. }) |
+					RuntimeCall::Registrar(paras_registrar::Call::register { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::batch_all { .. }) |
+					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. }) |
+					RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy { .. })
+			),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
-		match (self, o) {
+		match (self.0, o.0) {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
@@ -1256,7 +1318,7 @@ impl pallet_proxy::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type ProxyType = ProxyType;
+	type ProxyType = TransparentProxyType;
 	type ProxyDepositBase = ProxyDepositBase;
 	type ProxyDepositFactor = ProxyDepositFactor;
 	type MaxProxies = MaxProxies;
@@ -1425,11 +1487,11 @@ parameter_types! {
 	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
 }
 
-impl parachains_assigner_on_demand::Config for Runtime {
+impl parachains_on_demand::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
-	type WeightInfo = weights::runtime_parachains_assigner_on_demand::WeightInfo<Runtime>;
+	type WeightInfo = weights::runtime_parachains_on_demand::WeightInfo<Runtime>;
 	type MaxHistoricalRevenue = MaxHistoricalRevenue;
 	type PalletId = OnDemandPalletId;
 }
@@ -1468,7 +1530,7 @@ impl parachains_slashing::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ParaDeposit: Balance = 40 * UNITS;
+	pub const ParaDeposit: Balance = 4 * UNITS;
 }
 
 impl paras_registrar::Config for Runtime {
@@ -1607,7 +1669,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type RewardCounter = FixedU128;
 	type BalanceToU256 = BalanceToU256;
 	type U256ToBalance = U256ToBalance;
-	type StakeAdapter = pallet_nomination_pools::adapter::TransferStake<Self, Staking>;
+	type StakeAdapter =
+		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
 	type PostUnbondingPoolsWindow = ConstU32<4>;
 	type MaxMetadataLen = ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
@@ -1615,6 +1678,24 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
+	// TODO: this will come back later (stable2412/stable25XY)
+	// type Filter = pallet_staking::AllStakers<Runtime>;
+}
+
+parameter_types! {
+	pub const DelegatedStakingPalletId: PalletId = PalletId(*b"py/dlstk");
+	pub const SlashRewardFraction: Perbill = Perbill::from_percent(1);
+}
+
+impl pallet_delegated_staking::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = DelegatedStakingPalletId;
+	type Currency = Balances;
+	// slashes are sent to the treasury.
+	type OnSlash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type SlashRewardFraction = SlashRewardFraction;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CoreStaking = Staking;
 }
 
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
@@ -1731,6 +1812,9 @@ construct_runtime! {
 		// Fast unstake pallet: extension to staking.
 		FastUnstake: pallet_fast_unstake = 42,
 
+		// Staking extension for delegation
+		DelegatedStaking: pallet_delegated_staking = 47,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -1745,7 +1829,7 @@ construct_runtime! {
 		ParaSessionInfo: parachains_session_info = 61,
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
-		OnDemandAssignmentProvider: parachains_assigner_on_demand = 64,
+		OnDemandAssignmentProvider: parachains_on_demand = 64,
 		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
@@ -1796,13 +1880,6 @@ pub type SignedExtra = (
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
-pub struct NominationPoolsMigrationV4OldPallet;
-impl Get<Perbill> for NominationPoolsMigrationV4OldPallet {
-	fn get() -> Perbill {
-		Perbill::from_percent(10)
-	}
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1815,157 +1892,10 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_configuration::migration::v12::MigrateToV12<Runtime>,
-		pallet_staking::migrations::v15::MigrateV14ToV15<Runtime>,
-		parachains_inclusion::migration::MigrateToV1<Runtime>,
-		parachains_assigner_on_demand::migration::MigrateV0ToV1<Runtime>,
-		restore_corrupted_ledgers::Migrate<Runtime>,
-	);
+	pub type Unreleased = ();
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
 	pub type Permanent = (pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,);
-}
-
-/// Migration to fix current corrupted staking ledgers in Kusama.
-///
-/// It consists of:
-/// * Call into `pallet_staking::Pallet::<T>::restore_ledger` with:
-///   * Root origin;
-///   * Default `None` paramters.
-/// * Forces unstake of recovered ledger if the final restored ledger has higher stake than the
-///   stash's free balance.
-///
-/// The stashes associated with corrupted ledgers that will be "migrated" are set in
-/// [`CorruptedStashes`].
-///
-/// For more details about the corrupt ledgers issue, recovery and which stashes to migrate, check
-/// <https://hackmd.io/m_h9DRutSZaUqCwM9tqZ3g?view>.
-pub(crate) mod restore_corrupted_ledgers {
-	use super::*;
-
-	use frame_support::traits::{Currency, OnRuntimeUpgrade};
-	use frame_system::RawOrigin;
-
-	use pallet_staking::WeightInfo;
-	use sp_staking::StakingAccount;
-
-	parameter_types! {
-		pub CorruptedStashes: Vec<AccountId> = vec![
-			// stash account ESGsxFePah1qb96ooTU4QJMxMKUG7NZvgTig3eJxP9f3wLa
-			hex_literal::hex!["52559f2c7324385aade778eca4d7837c7492d92ee79b66d6b416373066869d2e"].into(),
-			// stash account DggTJdwWEbPS4gERc3SRQL4heQufMeayrZGDpjHNC1iEiui
-			hex_literal::hex!["31162f413661f3f5351169299728ab6139725696ac6f98db9665e8b76d73d300"].into(),
-			// stash account Du2LiHk1D1kAoaQ8wsx5jiNEG5CNRQEg6xME5iYtGkeQAJP
-			hex_literal::hex!["3a8012a52ec2715e711b1811f87684fe6646fc97a276043da7e75cd6a6516d29"].into(),
-		];
-	}
-
-	pub struct Migrate<T>(sp_std::marker::PhantomData<T>);
-	impl<T: pallet_staking::Config> OnRuntimeUpgrade for Migrate<T> {
-		fn on_runtime_upgrade() -> Weight {
-			let mut total_weight: Weight = Default::default();
-			let mut ok_migration = 0;
-			let mut err_migration = 0;
-
-			for stash in CorruptedStashes::get().into_iter() {
-				let stash_account: T::AccountId = if let Ok(stash_account) =
-					T::AccountId::decode(&mut &Into::<[u8; 32]>::into(stash.clone())[..])
-				{
-					stash_account
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: error converting account {:?}. skipping.",
-						stash.clone(),
-					);
-					err_migration += 1;
-					continue
-				};
-
-				// restore currupted ledger.
-				match pallet_staking::Pallet::<T>::restore_ledger(
-					RawOrigin::Root.into(),
-					stash_account.clone(),
-					None,
-					None,
-					None,
-				) {
-					Ok(_) => (), // proceed.
-					Err(err) => {
-						// note: after first migration run, restoring ledger will fail with
-						// `staking::pallet::Error::<T>CannotRestoreLedger`.
-						log::error!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: error restoring ledger {:?}, unexpected (unless running try-state idempotency round).",
-							err
-						);
-						continue
-					},
-				};
-
-				// check if restored ledger total is higher than the stash's free balance. If
-				// that's the case, force unstake the ledger.
-				let weight = if let Ok(ledger) = pallet_staking::Pallet::<T>::ledger(
-					StakingAccount::Stash(stash_account.clone()),
-				) {
-					// force unstake the ledger.
-					if ledger.total > T::Currency::free_balance(&stash_account) {
-						let slashing_spans = 10; // default slashing spans for migration.
-						let _ = pallet_staking::Pallet::<T>::force_unstake(
-							RawOrigin::Root.into(),
-							stash_account.clone(),
-							slashing_spans,
-						)
-						.inspect_err(|err| {
-							log::error!(
-								target: LOG_TARGET,
-								"migrations::corrupted_ledgers: error force unstaking ledger, unexpected. {:?}",
-								err
-							);
-							err_migration += 1;
-						});
-
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored (with force unstake).",
-							stash_account,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-							.saturating_add(<T::WeightInfo>::force_unstake(slashing_spans))
-					} else {
-						log::info!(
-							target: LOG_TARGET,
-							"migrations::corrupted_ledgers: ledger of {:?} restored.",
-							stash,
-						);
-						ok_migration += 1;
-
-						<T::WeightInfo>::restore_ledger()
-					}
-				} else {
-					log::error!(
-						target: LOG_TARGET,
-						"migrations::corrupted_ledgers: ledger does not exist, unexpected."
-					);
-					err_migration += 1;
-					<T::WeightInfo>::restore_ledger()
-				};
-
-				total_weight.saturating_accrue(weight);
-			}
-
-			log::info!(
-				target: LOG_TARGET,
-				"migrations::corrupted_ledgers: done. success: {}, error: {}",
-				ok_migration, err_migration
-			);
-
-			total_weight
-		}
-	}
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1985,6 +1915,8 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use super::*;
+
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
 		[polkadot_runtime_common::auctions, Auctions]
@@ -2000,12 +1932,13 @@ mod benches {
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras_inherent, ParaInherent]
 		[runtime_parachains::paras, Paras]
-		[runtime_parachains::assigner_on_demand, OnDemandAssignmentProvider]
+		[runtime_parachains::on_demand, OnDemandAssignmentProvider]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
 		[pallet_balances, Native]
 		[pallet_balances, NisCounterpart]
 		[pallet_bags_list, VoterList]
+		[pallet_beefy_mmr, BeefyMmrLeaf]
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
@@ -2042,7 +1975,197 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
+	use xcm_config::{
+		AssetHubLocation, LocalCheckAccount, SovereignAccountOf, TokenLocation, XcmConfig,
+	};
+
+	impl pallet_session_benchmarking::Config for Runtime {}
+	impl pallet_offences_benchmarking::Config for Runtime {}
+	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
+	impl frame_system_benchmarking::Config for Runtime {}
+	impl frame_benchmarking::baseline::Config for Runtime {}
+	impl pallet_nomination_pools_benchmarking::Config for Runtime {}
+	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
+
+	parameter_types! {
+		pub ExistentialDepositAsset: Option<Asset> = Some((
+			TokenLocation::get(),
+			ExistentialDeposit::get()
+		).into());
+		pub AssetHubParaId: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+		pub const RandomParaId: ParaId = ParaId::new(43211234);
+	}
+
+	impl pallet_xcm::benchmarking::Config for Runtime {
+		type DeliveryHelper = (
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				XcmConfig,
+				ExistentialDepositAsset,
+				xcm_config::PriceForChildParachainDelivery,
+				AssetHubParaId,
+				(),
+			>,
+			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+				XcmConfig,
+				ExistentialDepositAsset,
+				xcm_config::PriceForChildParachainDelivery,
+				RandomParaId,
+				(),
+			>,
+		);
+
+		fn reachable_dest() -> Option<Location> {
+			Some(crate::xcm_config::AssetHubLocation::get())
+		}
+
+		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
+			// Relay/native token can be teleported to/from AH.
+			Some((
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
+				crate::xcm_config::AssetHubLocation::get(),
+			))
+		}
+
+		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
+			// Relay can reserve transfer native token to some random parachain.
+			Some((
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
+				Parachain(RandomParaId::get().into()).into(),
+			))
+		}
+
+		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+			// Relay supports only native token, either reserve transfer it to non-system
+			// parachains, or teleport it to system parachain. Use the teleport case for
+			// benchmarking as it's slightly heavier.
+			// Relay/native token can be teleported to/from AH.
+			let native_location = Here.into();
+			let dest = crate::xcm_config::AssetHubLocation::get();
+			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+				native_location,
+				dest,
+			)
+		}
+
+		fn get_asset() -> Asset {
+			Asset { id: AssetId(Location::here()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+	}
+
+	impl pallet_xcm_benchmarks::Config for Runtime {
+		type XcmConfig = XcmConfig;
+		type AccountIdConverter = SovereignAccountOf;
+		type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
+			XcmConfig,
+			ExistentialDepositAsset,
+			xcm_config::PriceForChildParachainDelivery,
+			AssetHubParaId,
+			(),
+		>;
+		fn valid_destination() -> Result<Location, BenchmarkError> {
+			Ok(AssetHubLocation::get())
+		}
+		fn worst_case_holding(_depositable_count: u32) -> Assets {
+			// Kusama only knows about KSM.
+			vec![Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) }]
+				.into()
+		}
+	}
+
+	parameter_types! {
+		pub TrustedTeleporter: Option<(Location, Asset)> = Some((
+			AssetHubLocation::get(),
+			Asset { fun: Fungible(1 * UNITS), id: AssetId(TokenLocation::get()) },
+		));
+		pub const TrustedReserve: Option<(Location, Asset)> = None;
+	}
+
+	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
+		type TransactAsset = Balances;
+
+		type CheckedAccount = LocalCheckAccount;
+		type TrustedTeleporter = TrustedTeleporter;
+		type TrustedReserve = TrustedReserve;
+
+		fn get_asset() -> Asset {
+			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1 * UNITS) }
+		}
+	}
+
+	impl pallet_xcm_benchmarks::generic::Config for Runtime {
+		type TransactAsset = Balances;
+		type RuntimeCall = RuntimeCall;
+
+		fn worst_case_response() -> (u64, Response) {
+			(0u64, Response::Version(Default::default()))
+		}
+
+		fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
+			// Kusama doesn't support asset exchanges
+			Err(BenchmarkError::Skip)
+		}
+
+		fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
+			// The XCM executor of Kusama doesn't have a configured `UniversalAliases`
+			Err(BenchmarkError::Skip)
+		}
+
+		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
+			Ok((
+				AssetHubLocation::get(),
+				frame_system::Call::remark_with_event { remark: vec![] }.into(),
+			))
+		}
+
+		fn subscribe_origin() -> Result<Location, BenchmarkError> {
+			Ok(AssetHubLocation::get())
+		}
+
+		fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
+			let origin = AssetHubLocation::get();
+			let assets: Assets = (AssetId(TokenLocation::get()), 1_000 * UNITS).into();
+			let ticket = Location { parents: 0, interior: Here };
+			Ok((origin, ticket, assets))
+		}
+
+		fn fee_asset() -> Result<Asset, BenchmarkError> {
+			Ok(Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		}
+
+		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
+			// Kusama doesn't support asset locking
+			Err(BenchmarkError::Skip)
+		}
+
+		fn export_message_origin_and_destination(
+		) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
+			// Kusama doesn't support exporting messages
+			Err(BenchmarkError::Skip)
+		}
+
+		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
+			// The XCM executor of Kusama doesn't have a configured `Aliasers`
+			Err(BenchmarkError::Skip)
+		}
+	}
+
+	pub type Native = pallet_balances::Pallet<Runtime, ()>;
+	pub type NisCounterpart = pallet_balances::Pallet<Runtime, NisCounterpartInstance>;
+	pub use frame_benchmarking::{
+		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking,
+	};
+	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
+	pub use frame_system_benchmarking::Pallet as SystemBench;
+	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
+	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
+	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
+	pub use pallet_session_benchmarking::Pallet as SessionBench;
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+	pub use sp_storage::TrackedStorageKey;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+use benches::*;
 
 impl Runtime {
 	fn impl_experimental_inflation_info() -> InflationInfo {
@@ -2325,19 +2448,36 @@ sp_api::impl_runtime_apis! {
 			Beefy::validator_set()
 		}
 
-		fn submit_report_equivocation_unsigned_extrinsic(
-			equivocation_proof: beefy_primitives::DoubleVotingProof<
-				BlockNumber,
-				BeefyId,
-				BeefySignature,
-			>,
-			key_owner_proof: beefy_primitives::OpaqueKeyOwnershipProof,
+		fn submit_report_double_voting_unsigned_extrinsic(
+			equivocation_proof:
+				beefy_primitives::DoubleVotingProof<BlockNumber, BeefyId, BeefySignature>,
+			key_owner_proof: OpaqueKeyOwnershipProof,
 		) -> Option<()> {
 			let key_owner_proof = key_owner_proof.decode()?;
 
-			Beefy::submit_unsigned_equivocation_report(
+			Beefy::submit_unsigned_double_voting_report(
 				equivocation_proof,
 				key_owner_proof,
+			)
+		}
+
+		fn submit_report_fork_voting_unsigned_extrinsic(
+			equivocation_proof: beefy_primitives::ForkVotingProof<Header, BeefyId, OpaqueValue>,
+			key_owner_proof: OpaqueKeyOwnershipProof,
+		) -> Option<()> {
+			Beefy::submit_unsigned_fork_voting_report(
+				equivocation_proof.try_into()?,
+				key_owner_proof.decode()?,
+			)
+		}
+
+		fn submit_report_future_block_voting_unsigned_extrinsic(
+			equivocation_proof: beefy_primitives::FutureBlockVotingProof<BlockNumber,BeefyId> ,
+			key_owner_proof: OpaqueKeyOwnershipProof,
+		) -> Option<()> {
+			Beefy::submit_unsigned_future_block_voting_report(
+				equivocation_proof,
+				key_owner_proof.decode()?,
 			)
 		}
 
@@ -2350,6 +2490,16 @@ sp_api::impl_runtime_apis! {
 			Historical::prove((beefy_primitives::KEY_TYPE, authority_id))
 				.map(|p| p.encode())
 				.map(beefy_primitives::OpaqueKeyOwnershipProof::new)
+		}
+
+		fn generate_ancestry_proof(
+			prev_block_number: BlockNumber,
+			best_known_block_number: Option<BlockNumber>,
+		) -> Option<sp_runtime::OpaqueValue> {
+			Mmr::generate_ancestry_proof(prev_block_number, best_known_block_number)
+				.map(|p| p.encode())
+				.map(OpaqueKeyOwnershipProof::new)
+				.ok()
 		}
 	}
 
@@ -2560,7 +2710,8 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::TokenLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))
@@ -2586,8 +2737,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			XcmPallet::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -2638,6 +2789,14 @@ sp_api::impl_runtime_apis! {
 
 		fn member_needs_delegate_migration(member: AccountId) -> bool {
 			NominationPools::api_member_needs_delegate_migration(member)
+		}
+
+		fn member_total_balance(who: AccountId) -> Balance {
+			NominationPools::api_member_total_balance(who)
+		}
+
+		fn pool_balance(pool_id: pallet_nomination_pools::PoolId) -> Balance {
+			NominationPools::api_pool_balance(pool_id)
 		}
 	}
 
@@ -2695,24 +2854,6 @@ sp_api::impl_runtime_apis! {
 			Vec<frame_benchmarking::BenchmarkList>,
 			Vec<frame_support::traits::StorageInfo>,
 		) {
-			use frame_benchmarking::{Benchmarking, BenchmarkList};
-			use frame_support::traits::StorageInfoTrait;
-
-			use pallet_session_benchmarking::Pallet as SessionBench;
-			use pallet_offences_benchmarking::Pallet as OffencesBench;
-			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
-			use frame_system_benchmarking::Pallet as SystemBench;
-			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
-			use frame_benchmarking::baseline::Pallet as Baseline;
-
-			// Benchmark files generated for `Balances/NisCounterpartBalances` instances are by default
-			// `pallet_balances_balances.rs / pallet_balances_nis_counterpart_balances`, which is not really nice,
-			// so with this redefinition we can change names to nicer:
-			// `pallet_balances_native.rs / pallet_balances_nis_counterpart.rs`.
-			type Native = pallet_balances::Pallet::<Runtime, ()>;
-			type NisCounterpart = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
-
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -2726,208 +2867,6 @@ sp_api::impl_runtime_apis! {
 			Vec<frame_benchmarking::BenchmarkBatch>,
 			sp_runtime::RuntimeString,
 		> {
-			use frame_support::traits::WhitelistedStorageKeys;
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
-			use sp_storage::TrackedStorageKey;
-			// Trying to add benchmarks directly to some pallets caused cyclic dependency issues.
-			// To get around that, we separated the benchmarks into its own crate.
-			use pallet_session_benchmarking::Pallet as SessionBench;
-			use pallet_offences_benchmarking::Pallet as OffencesBench;
-			use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-			use frame_system_benchmarking::Pallet as SystemBench;
-			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
-			use frame_benchmarking::baseline::Pallet as Baseline;
-			use xcm::latest::prelude::*;
-			use xcm_config::{
-				LocalCheckAccount, SovereignAccountOf, AssetHubLocation, TokenLocation, XcmConfig,
-			};
-
-			impl pallet_session_benchmarking::Config for Runtime {}
-			impl pallet_offences_benchmarking::Config for Runtime {}
-			impl pallet_election_provider_support_benchmarking::Config for Runtime {}
-			impl frame_system_benchmarking::Config for Runtime {}
-			impl frame_benchmarking::baseline::Config for Runtime {}
-			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
-			impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
-
-			parameter_types! {
-				pub ExistentialDepositAsset: Option<Asset> = Some((
-					TokenLocation::get(),
-					ExistentialDeposit::get()
-				).into());
-				pub AssetHubParaId: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
-				pub const RandomParaId: ParaId = ParaId::new(43211234);
-			}
-
-			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
-			impl pallet_xcm::benchmarking::Config for Runtime {
-				type DeliveryHelper = (
-					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-						XcmConfig,
-						ExistentialDepositAsset,
-						xcm_config::PriceForChildParachainDelivery,
-						AssetHubParaId,
-						(),
-					>,
-					polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-						XcmConfig,
-						ExistentialDepositAsset,
-						xcm_config::PriceForChildParachainDelivery,
-						RandomParaId,
-						(),
-					>
-				);
-
-				fn reachable_dest() -> Option<Location> {
-					Some(crate::xcm_config::AssetHubLocation::get())
-				}
-
-				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Relay/native token can be teleported to/from AH.
-					Some((
-						Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-						crate::xcm_config::AssetHubLocation::get(),
-					))
-				}
-
-				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Relay can reserve transfer native token to some random parachain.
-					Some((
-						Asset {
-							fun: Fungible(ExistentialDeposit::get()),
-							id: AssetId(Here.into())
-						},
-						Parachain(RandomParaId::get().into()).into(),
-					))
-				}
-
-				fn set_up_complex_asset_transfer(
-				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
-					// Relay supports only native token, either reserve transfer it to non-system parachains,
-					// or teleport it to system parachain. Use the teleport case for benchmarking as it's
-					// slightly heavier.
-					// Relay/native token can be teleported to/from AH.
-					let native_location = Here.into();
-					let dest = crate::xcm_config::AssetHubLocation::get();
-					pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
-						native_location,
-						dest
-					)
-				}
-
-				fn get_asset() -> Asset {
-					Asset {
-						id: AssetId(Location::here()),
-						fun: Fungible(ExistentialDeposit::get()),
-					}
-				}
-			}
-
-			impl pallet_xcm_benchmarks::Config for Runtime {
-				type XcmConfig = XcmConfig;
-				type AccountIdConverter = SovereignAccountOf;
-				type DeliveryHelper = polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
-					XcmConfig,
-					ExistentialDepositAsset,
-					xcm_config::PriceForChildParachainDelivery,
-					AssetHubParaId,
-					(),
-				>;
-				fn valid_destination() -> Result<Location, BenchmarkError> {
-					Ok(AssetHubLocation::get())
-				}
-				fn worst_case_holding(_depositable_count: u32) -> Assets {
-					// Kusama only knows about KSM.
-					vec![Asset{
-						id: AssetId(TokenLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					}].into()
-				}
-			}
-
-			parameter_types! {
-				pub TrustedTeleporter: Option<(Location, Asset)> = Some((
-					AssetHubLocation::get(),
-					Asset { fun: Fungible(1 * UNITS), id: AssetId(TokenLocation::get()) },
-				));
-				pub const TrustedReserve: Option<(Location, Asset)> = None;
-			}
-
-			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
-				type TransactAsset = Balances;
-
-				type CheckedAccount = LocalCheckAccount;
-				type TrustedTeleporter = TrustedTeleporter;
-				type TrustedReserve = TrustedReserve;
-
-				fn get_asset() -> Asset {
-					Asset {
-						id: AssetId(TokenLocation::get()),
-						fun: Fungible(1 * UNITS),
-					}
-				}
-			}
-
-			impl pallet_xcm_benchmarks::generic::Config for Runtime {
-				type TransactAsset = Balances;
-				type RuntimeCall = RuntimeCall;
-
-				fn worst_case_response() -> (u64, Response) {
-					(0u64, Response::Version(Default::default()))
-				}
-
-				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
-					// Kusama doesn't support asset exchanges
-					Err(BenchmarkError::Skip)
-				}
-
-				fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
-					// The XCM executor of Kusama doesn't have a configured `UniversalAliases`
-					Err(BenchmarkError::Skip)
-				}
-
-				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
-					Ok((AssetHubLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
-				}
-
-				fn subscribe_origin() -> Result<Location, BenchmarkError> {
-					Ok(AssetHubLocation::get())
-				}
-
-				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
-					let origin = AssetHubLocation::get();
-					let assets: Assets = (AssetId(TokenLocation::get()), 1_000 * UNITS).into();
-					let ticket = Location { parents: 0, interior: Here };
-					Ok((origin, ticket, assets))
-				}
-
-				fn fee_asset() -> Result<Asset, BenchmarkError> {
-					Ok(Asset {
-						id: AssetId(TokenLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					})
-				}
-
-				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
-					// Kusama doesn't support asset locking
-					Err(BenchmarkError::Skip)
-				}
-
-				fn export_message_origin_and_destination(
-				) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
-					// Kusama doesn't support exporting messages
-					Err(BenchmarkError::Skip)
-				}
-
-				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-					// The XCM executor of Kusama doesn't have a configured `Aliasers`
-					Err(BenchmarkError::Skip)
-				}
-			}
-
-			type Native = pallet_balances::Pallet::<Runtime, ()>;
-			type NisCounterpart = pallet_balances::Pallet::<Runtime, NisCounterpartInstance>;
-
 			let mut whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let treasury_key = frame_system::Account::<Runtime>::hashed_key_for(Treasury::account_id());
 			whitelist.push(treasury_key.to_vec().into());
@@ -3090,6 +3029,59 @@ mod multiplier_tests {
 			});
 			blocks += 1;
 		}
+	}
+}
+
+#[cfg(test)]
+mod staking_tests {
+	use super::*;
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
+
+	#[test]
+	fn accounts_cannot_dual_stake() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let stake = ExistentialDeposit::get() * 10;
+			// Given a solo staker
+			let solo_staker = AccountId::from([1u8; 32]);
+			Balances::set_balance(&solo_staker, 3 * stake);
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(solo_staker.clone()),
+				stake,
+				pallet_staking::RewardDestination::Stash
+			));
+
+			// And a pooled staker
+			let pooled_staker = AccountId::from([2u8; 32]);
+			Balances::set_balance(&pooled_staker, 3 * stake);
+			assert_ok!(NominationPools::create(
+				RuntimeOrigin::signed(pooled_staker.clone()),
+				stake,
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into()
+			));
+
+			// Then the solo staker cannot join a pool.
+			assert_noop!(
+				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
+				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
+			);
+
+			// And the pooled staker cannot solo-stake.
+			assert_noop!(
+				pallet_staking::Pallet::<Runtime>::bond(
+					RuntimeOrigin::signed(pooled_staker),
+					stake,
+					pallet_staking::RewardDestination::Stash,
+				),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_staking::Error::<Runtime>::Restricted`.
+				pallet_staking::Error::<Runtime>::BoundNotMet
+			);
+		});
 	}
 }
 

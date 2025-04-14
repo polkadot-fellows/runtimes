@@ -27,6 +27,7 @@ fn bridge_hub_kusama_genesis(
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
+	opened_bridges: Vec<(Location, InteriorLocation, Option<bp_messages::LegacyLaneId>)>,
 ) -> serde_json::Value {
 	serde_json::json!({
 		"balances": BalancesConfig {
@@ -56,21 +57,15 @@ fn bridge_hub_kusama_genesis(
 					)
 				})
 				.collect(),
+			..Default::default()
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"xcmOverBridgeHubPolkadot": XcmOverBridgeHubPolkadotConfig { opened_bridges, ..Default::default() },
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
 	})
-}
-
-pub fn bridge_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Value {
-	bridge_hub_kusama_genesis(invulnerables(), testnet_accounts(), para_id)
-}
-
-fn bridge_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	bridge_hub_kusama_local_testnet_genesis(para_id)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.
@@ -81,8 +76,18 @@ pub fn preset_names() -> Vec<PresetId> {
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<sp_std::vec::Vec<u8>> {
 	let patch = match id.try_into() {
-		Ok("development") => bridge_hub_kusama_development_genesis(1002.into()),
-		Ok("local_testnet") => bridge_hub_kusama_local_testnet_genesis(1002.into()),
+		Ok("development") =>
+			bridge_hub_kusama_genesis(invulnerables(), testnet_accounts(), 1002.into(), vec![]),
+		Ok("local_testnet") => bridge_hub_kusama_genesis(
+			invulnerables(),
+			testnet_accounts(),
+			1002.into(),
+			vec![(
+				Location::new(1, [Parachain(1000)]),
+				Junctions::from([GlobalConsensus(Polkadot), Parachain(1000)]),
+				Some(bp_messages::LegacyLaneId([0, 0, 0, 1])),
+			)],
+		),
 		_ => return None,
 	};
 	Some(

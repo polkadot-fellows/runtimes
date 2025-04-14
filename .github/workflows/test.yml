@@ -1,4 +1,4 @@
-name: "Test all features"
+name: "Tests"
 
 # If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
 # which is located at the end of this file (more info in the job)
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-v1.13.0
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
 
 # cancel previous runs
 concurrency:
@@ -53,37 +53,27 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-runtime-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Download frame-omni-bencher
         run: |
@@ -102,6 +92,8 @@ jobs:
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
+          WS: ${{ matrix.runtime.uri }}
+          RUST_LOG: "remote-ext=info"
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
@@ -130,37 +122,27 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-integration-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Test ${{ matrix.itest.name }}
         run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
@@ -176,47 +158,36 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-tests"
+          shared-key: "fellowship-cache-chain-spec-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
-        run: cargo test -p chain-spec-generator --release --locked -q --features=runtime-benchmarks
+      - name: Check
+        run: cargo check -p chain-spec-generator --release --locked -q --features=runtime-benchmarks,all-runtimes
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
-    needs: [build-chain-spec-generator]
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
@@ -224,47 +195,134 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
-
-      - name: Free space on the runner
-        run: |
-          df -h
-          sudo apt -y autoremove --purge
-          sudo apt -y autoclean
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
 
       - name: Install stable toolchain
-        run: |
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cache-integration-tests"
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --features fast-runtime --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
 
       - name: Zombienet smoke test
         timeout-minutes: 20
         run: |
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
+
+  build-runtimes:
+    needs: [ runtime-matrix ]
+    runs-on: ubuntu-latest
+    strategy:
+      # Ensure the other jobs are continue
+      fail-fast: false
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-build-runtimes-test"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build runtime ${{ matrix.runtime.name }}
+        run: |
+          PACKAGE_NAME=${{ matrix.runtime.package }}
+          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
+          # Build wasm
+          echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
+
+          # Find out if the `metadata-hash` feature exists for the given package.
+          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
+            FEATURES="--features=metadata-hash"
+          fi
+          
+          # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
+          echo "Setting features: ${FEATURES}"
+          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
+          echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
+
+      - name: Upload  ${{ matrix.runtime.name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+          path: ${{ env.RUNTIME_BLOB_PATH }}
+
+  ecosystem-tests:
+    needs: [runtime-matrix, build-runtimes]
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          path: ecosystem-tests
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Setup runtime overrides
+        run: |
+          jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
+            NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
+            RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
+            echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            # Set the path to the build runtimes
+            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+          done 
+          
+      - name: Installing dependencies of ecosystem tests
+        working-directory: ./ecosystem-tests
+        run: yarn install
+
+      - name: Running ecosystem tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: cd ecosystem-tests && yarn test
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
@@ -279,5 +337,6 @@ jobs:
       - integration-test
       - build-chain-spec-generator
       - zombienet-smoke
+      - ecosystem-tests
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

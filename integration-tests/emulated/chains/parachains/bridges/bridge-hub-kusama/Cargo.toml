@@ -13,6 +13,10 @@ publish = false
 sp-core = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
 
+# Bridges
+bp-messages = { workspace = true }
+xcm = { workspace = true }
+
 # Cumulus
 parachains-common = { workspace = true, default-features = true }
 bridge-hub-common = { workspace = true, default-features = true }

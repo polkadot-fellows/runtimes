@@ -31,6 +31,7 @@ pub mod xcm_config;
 use bridge_hub_common::message_queue::{
 	AggregateMessageOrigin, NarrowOriginToSibling, ParaIdToSibling,
 };
+use bridge_to_polkadot_config::bp_polkadot;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
 
@@ -116,7 +117,7 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteHeadersAndMessages,
-	bridge_to_polkadot_config::RefundBridgeHubPolkadotMessages,
+	bridge_to_polkadot_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 
@@ -141,26 +142,13 @@ parameter_types! {
 	pub EthereumSystemName: &'static str = "EthereumSystem";
 }
 
+parameter_types! {
+	pub const BridgePolkadotMessagesPalletName: &'static str = "BridgePolkadotMessages";
+	pub const OutboundLanesCongestedSignalsKey: &'static str = "OutboundLanesCongestedSignals";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased and/or un-applied
-	cumulus_pallet_xcmp_queue::migration::v5::MigrateV4ToV5<Runtime>,
-	frame_support::migrations::RemovePallet<
-		EthereumInboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumOutboundQueueName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumBeaconClientName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
-	frame_support::migrations::RemovePallet<
-		EthereumSystemName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -186,7 +174,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("bridge-hub-kusama"),
 	impl_name: create_runtime_str!("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_003_003,
+	spec_version: 1_004_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -569,7 +557,12 @@ construct_runtime!(
 );
 
 #[cfg(feature = "runtime-benchmarks")]
+use pallet_bridge_messages::LaneIdOf;
+
+#[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use super::*;
+
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
@@ -593,7 +586,383 @@ mod benches {
 		[pallet_bridge_parachains, PolkadotParachains]
 		[pallet_bridge_messages, PolkadotMessages]
 	);
+
+	impl frame_system_benchmarking::Config for Runtime {
+		fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
+			Ok(())
+		}
+
+		fn verify_set_code() {
+			System::assert_last_event(
+				cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into(),
+			);
+		}
+	}
+
+	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+
+	use xcm_config::KsmRelayLocation;
+
+	parameter_types! {
+		pub ExistentialDepositAsset: Option<Asset> = Some((
+			KsmRelayLocation::get(),
+			ExistentialDeposit::get()
+		).into());
+	}
+
+	impl pallet_xcm::benchmarking::Config for Runtime {
+		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+			xcm_config::XcmConfig,
+			ExistentialDepositAsset,
+			PriceForParentDelivery,
+		>;
+
+		fn reachable_dest() -> Option<Location> {
+			Some(Parent.into())
+		}
+
+		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
+			// Relay/native token can be teleported between BH and Relay.
+			Some((
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
+				Parent.into(),
+			))
+		}
+
+		fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
+			// Reserve transfers are disabled on BH.
+			None
+		}
+
+		fn set_up_complex_asset_transfer() -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
+			// BH only supports teleports to system parachain.
+			// Relay/native token can be teleported between BH and Relay.
+			let native_location = Parent.into();
+			let dest = Parent.into();
+			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
+				native_location,
+				dest,
+			)
+		}
+
+		fn get_asset() -> Asset {
+			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+	}
+
+	impl pallet_xcm_benchmarks::Config for Runtime {
+		type XcmConfig = xcm_config::XcmConfig;
+		type AccountIdConverter = xcm_config::LocationToAccountId;
+		type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
+			xcm_config::XcmConfig,
+			ExistentialDepositAsset,
+			PriceForParentDelivery,
+		>;
+		fn valid_destination() -> Result<Location, BenchmarkError> {
+			Ok(KsmRelayLocation::get())
+		}
+		fn worst_case_holding(_depositable_count: u32) -> Assets {
+			// just concrete assets according to relay chain.
+			let assets: Vec<Asset> = vec![Asset {
+				id: AssetId(KsmRelayLocation::get()),
+				fun: Fungible(1_000_000 * UNITS),
+			}];
+			assets.into()
+		}
+	}
+
+	parameter_types! {
+		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
+			KsmRelayLocation::get(),
+			Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
+		));
+		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
+		pub const TrustedReserve: Option<(Location, Asset)> = None;
+	}
+
+	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
+		type TransactAsset = Balances;
+
+		type CheckedAccount = CheckedAccount;
+		type TrustedTeleporter = TrustedTeleporter;
+		type TrustedReserve = TrustedReserve;
+
+		fn get_asset() -> Asset {
+			Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(UNITS) }
+		}
+	}
+
+	impl pallet_xcm_benchmarks::generic::Config for Runtime {
+		type TransactAsset = Balances;
+		type RuntimeCall = RuntimeCall;
+
+		fn worst_case_response() -> (u64, Response) {
+			(0u64, Response::Version(Default::default()))
+		}
+
+		fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
+			Err(BenchmarkError::Skip)
+		}
+
+		fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
+			Err(BenchmarkError::Skip)
+		}
+
+		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
+			Ok((
+				KsmRelayLocation::get(),
+				frame_system::Call::remark_with_event { remark: vec![] }.into(),
+			))
+		}
+
+		fn subscribe_origin() -> Result<Location, BenchmarkError> {
+			Ok(KsmRelayLocation::get())
+		}
+
+		fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
+			let origin = KsmRelayLocation::get();
+			let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
+			let ticket = Location { parents: 0, interior: Here };
+			Ok((origin, ticket, assets))
+		}
+
+		fn fee_asset() -> Result<Asset, BenchmarkError> {
+			Ok(Asset { id: AssetId(KsmRelayLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+		}
+
+		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
+			Err(BenchmarkError::Skip)
+		}
+
+		fn export_message_origin_and_destination(
+		) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
+			// save XCM version for remote bridge hub
+			let _ = PolkadotXcm::force_xcm_version(
+				RuntimeOrigin::root(),
+				Box::new(bridge_to_polkadot_config::BridgeHubPolkadotLocation::get()),
+				XCM_VERSION,
+			)
+			.map_err(|e| {
+				log::error!(
+					"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+					RuntimeOrigin::root(),
+					bridge_to_polkadot_config::BridgeHubPolkadotLocation::get(),
+					XCM_VERSION,
+					e
+				);
+				BenchmarkError::Stop("XcmVersion was not stored!")
+			})?;
+
+			let sibling_system_parachain_id = Parachain(1000);
+			let remote_parachain_id = Parachain(5678);
+			let sibling_parachain_location = Location::new(1, [sibling_system_parachain_id]);
+
+			// open bridge
+			let bridge_destination_universal_location: InteriorLocation =
+				[GlobalConsensus(NetworkId::Polkadot), remote_parachain_id].into();
+			let locations = XcmOverBridgeHubPolkadot::bridge_locations(
+				sibling_parachain_location.clone(),
+				bridge_destination_universal_location.clone(),
+			)?;
+			XcmOverBridgeHubPolkadot::do_open_bridge(
+				locations,
+				bp_messages::LegacyLaneId([1, 2, 3, 4]),
+				true,
+			)
+			.map_err(|e| {
+				log::error!(
+					"Failed to `XcmOverBridgeHubRococo::open_bridge`({:?}, {:?})`, error: {:?}",
+					sibling_parachain_location,
+					bridge_destination_universal_location,
+					e
+				);
+				BenchmarkError::Stop("Bridge was not opened!")
+			})?;
+
+			Ok((sibling_parachain_location, NetworkId::Polkadot, [remote_parachain_id].into()))
+		}
+
+		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
+			Err(BenchmarkError::Skip)
+		}
+	}
+
+	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
+
+	impl BridgeRelayersConfig for Runtime {
+		fn prepare_rewards_account(
+			account_params: bp_relayers::RewardsAccountParams<
+				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
+			>,
+			reward: Balance,
+		) {
+			let rewards_account = bp_relayers::PayRewardFromAccount::<
+				Balances,
+				AccountId,
+				bp_messages::LegacyLaneId,
+			>::rewards_account(account_params);
+			Self::deposit_account(rewards_account, reward);
+		}
+
+		fn deposit_account(account: AccountId, balance: Balance) {
+			use frame_support::traits::fungible::Mutate;
+			Balances::mint_into(&account, balance.saturating_add(ExistentialDeposit::get()))
+				.unwrap();
+		}
+	}
+
+	use bridge_runtime_common::parachains_benchmarking::prepare_parachain_heads_proof;
+	use pallet_bridge_parachains::benchmarking::Config as BridgeParachainsConfig;
+
+	impl BridgeParachainsConfig<bridge_to_polkadot_config::BridgeParachainPolkadotInstance>
+		for Runtime
+	{
+		fn parachains() -> Vec<bp_polkadot_core::parachains::ParaId> {
+			use bp_runtime::Parachain;
+			vec![bp_polkadot_core::parachains::ParaId(
+				bp_bridge_hub_polkadot::BridgeHubPolkadot::PARACHAIN_ID,
+			)]
+		}
+
+		fn prepare_parachain_heads_proof(
+			parachains: &[bp_polkadot_core::parachains::ParaId],
+			parachain_head_size: u32,
+			proof_params: bp_runtime::UnverifiedStorageProofParams,
+		) -> (
+			bp_parachains::RelayBlockNumber,
+			bp_parachains::RelayBlockHash,
+			bp_polkadot_core::parachains::ParaHeadsProof,
+			Vec<(bp_polkadot_core::parachains::ParaId, bp_polkadot_core::parachains::ParaHash)>,
+		) {
+			prepare_parachain_heads_proof::<
+				Runtime,
+				bridge_to_polkadot_config::BridgeParachainPolkadotInstance,
+			>(parachains, parachain_head_size, proof_params)
+		}
+	}
+
+	use bridge_runtime_common::messages_benchmarking::{
+		generate_xcm_builder_bridge_message_sample, prepare_message_delivery_proof_from_parachain,
+		prepare_message_proof_from_parachain,
+	};
+	use pallet_bridge_messages::benchmarking::{
+		Config as BridgeMessagesConfig, MessageDeliveryProofParams, MessageProofParams,
+	};
+
+	impl BridgeMessagesConfig<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>
+		for Runtime
+	{
+		fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
+			let bench_lane_id = <Self as BridgeMessagesConfig<
+				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+			>>::bench_lane_id();
+			use bp_runtime::Chain;
+			let bridged_chain_id = <Self as pallet_bridge_messages::Config<
+				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+			>>::BridgedChain::ID;
+			pallet_bridge_relayers::Pallet::<
+				Runtime,
+				bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
+			>::relayer_reward(
+				relayer,
+				bp_relayers::RewardsAccountParams::new(
+					bench_lane_id,
+					bridged_chain_id,
+					bp_relayers::RewardsAccountOwner::BridgedChain,
+				),
+			)
+			.is_some()
+		}
+
+		fn prepare_message_proof(
+			params: MessageProofParams<
+				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
+			>,
+		) -> (
+			bridge_to_polkadot_config::FromPolkadotBridgeHubMessagesProof<
+				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+			>,
+			Weight,
+		) {
+			use cumulus_primitives_core::XcmpMessageSource;
+			assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
+			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
+			let _ = PolkadotXcm::force_xcm_version(
+				RuntimeOrigin::root(),
+				Box::new(Location::new(1, Parachain(42))),
+				XCM_VERSION,
+			)
+			.map_err(|e| {
+				log::error!(
+					"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
+					RuntimeOrigin::root(),
+					Location::new(1, Parachain(42)),
+					XCM_VERSION,
+					e
+				);
+			})
+			.expect("XcmVersion stored!");
+			let universal_source = bridge_to_polkadot_config::open_bridge_for_benchmarks::<
+				Runtime,
+				bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
+				xcm_config::LocationToAccountId,
+			>(params.lane, 42);
+			prepare_message_proof_from_parachain::<
+				Runtime,
+				bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
+				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+			>(params, generate_xcm_builder_bridge_message_sample(universal_source))
+		}
+
+		fn prepare_message_delivery_proof(
+			params: MessageDeliveryProofParams<
+				AccountId,
+				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
+			>,
+		) -> bridge_to_polkadot_config::ToPolkadotBridgeHubMessagesDeliveryProof<
+			bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+		> {
+			let _ = bridge_to_polkadot_config::open_bridge_for_benchmarks::<
+				Runtime,
+				bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
+				xcm_config::LocationToAccountId,
+			>(params.lane, 42);
+			prepare_message_delivery_proof_from_parachain::<
+				Runtime,
+				bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
+				bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+			>(params)
+		}
+
+		fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
+			use cumulus_primitives_core::XcmpMessageSource;
+			!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
+		}
+	}
+
+	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
+	pub use frame_system_benchmarking::Pallet as SystemBench;
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+	pub type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet<Runtime>;
+	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
+	pub use pallet_bridge_relayers::benchmarking::Pallet as BridgeRelayersBench;
+	pub type PolkadotFinality = BridgePolkadotGrandpa;
+	pub use sp_storage::TrackedStorageKey;
+	pub type PolkadotParachains = pallet_bridge_parachains::benchmarking::Pallet<
+		Runtime,
+		bridge_to_polkadot_config::BridgeParachainPolkadotInstance,
+	>;
+	pub type PolkadotMessages = pallet_bridge_messages::benchmarking::Pallet<
+		Runtime,
+		bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance,
+	>;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+use benches::*;
 
 impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
@@ -749,7 +1118,8 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			match asset.try_as::<AssetId>() {
+			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
+			match latest_asset_id {
 				Ok(asset_id) if asset_id.0 == xcm_config::KsmRelayLocation::get() => {
 					// for native token
 					Ok(WeightToFee::weight_to_fee(&weight))
@@ -775,8 +1145,8 @@ impl_runtime_apis! {
 	}
 
 	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
-		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call)
+		fn dry_run_call(origin: OriginCaller, call: RuntimeCall, result_xcms_version: XcmVersion) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
+			PolkadotXcm::dry_run_call::<Runtime, xcm_config::XcmRouter, OriginCaller, RuntimeCall>(origin, call, result_xcms_version)
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
@@ -848,7 +1218,7 @@ impl_runtime_apis! {
 
 	impl bp_bridge_hub_polkadot::FromBridgeHubPolkadotInboundLaneApi<Block> for Runtime {
 		fn message_details(
-			lane: bp_messages::LaneId,
+			lane: bp_messages::LegacyLaneId,
 			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
@@ -860,7 +1230,7 @@ impl_runtime_apis! {
 
 	impl bp_bridge_hub_polkadot::ToBridgeHubPolkadotOutboundLaneApi<Block> for Runtime {
 		fn message_details(
-			lane: bp_messages::LaneId,
+			lane: bp_messages::LegacyLaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
 		) -> Vec<bp_messages::OutboundMessageDetails> {
@@ -896,23 +1266,6 @@ impl_runtime_apis! {
 			Vec<frame_benchmarking::BenchmarkList>,
 			Vec<frame_support::traits::StorageInfo>,
 		) {
-			use frame_benchmarking::{Benchmarking, BenchmarkList};
-			use frame_support::traits::StorageInfoTrait;
-			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
-			use frame_system_benchmarking::Pallet as SystemBench;
-			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-
-			// This is defined once again in dispatch_benchmark, because list_benchmarks!
-			// and add_benchmarks! are macros exported by define_benchmarks! macros and those types
-			// are referenced in that call.
-			type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet::<Runtime>;
-			type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet::<Runtime>;
-
-			use pallet_bridge_relayers::benchmarking::Pallet as BridgeRelayersBench;
-			type PolkadotFinality = BridgePolkadotGrandpa;
-			type PolkadotParachains = pallet_bridge_parachains::benchmarking::Pallet::<Runtime, bridge_to_polkadot_config::BridgeParachainPolkadotInstance>;
-			type PolkadotMessages = pallet_bridge_messages::benchmarking::Pallet::<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>;
-
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -923,326 +1276,7 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, BenchmarkError};
-			use sp_storage::TrackedStorageKey;
-
-			use frame_system_benchmarking::Pallet as SystemBench;
-			impl frame_system_benchmarking::Config for Runtime {
-				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
-					ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
-					Ok(())
-				}
-
-				fn verify_set_code() {
-					System::assert_last_event(cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into());
-				}
-			}
-
-			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-			impl cumulus_pallet_session_benchmarking::Config for Runtime {}
-
-			use xcm::latest::prelude::*;
-			use xcm_config::KsmRelayLocation;
-
-			parameter_types! {
-				pub ExistentialDepositAsset: Option<Asset> = Some((
-					KsmRelayLocation::get(),
-					ExistentialDeposit::get()
-				).into());
-			}
-
-			use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
-			impl pallet_xcm::benchmarking::Config for Runtime {
-				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
-					xcm_config::XcmConfig,
-					ExistentialDepositAsset,
-					PriceForParentDelivery,
-				>;
-
-				fn reachable_dest() -> Option<Location> {
-					Some(Parent.into())
-				}
-
-				fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Relay/native token can be teleported between BH and Relay.
-					Some((
-						Asset {
-							fun: Fungible(ExistentialDeposit::get()),
-							id: AssetId(Parent.into())
-						},
-						Parent.into(),
-					))
-				}
-
-				fn reserve_transferable_asset_and_dest() -> Option<(Asset, Location)> {
-					// Reserve transfers are disabled on BH.
-					None
-				}
-
-				fn set_up_complex_asset_transfer(
-				) -> Option<(Assets, u32, Location, Box<dyn FnOnce()>)> {
-					// BH only supports teleports to system parachain.
-					// Relay/native token can be teleported between BH and Relay.
-					let native_location = Parent.into();
-					let dest = Parent.into();
-					pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
-						native_location,
-						dest
-					)
-				}
-
-				fn get_asset() -> Asset {
-					Asset {
-						id: AssetId(Location::parent()),
-						fun: Fungible(ExistentialDeposit::get()),
-					}
-				}
-			}
-
-			impl pallet_xcm_benchmarks::Config for Runtime {
-				type XcmConfig = xcm_config::XcmConfig;
-				type AccountIdConverter = xcm_config::LocationToAccountId;
-				type DeliveryHelper = cumulus_primitives_utility::ToParentDeliveryHelper<
-					xcm_config::XcmConfig,
-					ExistentialDepositAsset,
-					PriceForParentDelivery,
-				>;
-				fn valid_destination() -> Result<Location, BenchmarkError> {
-					Ok(KsmRelayLocation::get())
-				}
-				fn worst_case_holding(_depositable_count: u32) -> Assets {
-					// just concrete assets according to relay chain.
-					let assets: Vec<Asset> = vec![
-						Asset {
-							id: AssetId(KsmRelayLocation::get()),
-							fun: Fungible(1_000_000 * UNITS),
-						}
-					];
-					assets.into()
-				}
-			}
-
-			parameter_types! {
-				pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-					KsmRelayLocation::get(),
-					Asset { fun: Fungible(UNITS), id: AssetId(KsmRelayLocation::get()) },
-				));
-				pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
-				pub const TrustedReserve: Option<(Location, Asset)> = None;
-			}
-
-			impl pallet_xcm_benchmarks::fungible::Config for Runtime {
-				type TransactAsset = Balances;
-
-				type CheckedAccount = CheckedAccount;
-				type TrustedTeleporter = TrustedTeleporter;
-				type TrustedReserve = TrustedReserve;
-
-				fn get_asset() -> Asset {
-					Asset {
-						id: AssetId(KsmRelayLocation::get()),
-						fun: Fungible(UNITS),
-					}
-				}
-			}
-
-			impl pallet_xcm_benchmarks::generic::Config for Runtime {
-				type TransactAsset = Balances;
-				type RuntimeCall = RuntimeCall;
-
-				fn worst_case_response() -> (u64, Response) {
-					(0u64, Response::Version(Default::default()))
-				}
-
-				fn worst_case_asset_exchange() -> Result<(Assets, Assets), BenchmarkError> {
-					Err(BenchmarkError::Skip)
-				}
-
-				fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {
-					Err(BenchmarkError::Skip)
-				}
-
-				fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
-					Ok((KsmRelayLocation::get(), frame_system::Call::remark_with_event { remark: vec![] }.into()))
-				}
-
-				fn subscribe_origin() -> Result<Location, BenchmarkError> {
-					Ok(KsmRelayLocation::get())
-				}
-
-				fn claimable_asset() -> Result<(Location, Location, Assets), BenchmarkError> {
-					let origin = KsmRelayLocation::get();
-					let assets: Assets = (AssetId(KsmRelayLocation::get()), 1_000 * UNITS).into();
-					let ticket = Location { parents: 0, interior: Here };
-					Ok((origin, ticket, assets))
-				}
-
-				fn fee_asset() -> Result<Asset, BenchmarkError> {
-					Ok(Asset {
-						id: AssetId(KsmRelayLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					})
-				}
-
-				fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
-					Err(BenchmarkError::Skip)
-				}
-
-				fn export_message_origin_and_destination(
-				) -> Result<(Location, NetworkId, InteriorLocation), BenchmarkError> {
-					// save XCM version for remote bridge hub
-					let _ = PolkadotXcm::force_xcm_version(
-						RuntimeOrigin::root(),
-						Box::new(bridge_to_polkadot_config::BridgeHubPolkadotLocation::get()),
-						XCM_VERSION,
-					).map_err(|e| {
-						log::error!(
-							"Failed to dispatch `force_xcm_version({:?}, {:?}, {:?})`, error: {:?}",
-							RuntimeOrigin::root(),
-							bridge_to_polkadot_config::BridgeHubPolkadotLocation::get(),
-							XCM_VERSION,
-							e
-						);
-						BenchmarkError::Stop("XcmVersion was not stored!")
-					})?;
-					Ok(
-						(
-							bridge_to_polkadot_config::FromAssetHubKusamaToAssetHubPolkadotRoute::get().location,
-							NetworkId::Polkadot,
-							Parachain(bridge_to_polkadot_config::AssetHubPolkadotParaId::get().into()).into()
-						)
-					)
-				}
-
-				fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-					Err(BenchmarkError::Skip)
-				}
-			}
-
-			type XcmBalances = pallet_xcm_benchmarks::fungible::Pallet::<Runtime>;
-			type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet::<Runtime>;
-
-			type PolkadotFinality = BridgePolkadotGrandpa;
-			type PolkadotParachains = pallet_bridge_parachains::benchmarking::Pallet::<Runtime, bridge_to_polkadot_config::BridgeParachainPolkadotInstance>;
-			type PolkadotMessages = pallet_bridge_messages::benchmarking::Pallet::<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>;
-
-			use pallet_bridge_relayers::benchmarking::{
-				Pallet as BridgeRelayersBench,
-				Config as BridgeRelayersConfig,
-			};
-
-			impl BridgeRelayersConfig for Runtime {
-				fn prepare_rewards_account(
-					account_params: bp_relayers::RewardsAccountParams,
-					reward: Balance,
-				) {
-					let rewards_account = bp_relayers::PayRewardFromAccount::<
-						Balances,
-						AccountId
-					>::rewards_account(account_params);
-					Self::deposit_account(rewards_account, reward);
-				}
-
-				fn deposit_account(account: AccountId, balance: Balance) {
-					use frame_support::traits::fungible::Mutate;
-					Balances::mint_into(&account, balance.saturating_add(ExistentialDeposit::get())).unwrap();
-				}
-			}
-
-			use bridge_runtime_common::parachains_benchmarking::prepare_parachain_heads_proof;
-			use pallet_bridge_parachains::benchmarking::Config as BridgeParachainsConfig;
-
-			impl BridgeParachainsConfig<bridge_to_polkadot_config::BridgeParachainPolkadotInstance> for Runtime {
-				fn parachains() -> Vec<bp_polkadot_core::parachains::ParaId> {
-					use bp_runtime::Parachain;
-					vec![bp_polkadot_core::parachains::ParaId(bp_bridge_hub_polkadot::BridgeHubPolkadot::PARACHAIN_ID)]
-				}
-
-				fn prepare_parachain_heads_proof(
-					parachains: &[bp_polkadot_core::parachains::ParaId],
-					parachain_head_size: u32,
-					proof_size: bp_runtime::StorageProofSize,
-				) -> (
-					pallet_bridge_parachains::RelayBlockNumber,
-					pallet_bridge_parachains::RelayBlockHash,
-					bp_polkadot_core::parachains::ParaHeadsProof,
-					Vec<(bp_polkadot_core::parachains::ParaId, bp_polkadot_core::parachains::ParaHash)>,
-				) {
-					prepare_parachain_heads_proof::<Runtime, bridge_to_polkadot_config::BridgeParachainPolkadotInstance>(
-						parachains,
-						parachain_head_size,
-						proof_size,
-					)
-				}
-			}
-
-			use bridge_runtime_common::messages_benchmarking::{
-				prepare_message_delivery_proof_from_parachain,
-				prepare_message_proof_from_parachain,
-				generate_xcm_builder_bridge_message_sample,
-			};
-			use pallet_bridge_messages::benchmarking::{
-				Config as BridgeMessagesConfig,
-				MessageDeliveryProofParams,
-				MessageProofParams,
-			};
-
-			impl BridgeMessagesConfig<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance> for Runtime {
-				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
-					let bench_lane_id = <Self as BridgeMessagesConfig<bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>>::bench_lane_id();
-					let bridged_chain_id = bridge_to_polkadot_config::BridgeHubPolkadotChainId::get();
-					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
-						relayer,
-						bp_relayers::RewardsAccountParams::new(
-							bench_lane_id,
-							bridged_chain_id,
-							bp_relayers::RewardsAccountOwner::BridgedChain
-						)
-					).is_some()
-				}
-
-				fn prepare_message_proof(
-					params: MessageProofParams,
-				) -> (bridge_to_polkadot_config::FromPolkadotBridgeHubMessagesProof, Weight) {
-					use cumulus_primitives_core::XcmpMessageSource;
-					assert!(XcmpQueue::take_outbound_messages(usize::MAX).is_empty());
-					ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(42.into());
-					prepare_message_proof_from_parachain::<
-						Runtime,
-						bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
-						bridge_to_polkadot_config::WithBridgeHubPolkadotMessageBridge,
-					>(params, generate_xcm_builder_bridge_message_sample([GlobalConsensus(Kusama), Parachain(42)].into()))
-				}
-
-				fn prepare_message_delivery_proof(
-					params: MessageDeliveryProofParams<AccountId>,
-				) -> bridge_to_polkadot_config::ToPolkadotBridgeHubMessagesDeliveryProof {
-					prepare_message_delivery_proof_from_parachain::<
-						Runtime,
-						bridge_to_polkadot_config::BridgeGrandpaPolkadotInstance,
-						bridge_to_polkadot_config::WithBridgeHubPolkadotMessageBridge,
-					>(params)
-				}
-
-				fn is_message_successfully_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
-					use cumulus_primitives_core::XcmpMessageSource;
-					!XcmpQueue::take_outbound_messages(usize::MAX).is_empty()
-				}
-			}
-
-			let whitelist: Vec<TrackedStorageKey> = vec![
-				// Block Number
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
-				// Total Issuance
-				hex_literal::hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80").to_vec().into(),
-				// Execution Phase
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec().into(),
-				// Event Count
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
-				// System Events
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
-			];
-
+			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
 			add_benchmarks!(params, batches);

@@ -116,7 +116,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
 		minimum_validation_upgrade_delay: 5,
-		scheduler_params: polkadot_primitives::vstaging::SchedulerParams {
+		scheduler_params: polkadot_primitives::SchedulerParams {
 			group_rotation_frequency: 20,
 			paras_availability_period: 4,
 			..Default::default()

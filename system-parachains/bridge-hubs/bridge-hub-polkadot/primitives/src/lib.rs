@@ -25,7 +25,7 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::dispatch::DispatchClass;
-use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating};
+use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating, StateVersion};
 
 /// BridgeHubPolkadot parachain.
 #[derive(RuntimeDebug)]
@@ -33,6 +33,7 @@ pub struct BridgeHubPolkadot;
 
 impl Chain for BridgeHubPolkadot {
 	const ID: ChainId = *b"bhpd";
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
@@ -66,8 +67,11 @@ impl ChainWithMessages for BridgeHubPolkadot {
 		WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	/// This constant limits the maximum number of messages in `receive_messages_proof`.
+	/// We need to adjust it from 4096 to 2024 due to the actual weights identified by
+	/// `check_message_lane_weights`. A higher value can be set once we switch
+	/// `max_extrinsic_weight` to `BlockWeightsForAsyncBacking`.
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 2024;
 }
 
 /// Identifier of BridgeHubPolkadot in the Polkadot relay chain.
@@ -84,21 +88,21 @@ pub const WITH_BRIDGE_HUB_POLKADOT_RELAYERS_PALLET_NAME: &str = "BridgeRelayers"
 pub const WITH_BRIDGE_POLKADOT_TO_KUSAMA_MESSAGES_PALLET_INDEX: u8 = 53;
 
 decl_bridge_finality_runtime_apis!(bridge_hub_polkadot);
-decl_bridge_messages_runtime_apis!(bridge_hub_polkadot);
+decl_bridge_messages_runtime_apis!(bridge_hub_polkadot, LegacyLaneId);
 
 frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Polkadot
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 88_797_450;
+	pub const BridgeHubPolkadotBaseXcmFeeInDots: Balance = 90_433_350;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_delivery_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 471_124_182;
+	pub const BridgeHubPolkadotBaseDeliveryFeeInDots: Balance = 471_317_032;
 
 	/// Transaction fee that is paid at the Polkadot BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubPolkadot::can_calculate_fee_for_standalone_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 86_188_932;
+	pub const BridgeHubPolkadotBaseConfirmationFeeInDots: Balance = 86_255_432;
 }
 
 /// Compute the total estimated fee that needs to be paid in DOTs by the sender when sending
@@ -155,7 +159,7 @@ pub mod snowbridge {
 	use frame_support::parameter_types;
 	use snowbridge_core::{PricingParameters, Rewards, U256};
 	use sp_runtime::FixedU128;
-	use xcm::latest::NetworkId;
+	use xcm::latest::{Location, NetworkId};
 
 	parameter_types! {
 		/// Should match the `ForeignAssets::create` index on Asset Hub.
@@ -186,7 +190,67 @@ pub mod snowbridge {
 		/// <https://chainlist.org/chain/1>
 		/// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+		pub EthereumLocation: Location = Location::new(2, EthereumNetwork::get());
 	}
+}
+
+/// Bridging primitives describing the Polkadot relay chain, which we need for the other side.
+pub mod bp_polkadot {
+	use super::{decl_bridge_finality_runtime_apis, Chain, ChainId, StateVersion, Weight};
+	use bp_header_chain::ChainWithGrandpa;
+	pub use bp_polkadot_core::*;
+
+	/// Polkadot Chain
+	pub struct Polkadot;
+
+	impl Chain for Polkadot {
+		const ID: ChainId = *b"pdot";
+
+		type BlockNumber = BlockNumber;
+		type Hash = Hash;
+		type Hasher = Hasher;
+		type Header = Header;
+
+		type AccountId = AccountId;
+		type Balance = Balance;
+		type Nonce = Nonce;
+		type Signature = Signature;
+
+		const STATE_VERSION: StateVersion = StateVersion::V0;
+
+		fn max_extrinsic_size() -> u32 {
+			max_extrinsic_size()
+		}
+
+		fn max_extrinsic_weight() -> Weight {
+			max_extrinsic_weight()
+		}
+	}
+
+	impl ChainWithGrandpa for Polkadot {
+		const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = WITH_POLKADOT_GRANDPA_PALLET_NAME;
+		const MAX_AUTHORITIES_COUNT: u32 = MAX_AUTHORITIES_COUNT;
+		const REASONABLE_HEADERS_IN_JUSTIFICATION_ANCESTRY: u32 =
+			REASONABLE_HEADERS_IN_JUSTIFICATION_ANCESTRY;
+		const MAX_MANDATORY_HEADER_SIZE: u32 = MAX_MANDATORY_HEADER_SIZE;
+		const AVERAGE_HEADER_SIZE: u32 = AVERAGE_HEADER_SIZE;
+	}
+
+	/// Name of the parachains pallet in the Polkadot runtime.
+	pub const PARAS_PALLET_NAME: &str = "Paras";
+	/// Name of the With-Polkadot GRANDPA pallet instance that is deployed at bridged chains.
+	pub const WITH_POLKADOT_GRANDPA_PALLET_NAME: &str = "BridgePolkadotGrandpa";
+	/// Name of the With-Polkadot parachains pallet instance that is deployed at bridged chains.
+	pub const WITH_POLKADOT_BRIDGE_PARACHAINS_PALLET_NAME: &str = "BridgePolkadotParachains";
+
+	/// Maximal size of encoded `bp_parachains::ParaStoredHeaderData` structure among all Polkadot
+	/// parachains.
+	///
+	/// It includes the block number and state root, so it shall be near 40 bytes, but let's have
+	/// some reserve.
+	pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
+
+	decl_bridge_finality_runtime_apis!(polkadot, grandpa);
 }
 
 #[cfg(test)]
