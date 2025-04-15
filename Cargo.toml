@@ -319,19 +319,19 @@ lto = true
 codegen-units = 1
 
 [patch.crates-io]
-encointer-balances-tx-payment = { path = "../encointer-pallets/balances-tx-payment" }
-encointer-balances-tx-payment-rpc-runtime-api = { path = "../encointer-pallets/balances-tx-payment/rpc/runtime-api" }
-encointer-primitives = { path = "../encointer-pallets/primitives" }
-pallet-encointer-balances = { path = "../encointer-pallets/balances" }
-pallet-encointer-bazaar = { path = "../encointer-pallets/bazaar" }
-pallet-encointer-bazaar-rpc-runtime-api = { path = "../encointer-pallets/bazaar/rpc/runtime-api" }
-pallet-encointer-ceremonies = { path = "../encointer-pallets/ceremonies" }
-pallet-encointer-ceremonies-rpc-runtime-api = { path = "../encointer-pallets/ceremonies/rpc/runtime-api" }
-pallet-encointer-communities = { path = "../encointer-pallets/communities" }
-pallet-encointer-communities-rpc-runtime-api = { path = "../encointer-pallets/communities/rpc/runtime-api" }
-pallet-encointer-democracy = { path = "../encointer-pallets/democracy" }
-pallet-encointer-faucet = { path = "../encointer-pallets/faucet" }
-pallet-encointer-reputation-commitments = { path = "../encointer-pallets/reputation-commitments" }
-pallet-encointer-scheduler = { path = "../encointer-pallets/scheduler" }
-pallet-encointer-treasuries = { path = "../encointer-pallets/treasuries" }
-pallet-encointer-treasuries-rpc-runtime-api = { path = "../encointer-pallets/treasuries/rpc/runtime-api" }
+encointer-balances-tx-payment = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+encointer-balances-tx-payment-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+encointer-primitives = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-balances = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-bazaar = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-ceremonies = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-ceremonies-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-communities = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-communities-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-democracy = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-faucet = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-reputation-commitments = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-scheduler = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-treasuries = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-treasuries-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }

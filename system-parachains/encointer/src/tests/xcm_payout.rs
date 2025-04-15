@@ -19,7 +19,7 @@
 
 use super::{*, mock::*, xcm_mock::*};
 use crate::treasuries_xcm_payout::{TransferOverXcm};
-use pallet_encointer_treasuries::Payout;
+use pallet_encointer_treasuries::Transfer;
 use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{assert_ok, parameter_types};
@@ -98,7 +98,7 @@ fn payout_over_xcm_works() {
 			AssetKind,
 			LocatableAssetKindConverter,
 			AliasesIntoAccountId32<AnyNetwork, AccountId>,
-		>::pay(&sender, &recipient, asset_kind.clone(), amount));
+		>::transfer(&sender, &recipient, asset_kind.clone(), amount));
 
 		let expected_message = Xcm(vec![
 			// Change the origin to the local account on the target chain

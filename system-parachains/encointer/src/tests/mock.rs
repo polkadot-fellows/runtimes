@@ -25,7 +25,6 @@ use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
 use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
-use xcm::latest::Junctions::X2;
 use xcm::prelude::*;
 use xcm_builder::{AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete, NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, WithComputedOrigin};
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};

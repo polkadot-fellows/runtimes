@@ -25,13 +25,13 @@ use frame_support::{
 	parameter_types,
 	traits::{tokens::PaymentStatus, Get},
 };
-use pallet_encointer_treasuries::Payout;
+use pallet_encointer_treasuries::Transfer;
 use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*, v5::Junctions::X2};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
-/// Payout an asset at asset hub.
+/// Transfer an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
 pub struct TransferOverXcm<Router, Querier, Timeout, Transactors, AssetKind, AssetKindToLocatableAsset, TransactorRefToLocation>(
@@ -45,17 +45,18 @@ impl<
 		AssetKind: Clone + core::fmt::Debug,
 		AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
 		TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
-	> Payout for TransferOverXcm<Router, Querier, Timeout, Transactor, AssetKind,  AssetKindToLocatableAsset, TransactorRefToLocation>
+	> Transfer for TransferOverXcm<Router, Querier, Timeout, Transactor, AssetKind,  AssetKindToLocatableAsset, TransactorRefToLocation>
 {
 	type Balance = u128;
-	type AccountId = Transactor;
+	type Payer = Transactor;
+	type Beneficiary = Transactor;
 	type AssetKind = AssetKind;
 	type Id = QueryId;
 	type Error = xcm::latest::Error;
 
-	fn pay(
-		from: &Self::AccountId,
-		to: &Self::AccountId,
+	fn transfer(
+		from: &Self::Payer,
+		to: &Self::Beneficiary,
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
@@ -100,10 +101,6 @@ impl<
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
 		Router::deliver(ticket)?;
 		Ok(query_id.into())
-	}
-
-	fn is_asset_supported(_: &Self::AssetKind) -> bool {
-		true
 	}
 
 	fn check_payment(id: Self::Id) -> PaymentStatus {
