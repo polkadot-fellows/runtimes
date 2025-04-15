@@ -56,14 +56,15 @@ frame-benchmarking = { workspace = true, default-features = false }
 default = ["ahm-polkadot"]
 std = [
 	"cumulus-pallet-parachain-system/std",
+	"frame-benchmarking/std",
 	"hex/std",
 	"log/std",
-	"frame-benchmarking/std"
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-ah-migrator/runtime-benchmarks",
@@ -79,13 +80,12 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
-	"polkadot-runtime/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
-	"frame-benchmarking/runtime-benchmarks",
 ]
 
 ahm-westend = [
