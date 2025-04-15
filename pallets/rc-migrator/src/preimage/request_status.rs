@@ -19,6 +19,7 @@ use crate::{preimage::*, types::*, *};
 
 /// An entry of the `RequestStatusFor` storage map.
 #[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcPreimageRequestStatus<AccountId, Ticket> {
 	/// The hash of the original preimage.
 	pub hash: H256,

@@ -9,8 +9,8 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-pallet-ah-migrator = { workspace = true }
-pallet-ah-ops = { workspace = true }
+pallet-ah-migrator = { workspace = true, features = ["ahm-polkadot"] }
+pallet-ah-ops = { workspace = true, features = ["ahm-polkadot"] }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
 hex-literal = { workspace = true }
@@ -348,6 +348,9 @@ std = [
 	"xcm-runtime-apis/std",
 	"xcm/std",
 ]
+
+# Set timing constants (e.g. session period) to faster versions to speed up testing.
+fast-runtime = []
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
 metadata-hash = ["substrate-wasm-builder?/metadata-hash"]

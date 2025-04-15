@@ -20,6 +20,7 @@ use crate::{types::*, *};
 use alias::UnstakeRequest;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum FastUnstakeStage<AccountId> {
 	StorageValues,
 	Queue(Option<AccountId>),
@@ -38,6 +39,7 @@ pub enum FastUnstakeStage<AccountId> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 	StorageValues { values: FastUnstakeStorageValues<T> },
 	Queue { member: (T::AccountId, alias::BalanceOf<T>) },
@@ -56,6 +58,7 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
 	pub eras_to_check_per_block: u32,
@@ -153,6 +156,39 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
+	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+
+	fn pre_check() -> Self::RcPrePayload {
+		let queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
+		let eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
+
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Staking Heads must be empty on the relay chain before the migration"
+		);
+
+		(queue, eras_to_check)
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// RC post: Ensure that entries have been deleted
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Assert storage 'FastUnstake::Head::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
+			"Assert storage 'FastUnstake::Queue::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::empty'"
+		);
+	}
+}
+
 pub mod alias {
 	use super::*;
 	use frame_support::traits::Currency;
@@ -179,6 +215,7 @@ pub mod alias {
 		MaxEncodedLen,
 	)]
 	#[scale_info(skip_type_params(T))]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct UnstakeRequest<T: pallet_fast_unstake::Config> {
 		/// This list of stashes are being processed in this request, and their corresponding
 		/// deposit.

@@ -8856,6 +8856,7 @@ name = "pallet-rc-migrator"
 version = "0.1.0"
 dependencies = [
  "frame-benchmarking",
+ "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "hex-literal",
@@ -10038,7 +10039,7 @@ dependencies = [
 
 [[package]]
 name = "polkadot-integration-tests-ahm"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
  "cumulus-pallet-parachain-system",
@@ -10183,6 +10184,7 @@ dependencies = [
  "pallet-staking-reward-fn",
  "pallet-staking-runtime-api",
  "pallet-state-trie-migration",
+ "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",

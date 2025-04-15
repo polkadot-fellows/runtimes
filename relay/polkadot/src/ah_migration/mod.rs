@@ -17,3 +17,4 @@
 //! Asset Hub Migration.
 
 pub mod phase1;
+pub mod weights;

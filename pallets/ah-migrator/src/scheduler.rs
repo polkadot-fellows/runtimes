@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
 									"Failed to convert scheduler call origin: {:?}",
 									task.origin
 								);
-								continue
+								continue;
 							},
 						};
 						let call = if let Ok(call) = Self::map_rc_ah_call(&task.call) {

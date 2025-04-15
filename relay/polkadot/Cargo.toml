@@ -10,8 +10,8 @@ license.workspace = true
 [dependencies]
 
 # Asset Hub Migration concerning deps
-pallet-rc-migrator = { workspace = true }
-pallet-ah-migrator = { workspace = true }
+pallet-rc-migrator = { workspace = true, features = ["ahm-polkadot"] }
+pallet-ah-migrator = { workspace = true, features = ["ahm-polkadot"] }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -115,6 +115,9 @@ sp-debug-derive = { workspace = true }
 # just for the coretime migration
 polkadot-parachain-primitives = { workspace = true }
 
+# just for use with zombie-bite to test migration
+pallet-sudo = { workspace = true, optional = true }
+
 [dev-dependencies]
 approx = { workspace = true }
 sp-keyring = { workspace = true }
@@ -188,6 +191,7 @@ std = [
 	"pallet-staking-runtime-api/std",
 	"pallet-staking/std",
 	"pallet-state-trie-migration/std",
+	"pallet-sudo?/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -269,6 +273,7 @@ runtime-benchmarks = [
 	"pallet-session-benchmarking/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
+	"pallet-sudo?/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -326,6 +331,7 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-staking/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
+	"pallet-sudo?/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
@@ -352,3 +358,5 @@ fast-runtime = []
 runtime-metrics = ["runtime-parachains/runtime-metrics", "sp-io/with-tracing"]
 
 force-debug = ["sp-debug-derive/force-debug"]
+
+zombie-bite-sudo = ["dep:pallet-sudo"]

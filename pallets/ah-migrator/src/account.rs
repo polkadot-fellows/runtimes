@@ -169,16 +169,43 @@ impl<T: Config> Pallet<T> {
 	pub fn finish_accounts_migration(rc_balance_kept: T::Balance) -> Result<(), Error<T>> {
 		use frame_support::traits::Currency;
 		let checking_account = T::CheckingAccount::get();
-		// current value is the migrated checking balance of RC
-		let rc_balance_before =
+		let balances_before = AhBalancesBefore::<T>::get();
+		// current value is the AH checking balance + migrated checking balance of RC
+		let checking_balance =
 			<<T as pallet::Config>::Currency as Currency<_>>::total_balance(&checking_account);
-		let ah_issuance_before = AhTotalIssuanceBefore::<T>::get();
 
+		/* Arithmetics explanation:
+		At this point, because checking account was completely migrated:
+			`checking_balance` = ah_check_before + rc_check_before
+			(0) rc_check_before = `checking_balance` - ah_check_before
+
+		Invariants:
+			(1) rc_check_before = sum_total_before(ah, bh, collectives, coretime, people)
+			(2) rc_check_before = sum_total_before(bh, collectives, coretime, people) + ah_total_before
+		Because teleports are disabled for RC and AH during migration, we can say:
+			(3) sum_total_before(bh, collectives, coretime, people) = sum_total_after(bh, collectives, coretime, people)
+		Ergo use (3) in (2):
+			(4) rc_check_before = sum_total_after(bh, collectives, coretime, people) + ah_total_before
+
+		We want:
+			ah_check_after = sum_total_after(rc, bh, collectives, coretime, people)
+			ah_check_after = sum_total_after(bh, collectives, coretime, people) + rc_balance_kept
+		Use (3):
+			ah_check_after = sum_total_before(bh, collectives, coretime, people) + rc_balance_kept
+			ah_check_after = sum_total_before(ah, bh, collectives, coretime, people) - ah_total_before + rc_balance_kept
+		Use (1):
+			ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
+		Use (0):
+			ah_check_after = `checking_balance` - ah_check_before - ah_total_before + rc_balance_kept
+			ah_check_after = `checking_balance` + rc_balance_kept - ah_total_before - ah_check_before
+		*/
 		// set it to the correct value:
-		let balance_after = rc_balance_before
-			.checked_sub(ah_issuance_before) // amount teleported to other system chains
+		let balance_after = checking_balance
+			.checked_add(rc_balance_kept)
 			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?
-			.checked_add(rc_balance_kept) // total amount teleported to other chains
+			.checked_sub(balances_before.total_issuance)
+			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?
+			.checked_sub(balances_before.checking_account)
 			.ok_or(Error::<T>::FailedToCalculateCheckingAccount)?;
 		<T as Config>::Currency::make_free_balance_be(&checking_account, balance_after);
 		Ok(())
@@ -189,15 +216,39 @@ impl<T: Config> Pallet<T> {
 impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	// rc_total_issuance_before
 	type RcPrePayload = BalanceOf<T>;
-	type AhPrePayload = ();
+	// ah_checking_account_before
+	type AhPrePayload = BalanceOf<T>;
 
 	/// Run some checks on asset hub before the migration and store intermediate payload.
 	///
 	/// The expected output should contain the data stored in asset hub before the migration.
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Assert storage "Balances::Locks::ah_pre::empty"
+		assert!(
+			pallet_balances::Locks::<T>::iter().next().is_none(),
+			"No locks should exist on Asset Hub before migration"
+		);
+
+		// Assert storage "Balances::Reserves::ah_pre::empty"
+		assert!(
+			pallet_balances::Reserves::<T>::iter().next().is_none(),
+			"No reserves should exist on Asset Hub before migration"
+		);
+
+		// Assert storage "Balances::Freezes::ah_pre::empty"
+		assert!(
+			pallet_balances::Freezes::<T>::iter().next().is_none(),
+			"No freezes should exist on Asset Hub before migration"
+		);
+
 		let check_account = T::CheckingAccount::get();
 		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		//assert_eq!(checking_balance, 100000000); // TODO Adrian
+		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
+		// added DOT ED to all existing AH accounts.
+		// This is fine, we can just ignore/accept this small amount.
+		#[cfg(not(feature = "ahm-westend"))]
+		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
+		checking_balance
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
@@ -206,9 +257,15 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let ah_total_issuance = <T as Config>::Currency::total_issuance();
-		// assert RC total issuance before == AH total issuance after
-		// assert_eq!(rc_total_issuance_before, ah_total_issuance); // TODO Adrian
+	fn post_check(_rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
+		// Check that no failed accounts remain in storage
+		assert!(
+			RcAccounts::<T>::iter().next().is_none(),
+			"Failed accounts should not remain in storage after migration"
+		);
+
+		// TODO: Giuseppe @re-gius
+		//   run post migration sanity checks like:
+		//    - rc_migrated_out == ah_migrated_in - failed accounts
 	}
 }

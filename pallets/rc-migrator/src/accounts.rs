@@ -80,6 +80,7 @@ use sp_runtime::traits::Zero;
 
 /// Account type meant to transfer data between RC and AH.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// The account address
 	pub who: AccountId,
@@ -148,6 +149,7 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 
 /// The state for the Relay Chain accounts.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.
 	Migrate,
@@ -178,6 +180,14 @@ pub type AccountFor<T> = Account<
 	<T as pallet_balances::Config>::RuntimeHoldReason,
 	<T as pallet_balances::Config>::FreezeIdentifier,
 >;
+
+/// Helper struct tracking total balance kept on RC and total migrated.
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+pub struct MigratedBalances<Balance: Default> {
+	pub kept: Balance,
+	pub migrated: Balance,
+}
 
 pub struct AccountsMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
@@ -289,8 +299,6 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 }
 
 impl<T: Config> AccountsMigrator<T> {
-	// TODO: Currently, we use `debug_assert!` for basic test checks against a production snapshot.
-
 	/// Migrate a single account out of the Relay chain and return it.
 	///
 	/// The account on the relay chain is modified as part of this operation.
@@ -358,7 +366,7 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		let ed = <T as Config>::Currency::minimum_balance();
-		let holds: Vec<IdAmount<T::RuntimeHoldReason, T::Balance>> =
+		let holds: Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>> =
 			pallet_balances::Holds::<T>::get(&who).into();
 
 		for hold in &holds {
@@ -508,6 +516,25 @@ impl<T: Config> AccountsMigrator<T> {
 
 		debug_assert!(teleport_total == burned);
 
+		RcMigratedBalance::<T>::mutate(|tracker| {
+			tracker.migrated = tracker.migrated.checked_add(teleport_total).ok_or_else(|| {
+				log::error!(
+					target: LOG_TARGET,
+					"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
+					who.to_ss58check(), teleport_total, tracker.migrated,
+				);
+				Error::<T>::BalanceOverflow
+			})?;
+			tracker.kept = tracker.kept.checked_sub(teleport_total).ok_or_else(|| {
+				log::error!(
+					target: LOG_TARGET,
+					"Balance underflow when subtracting balance of {}, balance {:?}, from total kept {:?}",
+					who.to_ss58check(), teleport_total, tracker.kept,
+				);
+				Error::<T>::BalanceUnderflow
+			})?;
+			Ok::<_, Error<T>>(())
+		})?;
 		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
@@ -534,6 +561,11 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		Ok(Some(withdrawn_account))
+	}
+
+	/// Actions to be done after the accounts migration is finished.
+	pub fn finish_balances_migration() {
+		pallet_balances::InactiveIssuance::<T>::put(0);
 	}
 
 	/// Check if the account can be withdrawn and migrated to AH.
@@ -712,8 +744,6 @@ impl<T: Config> AccountsMigrator<T> {
 					"Preserve account: {:?} on the RC",
 					id.to_ss58check()
 				);
-				// entire balance is kept
-				RcBalanceKept::<T>::mutate(|total| *total += free + total_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
 				log::debug!(
@@ -722,7 +752,6 @@ impl<T: Config> AccountsMigrator<T> {
 					id.to_ss58check(),
 					rc_reserved
 				);
-				RcBalanceKept::<T>::mutate(|total| *total += rc_reserved);
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}
@@ -779,24 +808,133 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 	type RcPrePayload = BalanceOf<T>;
 
 	fn pre_check() -> Self::RcPrePayload {
+		// Store total issuance and checking account balance before migration
 		<T as Config>::Currency::total_issuance()
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
-		let check_account = T::CheckingAccount::get();
-		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		assert_eq!(checking_balance, 0);
-
+	fn post_check(rc_total_issuance_before: Self::RcPrePayload) {
+		// Check that all accounts have been processed correctly
 		let mut kept = 0;
 		for (who, acc_state) in RcAccounts::<T>::iter() {
-			kept += match acc_state {
-				AccountState::Migrate => 0,
-				AccountState::Preserve => <T as Config>::Currency::total_balance(&who),
-				AccountState::Part { reserved } => reserved,
-			};
+			match acc_state {
+				AccountState::Migrate => {
+					// Account should be fully migrated
+					// Assert storage "Balances::Account::rc_post::empty"
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					assert_eq!(
+						total_balance,
+						0,
+						"Account {:?} should have no balance on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Locks::rc_post::empty"
+					let locks = pallet_balances::Locks::<T>::get(&who);
+					assert!(
+						locks.is_empty(),
+						"Account {:?} should have no locks on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Holds::rc_post::empty"
+					let holds = pallet_balances::Holds::<T>::get(&who);
+					assert!(
+						holds.is_empty(),
+						"Account {:?} should have no holds on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Freezes::rc_post::empty"
+					let freezes = pallet_balances::Freezes::<T>::get(&who);
+					assert!(
+						freezes.is_empty(),
+						"Account {:?} should have no freezes on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Reserves::rc_post::empty"
+					let reserved = <T as Config>::Currency::reserved_balance(&who);
+					assert_eq!(
+						reserved,
+						0,
+						"Account {:?} should have no reserves on the relay chain after migration",
+						who.to_ss58check()
+					);
+				},
+				AccountState::Preserve => {
+					// Account should be fully preserved
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					kept += total_balance;
+				},
+				AccountState::Part { reserved } => {
+					// Account should have only the reserved amount
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					let free_balance = <T as Config>::Currency::reducible_balance(
+						&who,
+						Preservation::Expendable,
+						Fortitude::Polite,
+					);
+					let reserved_balance = reserved + <T as Config>::Currency::minimum_balance();
+					assert_eq!(
+						free_balance, 0,
+						"Account {:?} should have no free balance on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Account::rc_post::empty"
+					assert_eq!(
+						total_balance, reserved_balance,
+						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Locks::rc_post::empty"
+					let locks = pallet_balances::Locks::<T>::get(&who);
+					assert!(
+						locks.is_empty(),
+						"Account {:?} should have no locks on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Holds::rc_post::empty"
+					let holds = pallet_balances::Holds::<T>::get(&who);
+					assert!(
+						holds.is_empty(),
+						"Account {:?} should have no holds on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Freezes::rc_post::empty"
+					let freezes = pallet_balances::Freezes::<T>::get(&who);
+					assert!(
+						freezes.is_empty(),
+						"Account {:?} should have no freezes on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					kept += reserved;
+				},
+			}
 		}
 
-		assert_eq!(RcBalanceKept::<T>::get(), kept);
-		//assert_eq!(<T as Config>::Currency::total_issuance(), kept); // TODO Adrian
+		// Check that checking account has no balance (fully migrated)
+		let check_account = T::CheckingAccount::get();
+		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		assert_eq!(
+			checking_balance, 0,
+			"Checking account should have no balance on the relay chain after migration"
+		);
+		let total_issuance = <T as Config>::Currency::total_issuance();
+		let tracker = RcMigratedBalance::<T>::get();
+		// Check that total kept balance matches the one computed before the migration
+		// TODO: Giuseppe @re-gius
+		// assert_eq!(
+		// 	kept, tracker.kept,
+		// 	"Mismatch for total balance kept on the relay chain: after migration ({}) != computed
+		// before migration ({})", 	kept, tracker.kept,
+		// );
+		// verify total issuance hasn't changed for any other reason than the migrated funds
+		assert_eq!(total_issuance, rc_total_issuance_before - tracker.migrated);
+		assert_eq!(total_issuance, tracker.kept);
 	}
 }
