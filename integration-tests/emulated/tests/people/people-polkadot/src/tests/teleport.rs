@@ -16,9 +16,10 @@
 use crate::*;
 use frame_support::{
 	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+	dispatch::GetDispatchInfo,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter
 };
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
 use xcm_runtime_apis::{
@@ -27,7 +28,7 @@ use xcm_runtime_apis::{
 };
 
 #[test]
-fn teleport_from_and_to_relay() {
+fn teleport_via_transfer_assets_from_and_to_relay() {
 	let amount = POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
@@ -35,14 +36,51 @@ fn teleport_from_and_to_relay() {
 		Polkadot,
 		PolkadotXcmConfig,
 		vec![PeoplePolkadot],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		PeoplePolkadot,
 		PeoplePolkadotXcmConfig,
 		Polkadot,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		PolkadotXcmConfig,
+		vec![PeoplePolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		PeoplePolkadot,
+		PeoplePolkadotXcmConfig,
+		Polkadot,
+		amount,
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_to_other_system_parachains_works() {
+	let amount = POLKADOT_ED * 100;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeoplePolkadot,
+		PeoplePolkadotXcmConfig,
+		vec![AssetHubPolkadot],
+		(native_asset, amount)
 	);
 }
 

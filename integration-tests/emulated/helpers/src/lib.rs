@@ -33,7 +33,7 @@ pub use xcm_emulator::Chain;
 /// TODO: backport this macros to polkadot-sdk
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
-	( $sender_relay:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr) ) => {
+	( $sender_relay:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_relay Sender>]::get();
@@ -54,13 +54,18 @@ macro_rules! test_relay_is_trusted_teleporter {
 						$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
 
 					// Dry-run first.
-					let call = <$sender_relay as Chain>::RuntimeCall::XcmPallet(pallet_xcm::Call::limited_teleport_assets {
+					let call = <$sender_relay as Chain>::RuntimeCall::XcmPallet(pallet_xcm::Call::$xcm_call {
 						dest: bx!(para_destination.clone().into()),
 						beneficiary: bx!(beneficiary.clone().into()),
 						assets: bx!($assets.clone().into()),
 						fee_asset_item: fee_asset_item,
 						weight_limit: weight_limit.clone(),
 					});
+
+					// verify sane weight for a call
+					let max_weight_with_margin_for_error = (Weight::MAX.ref_time() / 100) * 90; // assume up to 90% of max weight
+					assert!(call.get_dispatch_info().weight.ref_time() < max_weight_with_margin_for_error);
+
 					let mut delivery_fees_amount = 0;
 					let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
 					<$sender_relay>::execute_with(|| {
@@ -152,7 +157,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 
 #[macro_export]
 macro_rules! test_parachain_is_trusted_teleporter_for_relay {
-	( $sender_para:ty, $sender_xcm_config:ty, $receiver_relay:ty, $amount:expr ) => {
+	( $sender_para:ty, $sender_xcm_config:ty, $receiver_relay:ty, $amount:expr, $xcm_call:ident ) => {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_para Sender>]::get();
@@ -191,13 +196,18 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 				$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
 
 			// Dry-run first.
-			let call = <$sender_para as Chain>::RuntimeCall::PolkadotXcm(pallet_xcm::Call::limited_teleport_assets {
+			let call = <$sender_para as Chain>::RuntimeCall::PolkadotXcm(pallet_xcm::Call::$xcm_call {
 				dest: bx!(relay_destination.clone().into()),
 				beneficiary: bx!(beneficiary.clone().into()),
 				assets: bx!(assets.clone().into()),
 				fee_asset_item: fee_asset_item,
 				weight_limit: weight_limit.clone(),
 			});
+
+			// verify sane weight for a call
+			let max_weight_with_margin_for_error = (Weight::MAX.ref_time() / 100) * 90; // assume up to 90% of max weight
+			assert!(call.get_dispatch_info().weight.ref_time() < max_weight_with_margin_for_error);
+
 			// These will be filled in the closure.
 			let mut delivery_fees_amount = 0;
 			let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
@@ -303,6 +313,99 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 
 			// Update sender balance
 			para_sender_balance_before = <$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
+		}
+	};
+}
+
+#[macro_export]
+macro_rules! test_parachain_is_trusted_teleporter {
+	( $sender_para:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr) ) => {
+		$crate::paste::paste! {
+			// init Origin variables
+			let sender = [<$sender_para Sender>]::get();
+			let mut para_sender_balance_before =
+				<$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
+			let origin = <$sender_para as $crate::Chain>::RuntimeOrigin::signed(sender.clone());
+			let fee_asset_item = 0;
+			let weight_limit = $crate::WeightLimit::Unlimited;
+
+			$(
+				{
+					// init Destination variables
+					let receiver = [<$receiver_para Receiver>]::get();
+					let para_receiver_balance_before =
+						<$receiver_para as $crate::Chain>::account_data_of(receiver.clone()).free;
+					let para_destination =
+						<$sender_para>::sibling_location_of(<$receiver_para>::para_id());
+					let beneficiary: Location =
+						$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
+
+					// Send XCM message from Origin Parachain
+					// We are only testing the limited teleport version, which should be ok since success will
+					// depend only on a proper `XcmConfig` at destination.
+					<$sender_para>::execute_with(|| {
+						assert_ok!(<$sender_para as [<$sender_para Pallet>]>::PolkadotXcm::limited_teleport_assets(
+							origin.clone(),
+							bx!(para_destination.clone().into()),
+							bx!(beneficiary.clone().into()),
+							bx!($assets.clone().into()),
+							fee_asset_item,
+							weight_limit.clone(),
+						));
+
+						type RuntimeEvent = <$sender_para as $crate::Chain>::RuntimeEvent;
+
+						assert_expected_events!(
+							$sender_para,
+							vec![
+								RuntimeEvent::PolkadotXcm(
+									$crate::pallet_xcm::Event::Attempted { outcome: Outcome::Complete { .. } }
+								) => {},
+								RuntimeEvent::XcmpQueue(
+									$crate::cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
+								) => {},
+								RuntimeEvent::Balances(
+									$crate::pallet_balances::Event::Burned { who: sender, amount }
+								) => {},
+							]
+						);
+					});
+
+					// Receive XCM message in Destination Parachain
+					<$receiver_para>::execute_with(|| {
+						type RuntimeEvent = <$receiver_para as $crate::Chain>::RuntimeEvent;
+
+						assert_expected_events!(
+							$receiver_para,
+							vec![
+								RuntimeEvent::Balances(
+									$crate::pallet_balances::Event::Minted { who: receiver, .. }
+								) => {},
+								RuntimeEvent::MessageQueue(
+									$crate::pallet_message_queue::Event::Processed { success: true, .. }
+								) => {},
+							]
+						);
+					});
+
+					// Check if balances are updated accordingly in Origin and Destination Parachains
+					let para_sender_balance_after =
+						<$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
+					let para_receiver_balance_after =
+						<$receiver_para as $crate::Chain>::account_data_of(receiver.clone()).free;
+					let delivery_fees = <$sender_para>::execute_with(|| {
+						$crate::asset_test_utils::xcm_helpers::teleport_assets_delivery_fees::<
+							<$sender_xcm_config as xcm_executor::Config>::XcmSender,
+						>($assets.clone(), fee_asset_item, weight_limit.clone(), beneficiary, para_destination)
+					});
+
+					assert_eq!(para_sender_balance_before - $amount - delivery_fees, para_sender_balance_after);
+					assert!(para_receiver_balance_after > para_receiver_balance_before);
+
+					// Update sender balance
+					para_sender_balance_before = <$sender_para as $crate::Chain>::account_data_of(sender.clone()).free;
+				}
+			)+
 		}
 	};
 }

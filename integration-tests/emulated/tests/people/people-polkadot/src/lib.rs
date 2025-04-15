@@ -46,8 +46,8 @@ pub use polkadot_system_emulated_network::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeoplePolkadotParaPallet as PeoplePolkadotPallet,
 	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
-	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot,
-	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver,
+	PenpalAPara as PenpalA, PeoplePolkadotPara as PeoplePolkadot, AssetHubPolkadotPara as AssetHubPolkadot,
+	PeoplePolkadotParaReceiver as PeoplePolkadotReceiver, AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
 	PeoplePolkadotParaSender as PeoplePolkadotSender, PolkadotRelay as Polkadot,
 	PolkadotRelayReceiver as PolkadotReceiver, PolkadotRelaySender as PolkadotSender,
 };
