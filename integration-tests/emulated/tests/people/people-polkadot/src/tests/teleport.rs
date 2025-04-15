@@ -15,11 +15,13 @@
 
 use crate::*;
 use frame_support::{
-	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
-	dispatch::GetDispatchInfo,
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
 use xcm_runtime_apis::{
