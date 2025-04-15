@@ -134,7 +134,7 @@ pub type RcPrePayload<T> = (
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
-	type RcPrePayload = Vec<u8>; //RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>;
 	type AhPrePayload = ();
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {

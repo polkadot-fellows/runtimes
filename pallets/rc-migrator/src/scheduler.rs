@@ -201,17 +201,9 @@ pub mod alias {
 	>;
 }
 
-// (IncompleteSince, Agenda, Retries, Lookup)
-pub type RcPrePayload<T> = (
-	Option<SchedulerBlockNumberFor<T>>,
-	Vec<(SchedulerBlockNumberFor<T>, Vec<Option<alias::ScheduledOf<T>>>)>,
-	Vec<(TaskAddress<SchedulerBlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
-	Vec<(TaskName, TaskAddress<SchedulerBlockNumberFor<T>>)>,
-);
-
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
-	type RcPrePayload = Vec<u8>;// RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
