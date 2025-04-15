@@ -285,6 +285,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 				},
 			));
 		}
+		// Assert storage 'Treasury::Spends::ah_post::correct'
 		assert_eq!(
 			ah_spends, spends,
 			"Spends on Asset Hub should match migrated Spends from the relay chain"
