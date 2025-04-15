@@ -470,6 +470,192 @@ fn send_weth_from_ethereum_to_asset_hub() {
 	});
 }
 
+// Performs a round trip transfer of a token, asserting success.
+fn send_token_from_ethereum_to_asset_hub_and_back_works(
+	token_address: H160,
+	amount: u128,
+	asset_location: Location,
+) {
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
+		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
+	);
+
+	BridgeHubPolkadot::fund_accounts(vec![
+		(assethub_sovereign.clone(), INITIAL_FUND),
+		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
+	]);
+	AssetHubPolkadot::fund_accounts(vec![
+		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
+		(ethereum_sovereign_account(), INITIAL_FUND),
+	]);
+
+	// Set base transfer fee to Ethereum on AH.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
+			RuntimeOrigin::root(),
+			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
+		));
+	});
+
+	// Send Token from Bridge Hub (simulates received Command from Ethereum)
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		assert_ok!(
+			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::set_pricing_parameters(
+				<BridgeHubPolkadot as Chain>::RuntimeOrigin::root(),
+				PricingParametersOf::<Runtime> {
+					exchange_rate: FixedU128::from_rational(1, 75),
+					fee_per_gas: gwei(20),
+					rewards: Rewards {
+						local: (UNITS / 100), // 0.01 DOT
+						remote: meth(1),
+					},
+					multiplier: FixedU128::from_rational(1, 1),
+				}
+			)
+		);
+
+		assert_ok!(<BridgeHubPolkadot as Chain>::System::set_storage(
+			<BridgeHubPolkadot as Chain>::RuntimeOrigin::root(),
+			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+		));
+
+		let message_id: H256 = [1; 32].into();
+		// Construct SendToken message and sent to inbound queue
+		let message = VersionedMessage::V1(MessageV1 {
+			chain_id: CHAIN_ID,
+			command: Command::SendToken {
+				token: token_address,
+				destination: Destination::AccountId32 {
+					id: AssetHubPolkadotReceiver::get().into(),
+				},
+				amount,
+				fee: XCM_FEE,
+			},
+		});
+		// Convert the message to XCM
+		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
+		// Send the XCM
+		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
+
+		// Check that the message was sent
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
+			]
+		);
+	});
+
+	// Receive Token on Asset Hub.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		// Check that the token was received and issued as a foreign asset on AssetHub
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, .. }) => {
+					asset_id: *asset_id == asset_location,
+				},
+			]
+		);
+	});
+
+	send_token_back_to_ethereum(asset_location, amount);
+}
+
+fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
+	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
+		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
+	);
+
+	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
+		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
+	});
+
+	// Send Token from Asset Hub back to Ethereum.
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
+
+		let assets = vec![Asset { id: AssetId(asset_location), fun: Fungible(amount) }];
+		let versioned_assets = VersionedAssets::from(Assets::from(assets));
+
+		let destination = VersionedLocation::from(Location::new(
+			2,
+			[GlobalConsensus(Ethereum { chain_id: CHAIN_ID })],
+		));
+
+		let beneficiary = VersionedLocation::from(Location::new(
+			0,
+			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
+		));
+
+		let free_balance_before =
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+				AssetHubPolkadotReceiver::get(),
+			);
+		// Send the Token back to Ethereum
+		assert_ok!(
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
+				Box::new(destination),
+				Box::new(beneficiary),
+				Box::new(versioned_assets),
+				0,
+				Unlimited,
+			)
+		);
+
+		let free_balance_after =
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
+				AssetHubPolkadotReceiver::get(),
+			);
+		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
+		let free_balance_diff = free_balance_before - free_balance_after;
+		assert!(free_balance_diff > AH_BASE_FEE);
+	});
+
+	// Check that message with Token was queued on the BridgeHub
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+		// check the outbound queue
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued {..}) => {},
+			]
+		);
+
+		// check treasury account balance on BH after (should receive some fees)
+		let treasury_account_after = <<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get());
+		let local_fee = treasury_account_after - treasury_account_before;
+
+		let events = BridgeHubPolkadot::events();
+		// Check that the local fee was credited to the Snowbridge sovereign account
+		assert!(
+			events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount: fee_minted })
+					if *who == RelayTreasuryPalletAccount::get() && *fee_minted == local_fee
+			)),
+			"Snowbridge sovereign takes local fee."
+		);
+		// Check that the remote delivery fee was credited to the AssetHub sovereign account
+		assert!(
+			events.iter().any(|event| matches!(
+				event,
+				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. })
+					if *who == assethub_sovereign,
+			)),
+			"AssetHub sovereign takes remote fee."
+		);
+	});
+}
+
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
@@ -1251,11 +1437,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		(sender.clone(), INITIAL_FUND),
 	]);
 
-	// Token amount / 4 so that the WETH account would continue to exist. Once
-	// paritytech/polkadot-sdk#7243 is patched to runtimes, the full amount can be sent.
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE * 3).into(), (fee, XCM_FEE * 3).into()]
-			.into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee, XCM_FEE * 3).into()].into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
@@ -1300,7 +1483,6 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 					asset_id: *asset_id == weth_location,
 					owner: *owner == AssetHubKusamaReceiver::get().into(),
 				},
-				//RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { .. }) => {},
 			]
 		);
 
@@ -1325,7 +1507,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE * 2).into(), (fee, XCM_FEE).into()].into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee, XCM_FEE).into()].into();
 
 	// Transfer the token back to Polkadot.
 	assert_ok!(AssetHubKusama::execute_with(|| {
@@ -1400,191 +1582,4 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	});
 
 	send_token_back_to_ethereum(weth_location, MIN_ETHER_BALANCE);
-}
-
-// Performs a round trip transfer of a token, asserting success.
-fn send_token_from_ethereum_to_asset_hub_and_back_works(
-	token_address: H160,
-	amount: u128,
-	asset_location: Location,
-) {
-	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
-		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
-	);
-
-	BridgeHubPolkadot::fund_accounts(vec![
-		(assethub_sovereign.clone(), INITIAL_FUND),
-		(RelayTreasuryPalletAccount::get(), INITIAL_FUND),
-	]);
-	AssetHubPolkadot::fund_accounts(vec![
-		(AssetHubPolkadotReceiver::get(), INITIAL_FUND),
-		(ethereum_sovereign_account(), INITIAL_FUND),
-	]);
-
-	// Set base transfer fee to Ethereum on AH.
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
-		assert_ok!(<AssetHubPolkadot as Chain>::System::set_storage(
-			RuntimeOrigin::root(),
-			vec![(BridgeHubEthereumBaseFee::key().to_vec(), AH_BASE_FEE.encode())],
-		));
-	});
-
-	// Send Token from Bridge Hub (simulates received Command from Ethereum)
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-
-		assert_ok!(
-			<BridgeHubPolkadot as BridgeHubPolkadotPallet>::EthereumSystem::set_pricing_parameters(
-				<BridgeHubPolkadot as Chain>::RuntimeOrigin::root(),
-				PricingParametersOf::<Runtime> {
-					exchange_rate: FixedU128::from_rational(1, 75),
-					fee_per_gas: gwei(20),
-					rewards: Rewards {
-						local: (UNITS / 100), // 0.01 DOT
-						remote: meth(1),
-					},
-					multiplier: FixedU128::from_rational(1, 1),
-				}
-			)
-		);
-
-		assert_ok!(<BridgeHubPolkadot as Chain>::System::set_storage(
-			<BridgeHubPolkadot as Chain>::RuntimeOrigin::root(),
-			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
-		));
-
-		let message_id: H256 = [1; 32].into();
-		// Construct SendToken message and sent to inbound queue
-		let message = VersionedMessage::V1(MessageV1 {
-			chain_id: CHAIN_ID,
-			command: Command::SendToken {
-				token: token_address,
-				destination: Destination::AccountId32 {
-					id: AssetHubPolkadotReceiver::get().into(),
-				},
-				amount,
-				fee: XCM_FEE,
-			},
-		});
-		// Convert the message to XCM
-		let (xcm, _) = EthereumInboundQueue::do_convert(message_id, message).unwrap();
-		// Send the XCM
-		let _ = EthereumInboundQueue::send_xcm(xcm, AssetHubPolkadot::para_id()).unwrap();
-
-		// Check that the message was sent
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
-			]
-		);
-	});
-
-	// Receive Token on Asset Hub.
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-
-		// Check that the token was received and issued as a foreign asset on AssetHub
-		assert_expected_events!(
-			AssetHubPolkadot,
-			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, .. }) => {
-					asset_id: *asset_id == asset_location,
-				},
-			]
-		);
-	});
-
-	send_token_back_to_ethereum(asset_location, amount);
-}
-
-fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
-	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
-		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
-	);
-
-	let treasury_account_before = BridgeHubPolkadot::execute_with(|| {
-		<<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get())
-	});
-
-	// Send Token from Asset Hub back to Ethereum.
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
-		let assets = vec![Asset { id: AssetId(asset_location), fun: Fungible(amount) }];
-		let versioned_assets = VersionedAssets::from(Assets::from(assets));
-
-		let destination = VersionedLocation::from(Location::new(
-			2,
-			[GlobalConsensus(Ethereum { chain_id: CHAIN_ID })],
-		));
-
-		let beneficiary = VersionedLocation::from(Location::new(
-			0,
-			[AccountKey20 { network: None, key: ETHEREUM_DESTINATION_ADDRESS }],
-		));
-
-		let free_balance_before =
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
-				AssetHubPolkadotReceiver::get(),
-			);
-		// Send the Token back to Ethereum
-		assert_ok!(
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::limited_reserve_transfer_assets(
-				RuntimeOrigin::signed(AssetHubPolkadotReceiver::get()),
-				Box::new(destination),
-				Box::new(beneficiary),
-				Box::new(versioned_assets),
-				0,
-				Unlimited,
-			)
-		);
-
-		let free_balance_after =
-			<AssetHubPolkadot as AssetHubPolkadotPallet>::Balances::free_balance(
-				AssetHubPolkadotReceiver::get(),
-			);
-		// Assert at least DefaultBridgeHubEthereumBaseFee charged from the sender
-		let free_balance_diff = free_balance_before - free_balance_after;
-		assert!(free_balance_diff > AH_BASE_FEE);
-	});
-
-	// Check that message with Token was queued on the BridgeHub
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-		// check the outbound queue
-		assert_expected_events!(
-			BridgeHubPolkadot,
-			vec![
-				RuntimeEvent::EthereumOutboundQueue(snowbridge_pallet_outbound_queue::Event::MessageQueued {..}) => {},
-			]
-		);
-
-		// check treasury account balance on BH after (should receive some fees)
-		let treasury_account_after = <<BridgeHubPolkadot as BridgeHubPolkadotPallet>::Balances as frame_support::traits::fungible::Inspect<_>>::balance(&RelayTreasuryPalletAccount::get());
-		let local_fee = treasury_account_after - treasury_account_before;
-
-		let events = BridgeHubPolkadot::events();
-		// Check that the local fee was credited to the Snowbridge sovereign account
-		println!("events: {:?}", events);
-		assert!(
-			events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, amount: fee_minted })
-					if *who == RelayTreasuryPalletAccount::get() && *fee_minted == local_fee
-			)),
-			"Snowbridge sovereign takes local fee."
-		);
-		// Check that the remote delivery fee was credited to the AssetHub sovereign account
-		assert!(
-			events.iter().any(|event| matches!(
-				event,
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. })
-					if *who == assethub_sovereign,
-			)),
-			"AssetHub sovereign takes remote fee."
-		);
-	});
 }
