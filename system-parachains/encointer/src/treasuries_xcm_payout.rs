@@ -102,7 +102,8 @@ impl<
 			Querier::new_query(asset_location.clone(), Timeout::get(), from.interior.clone());
 
 		let message = Xcm(vec![
-			DescendOrigin(from.interior),
+			// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
+			DescendOrigin(from.interior.clone()),
 			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(ONE_KSM / 10) }].into()),
 			PayFees { asset: (asset_id.clone(), ONE_KSM/ 10).into() },
 			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
@@ -118,6 +119,9 @@ impl<
 				beneficiary,
 				assets: (asset_id, amount).into(),
 			},
+			// Fixme: From is local here, and does not match the descended origin from above.
+			// How can return funds from the holding register to the account they were withdrawn from?
+			// DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from }
 		]);
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
