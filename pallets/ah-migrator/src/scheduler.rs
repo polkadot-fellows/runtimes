@@ -15,10 +15,9 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use frame_support::traits::DefensiveTruncateFrom;
-use frame_support::traits::schedule::v3::TaskName;
-use pallet_scheduler::{RetryConfig, TaskAddress};
+use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
+use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Messages sent from the RC Migrator concerning the Scheduler pallet.
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, RcScheduledOf<T>>;
@@ -127,147 +126,149 @@ impl<T: Config> Pallet<T> {
 
 // (IncompleteSince, Agenda, Retries, Lookup)
 pub type RcPrePayload<T> = (
-    Option<BlockNumberFor<T>>,
-    Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
-    Vec<(
-        TaskAddress<BlockNumberFor<T>>,
-        RetryConfig<BlockNumberFor<T>>
-    )>,
-    Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
+	Option<BlockNumberFor<T>>,
+	Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
+	Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
+	Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
 );
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T>
-{
-    type RcPrePayload = RcPrePayload<T>;
-    type AhPrePayload = ();
+impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
+	type RcPrePayload = RcPrePayload<T>;
+	type AhPrePayload = ();
 
-    fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
-        // Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
-        assert!(
-            pallet_scheduler::IncompleteSince::<T>::get().is_none(),
-            "IncompleteSince should be empty on asset hub before migration"
-        );
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
+		assert!(
+			pallet_scheduler::IncompleteSince::<T>::get().is_none(),
+			"IncompleteSince should be empty on asset hub before migration"
+		);
 
-        // Assert storage 'Scheduler::Agenda::ah_pre::empty'
-        assert!(
-            pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().next().is_none(),
-            "Agenda map should be empty on asset hub before migration"
-        );
+		// Assert storage 'Scheduler::Agenda::ah_pre::empty'
+		assert!(
+			pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().next().is_none(),
+			"Agenda map should be empty on asset hub before migration"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_pre::empty'
-        assert!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().next().is_none(),
-            "Lookup map should be empty on asset hub before migration"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_pre::empty'
+		assert!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().next().is_none(),
+			"Lookup map should be empty on asset hub before migration"
+		);
 
-         // Assert storage 'Scheduler::Retries::ah_pre::empty'
-        assert!(
-            pallet_scheduler::Retries::<T>::iter().next().is_none(),
-            "Retries map should be empty on asset hub before migration"
-        );
-    }
+		// Assert storage 'Scheduler::Retries::ah_pre::empty'
+		assert!(
+			pallet_scheduler::Retries::<T>::iter().next().is_none(),
+			"Retries map should be empty on asset hub before migration"
+		);
+	}
 
-    fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-        let (rc_incomplete_since, rc_agenda, rc_retries, rc_lookup) = rc_pre_payload;
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		let (rc_incomplete_since, rc_agenda, rc_retries, rc_lookup) = rc_pre_payload;
 
-        // Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
-        assert_eq!(
-            pallet_scheduler::IncompleteSince::<T>::get(),
-            rc_incomplete_since,
-            "IncompleteSince on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
+		assert_eq!(
+			pallet_scheduler::IncompleteSince::<T>::get(),
+			rc_incomplete_since,
+			"IncompleteSince on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Agenda::ah_post::correct'
-        // We need to convert RC Agenda items to AH Agenda items for comparison
-        let ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
-             .map(|(bn, tasks)| (bn, tasks.into_inner()))
-             .collect();
+		// Assert storage 'Scheduler::Agenda::ah_post::correct'
+		// We need to convert RC Agenda items to AH Agenda items for comparison
+		let ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
+			.map(|(bn, tasks)| (bn, tasks.into_inner()))
+			.collect();
 
-        let expected_ah_agenda: Vec<_> = rc_agenda.clone().into_iter().filter_map(|(block_number, rc_tasks)| {
-            let mut ah_tasks_for_block = Vec::new();
-            for rc_task_opt in rc_tasks {
-                if let Some(rc_task) = rc_task_opt {
-                    // Attempt to convert origin
-                    let ah_origin = match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
-                         Ok(origin) => origin,
-                         Err(_) => {
-                            // If origin conversion fails, this task wouldn't migrate successfully
-                            // This mirrors the logic in `do_process_scheduler_message`
-                            continue;
-                         }
-                    };
-                    // Attempt to convert call
-                    let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
-                        call
-                    } else {
-                         // If call conversion fails, this task wouldn't migrate successfully
-                         // This mirrors the logic in `do_process_scheduler_message`
-                         continue;
-                    };
+		let expected_ah_agenda: Vec<_> = rc_agenda
+			.clone()
+			.into_iter()
+			.filter_map(|(block_number, rc_tasks)| {
+				let mut ah_tasks_for_block = Vec::new();
+				for rc_task_opt in rc_tasks {
+					if let Some(rc_task) = rc_task_opt {
+						// Attempt to convert origin
+						let ah_origin =
+							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
+								Ok(origin) => origin,
+								Err(_) => {
+									// If origin conversion fails, this task wouldn't migrate
+									// successfully This mirrors the logic in
+									// `do_process_scheduler_message`
+									continue;
+								},
+							};
+						// Attempt to convert call
+						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
+							call
+						} else {
+							// If call conversion fails, this task wouldn't migrate successfully
+							// This mirrors the logic in `do_process_scheduler_message`
+							continue;
+						};
 
-                    let ah_task = Scheduled {
-                        maybe_id: rc_task.maybe_id,
-                        priority: rc_task.priority,
-                        call: ah_call,
-                        maybe_periodic: rc_task.maybe_periodic,
-                        origin: ah_origin,
-                    };
-                    ah_tasks_for_block.push(Some(ah_task));
-                } else {
-                     // None tasks remain None, but are typically filtered out by the BoundedVec conversion logic
-                     // Keep them here for direct comparison initially, then filter if needed.
-                     // Actually, let's filter None here to match the likely outcome of BoundedVec::defensive_truncate_from
-                    // ah_tasks_for_block.push(None);
-                }
-            }
-            // Filter out blocks that end up with no valid tasks after conversion
-            if !ah_tasks_for_block.is_empty() {
-                 Some((block_number, ah_tasks_for_block))
-            } else {
-                None
-            }
-        }).collect();
+						let ah_task = Scheduled {
+							maybe_id: rc_task.maybe_id,
+							priority: rc_task.priority,
+							call: ah_call,
+							maybe_periodic: rc_task.maybe_periodic,
+							origin: ah_origin,
+						};
+						ah_tasks_for_block.push(Some(ah_task));
+					} else {
+						// None tasks remain None, but are typically filtered out by the BoundedVec
+						// conversion logic Keep them here for direct comparison initially,
+						// then filter if needed. Actually, let's filter None here to match
+						// the likely outcome of BoundedVec::defensive_truncate_from
+						// ah_tasks_for_block.push(None);
+					}
+				}
+				// Filter out blocks that end up with no valid tasks after conversion
+				if !ah_tasks_for_block.is_empty() {
+					Some((block_number, ah_tasks_for_block))
+				} else {
+					None
+				}
+			})
+			.collect();
 
 		// Assert storage 'Scheduler::Agenda::ah_post::length'
-        assert_eq!(
-            pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().count(),
-            rc_agenda.len(),
-            "Agenda map length on Asset Hub should match the RC value"
-        );
+		assert_eq!(
+			pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().count(),
+			rc_agenda.len(),
+			"Agenda map length on Asset Hub should match the RC value"
+		);
 
-        assert_eq!(
-            ah_agenda,
-            expected_ah_agenda,
-            "Agenda map value on Asset Hub should match the converted RC value"
-        );
+		assert_eq!(
+			ah_agenda, expected_ah_agenda,
+			"Agenda map value on Asset Hub should match the converted RC value"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_post::length'
-        assert_eq!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().count(),
-            rc_lookup.len(),
-            "Lookup map length on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_post::length'
+		assert_eq!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().count(),
+			rc_lookup.len(),
+			"Lookup map length on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_post::correct'
-        assert_eq!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().collect::<Vec<_>>(),
-            rc_lookup,
-            "Lookup map value on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_post::correct'
+		assert_eq!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().collect::<Vec<_>>(),
+			rc_lookup,
+			"Lookup map value on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Retries::ah_post::length'
-        assert_eq!(
-             pallet_scheduler::Retries::<T>::iter().count(),
-             rc_retries.len(),
-             "Retries map length on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Retries::ah_post::length'
+		assert_eq!(
+			pallet_scheduler::Retries::<T>::iter().count(),
+			rc_retries.len(),
+			"Retries map length on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Retries::ah_post::correct'
-        assert_eq!(
-            pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
-            rc_retries,
-            "Retries map value on Asset Hub should match the RC value"
-        );
-    }
+		// Assert storage 'Scheduler::Retries::ah_post::correct'
+		assert_eq!(
+			pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
+			rc_retries,
+			"Retries map value on Asset Hub should match the RC value"
+		);
+	}
 }

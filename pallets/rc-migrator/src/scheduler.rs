@@ -203,53 +203,49 @@ pub mod alias {
 
 // (IncompleteSince, Agenda, Retries, Lookup)
 pub type RcPrePayload<T> = (
-    Option<SchedulerBlockNumberFor<T>>,
-    Vec<(SchedulerBlockNumberFor<T>, Vec<Option<alias::ScheduledOf<T>>>)>,
-    Vec<(
-        TaskAddress<SchedulerBlockNumberFor<T>>,
-        RetryConfig<BlockNumberFor<T>>
-    )>,
-    Vec<(TaskName, TaskAddress<SchedulerBlockNumberFor<T>>)>,
+	Option<SchedulerBlockNumberFor<T>>,
+	Vec<(SchedulerBlockNumberFor<T>, Vec<Option<alias::ScheduledOf<T>>>)>,
+	Vec<(TaskAddress<SchedulerBlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
+	Vec<(TaskName, TaskAddress<SchedulerBlockNumberFor<T>>)>,
 );
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
-    type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = RcPrePayload<T>;
 
-    fn pre_check() -> Self::RcPrePayload {
-        let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
-        let agenda: Vec<_> = alias::Agenda::<T>::iter()
-            .map(|(bn, tasks)| (bn, tasks.into_inner()))
-            .collect();
-        let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
-        let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
+	fn pre_check() -> Self::RcPrePayload {
+		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
+		let agenda: Vec<_> =
+			alias::Agenda::<T>::iter().map(|(bn, tasks)| (bn, tasks.into_inner())).collect();
+		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
+		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 
-        (incomplete_since, agenda, retries, lookup)
-    }
+		(incomplete_since, agenda, retries, lookup)
+	}
 
-    fn post_check(_rc_pre_payload: Self::RcPrePayload) {
-        // Assert storage 'Scheduler::IncompleteSince::rc_post::empty'
-        assert!(
-            pallet_scheduler::IncompleteSince::<T>::get().is_none(),
-            "IncompleteSince should be None on RC after migration"
-        );
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Scheduler::IncompleteSince::rc_post::empty'
+		assert!(
+			pallet_scheduler::IncompleteSince::<T>::get().is_none(),
+			"IncompleteSince should be None on RC after migration"
+		);
 
-        // Assert storage 'Scheduler::Agenda::rc_post::empty'
-        assert!(
-            alias::Agenda::<T>::iter().next().is_none(),
-            "Agenda map should be empty on RC after migration"
-        );
+		// Assert storage 'Scheduler::Agenda::rc_post::empty'
+		assert!(
+			alias::Agenda::<T>::iter().next().is_none(),
+			"Agenda map should be empty on RC after migration"
+		);
 
-        // Assert storage 'Scheduler::Retries::rc_post::empty'
-        assert!(
+		// Assert storage 'Scheduler::Retries::rc_post::empty'
+		assert!(
 			pallet_scheduler::Retries::<T>::iter().next().is_none(),
-            "Retries map should be empty on RC after migration"
-        );
+			"Retries map should be empty on RC after migration"
+		);
 
 		// Assert storage 'Scheduler::Lookup::rc_post::empty'
 		assert!(
 			alias::Lookup::<T>::iter().next().is_none(),
 			"Lookup map should be empty on RC after migration"
 		);
-    }
+	}
 }
