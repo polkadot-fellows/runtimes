@@ -36,8 +36,8 @@ bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/p
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
 bridge-hub-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-polkadot" }
 bridge-hub-polkadot-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-polkadot" }
-bridge-hub-test-utils = { version = "0.20.0" }
-bridge-runtime-common = { version = "0.18.2", default-features = false }
+bridge-hub-test-utils = { version = "0.20.1" }
+bridge-runtime-common = { version = "0.18.3", default-features = false }
 clap = { version = "4.5.0" }
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false }
 collectives-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/collectives/collectives-polkadot" }
@@ -51,11 +51,11 @@ cumulus-pallet-aura-ext = { version = "0.17.0", default-features = false }
 cumulus-pallet-parachain-system = { version = "0.17.1", default-features = false }
 cumulus-pallet-session-benchmarking = { version = "19.0.0", default-features = false }
 cumulus-pallet-xcm = { version = "0.17.0", default-features = false }
-cumulus-pallet-xcmp-queue = { version = "0.17.0", default-features = false }
+cumulus-pallet-xcmp-queue = { version = "0.17.2", default-features = false }
 cumulus-primitives-aura = { version = "0.15.0", default-features = false }
 cumulus-primitives-core = { version = "0.16.0", default-features = false }
 cumulus-primitives-utility = { version = "0.17.0", default-features = false }
-emulated-integration-tests-common = { version = "16.0.0" }
+emulated-integration-tests-common = { version = "16.0.1" }
 encointer-balances-tx-payment = { version = "~14.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~14.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
@@ -90,7 +90,7 @@ pallet-authority-discovery = { version = "38.0.0", default-features = false }
 pallet-authorship = { version = "38.0.0", default-features = false }
 pallet-babe = { version = "38.0.0", default-features = false }
 pallet-bags-list = { version = "37.0.0", default-features = false }
-pallet-balances = { version = "39.0.0", default-features = false }
+pallet-balances = { version = "39.0.1", default-features = false }
 pallet-beefy = { version = "39.0.0", default-features = false }
 pallet-beefy-mmr = { version = "39.0.0", default-features = false }
 pallet-bounties = { version = "37.0.2", default-features = false }
@@ -133,7 +133,7 @@ pallet-nft-fractionalization = { version = "21.0.0", default-features = false }
 pallet-nfts = { version = "32.0.0", default-features = false }
 pallet-nfts-runtime-api = { version = "24.0.0", default-features = false }
 pallet-nis = { version = "38.0.0", default-features = false }
-pallet-nomination-pools = { version = "35.0.2", default-features = false }
+pallet-nomination-pools = { version = "35.0.3", default-features = false }
 pallet-nomination-pools-benchmarking = { version = "36.0.0", default-features = false }
 pallet-nomination-pools-runtime-api = { version = "33.0.2", default-features = false }
 pallet-offences = { version = "37.0.0", default-features = false }
@@ -150,8 +150,8 @@ pallet-scheduler = { version = "39.0.0", default-features = false }
 pallet-session = { version = "38.0.0", default-features = false }
 pallet-session-benchmarking = { version = "38.0.0", default-features = false }
 pallet-society = { version = "38.0.0", default-features = false }
-pallet-staking = { version = "38.0.0", default-features = false }
-pallet-delegated-staking = { version = "5.0.0", default-features = false }
+pallet-staking = { version = "38.0.1", default-features = false }
+pallet-delegated-staking = { version = "5.0.1", default-features = false }
 pallet-staking-reward-curve = { version = "12.0.0" }
 pallet-staking-reward-fn = { version = "22.0.0", default-features = false }
 pallet-staking-runtime-api = { version = "24.0.0", default-features = false }
@@ -165,16 +165,16 @@ pallet-uniques = { version = "38.0.0", default-features = false }
 pallet-utility = { version = "38.0.0", default-features = false }
 pallet-vesting = { version = "38.0.0", default-features = false }
 pallet-whitelist = { version = "37.0.0", default-features = false }
-pallet-xcm = { version = "17.0.1", default-features = false }
+pallet-xcm = { version = "17.0.2", default-features = false }
 pallet-xcm-benchmarks = { version = "17.0.0", default-features = false }
-pallet-xcm-bridge-hub = { version = "0.13.2", default-features = false }
+pallet-xcm-bridge-hub = { version = "0.13.3", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.15.3", default-features = false }
 parachain-info = { version = "0.17.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "18.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "19.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
-penpal-runtime = { version = "0.25.0" }
+penpal-runtime = { version = "0.25.1" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
 people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
@@ -192,17 +192,17 @@ frame-metadata-hash-extension = { version = "0.6.0", default-features = false }
 remote-externalities = { version = "0.46.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "17.0.2", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "38.0.0" }
-sc-network = { version = "0.45.5" }
+sc-network = { version = "0.45.6" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
 serde_json = { version = "1.0.113", default-features = false }
 smallvec = { version = "1.13.1" }
-snowbridge-beacon-primitives = { version = "0.10.0", default-features = false }
+snowbridge-beacon-primitives = { version = "0.10.1", default-features = false }
 snowbridge-core = { version = "0.10.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.10.0", default-features = false }
-snowbridge-pallet-ethereum-client = { version = "0.10.0", default-features = false }
-snowbridge-pallet-inbound-queue = { version = "0.10.0", default-features = false }
+snowbridge-pallet-ethereum-client = { version = "0.10.1", default-features = false }
+snowbridge-pallet-inbound-queue = { version = "0.10.1", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.18.1" }
 snowbridge-pallet-ethereum-client-fixtures = { version = "0.18.0" }
 snowbridge-pallet-outbound-queue = { version = "0.10.0", default-features = false }
@@ -238,11 +238,11 @@ sp-weights = { version = "31.0.0", default-features = false }
 substrate-wasm-builder = { version = "24.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
-xcm = { version = "14.2.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "17.0.3", default-features = false, package = "staging-xcm-builder" }
+xcm = { version = "14.2.1", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "17.0.4", default-features = false, package = "staging-xcm-builder" }
 xcm-emulator = { version = "0.16.0" }
 xcm-executor = { version = "17.0.1", default-features = false, package = "staging-xcm-executor" }
-xcm-runtime-apis = { version = "0.4.2", default-features = false }
+xcm-runtime-apis = { version = "0.4.3", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.35.0", default-features = false }
 tracing-subscriber = { version = "0.3.18" }
@@ -316,221 +316,3 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
-
-[patch.crates-io]
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-support-procedural = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-support-procedural-tools = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-support-procedural-tools-derive = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-crypto-hashing = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-crypto-hashing-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-debug-derive = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-externalities = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-storage = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-runtime-interface = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-runtime-interface-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-tracing = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-wasm-interface = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-state-machine = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-panic-handler = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-arithmetic = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-api-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-metadata-ir = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-version = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-version-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-block-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-blockchain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-database = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-substrate-prometheus-endpoint = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-executor = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-executor-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-allocator = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-maybe-compressed-blob = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-executor-polkavm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-executor-wasmtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-rpc = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-executive = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-babe = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-session = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-session = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-staking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus-babe = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus-slots = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-election-provider-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-election-provider-solution-type = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-npos-elections = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-chain-spec = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-chain-spec-derive = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-network = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-network-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-network-types = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-network-sync = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-fork-tree = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-genesis-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-parachain-system-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-primitives-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-staging-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-xcm-procedural = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-primitives-proof-size-hostfunction = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-message-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-asset-rate = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-broker = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-election-provider-multi-phase = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-election-provider-support-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-fast-unstake = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bags-list = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-staking-reward-curve = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-identity = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-staking-reward-fn = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-treasury = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-collective = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-vesting = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-mmr = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-mmr-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-polkadot-runtime-metrics = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-staging-xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-slot-range-helper = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-staging-xcm-builder = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-asset-conversion = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-salary = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-ranked-collective = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-xcm-runtime-apis = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-offences = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-indices = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus-beefy = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-parachains-runtimes-test-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-sp-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-primitives-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-collator-selection = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-glutton = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-staging-parachain-info = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-binary-merkle-tree = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-system-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-beefy = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-beefy-mmr = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bounties = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-child-bounties = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-conviction-voting = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-preimage = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-membership = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-multisig = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nis = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-recovery = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-society = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-state-trie-migration = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-frame-remote-externalities = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-substrate-rpc-client = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-whitelist = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-xcm-benchmarks = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-delegated-staking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nomination-pools = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nomination-pools-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nomination-pools-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-offences-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-im-online = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-session-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-staking-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-parachains-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-primitives-utility = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-asset-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-xcm-bridge-hub-router = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-xcm-bridge-hub-router = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-assets-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-relayers = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-xcm-bridge-hub = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bridge-hub-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-beacon-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-ethereum = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bridge-hub-test-utils = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bridge-grandpa = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bridge-messages = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-bridge-relayers = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-xcm-bridge-hub = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-session-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-cumulus-pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-emulated-integration-tests-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-xcm-emulator = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-alliance = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-asset-conversion-tx-payment = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-core-fellowship = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nft-fractionalization = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-nfts-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-pallet-uniques = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-outbound-queue-merkle-tree = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-outbound-queue-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-ethereum-client = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-ethereum-client-fixtures = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-inbound-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-inbound-queue-fixtures = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-router-primitives = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-outbound-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-pallet-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-runtime-test-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-snowbridge-system-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-substrate-bip39 = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
-bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "bkchr-fix-the-thing" }
