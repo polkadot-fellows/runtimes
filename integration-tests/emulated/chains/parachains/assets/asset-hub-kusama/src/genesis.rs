@@ -25,8 +25,8 @@ use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use xcm::prelude::*;
+use xcm_builder::GlobalConsensusParachainConvertsFor;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
@@ -42,12 +42,12 @@ frame_support::parameter_types! {
 				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
+	 pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID.into()),
+   ].into();
+	pub AssetHubPolkadotLocation: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
-	pub EthereumSovereignAccount: AccountId = GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(
-		&Location::new(
-			2,
-			[GlobalConsensus(EthereumNetwork::get())],
-		),
+	pub AssetHubPolkadotSovereignAccount: AccountId = GlobalConsensusParachainConvertsFor::<UniversalLocation, AccountId>::convert_location(
+		&AssetHubPolkadotLocation::get(),
 	).unwrap();
 }
 
@@ -106,7 +106,7 @@ pub fn genesis() -> Storage {
 				// Ether
 				(
 					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
-					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
+					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					ED,
 				),
@@ -119,7 +119,7 @@ pub fn genesis() -> Storage {
 							AccountKey20 { network: None, key: WETH.into() },
 						],
 					),
-					EthereumSovereignAccount::get(), // TODO: Change to PAH once ExternalConsensusLocationsConverterFor is available
+					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,
 				),
