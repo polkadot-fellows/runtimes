@@ -211,7 +211,7 @@ pub type RcPrePayload<T> = (
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
-	type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>;// RcPrePayload<T>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
@@ -220,7 +220,7 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 
-		(incomplete_since, agenda, retries, lookup)
+		(incomplete_since, agenda, retries, lookup).encode()
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {

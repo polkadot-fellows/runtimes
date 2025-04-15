@@ -134,7 +134,7 @@ pub type RcPrePayload<T> = (
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
-	type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = Vec<u8>; //RcPrePayload<T>;
 	type AhPrePayload = ();
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -164,7 +164,11 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let (rc_incomplete_since, rc_agenda, rc_retries, rc_lookup) = rc_pre_payload;
+		let decoded_payload = match <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..]) {
+			Ok(payload) => payload,
+			Err(e) => panic!("Failed to decode RcPrePayload bytes: {:?}", e),
+		};
+		let (rc_incomplete_since, rc_agenda, rc_retries, rc_lookup) = decoded_payload;
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
 		assert_eq!(
@@ -172,18 +176,13 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			rc_incomplete_since,
 			"IncompleteSince on Asset Hub should match the RC value"
 		);
-
-		// Assert storage 'Scheduler::Agenda::ah_post::correct'
-		// We need to convert RC Agenda items to AH Agenda items for comparison
-		let ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
-			.map(|(bn, tasks)| (bn, tasks.into_inner()))
-			.collect();
-
+	
+		// Mirror the Agenda conversion in `do_process_scheduler_message` above.
 		let expected_ah_agenda: Vec<_> = rc_agenda
 			.clone()
 			.into_iter()
 			.filter_map(|(block_number, rc_tasks)| {
-				let mut ah_tasks_for_block = Vec::new();
+				let mut ah_tasks = Vec::new();
 				for rc_task_opt in rc_tasks {
 					if let Some(rc_task) = rc_task_opt {
 						// Attempt to convert origin
@@ -191,9 +190,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
 								Ok(origin) => origin,
 								Err(_) => {
-									// If origin conversion fails, this task wouldn't migrate
-									// successfully This mirrors the logic in
-									// `do_process_scheduler_message`
+									// Origin conversion failed, skip task.
 									continue;
 								},
 							};
@@ -201,8 +198,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
 							call
 						} else {
-							// If call conversion fails, this task wouldn't migrate successfully
-							// This mirrors the logic in `do_process_scheduler_message`
+							// Call conversion failed, skip task.
 							continue;
 						};
 
@@ -213,33 +209,35 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							maybe_periodic: rc_task.maybe_periodic,
 							origin: ah_origin,
 						};
-						ah_tasks_for_block.push(Some(ah_task));
+						ah_tasks.push(Some(ah_task));
 					} else {
-						// None tasks remain None, but are typically filtered out by the BoundedVec
-						// conversion logic Keep them here for direct comparison initially,
-						// then filter if needed. Actually, let's filter None here to match
-						// the likely outcome of BoundedVec::defensive_truncate_from
-						// ah_tasks_for_block.push(None);
+						// Empty task, skip.
 					}
 				}
 				// Filter out blocks that end up with no valid tasks after conversion
-				if !ah_tasks_for_block.is_empty() {
-					Some((block_number, ah_tasks_for_block))
+				if !ah_tasks.is_empty() {
+					Some((block_number, ah_tasks))
 				} else {
 					None
 				}
 			})
 			.collect();
 
+		let ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
+		.map(|(bn, tasks)| (bn, tasks.into_inner()))
+		.collect();
+
 		// Assert storage 'Scheduler::Agenda::ah_post::length'
 		assert_eq!(
-			pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().count(),
-			rc_agenda.len(),
-			"Agenda map length on Asset Hub should match the RC value"
+			ah_agenda.len(),
+			expected_ah_agenda.len(),
+			"Agenda map length on Asset Hub should match converted RC value"
 		);
 
+		// Assert storage 'Scheduler::Agenda::ah_post::correct'
 		assert_eq!(
-			ah_agenda, expected_ah_agenda,
+			ah_agenda, 
+			expected_ah_agenda,
 			"Agenda map value on Asset Hub should match the converted RC value"
 		);
 
