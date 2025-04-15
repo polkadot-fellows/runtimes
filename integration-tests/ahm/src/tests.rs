@@ -63,8 +63,6 @@ type RcChecks = (
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::indices::IndicesMigrator<Polkadot>,
-	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
-	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 	pallet_rc_migrator::vesting::VestingMigrator<Polkadot>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
@@ -81,6 +79,8 @@ type RcChecks = (
 pub type RcPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -92,8 +92,6 @@ type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
-	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
-	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 	pallet_rc_migrator::vesting::VestingMigrator<AssetHub>,
 	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
@@ -111,6 +109,8 @@ type AhChecks = (
 pub type AhPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
