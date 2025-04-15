@@ -16,7 +16,7 @@
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 
-use frame_support::{sp_runtime::traits::Dispatchable, traits::ProcessMessageError};
+use frame_support::sp_runtime::traits::Dispatchable;
 use kusama_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
 use people_kusama_runtime::people::IdentityInfo;
 
@@ -131,7 +131,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 		assert_expected_events!(
 			PeopleKusama,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -268,7 +268,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 		assert_expected_events!(
 			PeopleKusama,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -280,8 +280,8 @@ fn relay_commands_add_remove_username_authority() {
 	let people_kusama_bob = PeopleKusama::account_id_of(BOB);
 
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin"),
-		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root(), "rootusername"),
+		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin.suffix1"),
+		(OriginKind::Superuser, <Kusama as Chain>::RuntimeOrigin::root(), "rootusername.suffix1"),
 	];
 	for (origin_kind, origin, usr) in origins {
 		// First, add a username authority.
@@ -339,6 +339,8 @@ fn relay_commands_add_remove_username_authority() {
 		PeopleKusama::execute_with(|| {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
+			println!("setting username {}", usr);
+
 			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::set_username_for(
 				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_alice.clone()),
 				people_kusama_runtime::MultiAddress::Id(people_kusama_bob.clone()),
@@ -358,7 +360,7 @@ fn relay_commands_add_remove_username_authority() {
 		// Accept the given username
 		PeopleKusama::execute_with(|| {
 			type PeopleRuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
-			let full_username = [usr.to_owned(), ".suffix1".to_owned()].concat().into_bytes();
+			let full_username = usr.to_owned().into_bytes();
 
 			assert_ok!(<PeopleKusama as PeopleKusamaPallet>::Identity::accept_username(
 				<PeopleKusama as Chain>::RuntimeOrigin::signed(people_kusama_bob.clone()),
@@ -481,7 +483,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		assert_expected_events!(
 			PeopleKusama,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -531,7 +533,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		assert_expected_events!(
 			PeopleKusama,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
