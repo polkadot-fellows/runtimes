@@ -79,6 +79,7 @@ pub type RcCrowdloanMessageOf<T> =
 	RcCrowdloanMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>;
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum CrowdloanStage {
 	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
@@ -133,18 +134,19 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
 					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
-					let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
-					if leases.is_empty() {
-						defensive!("Bifrost fund maybe already ended, remove this");
-						continue;
+					if cfg!(feature = "ahm-polkadot") {
+						let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
+						if leases.is_empty() {
+							defensive!("Bifrost fund maybe already ended, remove this");
+							continue;
+						}
+
+						// It would be better if we can re-map all contributions to the new para id, but
+						// that requires to iterate them all, so we go the other way around; changing
+						// the leases to the old Bifrost Crowdloan.
+						pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
+						log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
 					}
-
-					// It would be better if we can re-map all contributions to the new para id, but
-					// that requires to iterate them all, so we go the other way around; changing
-					// the leases to the old Bifrost Crowdloan.
-					pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
-					log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
-
 					inner_key
 				},
 				CrowdloanStage::LeaseReserve { last_key } => {

@@ -22,6 +22,7 @@ use frame_support::traits::Currency;
 extern crate alloc;
 use crate::{types::*, *};
 use alloc::vec::Vec;
+use frame_system::pallet_prelude::BlockNumberFor;
 
 pub struct ProxyProxiesMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -36,6 +37,7 @@ type BalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
 >>::Balance;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcProxy<AccountId, Balance, ProxyType, BlockNumber> {
 	/// The account that is delegating to their proxy.
 	pub delegator: AccountId,
@@ -53,6 +55,7 @@ pub(crate) type RcProxyLocalOf<T> = RcProxyOf<T, <T as pallet_proxy::Config>::Pr
 
 /// A deposit that was taken for a proxy announcement.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcProxyAnnouncement<AccountId, Balance> {
 	pub depositor: AccountId,
 	pub deposit: Balance,

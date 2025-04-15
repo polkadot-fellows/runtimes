@@ -180,3 +180,21 @@ try-runtime = [
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+
+ahm-polkadot = [
+	"pallet-ah-ops/ahm-polkadot",
+	"pallet-rc-migrator/ahm-polkadot",
+]
+ahm-westend = [
+	"ahm-staking-migration",
+	"pallet-ah-ops/ahm-westend",
+	"pallet-rc-migrator/ahm-westend",
+	"stable2503",
+
+]
+stable2503 = [
+	"pallet-rc-migrator/stable2503",
+]
+ahm-staking-migration = [
+	"pallet-rc-migrator/ahm-staking-migration",
+]

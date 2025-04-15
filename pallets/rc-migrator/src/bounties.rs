@@ -15,12 +15,14 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use pallet_bounties::BountyIndex;
+use frame_system::pallet_prelude::BlockNumberFor;
+use pallet_bounties::{Bounty, BountyIndex};
 
 pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
 
 /// The stages of the bounties pallet data migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum BountiesStage {
 	#[default]
 	BountyCount,
@@ -47,7 +49,7 @@ pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 pub type RcBountiesMessageOf<T> =
 	RcBountiesMessage<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>;
 
-pub struct BountiesMigrator<T: Config> {
+pub struct BountiesMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
@@ -179,6 +181,7 @@ pub mod alias {
 	///
 	/// Alias of [pallet_bounties::Bounty].
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct Bounty<AccountId, Balance, BlockNumber> {
 		/// The account proposing it.
 		pub proposer: AccountId,
@@ -204,4 +207,57 @@ pub mod alias {
 		BountyIndex,
 		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T, ()>, BlockNumberFor<T>>,
 	>;
+}
+
+// (BountyCount, Bounties, BountyDescriptions, BountyApprovals)
+pub type RcPrePayload<T> = (
+	BountyIndex,
+	Vec<(
+		BountyIndex,
+		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T>, BlockNumberFor<T>>,
+	)>,
+	Vec<(BountyIndex, Vec<u8>)>,
+	Vec<BountyIndex>,
+);
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for BountiesMigrator<T> {
+	type RcPrePayload = RcPrePayload<T>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let count = pallet_bounties::BountyCount::<T>::get();
+		let bounties: Vec<_> = pallet_bounties::Bounties::<T>::iter().collect();
+		let descriptions: Vec<_> = pallet_bounties::BountyDescriptions::<T>::iter()
+			.map(|(key, bounded_vec)| (key, bounded_vec.into_inner()))
+			.collect();
+		let approvals = pallet_bounties::BountyApprovals::<T>::get().into_inner();
+		(count, bounties, descriptions, approvals)
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Bounties::BountyCount::rc_post::empty'
+		assert_eq!(
+			pallet_bounties::BountyCount::<T>::get(),
+			0,
+			"Bounty count should be 0 on RC after migration"
+		);
+
+		// Assert storage 'Bounties::Bounties::rc_post::empty'
+		assert!(
+			pallet_bounties::Bounties::<T>::iter().next().is_none(),
+			"Bounties map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Bounties::BountyDescriptions::rc_post::empty'
+		assert!(
+			pallet_bounties::BountyDescriptions::<T>::iter().next().is_none(),
+			"Bount descriptions map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Bounties::BountyApprovals::rc_post::empty'
+		assert!(
+			pallet_bounties::BountyApprovals::<T>::get().is_empty(),
+			"Bounty Approvals vec should be empty on RC after migration"
+		);
+	}
 }

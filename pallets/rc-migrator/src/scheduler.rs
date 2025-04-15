@@ -16,10 +16,12 @@
 
 use super::*;
 use frame_support::traits::schedule::v3::TaskName;
+pub use frame_system::pallet_prelude::BlockNumberFor as SchedulerBlockNumberFor;
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum SchedulerStage<BlockNumber> {
 	#[default]
 	IncompleteSince,
@@ -30,20 +32,21 @@ pub enum SchedulerStage<BlockNumber> {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcSchedulerMessage<BlockNumber> {
 	IncompleteSince(BlockNumber),
 	Retries((TaskAddress<BlockNumber>, RetryConfig<BlockNumber>)),
 	Lookup((TaskName, TaskAddress<BlockNumber>)),
 }
 
-pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>>;
+pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<SchedulerBlockNumberFor<T>>;
 
 pub struct SchedulerMigrator<T: Config> {
 	_phantom: PhantomData<T>,
 }
 
 impl<T: Config> PalletMigration for SchedulerMigrator<T> {
-	type Key = SchedulerStage<BlockNumberFor<T>>;
+	type Key = SchedulerStage<SchedulerBlockNumberFor<T>>;
 	type Error = Error<T>;
 	fn migrate_many(
 		last_key: Option<Self::Key>,
@@ -236,6 +239,7 @@ pub mod alias {
 	/// Information regarding an item to be executed in the future.
 	// FROM: https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L148
 	#[derive(Clone, RuntimeDebug, Encode, Decode, MaxEncodedLen, TypeInfo, PartialEq, Eq)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct Scheduled<Call, BlockNumber, PalletsOrigin> {
 		/// The unique identity for this task, if there is one.
 		pub maybe_id: Option<TaskName>,
@@ -252,7 +256,7 @@ pub mod alias {
 	/// Scheduled type for the Asset Hub.
 	pub type ScheduledOf<T> = Scheduled<
 		BoundedCallOf<T>,
-		BlockNumberFor<T>,
+		SchedulerBlockNumberFor<T>,
 		<<T as frame_system::Config>::RuntimeOrigin as OriginTrait>::PalletsOrigin,
 	>;
 
@@ -262,7 +266,7 @@ pub mod alias {
 	pub type Agenda<T: pallet_scheduler::Config> = StorageMap<
 		pallet_scheduler::Pallet<T>,
 		Twox64Concat,
-		BlockNumberFor<T>,
+		SchedulerBlockNumberFor<T>,
 		BoundedVec<Option<ScheduledOf<T>>, <T as pallet_scheduler::Config>::MaxScheduledPerBlock>,
 		ValueQuery,
 	>;
@@ -273,6 +277,6 @@ pub mod alias {
 		pallet_scheduler::Pallet<T>,
 		Twox64Concat,
 		TaskName,
-		TaskAddress<BlockNumberFor<T>>,
+		TaskAddress<SchedulerBlockNumberFor<T>>,
 	>;
 }

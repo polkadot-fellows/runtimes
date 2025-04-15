@@ -20,3 +20,6 @@
 pub mod bags_list;
 pub mod fast_unstake;
 pub mod nom_pools;
+
+#[cfg(feature = "ahm-staking-migration")]
+pub mod staking;

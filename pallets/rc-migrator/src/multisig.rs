@@ -82,6 +82,7 @@ mod aliases {
 // by not exposing generics... On the other hand: for Westend and Kusama it could possibly help if
 // we don't hard-code all types.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcMultisig<AccountId, Balance> {
 	/// The creator of the multisig who placed the deposit.
 	pub creator: AccountId,

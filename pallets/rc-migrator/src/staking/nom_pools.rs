@@ -26,6 +26,7 @@ use sp_runtime::Perbill;
 ///
 /// They advance in a linear fashion.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum NomPoolsStage<AccountId> {
 	/// Migrate the storage values.
 	StorageValues,
@@ -49,6 +50,7 @@ pub enum NomPoolsStage<AccountId> {
 
 /// All the `StorageValues` from the nominations pools pallet.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct NomPoolsStorageValues<Balance> {
 	pub total_value_locked: Balance,
 	pub min_join_bond: Balance,
@@ -73,6 +75,7 @@ pub struct NomPoolsStorageValues<Balance> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcNomPoolsMessage<T: pallet_nomination_pools::Config> {
 	/// All `StorageValues` that can be migrated at once.
 	StorageValues { values: NomPoolsStorageValuesOf<T> },

@@ -35,10 +35,13 @@ pub mod account;
 pub mod asset_rate;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod call;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod claims;
 pub mod conviction_voting;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod crowdloan;
 pub mod indices;
 pub mod multisig;
@@ -47,6 +50,7 @@ pub mod proxy;
 pub mod referenda;
 pub mod scheduler;
 pub mod staking;
+#[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod types;
 pub mod vesting;
@@ -64,23 +68,29 @@ use frame_support::{
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::{Fortitude, Pay, Preservation},
 		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
-		ReservableCurrency, StorePreimage, WithdrawReasons as LockWithdrawReasons,
+		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
+
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::claims::RcClaimsMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::treasury::RcTreasuryMessage;
+
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	bounties::RcBountiesMessageOf,
-	claims::RcClaimsMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
-	crowdloan::RcCrowdloanMessageOf,
 	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
 	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*},
-	treasury::RcTreasuryMessage,
+	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
 use pallet_referenda::{ReferendumInfo, TrackIdOf};
@@ -107,6 +117,7 @@ type RcAccountFor<T> = RcAccount<
 	<T as Config>::RcFreezeReason,
 >;
 
+#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -118,6 +129,7 @@ pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 >;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum PalletEventName {
 	Indices,
 	FastUnstake,
@@ -142,10 +154,12 @@ pub enum PalletEventName {
 	SchedulerAgenda,
 	ConvictionVoting,
 	AssetRates,
+	Staking,
 }
 
 /// The migration stage on the Asset Hub.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum MigrationStage {
 	/// The migration has not started but will start in the future.
 	#[default]
@@ -174,11 +188,12 @@ impl MigrationStage {
 	}
 }
 
-/// Further data coming from Relay Chain alongside the signal that migration has finished.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
-pub struct MigrationFinishedData {
-	/// Total native token balance NOT migrated from Relay Chain
-	pub rc_balance_kept: u128,
+/// Helper struct storing certain balances before the migration.
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+pub struct BalancesBefore<Balance: Default> {
+	pub checking_account: Balance,
+	pub total_issuance: Balance,
 }
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
@@ -196,7 +211,6 @@ pub mod pallet {
 		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
-		+ pallet_claims::Config
 		+ pallet_proxy::Config
 		+ pallet_preimage::Config<Hash = H256>
 		+ pallet_referenda::Config<Votes = u128>
@@ -207,12 +221,15 @@ pub mod pallet {
 		+ pallet_vesting::Config
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
-		+ pallet_bounties::Config
-		+ pallet_treasury::Config
 		+ pallet_asset_rate::Config
 		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
 		+ pallet_ah_ops::Config
+		+ pallet_claims::Config // Not on westend
+		+ pallet_bounties::Config // Not on westend
+		+ pallet_treasury::Config // Not on westend
+		//+ pallet_staking::Config // Only on westend
 	{
+		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The origin that can perform permissioned operations like setting the migration stage.
@@ -221,7 +238,7 @@ pub mod pallet {
 		type ManagerOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 		/// Native asset registry type.
 		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
+			+ MutateHold<Self::AccountId, Reason = <Self as Config>::RuntimeHoldReason>
 			+ InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
@@ -242,7 +259,7 @@ pub mod pallet {
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
 		type RcFreezeReason: Parameter + Default + MaxEncodedLen;
 		/// Relay Chain to Asset Hub Hold Reasons mapping.
-		type RcToAhHoldReason: Convert<Self::RcHoldReason, Self::RuntimeHoldReason>;
+		type RcToAhHoldReason: Convert<Self::RcHoldReason, <Self as Config>::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping.
 		type RcToAhFreezeReason: Convert<Self::RcFreezeReason, Self::FreezeIdentifier>;
 		/// The abridged Relay Chain Proxy Type.
@@ -280,9 +297,11 @@ pub mod pallet {
 		///
 		/// The provided asset ids should be manageable by the [`Self::Assets`] registry. The asset
 		/// list should not include the native asset.
+		#[cfg(not(feature = "ahm-westend"))]
 		type TreasuryAccounts: Get<(Self::AccountId, Vec<<Self::Assets as FungiblesInspect<Self::AccountId>>::AssetId>)>;
 		/// Convert the Relay Chain Treasury Spend (AssetKind, Beneficiary) parameters to the
 		/// Asset Hub (AssetKind, Beneficiary) parameters.
+		#[cfg(not(feature = "ahm-westend"))]
 		type RcToAhTreasurySpend: Convert<
 			(VersionedLocatableAsset, VersionedLocation),
 			Result<
@@ -315,7 +334,7 @@ pub mod pallet {
 	/// of the migration. Since teleports are disabled during migration, the total issuance will not
 	/// change for other reason than the migration itself.
 	#[pallet::storage]
-	pub type AhTotalIssuanceBefore<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -340,6 +359,8 @@ pub mod pallet {
 		FailedToIntegrateVestingSchedule,
 		/// Checking account overflow or underflow.
 		FailedToCalculateCheckingAccount,
+		/// Vector did not fit into its compile-time bound.
+		FailedToBoundVector,
 		Unreachable,
 	}
 
@@ -611,6 +632,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
 		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
@@ -686,6 +708,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
 		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
@@ -716,6 +739,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
 		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
 		pub fn receive_crowdloan_messages(
@@ -746,6 +770,7 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
 		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
@@ -794,6 +819,22 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[cfg(feature = "ahm-staking-migration")]
+		#[pallet::call_index(30)]
+		#[pallet::weight({1})] // TODO: weight
+		pub fn receive_staking_messages(
+			origin: OriginFor<T>,
+			messages: Vec<RcStakingMessageOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_staking_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
 		/// Set the migration stage.
 		///
 		/// This call is intended for emergency use only and is guarded by the
@@ -816,10 +857,17 @@ pub mod pallet {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
-			AhTotalIssuanceBefore::<T>::put(<T as Config>::Currency::total_issuance());
-			defensive_assert!(
-				<T as Config>::Currency::total_balance(&T::CheckingAccount::get()) == 0
+			let checking_account = T::CheckingAccount::get();
+			let balances_before = BalancesBefore {
+				checking_account: <T as Config>::Currency::total_balance(&checking_account),
+				total_issuance: <T as Config>::Currency::total_issuance(),
+			};
+			log::info!(
+				target: LOG_TARGET,
+				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
+				balances_before.checking_account, balances_before.total_issuance
 			);
+			AhBalancesBefore::<T>::put(balances_before);
 
 			Self::transition(MigrationStage::DataMigrationOngoing);
 			Ok(())
@@ -832,10 +880,10 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::finish_migration())]
 		pub fn finish_migration(
 			origin: OriginFor<T>,
-			data: MigrationFinishedData,
+			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::finish_accounts_migration(data.rc_balance_kept.into())?;
+			Self::finish_accounts_migration(data.rc_balance_kept)?;
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
@@ -907,6 +955,9 @@ pub mod pallet {
 				},
 				Instruction::Transact {
 					origin_kind: OriginKind::Xcm,
+					#[cfg(feature = "stable2503")]
+					fallback_max_weight: None,
+					#[cfg(not(feature = "stable2503"))]
 					require_weight_at_most: Weight::from_all(1), // TODO
 					call: call.encode().into(),
 				},
@@ -943,12 +994,19 @@ pub mod pallet {
 	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
 		fn contains(asset: &Asset, origin: &Location) -> bool {
 			let stage = AhMigrationStage::<T>::get();
-			if stage.is_ongoing() {
+			log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
+			let result = if stage.is_ongoing() {
 				TrustedTeleportersDuring::contains(asset, origin)
 			} else {
 				// before and after migration use normal filter
 				TrustedTeleportersBeforeAfter::contains(asset, origin)
-			}
+			};
+			log::trace!(
+				target: "xcm::IsTeleport::contains",
+				"asset: {:?} origin {:?} result {:?}",
+				asset, origin, result
+			);
+			result
 		}
 	}
 }
