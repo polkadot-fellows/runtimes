@@ -65,6 +65,10 @@ fn transfer_over_xcm_works() {
 	sp_tracing::init_for_tests();
 
 	let sender = AccountId::new([1u8; 32]);
+	let sender_location_on_target = Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
+	let sender_account_on_target = SovereignAccountOf::convert_location(&sender_location_on_target)
+		.expect("can convert");
+
 	let recipient = AccountId::new([5u8; 32]);
 
 	// transact the parents native asset on parachain 1000.
@@ -72,21 +76,18 @@ fn transfer_over_xcm_works() {
 		destination: (Parent, Parachain(1000)).into(),
 		asset_id: KsmLocation::get().into(),
 	};
-	let amount = INITIAL_BALANCE / 1;
+	let amount = INITIAL_BALANCE / 10;
 
 	new_test_ext().execute_with(|| {
 		// The parachain's native token
-		mock::Assets::set_balance(0, &sender, INITIAL_BALANCE);
+		mock::Assets::set_balance(0, &sender_account_on_target, INITIAL_BALANCE);
 		// The relaychain's native token
-		mock::Assets::set_balance(1, &sender, INITIAL_BALANCE);
-		mock::Balances::set_balance(&sender, INITIAL_BALANCE);
+		mock::Assets::set_balance(1, &sender_account_on_target, INITIAL_BALANCE);
+		mock::Balances::set_balance(&sender_account_on_target, INITIAL_BALANCE);
 
 		// Check starting balance
 		assert_eq!(mock::Assets::balance(0, &recipient), 0);
 		assert_eq!(mock::Assets::balance(1, &recipient), 0);
-
-		assert_eq!(mock::Assets::balance(0, &sender), INITIAL_BALANCE);
-		assert_eq!(mock::Assets::balance(1, &sender), INITIAL_BALANCE);
 
 		assert_ok!(TransferOverXcm::<
 			TestMessageSender,
@@ -103,10 +104,10 @@ fn transfer_over_xcm_works() {
 			DescendOrigin(AccountId32 { id: sender.into(), network: None }.into()),
 			// Assume that we always pay in native for now
 			WithdrawAsset(
-				vec![Asset { id: KsmLocation::get().into(), fun: Fungible(ONE_KSM / 10) }].into(),
+				(KsmLocation::get(), Fungible(ONE_KSM / 10)).into(),
 			),
-			PayFees { asset: (KsmLocation::get(), 10).into() },
-			// WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
+			PayFees { asset: (KsmLocation::get(), Fungible(ONE_KSM / 10)).into() },
+			WithdrawAsset((asset_kind.asset_id.clone(), amount).into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
@@ -141,10 +142,9 @@ fn transfer_over_xcm_works() {
 			Weight::zero(),
 		);
 
-		// Fixme: Currently fails with:
-		// `2025-04-15T11:44:46.225248Z TRACE xcm::post_process: Execution failed instruction=1 error=FailedToTransactAsset("Funds are unavailable") original_origin=Location { parents: 1, interior: X1([Parachain(42)]) }`
-		assert_eq!(result, Outcome::Complete { used: Weight::zero() });
+		assert_eq!(result, Outcome::Complete { used: Weight::from_parts(8000, 8000) });
 		assert_eq!(mock::Assets::balance(1, &recipient), amount);
+		assert_eq!(mock::Assets::balance(1, &sender_account_on_target), INITIAL_BALANCE - amount);
 	});
 }
 

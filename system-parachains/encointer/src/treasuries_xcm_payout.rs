@@ -104,8 +104,8 @@ impl<
 		let message = Xcm(vec![
 			DescendOrigin(from.interior),
 			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(ONE_KSM / 10) }].into()),
-			PayFees { asset: (asset_id.clone(), 10).into() },
-			// WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
+			PayFees { asset: (asset_id.clone(), ONE_KSM/ 10).into() },
+			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
@@ -116,7 +116,6 @@ impl<
 			])),
 			TransferAsset {
 				beneficiary,
-				// assets: (asset_id(asset_kind.clone()), amount).into(),
 				assets: (asset_id, amount).into(),
 			},
 		]);
@@ -140,7 +139,7 @@ impl<
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn ensure_successful(_: &Self::AccountId, _: Self::AssetKind, _: Self::Balance) {
+	fn ensure_successful(_: &Self::Payer, _: &Self::Beneficiary, _: Self::AssetKind, _: Self::Balance) {
 		// We cannot generally guarantee this will go through successfully since we don't have any
 		// control over the XCM transport layers. We just assume that the benchmark environment
 		// will be sending it somewhere sensible.
