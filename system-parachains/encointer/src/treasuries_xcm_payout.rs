@@ -34,8 +34,24 @@ use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 /// Transfer an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
-pub struct TransferOverXcm<Router, Querier, Timeout, Transactors, AssetKind, AssetKindToLocatableAsset, TransactorRefToLocation>(
-	PhantomData<(Router, Querier, Timeout, Transactors, AssetKind, AssetKindToLocatableAsset, TransactorRefToLocation)>,
+pub struct TransferOverXcm<
+	Router,
+	Querier,
+	Timeout,
+	Transactors,
+	AssetKind,
+	AssetKindToLocatableAsset,
+	TransactorRefToLocation,
+>(
+	PhantomData<(
+		Router,
+		Querier,
+		Timeout,
+		Transactors,
+		AssetKind,
+		AssetKindToLocatableAsset,
+		TransactorRefToLocation,
+	)>,
 );
 impl<
 		Router: SendXcm,
@@ -45,7 +61,16 @@ impl<
 		AssetKind: Clone + core::fmt::Debug,
 		AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
 		TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
-	> Transfer for TransferOverXcm<Router, Querier, Timeout, Transactor, AssetKind,  AssetKindToLocatableAsset, TransactorRefToLocation>
+	> Transfer
+	for TransferOverXcm<
+		Router,
+		Querier,
+		Timeout,
+		Transactor,
+		AssetKind,
+		AssetKindToLocatableAsset,
+		TransactorRefToLocation,
+	>
 {
 	type Balance = u128;
 	type Payer = Transactor;
@@ -78,9 +103,7 @@ impl<
 
 		let message = Xcm(vec![
 			DescendOrigin(from.interior),
-			WithdrawAsset(
-				vec![Asset { id: asset_id.clone(), fun: Fungible(ONE_KSM / 10) }].into(),
-			),
+			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(ONE_KSM / 10) }].into()),
 			PayFees { asset: (asset_id.clone(), 10).into() },
 			// WithdrawAsset((asset_id(asset_kind.clone()), amount).into()),
 			SetAppendix(Xcm(vec![
@@ -150,25 +173,19 @@ impl From<SupportedPayouts> for Location {
 }
 
 pub struct LocatableSupportedPayoutConverter;
-impl TryConvert<SupportedPayouts, LocatableAssetId>
-for LocatableSupportedPayoutConverter
-{
-	fn try_convert(
-		asset: SupportedPayouts,
-	) -> Result<LocatableAssetId, SupportedPayouts> {
+impl TryConvert<SupportedPayouts, LocatableAssetId> for LocatableSupportedPayoutConverter {
+	fn try_convert(asset: SupportedPayouts) -> Result<LocatableAssetId, SupportedPayouts> {
 		match asset {
-			SupportedPayouts::Usdt =>
-				Ok(LocatableAssetId {
-					asset_id: asset_id(asset),
-					location: Location {
-						parents: 1,
-						interior: X2([PalletInstance(50), GeneralIndex(1984)].into()),
-					},
-				})
+			SupportedPayouts::Usdt => Ok(LocatableAssetId {
+				asset_id: asset_id(asset),
+				location: Location {
+					parents: 1,
+					interior: X2([PalletInstance(50), GeneralIndex(1984)].into()),
+				},
+			}),
 		}
 	}
 }
-
 
 pub fn asset_id<T: Into<Location>>(value: T) -> AssetId {
 	let location: Location = value.into();

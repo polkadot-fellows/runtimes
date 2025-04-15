@@ -17,24 +17,22 @@
 //! Tests for making sure `PayOverXcm::pay` generates the correct message and sends it to the
 //! correct destination
 
-use super::{*, mock::*, xcm_mock::*};
-use crate::treasuries_xcm_payout::{TransferOverXcm};
-use pallet_encointer_treasuries::Transfer;
+use super::{mock::*, xcm_mock::*, *};
+use crate::{treasuries_xcm_payout::TransferOverXcm, xcm_config::KsmLocation};
 use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
-use frame_support::{assert_ok, parameter_types};
-use frame_support::traits::fungible::Mutate;
-use frame_support::traits::fungibles::Mutate as FungiblesMutate;
+use frame_support::{
+	assert_ok, parameter_types,
+	traits::{fungible::Mutate, fungibles::Mutate as FungiblesMutate},
+};
+use pallet_encointer_treasuries::Transfer;
 use parachains_common::{AccountId, BlockNumber};
 use xcm::{
-	latest::{BodyId, BodyPart, InteriorLocation, Xcm},
+	latest::{BodyId, BodyPart, InteriorLocation, Junctions::X2, Xcm},
 	v5::{AssetId, Location, Parent},
 };
-use xcm::latest::Junctions::X2;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId};
-use xcm_executor::traits::ConvertLocation;
-use xcm_executor::XcmExecutor;
-use crate::xcm_config::KsmLocation;
+use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 /// Type representing both a location and an asset that is held at that location.
 /// The id of the held asset is relative to the location where it is being held.
@@ -63,7 +61,7 @@ parameter_types! {
 /// [`PayOverXcm::pay`] creates the correct message for account #3 to pay another account, account
 /// #5, on parachain 1000, remotely, in its native token.
 #[test]
-fn payout_over_xcm_works() {
+fn transfer_over_xcm_works() {
 	sp_tracing::init_for_tests();
 
 	let sender = AccountId::new([1u8; 32]);
@@ -143,14 +141,22 @@ fn payout_over_xcm_works() {
 			Weight::zero(),
 		);
 
+		// Fixme: Currently fails with:
+		// `2025-04-15T11:44:46.225248Z TRACE xcm::post_process: Execution failed instruction=1 error=FailedToTransactAsset("Funds are unavailable") original_origin=Location { parents: 1, interior: X1([Parachain(42)]) }`
 		assert_eq!(result, Outcome::Complete { used: Weight::zero() });
-		assert_eq!(mock::Assets::balance(0, &recipient), amount);
+		assert_eq!(mock::Assets::balance(1, &recipient), amount);
 	});
 }
 
 #[test]
 fn sovereign_account_conversion_works() {
-	// ensure that the account gets converted correctly
-	let location = Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1;32] }].into()));
-	assert_eq!(SovereignAccountOf::convert_location(&location), Some(AccountId::new([1;32])));
+	// The location is the output of `DescendOrigin`, and it shows why the above test fails actually.
+	// The `AccountId32Aliases` can only convert local AccountIds i.e.,
+	// Location::new(0, AccountId32(..));
+	//
+	// The below location falls through all the match statements until it will be converted by the
+	// `HashedDescription` into another account id.
+	let location =
+		Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
+	assert_eq!(SovereignAccountOf::convert_location(&location), Some(AccountId::new([1; 32])));
 }

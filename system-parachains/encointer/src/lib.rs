@@ -110,10 +110,12 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::kusama::{consensus::*, currency::*, fee::WeightToFee};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
-	latest::prelude::{AssetId as XcmAssetId, BodyId},
+	latest::{
+		prelude::{AssetId as XcmAssetId, BodyId},
+		NetworkId,
+	},
 	Version as XcmVersion, VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
-use xcm::latest::NetworkId;
 use xcm_builder::AliasesIntoAccountId32;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -1074,9 +1076,9 @@ mod benches {
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
 }
 
+use crate::treasuries_xcm_payout::{LocatableSupportedPayoutConverter, SupportedPayouts};
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
-use crate::treasuries_xcm_payout::{LocatableSupportedPayoutConverter, SupportedPayouts};
 
 impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
