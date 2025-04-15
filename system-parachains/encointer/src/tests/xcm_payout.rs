@@ -30,7 +30,9 @@ use xcm::{
 	latest::{BodyId, BodyPart, InteriorLocation, Xcm},
 	v5::{AssetId, Location, Parent},
 };
+use xcm::latest::Junctions::X2;
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId};
+use xcm_executor::traits::ConvertLocation;
 use xcm_executor::XcmExecutor;
 use crate::xcm_config::KsmLocation;
 
@@ -62,6 +64,8 @@ parameter_types! {
 /// #5, on parachain 1000, remotely, in its native token.
 #[test]
 fn payout_over_xcm_works() {
+	sp_tracing::init_for_tests();
+
 	let sender = AccountId::new([1u8; 32]);
 	let recipient = AccountId::new([5u8; 32]);
 
@@ -70,14 +74,21 @@ fn payout_over_xcm_works() {
 		destination: (Parent, Parachain(1000)).into(),
 		asset_id: KsmLocation::get().into(),
 	};
-	let amount = ONE_KSM;
+	let amount = INITIAL_BALANCE / 1;
 
 	new_test_ext().execute_with(|| {
-		mock::Assets::set_balance(0, &sender,10* ONE_KSM);
-		mock::Balances::set_balance(&sender, 10 * ONE_KSM);
+		// The parachain's native token
+		mock::Assets::set_balance(0, &sender, INITIAL_BALANCE);
+		// The relaychain's native token
+		mock::Assets::set_balance(1, &sender, INITIAL_BALANCE);
+		mock::Balances::set_balance(&sender, INITIAL_BALANCE);
 
 		// Check starting balance
 		assert_eq!(mock::Assets::balance(0, &recipient), 0);
+		assert_eq!(mock::Assets::balance(1, &recipient), 0);
+
+		assert_eq!(mock::Assets::balance(0, &sender), INITIAL_BALANCE);
+		assert_eq!(mock::Assets::balance(1, &sender), INITIAL_BALANCE);
 
 		assert_ok!(TransferOverXcm::<
 			TestMessageSender,
@@ -135,4 +146,11 @@ fn payout_over_xcm_works() {
 		assert_eq!(result, Outcome::Complete { used: Weight::zero() });
 		assert_eq!(mock::Assets::balance(0, &recipient), amount);
 	});
+}
+
+#[test]
+fn sovereign_account_conversion_works() {
+	// ensure that the account gets converted correctly
+	let location = Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1;32] }].into()));
+	assert_eq!(SovereignAccountOf::convert_location(&location), Some(AccountId::new([1;32])));
 }

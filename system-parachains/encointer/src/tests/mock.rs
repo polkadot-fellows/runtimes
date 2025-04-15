@@ -15,17 +15,19 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::Encode;
-use frame_support::traits::{AsEnsureOriginWithArg, Nothing};
+use frame_support::traits::{AsEnsureOriginWithArg, IsInVec, Nothing};
 use frame_support::derive_impl;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{ConstU32, Everything},
 };
 use frame_system::{EnsureRoot, EnsureSigned};
+use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
 use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
+use xcm::latest::Junctions::X2;
 use xcm::prelude::*;
-use xcm_builder::{AccountId32Aliases, AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete, NoChecking, SignedAccountId32AsNative, SignedToAccountId32};
+use xcm_builder::{AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete, NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, WithComputedOrigin};
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 use xcm_executor::traits::{JustTry, WeightTrader};
 use crate::tests::xcm_mock::TestMessageSender;
@@ -153,6 +155,7 @@ for FromLocationToAsset<Location, AssetIdForAssets>
     fn convert_back(value: &AssetIdForAssets) -> Option<Location> {
         match value {
             0u128 => Some(Location { parents: 1, interior: Here }),
+            1u128 => Some(Location { parents: 0, interior: Here }),
             para_id @ 1..=1000 =>
                 Some(Location { parents: 1, interior: [Parachain(*para_id as u32)].into() }),
             _ => None,
@@ -181,7 +184,37 @@ type OriginConverter = (
     pallet_xcm::XcmPassthrough<RuntimeOrigin>,
     SignedAccountId32AsNative<AnyNetwork, RuntimeOrigin>,
 );
-type Barrier = AllowUnpaidExecutionFrom<Everything>;
+
+parameter_types! {
+    pub static ParaFortyTwo: Location = Location::new(1, [Parachain(42)]);
+	pub static AllowExplicitUnpaidFrom: Vec<Location> = vec![];
+	pub static AllowUnpaidFrom: Vec<Location> = vec![];
+	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get().into()];
+	pub static AllowSubsFrom: Vec<Location> = vec![];
+	// 1_000_000_000_000 => 1 unit of asset for 1 unit of ref time weight.
+	// 1024 * 1024 => 1 unit of asset for 1 unit of proof size weight.
+	pub static WeightPrice: (AssetId, u128, u128) =
+		(From::from(Here), 1_000_000_000_000, 1024 * 1024);
+}
+
+pub type Barrier = (
+    TakeWeightCredit,
+    // AllowKnownQueryResponses<TestResponseHandler>,
+    WithComputedOrigin<
+        (
+            // If the message is one that immediately attempts to pay for execution, then
+            // allow it.
+            AllowTopLevelPaidExecutionFrom<Everything>,
+            // Subscriptions for version tracking are OK.
+            AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
+        ),
+        UniversalLocation,
+        ConstU32<8>,
+    >,
+    // AllowExplicitUnpaidExecutionFrom<IsInVec<AllowExplicitUnpaidFrom>>,
+    AllowUnpaidExecutionFrom<IsInVec<AllowUnpaidFrom>>,
+    // AllowSubscriptionsFrom<IsInVec<AllowSubsFrom>>,
+);
 
 #[derive(Clone)]
 pub struct DummyWeightTrader;
@@ -248,7 +281,7 @@ impl ConvertLocation<AccountId> for TreasuryToAccount {
     }
 }
 
-type SovereignAccountOf = (
+pub (crate) type SovereignAccountOf = (
     AccountId32Aliases<AnyNetwork, AccountId>,
     TreasuryToAccount,
     HashedDescription<AccountId, DescribeFamily<DescribeAllTerminal>>,

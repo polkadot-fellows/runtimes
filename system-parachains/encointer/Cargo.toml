@@ -113,6 +113,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 [dev-dependencies]
 pallet-assets = { workspace = true, features = ["std"]}
 sp-io = { workspace = true, features = ["std"]}
+sp-tracing = { workspace = true, features = ["std"]}
 
 [features]
 default = ["std"]
