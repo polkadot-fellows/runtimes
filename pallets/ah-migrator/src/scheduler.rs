@@ -234,6 +234,10 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			"Agenda map length on Asset Hub should match converted RC value"
 		);
 
+		// Sort.
+		ah_agenda.sort_by_key(|(index, _)| *index);
+		expected_ah_agenda.sort_by_key(|(index, _)| *index);
+
 		// Assert storage 'Scheduler::Agenda::ah_post::correct'
 		assert_eq!(
 			ah_agenda, 
