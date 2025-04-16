@@ -235,7 +235,7 @@ jobs:
       - name: Zombienet smoke test
         timeout-minutes: 20
         run: |
-          export PATH=$(pwd)/target/release:$PATH
+          export PATH=$(pwd)/target/debug:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
