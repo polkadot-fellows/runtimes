@@ -33,6 +33,7 @@ asset-test-utils = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 
 # Local
+asset-hub-kusama-runtime = { workspace = true }
 kusama-runtime-constants = { workspace = true, default-features = true }
 kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }

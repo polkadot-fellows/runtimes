@@ -2601,6 +2601,7 @@ dependencies = [
 name = "coretime-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-kusama-runtime",
  "asset-test-utils",
  "coretime-kusama-runtime",
  "cumulus-pallet-parachain-system",
