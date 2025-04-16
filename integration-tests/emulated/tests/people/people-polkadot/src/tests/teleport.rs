@@ -31,7 +31,7 @@ use xcm_runtime_apis::{
 
 #[test]
 fn teleport_via_transfer_assets_from_and_to_relay() {
-	let amount = POLKADOT_ED * 1000;
+	let amount = PEOPLE_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
@@ -41,6 +41,8 @@ fn teleport_via_transfer_assets_from_and_to_relay() {
 		(native_asset, amount),
 		transfer_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		PeoplePolkadot,
@@ -53,7 +55,7 @@ fn teleport_via_transfer_assets_from_and_to_relay() {
 
 #[test]
 fn teleport_via_limited_teleport_assets_from_and_to_relay() {
-	let amount = POLKADOT_ED * 1000;
+	let amount = PEOPLE_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
@@ -63,6 +65,8 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 		(native_asset, amount),
 		limited_teleport_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		PeoplePolkadot,
@@ -74,8 +78,8 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 }
 
 #[test]
-fn teleport_via_limited_teleport_assets_to_other_system_parachains_works() {
-	let amount = POLKADOT_ED * 100;
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
@@ -85,17 +89,39 @@ fn teleport_via_limited_teleport_assets_to_other_system_parachains_works() {
 		(native_asset, amount),
 		limited_teleport_assets
 	);
+
+	let amount = PEOPLE_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		AssetHubPolkadotXcmConfig,
+		vec![PeoplePolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
 }
 
 #[test]
-fn teleport_via_transfer_assets_to_other_system_parachains_works() {
-	let amount = POLKADOT_ED * 100;
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
 		PeoplePolkadot,
 		PeoplePolkadotXcmConfig,
 		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = PEOPLE_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		AssetHubPolkadotXcmConfig,
+		vec![PeoplePolkadot],
 		(native_asset, amount),
 		transfer_assets
 	);
