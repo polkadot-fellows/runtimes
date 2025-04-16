@@ -14,35 +14,33 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::{sr25519, storage::Storage};
+use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, RESERVABLE_ASSET_ID,
-	SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
-	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub AssetHubKusamaAssetOwner: AccountId = Keyring::Alice.to_account_id();
+	pub PenpalATeleportableAssetLocation: xcm::v4::Location
+		= xcm::v4::Location::new(1, [
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 }
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: asset_hub_kusama_runtime::SystemConfig::default(),
 		balances: asset_hub_kusama_runtime::BalancesConfig {

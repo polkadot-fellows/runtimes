@@ -4,6 +4,29 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+- Parachains define the default `CoreSelector` strategy, according to [`RFC-0103`](https://polkadot-fellows.github.io/RFCs/approved/0103-introduce-core-index-commitment.html) ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+- Update to SDK version `2412-4` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+  - Added XCM v5 ([paritytech/polkadot-sdk/pull/4826](https://github.com/paritytech/polkadot-sdk/pull/4826))
+  - Added Trusted Query API calls ([paritytech/polkadot-sdk/pull/6039](https://github.com/paritytech/polkadot-sdk/pull/6039))
+  - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
+  - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
+  - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
+
+### Changed
+
+- Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
+  - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
+  - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
+  - Staking: page information to staking::PayoutStarted event ([paritytech/polkadot-sdk/pull/5984](https://github.com/paritytech/polkadot-sdk/pull/5984))
+  - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
+  - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
+  - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
+
 ## [1.4.3] 14.04.2025
 
 ### Changed
@@ -12,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
 - chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
   `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
+
 
 ## [1.4.2] 07.03.2025
 
