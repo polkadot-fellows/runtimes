@@ -225,7 +225,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot --locked
 
       - name: Wait for Docker to Start
         run: |
