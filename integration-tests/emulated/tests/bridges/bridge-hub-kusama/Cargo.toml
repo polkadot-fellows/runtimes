@@ -54,7 +54,6 @@ snowbridge-pallet-inbound-queue-fixtures = { workspace = true }
 
 [features]
 runtime-benchmarks = [
-	"asset-hub-kusama-runtime/runtime-benchmarks",
 	"bp-bridge-hub-kusama/runtime-benchmarks",
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
