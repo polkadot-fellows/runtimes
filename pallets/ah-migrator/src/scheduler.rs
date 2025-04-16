@@ -17,7 +17,7 @@
 use crate::*;
 use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
-use pallet_scheduler::{RetryConfig, TaskAddress};
+use pallet_scheduler::{IncompleteSince, RetryConfig, TaskAddress};
 
 /// Messages sent from the RC Migrator concerning the Scheduler pallet.
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, RcScheduledOf<T>>;
@@ -125,12 +125,12 @@ impl<T: Config> Pallet<T> {
 }
 
 // (IncompleteSince, Agenda, Retries, Lookup)
-pub type RcPrePayload<T> = (
-	Option<BlockNumberFor<T>>,
-	Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
-	Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
-	Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
-);
+pub struct RcPrePayload<T: Config> {
+	incomplete_since: Option<BlockNumberFor<T>>,
+	agenda: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
+	retries: Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
+	lookup: Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
+}
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
@@ -164,21 +164,18 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let decoded_payload = match <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..]) {
-			Ok(payload) => payload,
-			Err(e) => panic!("Failed to decode RcPrePayload bytes: {:?}", e),
-		};
-		let (rc_incomplete_since, rc_agenda, rc_retries, rc_lookup) = decoded_payload;
+		let rc_payload = <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..])
+		.expect("Failed to decode RcPrePayload buytes");
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
 		assert_eq!(
 			pallet_scheduler::IncompleteSince::<T>::get(),
-			rc_incomplete_since,
+			rc_payload.incomplete_since,
 			"IncompleteSince on Asset Hub should match the RC value"
 		);
 	
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above.
-		let expected_ah_agenda: Vec<_> = rc_agenda
+		let expected_ah_agenda: Vec<_> = rc_payload.agenda
 			.clone()
 			.into_iter()
 			.filter_map(|(block_number, rc_tasks)| {
@@ -248,28 +245,28 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		// Assert storage 'Scheduler::Lookup::ah_post::length'
 		assert_eq!(
 			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().count(),
-			rc_lookup.len(),
+			rc_payload.lookup.len(),
 			"Lookup map length on Asset Hub should match the RC value"
 		);
 
 		// Assert storage 'Scheduler::Lookup::ah_post::correct'
 		assert_eq!(
 			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().collect::<Vec<_>>(),
-			rc_lookup,
+			rc_payload.lookup,
 			"Lookup map value on Asset Hub should match the RC value"
 		);
 
 		// Assert storage 'Scheduler::Retries::ah_post::length'
 		assert_eq!(
 			pallet_scheduler::Retries::<T>::iter().count(),
-			rc_retries.len(),
+			rc_payload.retries.len(),
 			"Retries map length on Asset Hub should match the RC value"
 		);
 
 		// Assert storage 'Scheduler::Retries::ah_post::correct'
 		assert_eq!(
 			pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
-			rc_retries,
+			rc_payload.retries,
 			"Retries map value on Asset Hub should match the RC value"
 		);
 	}
