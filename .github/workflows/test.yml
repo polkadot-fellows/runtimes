@@ -236,6 +236,7 @@ jobs:
         timeout-minutes: 20
         run: |
           export PATH=$(pwd)/target/debug:$PATH
+          export RUST_LOG=zombienet=debug
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
