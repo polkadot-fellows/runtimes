@@ -7681,6 +7681,7 @@ dependencies = [
  "sp-core 34.0.0",
  "sp-io 38.0.0",
  "sp-runtime 39.0.5",
+ "sp-staking",
  "sp-std",
  "staging-xcm",
  "staging-xcm-builder",
