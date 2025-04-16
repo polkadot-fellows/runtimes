@@ -45,11 +45,11 @@ async fn smoke() -> Result<(), anyhow::Error> {
 	// config and env
 	dump_provider_and_versions();
 	let spawn_fn = zombienet_sdk::environment::get_spawn_fn();
-	let config = small_network().unwrap();
+	let config = small_network()?;
 
 	// spawn
 	let now = Instant::now();
-	let network = spawn_fn(config).await.unwrap();
+	let network = spawn_fn(config).await?;
 	let elapsed = now.elapsed();
 	log::info!("🚀🚀🚀🚀 network deployed in {:.2?}", elapsed);
 

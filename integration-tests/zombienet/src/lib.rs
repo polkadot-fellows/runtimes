@@ -1,8 +1,6 @@
 use anyhow::anyhow;
 use zombienet_sdk::{NetworkConfig, NetworkConfigBuilder};
 
-pub type Error = Box<dyn std::error::Error>;
-
 // Chain generator command template
 const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
 
@@ -12,7 +10,7 @@ const BOB: &str = "bob";
 // Collator
 const COLLATOR: &str = "collator";
 
-pub fn small_network() -> Result<NetworkConfig, Error> {
+pub fn small_network() -> Result<NetworkConfig, anyhow::Error> {
 	let images = zombienet_sdk::environment::get_images_from_env();
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
