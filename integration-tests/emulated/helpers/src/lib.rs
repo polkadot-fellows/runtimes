@@ -33,7 +33,7 @@ pub use xcm_emulator::Chain;
 /// TODO: backport this macros to polkadot-sdk
 #[macro_export]
 macro_rules! test_relay_is_trusted_teleporter {
-	( $sender_relay:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
+	( $sender_relay:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_relay Sender>]::get();
@@ -157,7 +157,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 
 #[macro_export]
 macro_rules! test_parachain_is_trusted_teleporter_for_relay {
-	( $sender_para:ty, $sender_xcm_config:ty, $receiver_relay:ty, $amount:expr, $xcm_call:ident ) => {
+	( $sender_para:ty, $receiver_relay:ty, $amount:expr, $xcm_call:ident ) => {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_para Sender>]::get();
@@ -319,7 +319,7 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 
 #[macro_export]
 macro_rules! test_parachain_is_trusted_teleporter {
-	( $sender_para:ty, $sender_xcm_config:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
+	( $sender_para:ty, vec![$( $receiver_para:ty ),+], ($assets:expr, $amount:expr), $xcm_call:ident ) => {
 		$crate::paste::paste! {
 			// init Origin variables
 			let sender = [<$sender_para Sender>]::get();

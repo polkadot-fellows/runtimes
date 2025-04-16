@@ -36,7 +36,6 @@ fn teleport_via_transfer_assets_from_and_to_relay() {
 
 	test_relay_is_trusted_teleporter!(
 		Polkadot,
-		PolkadotXcmConfig,
 		vec![CoretimePolkadot],
 		(native_asset, amount),
 		transfer_assets
@@ -46,7 +45,6 @@ fn teleport_via_transfer_assets_from_and_to_relay() {
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		CoretimePolkadot,
-		CoretimePolkadotXcmConfig,
 		Polkadot,
 		amount,
 		transfer_assets
@@ -60,7 +58,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 
 	test_relay_is_trusted_teleporter!(
 		Polkadot,
-		PolkadotXcmConfig,
 		vec![CoretimePolkadot],
 		(native_asset, amount),
 		limited_teleport_assets
@@ -70,7 +67,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		CoretimePolkadot,
-		CoretimePolkadotXcmConfig,
 		Polkadot,
 		amount,
 		limited_teleport_assets
@@ -84,7 +80,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 
 	test_parachain_is_trusted_teleporter!(
 		CoretimePolkadot,
-		CoretimePolkadotXcmConfig,
 		vec![AssetHubPolkadot],
 		(native_asset, amount),
 		limited_teleport_assets
@@ -95,7 +90,6 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 
 	test_parachain_is_trusted_teleporter!(
 		AssetHubPolkadot,
-		AssetHubPolkadotXcmConfig,
 		vec![CoretimePolkadot],
 		(native_asset, amount),
 		limited_teleport_assets
@@ -109,7 +103,6 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 
 	test_parachain_is_trusted_teleporter!(
 		CoretimePolkadot,
-		CoretimePolkadotXcmConfig,
 		vec![AssetHubPolkadot],
 		(native_asset, amount),
 		transfer_assets
@@ -120,7 +113,6 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 
 	test_parachain_is_trusted_teleporter!(
 		AssetHubPolkadot,
-		AssetHubPolkadotXcmConfig,
 		vec![CoretimePolkadot],
 		(native_asset, amount),
 		transfer_assets
