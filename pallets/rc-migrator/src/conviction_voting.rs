@@ -155,11 +155,13 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			messages,
-			|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
-			|len| T::AhWeightInfo::receive_conviction_voting_messages(len),
-		)?;
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
+				|len| T::AhWeightInfo::receive_conviction_voting_messages(len),
+			)?;
+		}
 
 		if last_key == ConvictionVotingStage::Finished {
 			Ok(None)

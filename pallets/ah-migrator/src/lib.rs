@@ -75,6 +75,8 @@ use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 
 #[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::bounties::RcBountiesMessageOf;
+#[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::claims::RcClaimsMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
@@ -83,13 +85,12 @@ use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
-	bounties::RcBountiesMessageOf,
 	conviction_voting::RcConvictionVotingMessageOf,
 	indices::RcIndicesIndexOf,
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*},
+	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };

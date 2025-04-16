@@ -150,11 +150,13 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			messages,
-			|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-			|len| T::AhWeightInfo::receive_bounties_messages(len),
-		)?;
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
+				|len| T::AhWeightInfo::receive_bounties_messages(len),
+			)?;
+		}
 
 		if last_key == BountiesStage::Finished {
 			log::info!(target: LOG_TARGET, "Bounties migration finished");
