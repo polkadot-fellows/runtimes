@@ -42,10 +42,16 @@ pub use emulated_integration_tests_common::{
 };
 pub use parachains_common::{AccountId, Balance};
 pub use polkadot_system_emulated_network::{
+	asset_hub_polkadot_emulated_chain::{
+		genesis::ED as ASSET_HUB_POLKADOT_ED, AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+	},
 	coretime_polkadot_emulated_chain::{
 		genesis::ED as CORETIME_POLKADOT_ED, CoretimePolkadotParaPallet as CoretimePolkadotPallet,
 	},
 	polkadot_emulated_chain::{genesis::ED as POLKADOT_ED, PolkadotRelayPallet as PolkadotPallet},
+	AssetHubPolkadotPara as AssetHubPolkadot,
+	AssetHubPolkadotParaReceiver as AssetHubPolkadotReceiver,
+	AssetHubPolkadotParaSender as AssetHubPolkadotSender,
 	CoretimePolkadotPara as CoretimePolkadot,
 	CoretimePolkadotParaReceiver as CoretimePolkadotReceiver,
 	CoretimePolkadotParaSender as CoretimePolkadotSender, PenpalAPara as PenpalA,
