@@ -30,6 +30,8 @@ pub fn small_network() -> Result<NetworkConfig, anyhow::Error> {
 				.chain_spec_command_is_local(true)
 				.with_chain("coretime-polkadot-local")
 				.with_collator(|n| n.with_name(COLLATOR))
+				.with_collator(|n| n.with_name(&format!("{}-2", COLLATOR)))
+				.with_collator(|n| n.with_name(&format!("{}-3", COLLATOR)))
 		})
 		.build()
 		.map_err(|errs| {
