@@ -258,6 +258,7 @@ pub mod alias {
 // TODO: schedule `one_fewer_deciding` for referendums canceled during migration
 
 // (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
+#[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	pub referendum_count: ReferendumIndex,
 	pub deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
@@ -307,7 +308,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let rc_payload = <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..])
+		let rc_payload = RcPrePayload::<T>::decode(&mut &rc_pre_payload[..])
 			.expect("Failed to decode RcPrePayload bytes");
 
 		// Assert storage 'Referenda::ReferendumCount::ah_post::correct'
