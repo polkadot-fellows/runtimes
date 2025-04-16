@@ -258,13 +258,13 @@ pub mod alias {
 // TODO: schedule `one_fewer_deciding` for referendums canceled during migration
 
 // (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
-pub type RcPrePayload<T> = (
-	ReferendumIndex,
-	Vec<(TrackIdOf<T, ()>, u32)>,
-	Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)>)>,
-	Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
-	Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
-);
+pub struct RcPrePayload<T: Config> {
+    pub referendum_count: ReferendumIndex,
+    pub deciding_count: Vec<(TrackIdOf<T, ()>, u32)>,
+    pub track_queue: Vec<(TrackIdOf<T, ()>, Vec<(ReferendumIndex, VotesOf<T, ()>)>)>,
+    pub metadata: Vec<(ReferendumIndex, <T as frame_system::Config>::Hash)>,
+    pub referenda: Vec<(ReferendumIndex, RcReferendumInfoOf<T, ()>)>,
+}
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
@@ -307,37 +307,34 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let decoded_payload = match <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..]) {
-			Ok(payload) => payload,
-			Err(e) => panic!("Failed to decode RcPrePayload bytes: {:?}", e),
-		};
-		let (rc_count, rc_deciding, rc_queue, rc_metadata, rc_referenda) = decoded_payload;
+		let rc_payload = match <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..])
+		.expect("Failed to decode RcPrePayload bytes");
 
 		// Assert storage 'Referenda::ReferendumCount::ah_post::correct'
 		assert_eq!(
 			ReferendumCount::<T, ()>::get(),
-			rc_count,
+			rc_payload.referendum_count,
 			"ReferendumCount on AH post migration should match the pre migration RC value"
 		);
 
 		// Assert storage 'Referenda::DecidingCount::ah_post::length'
 		assert_eq!(
 			DecidingCount::<T, ()>::iter_keys().count() as u32,
-			rc_deciding.len() as u32,
+			rc_payload.deciding_count.len() as u32,
 			"DecidingCount length on AH post migration should match the pre migration RC length"
 		);
 
 		// Assert storage 'Referenda::DecidingCount::ah_post::correct'
 		assert_eq!(
 			DecidingCount::<T, ()>::iter().collect::<Vec<_>>(),
-			rc_deciding,
+			rc_payload.deciding_count,
 			"DecidingCount on AH post migration should match the pre migration RC value"
 		);
 
 		// Assert storage 'Referenda::TrackQueue::ah_post::length'
 		assert_eq!(
 			TrackQueue::<T, ()>::iter_keys().count() as u32,
-			rc_queue.len() as u32,
+			rc_payload.track_queue.len() as u32,
 			"TrackQueue length on AH post migration should match the pre migration RC length"
 		);
 
@@ -346,21 +343,21 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			TrackQueue::<T, ()>::iter()
 				.map(|(track_id, queue)| (track_id, queue.into_inner()))
 				.collect::<Vec<_>>(),
-			rc_queue,
+			rc_payload.track_queue,
 			"TrackQueue on AH post migration should match the pre migration RC value"
 		);
 
 		// Assert storage 'Referenda::MetadataOf::ah_post::length'
 		assert_eq!(
 			MetadataOf::<T, ()>::iter_keys().count() as u32,
-			rc_metadata.len() as u32,
+			rc_payload.metadata.len() as u32,
 			"MetadataOf length on AH post migration should match the pre migration RC length"
 		);
 
 		// Assert storage 'Referenda::MetadataOf::ah_post::correct'
 		assert_eq!(
 			MetadataOf::<T, ()>::iter().collect::<Vec<_>>(),
-			rc_metadata,
+			rc_payload.metadata,
 			"MetadataOf on AH post migration should match the pre migration RC value"
 		);
 
@@ -456,7 +453,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		}
 
 		// Convert referenda from RcPrePayload to expected values.
-		let mut expected_ah_referenda: Vec<_> = rc_referenda
+		let mut expected_ah_referenda: Vec<_> = rc_payload.referenda
 			.iter()
 			.map(|(ref_index, referenda)| {
 				(*ref_index, convert_rc_to_ah_referendum::<T>(referenda.clone()))
