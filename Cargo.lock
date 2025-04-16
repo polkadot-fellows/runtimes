@@ -1664,7 +1664,6 @@ dependencies = [
 name = "bridge-hub-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
  "bp-bridge-hub-kusama",
  "bp-messages",
  "bridge-hub-kusama-runtime",
@@ -2601,7 +2600,6 @@ dependencies = [
 name = "coretime-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
  "asset-test-utils",
  "coretime-kusama-runtime",
  "cumulus-pallet-parachain-system",
@@ -2711,7 +2709,6 @@ dependencies = [
 name = "coretime-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "coretime-polkadot-runtime",
  "cumulus-pallet-parachain-system",
@@ -9582,7 +9579,6 @@ dependencies = [
 name = "people-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
@@ -9693,7 +9689,6 @@ dependencies = [
 name = "people-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-polkadot-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",

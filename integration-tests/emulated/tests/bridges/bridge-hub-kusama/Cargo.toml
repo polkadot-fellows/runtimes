@@ -39,7 +39,6 @@ pallet-bridge-messages = { workspace = true, default-features = true }
 # Local
 bp-bridge-hub-kusama = { workspace = true, default-features = true }
 bridge-hub-kusama-runtime = { workspace = true }
-asset-hub-kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 kusama-polkadot-system-emulated-network = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
