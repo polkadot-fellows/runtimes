@@ -18,10 +18,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Apply patch for stable2409-6 ([polkadot-fellows/runtimes/pull/623](https://github.com/polkadot-fellows/runtimes/pull/623))
-- Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
-- chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
-  `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
 - Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
   - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
   - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
@@ -29,6 +25,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
   - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
   - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
+
+## [1.4.3] 16.04.2025
+
+### Changed
+
+- Apply patch for stable2409-6 ([polkadot-fellows/runtimes/pull/623](https://github.com/polkadot-fellows/runtimes/pull/623))
+- Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
+- chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
+  `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
+
 
 ## [1.4.2] 07.03.2025
 
