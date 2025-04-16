@@ -17582,10 +17582,10 @@ name = "zombienet-sdk-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "env_logger",
  "log",
  "subxt",
  "tokio",
- "tracing-subscriber",
  "zombienet-sdk",
 ]
 

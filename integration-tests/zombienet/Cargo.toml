@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 subxt = { features = ["native"], workspace = true }
 tokio = { workspace = true }
-tracing-subscriber = { workspace = true }
+env_logger = { workspace = true }
 zombienet-sdk = { workspace = true }
 log = { workspace = true, default-features = true }
 anyhow = { workspace = true }

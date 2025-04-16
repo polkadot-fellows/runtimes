@@ -61,6 +61,7 @@ encointer-balances-tx-payment-rpc-runtime-api = { version = "~15.1.0", default-f
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-primitives = { version = "~15.4.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
+env_logger = { version = "0.10.2" }
 frame-benchmarking = { version = "39.0.0", default-features = false }
 frame-election-provider-support = { version = "39.0.0", default-features = false }
 frame-executive = { version = "39.1.0", default-features = false }

@@ -38,7 +38,9 @@ fn dump_provider_and_versions() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn smoke() -> Result<(), anyhow::Error> {
-	tracing_subscriber::fmt::init();
+	let _ = env_logger::try_init_from_env(
+		env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+	);
 
 	// config and env
 	dump_provider_and_versions();
