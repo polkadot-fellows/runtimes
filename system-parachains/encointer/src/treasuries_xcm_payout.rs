@@ -30,6 +30,7 @@ use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*, v5::Junctions::X2};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
+use crate::xcm_config::KsmLocation;
 
 /// Transfer an asset at asset hub.
 ///
@@ -112,26 +113,28 @@ impl<
 		let query_id =
 			Querier::new_query(asset_location.clone(), Timeout::get(), from_location.interior.clone());
 
+		let fee_asset = fee_asset(4 * ONE_KSM / 10);
+
 		let message = Xcm(vec![
 			// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
 			DescendOrigin(from_location.interior.clone()),
 			// For simplicity, we assume now that the treasury has KSM and pays fees with KSM.
-			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(2 * ONE_KSM / 10) }].into()),
-			PayFees { asset: (asset_id.clone(), 2 * ONE_KSM / 10).into() },
+			WithdrawAsset(vec![fee_asset.clone()].into()),
+			PayFees { asset: fee_asset },
 			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
 			SetAppendix(Xcm(vec![
-				SetFeesMode { jit_withdraw: true },
 				ReportError(QueryResponseInfo {
 					destination: destination.clone(),
 					query_id,
 					max_weight: Weight::zero(),
 				}),
+				RefundSurplus,
+				DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from_at_target }
 			])),
 			TransferAsset {
 				beneficiary,
 				assets: (asset_id, amount).into(),
 			},
-			DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from_at_target },
 		]);
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
@@ -163,6 +166,10 @@ impl<
 	fn ensure_concluded(id: Self::Id) {
 		Querier::expect_response(id, Response::ExecutionResult(None));
 	}
+}
+
+pub fn fee_asset(amount: u128) -> Asset {
+	(KsmLocation::get(), amount).into()
 }
 
 parameter_types! {
