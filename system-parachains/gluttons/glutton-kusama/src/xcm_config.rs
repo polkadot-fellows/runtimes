@@ -29,7 +29,7 @@ use xcm_builder::{
 
 parameter_types! {
 	pub const KusamaLocation: Location = Location::parent();
-	pub const KusamaNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
+	pub const KusamaNetwork: Option<NetworkId> = Some(Kusama);
 	pub UniversalLocation: InteriorLocation = [Parachain(ParachainInfo::parachain_id().into())].into();
 }
 

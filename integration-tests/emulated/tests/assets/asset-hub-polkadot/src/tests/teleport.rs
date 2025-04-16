@@ -88,8 +88,10 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(
 		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
 	);
-	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
+	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let expected_foreign_asset_id: xcm::v4::Location =
+		expected_foreign_asset_id_latest.try_into().unwrap();
 	AssetHubPolkadot::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		AssetHubPolkadot,
@@ -117,8 +119,10 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
-	let (expected_foreign_asset_id, expected_foreign_asset_amount) =
+	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let expected_foreign_asset_id: xcm::v4::Location =
+		expected_foreign_asset_id_latest.try_into().unwrap();
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
@@ -352,9 +356,11 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	)]);
 
 	// Init values for System Parachain
+	let asset_location_on_penpal_v4: xcm::v4::Location =
+		asset_location_on_penpal.clone().try_into().unwrap();
 	let foreign_asset_at_asset_hub_polkadot =
-		Location::new(1, [Junction::Parachain(PenpalB::para_id().into())])
-			.appended_with(asset_location_on_penpal)
+		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalB::para_id().into())])
+			.appended_with(asset_location_on_penpal_v4)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubPolkadotReceiver::get();
 
@@ -452,9 +458,11 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 
 	let ah_to_penpal_beneficiary_id = PenpalBReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let foreign_asset_at_asset_hub_polkadot_latest: Location =
+		foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
-		(foreign_asset_at_asset_hub_polkadot.clone(), asset_amount_to_send).into(),
+		(foreign_asset_at_asset_hub_polkadot_latest.clone(), asset_amount_to_send).into(),
 	]
 	.into();
 	let fee_asset_index = ah_assets

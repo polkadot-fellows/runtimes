@@ -24,7 +24,7 @@ fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
 		ASSET_MIN_BALANCE,
 		true,
 		AssetHubKusamaSender::get(),
-		Some(Weight::from_parts(1_019_445_000, 200_000)),
+		Some(Weight::from_parts(177_260_000, 3_675)),
 	)
 }
 
@@ -36,15 +36,15 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal = v4::Location::new(
+	let asset_location_on_penpal = xcm::v4::Location::new(
 		0,
 		[
-			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v4::Junction::GeneralIndex(ASSET_ID.into()),
+			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	let foreign_asset_at_asset_hub =
-		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
+		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -124,7 +124,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_sufficient_asset() {
 		ASSET_MIN_BALANCE,
 		true,
 		para_sovereign_account.clone(),
-		Some(Weight::from_parts(1_019_445_000, 200_000)),
+		Some(Weight::from_parts(177_260_000, 3_675)),
 		ASSET_MIN_BALANCE * 1000000000,
 	);
 
