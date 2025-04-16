@@ -15,10 +15,10 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
+use cumulus_primitives_core::BlockT;
 use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
 use pallet_scheduler::{IncompleteSince, RetryConfig, TaskAddress};
-use cumulus_primitives_core::BlockT;
 
 // --- Added Log Target Constant ---
 const MIGRATION_CHECK: &str = "migration_check";
@@ -30,58 +30,60 @@ pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, RcSched
 /// Relay Chain `Scheduled` type.
 // From https://github.com/paritytech/polkadot-sdk/blob/f373af0d1c1e296c1b07486dd74710b40089250e/substrate/frame/scheduler/src/lib.rs#L203
 pub type RcScheduledOf<T> =
-    Scheduled<call::BoundedCallOf<T>, BlockNumberFor<T>, <T as Config>::RcPalletsOrigin>;
+	Scheduled<call::BoundedCallOf<T>, BlockNumberFor<T>, <T as Config>::RcPalletsOrigin>;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_receive_scheduler_messages(
-        messages: Vec<RcSchedulerMessageOf<T>>,
-    ) -> Result<(), Error<T>> {
-        log::info!(target: LOG_TARGET, "Processing {} scheduler messages", messages.len());
-        Self::deposit_event(Event::BatchReceived {
-            pallet: PalletEventName::Scheduler,
-            count: messages.len() as u32,
-        });
-        let (mut count_good, mut count_bad) = (0, 0);
+	pub fn do_receive_scheduler_messages(
+		messages: Vec<RcSchedulerMessageOf<T>>,
+	) -> Result<(), Error<T>> {
+		log::info!(target: LOG_TARGET, "Processing {} scheduler messages", messages.len());
+		Self::deposit_event(Event::BatchReceived {
+			pallet: PalletEventName::Scheduler,
+			count: messages.len() as u32,
+		});
+		let (mut count_good, mut count_bad) = (0, 0);
 
-        for message in messages {
-            match Self::do_process_scheduler_message(message) {
-                Ok(()) => count_good += 1,
-                Err(_) => count_bad += 1,
-            }
-        }
+		for message in messages {
+			match Self::do_process_scheduler_message(message) {
+				Ok(()) => count_good += 1,
+				Err(_) => count_bad += 1,
+			}
+		}
 
-        Self::deposit_event(Event::BatchProcessed {
-            pallet: PalletEventName::Scheduler,
-            count_good,
-            count_bad,
-        });
-        log::info!(target: LOG_TARGET, "Processed {} scheduler messages", count_good);
+		Self::deposit_event(Event::BatchProcessed {
+			pallet: PalletEventName::Scheduler,
+			count_good,
+			count_bad,
+		});
+		log::info!(target: LOG_TARGET, "Processed {} scheduler messages", count_good);
 
-        Ok(())
-    }
+		Ok(())
+	}
 
-    fn do_process_scheduler_message(message: RcSchedulerMessageOf<T>) -> Result<(), Error<T>> where <<<T as frame_system::Config>::Block as BlockT>::Header as sp_runtime::traits::Header>::Number: From<u32> {
-        log::debug!(target: LOG_TARGET, "Processing scheduler message: {:?}", message);
+	fn do_process_scheduler_message(message: RcSchedulerMessageOf<T>) -> Result<(), Error<T>> where <<<T as frame_system::Config>::Block as BlockT>::Header as sp_runtime::traits::Header>::Number: From<u32>{
+		log::debug!(target: LOG_TARGET, "Processing scheduler message: {:?}", message);
 
-        match message {
-            RcSchedulerMessage::IncompleteSince(block_number) => {
-                pallet_scheduler::IncompleteSince::<T>::put(block_number);
-            },
-            RcSchedulerMessage::Agenda((block_number, tasks)) => {
-                // --- Added Logs ---
+		match message {
+			RcSchedulerMessage::IncompleteSince(block_number) => {
+				pallet_scheduler::IncompleteSince::<T>::put(block_number);
+			},
+			RcSchedulerMessage::Agenda((block_number, tasks)) => {
+				// --- Added Logs ---
 				let tasks_len = tasks.len();
 				if (tasks_len > 0) {
-                log::debug!(
-                    target: MIGRATION_CHECK,
-                    "[MIGRATION] Processing Agenda for block: {:?}. Initial task count: {}",
-                    block_number,
-                    tasks_len
-                );
-			}
-                // --- End Added Logs ---
-                let mut ah_tasks = Vec::new();
-                for (task_index, task_opt) in tasks.into_iter().enumerate() { // Changed to enumerate
-                    let task = if let Some(task) = task_opt { // Changed variable name
+					log::debug!(
+						target: MIGRATION_CHECK,
+						"[MIGRATION] Processing Agenda for block: {:?}. Initial task count: {}",
+						block_number,
+						tasks_len
+					);
+				}
+				// --- End Added Logs ---
+				let mut ah_tasks = Vec::new();
+				for (task_index, task_opt) in tasks.into_iter().enumerate() {
+					// Changed to enumerate
+					let task = if let Some(task) = task_opt {
+						// Changed variable name
 
 						if (block_number == 20815168.into()) {
 							log::debug!(
@@ -92,123 +94,123 @@ impl<T: Config> Pallet<T> {
 							);
 						}
 
-                        let origin = match T::RcToAhPalletsOrigin::try_convert(task.origin.clone())
-                        {
-                            Ok(origin) => origin,
-                            Err(_) => {
-                                // --- Added Logs ---
+						let origin = match T::RcToAhPalletsOrigin::try_convert(task.origin.clone())
+						{
+							Ok(origin) => origin,
+							Err(_) => {
+								// --- Added Logs ---
 								if (tasks_len > 0) {
-                                log::debug!(
-                                    target: MIGRATION_CHECK,
-                                    "[MIGRATION] Block {:?}, Task Index {}: Origin conversion failed: {:?}",
-                                    block_number,
-                                    task_index,
-                                    task.origin
-                                );
+									log::debug!(
+										target: MIGRATION_CHECK,
+										"[MIGRATION] Block {:?}, Task Index {}: Origin conversion failed: {:?}",
+										block_number,
+										task_index,
+										task.origin
+									);
+								}
+								// --- End Added Logs ---
+								// we map all existing cases and do not expect this to happen.
+								defensive!(
+									"Failed to convert scheduler call origin: {:?}",
+									task.origin
+								);
+								continue;
+							},
+						};
+						let call = if let Ok(call) = Self::map_rc_ah_call(&task.call) {
+							call
+						} else {
+							// --- Added Logs ---
+							if (tasks_len > 0) {
+								log::debug!(
+									target: MIGRATION_CHECK,
+									"[MIGRATION] Block {:?}, Task Index {}: Call conversion failed.",
+									block_number,
+									task_index
+								);
 							}
-                                // --- End Added Logs ---
-                                // we map all existing cases and do not expect this to happen.
-                                defensive!(
-                                    "Failed to convert scheduler call origin: {:?}",
-                                    task.origin
-                                );
-                                continue;
-                            },
-                        };
-                        let call = if let Ok(call) = Self::map_rc_ah_call(&task.call) {
-                            call
-                        } else {
-                             // --- Added Logs ---
-							 if (tasks_len > 0) {
-                             log::debug!(
-                                target: MIGRATION_CHECK,
-                                "[MIGRATION] Block {:?}, Task Index {}: Call conversion failed.",
-                                block_number,
-                                task_index
-                            );
-						}
-                            // --- End Added Logs ---
-                            log::error!(
-                                target: LOG_TARGET,
-                                "Failed to convert RC call to AH call for task at block number {:?}",
-                                block_number
-                            );
-                            continue;
-                        };
+							// --- End Added Logs ---
+							log::error!(
+								target: LOG_TARGET,
+								"Failed to convert RC call to AH call for task at block number {:?}",
+								block_number
+							);
+							continue;
+						};
 
-                        let task = Scheduled {
-                            maybe_id: task.maybe_id,
-                            priority: task.priority,
-                            call,
-                            maybe_periodic: task.maybe_periodic,
-                            origin,
-                        };
-                        Some(task)
-                    } else {
-                        // skip empty tasks
-                        // --- Added Logs ---
+						let task = Scheduled {
+							maybe_id: task.maybe_id,
+							priority: task.priority,
+							call,
+							maybe_periodic: task.maybe_periodic,
+							origin,
+						};
+						Some(task)
+					} else {
+						// skip empty tasks
+						// --- Added Logs ---
 						if (tasks_len > 0) {
-                        log::debug!(
-                            target: MIGRATION_CHECK,
-                            "[MIGRATION] Block {:?}, Task Index {}: Skipped None task.",
-                            block_number,
-                            task_index
-                        );
-					}
-                        // --- End Added Logs ---
-                        continue;
-                    };
-                    ah_tasks.push(task);
-                }
-                // --- Added Logs ---
+							log::debug!(
+								target: MIGRATION_CHECK,
+								"[MIGRATION] Block {:?}, Task Index {}: Skipped None task.",
+								block_number,
+								task_index
+							);
+						}
+						// --- End Added Logs ---
+						continue;
+					};
+					ah_tasks.push(task);
+				}
+				// --- Added Logs ---
 				if (tasks_len > 0) {
-                log::debug!(
-                    target: MIGRATION_CHECK,
-                    "[MIGRATION] Block {:?}: Finished processing tasks. Final converted count: {}",
-                    block_number,
-                    ah_tasks.len()
-                );
-			}
-                // --- End Added Logs ---
-                if ah_tasks.len() > 0 {
-                     // --- Added Logs ---
-					 if (tasks_len > 0) {
-                     log::info!(
-                        target: MIGRATION_CHECK,
-                        "[MIGRATION] Block {:?}: Inserting agenda with {} tasks.",
-                        block_number,
-                        ah_tasks.len()
-                    );
+					log::debug!(
+						target: MIGRATION_CHECK,
+						"[MIGRATION] Block {:?}: Finished processing tasks. Final converted count: {}",
+						block_number,
+						ah_tasks.len()
+					);
 				}
-                    // --- End Added Logs ---
-                    let ah_tasks =
-                        BoundedVec::<_, T::MaxScheduledPerBlock>::defensive_truncate_from(ah_tasks);
-                    pallet_rc_migrator::scheduler::alias::Agenda::<T>::insert(
-                        block_number,
-                        ah_tasks,
-                    );
-                } else {
-                     // --- Added Logs ---
-					 if (tasks_len > 0) {
-                     log::info!(
-                        target: MIGRATION_CHECK,
-                        "[MIGRATION] Block {:?}: Not inserting agenda (0 converted tasks).",
-                        block_number
-                    );
+				// --- End Added Logs ---
+				if ah_tasks.len() > 0 {
+					// --- Added Logs ---
+					if (tasks_len > 0) {
+						log::info!(
+							target: MIGRATION_CHECK,
+							"[MIGRATION] Block {:?}: Inserting agenda with {} tasks.",
+							block_number,
+							ah_tasks.len()
+						);
+					}
+					// --- End Added Logs ---
+					let ah_tasks =
+						BoundedVec::<_, T::MaxScheduledPerBlock>::defensive_truncate_from(ah_tasks);
+					pallet_rc_migrator::scheduler::alias::Agenda::<T>::insert(
+						block_number,
+						ah_tasks,
+					);
+				} else {
+					// --- Added Logs ---
+					if (tasks_len > 0) {
+						log::info!(
+							target: MIGRATION_CHECK,
+							"[MIGRATION] Block {:?}: Not inserting agenda (0 converted tasks).",
+							block_number
+						);
+					}
+					// --- End Added Logs ---
 				}
-                    // --- End Added Logs ---
-                }
-            },
-            RcSchedulerMessage::Retries((task_address, retry_config)) => {
-                pallet_scheduler::Retries::<T>::insert(task_address, retry_config);
-            },
-            RcSchedulerMessage::Lookup((task_name, task_address)) => {
-                pallet_rc_migrator::scheduler::alias::Lookup::<T>::insert(task_name, task_address);
-            },
-        }
+			},
+			RcSchedulerMessage::Retries((task_address, retry_config)) => {
+				pallet_scheduler::Retries::<T>::insert(task_address, retry_config);
+			},
+			RcSchedulerMessage::Lookup((task_name, task_address)) => {
+				pallet_rc_migrator::scheduler::alias::Lookup::<T>::insert(task_name, task_address);
+			},
+		}
 
-        Ok(())
-    }
+		Ok(())
+	}
 }
 
 // (IncompleteSince, Agenda, Retries, Lookup)
@@ -222,65 +224,67 @@ pub struct RcPrePayload<T: Config> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
-    type RcPrePayload = Vec<u8>;
-    type AhPrePayload = ();
+	type RcPrePayload = Vec<u8>;
+	type AhPrePayload = ();
 
-    fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
-        // Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
-        assert!(
-            pallet_scheduler::IncompleteSince::<T>::get().is_none(),
-            "IncompleteSince should be empty on asset hub before migration"
-        );
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Assert storage 'Scheduler::IncompleteSince::ah_pre::empty'
+		assert!(
+			pallet_scheduler::IncompleteSince::<T>::get().is_none(),
+			"IncompleteSince should be empty on asset hub before migration"
+		);
 
-        // Assert storage 'Scheduler::Agenda::ah_pre::empty'
-        assert!(
-            pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().next().is_none(),
-            "Agenda map should be empty on asset hub before migration"
-        );
+		// Assert storage 'Scheduler::Agenda::ah_pre::empty'
+		assert!(
+			pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter().next().is_none(),
+			"Agenda map should be empty on asset hub before migration"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_pre::empty'
-        assert!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().next().is_none(),
-            "Lookup map should be empty on asset hub before migration"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_pre::empty'
+		assert!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().next().is_none(),
+			"Lookup map should be empty on asset hub before migration"
+		);
 
-        // Assert storage 'Scheduler::Retries::ah_pre::empty'
-        assert!(
-            pallet_scheduler::Retries::<T>::iter().next().is_none(),
-            "Retries map should be empty on asset hub before migration"
-        );
-    }
+		// Assert storage 'Scheduler::Retries::ah_pre::empty'
+		assert!(
+			pallet_scheduler::Retries::<T>::iter().next().is_none(),
+			"Retries map should be empty on asset hub before migration"
+		);
+	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) where <<<T as frame_system::Config>::Block as BlockT>::Header as sp_runtime::traits::Header>::Number: From<u32> {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) where <<<T as frame_system::Config>::Block as BlockT>::Header as sp_runtime::traits::Header>::Number: From<u32>{
 		let rc_payload = RcPrePayload::<T>::decode(&mut &rc_pre_payload[..])
-		.expect("Failed to decode RcPrePayload buytes");
+			.expect("Failed to decode RcPrePayload buytes");
 
-        // Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
-        assert_eq!(
-            pallet_scheduler::IncompleteSince::<T>::get(),
-            rc_payload.incomplete_since,
-            "IncompleteSince on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
+		assert_eq!(
+			pallet_scheduler::IncompleteSince::<T>::get(),
+			rc_payload.incomplete_since,
+			"IncompleteSince on Asset Hub should match the RC value"
+		);
 
-        // Mirror the Agenda conversion in `do_process_scheduler_message` above.
-        let mut expected_ah_agenda: Vec<_> = rc_payload.agenda // Made mutable for sorting later
-            .clone()
-            .into_iter()
-            .filter_map(|(block_number, rc_tasks)| {
+		// Mirror the Agenda conversion in `do_process_scheduler_message` above.
+		let mut expected_ah_agenda: Vec<_> = rc_payload
+			.agenda // Made mutable for sorting later
+			.clone()
+			.into_iter()
+			.filter_map(|(block_number, rc_tasks)| {
 				let rc_tasks_len = rc_tasks.len();
 				if (rc_tasks_len > 0) {
-                 // --- Added Logs ---
-                 log::debug!(
-                    target: MIGRATION_CHECK,
-                    "[POST_CHECK] Processing Agenda for block: {:?}. Initial task count: {}",
-                    block_number,
-                    rc_tasks.len()
-                );
-			}
-                // --- End Added Logs ---
-                let mut ah_tasks = Vec::new();
-                for (task_index, rc_task_opt) in rc_tasks.into_iter().enumerate() { // Changed to enumerate
-                    if let Some(rc_task) = rc_task_opt {
+					// --- Added Logs ---
+					log::debug!(
+						target: MIGRATION_CHECK,
+						"[POST_CHECK] Processing Agenda for block: {:?}. Initial task count: {}",
+						block_number,
+						rc_tasks.len()
+					);
+				}
+				// --- End Added Logs ---
+				let mut ah_tasks = Vec::new();
+				for (task_index, rc_task_opt) in rc_tasks.into_iter().enumerate() {
+					// Changed to enumerate
+					if let Some(rc_task) = rc_task_opt {
 						if (block_number == 20815168.into()) {
 							log::debug!(
 								target: MIGRATION_CHECK,
@@ -290,160 +294,186 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							);
 						}
 
-                        // Attempt to convert origin
-                        let ah_origin =
-                            match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
-                                Ok(origin) => origin,
-                                Err(_) => {
-                                    // --- Added Logs ---
+						// Attempt to convert origin
+						let ah_origin =
+							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
+								Ok(origin) => origin,
+								Err(_) => {
+									// --- Added Logs ---
 									if (rc_tasks_len > 0) {
-                                    log::debug!(
-                                        target: MIGRATION_CHECK,
-                                        "[POST_CHECK] Block {:?}, Task Index {}: Origin conversion failed: {:?}",
-                                        block_number,
-                                        task_index,
-                                        rc_task.origin
-                                    );
-								}
-                                    // --- End Added Logs ---
-                                    // Origin conversion failed, skip task.
-                                    continue;
-                                },
-                            };
-                        // Attempt to convert call
-                        let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
-                            call
-                        } else {
-                            // --- Added Logs ---
+										log::debug!(
+											target: MIGRATION_CHECK,
+											"[POST_CHECK] Block {:?}, Task Index {}: Origin conversion failed: {:?}",
+											block_number,
+											task_index,
+											rc_task.origin
+										);
+									}
+									// --- End Added Logs ---
+									// Origin conversion failed, skip task.
+									continue;
+								},
+							};
+						// Attempt to convert call
+						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
+							call
+						} else {
+							// --- Added Logs ---
 							if (rc_tasks_len > 0) {
-                            log::debug!(
-                                target: MIGRATION_CHECK,
-                                "[POST_CHECK] Block {:?}, Task Index {}: Call conversion failed.",
-                                block_number,
-                                task_index
-                            );
-						}
-                            // --- End Added Logs ---
-                            // Call conversion failed, skip task.
-                            continue;
-                        };
+								log::debug!(
+									target: MIGRATION_CHECK,
+									"[POST_CHECK] Block {:?}, Task Index {}: Call conversion failed.",
+									block_number,
+									task_index
+								);
+							}
+							// --- End Added Logs ---
+							// Call conversion failed, skip task.
+							continue;
+						};
 
-                        let ah_task = Scheduled {
-                            maybe_id: rc_task.maybe_id,
-                            priority: rc_task.priority,
-                            call: ah_call,
-                            maybe_periodic: rc_task.maybe_periodic,
-                            origin: ah_origin,
-                        };
-                        ah_tasks.push(Some(ah_task));
-                    } else {
-                        // Empty task, skip.
-                         // --- Added Logs ---
-						 if (rc_tasks_len > 0) {
-                         log::debug!(
-                            target: MIGRATION_CHECK,
-                            "[POST_CHECK] Block {:?}, Task Index {}: Skipped None task.",
-                            block_number,
-                            task_index
-                        );
+						let ah_task = Scheduled {
+							maybe_id: rc_task.maybe_id,
+							priority: rc_task.priority,
+							call: ah_call,
+							maybe_periodic: rc_task.maybe_periodic,
+							origin: ah_origin,
+						};
+						ah_tasks.push(Some(ah_task));
+					} else {
+						// Empty task, skip.
+						// --- Added Logs ---
+						if (rc_tasks_len > 0) {
+							log::debug!(
+								target: MIGRATION_CHECK,
+								"[POST_CHECK] Block {:?}, Task Index {}: Skipped None task.",
+								block_number,
+								task_index
+							);
+						}
+						// --- End Added Logs ---
 					}
-                        // --- End Added Logs ---
-                    }
-                }
-                 // --- Added Logs ---
-				 if (rc_tasks_len > 0) {
-                 log::debug!(
-                    target: MIGRATION_CHECK,
-                    "[POST_CHECK] Block {:?}: Finished processing tasks. Final converted count: {}",
-                    block_number,
-                    ah_tasks.len()
-                );
-			}
-                // --- End Added Logs ---
-                // Filter out blocks that end up with no valid tasks after conversion
-                if !ah_tasks.is_empty() {
-                    // --- Added Logs ---
-					if (rc_tasks_len > 0) {
-                    log::info!(
-                        target: MIGRATION_CHECK,
-                        "[POST_CHECK] Block {:?}: Including in expected agenda ({} tasks).",
-                        block_number,
-                        ah_tasks.len()
-                    );
 				}
-                    // --- End Added Logs ---
-                    Some((block_number, ah_tasks))
-                } else {
-                    // --- Added Logs ---
-					if (rc_tasks_len > 0) {
-                    log::info!(
-                        target: MIGRATION_CHECK,
-                        "[POST_CHECK] Block {:?}: Filtering out (0 converted tasks).",
-                        block_number
-                    );
+				// --- Added Logs ---
+				if (rc_tasks_len > 0) {
+					log::debug!(
+						target: MIGRATION_CHECK,
+						"[POST_CHECK] Block {:?}: Finished processing tasks. Final converted count: {}",
+						block_number,
+						ah_tasks.len()
+					);
 				}
-                    // --- End Added Logs ---
-                    None
-                }
-            })
-            .collect();
+				// --- End Added Logs ---
+				// Filter out blocks that end up with no valid tasks after conversion
+				if !ah_tasks.is_empty() {
+					// --- Added Logs ---
+					if (rc_tasks_len > 0) {
+						log::info!(
+							target: MIGRATION_CHECK,
+							"[POST_CHECK] Block {:?}: Including in expected agenda ({} tasks).",
+							block_number,
+							ah_tasks.len()
+						);
+					}
+					// --- End Added Logs ---
+					Some((block_number, ah_tasks))
+				} else {
+					// --- Added Logs ---
+					if (rc_tasks_len > 0) {
+						log::info!(
+							target: MIGRATION_CHECK,
+							"[POST_CHECK] Block {:?}: Filtering out (0 converted tasks).",
+							block_number
+						);
+					}
+					// --- End Added Logs ---
+					None
+				}
+			})
+			.collect();
 
 		let mut ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
-		.map(|(bn, tasks)| (bn, tasks.into_inner()))
-		.collect();
+			.map(|(bn, tasks)| (bn, tasks.into_inner()))
+			.collect();
 
-        // --- Added Logs ---
-        log::info!(target: MIGRATION_CHECK, "[SUMMARY] Actual AH Agenda length: {}", ah_agenda.len());
-        log::info!(target: MIGRATION_CHECK, "[SUMMARY] Expected AH Agenda length: {}", expected_ah_agenda.len());
-        // --- End Added Logs ---
+		// --- Added Logs ---
+		log::info!(target: MIGRATION_CHECK, "[SUMMARY] Actual AH Agenda length: {}", ah_agenda.len());
+		log::info!(target: MIGRATION_CHECK, "[SUMMARY] Expected AH Agenda length: {}", expected_ah_agenda.len());
+		// --- End Added Logs ---
 
+		// Assert storage 'Scheduler::Agenda::ah_post::length'
+		assert_eq!(
+			ah_agenda.len(),
+			expected_ah_agenda.len(),
+			"Agenda map length on Asset Hub should match converted RC value" /* Original assertion message */
+		);
 
-        // Assert storage 'Scheduler::Agenda::ah_post::length'
-        assert_eq!(
-            ah_agenda.len(),
-            expected_ah_agenda.len(),
-            "Agenda map length on Asset Hub should match converted RC value" // Original assertion message
-        );
+		// Sort. Ensures comparison ignores iteration order differences.
+		ah_agenda.sort_by_key(|(index, _)| *index);
+		expected_ah_agenda.sort_by_key(|(index, _)| *index);
 
-        // Sort. Ensures comparison ignores iteration order differences.
-        ah_agenda.sort_by_key(|(index, _)| *index);
-        expected_ah_agenda.sort_by_key(|(index, _)| *index);
+		// Assert storage 'Scheduler::Agenda::ah_post::correct'
+		// This assertion might still fail if the *content* of the tasks differs,
+		// even if the lengths match after the fix.
+		assert_eq!(
+			ah_agenda, expected_ah_agenda,
+			"Agenda map value on Asset Hub should match the converted RC value"
+		);
 
-        // Assert storage 'Scheduler::Agenda::ah_post::correct'
-        // This assertion might still fail if the *content* of the tasks differs,
-        // even if the lengths match after the fix.
-        assert_eq!(
-            ah_agenda,
-            expected_ah_agenda,
-            "Agenda map value on Asset Hub should match the converted RC value"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_post::length'
+		assert_eq!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().count(),
+			rc_payload.lookup.len(),
+			"Lookup map length on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_post::length'
-        assert_eq!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().count(),
-            rc_payload.lookup.len(),
-            "Lookup map length on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Lookup::ah_post::correct'
+		assert_eq!(
+			pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().collect::<Vec<_>>(),
+			rc_payload.lookup,
+			"Lookup map value on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Lookup::ah_post::correct'
-        assert_eq!(
-            pallet_rc_migrator::scheduler::alias::Lookup::<T>::iter().collect::<Vec<_>>(),
-            rc_payload.lookup,
-            "Lookup map value on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Retries::ah_post::length'
+		assert_eq!(
+			pallet_scheduler::Retries::<T>::iter().count(),
+			rc_payload.retries.len(),
+			"Retries map length on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Retries::ah_post::length'
-        assert_eq!(
-            pallet_scheduler::Retries::<T>::iter().count(),
-            rc_payload.retries.len(),
-            "Retries map length on Asset Hub should match the RC value"
-        );
+		// Assert storage 'Scheduler::Retries::ah_post::correct'
+		assert_eq!(
+			pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
+			rc_payload.retries,
+			"Retries map value on Asset Hub should match the RC value"
+		);
 
-        // Assert storage 'Scheduler::Retries::ah_post::correct'
-        assert_eq!(
-            pallet_scheduler::Retries::<T>::iter().collect::<Vec<_>>(),
-            rc_payload.retries,
-            "Retries map value on Asset Hub should match the RC value"
-        );
-    }
+		Scheduled {
+			maybe_id: Some([
+				151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
+				198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
+			]),
+			priority: 63,
+			call: Bounded::Lookup {
+				hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
+				len: 42,
+			},
+			maybe_periodic: None,
+			origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
+		};
+
+		Scheduled {
+			maybe_id: Some([
+				151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
+				198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
+			]),
+			priority: 63,
+			call: Bounded::Lookup {
+				hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
+				len: 42,
+			},
+			maybe_periodic: None,
+			origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
+		}
+	}
 }
