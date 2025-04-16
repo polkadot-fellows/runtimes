@@ -1888,7 +1888,7 @@ mod benches {
 		}
 		fn worst_case_holding(_depositable_count: u32) -> Assets {
 			// Polkadot only knows about DOT
-			vec![Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000 * UNITS) }]
+			vec![Asset { id: AssetId(TokenLocation::get()), fun: Fungible(1_000_000_000_000 * UNITS) }]
 				.into()
 		}
 	}
