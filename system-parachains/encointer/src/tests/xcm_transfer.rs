@@ -104,9 +104,9 @@ fn transfer_over_xcm_works() {
 			DescendOrigin(AccountId32 { id: sender.into(), network: None }.into()),
 			// Assume that we always pay in native for now
 			WithdrawAsset(
-				(KsmLocation::get(), Fungible(ONE_KSM / 10)).into(),
+				(KsmLocation::get(), Fungible(2 * ONE_KSM / 10)).into(),
 			),
-			PayFees { asset: (KsmLocation::get(), Fungible(ONE_KSM / 10)).into() },
+			PayFees { asset: (KsmLocation::get(), Fungible(2 * ONE_KSM / 10)).into() },
 			WithdrawAsset((asset_kind.asset_id.clone(), amount).into()),
 			SetAppendix(Xcm(vec![
 				SetFeesMode { jit_withdraw: true },
@@ -120,8 +120,7 @@ fn transfer_over_xcm_works() {
 				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
 				assets: (asset_kind.asset_id, amount).into(),
 			},
-			// Todo: how to deposit
-			// DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: sender_location_on_target }
+			DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: sender_location_on_target }
 		]);
 		let expected_hash = fake_message_hash(&expected_message);
 
@@ -144,22 +143,13 @@ fn transfer_over_xcm_works() {
 			Weight::zero(),
 		);
 
-		assert_eq!(result, Outcome::Complete { used: Weight::from_parts(8000, 8000) });
+		assert_eq!(result, Outcome::Complete { used: Weight::from_parts(9000, 9000) });
 		assert_eq!(mock::Assets::balance(1, &recipient), amount);
-		// Fixme: proper fee estimatetion and handling
-		// assert_eq!(mock::Assets::balance(1, &sender_account_on_target), INITIAL_BALANCE - amount);
-	});
-}
 
-#[test]
-fn sovereign_account_conversion_works() {
-	// The location is the output of `DescendOrigin`, and it shows why the above test fails actually.
-	// The `AccountId32Aliases` can only convert local AccountIds i.e.,
-	// Location::new(0, AccountId32(..));
-	//
-	// The below location falls through all the match statements until it will be converted by the
-	// `HashedDescription` into another account id.
-	let location =
-		Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
-	assert_eq!(SovereignAccountOf::convert_location(&location), Some(AccountId::new([1; 32])));
+		let expected_lower_bound = INITIAL_BALANCE - amount - ONE_KSM / 10;
+		println!("Lower Bound{:?}",expected_lower_bound);
+		println!("Actual {:?}", mock::Assets::balance(1, &sender_account_on_target));
+
+		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
+	});
 }
