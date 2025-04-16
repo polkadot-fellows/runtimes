@@ -511,7 +511,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Broker(pallet_broker::Call::drop_region { .. }) |
 					RuntimeCall::Broker(pallet_broker::Call::drop_contribution { .. }) |
 					RuntimeCall::Broker(pallet_broker::Call::drop_history { .. }) |
-					RuntimeCall::Broker(pallet_broker::Call::drop_renewal { .. }) |
+					RuntimeCall::Broker(pallet_broker::Call::drop_renewal { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
