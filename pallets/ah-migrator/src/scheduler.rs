@@ -125,6 +125,7 @@ impl<T: Config> Pallet<T> {
 }
 
 // (IncompleteSince, Agenda, Retries, Lookup)
+#[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	incomplete_since: Option<BlockNumberFor<T>>,
 	agenda: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
@@ -164,7 +165,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-		let rc_payload = <RcPrePayload<T>>::decode(&mut &rc_pre_payload[..])
+		let rc_payload = RcPrePayload::<T>::decode(&mut &rc_pre_payload[..])
 		.expect("Failed to decode RcPrePayload buytes");
 
 		// Assert storage 'Scheduler::IncompleteSince::ah_post::correct'
@@ -175,7 +176,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		);
 	
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above.
-		let expected_ah_agenda: Vec<_> = rc_payload.agenda
+		let mut expected_ah_agenda: Vec<_> = rc_payload.agenda
 			.clone()
 			.into_iter()
 			.filter_map(|(block_number, rc_tasks)| {
@@ -220,7 +221,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			})
 			.collect();
 
-		let ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
+		let mut ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
 		.map(|(bn, tasks)| (bn, tasks.into_inner()))
 		.collect();
 
