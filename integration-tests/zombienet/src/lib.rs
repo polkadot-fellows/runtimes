@@ -1,8 +1,6 @@
 use anyhow::anyhow;
 use zombienet_sdk::{NetworkConfig, NetworkConfigBuilder};
 
-pub mod environment;
-
 pub type Error = Box<dyn std::error::Error>;
 
 // Chain generator command template
@@ -15,7 +13,7 @@ const BOB: &str = "bob";
 const COLLATOR: &str = "collator";
 
 pub fn small_network() -> Result<NetworkConfig, Error> {
-	let images = environment::get_images_from_env();
+	let images = zombienet_sdk::environment::get_images_from_env();
 	let config = NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("polkadot-local")

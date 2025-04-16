@@ -1,16 +1,21 @@
 use std::time::Instant;
 use subxt::{ext::futures::StreamExt, OnlineClient, PolkadotConfig};
-use zombienet_sdk_tests::{
-	environment::{get_images_from_env, get_provider_from_env, get_spawn_fn, Provider},
-	small_network,
-};
+use zombienet_sdk_tests::small_network;
 
 fn dump_provider_and_versions() {
-	let provider = get_provider_from_env();
-	log::info!("Using zombienet provider: {:?}", provider);
+	use zombienet_sdk::environment::Provider;
+	let provider = zombienet_sdk::environment::get_provider_from_env();
+	log::info!(
+		"Using zombienet provider: {:?}",
+		match provider {
+			Provider::Native => "Native",
+			Provider::K8s => "K8s",
+			Provider::Docker => "Docker",
+		}
+	);
 
 	if let Provider::Docker = provider {
-		let images = get_images_from_env();
+		let images = zombienet_sdk::environment::get_images_from_env();
 
 		for image in [images.polkadot, images.cumulus] {
 			let output = std::process::Command::new("docker")
@@ -37,7 +42,7 @@ async fn smoke() -> Result<(), anyhow::Error> {
 
 	// config and env
 	dump_provider_and_versions();
-	let spawn_fn = get_spawn_fn();
+	let spawn_fn = zombienet_sdk::environment::get_spawn_fn();
 	let config = small_network().unwrap();
 
 	// spawn
