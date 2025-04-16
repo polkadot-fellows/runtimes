@@ -64,7 +64,7 @@ macro_rules! test_relay_is_trusted_teleporter {
 
 					// verify sane weight for a call
 					let max_weight_with_margin_for_error = (Weight::MAX.ref_time() / 100) * 90; // assume up to 90% of max weight
-					assert!(call.get_dispatch_info().weight.ref_time() < max_weight_with_margin_for_error);
+					assert!(call.get_dispatch_info().call_weight.ref_time() < max_weight_with_margin_for_error);
 
 					let mut delivery_fees_amount = 0;
 					let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
@@ -206,7 +206,7 @@ macro_rules! test_parachain_is_trusted_teleporter_for_relay {
 
 			// verify sane weight for a call
 			let max_weight_with_margin_for_error = (Weight::MAX.ref_time() / 100) * 90; // assume up to 90% of max weight
-			assert!(call.get_dispatch_info().weight.ref_time() < max_weight_with_margin_for_error);
+			assert!(call.get_dispatch_info().call_weight.ref_time() < max_weight_with_margin_for_error);
 
 			// These will be filled in the closure.
 			let mut delivery_fees_amount = 0;
@@ -350,7 +350,7 @@ macro_rules! test_parachain_is_trusted_teleporter {
 					});
 
 					let max_weight_with_margin_for_error = (Weight::MAX.ref_time() / 100) * 90; // assume up to 90% of max weight
-					assert!(call.get_dispatch_info().weight.ref_time() < max_weight_with_margin_for_error);
+					assert!(call.get_dispatch_info().call_weight.ref_time() < max_weight_with_margin_for_error);
 
 					let mut delivery_fees_amount = 0;
 					let mut remote_message = VersionedXcm::from(Xcm(Vec::new()));
