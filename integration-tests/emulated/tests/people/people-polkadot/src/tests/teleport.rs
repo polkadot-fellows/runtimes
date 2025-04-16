@@ -74,7 +74,7 @@ fn teleport_via_limited_teleport_assets_from_and_to_relay() {
 }
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
+fn teleport_via_limited_teleport_assets_to_other_system_parachains_works() {
 	let amount = POLKADOT_ED * 100;
 	let native_asset: Assets = (Parent, amount).into();
 
@@ -82,7 +82,22 @@ fn teleport_to_other_system_parachains_works() {
 		PeoplePolkadot,
 		PeoplePolkadotXcmConfig,
 		vec![AssetHubPolkadot],
-		(native_asset, amount)
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_to_other_system_parachains_works() {
+	let amount = POLKADOT_ED * 100;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeoplePolkadot,
+		PeoplePolkadotXcmConfig,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		transfer_assets
 	);
 }
 
