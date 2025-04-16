@@ -1909,7 +1909,12 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(UNITS) }
+			// We put more than ED here for being able to keep accounts alive when transferring
+			// and paying the delivery fees.
+			Asset {
+				id: AssetId(TokenLocation::get()),
+				fun: Fungible(1_000_000 * ExistentialDeposit::get()),
+			}
 		}
 	}
 
