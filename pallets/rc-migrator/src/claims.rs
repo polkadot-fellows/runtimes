@@ -222,3 +222,63 @@ pub mod alias {
 		(BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>),
 	>;
 }
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for ClaimsMigrator<T> {
+	type RcPrePayload = Vec<RcClaimsMessageOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut messages = Vec::new();
+
+		// Collect StorageValues
+		let total = pallet_claims::Total::<T>::get();
+		messages.push(RcClaimsMessage::StorageValues { total });
+
+		// Collect Claims
+		for (address, amount) in alias::Claims::<T>::iter() {
+			messages.push(RcClaimsMessage::Claims((address, amount)));
+		}
+
+		// Collect Vesting
+		for (address, schedule) in alias::Vesting::<T>::iter() {
+			messages.push(RcClaimsMessage::Vesting { who: address, schedule });
+		}
+
+		// Collect Signing
+		for (address, statement) in alias::Signing::<T>::iter() {
+			messages.push(RcClaimsMessage::Signing((address, statement)));
+		}
+
+		// Collect Preclaims
+		for (account_id, address) in alias::Preclaims::<T>::iter() {
+			messages.push(RcClaimsMessage::Preclaims((account_id, address)));
+		}
+
+		messages
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		assert!(
+			!pallet_claims::Total::<T>::exists(),
+			"Claims total should be empty after migration"
+		);
+		assert!(
+			alias::Claims::<T>::iter().next().is_none(),
+			"Claims should be empty after migration"
+		);
+		assert!(
+			alias::Vesting::<T>::iter().next().is_none(),
+			"Vesting should be empty after migration"
+		);
+		assert!(
+			alias::Signing::<T>::iter().next().is_none(),
+			"Signing should be empty after migration"
+		);
+		assert!(
+			alias::Preclaims::<T>::iter().next().is_none(),
+			"Preclaims should be empty after migration"
+		);
+
+		log::info!("All claims data successfully migrated and cleared from the Relay Chain.");
+	}
+}

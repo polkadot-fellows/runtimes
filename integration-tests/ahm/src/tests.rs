@@ -79,6 +79,8 @@ type RcChecks = (
 pub type RcPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -107,6 +109,8 @@ type AhChecks = (
 pub type AhPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
