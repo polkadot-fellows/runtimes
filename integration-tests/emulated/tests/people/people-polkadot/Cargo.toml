@@ -31,7 +31,6 @@ asset-test-utils = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 
 # Local
-asset-hub-polkadot-runtime = { workspace = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
