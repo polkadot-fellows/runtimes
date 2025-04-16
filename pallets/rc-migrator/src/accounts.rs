@@ -317,9 +317,12 @@ impl<T: Config> AccountsMigrator<T> {
 
 		log::debug!(
 			target: LOG_TARGET,
-			"Migrating account '{}'",
+			"Migrating account '{}', account info: {:?}",
 			who.to_ss58check(),
+			account_info,
 		);
+
+		let _ = pallet_balances::Pallet::<T>::ensure_upgraded(&who);
 
 		// migrate the target account:
 		// - keep `balance`, `holds`, `freezes`, .. in memory
