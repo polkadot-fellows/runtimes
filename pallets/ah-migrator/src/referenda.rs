@@ -471,8 +471,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			"ReferendumInfoFor length on AH post migration should match the RC length post conversion"
 		);
 
-		// Unsure if order is guaranteed due to insertion then collection vs in place updating
-		// in the reconstruction so sorting just in case.
+		// Ensure no ordering issues between original and reconstruction.
 		current_ah_referenda.sort_by_key(|(index, _)| *index);
 		expected_ah_referenda.sort_by_key(|(index, _)| *index);
 
