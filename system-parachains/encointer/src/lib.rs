@@ -615,9 +615,8 @@ pub mod benchmarks_helper {
 	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
 		PhantomData<(Parents, ParaId)>,
 	);
-	impl<Parents: Get<u8>, ParaId: Get<u32>>
-	TreasuryArgumentsFactory<VersionedLocatableAsset>
-	for TreasuryArguments<Parents, ParaId>
+	impl<Parents: Get<u8>, ParaId: Get<u32>> TreasuryArgumentsFactory<VersionedLocatableAsset>
+		for TreasuryArguments<Parents, ParaId>
 	{
 		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
 			(
@@ -1404,7 +1403,7 @@ impl_runtime_apis! {
 			list_benchmarks!(list, extra);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
-			return (list, storage_info)
+			(list, storage_info)
 		}
 
 		fn dispatch_benchmark(

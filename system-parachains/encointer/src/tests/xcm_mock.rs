@@ -112,10 +112,10 @@ impl GetDispatchInfo for TestCall {
 }
 
 thread_local! {
-	pub static SENT_XCM: RefCell<Vec<(Location, Xcm<()>, XcmHash)>> = RefCell::new(Vec::new());
+	pub static SENT_XCM: RefCell<Vec<(Location, Xcm<()>, XcmHash)>> = const { RefCell::new(Vec::new()) };
 	pub static EXPORTED_XCM: RefCell<
 		Vec<(NetworkId, u32, InteriorLocation, InteriorLocation, Xcm<()>, XcmHash)>
-	> = RefCell::new(Vec::new());
+	> = const { RefCell::new(Vec::new()) };
 	pub static EXPORTER_OVERRIDE: RefCell<Option<(
 		fn(
 			NetworkId,
@@ -133,7 +133,7 @@ thread_local! {
 		) -> Result<XcmHash, SendError>,
 	)>> = RefCell::new(None);
 	pub static SEND_PRICE: RefCell<Assets> = RefCell::new(Assets::new());
-	pub static SUSPENDED: Cell<bool> = Cell::new(false);
+	pub static SUSPENDED: Cell<bool> = const { Cell::new(false) };
 }
 pub fn sent_xcm() -> Vec<(Location, opaque::Xcm, XcmHash)> {
 	SENT_XCM.with(|q| (*q.borrow()).clone())
@@ -233,7 +233,7 @@ impl ExportXcm for TestMessageExporter {
 }
 
 thread_local! {
-	pub static ASSETS: RefCell<BTreeMap<Location, AssetsInHolding>> = RefCell::new(BTreeMap::new());
+	pub static ASSETS: RefCell<BTreeMap<Location, AssetsInHolding>> = const { RefCell::new(BTreeMap::new()) };
 }
 pub fn assets(who: impl Into<Location>) -> AssetsInHolding {
 	ASSETS.with(|a| a.borrow().get(&who.into()).cloned()).unwrap_or_default()
@@ -242,12 +242,7 @@ pub fn asset_list(who: impl Into<Location>) -> Vec<Asset> {
 	Assets::from(assets(who)).into_inner()
 }
 pub fn add_asset(who: impl Into<Location>, what: impl Into<Asset>) {
-	ASSETS.with(|a| {
-		a.borrow_mut()
-			.entry(who.into())
-			.or_insert(AssetsInHolding::new())
-			.subsume(what.into())
-	});
+	ASSETS.with(|a| a.borrow_mut().entry(who.into()).or_default().subsume(what.into()));
 }
 pub fn clear_assets(who: impl Into<Location>) {
 	ASSETS.with(|a| a.borrow_mut().remove(&who.into()));
@@ -327,9 +322,9 @@ impl ConvertOrigin<TestOrigin> for TestOriginConverter {
 }
 
 thread_local! {
-	pub static IS_RESERVE: RefCell<BTreeMap<Location, Vec<AssetFilter>>> = RefCell::new(BTreeMap::new());
-	pub static IS_TELEPORTER: RefCell<BTreeMap<Location, Vec<AssetFilter>>> = RefCell::new(BTreeMap::new());
-	pub static UNIVERSAL_ALIASES: RefCell<BTreeSet<(Location, Junction)>> = RefCell::new(BTreeSet::new());
+	pub static IS_RESERVE: RefCell<BTreeMap<Location, Vec<AssetFilter>>> = const { RefCell::new(BTreeMap::new()) };
+	pub static IS_TELEPORTER: RefCell<BTreeMap<Location, Vec<AssetFilter>>> = const { RefCell::new(BTreeMap::new()) };
+	pub static UNIVERSAL_ALIASES: RefCell<BTreeSet<(Location, Junction)>> = const { RefCell::new(BTreeSet::new()) };
 }
 pub fn add_reserve(from: Location, asset: AssetFilter) {
 	IS_RESERVE.with(|r| r.borrow_mut().entry(from).or_default().push(asset));
@@ -372,7 +367,7 @@ pub enum ResponseSlot {
 	Received(Response),
 }
 thread_local! {
-	pub static QUERIES: RefCell<BTreeMap<u64, ResponseSlot>> = RefCell::new(BTreeMap::new());
+	pub static QUERIES: RefCell<BTreeMap<u64, ResponseSlot>> = const { RefCell::new(BTreeMap::new()) };
 }
 pub struct TestResponseHandler;
 impl OnResponse for TestResponseHandler {
@@ -451,12 +446,12 @@ impl<T: Config, BlockNumber: sp_runtime::traits::Zero + Encode> QueryHandler
 	fn take_response(query_id: QueryId) -> QueryResponseStatus<Self::BlockNumber> {
 		QUERIES
 			.with(|q| {
-				q.borrow().get(&query_id).and_then(|v| match v {
-					ResponseSlot::Received(r) => Some(QueryResponseStatus::Ready {
+				q.borrow().get(&query_id).map(|v| match v {
+					ResponseSlot::Received(r) => QueryResponseStatus::Ready {
 						response: r.clone(),
 						at: Self::BlockNumber::zero(),
-					}),
-					_ => Some(QueryResponseStatus::NotFound),
+					},
+					_ => QueryResponseStatus::NotFound,
 				})
 			})
 			.unwrap_or(QueryResponseStatus::NotFound)
@@ -479,7 +474,7 @@ parameter_types! {
 	// Nothing is allowed to be paid/unpaid by default.
 	pub static AllowExplicitUnpaidFrom: Vec<Location> = vec![];
 	pub static AllowUnpaidFrom: Vec<Location> = vec![];
-	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get().into()];
+	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get()];
 	pub static AllowSubsFrom: Vec<Location> = vec![];
 	// 1_000_000_000_000 => 1 unit of asset for 1 unit of ref time weight.
 	// 1024 * 1024 => 1 unit of asset for 1 unit of proof size weight.
@@ -516,7 +511,7 @@ pub type TestBarrier = (
 );
 
 thread_local! {
-	pub static IS_WAIVED: RefCell<Vec<FeeReason>> = RefCell::new(vec![]);
+	pub static IS_WAIVED: RefCell<Vec<FeeReason>> = const { RefCell::new(vec![]) };
 }
 #[allow(dead_code)]
 pub fn set_fee_waiver(waived: Vec<FeeReason>) {
@@ -540,10 +535,10 @@ pub enum LockTraceItem {
 	Reduce { locker: Location, asset: Asset, owner: Location },
 }
 thread_local! {
-	pub static NEXT_INDEX: RefCell<u32> = RefCell::new(0);
-	pub static LOCK_TRACE: RefCell<Vec<LockTraceItem>> = RefCell::new(Vec::new());
-	pub static ALLOWED_UNLOCKS: RefCell<BTreeMap<(Location, Location), AssetsInHolding>> = RefCell::new(BTreeMap::new());
-	pub static ALLOWED_REQUEST_UNLOCKS: RefCell<BTreeMap<(Location, Location), AssetsInHolding>> = RefCell::new(BTreeMap::new());
+	pub static NEXT_INDEX: RefCell<u32> = const { RefCell::new(0) };
+	pub static LOCK_TRACE: RefCell<Vec<LockTraceItem>> = const { RefCell::new(Vec::new()) };
+	pub static ALLOWED_UNLOCKS: RefCell<BTreeMap<(Location, Location), AssetsInHolding>> = const { RefCell::new(BTreeMap::new()) };
+	pub static ALLOWED_REQUEST_UNLOCKS: RefCell<BTreeMap<(Location, Location), AssetsInHolding>> = const { RefCell::new(BTreeMap::new()) };
 }
 
 pub fn take_lock_trace() -> Vec<LockTraceItem> {
