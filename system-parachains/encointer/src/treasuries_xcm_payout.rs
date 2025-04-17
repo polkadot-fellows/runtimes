@@ -16,6 +16,7 @@
 
 //! `PayOverXcm` struct for paying through XCM and getting the status back.
 
+use crate::xcm_config::KsmLocation;
 use alloc::vec;
 use codec::{Decode, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -30,7 +31,6 @@ use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*, v5::Junctions::X2};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
-use crate::xcm_config::KsmLocation;
 
 /// Transfer an asset at asset hub.
 ///
@@ -102,7 +102,9 @@ impl<
 
 		// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
 		// We need this one for the refunds.
-		let from_at_target = destination.clone().appended_with(from_location.clone())
+		let from_at_target = destination
+			.clone()
+			.appended_with(from_location.clone())
 			.map_err(|_| Self::Error::LocationFull)?;
 
 		log::info!("From at target: {:?}", from_location);
@@ -110,8 +112,11 @@ impl<
 		let beneficiary = TransactorRefToLocation::try_convert(&to)
 			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
 
-		let query_id =
-			Querier::new_query(asset_location.clone(), Timeout::get(), from_location.interior.clone());
+		let query_id = Querier::new_query(
+			asset_location.clone(),
+			Timeout::get(),
+			from_location.interior.clone(),
+		);
 
 		let fee_asset = fee_asset(4 * ONE_KSM / 10);
 
@@ -129,12 +134,12 @@ impl<
 					max_weight: Weight::zero(),
 				}),
 				RefundSurplus,
-				DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from_at_target }
+				DepositAsset {
+					assets: AssetFilter::Wild(WildAsset::All),
+					beneficiary: from_at_target,
+				},
 			])),
-			TransferAsset {
-				beneficiary,
-				assets: (asset_id, amount).into(),
-			},
+			TransferAsset { beneficiary, assets: (asset_id, amount).into() },
 		]);
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
@@ -156,7 +161,12 @@ impl<
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn ensure_successful(_: &Self::Payer, _: &Self::Beneficiary, _: Self::AssetKind, _: Self::Balance) {
+	fn ensure_successful(
+		_: &Self::Payer,
+		_: &Self::Beneficiary,
+		_: Self::AssetKind,
+		_: Self::Balance,
+	) {
 		// We cannot generally guarantee this will go through successfully since we don't have any
 		// control over the XCM transport layers. We just assume that the benchmark environment
 		// will be sending it somewhere sensible.

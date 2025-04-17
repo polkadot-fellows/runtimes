@@ -18,7 +18,10 @@
 //! correct destination
 
 use super::{mock::*, xcm_mock::*, *};
-use crate::{treasuries_xcm_payout::TransferOverXcm, xcm_config::KsmLocation};
+use crate::{
+	treasuries_xcm_payout::{fee_asset, TransferOverXcm},
+	xcm_config::KsmLocation,
+};
 use codec::{Decode, Encode};
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{
@@ -33,7 +36,6 @@ use xcm::{
 };
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId};
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
-use crate::treasuries_xcm_payout::fee_asset;
 
 /// Type representing both a location and an asset that is held at that location.
 /// The id of the held asset is relative to the location where it is being held.
@@ -66,9 +68,10 @@ fn transfer_over_xcm_works() {
 	sp_tracing::init_for_tests();
 
 	let sender = AccountId::new([1u8; 32]);
-	let sender_location_on_target = Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
-	let sender_account_on_target = SovereignAccountOf::convert_location(&sender_location_on_target)
-		.expect("can convert");
+	let sender_location_on_target =
+		Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
+	let sender_account_on_target =
+		SovereignAccountOf::convert_location(&sender_location_on_target).expect("can convert");
 
 	let recipient = AccountId::new([5u8; 32]);
 
@@ -117,7 +120,10 @@ fn transfer_over_xcm_works() {
 					max_weight: Weight::zero(),
 				}),
 				RefundSurplus,
-				DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: sender_location_on_target }
+				DepositAsset {
+					assets: AssetFilter::Wild(WildAsset::All),
+					beneficiary: sender_location_on_target,
+				},
 			])),
 			TransferAsset {
 				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
@@ -148,9 +154,9 @@ fn transfer_over_xcm_works() {
 		assert_eq!(mock::Assets::balance(1, &recipient), amount);
 
 		let expected_lower_bound = INITIAL_BALANCE - amount - fee_amount;
-		
-		// Fixme: Why is the lower bound == actual, even when changing the fee amount 
-		println!("Lower Bound	{:?}",expected_lower_bound);
+
+		// Fixme: Why is the lower bound == actual, even when changing the fee amount
+		println!("Lower Bound	{:?}", expected_lower_bound);
 		println!("Actual 		{:?}", mock::Assets::balance(1, &sender_account_on_target));
 
 		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
