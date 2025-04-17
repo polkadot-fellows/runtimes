@@ -416,7 +416,8 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		// This assertion might still fail if the *content* of the tasks differs,
 		// even if the lengths match after the fix.
 		assert_eq!(
-			ah_agenda, expected_ah_agenda,
+			ah_agenda, 
+			expected_ah_agenda,
 			"Agenda map value on Asset Hub should match the converted RC value"
 		);
 
@@ -448,32 +449,32 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			"Retries map value on Asset Hub should match the RC value"
 		);
 
-		Scheduled {
-			maybe_id: Some([
-				151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
-				198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
-			]),
-			priority: 63,
-			call: Bounded::Lookup {
-				hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
-				len: 42,
-			},
-			maybe_periodic: None,
-			origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
-		};
+		// Scheduled {
+		// 	maybe_id: Some([
+		// 		151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
+		// 		198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
+		// 	]),
+		// 	priority: 63,
+		// 	call: Bounded::Lookup {
+		// 		hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
+		// 		len: 42,
+		// 	},
+		// 	maybe_periodic: None,
+		// 	origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
+		// };
 
-		Scheduled {
-			maybe_id: Some([
-				151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
-				198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
-			]),
-			priority: 63,
-			call: Bounded::Lookup {
-				hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
-				len: 42,
-			},
-			maybe_periodic: None,
-			origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
-		}
+		// Scheduled {
+		// 	maybe_id: Some([
+		// 		151, 216, 227, 107, 69, 223, 4, 129, 64, 109, 200, 29, 208, 251, 187, 193, 20, 51,
+		// 		198, 170, 76, 0, 6, 212, 17, 108, 253, 247, 224, 20, 226, 142,
+		// 	]),
+		// 	priority: 63,
+		// 	call: Bounded::Lookup {
+		// 		hash: 0x7ee7ea7b28e3e17353781b6d9bff255b8d00beffe8d1ed259baafe1de0c2cc2e,
+		// 		len: 42,
+		// 	},
+		// 	maybe_periodic: None,
+		// 	origin: RcPalletsOrigin::Origins(Origin::SmallSpender),
+		// }
 	}
 }
