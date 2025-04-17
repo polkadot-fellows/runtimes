@@ -194,7 +194,7 @@ parameter_types! {
 	pub static ParaFortyTwo: Location = Location::new(1, [Parachain(42)]);
 	pub static AllowExplicitUnpaidFrom: Vec<Location> = vec![];
 	pub static AllowUnpaidFrom: Vec<Location> = vec![];
-	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get().into()];
+	pub static AllowPaidFrom: Vec<Location> = vec![ParaFortyTwo::get()];
 	pub static AllowSubsFrom: Vec<Location> = vec![];
 	// 1_000_000_000_000 => 1 unit of asset for 1 unit of ref time weight.
 	// 1024 * 1024 => 1 unit of asset for 1 unit of proof size weight.
@@ -320,7 +320,7 @@ impl pallet_xcm::Config for Test {
 
 pub const UNITS: Balance = 1_000_000_000_000;
 pub const INITIAL_BALANCE: Balance = 100 * UNITS;
-pub const MINIMUM_BALANCE: Balance = 1 * UNITS;
+pub const MINIMUM_BALANCE: Balance = UNITS;
 
 pub fn sibling_chain_account_id(para_id: u32, account: [u8; 32]) -> AccountId {
 	let location: Location =

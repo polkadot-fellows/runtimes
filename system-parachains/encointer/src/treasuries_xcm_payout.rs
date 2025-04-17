@@ -90,7 +90,7 @@ impl<
 
 		log::info!("Destination: {:?}", destination);
 
-		let from_location = TransactorRefToLocation::try_convert(&from)
+		let from_location = TransactorRefToLocation::try_convert(from)
 			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
 
 		log::info!("From Location: {:?}", from_location);
@@ -104,7 +104,7 @@ impl<
 
 		log::info!("From at target: {:?}", from_location);
 
-		let beneficiary = TransactorRefToLocation::try_convert(&to)
+		let beneficiary = TransactorRefToLocation::try_convert(to)
 			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
 
 		let query_id = Querier::new_query(
@@ -139,7 +139,7 @@ impl<
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
 		Router::deliver(ticket)?;
-		Ok(query_id.into())
+		Ok(query_id)
 	}
 
 	fn check_payment(id: Self::Id) -> PaymentStatus {
