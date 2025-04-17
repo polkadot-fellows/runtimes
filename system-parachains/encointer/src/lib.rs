@@ -602,7 +602,7 @@ pub mod benchmarks_helper {
 	use super::VersionedLocatableAsset;
 	use core::marker::PhantomData;
 	use frame_support::traits::Get;
-	use pallet_encointer_treasuries::ArgumentsFactory as TreasuryArgumentsFactory;
+	use pallet_encointer_treasuries::benchmarking::ArgumentsFactory as TreasuryArgumentsFactory;
 	use sp_core::{ConstU32, ConstU8};
 	use xcm::prelude::*;
 
