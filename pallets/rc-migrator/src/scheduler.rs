@@ -207,16 +207,17 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
-		// force every scheduled call to be Inline, so that post_check never has to fetch/unrequest
+		// When the Agenda state item is migrated on the AH side, it relies on pallet-preimage state
+		// for the call conversion, but it also changes preimage state during that conversion, breaking
+		// any checks we try and do after. So we inline all the Agenda schedule calls to avoid this 
+		// reliance and allow for the checks to happen smoothly.
 		let agenda: Vec<_> = alias::Agenda::<T>::iter()
-            .map(|(bn, tasks)| {
-                let inline_tasks = Self::inline_task_calls(tasks);
-                (bn, inline_tasks)
-            })
+            .map(|(bn, tasks)|(bn, Self::inline_task_calls(tasks)))
             .collect();
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
-
+		
+		// (IncompleteSince, Agenda, Retries, Lookup)
 		(incomplete_since, agenda, retries, lookup).encode()
 	}
 
@@ -261,46 +262,37 @@ impl<T: Config> SchedulerMigrator<T> {
             .into_iter()
             .map(|maybe_schedule| {
                 match maybe_schedule {
-					// Schedule existed.
+					// Schedule existed. Attempt to inline it.
                     Some(mut sched) => {
-						// Inline the schedule call.
-                        let inlining_result = match sched.call {
+                        match sched.call {
                             // Already inline, no change needed
-                            Bounded::Inline(_) => Ok(sched.call.clone()),
-
+                            Bounded::Inline(_) => {
+								sched.call = sched.call.clone();
+								Some(sched)
+							}
                             // Lookup. Fetch preimage and store inline.
                             Bounded::Lookup { hash, len } => {
 								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len));
                                 match maybe_preimage {
                                     Ok(preimage) => {
                                         let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
-                                        Ok(Bounded::Inline(bounded))
+										sched.call = Bounded::Inline(bounded);
+										Some(sched)
                                     }
-                                    Err(_) => Err("Fetch failed for Lookup"),
+                                    Err(_) => None,
                                 }
                             }
-
                             // Legacy. Fetch preimage and store inline.
                             Bounded::Legacy { hash, .. } => {
 								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None);
                                  match maybe_preimage {
                                     Ok(preimage) => {
                                         let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
-                                        Ok(Bounded::Inline(bounded))
+                                        sched.call = Bounded::Inline(bounded);
+										Some(sched)
                                     }
-                                     Err(_) => Err("Fetch failed for Legacy"),
+                                     Err(_) => None,
                                 }
-                            }
-                        };
-
-                        // Now decide what to do based on fetch result
-                        match inlining_result {
-                            Ok(inlined_call) => {
-                                sched.call = inlined_call;
-                                Some(sched)
-                            }
-                            Err(_) => {
-                                None
                             }
                         }
                     }
@@ -310,8 +302,6 @@ impl<T: Config> SchedulerMigrator<T> {
                     }
                 }
             })
-            // If you uncommented the filter_map before, you might want to add it here too:
-            // .filter_map(|x| x)
             .collect::<Vec<_>>()
     }
 }
