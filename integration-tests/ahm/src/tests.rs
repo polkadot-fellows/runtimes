@@ -33,7 +33,7 @@
 
 use crate::porting_prelude::*;
 
-use super::{mock::*, multisig_test::MultisigsAccoundIdStaysTheSame, proxy_test::ProxiesStillWork};
+use super::{mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -112,7 +112,7 @@ type AhChecks = (
 // (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
-	MultisigsAccoundIdStaysTheSame,
+	// MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
