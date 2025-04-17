@@ -111,9 +111,9 @@ system-parachains-constants = { workspace = true }
 substrate-wasm-builder = { optional = true, workspace = true }
 
 [dev-dependencies]
-pallet-assets = { workspace = true, features = ["std"]}
-sp-io = { workspace = true, features = ["std"]}
-sp-tracing = { workspace = true, features = ["std"]}
+pallet-assets = { workspace = true, features = ["std"] }
+sp-io = { workspace = true, features = ["std"] }
+sp-tracing = { workspace = true, features = ["std"] }
 
 [features]
 default = ["std"]
@@ -131,6 +131,7 @@ runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
@@ -161,7 +162,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"pallet-assets/runtime-benchmarks"
 ]
 std = [
 	"codec/std",
@@ -228,12 +228,12 @@ std = [
 	"scale-info/std",
 	"serde_json/std",
 	"sp-api/std",
-	"sp-io/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
+	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
@@ -260,8 +260,8 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-assets/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
+	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
