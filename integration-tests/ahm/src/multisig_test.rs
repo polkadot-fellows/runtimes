@@ -50,7 +50,7 @@ type AssetHubRuntimeCall = asset_hub_polkadot_runtime::RuntimeCall;
 ///
 /// This tests that multisig accounts created on the relay chain and having a non-zero balance are
 /// correctly migrated to Asset Hub and the corresponding multisigs can be re-created on Asset Hub.
-pub struct MultisigsAccoundIdStaysTheSame;
+pub struct MultisigsAccountIdStaysTheSame;
 
 /// A Multisig account summary.
 #[derive(Clone, PartialEq, Eq, RuntimeDebug)]
@@ -68,7 +68,7 @@ pub struct MultisigSummary {
 }
 
 #[cfg(feature = "ahm-polkadot")]
-impl RcMigrationCheck for MultisigsAccoundIdStaysTheSame {
+impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
 	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
@@ -98,7 +98,7 @@ impl RcMigrationCheck for MultisigsAccoundIdStaysTheSame {
 }
 
 #[cfg(feature = "ahm-polkadot")]
-impl AhMigrationCheck for MultisigsAccoundIdStaysTheSame {
+impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 	// (sample multisig, balance)
 	// The sample multisig is created on the relay chain before migration, then it is given a
 	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
@@ -148,7 +148,7 @@ impl AhMigrationCheck for MultisigsAccoundIdStaysTheSame {
 }
 
 #[cfg(feature = "ahm-polkadot")]
-impl MultisigsAccoundIdStaysTheSame {
+impl MultisigsAccountIdStaysTheSame {
 	// Create a sample multisig on the Relay chain.
 	fn create_sample_multisig_rc() -> MultisigSummary {
 		let basti =
