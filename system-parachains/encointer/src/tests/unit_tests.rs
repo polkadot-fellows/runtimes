@@ -148,8 +148,10 @@ fn transfer_over_xcm_works() {
 		assert_eq!(mock::Assets::balance(1, &recipient), amount);
 
 		let expected_lower_bound = INITIAL_BALANCE - amount - fee_amount;
-		println!("Lower Bound{:?}",expected_lower_bound);
-		println!("Actual {:?}", mock::Assets::balance(1, &sender_account_on_target));
+		
+		// Fixme: Why is the lower bound == actual, even when changing the fee amount 
+		println!("Lower Bound	{:?}",expected_lower_bound);
+		println!("Actual 		{:?}", mock::Assets::balance(1, &sender_account_on_target));
 
 		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
 	});

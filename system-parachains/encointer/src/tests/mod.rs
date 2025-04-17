@@ -1,3 +1,3 @@
 pub mod mock;
 pub mod xcm_mock;
-pub mod xcm_transfer;
+pub mod unit_tests;
