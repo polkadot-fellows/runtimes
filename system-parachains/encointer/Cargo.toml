@@ -161,6 +161,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"pallet-assets/runtime-benchmarks"
 ]
 std = [
 	"codec/std",
@@ -187,6 +188,7 @@ std = [
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-asset-tx-payment/std",
+	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
@@ -226,6 +228,7 @@ std = [
 	"scale-info/std",
 	"serde_json/std",
 	"sp-api/std",
+	"sp-io/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
@@ -234,6 +237,7 @@ std = [
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
+	"sp-tracing/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
@@ -256,6 +260,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"pallet-assets/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
