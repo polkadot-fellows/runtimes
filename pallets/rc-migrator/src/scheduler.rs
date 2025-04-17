@@ -206,72 +206,14 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 	type RcPrePayload = Vec<u8>;
 
 	fn pre_check() -> Self::RcPrePayload {
-        use crate::preimage::alias::PreimageFor;
-        use frame_support::traits::Bounded;
-		use frame_support::traits::QueryPreimage;
-
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
 		// force every scheduled call to be Inline, so that post_check never has to fetch/unrequest
 		let agenda: Vec<_> = alias::Agenda::<T>::iter()
-        .map(|(bn, tasks)| {
-            let inline_tasks = tasks
-                .into_inner()
-                .into_iter()
-                .map(|maybe_scheduled| {
-                    // Use match to handle Some and None explicitly
-                    match maybe_scheduled {
-                        Some(mut sched) => {
-                            // Keep a copy of the original call in case fetch fails
-                            let original_call = sched.call.clone(); // Or handle error differently
-
-                            let fetched_call_result = match sched.call {
-                                // Already inline, no change needed
-                                Bounded::Inline(data) => Ok(Bounded::Inline(data)),
-
-                                // Hashed‐lookup call: fetch bytes using hash and len
-                                Bounded::Lookup { hash, len } => {
-                                    match <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len)) {
-                                        Ok(value) => {
-                                            let resized: BoundedVec<u8, ConstU32<128>> = BoundedVec::truncate_from(value.into_owned());
-                                            Ok(Bounded::Inline(resized)) // Successfully fetched and converted
-                                        }
-                                        Err(_error) => Err("Fetch failed for Lookup"), // Indicate error
-                                    }
-                                }
-
-                                // Legacy‐lookup call: fetch bytes using only hash
-                                Bounded::Legacy { hash, .. } => {
-                                     match <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None) {
-                                        Ok(value) => {
-                                            let resized: BoundedVec<u8, ConstU32<128>> = BoundedVec::truncate_from(value.into_owned());
-                                            Ok(Bounded::Inline(resized)) // Successfully fetched and converted
-                                        }
-                                         Err(_error) => Err("Fetch failed for Legacy"), // Indicate error
-                                    }
-                                }
-                            };
-
-                            // Now decide what to do based on fetch result
-                            match fetched_call_result {
-                                Ok(inline_call) => {
-                                    sched.call = inline_call;
-                                    Some(sched) // Return the updated scheduled item
-                                }
-                                Err(_) => {
-                                    None
-                                }
-                            }
-                        }
-                        None => {
-                            None
-                        }
-                    }
-                })
-                // .filter_map(|x| x) // Uncomment this line to remove None entries
-                .collect::<Vec<_>>();
-            (bn, inline_tasks)
-        })
-        .collect();
+            .map(|(bn, tasks)| {
+                let inline_tasks = Self::inline_task_calls(tasks);
+                (bn, inline_tasks)
+            })
+            .collect();
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 
@@ -303,4 +245,73 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 			"Lookup map should be empty on RC after migration"
 		);
 	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> SchedulerMigrator<T> {
+	// Convert all task calls to be `Bounded::Inline`.
+    fn inline_task_calls(
+        tasks: BoundedVec<Option<alias::ScheduledOf<T>>, <T as pallet_scheduler::Config>::MaxScheduledPerBlock>,
+    ) -> Vec<Option<alias::ScheduledOf<T>>> {
+        use frame_support::traits::{Bounded, QueryPreimage, ConstU32, DefensiveTruncateFrom};
+        use sp_runtime::BoundedVec;
+
+        tasks
+            .into_inner()
+            .into_iter()
+            .map(|maybe_schedule| {
+                match maybe_schedule {
+					// Schedule existed.
+                    Some(mut sched) => {
+						// Inline the schedule call.
+                        let inlining_result = match sched.call {
+                            // Already inline, no change needed
+                            Bounded::Inline(_) => Ok(sched.call.clone()),
+
+                            // Lookup. Fetch preimage and store inline.
+                            Bounded::Lookup { hash, len } => {
+								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len));
+                                match maybe_preimage {
+                                    Ok(preimage) => {
+                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
+                                        Ok(Bounded::Inline(bounded))
+                                    }
+                                    Err(_) => Err("Fetch failed for Lookup"),
+                                }
+                            }
+
+                            // Legacy. Fetch preimage and store inline.
+                            Bounded::Legacy { hash, .. } => {
+								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None);
+                                 match maybe_preimage {
+                                    Ok(preimage) => {
+                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
+                                        Ok(Bounded::Inline(bounded))
+                                    }
+                                     Err(_) => Err("Fetch failed for Legacy"),
+                                }
+                            }
+                        };
+
+                        // Now decide what to do based on fetch result
+                        match inlining_result {
+                            Ok(inlined_call) => {
+                                sched.call = inlined_call;
+                                Some(sched)
+                            }
+                            Err(_) => {
+                                None
+                            }
+                        }
+                    }
+					// Schedule was none. Keep as None.
+                    None => {
+                        None
+                    }
+                }
+            })
+            // If you uncommented the filter_map before, you might want to add it here too:
+            // .filter_map(|x| x)
+            .collect::<Vec<_>>()
+    }
 }

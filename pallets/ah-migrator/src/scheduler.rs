@@ -17,7 +17,7 @@
 use crate::*;
 use frame_support::traits::{DefensiveTruncateFrom, schedule::v3::TaskName};
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
-use pallet_scheduler::{IncompleteSince, RetryConfig, TaskAddress};
+use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Messages sent from the RC Migrator concerning the Scheduler pallet.
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<BlockNumberFor<T>, RcScheduledOf<T>>;
