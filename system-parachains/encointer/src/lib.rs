@@ -594,7 +594,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 		AliasesIntoAccountId32<AnyNetwork, AccountId>,
 	>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = benchmarks_helper::TreasuryBenchmarkHelper<Runtime>;
+	type BenchmarkHelper = benchmarks_helper::TreasuryArguments;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -606,14 +606,17 @@ pub mod benchmarks_helper {
 	use sp_core::{ConstU32, ConstU8};
 	use xcm::prelude::*;
 
-	/// Provide factory methods for the [`VersionedLocatableAsset`] and the `Beneficiary` of the
-	/// [`VersionedLocation`]. The location of the asset is determined as a Parachain with an
+	// The below implementation is basically the same as for:
+	// polkadot_runtime_common::impls::benchmarks::TreasuryArguments
+
+	/// Provide factory methods for the [`VersionedLocatableAsset`].
+	/// The location of the asset is determined as a Parachain with an
 	/// ID equal to the passed seed.
 	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
 		PhantomData<(Parents, ParaId)>,
 	);
 	impl<Parents: Get<u8>, ParaId: Get<u32>>
-	TreasuryArgumentsFactory<VersionedLocatableAsset, VersionedLocation>
+	TreasuryArgumentsFactory<VersionedLocatableAsset>
 	for TreasuryArguments<Parents, ParaId>
 	{
 		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
@@ -625,9 +628,6 @@ pub mod benchmarks_helper {
 				)),
 			)
 				.into()
-		}
-		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocation {
-			VersionedLocation::from(Location::new(0, [AccountId32 { network: None, id: seed }]))
 		}
 	}
 }
