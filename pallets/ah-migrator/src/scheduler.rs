@@ -175,16 +175,15 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			"IncompleteSince on Asset Hub should match the RC value"
 		);
 
-		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^.
+		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct expected Agendas.
 		let mut expected_ah_agenda: Vec<_> = rc_payload
 			.agenda
-			.clone()
 			.into_iter()
 			.filter_map(|(block_number, rc_tasks)| {
 				let mut ah_tasks = Vec::new();
 				for rc_task_opt in rc_tasks.into_iter() {
 					if let Some(rc_task) = rc_task_opt {
-						// Attempt to convert origin
+						// Attempt to convert origin.
 						let ah_origin =
 							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
 								Ok(origin) => origin,
@@ -193,7 +192,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 									continue;
 								},
 							};
-						// Attempt to convert call
+						// Attempt to convert call.
 						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
 							call
 						} else {
@@ -201,6 +200,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							continue;
 						};
 
+						// Build new task.
 						let ah_task = Scheduled {
 							maybe_id: rc_task.maybe_id,
 							priority: rc_task.priority,
@@ -211,7 +211,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 						ah_tasks.push(Some(ah_task));
 					} else {}
 				}
-				// Filter out blocks that end up with no valid tasks after conversion
+				// Filter out blocks that end up with no valid tasks after conversion.
 				if !ah_tasks.is_empty() {
 					Some((block_number, ah_tasks))
 				} else {
@@ -220,7 +220,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			})
 			.collect();
 
-		// Collect agendas on AH
+		// Collect agendas on AH.
 		let mut ah_agenda: Vec<_> = pallet_rc_migrator::scheduler::alias::Agenda::<T>::iter()
 			.map(|(bn, tasks)| (bn, tasks.into_inner()))
 			.collect();
@@ -232,7 +232,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			"Agenda map length on Asset Hub should match converted RC value" /* Original assertion message */
 		);
 
-		// Sort to ensure no ordering issues
+		// Sort to ensure no ordering issues.
 		ah_agenda.sort_by_key(|(index, _)| *index);
 		expected_ah_agenda.sort_by_key(|(index, _)| *index);
 
