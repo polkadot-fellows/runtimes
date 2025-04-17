@@ -83,6 +83,8 @@ pub type RcPolkadotChecks = (
 	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -113,6 +115,8 @@ pub type AhPolkadotChecks = (
 	MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -130,6 +134,16 @@ async fn pallet_migration_works() {
 
 	// Pre-checks on the Asset Hub
 	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
+
+	// Run relay chain, sends start signal to AH
+	let dmp_messages = rc_migrate(&mut rc);
+	// AH process start signal, send back ack
+	ah_migrate(&mut ah, dmp_messages);
+	// no upward messaging support in this test yet, just manually advance the stage
+	rc.execute_with(|| {
+		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::AccountsMigrationInit);
+	});
+	rc.commit_all().unwrap();
 
 	// Migrate the Relay Chain
 	let dmp_messages = rc_migrate(&mut rc);

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use crate::*;
-use pallet_rc_migrator::claims::{alias, RcClaimsMessage, RcClaimsMessageOf};
+use pallet_rc_migrator::claims::{alias, ClaimsMigrator, RcClaimsMessage, RcClaimsMessageOf};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_claims(messages: Vec<RcClaimsMessageOf<T>>) -> Result<(), Error<T>> {
@@ -84,5 +84,64 @@ impl<T: Config> Pallet<T> {
 			},
 		}
 		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
+	type RcPrePayload = Vec<RcClaimsMessageOf<T>>;
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		// Ensure that the claims storage is empty before migration starts
+		assert!(
+			!pallet_claims::Total::<T>::exists(),
+			"Claims total should be empty before migration starts"
+		);
+		assert!(
+			alias::Claims::<T>::iter().next().is_none(),
+			"Claims should be empty before migration starts"
+		);
+		assert!(
+			alias::Vesting::<T>::iter().next().is_none(),
+			"Vesting should be empty before migration starts"
+		);
+		assert!(
+			alias::Signing::<T>::iter().next().is_none(),
+			"Signing should be empty before migration starts"
+		);
+		assert!(
+			alias::Preclaims::<T>::iter().next().is_none(),
+			"Preclaims should be empty before migration starts"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		let mut ah_messages = Vec::new();
+
+		// Collect current state
+		let total = pallet_claims::Total::<T>::get();
+		ah_messages.push(RcClaimsMessage::StorageValues { total });
+
+		for (address, amount) in alias::Claims::<T>::iter() {
+			ah_messages.push(RcClaimsMessage::Claims((address, amount)));
+		}
+
+		for (address, schedule) in alias::Vesting::<T>::iter() {
+			ah_messages.push(RcClaimsMessage::Vesting { who: address, schedule });
+		}
+
+		for (address, statement) in alias::Signing::<T>::iter() {
+			ah_messages.push(RcClaimsMessage::Signing((address, statement)));
+		}
+
+		for (account_id, address) in alias::Preclaims::<T>::iter() {
+			ah_messages.push(RcClaimsMessage::Preclaims((account_id, address)));
+		}
+
+		assert_eq!(
+			rc_pre_payload, ah_messages,
+			"Claims data mismatch: Asset Hub schedules differ from original Relay Chain schedules"
+		);
 	}
 }
