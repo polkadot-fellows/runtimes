@@ -20,9 +20,7 @@ use crate::xcm_config::KsmLocation;
 use alloc::vec;
 use core::marker::PhantomData;
 use encointer_balances_tx_payment::ONE_KSM;
-use frame_support::{
-	traits::{tokens::PaymentStatus, Get},
-};
+use frame_support::traits::{tokens::PaymentStatus, Get};
 use pallet_encointer_treasuries::Transfer;
 use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*};
