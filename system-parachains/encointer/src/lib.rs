@@ -92,7 +92,10 @@ pub use parachains_common::{
 	impls::DealWithFees, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber,
 	Hash, Header, Nonce, Signature,
 };
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{
+	impls::{LocatableAssetConverter, VersionedLocatableAsset},
+	BlockHashCount, SlowAdjustingFeeUpdate,
+};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstU32, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
@@ -580,14 +583,14 @@ impl pallet_encointer_treasuries::Config for Runtime {
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
-	type AssetKind = SupportedPayouts;
+	type AssetKind = VersionedLocatableAsset;
 	type Paymaster = crate::treasuries_xcm_payout::TransferOverXcm<
 		crate::xcm_config::XcmRouter,
 		crate::PolkadotXcm,
 		ConstU32<{ 6 * HOURS }>,
 		AccountId,
 		Self::AssetKind,
-		LocatableSupportedPayoutConverter,
+		LocatableAssetConverter,
 		AliasesIntoAccountId32<AnyNetwork, AccountId>,
 	>;
 }
@@ -1076,7 +1079,6 @@ mod benches {
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
 }
 
-use crate::treasuries_xcm_payout::{LocatableSupportedPayoutConverter, SupportedPayouts};
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 

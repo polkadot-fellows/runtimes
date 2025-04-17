@@ -18,17 +18,14 @@
 
 use crate::xcm_config::KsmLocation;
 use alloc::vec;
-use codec::{Decode, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{
-	pallet_prelude::TypeInfo,
-	parameter_types,
 	traits::{tokens::PaymentStatus, Get},
 };
 use pallet_encointer_treasuries::Transfer;
 use sp_runtime::traits::TryConvert;
-use xcm::{opaque::lts::Weight, prelude::*, v5::Junctions::X2};
+use xcm::{opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
@@ -178,46 +175,7 @@ impl<
 	}
 }
 
+// Todo: this is going to be replaced, as we will have a proper fee mechanism
 pub fn fee_asset(amount: u128) -> Asset {
 	(KsmLocation::get(), amount).into()
-}
-
-parameter_types! {
-	pub AssetHubLocation: Location = Location::new(1, [Parachain(1000)]);
-}
-
-#[derive(Debug, Encode, Decode, TypeInfo, MaxEncodedLen, PartialEq, Eq, Clone, Copy)]
-pub enum SupportedPayouts {
-	Usdt,
-}
-
-impl From<SupportedPayouts> for Location {
-	fn from(asset: SupportedPayouts) -> Self {
-		match asset {
-			SupportedPayouts::Usdt => Location {
-				parents: 1,
-				interior: X2([PalletInstance(50), GeneralIndex(1984)].into()),
-			},
-		}
-	}
-}
-
-pub struct LocatableSupportedPayoutConverter;
-impl TryConvert<SupportedPayouts, LocatableAssetId> for LocatableSupportedPayoutConverter {
-	fn try_convert(asset: SupportedPayouts) -> Result<LocatableAssetId, SupportedPayouts> {
-		match asset {
-			SupportedPayouts::Usdt => Ok(LocatableAssetId {
-				asset_id: asset_id(asset),
-				location: Location {
-					parents: 1,
-					interior: X2([PalletInstance(50), GeneralIndex(1984)].into()),
-				},
-			}),
-		}
-	}
-}
-
-pub fn asset_id<T: Into<Location>>(value: T) -> AssetId {
-	let location: Location = value.into();
-	AssetId::from(location)
 }
