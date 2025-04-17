@@ -210,37 +210,9 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
         use frame_support::traits::Bounded;
 		use frame_support::traits::QueryPreimage;
 
-		// fn fetch_preimage(bounded_call: &BoundedCallOf<T>) -> Result<Vec<u8>, Error<T>> {
-		// 	match bounded_call {
-		// 		Bounded::Inline(encoded) => Ok(encoded.clone().into_inner()),
-		// 		Bounded::Legacy { hash, .. } => {
-		// 			let encoded = if let Ok(encoded) = T::Preimage::fetch(hash, None) {
-		// 				encoded
-		// 			} else {
-		// 				// not an error since a submitter can delete the preimage for ongoing referendum
-		// 				log::warn!(target: LOG_TARGET, "No preimage found for call hash: {:?}", hash);
-		// 				return Err(Error::<T>::PreimageNotFound);
-		// 			};
-		// 			Ok(encoded.into_owned())
-		// 		},
-		// 		Bounded::Lookup { hash, len } => {
-		// 			let encoded = if let Ok(encoded) = T::Preimage::fetch(hash, Some(*len)) {
-		// 				encoded
-		// 			} else {
-		// 				// not an error since a submitter can delete the preimage for ongoing referendum
-		// 				log::warn!(target: LOG_TARGET, "No preimage found for call hash: {:?}", (hash, len));
-		// 				return Err(Error::<T>::PreimageNotFound);
-		// 			};
-		// 			Ok(encoded.into_owned())
-		// 		},
-		// 	}
-		// }
-
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
-		// let agenda: Vec<_> =
-		// 	alias::Agenda::<T>::iter().map(|(bn, tasks)| (bn, tasks.into_inner())).collect();
-			// force every scheduled call to be Inline, so that post_check never has to fetch/unrequest
-			        let agenda: Vec<_> = alias::Agenda::<T>::iter()
+		// force every scheduled call to be Inline, so that post_check never has to fetch/unrequest
+		let agenda: Vec<_> = alias::Agenda::<T>::iter()
         .map(|(bn, tasks)| {
             let inline_tasks = tasks
                 .into_inner()
@@ -286,27 +258,17 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
                                     Some(sched) // Return the updated scheduled item
                                 }
                                 Err(_) => {
-                                    // Fetch failed. Decide how to handle it.
-                                    // Option 1: Discard the task entirely
                                     None
-                                    // Option 2: Keep the task but maybe log error, or keep original call?
-                                    // sched.call = original_call; // Revert to original if needed
-                                    // Some(sched)
-                                    // Option 3: Return a specific value indicating error state (if type allows)
-                                    // Some(create_error_scheduled_item())
                                 }
                             }
                         }
                         None => {
-                            // maybe_scheduled was None to begin with.
-                            // Return None to keep it that way in the collected Vec.
                             None
                         }
                     }
                 })
-                // You might want to filter out the None values if you only want successful tasks
                 // .filter_map(|x| x) // Uncomment this line to remove None entries
-                .collect::<Vec<_>>(); // Collects Vec<Option<Scheduled<...>>> (or Vec<Scheduled<...>> if filter_map is used)
+                .collect::<Vec<_>>();
             (bn, inline_tasks)
         })
         .collect();
