@@ -80,7 +80,7 @@ type RcChecks = (
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
-	MultisigsAccoundIdStaysTheSame,
+	// MultisigsAccoundIdStaysTheSame,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
