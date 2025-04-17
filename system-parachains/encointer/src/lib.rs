@@ -593,6 +593,43 @@ impl pallet_encointer_treasuries::Config for Runtime {
 		LocatableAssetConverter,
 		AliasesIntoAccountId32<AnyNetwork, AccountId>,
 	>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmarks_helper::TreasuryBenchmarkHelper<Runtime>;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarks_helper {
+	use super::VersionedLocatableAsset;
+	use core::marker::PhantomData;
+	use frame_support::traits::Get;
+	use pallet_encointer_treasuries::ArgumentsFactory as TreasuryArgumentsFactory;
+	use sp_core::{ConstU32, ConstU8};
+	use xcm::prelude::*;
+
+	/// Provide factory methods for the [`VersionedLocatableAsset`] and the `Beneficiary` of the
+	/// [`VersionedLocation`]. The location of the asset is determined as a Parachain with an
+	/// ID equal to the passed seed.
+	pub struct TreasuryArguments<Parents = ConstU8<0>, ParaId = ConstU32<0>>(
+		PhantomData<(Parents, ParaId)>,
+	);
+	impl<Parents: Get<u8>, ParaId: Get<u32>>
+	TreasuryArgumentsFactory<VersionedLocatableAsset, VersionedLocation>
+	for TreasuryArguments<Parents, ParaId>
+	{
+		fn create_asset_kind(seed: u32) -> VersionedLocatableAsset {
+			(
+				Location::new(Parents::get(), [Junction::Parachain(ParaId::get())]),
+				AssetId(Location::new(
+					0,
+					[PalletInstance(seed.try_into().unwrap()), GeneralIndex(seed.into())],
+				)),
+			)
+				.into()
+		}
+		fn create_beneficiary(seed: [u8; 32]) -> VersionedLocation {
+			VersionedLocation::from(Location::new(0, [AccountId32 { network: None, id: seed }]))
+		}
+	}
 }
 
 impl pallet_aura::Config for Runtime {
