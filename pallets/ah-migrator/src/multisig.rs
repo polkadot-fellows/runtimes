@@ -72,7 +72,11 @@ impl<T: Config> Pallet<T> {
 
 				log::warn!("{:?}", frame_system::Account::<T>::get(&multisig.creator));
 			} else {
-				log::error!(target: LOG_TARGET, "Failed to unreserve deposit for multisig {} missing {:?}, details: {:?}", multisig.creator.to_ss58check(), missing, multisig.details);
+				let total_balance =
+					<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
+						<T as frame_system::Config>::AccountId,
+					>>::total_balance(&multisig.creator);
+				log::error!(target: LOG_TARGET, "Failed to unreserve deposit for multisig {} with total balance {:?} missing {:?}, details: {:?}", multisig.creator.to_ss58check(), total_balance, missing, multisig.details);
 			}
 
 			return Err(Error::<T>::FailedToUnreserveDeposit);
