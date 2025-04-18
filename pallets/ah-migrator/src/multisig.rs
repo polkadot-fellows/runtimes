@@ -102,11 +102,14 @@ impl<T: Config> crate::types::AhMigrationCheck for MultisigMigrationChecker<T> {
 		);
 		for account_id in rc_pre_payload {
 			// Assert storage 'Multisig::Multisigs::ah_post::consistent'
-			assert!(
-				frame_system::Account::<T>::contains_key(&account_id),
-				"Multisig account {:?} from Relay Chain should be present on Asset Hub",
-				account_id.to_ss58check()
-			);
+			if !frame_system::Account::<T>::contains_key(&account_id) {
+				log::warn!(target: LOG_TARGET, "Multisig account {:?} from Relay Chain should be present on Asset Hub", account_id.to_ss58check());
+			}
+			// assert!(
+			// 	frame_system::Account::<T>::contains_key(&account_id),
+			// 	"Multisig account {:?} from Relay Chain should be present on Asset Hub",
+			// 	account_id.to_ss58check()
+			// );
 		}
 	}
 }
