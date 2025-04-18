@@ -60,7 +60,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 // Genesis preset configurations.
-pub(crate) mod ah_migration;
+pub mod ah_migration;
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;

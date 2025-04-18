@@ -306,10 +306,10 @@ pub mod pallet {
 			>,
 		>;
 
-		// Calls that are allowed during the migration.
+		/// Calls that are allowed during the migration.
 		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		// Calls that are allowed after the migration finished.
+		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
 		/// Helper type for benchmarking.
