@@ -124,11 +124,12 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-// (IncompleteSince, Agenda, Retries, Lookup)
+// (IncompleteSince, Agenda, Agenda call encodings, Retries, Lookup)
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	incomplete_since: Option<BlockNumberFor<T>>,
 	agenda: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
+	agenda_call_encodings: Vec<(BlockNumberFor<T>, Vec<Option<Vec<u8>>>)>,
 	retries: Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
 	lookup: Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
 }
@@ -176,6 +177,8 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		);
 
 		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct expected Agendas.
+		// Critically, use the passed agenda call encodings to remove reliance on pallet-preimage state, which
+		// will have been changed from the actual migration.
 		let mut expected_ah_agenda: Vec<_> = rc_payload
 			.agenda
 			.into_iter()
@@ -193,7 +196,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 								},
 							};
 						// Attempt to convert call.
-						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call(&rc_task.call) {
+						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call_no_preimage(Vec::<u8>::new()) {
 							call
 						} else {
 							// Call conversion failed, skip task.
@@ -270,5 +273,30 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			rc_payload.retries,
 			"Retries map value on Asset Hub should match the RC value"
 		);
+	}
+}
+
+impl<T: Config> Pallet<T> {
+	// Helper to convert the call without using the preimage pallet. Used in migration checks.
+	pub fn map_rc_ah_call_no_preimage(
+		encoded_call: Vec<u8>,
+	) -> Result<call::BoundedCallOf<T>, Error<T>> {
+		use sp_runtime::traits::Hash;
+		use frame_support::traits::{Bounded, BoundedInline};
+
+		// Convert call.
+		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
+			call
+		} else {
+			return Err(Error::<T>::FailedToConvertCall);
+		};
+
+		// Bound it.
+		let data = call.encode();
+		let len = data.len() as u32;
+		Ok(match BoundedInline::try_from(data) {
+			Ok(bounded) => Bounded::Inline(bounded),
+			Err(unbounded) => Bounded::Lookup { hash: <<T as frame_system::Config>::Hashing as Hash>::hash(&unbounded[..]), len },
+		})
 	}
 }

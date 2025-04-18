@@ -207,18 +207,21 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
-		// When the Agenda state item is migrated on the AH side, it relies on pallet-preimage state
-		// for the call conversion, but it also changes preimage state during that conversion, breaking
-		// any checks we try and do after. So we inline all the Agenda schedule calls to avoid this 
-		// reliance and allow for the checks to happen smoothly.
 		let agenda: Vec<_> = alias::Agenda::<T>::iter()
-            .map(|(bn, tasks)|(bn, Self::inline_task_calls(tasks)))
+            .map(|(bn, tasks)| (bn, tasks.into_inner()))
+            .collect();
+		// When the Agenda state item is migrated on the AH side, it relies on pallet-preimage state
+		// for the call conversion, but it also changes the preimage state during that conversion, breaking
+		// any checks we try and do after. So we grab all the necessary data for call conversion upfront
+		// to avoid this reliance and allow for the checks to happen smoothly.
+		let agenda_call_encodings: Vec<_> = alias::Agenda::<T>::iter()
+            .map(|(bn, tasks)|(bn, Self::get_task_call_encodings(tasks)))
             .collect();
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 		
-		// (IncompleteSince, Agenda, Retries, Lookup)
-		(incomplete_since, agenda, retries, lookup).encode()
+		// (IncompleteSince, Agenda, Agenda call encodings, Retries, Lookup)
+		(incomplete_since, agenda, agenda_call_encodings, retries, lookup).encode()
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
@@ -250,12 +253,11 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> SchedulerMigrator<T> {
-	// Convert all task calls to be `Bounded::Inline`.
-    fn inline_task_calls(
+	// Convert all task calls to their Vec<u8> encodings, either directly or by grabbing the preimage.
+    fn get_task_call_encodings(
         tasks: BoundedVec<Option<alias::ScheduledOf<T>>, <T as pallet_scheduler::Config>::MaxScheduledPerBlock>,
-    ) -> Vec<Option<alias::ScheduledOf<T>>> {
-        use frame_support::traits::{Bounded, QueryPreimage, ConstU32, DefensiveTruncateFrom};
-        use sp_runtime::BoundedVec;
+    ) -> Vec<Option<Vec<u8>>> {
+        use frame_support::traits::{Bounded, QueryPreimage};
 
         tasks
             .into_inner()
@@ -263,33 +265,28 @@ impl<T: Config> SchedulerMigrator<T> {
             .map(|maybe_schedule| {
                 match maybe_schedule {
 					// Schedule existed. Attempt to inline it.
-                    Some(mut sched) => {
+                    Some(sched) => {
                         match sched.call {
-                            // Already inline, no change needed
-                            Bounded::Inline(_) => {
-								sched.call = sched.call.clone();
-								Some(sched)
+                            // Inline. Grab inlined call. 
+                            Bounded::Inline(bounded_call) => {
+								Some(bounded_call.into_inner())
 							}
-                            // Lookup. Fetch preimage and store inline.
+                            // Lookup. Fetch preimage and store.
                             Bounded::Lookup { hash, len } => {
 								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len));
                                 match maybe_preimage {
                                     Ok(preimage) => {
-                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned()); // <- this breaks this solution, as some calls longer
-										sched.call = Bounded::Inline(bounded);
-										Some(sched)
+										Some(preimage.into_owned())
                                     }
                                     Err(_) => None,
                                 }
                             }
-                            // Legacy. Fetch preimage and store inline.
+                            // Legacy. Fetch preimage and store.
                             Bounded::Legacy { hash, .. } => {
 								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None);
                                  match maybe_preimage {
                                     Ok(preimage) => {
-                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
-                                        sched.call = Bounded::Inline(bounded);
-										Some(sched)
+										Some(preimage.into_owned())
                                     }
                                      Err(_) => None,
                                 }
