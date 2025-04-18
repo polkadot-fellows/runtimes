@@ -275,7 +275,7 @@ impl<T: Config> SchedulerMigrator<T> {
 								let maybe_preimage = <pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len));
                                 match maybe_preimage {
                                     Ok(preimage) => {
-                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned());
+                                        let bounded: BoundedVec<u8, ConstU32<128>> = BoundedVec::defensive_truncate_from(preimage.into_owned()); // <- this breaks this solution, as some calls longer
 										sched.call = Bounded::Inline(bounded);
 										Some(sched)
                                     }
