@@ -207,20 +207,17 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
-		let agenda: Vec<_> =
-			alias::Agenda::<T>::iter().map(|(bn, tasks)| (bn, tasks.into_inner())).collect();
 		// When the Agenda state item is migrated on the AH side, it relies on pallet-preimage state
 		// for the call conversion, but it also changes the preimage state during that conversion,
 		// breaking any checks we try and do after. So we grab all the necessary data for call
 		// conversion upfront to avoid this reliance and allow for the checks to happen smoothly.
-		let agenda_call_encodings: Vec<_> = alias::Agenda::<T>::iter()
-			.map(|(bn, tasks)| (bn, Self::get_task_call_encodings(tasks)))
-			.collect();
+		let agenda_and_call_encodings: Vec<_> =
+			alias::Agenda::<T>::iter().map(|(bn, tasks)| (bn, tasks.clone().into_inner(), Self::get_task_call_encodings(tasks))).collect();
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 
-		// (IncompleteSince, Agenda, Agenda call encodings, Retries, Lookup)
-		(incomplete_since, agenda, agenda_call_encodings, retries, lookup).encode()
+		// (IncompleteSince, Agendas and their schedule's call encodings, Retries, Lookup)
+		(incomplete_since, agenda_and_call_encodings, retries, lookup).encode()
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
@@ -253,7 +250,7 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 #[cfg(feature = "std")]
 impl<T: Config> SchedulerMigrator<T> {
 	// Convert all task calls to their Vec<u8> encodings, either directly or by grabbing the
-	// preimage.
+	// preimage. Used for migration checks.
 	fn get_task_call_encodings(
 		tasks: BoundedVec<
 			Option<alias::ScheduledOf<T>>,

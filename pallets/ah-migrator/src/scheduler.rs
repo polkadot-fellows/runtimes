@@ -124,12 +124,11 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-// (IncompleteSince, Agenda, Agenda call encodings, Retries, Lookup)
+// (IncompleteSince, Agendas and their schedule's call encodings, Retries, Lookup)
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	incomplete_since: Option<BlockNumberFor<T>>,
-	agenda: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>)>,
-	agenda_call_encodings: Vec<(BlockNumberFor<T>, Vec<Option<Vec<u8>>>)>,
+	agenda_and_call_encodings: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>, Vec<Option<Vec<u8>>>)>,
 	retries: Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
 	lookup: Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
 }
@@ -180,14 +179,18 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		// expected Agendas. Critically, use the passed agenda call encodings to remove reliance
 		// on pallet-preimage state, which will have been changed from the actual migration.
 		let mut expected_ah_agenda: Vec<_> = rc_payload
-			.agenda
+			.agenda_and_call_encodings
 			.into_iter()
-			.zip(rc_payload.agenda_call_encodings.into_iter())
-			.filter_map(|((block_number, rc_tasks), (_, rc_calls_bytes))| {
+			.filter_map(|(block_number, rc_tasks, rc_task_call_encodings)| {
 				let mut ah_tasks = Vec::new();
-				for (index, rc_task_opt) in rc_tasks.into_iter().enumerate() {
-					if let Some(rc_task) = rc_task_opt {
-						// Attempt to convert origin.
+				let tasks = rc_tasks.into_iter();
+				let encoded_calls = rc_task_call_encodings.into_iter();
+
+				// Iterate over task and it's corresponding encoded call.
+				for (rc_task_opt, encoded_call_opt) in tasks.zip(encoded_calls) {
+					// Check both task and encoded call exist.
+					if let (Some(rc_task), Some(encoded_call)) = (rc_task_opt, encoded_call_opt) {
+						// Attempt origin conversion.
 						let ah_origin =
 							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
 								Ok(origin) => origin,
@@ -197,17 +200,11 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 								},
 							};
 
-						// Attempt to convert call.
-						let maybe_bytes = rc_calls_bytes[index].clone();
-						let ah_call = if let Some(bytes) = maybe_bytes {
-							match Pallet::<T>::map_rc_ah_call_no_preimage(bytes) {
-								Ok(c) => c,
-								// Call conversion failed, skip.
-								Err(_) => continue,
-							}
-						} else {
-							// Call encoding was blank, skip.
-							continue
+						// Attempt call conversion.
+						let ah_call = match Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) {
+							Ok(call) => call,
+							// Conversion failed, skip task.
+							Err(_) => return None,
 						};
 
 						// Build new task.
@@ -219,7 +216,6 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							origin: ah_origin,
 						};
 						ah_tasks.push(Some(ah_task));
-					} else {
 					}
 				}
 				// Filter out blocks that end up with no valid tasks after conversion.
@@ -249,7 +245,8 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 
 		// Assert storage 'Scheduler::Agenda::ah_post::correct'
 		assert_eq!(
-			ah_agenda, expected_ah_agenda,
+			ah_agenda, 
+			expected_ah_agenda,
 			"Agenda map value on Asset Hub should match the converted RC value"
 		);
 
@@ -280,33 +277,5 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			rc_payload.retries,
 			"Retries map value on Asset Hub should match the RC value"
 		);
-	}
-}
-
-impl<T: Config> Pallet<T> {
-	// Helper to convert the call without using the preimage pallet. Used in migration checks.
-	pub fn map_rc_ah_call_no_preimage(
-		encoded_call: Vec<u8>,
-	) -> Result<call::BoundedCallOf<T>, Error<T>> {
-		use frame_support::traits::{Bounded, BoundedInline};
-		use sp_runtime::traits::Hash;
-
-		// Convert call.
-		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
-			call
-		} else {
-			return Err(Error::<T>::FailedToConvertCall);
-		};
-
-		// Bound it.
-		let data = call.encode();
-		let len = data.len() as u32;
-		Ok(match BoundedInline::try_from(data) {
-			Ok(bounded) => Bounded::Inline(bounded),
-			Err(unbounded) => Bounded::Lookup {
-				hash: <<T as frame_system::Config>::Hashing as Hash>::hash(&unbounded[..]),
-				len,
-			},
-		})
 	}
 }
