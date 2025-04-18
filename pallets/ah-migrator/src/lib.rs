@@ -67,11 +67,10 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::{Fortitude, Pay, Preservation},
-		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
-use frame_support::traits::Contains;
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 use pallet_rc_migrator::{
@@ -81,11 +80,7 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{
-		bags_list::RcBagsListMessage,
-		fast_unstake::{RcFastUnstakeMessage},
-		nom_pools::*,
-	},
+	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*},
 	vesting::RcVestingSchedule,
 };
 use pallet_referenda::TrackIdOf;

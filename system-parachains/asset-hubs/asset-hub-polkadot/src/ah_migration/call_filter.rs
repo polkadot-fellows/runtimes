@@ -81,7 +81,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Claims(..) => OFF,
 		CollatorSelection(..) => OFF, // TODO maybe disable them since staking is also disabled?
 		ConvictionVoting(..) => OFF,
-		CumulusXcm(..) => OFF, // Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222
+		CumulusXcm(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
 		FastUnstake(..) => OFF,
 		ForeignAssets(..) => OFF,
 		Indices(..) => OFF,
@@ -89,7 +89,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Multisig(..) => OFF,
 		NominationPools(..) => OFF,
 		Nfts(..) => OFF,
-		ParachainInfo(..) => OFF, // Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222
+		ParachainInfo(..) => OFF, /* Empty call enum, see https://github.com/paritytech/polkadot-sdk/issues/8222 */
 		ParachainSystem(..) => ON, // Only inherent and root
 		PolkadotXcm(..) => OFF,
 		PoolAssets(..) => OFF,
@@ -108,8 +108,8 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Vesting(..) => OFF,
 		VoterList(..) => OFF,
 		Whitelist(..) => OFF,
-		XcmpQueue(..) => ON, // Allow updating XCM settings. Only by Fellowship and root.
-		// Exhaustive match. Compiler ensures that we did not miss any.
+		XcmpQueue(..) => ON, /* Allow updating XCM settings. Only by Fellowship and root.
+		                      * Exhaustive match. Compiler ensures that we did not miss any. */
 	};
 
 	// All pallets are enabled on Asset Hub after the migration :)
