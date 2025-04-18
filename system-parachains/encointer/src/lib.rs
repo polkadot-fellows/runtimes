@@ -865,6 +865,8 @@ pub type Executive = frame_executive::Executive<
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
+	use kusama_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::kusama::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -909,11 +911,6 @@ mod benches {
 				cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into(),
 			);
 		}
-	}
-
-	parameter_types! {
-		pub AssetHubParaId: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
-		pub AssetHubLocation: Location = ParentThen(Parachain(AssetHubParaId::get().into()).into()).into();
 	}
 
 	impl pallet_xcm::benchmarking::Config for Runtime {

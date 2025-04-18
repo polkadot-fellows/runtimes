@@ -1955,6 +1955,7 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	use super::*;
+	use kusama_runtime_constants::system_parachain::AssetHubParaId;
 
 	frame_benchmarking::define_benchmarks!(
 		// Polkadot
@@ -2033,7 +2034,6 @@ mod benches {
 			TokenLocation::get(),
 			ExistentialDeposit::get()
 		).into());
-		pub AssetHubParaId: ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
 	}
 
@@ -2056,14 +2056,14 @@ mod benches {
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(crate::xcm_config::AssetHubLocation::get())
+			Some(AssetHubLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 			// Relay/native token can be teleported to/from AH.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				crate::xcm_config::AssetHubLocation::get(),
+				AssetHubLocation::get(),
 			))
 		}
 
@@ -2082,7 +2082,7 @@ mod benches {
 			// benchmarking as it's slightly heavier.
 			// Relay/native token can be teleported to/from AH.
 			let native_location = Here.into();
-			let dest = crate::xcm_config::AssetHubLocation::get();
+			let dest = AssetHubLocation::get();
 			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
 				native_location,
 				dest,

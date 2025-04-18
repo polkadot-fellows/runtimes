@@ -29,6 +29,7 @@ use snowbridge_core::AllowSiblingsOnly;
 use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlobExporter};
 use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
+use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::prelude::{GlobalConsensus, InteriorLocation, Location, Parachain};
 
@@ -44,7 +45,7 @@ pub type SnowbridgeExporter = EthereumBlobExporter<
 parameter_types! {
 	// The gateway address is set by governance.
 	pub storage EthereumGatewayAddress: H160 = H160::zero();
-	pub AssetHubFromEthereum: Location = Location::new(1,[GlobalConsensus(RelayNetwork::get()),Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID)]);
+	pub AssetHubFromEthereum: Location = Location::new(1,[GlobalConsensus(RelayNetwork::get()),Parachain(AssetHubParaId::get().into())]);
 	pub EthereumUniversalLocation: InteriorLocation = [GlobalConsensus(EthereumNetwork::get())].into();
 }
 

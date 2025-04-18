@@ -78,9 +78,9 @@ parameter_types! {
 	pub BridgeKusamaToPolkadotMessagesPalletInstance: InteriorLocation = PalletInstance(<BridgePolkadotMessages as PalletInfoAccess>::index() as u8).into();
 
 	/// Identifier of the sibling Polkadot Asset Hub parachain.
-	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+	pub AssetHubPolkadotParaId: cumulus_primitives_core::ParaId = polkadot_runtime_constants::system_parachain::AssetHubParaId::get();
 	/// Identifier of the sibling Kusama Asset Hub parachain.
-	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::ASSET_HUB_ID.into();
+	pub AssetHubKusamaParaId: cumulus_primitives_core::ParaId = kusama_runtime_constants::system_parachain::AssetHubParaId::get();
 	/// Location of the bridged Polkadot Bridge Hub parachain.
 	pub BridgeHubPolkadotLocation: Location = Location {
 		parents: 2,

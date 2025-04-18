@@ -555,7 +555,7 @@ pub mod bridging {
 				2,
 				[
 					GlobalConsensus(PolkadotNetwork::get()),
-					Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID),
+					Parachain(kusama_runtime_constants::system_parachain::AssetHubParaId::get().into()),
 			],
 			);
 

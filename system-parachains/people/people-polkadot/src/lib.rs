@@ -608,6 +608,8 @@ construct_runtime!(
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+	use system_parachains_constants::polkadot::locations::AssetHubLocation;
 
 	frame_benchmarking::define_benchmarks!(
 		// Substrate
@@ -647,11 +649,6 @@ mod benches {
 	}
 
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
-
-	parameter_types! {
-		pub AssetHubParaId: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
-		pub AssetHubLocation: Location = ParentThen(Parachain(AssetHubParaId::get().into()).into()).into();
-	}
 
 	impl pallet_xcm::benchmarking::Config for Runtime {
 		type DeliveryHelper = (

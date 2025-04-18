@@ -122,11 +122,14 @@ pub mod xcm {
 
 /// System Parachains.
 pub mod system_parachain {
-	use polkadot_primitives::Id;
+	use frame_support::parameter_types;
+	use polkadot_primitives::Id as ParaId;
 	use xcm_builder::IsChildSystemParachain;
 
-	/// Asset Hub parachain ID.
-	pub const ASSET_HUB_ID: u32 = 1000;
+	parameter_types! {
+		pub AssetHubParaId: ParaId = 1000.into();
+	}
+
 	/// Collectives parachain ID.
 	pub const COLLECTIVES_ID: u32 = 1001;
 	/// Bridge Hub parachain ID.
@@ -137,7 +140,7 @@ pub mod system_parachain {
 	pub const BROKER_ID: u32 = 1005;
 
 	// System parachains from Polkadot point of view.
-	pub type SystemParachains = IsChildSystemParachain<Id>;
+	pub type SystemParachains = IsChildSystemParachain<ParaId>;
 
 	/// Coretime constants
 	pub mod coretime {

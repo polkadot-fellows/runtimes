@@ -33,6 +33,7 @@ use parachains_common::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::traits::AccountIdConversion;
+use system_parachains_constants::kusama::locations::AssetHubLocation;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -56,7 +57,6 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	pub AssetHubLocation: Location = Location::new(1, [Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub const GovernanceLocation: Location = Location::parent();
 	pub const FellowshipLocation: Location = Location::parent();
 	/// The asset ID for the asset that we use to pay for message delivery fees. Just KSM.

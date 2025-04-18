@@ -46,6 +46,8 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
+use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
@@ -133,7 +135,7 @@ pub type XcmRouter = WithUniqueTopic<(
 
 parameter_types! {
 	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
-	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
+	pub AssetHubLocation: Location = Parachain(AssetHubParaId::get().into()).into_location();
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
 	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
 	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
