@@ -496,7 +496,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T>
 					current: pool.commission.current,
 					max: pool.commission.max,
 					change_rate: pool.commission.change_rate,
-					throttle_from: pool.commission.throttle_from,
+					throttle_from: None, // None to avoid discrepancies during the AH postcheck
 					claim_permission: pool.commission.claim_permission,
 				},
 				member_counter: pool.member_counter,

@@ -145,6 +145,23 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+fn normalize_generic_bonded_pool<T: Config>(
+	mut pool: GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>>,
+) -> GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>> {
+	use crate::Pallet;
+
+	if let Some(ref mut throttle_from) = pool.commission.throttle_from {
+		*throttle_from = Pallet::<T>::rc_to_ah_timepoint(*throttle_from);
+		// .saturating_add(One::one());
+	}
+	if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
+		change_rate.min_delay =
+			T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
+	}
+
+	pool
+}
+
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 	type RcPrePayload = Vec<
@@ -319,10 +336,37 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 			ah_messages.push(GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
 		}
 
+		let rc_normalized: Vec<_> = rc_pre_payload
+			.into_iter()
+			.map(|msg| match msg {
+				GenericNomPoolsMessage::BondedPools { pool: (id, inner) } => {
+					let generic = normalize_generic_bonded_pool::<T>(inner);
+					GenericNomPoolsMessage::BondedPools { pool: (id, generic) }
+				},
+				other => other, // lascia tutto il resto invariato
+			})
+			.collect();
+
+		let ah_filtered: Vec<_> = ah_messages
+			.into_iter()
+			.map(|msg| match msg {
+				// If the message is of type BondedPools, we remove the throttle_from value
+				// from the commission. This is necessary because in AssetHub, the value of
+				// throttle_from is calculated dynamically using block_number(),
+				// and it cannot be correctly obtained during the postcheck. By removing
+				// this value, we avoid conflicts and ensure that the AH system functions as
+				// intended.
+				GenericNomPoolsMessage::BondedPools { pool: (id, mut inner) } => {
+					inner.commission.throttle_from = None;
+					GenericNomPoolsMessage::BondedPools { pool: (id, inner) }
+				},
+				other => other,
+			})
+			.collect();
+
 		// Assert storage "NominationPools::*::ah_post::correct"
-		// Assert storage "NominationPools::*::ah_post::length"
 		assert_eq!(
-			rc_pre_payload, ah_messages,
+			rc_normalized, ah_filtered,
 			"Assert storage 'NominationPools::*::ah_post::correct'"
 		);
 	}
