@@ -211,8 +211,11 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 		// for the call conversion, but it also changes the preimage state during that conversion,
 		// breaking any checks we try and do after. So we grab all the necessary data for call
 		// conversion upfront to avoid this reliance and allow for the checks to happen smoothly.
-		let agenda_and_call_encodings: Vec<_> =
-			alias::Agenda::<T>::iter().map(|(bn, tasks)| (bn, tasks.clone().into_inner(), Self::get_task_call_encodings(tasks))).collect();
+		let agenda_and_call_encodings: Vec<_> = alias::Agenda::<T>::iter()
+			.map(|(bn, tasks)| {
+				(bn, tasks.clone().into_inner(), Self::get_task_call_encodings(tasks))
+			})
+			.collect();
 		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
 		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
 

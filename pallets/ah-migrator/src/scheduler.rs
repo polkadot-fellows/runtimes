@@ -128,7 +128,8 @@ impl<T: Config> Pallet<T> {
 #[derive(Decode)]
 pub struct RcPrePayload<T: Config> {
 	incomplete_since: Option<BlockNumberFor<T>>,
-	agenda_and_call_encodings: Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>, Vec<Option<Vec<u8>>>)>,
+	agenda_and_call_encodings:
+		Vec<(BlockNumberFor<T>, Vec<Option<RcScheduledOf<T>>>, Vec<Option<Vec<u8>>>)>,
 	retries: Vec<(TaskAddress<BlockNumberFor<T>>, RetryConfig<BlockNumberFor<T>>)>,
 	lookup: Vec<(TaskName, TaskAddress<BlockNumberFor<T>>)>,
 }
@@ -240,13 +241,12 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 		);
 
 		// Sort to ensure no ordering issues.
-		ah_agenda.sort_by_key(|(index, _)| *index);
-		expected_ah_agenda.sort_by_key(|(index, _)| *index);
+		ah_agenda.sort_by_key(|(bn, _)| *bn);
+		expected_ah_agenda.sort_by_key(|(bn, _)| *bn);
 
 		// Assert storage 'Scheduler::Agenda::ah_post::correct'
 		assert_eq!(
-			ah_agenda, 
-			expected_ah_agenda,
+			ah_agenda, expected_ah_agenda,
 			"Agenda map value on Asset Hub should match the converted RC value"
 		);
 
