@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct weights for pallet xcm's `transfer_asset` extrinsic for multiple chains ([polkadot-fellows/runtimes#673](https://github.com/polkadot-fellows/runtimes/pull/673))
+
 ### Added
 
 - Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
