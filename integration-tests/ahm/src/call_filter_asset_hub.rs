@@ -16,6 +16,8 @@
 
 //! Asset Hub Migration tests.
 
+use crate::porting_prelude::*;
+
 use asset_hub_polkadot_runtime::{
 	AhMigrator, Block, BuildStorage, Runtime as T, RuntimeCall, RuntimeOrigin, System,
 };
