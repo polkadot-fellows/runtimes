@@ -15,7 +15,7 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use frame_support::traits::{DefensiveTruncateFrom, schedule::v3::TaskName};
+use frame_support::traits::{schedule::v3::TaskName, DefensiveTruncateFrom};
 use pallet_rc_migrator::scheduler::{alias::Scheduled, RcSchedulerMessage, SchedulerMigrator};
 use pallet_scheduler::{RetryConfig, TaskAddress};
 
@@ -176,15 +176,16 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 			"IncompleteSince on Asset Hub should match the RC value"
 		);
 
-		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct expected Agendas.
-		// Critically, use the passed agenda call encodings to remove reliance on pallet-preimage state, which
-		// will have been changed from the actual migration.
+		// Mirror the Agenda conversion in `do_process_scheduler_message` above ^ to construct
+		// expected Agendas. Critically, use the passed agenda call encodings to remove reliance
+		// on pallet-preimage state, which will have been changed from the actual migration.
 		let mut expected_ah_agenda: Vec<_> = rc_payload
 			.agenda
 			.into_iter()
-			.filter_map(|(block_number, rc_tasks)| {
+			.zip(rc_payload.agenda_call_encodings.into_iter())
+			.filter_map(|((block_number, rc_tasks), (_, rc_calls_bytes))| {
 				let mut ah_tasks = Vec::new();
-				for rc_task_opt in rc_tasks.into_iter() {
+				for (index, rc_task_opt) in rc_tasks.into_iter().enumerate() {
 					if let Some(rc_task) = rc_task_opt {
 						// Attempt to convert origin.
 						let ah_origin =
@@ -195,12 +196,18 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 									continue;
 								},
 							};
+
 						// Attempt to convert call.
-						let ah_call = if let Ok(call) = Pallet::<T>::map_rc_ah_call_no_preimage(Vec::<u8>::new()) {
-							call
+						let maybe_bytes = rc_calls_bytes[index].clone();
+						let ah_call = if let Some(bytes) = maybe_bytes {
+							match Pallet::<T>::map_rc_ah_call_no_preimage(bytes) {
+								Ok(c) => c,
+								// Call conversion failed, skip.
+								Err(_) => continue,
+							}
 						} else {
-							// Call conversion failed, skip task.
-							continue;
+							// Call encoding was blank, skip.
+							continue
 						};
 
 						// Build new task.
@@ -212,7 +219,8 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 							origin: ah_origin,
 						};
 						ah_tasks.push(Some(ah_task));
-					} else {}
+					} else {
+					}
 				}
 				// Filter out blocks that end up with no valid tasks after conversion.
 				if !ah_tasks.is_empty() {
@@ -241,8 +249,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 
 		// Assert storage 'Scheduler::Agenda::ah_post::correct'
 		assert_eq!(
-			ah_agenda, 
-			expected_ah_agenda,
+			ah_agenda, expected_ah_agenda,
 			"Agenda map value on Asset Hub should match the converted RC value"
 		);
 
@@ -281,8 +288,8 @@ impl<T: Config> Pallet<T> {
 	pub fn map_rc_ah_call_no_preimage(
 		encoded_call: Vec<u8>,
 	) -> Result<call::BoundedCallOf<T>, Error<T>> {
-		use sp_runtime::traits::Hash;
 		use frame_support::traits::{Bounded, BoundedInline};
+		use sp_runtime::traits::Hash;
 
 		// Convert call.
 		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
@@ -296,7 +303,10 @@ impl<T: Config> Pallet<T> {
 		let len = data.len() as u32;
 		Ok(match BoundedInline::try_from(data) {
 			Ok(bounded) => Bounded::Inline(bounded),
-			Err(unbounded) => Bounded::Lookup { hash: <<T as frame_system::Config>::Hashing as Hash>::hash(&unbounded[..]), len },
+			Err(unbounded) => Bounded::Lookup {
+				hash: <<T as frame_system::Config>::Hashing as Hash>::hash(&unbounded[..]),
+				len,
+			},
 		})
 	}
 }
