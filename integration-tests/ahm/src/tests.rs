@@ -118,7 +118,7 @@ pub type AhPolkadotChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
-	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+	let (mut rc, mut ah) = load_externalities().await.unwrap();
 
 	// Set the initial migration stage from env var if set.
 	set_initial_migration_stage(&mut rc);
