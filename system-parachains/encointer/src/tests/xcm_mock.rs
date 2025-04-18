@@ -16,6 +16,9 @@
 
 //! Mock implementations to test XCM builder configuration types.
 
+// Allow as this is a mock only and the original in the polkadot-sdk is the same
+#![allow(clippy::type_complexity)]
+
 use crate::xcm_config::MaxAssetsIntoHolding;
 pub use alloc::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
 pub use codec::{Decode, DecodeWithMemTracking, Encode};
@@ -344,14 +347,14 @@ pub struct TestIsReserve;
 impl ContainsPair<Asset, Location> for TestIsReserve {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		IS_RESERVE
-			.with(|r| r.borrow().get(origin).map_or(false, |v| v.iter().any(|a| a.matches(asset))))
+			.with(|r| r.borrow().get(origin).is_some_and(|v| v.iter().any(|a| a.matches(asset))))
 	}
 }
 pub struct TestIsTeleporter;
 impl ContainsPair<Asset, Location> for TestIsTeleporter {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
 		IS_TELEPORTER
-			.with(|r| r.borrow().get(origin).map_or(false, |v| v.iter().any(|a| a.matches(asset))))
+			.with(|r| r.borrow().get(origin).is_some_and(|v| v.iter().any(|a| a.matches(asset))))
 	}
 }
 
@@ -572,7 +575,7 @@ pub fn unlock_allowed(unlocker: &Location, asset: &Asset, owner: &Location) -> b
 	ALLOWED_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.get(&(owner.clone(), unlocker.clone()))
-			.map_or(false, |x| x.contains_asset(asset))
+			.is_some_and(|x| x.contains_asset(asset))
 	})
 }
 pub fn allow_request_unlock(
@@ -603,7 +606,7 @@ pub fn request_unlock_allowed(locker: &Location, asset: &Asset, owner: &Location
 	ALLOWED_REQUEST_UNLOCKS.with(|l| {
 		l.borrow_mut()
 			.get(&(owner.clone(), locker.clone()))
-			.map_or(false, |x| x.contains_asset(asset))
+			.is_some_and(|x| x.contains_asset(asset))
 	})
 }
 
