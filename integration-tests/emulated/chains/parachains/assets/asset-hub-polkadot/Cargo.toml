@@ -30,7 +30,7 @@ penpal-emulated-chain = { workspace = true }
 snowbridge-router-primitives = { workspace = true, default-features = true }
 
 # Emulated tests
-integration-tests-helpers = { workspace = true, default-features = true }
+integration-tests-helpers = { workspace = true }
 
 [features]
 runtime-benchmarks = [

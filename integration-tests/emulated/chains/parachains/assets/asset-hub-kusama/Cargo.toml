@@ -29,7 +29,7 @@ penpal-emulated-chain = { workspace = true }
 
 
 # Emulated tests
-integration-tests-helpers = { workspace = true, default-features = true }
+integration-tests-helpers = { workspace = true }
 
 [features]
 runtime-benchmarks = [
