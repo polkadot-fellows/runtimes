@@ -33,9 +33,7 @@ use codec::{Decode, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
-use integration_tests_helpers::{
-	common::{MIN_ETHER_BALANCE, WETH},
-};
+use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::genesis::AssetHubPolkadotAssetOwner,
 	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,
@@ -1375,22 +1373,22 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	BridgeHubKusama::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
-	
+
 	// Create foreign asset using the V4 location
 	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
-	
+
 	// We'll need this later in the code, so clone it before it's moved into the closure
 	let bridged_dot_at_asset_hub_kusama_for_later = bridged_dot_at_asset_hub_kusama.clone();
-	
+
 	// Create the pool directly instead of using the macro to avoid version mismatch issues
 	AssetHubKusama::execute_with(|| {
 		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 		let owner = sender.clone();
 		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
-		
+
 		// Native KSM asset (Parent)
 		let native_asset: xcm::v4::Location = xcm::v4::Parent.into();
-		
+
 		// Mint foreign asset
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
 			signed_owner.clone(),
@@ -1398,21 +1396,21 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			owner.clone().into(),
 			10_000_000_000_000, // For it to have more than enough.
 		));
-		
+
 		// Create the pool
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
 			signed_owner.clone(),
 			Box::new(native_asset.clone()),
 			Box::new(bridged_dot_at_asset_hub_kusama.clone()),
 		));
-		
+
 		assert_expected_events!(
 			AssetHubKusama,
 			vec![
 				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
 			]
 		);
-		
+
 		// Add liquidity
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
 			signed_owner,
@@ -1424,7 +1422,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			0,
 			owner
 		));
-		
+
 		assert_expected_events!(
 			AssetHubKusama,
 			vec![
@@ -1526,7 +1524,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()].into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()]
+			.into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
@@ -1596,7 +1595,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()].into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()]
+			.into();
 
 	// Transfer the token back to Polkadot.
 	assert_ok!(AssetHubKusama::execute_with(|| {
