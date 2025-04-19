@@ -145,7 +145,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 						2,
 						[
 							xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()),
-							xcm::v4::Junction::AccountKey20 { network: None, key: WETH.into() },
+							xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
 						],
 					),
 					EthereumSovereignAccount::get(),
