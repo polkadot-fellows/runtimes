@@ -108,7 +108,7 @@ pub fn genesis() -> Storage {
 					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
 					AssetHubPolkadotSovereignAccount::get(),
 					true,
-					ED,
+					MIN_ETHER_BALANCE,
 				),
 				// Weth
 				(
