@@ -69,7 +69,6 @@ type RcChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
-	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
@@ -82,6 +81,7 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -99,7 +99,6 @@ type AhChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
-	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
@@ -113,6 +112,7 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
