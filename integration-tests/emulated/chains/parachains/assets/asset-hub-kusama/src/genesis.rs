@@ -14,7 +14,7 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::{sr25519, storage::Storage};
+use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
@@ -34,12 +34,12 @@ pub const USDT_ID: u32 = 1984;
 use asset_hub_kusama_runtime::xcm_config::bridging::to_polkadot::EthereumNetwork;
 
 frame_support::parameter_types! {
-	pub AssetHubKusamaAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub AssetHubKusamaAssetOwner: AccountId = Keyring::Alice.to_account_id();
+	pub PenpalATeleportableAssetLocation: xcm::v4::Location
+		= xcm::v4::Location::new(1, [
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	 pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID.into()),
@@ -51,7 +51,7 @@ frame_support::parameter_types! {
 	).unwrap();
 }
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = asset_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: asset_hub_kusama_runtime::SystemConfig::default(),
 		balances: asset_hub_kusama_runtime::BalancesConfig {

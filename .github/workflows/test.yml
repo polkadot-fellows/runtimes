@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2409
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2412-4
 
 # cancel previous runs
 concurrency:
@@ -104,8 +104,14 @@ jobs:
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
           cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
           # run benchmarking
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1
+          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+            EXCLUDE_EXTRINSICS=""
+          else
+            EXCLUDE_EXTRINSICS=" --exclude-extrinsics "
+            EXCLUDE_EXTRINSICS+=${{ matrix.runtime.benchmarks_exclude_extrinsics }}
+          fi
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS
         env:
           RUSTFLAGS: "-C debug-assertions -D warnings"
 

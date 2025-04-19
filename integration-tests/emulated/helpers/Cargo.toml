@@ -23,3 +23,11 @@ pallet-xcm = { workspace = true, default-features = true }
 xcm-emulator = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 asset-test-utils = { workspace = true }
+
+[features]
+runtime-benchmarks = [
+	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+]

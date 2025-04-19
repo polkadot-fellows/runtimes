@@ -11,6 +11,7 @@ publish = false
 
 # Substrate
 sp-core = { workspace = true, default-features = true }
+sp-keyring = { workspace = true }
 frame-support = { workspace = true, default-features = true }
 
 # Cumulus
@@ -30,3 +31,14 @@ snowbridge-router-primitives = { workspace = true, default-features = true }
 
 # Emulated tests
 integration-tests-helpers = { workspace = true, default-features = true }
+
+[features]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"penpal-emulated-chain/runtime-benchmarks",
+	"polkadot-emulated-chain/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+]
