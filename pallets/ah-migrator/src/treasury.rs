@@ -234,42 +234,42 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		assert_eq!(
 			pallet_treasury::ProposalCount::<T>::get(),
 			proposals_count,
-			"ProposalCount on Asset Hub should match RC value"
+			"ProposalCount on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::SpendCount::ah_post::correct'
 		assert_eq!(
 			treasury_alias::SpendCount::<T>::get(),
 			spends_count,
-			"SpendCount on Asset Hub should match RC value"
+			"SpendCount on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
 		assert_eq!(
 			pallet_treasury::Proposals::<T>::iter_keys().count() as u32,
 			proposals.len() as u32,
-			"ProposalCount on Asset Hub should match RC value"
+			"Number of active proposals on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::Proposals::ah_post::consistent'
 		assert_eq!(
 			proposals,
 			pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>(),
-			"Proposals on Asset Hub should match RC proposals"
+			"Proposals IDs on Asset Hub should match Relay Chain proposal IDs"
 		);
 
 		// Assert storage 'Treasury::Approvals::ah_post::correct'
 		assert_eq!(
 			pallet_treasury::Approvals::<T>::get().into_inner(),
 			approvals,
-			"Approvals on Asset Hub should match RC value"
+			"Approvals on Asset Hub should match Relay Chain approvals"
 		);
 
 		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
 		assert_eq!(
 			treasury_alias::Spends::<T>::iter_keys().count() as u32,
 			spends.len() as u32,
-			"SpendCount on Asset Hub should match RC value"
+			"Number of active spends on Asset Hub should match Relay Chain value"
 		);
 
 		// Assert storage 'Treasury::Spends::ah_post::consistent'
@@ -281,10 +281,14 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 					amount: spend.amount,
 					valid_from: spend.valid_from,
 					expire_at: spend.expire_at,
-					status: spend.status,
+					status: spend.status.clone(),
 				},
 			));
 		}
-		assert_eq!(ah_spends.len(), spends.len(), "Spends on Asset Hub should match RC values");
+		// Assert storage 'Treasury::Spends::ah_post::correct'
+		assert_eq!(
+			ah_spends, spends,
+			"Spends on Asset Hub should match migrated Spends from the relay chain"
+		);
 	}
 }

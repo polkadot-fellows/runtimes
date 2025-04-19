@@ -21,6 +21,7 @@ use pallet_scheduler::{RetryConfig, TaskAddress};
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum SchedulerStage<BlockNumber> {
 	#[default]
 	IncompleteSince,
@@ -32,6 +33,7 @@ pub enum SchedulerStage<BlockNumber> {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcSchedulerMessage<BlockNumber, Scheduled> {
 	IncompleteSince(BlockNumber),
 	Agenda((BlockNumber, Vec<Option<Scheduled>>)),
