@@ -41,4 +41,6 @@ runtime-benchmarks = [
 	"penpal-emulated-chain/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"integration-tests-helpers/runtime-benchmarks",
+	"snowbridge-router-primitives/runtime-benchmarks"
 ]
