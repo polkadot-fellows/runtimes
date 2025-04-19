@@ -19,15 +19,14 @@ use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 // Cumulus
 use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed,
-	xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
-use sp_core::sr25519;
+use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
 use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
@@ -52,12 +51,13 @@ frame_support::parameter_types! {
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
-	pub EthereumSovereignAccount: AccountId = GlobalConsensusEthereumConvertsFor::<AccountId>::convert_location(
+	pub EthereumSovereignAccount: AccountId = EthereumLocationsConverterFor::<AccountId>::convert_location(
 		&Location::new(
 			2,
 			[GlobalConsensus(EthereumNetwork::get())],
 		),
 	).unwrap();
+	pub EthereumNetworkXcmV4: xcm::v4::NetworkId = xcm::v4::NetworkId::Ethereum { chain_id: 1 };
 }
 
 pub mod collators {
@@ -134,18 +134,18 @@ pub fn genesis() -> sp_core::storage::Storage {
 				),
 				// Ether
 				(
-					Location::new(2, [GlobalConsensus(EthereumNetwork::get())]),
+					xcm::v4::Location::new(2, [EthereumNetworkXcmV4::get().into()]),
 					EthereumSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,
 				),
 				// Weth
 				(
-					Location::new(
+					xcm::v4::Location::new(
 						2,
 						[
-							GlobalConsensus(EthereumNetwork::get()),
-							AccountKey20 { network: None, key: WETH.into() },
+							xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()),
+							xcm::v4::Junction::AccountKey20 { network: None, key: WETH.into() },
 						],
 					),
 					EthereumSovereignAccount::get(),
