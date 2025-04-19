@@ -35,7 +35,6 @@ use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
 use integration_tests_helpers::{
 	common::{MIN_ETHER_BALANCE, WETH},
-	create_pool_with_native_on,
 };
 use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::genesis::AssetHubPolkadotAssetOwner,
@@ -1376,15 +1375,63 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	BridgeHubKusama::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
-	let bridged_dot_at_asset_hub_kusama_latest: Location = bridged_dot_at_asset_hub_kusama.clone().try_into().unwrap();
-
+	
+	// Create foreign asset using the V4 location
 	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
-	create_pool_with_native_on!(
-		AssetHubKusama,
-		bridged_dot_at_asset_hub_kusama,
-		true,
-		sender.clone()
-	);
+	
+	// We'll need this later in the code, so clone it before it's moved into the closure
+	let bridged_dot_at_asset_hub_kusama_for_later = bridged_dot_at_asset_hub_kusama.clone();
+	
+	// Create the pool directly instead of using the macro to avoid version mismatch issues
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+		let owner = sender.clone();
+		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
+		
+		// Native KSM asset (Parent)
+		let native_asset: xcm::v4::Location = xcm::v4::Parent.into();
+		
+		// Mint foreign asset
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
+			signed_owner.clone(),
+			bridged_dot_at_asset_hub_kusama.clone(),
+			owner.clone().into(),
+			10_000_000_000_000, // For it to have more than enough.
+		));
+		
+		// Create the pool
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::create_pool(
+			signed_owner.clone(),
+			Box::new(native_asset.clone()),
+			Box::new(bridged_dot_at_asset_hub_kusama.clone()),
+		));
+		
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::PoolCreated { .. }) => {},
+			]
+		);
+		
+		// Add liquidity
+		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::AssetConversion::add_liquidity(
+			signed_owner,
+			Box::new(native_asset),
+			Box::new(bridged_dot_at_asset_hub_kusama),
+			1_000_000_000_000,
+			2_000_000_000_000, // $asset is worth half of native_asset
+			0,
+			0,
+			owner
+		));
+		
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				RuntimeEvent::AssetConversion(pallet_asset_conversion::Event::LiquidityAdded { .. }) => {},
+			]
+		);
+	});
 
 	// Set base transfer fee to Ethereum on AH.
 	AssetHubPolkadot::execute_with(|| {
@@ -1468,7 +1515,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		.into();
 
 	let fee = dot_at_ah_polkadot();
-	let fee_latest = fee.clone().try_into().unwrap();
+	let fee_latest: Location = fee.clone().try_into().unwrap();
 	let fees_asset: AssetId = fee_latest.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
@@ -1522,7 +1569,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == weth_location_v4,
-					owner: *owner == AssetHubKusamaReceiver::get().into(),
+					owner: *owner == AssetHubKusamaReceiver::get(),
 				},
 			]
 		);
@@ -1542,8 +1589,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		0,
 		[AccountId32 { network: None, id: AssetHubPolkadotReceiver::get().into() }],
 	);
-	let fee = bridged_dot_at_asset_hub_kusama;
-	let fee_latest = bridged_dot_at_asset_hub_kusama.clone().try_into().unwrap();
+	let fee = bridged_dot_at_asset_hub_kusama_for_later.clone();
+	let fee_latest: Location = fee.clone().try_into().unwrap();
 	let fees_asset: AssetId = fee_latest.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
@@ -1607,7 +1654,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
 					asset_id: *asset_id == weth_location_v4,
-					owner: *owner == AssetHubPolkadotReceiver::get().into(),
+					owner: *owner == AssetHubPolkadotReceiver::get(),
 				},
 			]
 		);
