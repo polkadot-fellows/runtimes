@@ -41,7 +41,7 @@ frame_support::parameter_types! {
 				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
-	 pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID.into()),
+	 pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID),
    ].into();
 	pub AssetHubPolkadotLocation: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();

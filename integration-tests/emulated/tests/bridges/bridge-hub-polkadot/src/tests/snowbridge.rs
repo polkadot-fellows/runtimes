@@ -586,7 +586,7 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 		);
 	});
 
-	send_token_back_to_ethereum(asset_location, amount);
+	send_token_back_to_ethereum(asset_location_latest, amount);
 }
 
 fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
@@ -602,7 +602,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
 
-		let assets = vec![Asset { id: AssetId(asset_location_latest), fun: Fungible(amount) }];
+		let assets = vec![Asset { id: AssetId(asset_location), fun: Fungible(amount) }];
 		let versioned_assets = VersionedAssets::from(Assets::from(assets));
 
 		let destination = VersionedLocation::from(Location::new(
@@ -1376,11 +1376,12 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	BridgeHubKusama::force_xcm_version(asset_hub_kusama_location(), XCM_VERSION);
 
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
+	let bridged_dot_at_asset_hub_kusama_latest: Location = bridged_dot_at_asset_hub_kusama.clone().try_into().unwrap();
 
 	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
 	create_pool_with_native_on!(
 		AssetHubKusama,
-		bridged_dot_at_asset_hub_kusama.clone(),
+		bridged_dot_at_asset_hub_kusama,
 		true,
 		sender.clone()
 	);
@@ -1457,8 +1458,18 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
+	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
+	let weth_location_v4: xcm::v4::Location = (
+		xcm::v4::Parent,
+		xcm::v4::Parent,
+		v4_ethereum_network,
+		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+	)
+		.into();
+
 	let fee = dot_at_ah_polkadot();
-	let fees_asset: AssetId = fee.clone().into();
+	let fee_latest = fee.clone().try_into().unwrap();
+	let fees_asset: AssetId = fee_latest.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
@@ -1468,7 +1479,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee, XCM_FEE * 3).into()].into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()].into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
 		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
@@ -1510,7 +1521,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location,
+					asset_id: *asset_id == weth_location_v4,
 					owner: *owner == AssetHubKusamaReceiver::get().into(),
 				},
 			]
@@ -1532,12 +1543,13 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		[AccountId32 { network: None, id: AssetHubPolkadotReceiver::get().into() }],
 	);
 	let fee = bridged_dot_at_asset_hub_kusama;
-	let fees_asset: AssetId = fee.clone().into();
+	let fee_latest = bridged_dot_at_asset_hub_kusama.clone().try_into().unwrap();
+	let fees_asset: AssetId = fee_latest.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee, XCM_FEE).into()].into();
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()].into();
 
 	// Transfer the token back to Polkadot.
 	assert_ok!(AssetHubKusama::execute_with(|| {
@@ -1594,7 +1606,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location,
+					asset_id: *asset_id == weth_location_v4,
 					owner: *owner == AssetHubPolkadotReceiver::get().into(),
 				},
 			]
