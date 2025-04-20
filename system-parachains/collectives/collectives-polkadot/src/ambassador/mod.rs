@@ -28,7 +28,6 @@
 //!   inducted into [AmbassadorCore](pallet_core_fellowship)).
 //! - Ambassador Program Sub-Treasury (via [AmbassadorTreasury](pallet_treasury)).
 
-pub mod migrations;
 pub mod origins;
 mod tracks;
 
@@ -355,6 +354,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = System;
 }
 
 #[cfg(all(test, not(feature = "runtime-benchmarks")))]

@@ -20,9 +20,10 @@ use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, PolkadotXcm, Runtime,
-	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubKusama,
+	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
 };
 
+pub use bp_bridge_hub_kusama::bp_kusama;
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,
@@ -37,9 +38,9 @@ use frame_support::{
 use frame_system::{EnsureNever, EnsureRoot};
 use pallet_bridge_messages::LaneIdOf;
 use pallet_bridge_relayers::extension::{
-	BridgeRelayersSignedExtension, WithMessagesExtensionConfig,
+	BridgeRelayersTransactionExtension, WithMessagesExtensionConfig,
 };
-use pallet_xcm_bridge_hub::XcmAsPlainPayload;
+use pallet_xcm_bridge_hub::{BridgeId, XcmAsPlainPayload};
 use parachains_common::xcm_config::{AllSiblingSystemParachains, RelayOrOtherSystemParachains};
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants as constants;
@@ -93,7 +94,7 @@ parameter_types! {
 
 pub type RelayersForLegacyLaneIdsMessagesInstance = ();
 /// Allows collect and claim rewards for relayers.
-impl pallet_bridge_relayers::Config for Runtime {
+impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
@@ -138,10 +139,6 @@ parameter_types! {
 	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
 	pub const RelayerStakeLease: u32 = 300;
 
-	// see the `FEE_BOOST_PER_RELAY_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerRelayHeader: u64 = 220_053_724_053;
-	// see the `FEE_BOOST_PER_PARACHAIN_HEADER` constant get the meaning of this value
-	pub PriorityBoostPerParachainHeader: u64 = 9_182_241_758_241;
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
 }
@@ -161,7 +158,7 @@ pub type FromKusamaMessageBlobDispatcher = BridgeBlobDispatcher<
 >;
 
 /// Signed extension that refunds relayers that are delivering messages from the Kusama parachain.
-pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersSignedExtension<
+pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersTransactionExtension<
 	Runtime,
 	WithMessagesExtensionConfig<
 		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
@@ -220,6 +217,7 @@ impl pallet_bridge_messages::Config<WithBridgeHubKusamaMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
+		RelayersForLegacyLaneIdsMessagesInstance,
 		DeliveryRewardInBalance,
 	>;
 
@@ -256,144 +254,43 @@ impl pallet_xcm_bridge_hub::Config<XcmOverBridgeHubKusamaInstance> for Runtime {
 	type AllowWithoutBridgeDeposit =
 		RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>;
 
-	type LocalXcmChannelManager = XcmpQueueChannelManager;
+	type LocalXcmChannelManager = CongestionManager;
 	type BlobDispatcher = FromKusamaMessageBlobDispatcher;
 }
 
-/// Implementation `bp_xcm_bridge_hub::LocalXcmChannelManager`.
-pub struct XcmpQueueChannelManager;
-impl bp_xcm_bridge_hub::LocalXcmChannelManager for XcmpQueueChannelManager {
-	type Error = ();
+/// Implementation of `bp_xcm_bridge_hub::LocalXcmChannelManager` for congestion management.
+pub struct CongestionManager;
+impl pallet_xcm_bridge_hub::LocalXcmChannelManager for CongestionManager {
+	type Error = SendError;
 
 	fn is_congested(with: &Location) -> bool {
-		// This is used to check the inbound queue/messages to determine if they can be dispatched
-		// and sent to the sibling parachain. Therefore, checking `OutXcmp` is sufficient.
+		// This is used to check the inbound bridge queue/messages to determine if they can be
+		// dispatched and sent to the sibling parachain. Therefore, checking outbound `XcmpQueue`
+		// is sufficient here.
 		use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 		cumulus_pallet_xcmp_queue::bridging::OutXcmpChannelStatusProvider::<Runtime>::is_congested(
 			with,
 		)
 	}
 
-	fn suspend_bridge(
-		_local_origin: &Location,
-		_: pallet_xcm_bridge_hub::BridgeId,
-	) -> Result<(), Self::Error> {
-		// IMPORTANT NOTE:
-		//
-		// Unfortunately, `https://github.com/paritytech/polkadot-sdk/pull/6231` reworked congestion is not yet released.
-		//
-		// And unfortunately, we don't have access to `XcmpQueue::send_signal(para,
-		// ChannelSignal::Suspend)` here (which would require patch release), we can add this
-		// hacky workaround/tmp/implementation that should trigger `ChannelSignal::Suspend`, e.g.:
-		/*
-		use crate::{MessageQueue, XcmpQueue};
-		use bridge_hub_common::message_queue::AggregateMessageOrigin;
-		use codec::{Decode, Encode, MaxEncodedLen};
-		use frame_support::traits::EnqueueMessage;
-		use frame_support::pallet_prelude::OptionQuery;
-		use pallet_message_queue::OnQueueChanged;
-		use scale_info::TypeInfo;
-
-		// get sibling para id
-		let local_origin_para_id: crate::ParaId = match _local_origin.unpack() {
-			(1, [Parachain(id)]) => (*id).into(),
-			_ => return Err(())
-		};
-
-		// read `suspend_threshold` from `XcmpQueue` storage
-		#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen)]
-		struct QueueConfigData {
-			suspend_threshold: u32,
-			drop_threshold: u32,
-			resume_threshold: u32,
-		}
-		#[frame_support::storage_alias]
-		type QueueConfig = StorageValue<XcmpQueue, QueueConfigData, OptionQuery>;
-		let suspend_threshold = match QueueConfig::get() {
-			Some(qc) => qc.suspend_threshold,
-			None => return Err(())
-		};
-
-		// Now, this should trigger `XcmpQueue::send_signal(para, ChannelSignal::Suspend)`
-		let mut qf = MessageQueue::footprint(AggregateMessageOrigin::Sibling(local_origin_para_id));
-		qf.ready_pages = suspend_threshold;
-		XcmpQueue::on_queue_changed(local_origin_para_id.into(), qf);
-		 */
-
-		// IMPORTANT NOTE2:
-		//
-		// In the current setup, this code is likely triggered only for the hard-coded AHK<>AHP
-		// lane, as we do not support any other bridge lanes on BridgeHubs. It is triggered only
-		// when `pallet_bridge_messages::OutboundMessages` reaches 8,192 undelivered messages. The
-		// potential risk of keeping `Ok(())` or `Err(())` here is that
-		// `pallet_bridge_messages::OutboundMessages` may continue to grow:
-		//
-		// ```
-		// 	#[pallet::storage]
-		// 	pub type OutboundMessages<T: Config<I>, I: 'static = ()> =
-		// 		StorageMap<_, Blake2_128Concat, MessageKey<T::LaneId>, StoredMessagePayload<T, I>>;
-		// ```
-
-		// TODO: decide:
-		// 1. wait for patch-release stable2409-3 2024-12-12
-		// 2. go with `Ok(())` / `Err(())`
-		// 3. go with `XcmpQueue::send_signal` temporary workaround till patch release
-
-		Ok(())
+	fn suspend_bridge(local_origin: &Location, bridge: BridgeId) -> Result<(), Self::Error> {
+		// This bridge is intended for AH<>AH communication with a hard-coded/static lane,
+		// so `local_origin` is expected to represent only the local AH.
+		send_xcm::<XcmpQueue>(
+			local_origin.clone(),
+			bp_asset_hub_kusama::build_congestion_message(bridge.inner(), true).into(),
+		)
+		.map(|_| ())
 	}
 
-	fn resume_bridge(
-		_local_origin: &Location,
-		_: pallet_xcm_bridge_hub::BridgeId,
-	) -> Result<(), Self::Error> {
-		// IMPORTANT NOTE:
-		//
-		// Unfortunately, `https://github.com/paritytech/polkadot-sdk/pull/6231` reworked congestion is not yet released.
-		//
-		// And unfortunately, we don't have access to `XcmpQueue::send_signal(para,
-		// ChannelSignal::Resume)` here (which would require patch release), we can add this hacky
-		// workaround/tmp/implementation that should trigger `ChannelSignal::Resume`, e.g.:
-		/*
-		use crate::{MessageQueue, XcmpQueue};
-		use bridge_hub_common::message_queue::AggregateMessageOrigin;
-		use codec::{Decode, Encode, MaxEncodedLen};
-		use frame_support::traits::EnqueueMessage;
-		use frame_support::pallet_prelude::OptionQuery;
-		use pallet_message_queue::OnQueueChanged;
-		use scale_info::TypeInfo;
-
-		// get sibling para id
-		let local_origin_para_id: crate::ParaId = match _local_origin.unpack() {
-			(1, [Parachain(id)]) => (*id).into(),
-			_ => return Err(())
-		};
-
-		// read `resume_threshold` from `XcmpQueue` storage
-		#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, TypeInfo, MaxEncodedLen)]
-		struct QueueConfigData {
-			suspend_threshold: u32,
-			drop_threshold: u32,
-			resume_threshold: u32,
-		}
-		#[frame_support::storage_alias]
-		type QueueConfig = StorageValue<XcmpQueue, QueueConfigData, OptionQuery>;
-		let resume_threshold = match QueueConfig::get() {
-			Some(qc) => qc.resume_threshold,
-			None => return Err(())
-		};
-
-		// Now, this should trigger `XcmpQueue::send_signal(para, ChannelSignal::Resume)`
-		let mut qf = MessageQueue::footprint(AggregateMessageOrigin::Sibling(local_origin_para_id));
-		qf.ready_pages = resume_threshold;
-		XcmpQueue::on_queue_changed(local_origin_para_id.into(), qf);
-		 */
-
-		// TODO: decide:
-		// 1. wait for patch-release stable2409-3 2024-12-12
-		// 2. go with `Ok(())` / `Err(())`
-		// 3. go with `XcmpQueue::send_signal` temporary workaround till patch release
-
-		Ok(())
+	fn resume_bridge(local_origin: &Location, bridge: BridgeId) -> Result<(), Self::Error> {
+		// This bridge is intended for AH<>AH communication with a hard-coded/static lane,
+		// so `local_origin` is expected to represent only the local AH.
+		send_xcm::<XcmpQueue>(
+			local_origin.clone(),
+			bp_asset_hub_kusama::build_congestion_message(bridge.inner(), false).into(),
+		)
+		.map(|_| ())
 	}
 }
 
@@ -409,6 +306,7 @@ where
 		bp_runtime::AccountIdOf<pallet_xcm_bridge_hub::ThisChainOf<R, XBHI>>,
 	>,
 {
+	use alloc::boxed::Box;
 	use pallet_xcm_bridge_hub::{Bridge, BridgeId, BridgeState};
 	use sp_runtime::traits::Zero;
 	use xcm::VersionedInteriorLocation;
@@ -424,15 +322,13 @@ where
 	pallet_xcm_bridge_hub::Bridges::<R, XBHI>::insert(
 		bridge_id,
 		Bridge {
-			bridge_origin_relative_location: sp_std::boxed::Box::new(
-				sibling_parachain.clone().into(),
-			),
-			bridge_origin_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_source.clone()),
-			),
-			bridge_destination_universal_location: sp_std::boxed::Box::new(
-				VersionedInteriorLocation::from(universal_destination),
-			),
+			bridge_origin_relative_location: Box::new(sibling_parachain.clone().into()),
+			bridge_origin_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_source.clone(),
+			)),
+			bridge_destination_universal_location: Box::new(VersionedInteriorLocation::from(
+				universal_destination,
+			)),
 			state: BridgeState::Opened,
 			bridge_owner_account: C::convert_location(&sibling_parachain).expect("valid AccountId"),
 			deposit: Zero::zero(),
@@ -465,21 +361,18 @@ mod tests {
 	/// We want this tip to be large enough (delivery transactions with more messages = less
 	/// operational costs and a faster bridge), so this value should be significant.
 	const FEE_BOOST_PER_MESSAGE: Balance = 2 * constants::currency::UNITS;
-	// see `FEE_BOOST_PER_MESSAGE` comment
-	const FEE_BOOST_PER_RELAY_HEADER: Balance = 2 * constants::currency::UNITS;
-	// see `FEE_BOOST_PER_MESSAGE` comment
-	const FEE_BOOST_PER_PARACHAIN_HEADER: Balance = 2 * constants::currency::UNITS;
 
 	#[test]
 	fn ensure_bridge_hub_polkadot_message_lane_weights_are_correct() {
+		use bp_messages::ChainWithMessages;
 		check_message_lane_weights::<
 			bp_bridge_hub_polkadot::BridgeHubPolkadot,
 			Runtime,
 			WithBridgeHubKusamaMessagesInstance,
 		>(
 			bp_bridge_hub_kusama::EXTRA_STORAGE_PROOF_SIZE,
-			bp_bridge_hub_polkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-			bp_bridge_hub_polkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			bp_bridge_hub_polkadot::BridgeHubPolkadot::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_bridge_hub_polkadot::BridgeHubPolkadot::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			true,
 		);
 	}
@@ -488,36 +381,22 @@ mod tests {
 	fn ensure_bridge_integrity() {
 		assert_complete_bridge_types!(
 			runtime: Runtime,
-			with_bridged_chain_grandpa_instance: BridgeGrandpaKusamaInstance,
 			with_bridged_chain_messages_instance: WithBridgeHubKusamaMessagesInstance,
 			this_chain: bp_bridge_hub_polkadot::BridgeHubPolkadot,
 			bridged_chain: bp_bridge_hub_kusama::BridgeHubKusama,
+			expected_payload_type: XcmAsPlainPayload,
 		);
 
 		assert_complete_with_parachain_bridge_constants::<
 			Runtime,
-			BridgeGrandpaKusamaInstance,
+			BridgeParachainKusamaInstance,
 			WithBridgeHubKusamaMessagesInstance,
-			bp_kusama::Kusama,
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_polkadot::BlockLength::get(),
 				block_weights: bp_bridge_hub_polkadot::BlockWeights::get(),
 			},
 		});
-
-		pallet_bridge_relayers::extension::per_relay_header::ensure_priority_boost_is_sane::<
-			Runtime,
-			BridgeGrandpaKusamaInstance,
-			PriorityBoostPerRelayHeader,
-		>(FEE_BOOST_PER_RELAY_HEADER);
-
-		pallet_bridge_relayers::extension::per_parachain_header::ensure_priority_boost_is_sane::<
-			Runtime,
-			WithBridgeHubKusamaMessagesInstance,
-			bp_bridge_hub_kusama::BridgeHubKusama,
-			PriorityBoostPerParachainHeader,
-		>(FEE_BOOST_PER_PARACHAIN_HEADER);
 
 		pallet_bridge_relayers::extension::per_message::ensure_priority_boost_is_sane::<
 			Runtime,
@@ -537,26 +416,41 @@ mod tests {
 	}
 }
 
-/// Contains the migration for the AssetHubPolkadot<>AssetHubKusama bridge.
+/// Contains the migrations for a P/K bridge.
 pub mod migration {
 	use super::*;
-	use frame_support::traits::ConstBool;
 
-	parameter_types! {
-		pub AssetHubPolkadotToAssetHubKusamaMessagesLane: LegacyLaneId = LegacyLaneId([0, 0, 0, 1]);
-		pub AssetHubPolkadotLocation: Location = Location::new(1, [Parachain(bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID)]);
-		pub AssetHubKusamaUniversalLocation: InteriorLocation = [GlobalConsensus(KusamaGlobalConsensusNetwork::get()), Parachain(bp_asset_hub_kusama::ASSET_HUB_KUSAMA_PARACHAIN_ID)].into();
+	/// Fix data from XCMv4 to XCMv5 because of buggy of XCM `try_as` implementation.
+	pub struct MigrateToXcm5<T, I>(core::marker::PhantomData<(T, I)>);
+
+	impl<T: pallet_xcm_bridge_hub::Config<I>, I: 'static> frame_support::traits::OnRuntimeUpgrade
+		for MigrateToXcm5<T, I>
+	{
+		fn on_runtime_upgrade() -> Weight {
+			use sp_core::Get;
+			use xcm::IntoVersion;
+			let mut weight = T::DbWeight::get().reads(1);
+
+			// `Migrate to latest XCM`.
+			let translate =
+				|mut pre: pallet_xcm_bridge_hub::BridgeOf<T, I>| -> Option<pallet_xcm_bridge_hub::BridgeOf<T, I>> {
+					weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
+
+					if let Ok(latest) = pre.bridge_origin_relative_location.clone().into_latest() {
+						pre.bridge_origin_relative_location = alloc::boxed::Box::new(latest);
+					}
+					if let Ok(latest) = pre.bridge_origin_universal_location.clone().into_latest() {
+						pre.bridge_origin_universal_location = alloc::boxed::Box::new(latest);
+					}
+					if let Ok(latest) = pre.bridge_destination_universal_location.clone().into_latest() {
+						pre.bridge_destination_universal_location = alloc::boxed::Box::new(latest);
+					}
+
+					Some(pre)
+				};
+			pallet_xcm_bridge_hub::Bridges::<T, I>::translate_values(translate);
+
+			weight
+		}
 	}
-
-	/// Ensure that the existing lanes for the AHR<>AHW bridge are correctly configured.
-	pub type StaticToDynamicLanes = pallet_xcm_bridge_hub::migration::OpenBridgeForLane<
-		Runtime,
-		XcmOverBridgeHubKusamaInstance,
-		AssetHubPolkadotToAssetHubKusamaMessagesLane,
-		// the lanes are already created for AHP<>AHK, but we need to link them to the bridge
-		// structs
-		ConstBool<false>,
-		AssetHubPolkadotLocation,
-		AssetHubKusamaUniversalLocation,
-	>;
 }

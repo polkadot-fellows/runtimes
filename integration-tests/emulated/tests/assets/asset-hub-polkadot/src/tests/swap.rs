@@ -21,12 +21,12 @@ use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEP
 fn swap_locally_on_chain_using_local_assets() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
-	let asset_one = v4::Location::new(
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
+	let asset_one = xcm::v4::Location::new(
 		0,
 		[
-			v4::Junction::PalletInstance(ASSETS_PALLET_ID),
-			v4::Junction::GeneralIndex(ASSET_ID.into()),
+			xcm::v4::Junction::PalletInstance(ASSETS_PALLET_ID),
+			xcm::v4::Junction::GeneralIndex(ASSET_ID.into()),
 		],
 	);
 
@@ -125,10 +125,11 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocation::get());
-	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
+	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get());
+	let asset_location_on_penpal: xcm::v4::Location =
+		PenpalLocalTeleportableToAssetHub::get().try_into().unwrap();
 	let foreign_asset_at_asset_hub_polkadot =
-		v4::Location::new(1, [v4::Junction::Parachain(PenpalA::para_id().into())])
+		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -244,9 +245,9 @@ fn swap_locally_on_chain_using_foreign_assets() {
 fn cannot_create_pool_from_pool_assets() {
 	use frame_support::traits::fungibles::{Create, Mutate};
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
-	let asset_one = asset_hub_polkadot_runtime::xcm_config::PoolAssetsPalletLocation::get()
-		.appended_with(GeneralIndex(ASSET_ID.into()))
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
+	let asset_one = asset_hub_polkadot_runtime::xcm_config::PoolAssetsPalletLocationV4::get()
+		.appended_with(xcm::v4::Junction::GeneralIndex(ASSET_ID.into()))
 		.expect("valid location");
 
 	AssetHubPolkadot::execute_with(|| {
@@ -282,7 +283,7 @@ fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 
 	let asset_native: xcm::v4::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+		asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
 	let asset_one = xcm::v4::Location {
 		parents: 0,
 		interior: [

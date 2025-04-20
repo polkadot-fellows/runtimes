@@ -155,7 +155,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -187,13 +187,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -270,13 +267,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: assign_core_call.encode().into(),
 			},
 		]);
@@ -300,7 +294,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
 		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
 		// have bigger issues with the chain, but we still want to burn.
-		if t.checked_rem(BURN_PERIOD).map_or(false, |r| r != 0) {
+		if t.checked_rem(BURN_PERIOD).is_some_and(|r| r != 0) {
 			return;
 		}
 
@@ -348,6 +342,6 @@ impl pallet_broker::Config for Runtime {
 	type PalletId = BrokerPalletId;
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type SovereignAccountOf = SovereignAccountOf;
-	type MaxAutoRenewals = ConstU32<0>;
+	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
 }

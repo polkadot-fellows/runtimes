@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -79,7 +79,7 @@ if args.command == 'bench':
     failed_benchmarks = {}
     successful_benchmarks = {}
 
-    profile = "release"
+    profile = "production"
 
     print(f'Provided runtimes: {args.runtime}')
     # convert to mapped dict
