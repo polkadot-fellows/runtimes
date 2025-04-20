@@ -66,7 +66,6 @@ pub struct SecretaryPolling<T: pallet_ranked_collective::Config<I>, I: 'static>(
 	PhantomData<(T, I)>,
 );
 
-// TODO: Include no-op impl in the Polkadot-SDK(https://github.com/paritytech/polkadot-sdk/pull/5311)
 impl<T: pallet_ranked_collective::Config<I>, I: 'static> Polling<TallyOf<T, I>>
 	for SecretaryPolling<T, I>
 {
