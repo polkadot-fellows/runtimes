@@ -829,9 +829,9 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
-		//[pallet_referenda, PotocTreasury]
+		[pallet_referenda, PotocReferenda]
 		[pallet_ranked_collective, PotocCollective]
-		//[pallet_core_fellowship, PotocCore]
+		[pallet_core_fellowship, PotocCore]
 		[pallet_salary, PotocSalary]
 		[pallet_treasury, PotocTreasury]
 	);

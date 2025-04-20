@@ -105,7 +105,7 @@ impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
 
 pub type PotocCollectiveInstance = pallet_ranked_collective::Instance3;
 impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective_fellowship_collective::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_ranked_collective_potoc_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	// Promotions and the induction of new members are serviced by `PotocCore` pallet instance.
@@ -145,7 +145,7 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 pub type PotocCoreInstance = pallet_core_fellowship::Instance3;
 
 impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship_fellowship_core::WeightInfo<Runtime>;
+	type WeightInfo = ();
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, PotocCollectiveInstance>;
 	type Balance = Balance;
@@ -156,7 +156,7 @@ impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
 	// Fast promotions are not needed with a single rank and would require higher turnout.
 	type FastPromoteOrigin = NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU32<1>;
 }
 
 pub type PotocSalaryInstance = pallet_salary::Instance3;
@@ -184,7 +184,7 @@ pub type PotocSalaryPaymaster = PayOverXcm<
 >;
 
 impl pallet_salary::Config<PotocSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary_fellowship_salary::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_salary_potoc_salary::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -238,7 +238,7 @@ pub type PotocTreasuryPaymaster = PayOverXcm<
 pub type PotocTreasuryInstance = pallet_treasury::Instance3;
 
 impl pallet_treasury::Config<PotocTreasuryInstance> for Runtime {
-	type WeightInfo = weights::pallet_treasury_fellowship_treasury::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_treasury_potoc_treasury::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = PotocTreasuryPalletId;
 	type Currency = Balances;
