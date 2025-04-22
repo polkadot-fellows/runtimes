@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
   - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
   - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
-  - Enable RFC103 on Kusama
+- Enable RFC103 on Kusama ([polkadot-fellows/runtimes/pull/681](https://github.com/polkadot-fellows/runtimes/pull/681/))
 
 ### Changed
 
