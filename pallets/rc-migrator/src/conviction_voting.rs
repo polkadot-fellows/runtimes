@@ -69,6 +69,16 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					break;
 				}
 			}
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_conviction_voting_messages(
+				(messages.len() + 1) as u32,
+			)) {
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if !made_progress {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
 			if messages.len() > 10_000 {
 				log::warn!(target: LOG_TARGET, "Weight allowed very big batch, stopping");
 				break;
@@ -145,11 +155,13 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			messages,
-			|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
-			|_| Weight::from_all(1), // TODO
-		)?;
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
+				|len| T::AhWeightInfo::receive_conviction_voting_messages(len),
+			)?;
+		}
 
 		if last_key == ConvictionVotingStage::Finished {
 			Ok(None)

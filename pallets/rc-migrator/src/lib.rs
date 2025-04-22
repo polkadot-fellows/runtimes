@@ -71,7 +71,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency, VariantCount,
+		Contains, ContainsPair, Defensive, DefensiveTruncateFrom, LockableCurrency,
+		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 };
@@ -264,6 +265,9 @@ pub enum MigrationStage<
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
+	SchedulerAgendaMigrationOngoing {
+		last_key: Option<BlockNumber>,
+	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
 	ConvictionVotingMigrationOngoing {
@@ -366,6 +370,8 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			#[cfg(not(feature = "ahm-westend"))]
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
+			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
+			"scheduler" => MigrationStage::SchedulerMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -595,8 +601,7 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
-						// TODO: weight
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, Weight::from_all(1)) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::Initializing);
 							},
@@ -661,7 +666,7 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T, T::AhWeightInfo>::migrate_many(
+						match MultisigMigrator::<T, T::AhWeightInfo, T::MaxAhWeight>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						) {
@@ -1096,10 +1101,36 @@ pub mod pallet {
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::SchedulerMigrationDone);
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing { last_key: None });
 						},
 						Ok(Some(last_key)) => {
 							Self::transition(MigrationStage::SchedulerMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating scheduler: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::SchedulerAgendaMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match scheduler::SchedulerAgendaMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SchedulerMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
@@ -1330,7 +1361,7 @@ pub mod pallet {
 						rc_balance_kept: tracker.kept,
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
-					match Self::send_xcm(call, Weight::from_all(1)) {
+					match Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
 						Ok(_) => {
 							Self::transition(MigrationStage::MigrationDone);
 						},
@@ -1489,6 +1520,7 @@ pub mod pallet {
 				}
 			}
 
+			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
 			Ok(batch_count)
 		}
 
@@ -1593,6 +1625,18 @@ pub mod pallet {
 		fn is_finished() -> bool {
 			RcMigrationStage::<T>::get().is_finished()
 		}
+	}
+}
+
+/// Returns the weight for a single item in a batch.
+///
+/// If the next item in the batch is the first one, it includes the base weight of the
+/// `weight_of`, otherwise, it does not.
+pub fn item_weight_of(weight_of: impl Fn(u32) -> Weight, batch_len: u32) -> Weight {
+	if batch_len == 0 {
+		weight_of(1)
+	} else {
+		weight_of(1).saturating_sub(weight_of(0))
 	}
 }
 

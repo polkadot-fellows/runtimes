@@ -45,6 +45,17 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 		let mut batch = Vec::new();
 
 		let new_next_key = loop {
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_preimage_request_status((batch.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {
@@ -68,8 +79,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 			// Remove the migrated key from the relay chain
 			alias::RequestStatusFor::<T>::remove(next_key_inner);
 
-			if batch.len() >= 10 || next_key.is_none() {
-				// TODO weight checking
+			if next_key.is_none() {
 				break next_key;
 			}
 		};
@@ -80,7 +90,7 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 				|batch| types::AhMigratorCall::<T>::ReceivePreimageRequestStatus {
 					request_status: batch,
 				},
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_preimage_request_status(len),
 			)?;
 		}
 

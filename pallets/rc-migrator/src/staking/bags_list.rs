@@ -75,6 +75,16 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 					break;
 				}
 			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_bags_list_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
 			if messages.len() > 10_000 {
 				log::warn!("Weight allowed very big batch, stopping");
 				break;
@@ -125,7 +135,7 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_bags_list_messages(len),
 			)?;
 		}
 

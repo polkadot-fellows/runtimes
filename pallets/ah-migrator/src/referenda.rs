@@ -31,7 +31,7 @@ use pallet_referenda::{
 /// final local `pallet_referenda::ReferendumInfoFor::<T, ()>`.
 ///
 /// Reflects: `pallet_referenda::ReferendumInfoOf::<T, ()>`.
-pub type RcReferendumInfoOf<T, I> = ReferendumInfo<
+pub type RcReferendumInfoOf<T, I = ()> = ReferendumInfo<
 	TrackIdOf<T, I>,
 	<T as Config>::RcPalletsOrigin,
 	BlockNumberFor<T>,
