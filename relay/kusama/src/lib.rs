@@ -258,7 +258,7 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 
 		match (left, right) {
 			// Root is greater than anything.
-			(OriginCaller::system(frame_system::RawOrigin::Root), _) => Some(Ordering::Greater),
+			(OriginCaller::system(RawOrigin::Root), _) => Some(Ordering::Greater),
 			// For every other origin we don't care, as they are not used for `ScheduleOrigin`.
 			_ => None,
 		}
