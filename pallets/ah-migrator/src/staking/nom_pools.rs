@@ -343,7 +343,7 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 					let generic = normalize_generic_bonded_pool::<T>(inner);
 					GenericNomPoolsMessage::BondedPools { pool: (id, generic) }
 				},
-				other => other, // lascia tutto il resto invariato
+				other => other,
 			})
 			.collect();
 

@@ -449,10 +449,7 @@ pub enum GenericNomPoolsMessage<
 }
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T>
-// where
-//     T::MaxUnbonding: Debug + Clone + PartialEq,
-{
+impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 	type RcPrePayload = Vec<
 		GenericNomPoolsMessage<
 			BalanceOf<T>,
@@ -542,12 +539,10 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T>
 
 		// Collect metadata
 		for (pool_id, meta) in pallet_nomination_pools::Metadata::<T>::iter() {
-			// let meta_converted: BoundedVec<u8, ConstU32<256>> = meta.clone().try_into().unwrap();
 			let meta_inner = meta.into_inner();
 			let meta_converted = BoundedVec::<u8, ConstU32<256>>::try_from(meta_inner)
 				.expect("metadata length within bounds; qed");
 			messages.push(GenericNomPoolsMessage::Metadata { meta: (pool_id, meta_converted) });
-			// messages.push(GenericNomPoolsMessage::Metadata { meta: (pool_id, meta) });
 		}
 
 		// Collect reverse pool id lookup
