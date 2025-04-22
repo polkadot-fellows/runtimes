@@ -155,7 +155,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -187,13 +187,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -270,13 +267,10 @@ impl CoretimeInterface for CoretimeAllocator {
 			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
 
 		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: call_weight,
+				fallback_max_weight: Some(call_weight),
 				call: assign_core_call.encode().into(),
 			},
 		]);
