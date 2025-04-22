@@ -36,6 +36,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 pub mod ambassador;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
@@ -46,6 +48,7 @@ pub mod xcm_config;
 pub mod fellowship;
 pub use ambassador::pallet_ambassador_origins;
 
+use alloc::{borrow::Cow, boxed::Box, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Fellows};
@@ -56,13 +59,12 @@ use polkadot_runtime_common::impls::{
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill,
 };
 
-use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -122,14 +124,14 @@ impl_opaque_keys! {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("collectives"),
-	impl_name: create_runtime_str!("collectives"),
+	spec_name: Cow::Borrowed("collectives"),
+	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 1_004_002,
+	spec_version: 1_004_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
-	state_version: 0,
+	system_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -191,6 +193,7 @@ impl frame_system::Config for Runtime {
 	type OnKilledAccount = ();
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = ConstU16<0>;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
@@ -234,6 +237,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
 	type MaxFreezes = ConstU32<0>;
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -249,6 +253,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
+	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
 
 parameter_types! {
@@ -408,6 +413,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 }
 
 type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
@@ -568,6 +574,9 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type SetMembersOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
 	type MaxProposalWeight = MaxProposalWeight;
+	type DisapproveOrigin = EnsureRoot<AccountId>;
+	type KillOrigin = EnsureRoot<AccountId>;
+	type Consideration = ();
 }
 
 pub const MAX_FELLOWS: u32 = ALLIANCE_MAX_MEMBERS;
@@ -755,8 +764,9 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The SignedExtension to the basic transaction logic.
-pub type SignedExtra = (
+
+/// The `TransactionExtension` to the basic transaction logic.
+pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -769,7 +779,7 @@ pub type SignedExtra = (
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
 /// All migrations executed on runtime upgrade as a nested tuple of types implementing
 /// `OnRuntimeUpgrade`. Included migrations must be idempotent.
@@ -794,6 +804,7 @@ mod benches {
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -812,6 +823,7 @@ mod benches {
 		[pallet_ranked_collective, FellowshipCollective]
 		[pallet_core_fellowship, FellowshipCore]
 		[pallet_salary, FellowshipSalary]
+		[pallet_transaction_payment, TransactionPayment]
 		[pallet_treasury, FellowshipTreasury]
 		[pallet_asset_rate, AssetRate]
 		[pallet_referenda, AmbassadorReferenda]
@@ -820,7 +832,7 @@ mod benches {
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
 		// XCM
-		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
+		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
 	);
@@ -828,7 +840,7 @@ mod benches {
 	use frame_benchmarking::BenchmarkError;
 
 	impl frame_system_benchmarking::Config for Runtime {
-		fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
+		fn setup_set_code_requirements(code: &Vec<u8>) -> Result<(), BenchmarkError> {
 			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
 			Ok(())
 		}
@@ -865,8 +877,7 @@ mod benches {
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 			// Relay/native token can be teleported between Collectives and Relay.
 			Some((
-				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) }
-					.into(),
+				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
 				Parent.into(),
 			))
 		}
@@ -980,15 +991,20 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Err(BenchmarkError::Skip)
+			Ok((
+				Location::new(1, [Parachain(1000)]),
+				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
+			))
 		}
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 	pub use frame_benchmarking::{BenchmarkList, Benchmarking};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
-	pub use frame_system_benchmarking::Pallet as SystemBench;
-	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsiscsBenchmark;
+	pub use frame_system_benchmarking::{
+		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
+	};
+	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	pub use sp_storage::TrackedStorageKey;
 
 	// This is defined once again in dispatch_benchmark, because list_benchmarks!
@@ -1044,7 +1060,7 @@ impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -1257,7 +1273,7 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 			let mut batches = Vec::<frame_benchmarking::BenchmarkBatch>::new();
 			let params = (&config, &whitelist);

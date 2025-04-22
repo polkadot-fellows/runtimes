@@ -16,7 +16,7 @@
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 
-use frame_support::{sp_runtime::traits::Dispatchable, traits::ProcessMessageError};
+use frame_support::sp_runtime::traits::Dispatchable;
 use people_polkadot_runtime::people::IdentityInfo;
 use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
 
@@ -48,7 +48,7 @@ fn relay_commands_add_registrar() {
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
-						require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
+						fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
 						call: add_registrar_call.encode().into(),
 					}
 				]))),
@@ -106,7 +106,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
+					fallback_max_weight: Some(Weight::from_parts(5_000_000_000, 500_000)),
 					call: add_registrar_call.encode().into(),
 				}
 			]))),
@@ -128,7 +128,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 		assert_expected_events!(
 			PeoplePolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -189,7 +189,7 @@ fn relay_commands_kill_identity() {
 					// Making the weight's ref time any lower will prevent the XCM from triggering
 					// execution of the intended extrinsic on the People chain - beware of spurious
 					// test failure due to this.
-					require_weight_at_most: Weight::from_parts(11_000_000_000, 500_000),
+					fallback_max_weight: Some(Weight::from_parts(11_000_000_000, 500_000)),
 					call: kill_identity_call.encode().into(),
 				}
 			]))),
@@ -247,7 +247,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					require_weight_at_most: Weight::from_parts(11_000_000_000, 500_000),
+					fallback_max_weight: Some(Weight::from_parts(11_000_000_000, 500_000)),
 					call: kill_identity_call.encode().into(),
 				}
 			]))),
@@ -269,7 +269,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 		assert_expected_events!(
 			PeoplePolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -281,8 +281,8 @@ fn relay_commands_add_remove_username_authority() {
 	let people_polkadot_bob = PeoplePolkadot::account_id_of(BOB);
 
 	let origins = vec![
-		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin"),
-		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root(), "rootusername"),
+		(OriginKind::Xcm, GeneralAdminOrigin.into(), "generaladmin.suffix1"),
+		(OriginKind::Superuser, <Polkadot as Chain>::RuntimeOrigin::root(), "rootusername.suffix1"),
 	];
 	for (origin_kind, origin, usr) in origins {
 		// First, add a username authority.
@@ -307,7 +307,7 @@ fn relay_commands_add_remove_username_authority() {
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
 						origin_kind,
-						require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+						fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
 						call: add_username_authority.encode().into(),
 					}
 				]))),
@@ -345,6 +345,7 @@ fn relay_commands_add_remove_username_authority() {
 				people_polkadot_runtime::MultiAddress::Id(people_polkadot_bob.clone()),
 				usr.to_owned().into_bytes(),
 				None,
+				false,
 			));
 
 			assert_expected_events!(
@@ -358,7 +359,7 @@ fn relay_commands_add_remove_username_authority() {
 		// Accept the given username
 		PeoplePolkadot::execute_with(|| {
 			type PeopleRuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
-			let full_username = [usr.to_owned(), ".suffix1".to_owned()].concat().into_bytes();
+			let full_username = usr.to_owned().into_bytes();
 
 			assert_ok!(<PeoplePolkadot as PeoplePolkadotPallet>::Identity::accept_username(
 				<PeoplePolkadot as Chain>::RuntimeOrigin::signed(people_polkadot_bob.clone()),
@@ -385,6 +386,7 @@ fn relay_commands_add_remove_username_authority() {
 				PeopleRuntime,
 			>::remove_username_authority {
 				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+				suffix: b"suffix1".to_vec(),
 			});
 
 			let remove_authority_xcm_msg =
@@ -394,7 +396,7 @@ fn relay_commands_add_remove_username_authority() {
 						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 						Transact {
 							origin_kind,
-							require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+							fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
 							call: remove_username_authority.encode().into(),
 						}
 					]))),
@@ -454,7 +456,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind,
-					require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+					fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
 					call: add_username_authority.encode().into(),
 				}
 			]))),
@@ -477,7 +479,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		assert_expected_events!(
 			PeoplePolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});
@@ -495,6 +497,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 			PeopleRuntime,
 		>::remove_username_authority {
 			authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
+			suffix: b"suffix1".to_vec(),
 		});
 
 		let remove_authority_xcm_msg = RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::send {
@@ -503,7 +506,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::SovereignAccount,
-					require_weight_at_most: Weight::from_parts(500_000_000, 500_000),
+					fallback_max_weight: Some(Weight::from_parts(500_000_000, 500_000)),
 					call: remove_username_authority.encode().into(),
 				}
 			]))),
@@ -526,7 +529,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		assert_expected_events!(
 			PeoplePolkadot,
 			vec![
-				RuntimeEvent::MessageQueue(pallet_message_queue::Event::ProcessingFailed { error: ProcessMessageError::Unsupported, .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { success: false, .. }) => {},
 			]
 		);
 	});

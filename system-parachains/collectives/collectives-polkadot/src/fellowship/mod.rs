@@ -331,6 +331,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = crate::System;
 }
 
 #[cfg(test)]

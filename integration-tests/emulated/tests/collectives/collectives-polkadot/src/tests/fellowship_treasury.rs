@@ -105,7 +105,7 @@ fn fellowship_treasury_spend() {
 		let native_asset_on_asset_hub = Location::parent();
 
 		let treasury_spend_call = RuntimeCall::Treasury(pallet_treasury::Call::<Runtime>::spend {
-			asset_kind: bx!(VersionedLocatableAsset::V4 {
+			asset_kind: bx!(VersionedLocatableAsset::V5 {
 				location: asset_hub_location.clone(),
 				asset_id: native_asset_on_asset_hub.into(),
 			}),
@@ -177,12 +177,11 @@ fn fellowship_treasury_spend() {
 		let native_asset_on_asset_hub = Location::parent();
 
 		let alice_location: Location =
-			[Junction::AccountId32 { network: None, id: Polkadot::account_id_of(ALICE).into() }]
-				.into();
+			[AccountId32 { network: None, id: Polkadot::account_id_of(ALICE).into() }].into();
 
 		let fellowship_treasury_spend_call =
 			RuntimeCall::FellowshipTreasury(pallet_treasury::Call::<Runtime, Instance1>::spend {
-				asset_kind: bx!(VersionedLocatableAsset::V4 {
+				asset_kind: bx!(VersionedLocatableAsset::V5 {
 					location: asset_hub_location,
 					asset_id: native_asset_on_asset_hub.into(),
 				}),
