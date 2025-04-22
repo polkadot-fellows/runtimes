@@ -76,10 +76,10 @@ use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
 use sp_core::ByteArray;
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, BoundedVec};
 
 /// Account type meant to transfer data between RC and AH.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// The account address
@@ -104,19 +104,19 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// - DelegatedStaking: StakingDelegation (only on Kusama)
 	/// - Preimage: Preimage
 	/// - Staking: Staking - later instead of "staking " lock
-	pub holds: Vec<IdAmount<HoldReason, Balance>>,
+	pub holds: BoundedVec<IdAmount<HoldReason, Balance>, ConstU32<5>>,
 	/// Account freezes from Relay Chain.
 	///
 	/// Expected freeze reasons:
 	/// - NominationPools: PoolMinBalance
-	pub freezes: Vec<IdAmount<FreezeReason, Balance>>,
+	pub freezes: BoundedVec<IdAmount<FreezeReason, Balance>, ConstU32<5>>,
 	/// Account locks from Relay Chain.
 	///
 	/// Expected lock ids:
 	/// - "staking " - should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
 	/// - "vesting "
 	/// - "pyconvot"
-	pub locks: Vec<BalanceLock<Balance>>,
+	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
 	/// Unnamed reserve.
 	///
 	/// Only unnamed reserves for Polkadot and Kusama (no named ones).
@@ -290,7 +290,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch },
-				|_| ah_weight.consumed(),
+				|n| T::AhWeightInfo::receive_liquid_accounts(n),
 			)?;
 		}
 
@@ -540,16 +540,16 @@ impl<T: Config> AccountsMigrator<T> {
 			free: teleport_free,
 			reserved: teleport_reserved,
 			frozen: account_data.frozen,
-			holds,
-			freezes,
-			locks,
+			holds: BoundedVec::defensive_truncate_from(holds),
+			freezes: BoundedVec::defensive_truncate_from(freezes),
+			locks: BoundedVec::defensive_truncate_from(locks),
 			unnamed_reserve,
 			consumers: Self::get_consumer_count(&who, &account_info),
 			providers: Self::get_provider_count(&who, &account_info),
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
 			log::debug!(
 				target: LOG_TARGET,
@@ -607,17 +607,15 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Get the weight for importing a single account on Asset Hub.
 	///
 	/// The base weight is only included for the first imported account.
-	pub fn get_ah_receive_account_weight(batch_len: u32, account: &AccountFor<T>) -> Weight {
+	pub fn weight_ah_receive_account(batch_len: u32, account: &AccountFor<T>) -> Weight {
 		let weight_of = if account.is_liquid() {
 			T::AhWeightInfo::receive_liquid_accounts
 		} else {
-			T::AhWeightInfo::receive_accounts
+			// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
+			// `require_weight_at_most` not required
+			T::AhWeightInfo::receive_liquid_accounts
 		};
-		if batch_len == 0 {
-			weight_of(1)
-		} else {
-			weight_of(1).saturating_sub(weight_of(0))
-		}
+		item_weight_of(weight_of, batch_len)
 	}
 
 	/// Consumer ref count of migrating to Asset Hub pallets except a reference for `reserved` and

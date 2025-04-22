@@ -18,8 +18,9 @@
 
 #![cfg(test)]
 
-mod call_filter_asset_hub;
-mod call_filter_relay;
+pub mod call_filter_asset_hub;
+pub mod call_filter_relay;
+pub mod bench;
 pub mod mock;
 pub mod proxy_test;
 pub mod tests;

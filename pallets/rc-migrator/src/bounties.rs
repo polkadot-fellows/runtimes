@@ -42,7 +42,7 @@ pub enum RcBountiesMessage<AccountId, Balance, BlockNumber> {
 	BountyCount(BountyIndex),
 	BountyApprovals(Vec<BountyIndex>),
 	BountyDescriptions((BountyIndex, Vec<u8>)),
-	Bounties((BountyIndex, Bounty<AccountId, Balance, BlockNumber>)),
+	Bounties((BountyIndex, alias::Bounty<AccountId, Balance, BlockNumber>)),
 }
 
 /// Bounties data message that is being sent to the AH Migrator.
@@ -71,6 +71,16 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_bounties_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -120,14 +130,14 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 				},
 				BountiesStage::Bounties { last_key } => {
 					let mut iter = if let Some(last_key) = last_key {
-						pallet_bounties::Bounties::<T>::iter_from_key(last_key)
+						alias::Bounties::<T>::iter_from_key(last_key)
 					} else {
-						pallet_bounties::Bounties::<T>::iter()
+						alias::Bounties::<T>::iter()
 					};
 					match iter.next() {
 						Some((key, value)) => {
 							log::debug!(target: LOG_TARGET, "Migration Bounty {:?}", &key);
-							pallet_bounties::Bounties::<T>::remove(&key);
+							alias::Bounties::<T>::remove(&key);
 							messages.push(RcBountiesMessage::Bounties((key, value)));
 							BountiesStage::Bounties { last_key: Some(key) }
 						},
@@ -140,11 +150,13 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			messages,
-			|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
-			|_| Weight::from_all(1), // TODO
-		)?;
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
+				|len| T::AhWeightInfo::receive_bounties_messages(len),
+			)?;
+		}
 
 		if last_key == BountiesStage::Finished {
 			log::info!(target: LOG_TARGET, "Bounties migration finished");
@@ -158,6 +170,45 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 			Ok(Some(last_key))
 		}
 	}
+}
+
+pub mod alias {
+	use super::*;
+	use pallet_bounties::BountyStatus;
+
+	/// Alias of [pallet_bounties::BalanceOf].
+	pub type BalanceOf<T, I = ()> = pallet_treasury::BalanceOf<T, I>;
+
+	/// A bounty proposal.
+	///
+	/// Alias of [pallet_bounties::Bounty].
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
+	pub struct Bounty<AccountId, Balance, BlockNumber> {
+		/// The account proposing it.
+		pub proposer: AccountId,
+		/// The (total) amount that should be paid if the bounty is rewarded.
+		pub value: Balance,
+		/// The curator fee. Included in value.
+		pub fee: Balance,
+		/// The deposit of curator.
+		pub curator_deposit: Balance,
+		/// The amount held on deposit (reserved) for making this proposal.
+		pub bond: Balance,
+		/// The status of this bounty.
+		pub status: BountyStatus<AccountId, BlockNumber>,
+	}
+
+	/// Bounties that have been made.
+	///
+	/// Alias of [pallet_bounties::Bounties].
+	#[frame_support::storage_alias(pallet_name)]
+	pub type Bounties<T: pallet_bounties::Config<()>> = StorageMap<
+		pallet_bounties::Pallet<T, ()>,
+		Twox64Concat,
+		BountyIndex,
+		Bounty<<T as frame_system::Config>::AccountId, BalanceOf<T, ()>, BlockNumberFor<T>>,
+	>;
 }
 
 // (BountyCount, Bounties, BountyDescriptions, BountyApprovals)

@@ -1158,8 +1158,6 @@ impl pallet_ah_migrator::Config for Runtime {
 	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
 	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
 	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

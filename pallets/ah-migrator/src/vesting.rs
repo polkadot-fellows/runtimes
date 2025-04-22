@@ -67,7 +67,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
-		log::warn!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
+		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
 
 		Ok(())
 	}
