@@ -108,13 +108,6 @@ use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
 
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::claims::RcClaimsMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
-#[cfg(not(feature = "ahm-westend"))]
-use pallet_rc_migrator::treasury::RcTreasuryMessage;
-
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::ah-migrator";
 
