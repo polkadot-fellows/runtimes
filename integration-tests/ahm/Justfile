@@ -92,6 +92,7 @@ code-substitute-pallet PALLET SDK:
 
 test-cargo-toml-replaces FOLDER RUNTIME:
 	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
+	perl -pi -e 's/^.*polkadot-runtime-constants\/runtime-benchmarks.*$//' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/"polkadot-runtime\/runtime-benchmarks"/"{{RUNTIME}}-runtime\/runtime-benchmarks"/' {{FOLDER}}/Cargo.toml
