@@ -236,11 +236,13 @@ fn create_channel() {
 
 /// Tests the registering of a token as an asset on AssetHub.
 #[test]
-fn register_weth_token_from_ethereum_to_asset_hub() {
+fn register_token_from_ethereum_to_asset_hub() {
 	// Fund AH sovereign account on BH so that it can pay execution fees.
 	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), INITIAL_FUND);
 	// Fund ethereum sovereign account on AssetHub.
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
+
+	let token_id = H160::random();
 
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
@@ -252,7 +254,7 @@ fn register_weth_token_from_ethereum_to_asset_hub() {
 		// Construct RegisterToken message and sent to inbound queue
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
-			command: Command::RegisterToken { token: WETH.into(), fee: XCM_FEE },
+			command: Command::RegisterToken { token: token_id.into(), fee: XCM_FEE },
 		});
 		// Convert the message to XCM
 		let (xcm, _) = EthereumInboundQueue::do_convert([0; 32].into(), message).unwrap();
@@ -298,7 +300,6 @@ fn send_token_from_ethereum_to_penpal() {
 		.into();
 	let weth_asset_location_latest: Location = weth_asset_location.clone().try_into().unwrap();
 	// Converts the Weth asset location into an asset ID
-	let weth_asset_id = weth_asset_location.clone();
 
 	// Fund ethereum sovereign on AssetHub
 	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
@@ -337,20 +338,6 @@ fn send_token_from_ethereum_to_penpal() {
 		));
 	});
 
-	AssetHubPolkadot::execute_with(|| {
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::root(),
-			weth_asset_id.clone(),
-			asset_hub_sovereign.clone().into(),
-			true,
-			1000,
-		));
-
-		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
-			weth_asset_id
-		));
-	});
-
 	BridgeHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
 
@@ -373,7 +360,7 @@ fn send_token_from_ethereum_to_penpal() {
 					id: PenpalBReceiver::get().into(),
 					fee: 40_000_000_000,
 				},
-				amount: 1_000_000,
+				amount: MIN_ETHER_BALANCE,
 				fee: 40_000_000_000,
 			},
 		});
@@ -695,9 +682,6 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	// Register WETH on Asset Hub
-	register_weth_token_from_ethereum_to_asset_hub();
-
 	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
 	let weth_location: xcm::v4::Location = (
 		xcm::v4::Parent,
@@ -883,34 +867,12 @@ fn make_register_token_message() -> InboundQueueFixture {
 }
 
 fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u128) {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_asset_location = xcm::v4::Location::new(
-		2,
-		[v4_ethereum_network.into(), xcm::v4::Junction::AccountKey20 { network: None, key: WETH }],
-	);
 	// Fund asset hub sovereign on bridge hub
 	let asset_hub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(Location::new(
 		1,
 		[Parachain(AssetHubPolkadot::para_id().into())],
 	));
 	BridgeHubPolkadot::fund_accounts(vec![(asset_hub_sovereign.clone(), INITIAL_FUND)]);
-
-	// Register WETH
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::force_create(
-			RuntimeOrigin::root(),
-			weth_asset_location.clone(),
-			asset_hub_sovereign.into(),
-			false,
-			1,
-		));
-
-		assert!(<AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets::asset_exists(
-			weth_asset_location.clone(),
-		));
-	});
 
 	// Send WETH to an existent account on asset hub
 	BridgeHubPolkadot::execute_with(|| {
@@ -924,7 +886,7 @@ fn send_token_from_ethereum_to_asset_hub_with_fee(account_id: [u8; 32], fee: u12
 			command: Command::SendToken {
 				token: WETH.into(),
 				destination: Destination::AccountId32 { id: account_id },
-				amount: 1_000_000,
+				amount: MIN_ETHER_BALANCE,
 				fee,
 			},
 		});

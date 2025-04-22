@@ -14,6 +14,10 @@
 // limitations under the License.
 
 use crate::tests::*;
+use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
+use integration_tests_helpers::common::MIN_ETHER_BALANCE;
+use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
+use xcm_executor::traits::ConvertLocation;
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
 	// fund the PAH's SA on PBH for paying bridge transport fees
@@ -183,7 +187,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let receiver_dot_after =
 		foreign_balance_on_ah_kusama(bridged_dot_at_asset_hub_kusama, &receiver);
 	let dot_in_reserve_on_pah_after =
-		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah).free;
+		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 
 	// Sender's balance is reduced
 	assert!(sender_dot_before > sender_dot_after);
@@ -203,6 +207,14 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let bridged_weth_at_ah = weth_at_asset_hubs();
 	let bridged_weth_at_ah_latest: Location = bridged_weth_at_ah.clone().try_into().unwrap();
 
+	let snowbridge_sovereign: AccountId =
+		EthereumLocationsConverterFor::<[u8; 32]>::convert_location(&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		))
+		.unwrap()
+		.into();
+
 	// mint USDT in sender's account (USDT already created in genesis)
 	AssetHubPolkadot::mint_asset(
 		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotAssetOwner::get()),
@@ -210,13 +222,12 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		sender.clone(),
 		amount * 2,
 	);
-	// create wETH at src and dest and prefund sender's account
-	create_foreign_on_ah_polkadot(
+	AssetHubPolkadot::mint_foreign_asset(
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(snowbridge_sovereign),
 		bridged_weth_at_ah.clone(),
-		true,
-		vec![(sender.clone(), amount * 2)],
+		sender.clone(),
+		MIN_ETHER_BALANCE,
 	);
-	create_foreign_on_ah_kusama(bridged_weth_at_ah.clone(), true);
 	create_foreign_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true);
 	set_up_pool_with_ksm_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true);
 
@@ -227,7 +238,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	// send USDTs and wETHs
 	let assets: Assets = vec![
 		(usdt_at_asset_hub_polkadot_latest.clone(), amount).into(),
-		(bridged_weth_at_ah_latest.clone(), amount).into(),
+		(bridged_weth_at_ah_latest.clone(), MIN_ETHER_BALANCE).into(),
 	]
 	.into();
 	// use USDT for fees
@@ -265,7 +276,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	assert!(receiver_usdts_after > receiver_usdts_before);
 	assert!(receiver_usdts_after < receiver_usdts_before + amount);
 	// Receiver's wETH balance is increased by sent amount
-	assert_eq!(receiver_weth_after, receiver_weth_before + amount);
+	assert_eq!(receiver_weth_after, receiver_weth_before + MIN_ETHER_BALANCE);
 }
 
 #[test]

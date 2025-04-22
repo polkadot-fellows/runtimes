@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::tests::{snowbridge::CHAIN_ID, *};
-use integration_tests_helpers::common::WETH;
+use sp_core::H160;
 
 const XCM_FEE: u128 = 40_000_000_000;
 
@@ -39,11 +39,12 @@ fn register_polkadot_asset_on_kah_from_pah() {
 #[test]
 fn register_ethereum_asset_on_kah_from_pah() {
 	// Ethereum asset when bridged to Kusama Asset Hub.
+	let token_id = H160::random();
 	let bridged_asset_at_kah = xcm::v4::Location::new(
 		2,
 		[
 			xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Ethereum { chain_id: CHAIN_ID }),
-			xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+			xcm::v4::Junction::AccountKey20 { network: None, key: token_id.into() },
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
