@@ -38,7 +38,6 @@ use frame_support::{
 use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIMESLICE_PERIOD};
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
-	node_features::FeatureIndex,
 	slashing,
 	vstaging::{CandidateEvent, CommittedCandidateReceiptV2, CoreState, ScrapedOnChainVotes},
 	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
@@ -1923,7 +1922,7 @@ pub mod migrations {
 	use super::*;
 	use pallet_balances::WeightInfo;
 	use runtime_parachains::configuration::WeightInfo as ParachainsWeightInfo;
-
+	use polkadot_primitives::node_features::FeatureIndex;
 	/// Enable RFC103 feature.
 	///
 	/// This will make the Kusama relay chain runtime accept v2 candidate receipts.
