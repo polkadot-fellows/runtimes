@@ -1921,8 +1921,8 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 	use pallet_balances::WeightInfo;
-	use runtime_parachains::configuration::WeightInfo as ParachainsWeightInfo;
 	use polkadot_primitives::node_features::FeatureIndex;
+	use runtime_parachains::configuration::WeightInfo as ParachainsWeightInfo;
 	/// Enable RFC103 feature.
 	///
 	/// This will make the Kusama relay chain runtime accept v2 candidate receipts.
