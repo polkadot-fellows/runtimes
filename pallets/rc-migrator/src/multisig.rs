@@ -129,7 +129,7 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrat
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
-			match Self::migrate_single(k1.clone(), multisig, rc_weight, ah_weight) {
+			match Self::migrate_single(k1.clone(), multisig, rc_weight, batch.len() as u32) {
 				Ok(ms) => {
 					batch.push(ms);
 					// Remove the last key from storage
