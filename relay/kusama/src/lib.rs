@@ -871,7 +871,7 @@ parameter_types! {
 	pub const ProposalBondMaximum: Balance = GRAND;
 	pub const SpendPeriod: BlockNumber = 6 * DAYS;
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	pub const PayoutSpendPeriod: BlockNumber = 90 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 18).
 	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
