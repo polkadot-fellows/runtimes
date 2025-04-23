@@ -237,7 +237,8 @@ jobs:
         run: |
           export PATH=$(pwd)/target/debug:$PATH
           # WIP: TODO: temporary fix
-          export CUMULUS_IMAGE=docker.io/parity/polkadot-parachain:v1.17.4
+          # export CUMULUS_IMAGE=docker.io/parity/polkadot-parachain:v1.17.4
+          export POLKADOT_IMAGE=docker.io/parity/polkadot:v1.17.4
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
