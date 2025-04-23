@@ -16,6 +16,7 @@ fn dump_provider_and_versions() {
 
 	if let Provider::Docker = provider {
 		let images = zombienet_sdk::environment::get_images_from_env();
+		log::info!("Using Docker images: {:?}", images);
 
 		for image in [images.polkadot, images.cumulus] {
 			let output = std::process::Command::new("docker")
