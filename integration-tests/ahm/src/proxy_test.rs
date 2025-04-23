@@ -161,8 +161,6 @@ impl AhMigrationCheck for ProxiesStillWork {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		assert!(pallet_ah_migrator::AhMigrationStage::<AssetHubRuntime>::get() == pallet_ah_migrator::MigrationStage::DataMigrationDone);
-		
 		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
 			// Assert storage "Proxy::Proxies::ah_post::correct"
 			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);

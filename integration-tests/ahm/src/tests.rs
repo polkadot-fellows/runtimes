@@ -33,7 +33,7 @@
 
 use crate::porting_prelude::*;
 
-use super::{mock::*, proxy_test::ProxiesStillWork};
+use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -58,6 +58,7 @@ use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
+	SanityChecks,
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
@@ -87,6 +88,7 @@ pub type RcPolkadotChecks = (
 pub type RcPolkadotChecks = ();
 
 type AhChecks = (
+	SanityChecks,
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
@@ -147,6 +149,13 @@ async fn pallet_migration_works() {
 
 	// Migrate the Asset Hub
 	ah_migrate(&mut ah, dmp_messages);
+
+	ah.execute_with(|| {
+		assert!(
+			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get() ==
+				pallet_ah_migrator::MigrationStage::MigrationDone
+		);
+	});
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
