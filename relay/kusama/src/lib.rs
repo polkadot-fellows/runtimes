@@ -30,6 +30,7 @@ use alloc::{
 use codec::{Decode, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
 use frame_support::{
+	dispatch::RawOrigin,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	traits::{Contains, EnsureOrigin, EnsureOriginWithArg, EverythingBut},
 	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -264,7 +265,7 @@ impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 
 		match (left, right) {
 			// Root is greater than anything.
-			(OriginCaller::system(frame_system::RawOrigin::Root), _) => Some(Ordering::Greater),
+			(OriginCaller::system(RawOrigin::Root), _) => Some(Ordering::Greater),
 			// For every other origin we don't care, as they are not used for `ScheduleOrigin`.
 			_ => None,
 		}
@@ -1928,6 +1929,22 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 	use pallet_balances::WeightInfo;
+	use polkadot_primitives::node_features::FeatureIndex;
+	use runtime_parachains::configuration::WeightInfo as ParachainsWeightInfo;
+	/// Enable RFC103 feature.
+	///
+	/// This will make the Kusama relay chain runtime accept v2 candidate receipts.
+	pub struct EnableRFC103Feature;
+	impl frame_support::traits::OnRuntimeUpgrade for EnableRFC103Feature {
+		fn on_runtime_upgrade() -> Weight {
+			let _ = Configuration::set_node_feature(
+				RawOrigin::Root.into(),
+				FeatureIndex::CandidateReceiptV2 as u8,
+				true,
+			);
+			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
+		}
+	}
 
 	parameter_types! {
 		/// Weight for balance unreservations
@@ -1939,6 +1956,7 @@ pub mod migrations {
 		parachains_shared::migration::MigrateToV1<Runtime>,
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
+		EnableRFC103Feature,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
