@@ -1,0 +1,83 @@
+name: "Zombienet smoke"
+
+# If you modify more test jobs, ensure that you add them as required to the job "confirmTestPassed"
+# which is located at the end of this file (more info in the job)
+
+on:
+  workflow_dispatch:
+    inputs:
+        polkadot-image:
+          default: "docker.io/parity/polkadot:latest"
+          type: string
+
+        cumulus-image:
+          default: "docker.io/parity/polkadot-parachain:latest"
+          type: string
+
+  workflow_call:
+    inputs:
+        polkadot-image:
+          default: "docker.io/parity/polkadot:latest"
+          type: string
+
+        cumulus-image:
+          default: "docker.io/parity/polkadot-parachain:latest"
+          type: string
+
+env:
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2412-4
+
+# cancel previous runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+# Job required by "confirmTestPassed"
+  zombienet-smoke:
+    runs-on: ubuntu-latest
+    env:
+        POLKADOT_IMAGE: ${{ inputs.polkadot-image }}
+        CUMULUS_IMAGE: ${{ inputs.cumulus-image }}
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build
+        run: |
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+
+      - name: Wait for Docker to Start
+        run: |
+          timeout 30 sh -c 'until docker info; do sleep 1; done'
+          docker --version
+
+      - name: Zombienet smoke test
+        timeout-minutes: 20
+        run: |
+          export PATH=$(pwd)/target/release:$PATH
+          cargo test --manifest-path integration-tests/zombienet/Cargo.toml
