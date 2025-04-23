@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
   - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
   - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
+  - Enable RFC103 on Kusama ([polkadot-fellows/runtimes/pull/681](https://github.com/polkadot-fellows/runtimes/pull/681/))
 
 ### Changed
 
@@ -36,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
   `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
 - Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
+- Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
 
 
 ## [1.4.2] 07.03.2025
