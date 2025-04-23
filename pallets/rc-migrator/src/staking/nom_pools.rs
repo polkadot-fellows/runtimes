@@ -26,7 +26,7 @@ use pallet_nomination_pools::{
 };
 use sp_runtime::{traits::Zero, Perbill};
 use sp_staking::EraIndex;
-use sp_std::{collections::btree_map::BTreeMap, fmt::Debug};
+use sp_std::fmt::Debug;
 
 /// The stages of the nomination pools pallet migration.
 ///
@@ -345,113 +345,91 @@ impl<T: pallet_nomination_pools::Config> NomPoolsMigrator<T> {
 	}
 }
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
-pub struct GenericCommission<AccountId: Debug, BlockNumber: Debug> {
-	/// Optional commission rate of the pool along with the account commission is paid to.
-	pub current: Option<(Perbill, AccountId)>,
-	/// Optional maximum commission that can be set by the pool `root`.
-	pub max: Option<Perbill>,
-	/// Optional configuration around how often commission can be updated
-	pub change_rate: Option<CommissionChangeRate<BlockNumber>>,
-	/// The block from where throttling should be checked from
-	pub throttle_from: Option<BlockNumber>,
-	/// Whether commission can be claimed permissionlessly
-	pub claim_permission: Option<CommissionClaimPermission<AccountId>>,
-}
+#[cfg(feature = "std")]
+pub mod migration_types {
+	use super::*;
+	use sp_std::collections::btree_map::BTreeMap;
 
-#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
-pub struct GenericBondedPoolInner<Balance: Debug, AccountId: Debug, BlockNumber: Debug> {
-	/// The commission rate of the pool.
-	pub commission: GenericCommission<AccountId, BlockNumber>,
-	/// Count of members that belong to the pool.
-	pub member_counter: u32,
-	/// Total points of all the members in the pool who are actively bonded.
-	pub points: Balance,
-	/// See [`PoolRoles`].
-	pub roles: PoolRoles<AccountId>,
-	/// The current state of the pool.
-	pub state: PoolState,
-}
+	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
+	pub struct GenericCommission<AccountId: Debug, BlockNumber: Debug> {
+		pub current: Option<(Perbill, AccountId)>,
+		pub max: Option<Perbill>,
+		pub change_rate: Option<CommissionChangeRate<BlockNumber>>,
+		pub throttle_from: Option<BlockNumber>,
+		pub claim_permission: Option<CommissionClaimPermission<AccountId>>,
+	}
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct GenericPoolMember<Balance, RewardCounter> {
-	pub pool_id: PoolId,
-	pub points: Balance,
-	pub last_recorded_reward_counter: RewardCounter,
-	pub unbonding_eras: BTreeMap<EraIndex, Balance>,
-}
+	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, DebugNoBound, PartialEq, Clone)]
+	pub struct GenericBondedPoolInner<Balance: Debug, AccountId: Debug, BlockNumber: Debug> {
+		pub commission: GenericCommission<AccountId, BlockNumber>,
+		pub member_counter: u32,
+		pub points: Balance,
+		pub roles: PoolRoles<AccountId>,
+		pub state: PoolState,
+	}
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct GenericRewardPool<Balance, RewardCounter> {
-	/// The last recorded value of the reward counter.
-	pub last_recorded_reward_counter: RewardCounter,
-	/// The last recorded total payouts of the reward pool.
-	pub last_recorded_total_payouts: Balance,
-	/// Total amount that this pool has paid out so far to the members.
-	pub total_rewards_claimed: Balance,
-	/// The amount of commission pending to be claimed.
-	pub total_commission_pending: Balance,
-	/// The amount of commission that has been claimed.
-	pub total_commission_claimed: Balance,
-}
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	pub struct GenericPoolMember<Balance, RewardCounter> {
+		pub pool_id: PoolId,
+		pub points: Balance,
+		pub last_recorded_reward_counter: RewardCounter,
+		pub unbonding_eras: BTreeMap<EraIndex, Balance>,
+	}
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct GenericUnbondPool<Balance> {
-	/// Total balance of this unbond pool.
-	pub points: Balance,
-	/// Balance that is being withdrawn.
-	pub balance: Balance,
-}
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	pub struct GenericRewardPool<Balance, RewardCounter> {
+		pub last_recorded_reward_counter: RewardCounter,
+		pub last_recorded_total_payouts: Balance,
+		pub total_rewards_claimed: Balance,
+		pub total_commission_pending: Balance,
+		pub total_commission_claimed: Balance,
+	}
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct GenericSubPools<Balance> {
-	/// A general, era agnostic pool of funds that have fully unbonded.
-	pub no_era: GenericUnbondPool<Balance>,
-	/// Map of era in which a pool becomes unbonded in => unbond pools.
-	pub with_era: BTreeMap<EraIndex, GenericUnbondPool<Balance>>,
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	pub struct GenericUnbondPool<Balance> {
+		pub points: Balance,
+		pub balance: Balance,
+	}
+
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	pub struct GenericSubPools<Balance> {
+		pub no_era: GenericUnbondPool<Balance>,
+		pub with_era: BTreeMap<EraIndex, GenericUnbondPool<Balance>>,
+	}
+
+	#[derive(
+		Encode,
+		Decode,
+		MaxEncodedLen,
+		TypeInfo,
+		RuntimeDebugNoBound,
+		CloneNoBound,
+		PartialEqNoBound,
+		EqNoBound,
+	)]
+	pub enum GenericNomPoolsMessage<
+		Balance: Debug + Clone + PartialEq,
+		RewardCounter: Debug + Clone + PartialEq,
+		AccountId: Debug + Clone + PartialEq,
+		BlockNumber: Debug + Clone + PartialEq,
+	> {
+		StorageValues { values: NomPoolsStorageValues<Balance> },
+		PoolMembers { member: (AccountId, GenericPoolMember<Balance, RewardCounter>) },
+		BondedPools { pool: (PoolId, GenericBondedPoolInner<Balance, AccountId, BlockNumber>) },
+		RewardPools { rewards: (PoolId, GenericRewardPool<Balance, RewardCounter>) },
+		SubPoolsStorage { sub_pools: (PoolId, GenericSubPools<Balance>) },
+		Metadata { meta: (PoolId, BoundedVec<u8, ConstU32<256>>) },
+		ReversePoolIdLookup { lookups: (AccountId, PoolId) },
+		ClaimPermissions { perms: (AccountId, ClaimPermission) },
+	}
 }
 
 pub type BalanceOf<T> = <<T as pallet_nomination_pools::Config>::Currency as frame_support::traits::fungible::Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
-#[derive(
-	Encode,
-	Decode,
-	MaxEncodedLen,
-	TypeInfo,
-	RuntimeDebugNoBound,
-	CloneNoBound,
-	PartialEqNoBound,
-	EqNoBound,
-)]
-pub enum GenericNomPoolsMessage<
-	Balance: Debug + Clone + PartialEq,
-	RewardCounter: Debug + Clone + PartialEq,
-	AccountId: Debug + Clone + PartialEq,
-	BlockNumber: Debug + Clone + PartialEq,
-> {
-	/// All `StorageValues` that can be migrated at once.
-	StorageValues { values: NomPoolsStorageValues<Balance> },
-	/// Entry of the `PoolMembers` map.
-	PoolMembers { member: (AccountId, GenericPoolMember<Balance, RewardCounter>) },
-	/// Entry of the `BondedPools` map.
-	BondedPools { pool: (PoolId, GenericBondedPoolInner<Balance, AccountId, BlockNumber>) },
-	/// Entry of the `RewardPools` map.
-	RewardPools { rewards: (PoolId, GenericRewardPool<Balance, RewardCounter>) },
-	/// Entry of the `SubPoolsStorage` map.
-	SubPoolsStorage { sub_pools: (PoolId, GenericSubPools<Balance>) },
-	/// Entry of the `Metadata` map.
-	Metadata { meta: (PoolId, BoundedVec<u8, ConstU32<256>>) },
-	/// Entry of the `ReversePoolIdLookup` map.
-	// TODO check if inserting None into an option map is the same as deleting the key
-	ReversePoolIdLookup { lookups: (AccountId, PoolId) },
-	/// Entry of the `ClaimPermissions` map.
-	ClaimPermissions { perms: (AccountId, ClaimPermission) },
-}
-
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 	type RcPrePayload = Vec<
-		GenericNomPoolsMessage<
+		migration_types::GenericNomPoolsMessage<
 			BalanceOf<T>,
 			T::RewardCounter,
 			<T as frame_system::Config>::AccountId,
@@ -473,23 +451,25 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			global_max_commission: pallet_nomination_pools::GlobalMaxCommission::<T>::get(),
 			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::get(),
 		};
-		messages.push(GenericNomPoolsMessage::StorageValues { values });
+		messages.push(migration_types::GenericNomPoolsMessage::StorageValues { values });
 
 		// Collect pool members
 		for (who, member) in pallet_nomination_pools::PoolMembers::<T>::iter() {
-			let generic_member = GenericPoolMember {
+			let generic_member = migration_types::GenericPoolMember {
 				pool_id: member.pool_id,
 				points: member.points,
 				last_recorded_reward_counter: member.last_recorded_reward_counter,
 				unbonding_eras: member.unbonding_eras.into_inner(),
 			};
-			messages.push(GenericNomPoolsMessage::PoolMembers { member: (who, generic_member) });
+			messages.push(migration_types::GenericNomPoolsMessage::PoolMembers {
+				member: (who, generic_member),
+			});
 		}
 
 		// Collect bonded pools
 		for (pool_id, pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
-			let generic_pool = GenericBondedPoolInner {
-				commission: GenericCommission {
+			let generic_pool = migration_types::GenericBondedPoolInner {
+				commission: migration_types::GenericCommission {
 					current: pool.commission.current,
 					max: pool.commission.max,
 					change_rate: pool.commission.change_rate,
@@ -501,26 +481,29 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 				roles: pool.roles,
 				state: pool.state,
 			};
-			messages.push(GenericNomPoolsMessage::BondedPools { pool: (pool_id, generic_pool) });
+			messages.push(migration_types::GenericNomPoolsMessage::BondedPools {
+				pool: (pool_id, generic_pool),
+			});
 		}
 
 		// Collect reward pools
 		for (pool_id, rewards) in alias::RewardPools::<T>::iter() {
-			let generic_rewards = GenericRewardPool {
+			let generic_rewards = migration_types::GenericRewardPool {
 				last_recorded_reward_counter: rewards.last_recorded_reward_counter,
 				last_recorded_total_payouts: rewards.last_recorded_total_payouts,
 				total_rewards_claimed: rewards.total_rewards_claimed,
 				total_commission_pending: rewards.total_commission_pending,
 				total_commission_claimed: rewards.total_commission_claimed,
 			};
-			messages
-				.push(GenericNomPoolsMessage::RewardPools { rewards: (pool_id, generic_rewards) });
+			messages.push(migration_types::GenericNomPoolsMessage::RewardPools {
+				rewards: (pool_id, generic_rewards),
+			});
 		}
 
 		// Collect sub pools storage
 		for (pool_id, sub_pools) in alias::SubPoolsStorage::<T>::iter() {
-			let generic_sub_pools = GenericSubPools {
-				no_era: GenericUnbondPool {
+			let generic_sub_pools = migration_types::GenericSubPools {
+				no_era: migration_types::GenericUnbondPool {
 					points: sub_pools.no_era.points,
 					balance: sub_pools.no_era.balance,
 				},
@@ -528,11 +511,17 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 					.with_era
 					.into_iter()
 					.map(|(era, pool)| {
-						(era, GenericUnbondPool { points: pool.points, balance: pool.balance })
+						(
+							era,
+							migration_types::GenericUnbondPool {
+								points: pool.points,
+								balance: pool.balance,
+							},
+						)
 					})
 					.collect(),
 			};
-			messages.push(GenericNomPoolsMessage::SubPoolsStorage {
+			messages.push(migration_types::GenericNomPoolsMessage::SubPoolsStorage {
 				sub_pools: (pool_id, generic_sub_pools),
 			});
 		}
@@ -542,17 +531,23 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			let meta_inner = meta.into_inner();
 			let meta_converted = BoundedVec::<u8, ConstU32<256>>::try_from(meta_inner)
 				.expect("metadata length within bounds");
-			messages.push(GenericNomPoolsMessage::Metadata { meta: (pool_id, meta_converted) });
+			messages.push(migration_types::GenericNomPoolsMessage::Metadata {
+				meta: (pool_id, meta_converted),
+			});
 		}
 
 		// Collect reverse pool id lookup
 		for (who, pool_id) in pallet_nomination_pools::ReversePoolIdLookup::<T>::iter() {
-			messages.push(GenericNomPoolsMessage::ReversePoolIdLookup { lookups: (who, pool_id) });
+			messages.push(migration_types::GenericNomPoolsMessage::ReversePoolIdLookup {
+				lookups: (who, pool_id),
+			});
 		}
 
 		// Collect claim permissions
 		for (who, perms) in pallet_nomination_pools::ClaimPermissions::<T>::iter() {
-			messages.push(GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
+			messages.push(migration_types::GenericNomPoolsMessage::ClaimPermissions {
+				perms: (who, perms),
+			});
 		}
 
 		messages

@@ -18,6 +18,8 @@
 use crate::*;
 use frame_support::traits::DefensiveSaturating;
 use pallet_nomination_pools::BondedPoolInner;
+#[cfg(feature = "std")]
+use pallet_rc_migrator::staking::nom_pools::migration_types;
 use pallet_rc_migrator::staking::nom_pools::{BalanceOf, NomPoolsMigrator};
 use sp_runtime::{
 	traits::{CheckedSub, One},
@@ -143,9 +145,14 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+#[cfg(feature = "std")]
 fn normalize_generic_bonded_pool<T: Config>(
-	mut pool: GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>>,
-) -> GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>> {
+	mut pool: migration_types::GenericBondedPoolInner<
+		BalanceOf<T>,
+		T::AccountId,
+		BlockNumberFor<T>,
+	>,
+) -> migration_types::GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>> {
 	use crate::Pallet;
 
 	if let Some(ref mut throttle_from) = pool.commission.throttle_from {
@@ -162,7 +169,7 @@ fn normalize_generic_bonded_pool<T: Config>(
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 	type RcPrePayload = Vec<
-		GenericNomPoolsMessage<
+		migration_types::GenericNomPoolsMessage<
 			BalanceOf<T>,
 			T::RewardCounter,
 			<T as frame_system::Config>::AccountId,
@@ -252,22 +259,24 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 			global_max_commission: pallet_nomination_pools::GlobalMaxCommission::<T>::get(),
 			last_pool_id: pallet_nomination_pools::LastPoolId::<T>::get(),
 		};
-		ah_messages.push(GenericNomPoolsMessage::StorageValues { values });
+		ah_messages.push(migration_types::GenericNomPoolsMessage::StorageValues { values });
 
 		// Collect all other storage items from AH
 		for (who, member) in pallet_nomination_pools::PoolMembers::<T>::iter() {
-			let generic_member = GenericPoolMember {
+			let generic_member = migration_types::GenericPoolMember {
 				pool_id: member.pool_id,
 				points: member.points,
 				last_recorded_reward_counter: member.last_recorded_reward_counter,
 				unbonding_eras: member.unbonding_eras.into_inner(),
 			};
-			ah_messages.push(GenericNomPoolsMessage::PoolMembers { member: (who, generic_member) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::PoolMembers {
+				member: (who, generic_member),
+			});
 		}
 
 		for (pool_id, pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
-			let generic_pool = GenericBondedPoolInner {
-				commission: GenericCommission {
+			let generic_pool = migration_types::GenericBondedPoolInner {
+				commission: migration_types::GenericCommission {
 					current: pool.commission.current,
 					max: pool.commission.max,
 					change_rate: pool.commission.change_rate,
@@ -279,28 +288,31 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 				roles: pool.roles,
 				state: pool.state,
 			};
-			ah_messages.push(GenericNomPoolsMessage::BondedPools { pool: (pool_id, generic_pool) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::BondedPools {
+				pool: (pool_id, generic_pool),
+			});
 		}
 
 		for (pool_id, rewards) in
 			pallet_rc_migrator::staking::nom_pools_alias::RewardPools::<T>::iter()
 		{
-			let generic_rewards = GenericRewardPool {
+			let generic_rewards = migration_types::GenericRewardPool {
 				last_recorded_reward_counter: rewards.last_recorded_reward_counter,
 				last_recorded_total_payouts: rewards.last_recorded_total_payouts,
 				total_rewards_claimed: rewards.total_rewards_claimed,
 				total_commission_pending: rewards.total_commission_pending,
 				total_commission_claimed: rewards.total_commission_claimed,
 			};
-			ah_messages
-				.push(GenericNomPoolsMessage::RewardPools { rewards: (pool_id, generic_rewards) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::RewardPools {
+				rewards: (pool_id, generic_rewards),
+			});
 		}
 
 		for (pool_id, sub_pools) in
 			pallet_rc_migrator::staking::nom_pools_alias::SubPoolsStorage::<T>::iter()
 		{
-			let generic_sub_pools = GenericSubPools {
-				no_era: GenericUnbondPool {
+			let generic_sub_pools = migration_types::GenericSubPools {
+				no_era: migration_types::GenericUnbondPool {
 					points: sub_pools.no_era.points,
 					balance: sub_pools.no_era.balance,
 				},
@@ -309,11 +321,17 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 					.into_inner()
 					.into_iter()
 					.map(|(era, pool)| {
-						(era, GenericUnbondPool { points: pool.points, balance: pool.balance })
+						(
+							era,
+							migration_types::GenericUnbondPool {
+								points: pool.points,
+								balance: pool.balance,
+							},
+						)
 					})
 					.collect(),
 			};
-			ah_messages.push(GenericNomPoolsMessage::SubPoolsStorage {
+			ah_messages.push(migration_types::GenericNomPoolsMessage::SubPoolsStorage {
 				sub_pools: (pool_id, generic_sub_pools),
 			});
 		}
@@ -321,24 +339,29 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		for (pool_id, meta) in pallet_nomination_pools::Metadata::<T>::iter() {
 			let meta_converted = BoundedVec::<u8, ConstU32<256>>::try_from(meta.into_inner())
 				.expect("Metadata length is known to be within bounds; qed");
-			ah_messages.push(GenericNomPoolsMessage::Metadata { meta: (pool_id, meta_converted) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::Metadata {
+				meta: (pool_id, meta_converted),
+			});
 		}
 
 		for (who, pool_id) in pallet_nomination_pools::ReversePoolIdLookup::<T>::iter() {
-			ah_messages
-				.push(GenericNomPoolsMessage::ReversePoolIdLookup { lookups: (who, pool_id) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::ReversePoolIdLookup {
+				lookups: (who, pool_id),
+			});
 		}
 
 		for (who, perms) in pallet_nomination_pools::ClaimPermissions::<T>::iter() {
-			ah_messages.push(GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
+			ah_messages.push(migration_types::GenericNomPoolsMessage::ClaimPermissions {
+				perms: (who, perms),
+			});
 		}
 
 		let rc_normalized: Vec<_> = rc_pre_payload
 			.into_iter()
 			.map(|msg| match msg {
-				GenericNomPoolsMessage::BondedPools { pool: (id, inner) } => {
+				migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, inner) } => {
 					let generic = normalize_generic_bonded_pool::<T>(inner);
-					GenericNomPoolsMessage::BondedPools { pool: (id, generic) }
+					migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, generic) }
 				},
 				other => other,
 			})
@@ -353,9 +376,9 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 				// and it cannot be correctly obtained during the postcheck. By removing
 				// this value, we avoid conflicts and ensure that the AH system functions as
 				// intended.
-				GenericNomPoolsMessage::BondedPools { pool: (id, mut inner) } => {
+				migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, mut inner) } => {
 					inner.commission.throttle_from = None;
-					GenericNomPoolsMessage::BondedPools { pool: (id, inner) }
+					migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, inner) }
 				},
 				other => other,
 			})
