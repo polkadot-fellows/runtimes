@@ -25,26 +25,13 @@
 //! yet, they are here. This test is also very simple, it is not generic and just uses the Runtime
 //! types directly.
 
+use crate::porting_prelude::*;
 use frame_support::{pallet_prelude::*, traits::Currency};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
 use sp_io::hashing::blake2_256;
 use sp_runtime::AccountId32;
 use std::str::FromStr;
-
-// toggle here if you need "generics" for Kusama or Westend
-#[cfg(feature = "ahm-polkadot")]
-type RelayRuntime = polkadot_runtime::Runtime;
-#[cfg(feature = "ahm-polkadot")]
-type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
-#[cfg(feature = "ahm-polkadot")]
-type RelayRuntimeOrigin = polkadot_runtime::RuntimeOrigin;
-#[cfg(feature = "ahm-polkadot")]
-type AssetHubRuntimeOrigin = asset_hub_polkadot_runtime::RuntimeOrigin;
-#[cfg(feature = "ahm-polkadot")]
-type RelayRuntimeCall = polkadot_runtime::RuntimeCall;
-#[cfg(feature = "ahm-polkadot")]
-type AssetHubRuntimeCall = asset_hub_polkadot_runtime::RuntimeCall;
 
 /// Multisig accounts created on the relay chain can be re-created on Asset Hub.
 ///
@@ -90,7 +77,7 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		let (multisig_info, _) = rc_pre_payload;
 		assert_eq!(
-			pallet_balances::Pallet::<RelayRuntime>::total_balance(&multisig_info.multisig_id),
+			pallet_balances::Pallet::<RcRuntime>::total_balance(&multisig_info.multisig_id),
 			0,
 			"Sample multisig account should have no balance on the relay chain after migration."
 		);
@@ -108,7 +95,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		let (multisig_info, _) = rc_pre_payload;
 		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_balance(&multisig_info.multisig_id),
+			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
 			0,
 			"Sample multisig account should have no balance on Asset Hub before migration."
 		);
@@ -119,7 +106,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		// Recreating the multisig on Asset Hub should work.
 		let call_hash = Self::recreate_multisig_ah(&multisig_info);
 		assert!(
-			pallet_multisig::Multisigs::<AssetHubRuntime>::contains_key(
+			pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
 				call_hash.clone()
 			),
@@ -127,18 +114,18 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		);
 		// Check that the multisig balance from the relay chain is preserved.
 		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_balance(&multisig_info.multisig_id),
+			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
 			balance,
 			"Sample multisig account balance should have been migrated to Asset Hub with the correct balance."
 		);
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
-		pallet_multisig::Multisigs::<AssetHubRuntime>::remove(
+		pallet_multisig::Multisigs::<AhRuntime>::remove(
 			multisig_info.multisig_id.clone(),
 			call_hash.clone(),
 		);
 		// Check that the multisig has been effectively removed
 		assert!(
-			!pallet_multisig::Multisigs::<AssetHubRuntime>::contains_key(
+			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
 				multisig_info.multisig_id.clone(),
 				call_hash.clone()
 			),
@@ -161,17 +148,15 @@ impl MultisigsAccountIdStaysTheSame {
 		let mut signatories = vec![shawn.clone(), basti.clone(), kian.clone()];
 		signatories.sort();
 		other_signatories.sort();
-		let multisig_id =
-			pallet_multisig::Pallet::<RelayRuntime>::multi_account_id(&signatories, 2);
+		let multisig_id = pallet_multisig::Pallet::<RcRuntime>::multi_account_id(&signatories, 2);
 		// Just a placeholder call to make the multisig valid.
-		let call =
-			Box::new(RelayRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
-				dest: shawn.clone().into(),
-				value: 10000000000,
-			}));
+		let call = Box::new(RcRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
+			dest: shawn.clone().into(),
+			value: 10000000000,
+		}));
 		let threshold = 2;
-		frame_support::assert_ok!(pallet_multisig::Pallet::<RelayRuntime>::as_multi(
-			RelayRuntimeOrigin::signed(shawn.clone()),
+		frame_support::assert_ok!(pallet_multisig::Pallet::<RcRuntime>::as_multi(
+			RcRuntimeOrigin::signed(shawn.clone()),
 			threshold,
 			other_signatories.clone(),
 			None,
@@ -191,8 +176,8 @@ impl MultisigsAccountIdStaysTheSame {
 
 	// Transfer balance from a source account to a destination account on the Relay chain.
 	fn transfer_rc_balance(source: AccountId32, dest: AccountId32, amount: u128) {
-		frame_support::assert_ok!(pallet_balances::Pallet::<RelayRuntime>::transfer_allow_death(
-			RelayRuntimeOrigin::signed(source),
+		frame_support::assert_ok!(pallet_balances::Pallet::<RcRuntime>::transfer_allow_death(
+			RcRuntimeOrigin::signed(source),
 			dest.into(),
 			amount
 		));
@@ -201,14 +186,13 @@ impl MultisigsAccountIdStaysTheSame {
 	// Recreate a multisig on Asset Hub and return the call hash.
 	fn recreate_multisig_ah(multisig_info: &MultisigSummary) -> [u8; 32] {
 		// Just a placeholder call to make the multisig valid.
-		let call =
-			Box::new(AssetHubRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
-				dest: multisig_info.depositor.clone().into(),
-				value: 10000000000,
-			}));
+		let call = Box::new(AhRuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
+			dest: multisig_info.depositor.clone().into(),
+			value: 10000000000,
+		}));
 		// Recreate the multisig on Asset Hub.
-		frame_support::assert_ok!(pallet_multisig::Pallet::<AssetHubRuntime>::as_multi(
-			AssetHubRuntimeOrigin::signed(multisig_info.depositor.clone()),
+		frame_support::assert_ok!(pallet_multisig::Pallet::<AhRuntime>::as_multi(
+			AhRuntimeOrigin::signed(multisig_info.depositor.clone()),
 			multisig_info.threshold as u16,
 			multisig_info.other_signatories.clone(),
 			None,

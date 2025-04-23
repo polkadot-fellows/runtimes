@@ -131,7 +131,11 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
 			match Self::migrate_single(k1.clone(), multisig, rc_weight, ah_weight) {
-				Ok(ms) => batch.push(ms), // TODO continue here
+				Ok(ms) => {
+					batch.push(ms);
+					// Remove the last key from storage
+					aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
+				},
 				// Account does not need to be migrated
 				// Not enough weight, lets try again in the next block since we made some progress.
 				Err(OutOfWeightError) if !batch.is_empty() => break,
@@ -142,10 +146,6 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo> MultisigMigrator<T, W> {
 				},
 			}
 
-			// Remove the last key from storage if it exists
-			if let Some((id, call_hash)) = last_key {
-				aliases::Multisigs::<T>::remove(id, call_hash);
-			}
 			last_key = Some((k1, k2));
 		}
 
