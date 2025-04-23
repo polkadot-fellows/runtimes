@@ -24,7 +24,10 @@ use pallet_nomination_pools::{
 	BondedPoolInner, ClaimPermission, CommissionChangeRate, CommissionClaimPermission, PoolId,
 	PoolMember, PoolRoles, PoolState,
 };
-use sp_runtime::{traits::Zero, Perbill};
+use sp_runtime::{
+	traits::{One, Zero},
+	Perbill, Saturating,
+};
 use sp_staking::EraIndex;
 use sp_std::fmt::Debug;
 
@@ -467,7 +470,11 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 		}
 
 		// Collect bonded pools
-		for (pool_id, pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
+		for (pool_id, mut pool) in pallet_nomination_pools::BondedPools::<T>::iter() {
+			if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
+				change_rate.min_delay =
+					(change_rate.min_delay / 2u32.into()).saturating_add(One::one());
+			}
 			let generic_pool = migration_types::GenericBondedPoolInner {
 				commission: migration_types::GenericCommission {
 					current: pool.commission.current,

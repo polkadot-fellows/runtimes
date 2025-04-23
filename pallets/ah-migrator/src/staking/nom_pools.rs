@@ -146,27 +146,6 @@ impl<T: Config> Pallet<T> {
 }
 
 #[cfg(feature = "std")]
-fn normalize_generic_bonded_pool<T: Config>(
-	mut pool: migration_types::GenericBondedPoolInner<
-		BalanceOf<T>,
-		T::AccountId,
-		BlockNumberFor<T>,
-	>,
-) -> migration_types::GenericBondedPoolInner<BalanceOf<T>, T::AccountId, BlockNumberFor<T>> {
-	use crate::Pallet;
-
-	if let Some(ref mut throttle_from) = pool.commission.throttle_from {
-		*throttle_from = Pallet::<T>::rc_to_ah_timepoint(*throttle_from);
-	}
-	if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
-		change_rate.min_delay =
-			T::RcToAhDelay::convert(change_rate.min_delay).saturating_add(One::one());
-	}
-
-	pool
-}
-
-#[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 	type RcPrePayload = Vec<
 		migration_types::GenericNomPoolsMessage<
@@ -359,10 +338,8 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 		let rc_normalized: Vec<_> = rc_pre_payload
 			.into_iter()
 			.map(|msg| match msg {
-				migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, inner) } => {
-					let generic = normalize_generic_bonded_pool::<T>(inner);
-					migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, generic) }
-				},
+				migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, inner) } =>
+					migration_types::GenericNomPoolsMessage::BondedPools { pool: (id, inner) },
 				other => other,
 			})
 			.collect();
