@@ -39,9 +39,7 @@ impl RcMigrationCheck for SanityChecks {
 	fn pre_check() -> Self::RcPrePayload {
 		assert!(
 			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get() ==
-				pallet_rc_migrator::MigrationStage::Scheduled { block_number: 0 },
-			"RC should start in Pending state, got {:?}",
-			pallet_rc_migrator::RcMigrationStage::<RcRuntime>::get()
+				pallet_rc_migrator::MigrationStage::Scheduled { block_number: 0 }
 		);
 	}
 
