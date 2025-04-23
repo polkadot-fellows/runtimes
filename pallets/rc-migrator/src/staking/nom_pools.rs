@@ -541,7 +541,7 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 		for (pool_id, meta) in pallet_nomination_pools::Metadata::<T>::iter() {
 			let meta_inner = meta.into_inner();
 			let meta_converted = BoundedVec::<u8, ConstU32<256>>::try_from(meta_inner)
-				.expect("metadata length within bounds; qed");
+				.expect("metadata length within bounds");
 			messages.push(GenericNomPoolsMessage::Metadata { meta: (pool_id, meta_converted) });
 		}
 

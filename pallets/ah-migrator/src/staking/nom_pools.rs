@@ -18,13 +18,11 @@
 use crate::*;
 use frame_support::traits::DefensiveSaturating;
 use pallet_nomination_pools::BondedPoolInner;
-use pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator;
+use pallet_rc_migrator::staking::nom_pools::{BalanceOf, NomPoolsMigrator};
 use sp_runtime::{
 	traits::{CheckedSub, One},
 	Saturating,
 };
-use sp_staking::EraIndex;
-use sp_std::{collections::btree_map::BTreeMap, fmt::Debug};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_nom_pools_messages(
@@ -152,7 +150,6 @@ fn normalize_generic_bonded_pool<T: Config>(
 
 	if let Some(ref mut throttle_from) = pool.commission.throttle_from {
 		*throttle_from = Pallet::<T>::rc_to_ah_timepoint(*throttle_from);
-		// .saturating_add(One::one());
 	}
 	if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
 		change_rate.min_delay =
