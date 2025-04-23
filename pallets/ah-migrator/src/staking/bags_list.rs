@@ -50,18 +50,12 @@ impl<T: Config> Pallet<T> {
 	pub fn do_receive_bags_list_message(message: RcBagsListMessage<T>) -> Result<(), Error<T>> {
 		match message {
 			RcBagsListMessage::Node { id, node } => {
-				if alias::ListNodes::<T>::contains_key(&id) {
-					return Err(Error::<T>::InsertConflict);
-				}
-
+				debug_assert!(!alias::ListNodes::<T>::contains_key(&id));
 				alias::ListNodes::<T>::insert(&id, &node);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListNode: {:?}", &id);
 			},
 			RcBagsListMessage::Bag { score, bag } => {
-				if alias::ListBags::<T>::contains_key(&score) {
-					return Err(Error::<T>::InsertConflict);
-				}
-
+				debug_assert!(!alias::ListBags::<T>::contains_key(&score));
 				alias::ListBags::<T>::insert(&score, &bag);
 				log::debug!(target: LOG_TARGET, "Integrating BagsListBag: {:?}", &score);
 			},

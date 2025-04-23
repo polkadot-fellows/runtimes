@@ -64,11 +64,16 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 					break;
 				}
 			}
-			if messages.len() > 10_000 {
-				log::warn!("Weight allowed very big batch, stopping");
-				break;
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_vesting_schedules((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
-
 			let mut iter = match inner_key {
 				Some(who) => pallet_vesting::Vesting::<T>::iter_from_key(who),
 				None => pallet_vesting::Vesting::<T>::iter(),
@@ -92,7 +97,7 @@ impl<T: Config> PalletMigration for VestingMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::ReceiveVestingSchedules { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_vesting_schedules(len),
 			)?;
 		}
 

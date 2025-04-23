@@ -18,6 +18,7 @@
 
 #![cfg(test)]
 
+pub mod bench;
 pub mod mock;
 pub mod multisig_test;
 pub mod proxy_test;

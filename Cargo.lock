@@ -10045,6 +10045,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
+ "frame-benchmarking",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
