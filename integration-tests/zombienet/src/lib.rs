@@ -23,11 +23,13 @@ pub fn small_network() -> Result<NetworkConfig, anyhow::Error> {
 				.with_node(|node| node.with_name(BOB))
 		})
 		.with_parachain(|p| {
-			p.with_id(2000).cumulus_based(true).with_collator(|n| {
-				n.with_name(COLLATOR)
-					.with_command("polkadot-parachain")
-					.with_image(images.cumulus.as_str())
-			})
+			p.with_id(1005)
+				.with_default_command("polkadot-parachain")
+				.with_default_image(images.cumulus.as_str())
+				.with_chain_spec_command(CMD_TPL)
+				.chain_spec_command_is_local(true)
+				.with_chain("coretime-polkadot-local")
+				.with_collator(|n| n.with_name(COLLATOR))
 		})
 		.build()
 		.map_err(|errs| {
