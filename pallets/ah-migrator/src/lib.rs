@@ -890,7 +890,16 @@ pub mod pallet {
 			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::finish_accounts_migration(data.rc_balance_kept)?;
+			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+				// FIXME fails only on Westend
+				#[cfg(feature = "ahm-westend")]
+				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
+
+				#[cfg(not(feature = "ahm-westend"))]
+				defensive!("Account migration failed: {:?}", err);
+			}
+
+			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}

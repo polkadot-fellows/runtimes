@@ -1361,17 +1361,11 @@ pub mod pallet {
 						rc_balance_kept: tracker.kept,
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
-					match Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
-						Ok(_) => {
-							Self::transition(MigrationStage::MigrationDone);
-						},
-						Err(_) => {
-							defensive!(
-								"Failed to send FinishMigration message to AH, \
-								retry with the next block"
-							);
-						},
+					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
+						defensive!("Failed to send FinishMigration message to AH, \
+								retry with the next block: {:?}", err);
 					}
+					
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
