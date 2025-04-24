@@ -236,9 +236,6 @@ jobs:
         timeout-minutes: 20
         run: |
           export PATH=$(pwd)/target/debug:$PATH
-          export RUST_LOG=zombienet=debug,aura::cumulus=trace,relay-chain-rpc-client=trace,cumulus=trace
-          # WIP: TODO: temporary fix
-          # export POLKADOT_IMAGE=docker.io/parity/polkadot:v1.17.4
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
