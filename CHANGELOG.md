@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
 - chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
   `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
+- Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
 - Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
 
 
