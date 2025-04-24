@@ -118,10 +118,6 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrat
 		loop {
 			let kv = iter.next();
 			let Some((k1, k2, multisig)) = kv else {
-				// Remove the last key from storage if it exists
-				if let Some((id, call_hash)) = last_key {
-					aliases::Multisigs::<T>::remove(id, call_hash);
-				}
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
 				break;

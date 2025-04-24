@@ -17,6 +17,8 @@
 
 use crate::*;
 use hex_literal::hex;
+
+#[cfg(feature = "std")]
 use pallet_rc_migrator::types::AccountIdOf;
 
 /// These multisigs have historical issues where the deposit is missing for the creator.
