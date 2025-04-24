@@ -67,7 +67,7 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::{Fortitude, Pay, Preservation},
-		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
@@ -313,6 +313,12 @@ pub mod pallet {
 				(),
 			>,
 		>;
+
+		/// Calls that are allowed during the migration.
+		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -884,7 +890,16 @@ pub mod pallet {
 			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::finish_accounts_migration(data.rc_balance_kept)?;
+			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+				// FIXME fails only on Westend
+				#[cfg(feature = "ahm-westend")]
+				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
+
+				#[cfg(not(feature = "ahm-westend"))]
+				defensive!("Account migration failed: {:?}", err);
+			}
+
+			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
@@ -933,9 +948,9 @@ pub mod pallet {
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
 			AhMigrationStage::<T>::put(&new);
-			log::info!(
+			log::warn!(
 				target: LOG_TARGET,
-				"[Block {:?}] Stage transition: {:?} -> {:?}",
+				"[Block {:?}] AH stage transition: {:?} -> {:?}",
 				frame_system::Pallet::<T>::block_number(),
 				&old,
 				&new
@@ -1009,5 +1024,29 @@ pub mod pallet {
 			);
 			result
 		}
+	}
+}
+
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = AhMigrationStage::<T>::get();
+
+		// We have to return whether the call is allowed:
+		const ALLOWED: bool = true;
+		const FORBIDDEN: bool = false;
+
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::AhIntraMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
+		ALLOWED
 	}
 }
