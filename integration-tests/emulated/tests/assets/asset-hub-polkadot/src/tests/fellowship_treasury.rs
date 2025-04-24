@@ -40,13 +40,13 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		)
 		.unwrap();
 	let asset_hub_location =
-		v4::Location::new(1, v4::Junction::Parachain(AssetHubPolkadot::para_id().into()));
+		v5::Location::new(1, v5::Junction::Parachain(AssetHubPolkadot::para_id().into()));
 	let root = <CollectivesPolkadot as Chain>::RuntimeOrigin::root();
 	// asset kind to be spent from the treasury.
-	let asset_kind = VersionedLocatableAsset::V4 {
+	let asset_kind = VersionedLocatableAsset::V5 {
 		location: asset_hub_location,
-		asset_id: v4::AssetId(
-			(v4::Junction::PalletInstance(50), v4::Junction::GeneralIndex(USDT_ID.into())).into(),
+		asset_id: v5::AssetId(
+			(v5::Junction::PalletInstance(50), v5::Junction::GeneralIndex(USDT_ID.into())).into(),
 		),
 	};
 	// treasury spend beneficiary.

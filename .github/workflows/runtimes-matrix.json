@@ -15,6 +15,7 @@
     "uri": "wss://try-runtime-kusama.polkadot.io:443",
     "is_relay": true,
     "blocktime": 6000,
+    "benchmarks_exclude_extrinsics": "pallet_nomination_pools::apply_slash_fail",
     "extra_args": "--disable-mbm-checks"
   },
   {
@@ -96,8 +97,7 @@
     "path": "system-parachains/people/people-kusama",
     "uri": "wss://kusama-people-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks"
+    "blocktime": 6000
   },
   {
     "name": "people-polkadot",
@@ -105,8 +105,7 @@
     "path": "system-parachains/people/people-polkadot",
     "uri": "wss://polkadot-people-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000,
-    "extra_args": "--disable-mbm-checks"
+    "blocktime": 12000
   },
   {
     "name": "encointer-kusama",
