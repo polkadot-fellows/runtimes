@@ -266,7 +266,7 @@ jobs:
     needs: [ runtime-matrix ]
     runs-on: ubuntu-latest
     strategy:
-      # Ensure the other jobs are continue
+      # Ensure the other jobs are continued
       fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -355,7 +355,7 @@ jobs:
           command: cd ecosystem-tests && yarn test
 
   # This will only run if all the tests in its "needs" array passed.
-  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # Add this as your required job, because if the matrix changes size (new things get added),
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
