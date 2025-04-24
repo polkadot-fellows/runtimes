@@ -530,7 +530,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::force_set_stage())]
 		pub fn force_set_stage(
 			origin: OriginFor<T>,
 			stage: Box<MigrationStageOf<T>>,
@@ -542,7 +542,7 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start_moment: DispatchTime<BlockNumberFor<T>>,
@@ -560,7 +560,7 @@ pub mod pallet {
 		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
 		/// migration data.
 		#[pallet::call_index(2)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
@@ -569,7 +569,7 @@ pub mod pallet {
 
 		/// Update the total number of XCM messages processed by the Asset Hub.
 		#[pallet::call_index(3)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::update_ah_msg_processed_count())]
 		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::update_msg_processed_count(count);

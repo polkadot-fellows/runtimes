@@ -43,3 +43,31 @@ fn test_bench_withdraw_account() {
 		test_withdraw_account::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_force_set_stage() {
+	new_test_ext().execute_with(|| {
+		test_force_set_stage::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_schedule_migration() {
+	new_test_ext().execute_with(|| {
+		test_schedule_migration::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_start_data_migration() {
+	new_test_ext().execute_with(|| {
+		test_start_data_migration::<RelayChain>();
+	});
+}
+
+#[test]
+fn test_bench_update_ah_msg_processed_count() {
+	new_test_ext().execute_with(|| {
+		test_update_ah_msg_processed_count::<RelayChain>();
+	});
+}

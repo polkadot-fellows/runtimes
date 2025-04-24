@@ -18,7 +18,11 @@
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::Currency;
-use frame_system::Account as SystemAccount;
+use frame_system::{Account as SystemAccount, RawOrigin};
+
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
+	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
+}
 
 #[benchmarks]
 pub mod benchmarks {
@@ -33,7 +37,7 @@ pub mod benchmarks {
 		};
 
 		let n = 50;
-		let messages = (0..n).map(|i| create_liquid_account(i)).collect::<Vec<_>>();
+		(0..n).for_each(|i| create_liquid_account(i));
 		let last_key: AccountId32 = [n / 2; 32].into();
 
 		RcMigratedBalance::<T>::mutate(|tracker| {
@@ -55,8 +59,82 @@ pub mod benchmarks {
 		}
 	}
 
+	#[benchmark]
+	fn force_set_stage() {
+		let stage = MigrationStageOf::<T>::Scheduled { block_number: 1u32.into() };
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, Box::new(stage.clone()));
+
+		assert_last_event::<T>(
+			Event::StageTransition { old: MigrationStageOf::<T>::Pending, new: stage }.into(),
+		);
+	}
+
+	#[benchmark]
+	fn schedule_migration() {
+		let start_moment = DispatchTime::<BlockNumberFor<T>>::At(10u32.into());
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, start_moment);
+
+		assert_last_event::<T>(
+			Event::StageTransition {
+				old: MigrationStageOf::<T>::Pending,
+				new: MigrationStageOf::<T>::Scheduled { block_number: 10u32.into() },
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn start_data_migration() {
+		#[extrinsic_call]
+		_(RawOrigin::Root);
+
+		assert_last_event::<T>(
+			Event::StageTransition {
+				old: MigrationStageOf::<T>::Pending,
+				new: MigrationStageOf::<T>::AccountsMigrationInit,
+			}
+			.into(),
+		);
+	}
+
+	#[benchmark]
+	fn update_ah_msg_processed_count() {
+		let new_processed = 100;
+
+		#[extrinsic_call]
+		_(RawOrigin::Root, new_processed);
+
+		let (sent, processed) = DmpDataMessageCounts::<T>::get();
+		assert_eq!(processed, new_processed);
+		assert_eq!(sent, 0);
+	}
+
 	#[cfg(feature = "std")]
 	pub fn test_withdraw_account<T: Config>() {
 		_withdraw_account::<T>(true /* enable checks */)
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_force_set_stage<T: Config>() {
+		_force_set_stage::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_schedule_migration<T: Config>() {
+		_schedule_migration::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_start_data_migration<T: Config>() {
+		_start_data_migration::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_update_ah_msg_processed_count<T: Config>() {
+		_update_ah_msg_processed_count::<T>(true /* enable checks */);
 	}
 }

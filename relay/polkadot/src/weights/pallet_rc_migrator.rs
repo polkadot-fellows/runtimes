@@ -46,4 +46,48 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(7_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
+	/// Storage: `RcMigrator::RcMigrationStage` (r:1 w:1)
+	/// Proof: `RcMigrator::RcMigrationStage` (`max_values`: Some(1), `max_size`: Some(1208), added: 1703, mode: `MaxEncodedLen`)
+	fn force_set_stage() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `4`
+		//  Estimated: `2693`
+		// Minimum execution time: 14_000_000 picoseconds.
+		Weight::from_parts(16_000_000, 2693)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `RcMigrator::RcMigrationStage` (r:1 w:1)
+	/// Proof: `RcMigrator::RcMigrationStage` (`max_values`: Some(1), `max_size`: Some(1208), added: 1703, mode: `MaxEncodedLen`)
+	fn schedule_migration() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `4`
+		//  Estimated: `2693`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(16_000_000, 2693)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `RcMigrator::RcMigrationStage` (r:1 w:1)
+	/// Proof: `RcMigrator::RcMigrationStage` (`max_values`: Some(1), `max_size`: Some(1208), added: 1703, mode: `MaxEncodedLen`)
+	fn start_data_migration() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `4`
+		//  Estimated: `2693`
+		// Minimum execution time: 13_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 2693)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	fn update_ah_msg_processed_count() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `4`
+		//  Estimated: `1493`
+		// Minimum execution time: 7_000_000 picoseconds.
+		Weight::from_parts(9_000_000, 1493)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
 }
