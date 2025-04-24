@@ -33,7 +33,10 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, multisig_test::MultisigsAccountIdStaysTheSame, proxy_test::ProxiesStillWork};
+use super::{
+	checks::SanityChecks, mock::*, multisig_test::MultisigsAccountIdStaysTheSame,
+	proxy_test::ProxiesStillWork,
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
