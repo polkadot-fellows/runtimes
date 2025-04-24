@@ -47,7 +47,6 @@ impl<T: Config> Pallet<T> {
 
 	fn do_receive_staking_message(message: AhEquivalentStakingMessageOf<T>) -> Result<(), Error<T>> {
 		use RcStakingMessage::*;
-		log::warn!(target: LOG_TARGET, "Received StakingMessage");
 
 		match message {
 			Values(values) => {
