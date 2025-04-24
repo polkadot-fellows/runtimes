@@ -1546,8 +1546,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	// TODO: weights::pallet_rc_migrator::WeightInfo
-	type RcWeightInfo = ();
+	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
@@ -2221,6 +2220,7 @@ mod benches {
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
+		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

@@ -48,6 +48,8 @@ pub mod weights;
 pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 #[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
@@ -55,6 +57,8 @@ pub mod scheduler;
 #[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
+
+pub use weights::*;
 
 use crate::{
 	accounts::MigratedBalances, types::MigrationFinishedData,
@@ -102,7 +106,6 @@ use staking::{
 use storage::TransactionOutcome;
 use types::PalletMigration;
 use vesting::VestingMigrator;
-use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
