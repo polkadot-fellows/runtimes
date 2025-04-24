@@ -192,15 +192,10 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
-  # Job required by "confirmTestPassed"
-  zombienet-smoke:
+  # Preparation for zombienet smoking
+  zombienet-smoke-setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -223,19 +218,48 @@ jobs:
           shared-key: "fellowship-cache-zombienet-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
+      - name: Build chain-spec-generator
         run: |
           cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --locked
+
+  # Job required by "confirmTestPassed"
+  zombienet-smoke:
+    needs: [zombienet-smoke-setup]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        docker:
+          - polkadot: v1.17.4
+            cumulus: v1.17.4
+            can_fail: false
+          - polkadot: v1.17.4
+            cumulus: v1.18.0
+            can_fail: false
+          - polkadot: v1.18.0
+            cumulus: v1.18.0
+            can_fail: false
+          - polkadot: latest
+            cumulus: latest
+            can_fail: true
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
 
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
           docker --version
 
-      - name: Zombienet smoke test
+      - name: Zombienet smoke test for polkadot-${{ matrix.docker.polkadot }} with polkadot-parachain-${{ matrix.docker.cumulus }})
         timeout-minutes: 20
+        continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
           export PATH=$(pwd)/target/debug:$PATH
+          export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
+          export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
+          # TODO: possibly we could do a `cargo test --no-run` and reuse binary and save time
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
