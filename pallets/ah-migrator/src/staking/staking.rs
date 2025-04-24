@@ -45,7 +45,9 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn do_receive_staking_message(message: AhEquivalentStakingMessageOf<T>) -> Result<(), Error<T>> {
+	fn do_receive_staking_message(
+		message: AhEquivalentStakingMessageOf<T>,
+	) -> Result<(), Error<T>> {
 		use RcStakingMessage::*;
 
 		match message {
@@ -95,7 +97,10 @@ impl<T: Config> Pallet<T> {
 			},
 			ErasStakersPaged { era, validator, page, exposure } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasStakersPaged {:?}/{:?}/{:?}", validator, era, page);
-				pallet_staking_async::ErasStakersPaged::<T>::insert((era, validator, page), exposure);
+				pallet_staking_async::ErasStakersPaged::<T>::insert(
+					(era, validator, page),
+					exposure,
+				);
 			},
 			ClaimedRewards { era, validator, rewards } => {
 				// FIXME ErasClaimedRewards

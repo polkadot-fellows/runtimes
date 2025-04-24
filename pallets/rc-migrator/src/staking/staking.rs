@@ -17,14 +17,14 @@
 //! Pallet staking migration.
 
 use crate::*;
+use codec::HasCompact;
+use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
-use core::fmt::Debug;
-use codec::HasCompact;
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
 
@@ -108,7 +108,16 @@ pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	EqNoBound,
 )]
 #[scale_info(skip_type_params(T))]
-pub enum RcStakingMessage<AccountId, Balance, StakingLedger, Nominations, SpanRecord, EraRewardPoints, RewardDestination, ValidatorPrefs>
+pub enum RcStakingMessage<
+	AccountId,
+	Balance,
+	StakingLedger,
+	Nominations,
+	SpanRecord,
+	EraRewardPoints,
+	RewardDestination,
+	ValidatorPrefs,
+>
 // We do not want to pull in the Config trait; hence this
 where
 	AccountId: Ord + Debug + Clone,
@@ -212,7 +221,7 @@ pub type RcStakingMessageOf<T> = RcStakingMessage<
 	pallet_staking::Nominations<T>,
 	pallet_staking::slashing::SpanRecord<<T as pallet_staking::Config>::CurrencyBalance>,
 	pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
-	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,	
+	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking::ValidatorPrefs,
 >;
 
@@ -222,7 +231,9 @@ pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
 	<T as pallet_staking_async::Config>::CurrencyBalance,
 	pallet_staking_async::StakingLedger<T>,
 	pallet_staking_async::Nominations<T>,
-	pallet_staking_async::slashing::SpanRecord<<T as pallet_staking_async::Config>::CurrencyBalance>,
+	pallet_staking_async::slashing::SpanRecord<
+		<T as pallet_staking_async::Config>::CurrencyBalance,
+	>,
 	pallet_staking_async::EraRewardPoints<<T as frame_system::Config>::AccountId>,
 	pallet_staking_async::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking_async::ValidatorPrefs,
@@ -669,9 +680,11 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 		}
 
 		if !messages.is_empty() {
-			Pallet::<T>::send_chunked_xcm(messages, |messages| {
-				types::AhMigratorCall::<T>::ReceiveStakingMessages { messages }
-			}, |_len| Weight::from_all(1))?;
+			Pallet::<T>::send_chunked_xcm(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveStakingMessages { messages },
+				|_len| Weight::from_all(1),
+			)?;
 		}
 
 		if inner_key == StakingStage::Finished {
