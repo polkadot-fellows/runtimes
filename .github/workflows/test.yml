@@ -222,6 +222,12 @@ jobs:
         run: |
           cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --locked
 
+      - name: Upload chain-spec-generator
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-spec-generator-for-smoke
+          path: target/debug/chain-spec-generator
+
   # Job required by "confirmTestPassed"
   zombienet-smoke:
     needs: [zombienet-smoke-setup]
@@ -247,6 +253,34 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: chain-spec-generator-for-smoke
+          path: ./for-zombienet-smoke
+
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
@@ -256,7 +290,7 @@ jobs:
         timeout-minutes: 20
         continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
-          export PATH=$(pwd)/target/debug:$PATH
+          export PATH=$(pwd)/for-zombienet-smoke:$PATH
           export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
           export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
           # TODO: possibly we could do a `cargo test --no-run` and reuse binary and save time
