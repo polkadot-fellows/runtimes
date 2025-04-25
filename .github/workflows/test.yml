@@ -290,6 +290,7 @@ jobs:
         timeout-minutes: 20
         continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
+          chmod +x ./for-zombienet-smoke/chain-spec-generator
           export PATH=$(pwd)/for-zombienet-smoke:$PATH
           export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
           export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
