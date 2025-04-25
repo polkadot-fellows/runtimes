@@ -470,11 +470,9 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 			if let Some(ref mut change_rate) = pool.commission.change_rate.as_mut() {
 				#[cfg(not(feature = "ahm-westend"))]
 				{
-				change_rate.min_delay =
-					change_rate.min_delay / 2u32.into();
+					change_rate.min_delay = change_rate.min_delay / 2u32.into();
 				}
 				change_rate.min_delay = change_rate.min_delay.saturating_add(tests::One::one());
-				
 			}
 			let generic_pool = tests::GenericBondedPoolInner {
 				commission: tests::GenericCommission {
