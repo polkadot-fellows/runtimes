@@ -117,7 +117,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// Storage: `Multisig::Multisigs` (r:1 w:1)
 	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(3346), added: 5821, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[2, 100]`.
-	/// The range of component `z` is `[0, 10000]`.
+	/// /* TODO:needs-patch-for-stable2412 The range of component `z` is `[0, 10000]`. */
 	fn approve_as_multi_create(s: u32, /* TODO:needs-patch-for-stable2412 _z: u32,*/ ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `301 + s * (2 ±0)`
@@ -133,7 +133,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// Storage: `Multisig::Multisigs` (r:1 w:1)
 	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(3346), added: 5821, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[2, 100]`.
-	/// The range of component `z` is `[0, 10000]`.
+	/// /* TODO:needs-patch-for-stable2412 The range of component `z` is `[0, 10000]`. */
 	fn approve_as_multi_approve(s: u32, /* TODO:needs-patch-for-stable2412 z: u32,*/ ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `320`
@@ -151,7 +151,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// Storage: `Multisig::Multisigs` (r:1 w:1)
 	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(3346), added: 5821, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[2, 100]`.
-	/// The range of component `z` is `[0, 10000]`.
+	/// /* TODO:needs-patch-for-stable2412 The range of component `z` is `[0, 10000]`. */
 	fn cancel_as_multi(s: u32, /* TODO:needs-patch-for-stable2412 _z: u32,*/ ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `492 + s * (1 ±0)`
