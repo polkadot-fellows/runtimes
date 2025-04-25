@@ -328,15 +328,6 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 				.push(tests::GenericNomPoolsMessage::ClaimPermissions { perms: (who, perms) });
 		}
 
-		let rc_normalized: Vec<_> = rc_pre_payload
-			.into_iter()
-			.map(|msg| match msg {
-				tests::GenericNomPoolsMessage::BondedPools { pool: (id, inner) } =>
-					tests::GenericNomPoolsMessage::BondedPools { pool: (id, inner) },
-				other => other,
-			})
-			.collect();
-
 		let ah_filtered: Vec<_> = ah_messages
 			.into_iter()
 			.map(|msg| match msg {
@@ -356,7 +347,7 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 
 		// Assert storage "NominationPools::*::ah_post::correct"
 		assert_eq!(
-			rc_normalized, ah_filtered,
+			rc_pre_payload, ah_filtered,
 			"Assert storage 'NominationPools::*::ah_post::correct'"
 		);
 	}
