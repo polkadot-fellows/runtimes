@@ -60,7 +60,7 @@ port RUNTIME SDK FOLDER:
 		just code-substitute {{SDK}} westend
 	fi
 
-	cd {{FOLDER}}
+	cd {{SDK}}/{{FOLDER}}
 	cargo fetch
 	zepter
 

@@ -19,14 +19,18 @@
 use crate::*;
 use codec::HasCompact;
 use core::fmt::Debug;
+use codec::EncodeLike;
 pub use frame_election_provider_support::PageIndex;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
+use crate::staking::Convert2;
+pub use crate::staking::message::{RcStakingMessage, RcStakingMessageOf, AhEquivalentStakingMessageOf};
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
+use frame_support::traits::DefensiveTruncateInto;
 
 pub struct StakingMigrator<T> {
 	_phantom: PhantomData<T>,
@@ -72,218 +76,8 @@ pub enum StakingStage<AccountId> {
 
 pub type StakingStageOf<T> = StakingStage<<T as frame_system::Config>::AccountId>;
 
-#[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct StakingValues<Balance> {
-	pub validator_count: u32,
-	pub min_validator_count: u32,
-	pub min_nominator_bond: Balance,
-	pub min_validator_bond: Balance,
-	pub min_active_stake: Balance,
-	pub min_commission: Perbill,
-	pub max_validators_count: Option<u32>,
-	pub max_nominators_count: Option<u32>,
-	pub current_era: Option<EraIndex>,
-	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Forcing,
-	pub max_staked_rewards: Option<Percent>,
-	pub slash_reward_fraction: Perbill,
-	pub canceled_slash_payout: Balance,
-	pub current_planned_session: SessionIndex,
-	pub chill_threshold: Option<Percent>,
-}
-
-pub type StakingValuesOf<T> = StakingValues<<T as pallet_staking::Config>::CurrencyBalance>;
-
 pub type BalanceOf<T> = <T as pallet_staking::Config>::CurrencyBalance;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-
-#[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	TypeInfo,
-	RuntimeDebugNoBound,
-	CloneNoBound,
-	PartialEqNoBound,
-	EqNoBound,
-)]
-#[scale_info(skip_type_params(T))]
-pub enum RcStakingMessage<
-	AccountId,
-	Balance,
-	StakingLedger,
-	Nominations,
-	SpanRecord,
-	EraRewardPoints,
-	RewardDestination,
-	ValidatorPrefs,
->
-// We do not want to pull in the Config trait; hence this
-where
-	AccountId: Ord + Debug + Clone,
-	Balance: HasCompact + MaxEncodedLen + Debug + PartialEq + Clone,
-	StakingLedger: Debug + PartialEq + Clone,
-	Nominations: Debug + PartialEq + Clone,
-	SpanRecord: Debug + PartialEq + Clone,
-	EraRewardPoints: Debug + PartialEq + Clone,
-	RewardDestination: Debug + PartialEq + Clone,
-	ValidatorPrefs: Debug + PartialEq + Clone,
-{
-	Values(StakingValues<Balance>),
-	Invulnerables(Vec<AccountId>),
-	Bonded {
-		stash: AccountId,
-		controller: AccountId,
-	},
-	// Stupid staking pallet forces us to use `T` since its staking ledger requires that...
-	Ledger {
-		controller: AccountId,
-		ledger: StakingLedger,
-	},
-	Payee {
-		stash: AccountId,
-		payment: RewardDestination,
-	},
-	Validators {
-		stash: AccountId,
-		validators: ValidatorPrefs,
-	},
-	Nominators {
-		stash: AccountId,
-		nominations: Nominations,
-	},
-	VirtualStakers(AccountId),
-	ErasStartSessionIndex {
-		era: EraIndex,
-		session: SessionIndex,
-	},
-	ErasStakersOverview {
-		era: EraIndex,
-		validator: AccountId,
-		exposure: PagedExposureMetadata<Balance>,
-	},
-	ErasStakersPaged {
-		era: EraIndex,
-		validator: AccountId,
-		page: Page,
-		exposure: ExposurePage<AccountId, Balance>,
-	},
-	ClaimedRewards {
-		era: EraIndex,
-		validator: AccountId,
-		rewards: Vec<Page>,
-	},
-	ErasValidatorPrefs {
-		era: EraIndex,
-		validator: AccountId,
-		prefs: ValidatorPrefs,
-	},
-	ErasValidatorReward {
-		era: EraIndex,
-		reward: Balance,
-	},
-	ErasRewardPoints {
-		era: EraIndex,
-		points: EraRewardPoints,
-	},
-	ErasTotalStake {
-		era: EraIndex,
-		total_stake: Balance,
-	},
-	BondedEras(Vec<(EraIndex, SessionIndex)>),
-	ValidatorSlashInEra {
-		era: EraIndex,
-		validator: AccountId,
-		slash: (Perbill, Balance),
-	},
-	NominatorSlashInEra {
-		era: EraIndex,
-		validator: AccountId,
-		slash: Balance,
-	},
-	SlashingSpans {
-		account: AccountId,
-		spans: SlashingSpans,
-	},
-	SpanSlash {
-		account: AccountId,
-		span: SpanIndex,
-		slash: SpanRecord,
-	},
-}
-
-/// ASSUMPTION: Encodes exactly the same as `AhEquivalentStakingMessageOf`
-// TODO add EncodeLike assertion
-pub type RcStakingMessageOf<T> = RcStakingMessage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_staking::Config>::CurrencyBalance,
-	pallet_staking::StakingLedger<T>,
-	pallet_staking::Nominations<T>,
-	pallet_staking::slashing::SpanRecord<<T as pallet_staking::Config>::CurrencyBalance>,
-	pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
-	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
-	pallet_staking::ValidatorPrefs,
->;
-
-/// ASSUMPTION: Encodes exactly the same as `RcStakingMessage`
-pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
-	<T as frame_system::Config>::AccountId,
-	<T as pallet_staking_async::Config>::CurrencyBalance,
-	pallet_staking_async::StakingLedger<T>,
-	pallet_staking_async::Nominations<T>,
-	pallet_staking_async::slashing::SpanRecord<
-		<T as pallet_staking_async::Config>::CurrencyBalance,
-	>,
-	pallet_staking_async::EraRewardPoints<<T as frame_system::Config>::AccountId>,
-	pallet_staking_async::RewardDestination<<T as frame_system::Config>::AccountId>,
-	pallet_staking_async::ValidatorPrefs,
->;
-
-impl<T: pallet_staking::Config> StakingMigrator<T> {
-	pub fn take_values() -> StakingValuesOf<T> {
-		use pallet_staking::*;
-
-		StakingValues {
-			validator_count: ValidatorCount::<T>::take(),
-			min_validator_count: MinimumValidatorCount::<T>::take(),
-			min_nominator_bond: MinNominatorBond::<T>::take(),
-			min_validator_bond: MinValidatorBond::<T>::take(),
-			min_active_stake: MinimumActiveStake::<T>::take(),
-			min_commission: MinCommission::<T>::take(),
-			max_validators_count: MaxValidatorsCount::<T>::take(),
-			max_nominators_count: MaxNominatorsCount::<T>::take(),
-			current_era: CurrentEra::<T>::take(),
-			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::take(),
-			max_staked_rewards: MaxStakedRewards::<T>::take(),
-			slash_reward_fraction: SlashRewardFraction::<T>::take(),
-			canceled_slash_payout: CanceledSlashPayout::<T>::take(),
-			current_planned_session: CurrentPlannedSession::<T>::take(),
-			chill_threshold: ChillThreshold::<T>::take(),
-		}
-	}
-
-	pub fn put_values(values: StakingValuesOf<T>) {
-		use pallet_staking::*;
-
-		ValidatorCount::<T>::put(&values.validator_count);
-		MinimumValidatorCount::<T>::put(&values.min_validator_count);
-		MinNominatorBond::<T>::put(&values.min_nominator_bond);
-		MinValidatorBond::<T>::put(&values.min_validator_bond);
-		MinimumActiveStake::<T>::put(&values.min_active_stake);
-		MinCommission::<T>::put(&values.min_commission);
-		MaxValidatorsCount::<T>::set(values.max_validators_count);
-		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era);
-		ForceEra::<T>::put(values.force_era);
-		MaxStakedRewards::<T>::set(values.max_staked_rewards);
-		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
-		CanceledSlashPayout::<T>::set(values.canceled_slash_payout);
-		CurrentPlannedSession::<T>::put(values.current_planned_session);
-		ChillThreshold::<T>::set(values.chill_threshold);
-	}
-}
 
 impl<T: Config> PalletMigration for StakingMigrator<T> {
 	type Key = StakingStageOf<T>;
