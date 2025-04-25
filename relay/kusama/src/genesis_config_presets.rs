@@ -22,7 +22,9 @@ use alloc::format;
 use babe_primitives::AuthorityId as BabeId;
 use kusama_runtime_constants::currency::UNITS as KSM;
 use pallet_staking::{Forcing, StakerStatus};
-use polkadot_primitives::{AccountPublic, AssignmentId, AsyncBackingParams};
+use polkadot_primitives::{
+	node_features::FeatureIndex, AccountPublic, AssignmentId, AsyncBackingParams,
+};
 use runtime_parachains::configuration::HostConfiguration;
 use sp_core::{sr25519, Pair, Public};
 use sp_genesis_builder::PresetId;
@@ -122,7 +124,10 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		},
 		dispute_post_conclusion_acceptance_period: 100u32,
 		minimum_backing_votes: 1,
-		node_features: NodeFeatures::EMPTY,
+		node_features: NodeFeatures::from_element(
+			1u8 << (FeatureIndex::ElasticScalingMVP as usize) |
+				1u8 << (FeatureIndex::EnableAssignmentsV2 as usize),
+		),
 		async_backing_params: AsyncBackingParams {
 			max_candidate_depth: 2,
 			allowed_ancestry_len: 2,
