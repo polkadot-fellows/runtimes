@@ -61,13 +61,21 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		let mut inner_key = current_key.unwrap_or(ClaimsStage::StorageValues);
 		let mut messages = Vec::new();
 
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
-
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err() || ah_weight.try_consume(T::AhWeightInfo::receive_claims(1)).is_err()
+				.is_err()
 			{
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_claims((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -163,7 +171,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveClaimsMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|n| T::AhWeightInfo::receive_claims(n),
 			)?;
 		}
 

@@ -56,9 +56,7 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeStorageValues");
 			},
 			RcFastUnstakeMessage::Queue { member } => {
-				if pallet_fast_unstake::Queue::<T>::contains_key(&member.0) {
-					return Err(Error::<T>::InsertConflict);
-				}
+				debug_assert!(!pallet_fast_unstake::Queue::<T>::contains_key(&member.0));
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &member.0);
 				pallet_fast_unstake::Queue::<T>::insert(member.0, member.1);
 			},
