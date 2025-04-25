@@ -15,7 +15,6 @@
 
 use crate::tests::*;
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-use integration_tests_helpers::common::MIN_ETHER_BALANCE;
 use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 

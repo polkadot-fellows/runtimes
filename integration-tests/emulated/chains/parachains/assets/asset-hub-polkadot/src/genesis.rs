@@ -23,7 +23,9 @@ use emulated_integration_tests_common::{
 	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
+use integration_tests_helpers::common::snowbridge::{
+	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
@@ -57,7 +59,6 @@ frame_support::parameter_types! {
 			[GlobalConsensus(EthereumNetwork::get())],
 		),
 	).unwrap();
-	pub EthereumNetworkXcmV4: xcm::v4::NetworkId = xcm::v4::NetworkId::Ethereum { chain_id: 1 };
 }
 
 pub mod collators {
@@ -133,21 +134,10 @@ pub fn genesis() -> sp_core::storage::Storage {
 					ED,
 				),
 				// Ether
-				(
-					xcm::v4::Location::new(2, [EthereumNetworkXcmV4::get().into()]),
-					EthereumSovereignAccount::get(),
-					true,
-					MIN_ETHER_BALANCE,
-				),
+				(EthLocationXcmV4::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 				// Weth
 				(
-					xcm::v4::Location::new(
-						2,
-						[
-							xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()),
-							xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
-						],
-					),
+					WethLocationXcmV4::get(),
 					EthereumSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,

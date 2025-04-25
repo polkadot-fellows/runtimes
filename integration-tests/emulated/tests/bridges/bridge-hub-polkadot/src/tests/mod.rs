@@ -14,7 +14,6 @@
 // limitations under the License.
 
 use crate::*;
-use integration_tests_helpers::common::WETH;
 
 mod asset_transfers;
 mod claim_assets;

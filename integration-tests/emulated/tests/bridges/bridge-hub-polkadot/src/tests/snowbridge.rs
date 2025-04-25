@@ -33,7 +33,7 @@ use codec::{Decode, Encode};
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID};
 use frame_support::pallet_prelude::TypeInfo;
 use hex_literal::hex;
-use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
+use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
 use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::genesis::AssetHubPolkadotAssetOwner,
 	penpal_emulated_chain::CustomizableAssetFromSystemAssetHub,

@@ -22,7 +22,9 @@ use emulated_integration_tests_common::{
 	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use integration_tests_helpers::common::{MIN_ETHER_BALANCE, WETH};
+use integration_tests_helpers::common::snowbridge::{
+	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use xcm::prelude::*;
@@ -41,14 +43,12 @@ frame_support::parameter_types! {
 				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
-	 pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID),
-   ].into();
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID)].into();
 	pub AssetHubPolkadotLocation: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 	pub AssetHubPolkadotSovereignAccount: AccountId = GlobalConsensusParachainConvertsFor::<UniversalLocation, AccountId>::convert_location(
 		&AssetHubPolkadotLocation::get(),
 	).unwrap();
-	pub EthereumNetworkXcmV4: xcm::v4::NetworkId = xcm::v4::NetworkId::Ethereum { chain_id: 1 };
 }
 
 pub fn genesis() -> sp_core::storage::Storage {
@@ -105,23 +105,14 @@ pub fn genesis() -> sp_core::storage::Storage {
 				),
 				// Ether
 				(
-					xcm::v4::Location::new(
-						2,
-						[xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get())],
-					),
+					EthLocationXcmV4::get(),
 					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,
 				),
 				// Weth
 				(
-					xcm::v4::Location::new(
-						2,
-						[
-							xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()),
-							xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
-						],
-					),
+					WethLocationXcmV4::get(),
 					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,

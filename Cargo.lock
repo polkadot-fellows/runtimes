@@ -5898,6 +5898,7 @@ version = "1.0.0"
 dependencies = [
  "asset-test-utils",
  "cumulus-pallet-xcmp-queue",
+ "frame-support",
  "hex-literal",
  "pallet-balances",
  "pallet-message-queue",
