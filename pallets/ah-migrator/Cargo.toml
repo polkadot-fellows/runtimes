@@ -28,6 +28,7 @@ pallet-multisig = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
+# pallet-staking-async = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
