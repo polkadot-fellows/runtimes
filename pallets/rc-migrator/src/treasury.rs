@@ -91,6 +91,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
 				.is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {

@@ -173,6 +173,7 @@ impl<T: Config> ReferendaMigrator<T> {
 
 		let last_key = loop {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -208,6 +209,7 @@ impl<T: Config> ReferendaMigrator<T> {
 				.try_consume(Self::weight_ah_referendum_info(batch.len() as u32, &info))
 				.is_err()
 			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);

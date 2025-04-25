@@ -48,12 +48,24 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	// This makes the code simpler.
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		_weight_counter: &mut WeightMeter,
+		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 		let mut ah_weight_counter = WeightMeter::new();
 
 		let last_key = loop {
+			if weight_counter
+				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 2))
+				.is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
 			let (next_key_inner, mut last_offset) = match next_key {
 				None => {
 					let (maybe_next_key, skipped) = Self::next_key();

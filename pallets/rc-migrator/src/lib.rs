@@ -669,7 +669,7 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T, T::AhWeightInfo, T::MaxAhWeight>::migrate_many(
+						match MultisigMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						) {
