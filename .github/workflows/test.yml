@@ -294,7 +294,6 @@ jobs:
           export PATH=$(pwd)/for-zombienet-smoke:$PATH
           export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
           export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
-          # TODO: possibly we could do a `cargo test --no-run` and reuse binary and save time
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
