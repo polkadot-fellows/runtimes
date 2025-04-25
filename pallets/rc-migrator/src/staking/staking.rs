@@ -16,21 +16,21 @@
 
 //! Pallet staking migration.
 
-use crate::*;
-use codec::HasCompact;
+pub use crate::staking::message::{
+	AhEquivalentStakingMessageOf, RcStakingMessage, RcStakingMessageOf,
+};
+use crate::{staking::Convert2, *};
+use codec::{EncodeLike, HasCompact};
 use core::fmt::Debug;
-use codec::EncodeLike;
 pub use frame_election_provider_support::PageIndex;
+use frame_support::traits::DefensiveTruncateInto;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
 	ValidatorPrefs,
 };
-use crate::staking::Convert2;
-pub use crate::staking::message::{RcStakingMessage, RcStakingMessageOf, AhEquivalentStakingMessageOf};
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};
-use frame_support::traits::DefensiveTruncateInto;
 
 pub struct StakingMigrator<T> {
 	_phantom: PhantomData<T>,
