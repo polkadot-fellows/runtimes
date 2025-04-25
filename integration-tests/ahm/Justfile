@@ -82,6 +82,8 @@ code-substitute SDK RUNTIME:
 	# Uncomment the "Only on {{RUNTIME}}" lines
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/Cargo.toml
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/Cargo.toml
 	# Comment the "Not on {{RUNTIME}}" lines
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
