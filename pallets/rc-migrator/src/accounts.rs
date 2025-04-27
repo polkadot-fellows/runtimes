@@ -213,7 +213,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		// we should not send more than we allocated on AH for the migration.
 		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts batch for the current iteration.
-		let mut batch = Vec::new();
+		let mut batch = XcmBatch::new();
 
 		// TODO transport weight. probably we need to leave some buffer since we do not know how
 		// many send batches the one migrate_many will require.

@@ -61,7 +61,8 @@ pub mod xcm_config;
 pub use weights::*;
 
 use crate::{
-	accounts::MigratedBalances, types::MigrationFinishedData,
+	accounts::MigratedBalances,
+	types::{MigrationFinishedData, XcmBatch},
 	xcm_config::TrustedTeleportersBeforeAndAfter,
 };
 use accounts::AccountsMigrator;
@@ -1452,31 +1453,15 @@ pub mod pallet {
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm<E: Encode>(
-			mut items: Vec<E>,
+			mut items: XcmBatch<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
 			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
-			items.reverse();
 			let mut batch_count = 0;
 
-			while !items.is_empty() {
-				let mut remaining_size: u32 = MAX_XCM_SIZE;
-				let mut batch = Vec::new();
-
-				while !items.is_empty() {
-					// Taking from the back as optimization is fine since we reversed
-					let item = items.last().unwrap(); // FAIL-CI no unwrap
-					let msg_size = item.encoded_size() as u32;
-					if msg_size > remaining_size {
-						break;
-					}
-					remaining_size -= msg_size;
-
-					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
-				}
-
+			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
 				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
@@ -1575,7 +1560,7 @@ pub mod pallet {
 		///
 		/// Check the `send_chunked_xcm` function for the documentation.
 		pub fn send_chunked_xcm_and_track<E: Encode>(
-			items: Vec<E>,
+			items: XcmBatch<E>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {

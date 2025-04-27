@@ -22,6 +22,7 @@ use super::*;
 use alloc::string::String;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::FixedU128;
+use sp_std::collections::vec_deque::VecDeque;
 
 pub trait ToPolkadotSs58 {
 	fn to_polkadot_ss58(&self) -> String;
@@ -110,6 +111,10 @@ pub enum AhMigratorCall<T: Config> {
 	StartMigration,
 	#[codec(index = 110)]
 	FinishMigration { data: MigrationFinishedData<BalanceOf<T>> },
+
+	#[codec(index = 255)]
+	#[cfg(feature = "runtime-benchmarks")]
+	TestCall { data: Vec<Vec<u8>> },
 }
 
 /// Further data coming from Relay Chain alongside the signal that migration has finished.
@@ -199,5 +204,189 @@ pub struct ZeroWeightOr<Status, Default>(PhantomData<(Status, Default)>);
 impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr<Status, Default> {
 	fn get() -> Weight {
 		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
+	}
+}
+
+/// A utility struct for batching XCM messages to stay within size limits.
+pub struct XcmBatch<T: Encode> {
+	sized_batches: VecDeque<(u32, Vec<T>)>,
+}
+
+impl<T: Encode> XcmBatch<T> {
+	/// Create a new batch.
+	pub fn new() -> Self {
+		Self { sized_batches: VecDeque::new() }
+	}
+
+	/// Push a message to the batch.
+	///
+	/// Fails if the message is too large to be added to the batch.
+	pub fn push(&mut self, message: T) {
+		let message_size = message.encoded_size() as u32;
+		if message_size > MAX_XCM_SIZE {
+			defensive_assert!(true, "Message is too large to be added to the batch");
+		}
+
+		match self.sized_batches.back_mut() {
+			Some((size, batch)) if *size + message_size <= MAX_XCM_SIZE => {
+				*size += message_size;
+				batch.push(message);
+			},
+			_ => {
+				self.sized_batches.push_back((message_size, vec![message]));
+			},
+		}
+	}
+
+	/// Get the total number of messages in all batches.
+	pub fn len(&self) -> u32 {
+		let mut total: u32 = 0;
+		for (_, batch) in &self.sized_batches {
+			total += batch.len() as u32;
+		}
+		total
+	}
+
+	/// Get the number of batches.
+	pub fn batch_count(&self) -> u32 {
+		self.sized_batches.len() as u32
+	}
+
+	/// Check if the batch is empty.
+	pub fn is_empty(&self) -> bool {
+		self.sized_batches.is_empty() ||
+			(self.sized_batches.len() == 1 &&
+				self.sized_batches.front().is_none_or(|(_, batch)| batch.is_empty()))
+	}
+
+	/// Take the first batch.
+	///
+	/// Returns `None` if it is empty.
+	pub fn pop_front(&mut self) -> Option<Vec<T>> {
+		self.sized_batches.pop_front().map(|(_, batch)| batch)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use codec::Encode;
+
+	#[derive(Encode)]
+	struct TestMessage(Vec<u8>);
+
+	impl TestMessage {
+		fn new(size: usize) -> Self {
+			Self(vec![0; size])
+		}
+	}
+
+	#[test]
+	fn test_new_creates_empty_batch() {
+		let batch: XcmBatch<TestMessage> = XcmBatch::new();
+		assert!(batch.is_empty());
+		assert_eq!(batch.len(), 0);
+	}
+
+	#[test]
+	fn test_push_adds_message_to_batch() {
+		let mut batch = XcmBatch::new();
+		batch.push(TestMessage::new(10));
+		assert!(!batch.is_empty());
+		assert_eq!(batch.len(), 1);
+	}
+
+	#[test]
+	fn test_push_creates_new_batch_when_exceeding_size() {
+		let mut batch = XcmBatch::new();
+		// First message goes into first batch
+		batch.push(TestMessage::new(10));
+		assert_eq!(batch.len(), 1);
+
+		// Add messages until we exceed MAX_XCM_SIZE for the first batch
+		let message_size = (MAX_XCM_SIZE / 2) as usize;
+		batch.push(TestMessage::new(message_size));
+		batch.push(TestMessage::new(message_size));
+
+		// Should have created a second batch
+		assert_eq!(batch.batch_count(), 2);
+		assert_eq!(batch.len(), 3);
+	}
+
+	#[test]
+	fn test_push_adds_to_existing_batch_when_size_permits() {
+		let mut batch = XcmBatch::new();
+		// Add small messages that should fit in one batch
+		for _ in 0..5 {
+			batch.push(TestMessage::new(10));
+		}
+
+		// Should still be in one batch
+		assert_eq!(batch.batch_count(), 1);
+		assert_eq!(batch.len(), 5);
+	}
+
+	#[test]
+	fn test_len_counts_all_messages() {
+		let mut batch = XcmBatch::new();
+
+		// Add messages to multiple batches
+		batch.push(TestMessage::new(10));
+		batch.push(TestMessage::new((MAX_XCM_SIZE - 1) as usize));
+		batch.push(TestMessage::new(10));
+
+		assert_eq!(batch.len(), 3);
+	}
+
+	#[test]
+	fn test_is_empty_with_empty_batch() {
+		let batch: XcmBatch<TestMessage> = XcmBatch::new();
+		assert!(batch.is_empty());
+	}
+
+	#[test]
+	fn test_is_empty_with_non_empty_batch() {
+		let mut batch = XcmBatch::new();
+		batch.push(TestMessage::new(10));
+		assert!(!batch.is_empty());
+	}
+
+	#[test]
+	fn test_take_first_batch_returns_none_when_empty() {
+		let mut batch: XcmBatch<TestMessage> = XcmBatch::new();
+		assert!(batch.pop_front().is_none());
+	}
+
+	#[test]
+	fn test_take_first_batch_returns_messages() {
+		let mut batch = XcmBatch::new();
+		batch.push(TestMessage::new(10));
+		batch.push(TestMessage::new(20));
+
+		// Create a second batch
+		batch.push(TestMessage::new((MAX_XCM_SIZE - 10) as usize));
+
+		// Take first batch
+		let first_batch = batch.pop_front();
+		assert!(first_batch.is_some());
+		assert_eq!(first_batch.unwrap().len(), 2);
+
+		// Should have one batch left
+		assert_eq!(batch.batch_count(), 1);
+		assert_eq!(batch.len(), 1);
+	}
+
+	#[test]
+	fn test_take_first_batch_empties_batch() {
+		let mut batch = XcmBatch::new();
+		batch.push(TestMessage::new(10));
+
+		let first_batch = batch.pop_front();
+		assert!(first_batch.is_some());
+		assert_eq!(first_batch.unwrap().len(), 1);
+
+		// Should be empty now
+		assert!(batch.is_empty());
+		assert_eq!(batch.len(), 0);
 	}
 }

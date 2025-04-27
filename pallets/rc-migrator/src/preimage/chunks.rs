@@ -50,7 +50,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		mut next_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatch::new();
 		let mut ah_weight_counter = WeightMeter::new();
 
 		let last_key = loop {

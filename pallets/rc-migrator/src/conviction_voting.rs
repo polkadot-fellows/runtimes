@@ -55,7 +55,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(ConvictionVotingStage::VotingFor(None));
-		let mut messages = Vec::new();
+		let mut messages = XcmBatch::new();
 		let mut made_progress = false;
 
 		loop {

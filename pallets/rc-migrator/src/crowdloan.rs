@@ -104,7 +104,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(CrowdloanStage::Setup);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatch::new();
 
 		loop {
 			if weight_counter

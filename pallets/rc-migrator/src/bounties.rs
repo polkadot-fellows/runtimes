@@ -62,7 +62,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(BountiesStage::BountyCount);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatch::new();
 
 		log::info!(target: LOG_TARGET, "Migrating Bounties at stage {:?}", &last_key);
 

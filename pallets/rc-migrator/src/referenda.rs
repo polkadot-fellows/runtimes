@@ -99,7 +99,7 @@ impl<T: Config> ReferendaMigrator<T> {
 	) -> Result<Option<u32>, Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda metadata");
 
-		let mut batch = Vec::new();
+		let mut batch = XcmBatch::new();
 
 		let last_key = loop {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
@@ -169,7 +169,7 @@ impl<T: Config> ReferendaMigrator<T> {
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
-		let mut batch = Vec::new();
+		let mut batch = XcmBatch::new();
 
 		let last_key = loop {
 			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
