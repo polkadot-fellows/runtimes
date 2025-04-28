@@ -108,9 +108,10 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 		loop {
 			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
+				.try_consume(T::DbWeight::get().reads_writes(2, 1))
 				.is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -213,6 +214,16 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
 					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
+						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+							// we break in outer loop for simplicity, but still consume the weight.
+							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
+
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+							// we break in outer loop for simplicity.
+							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
+
 						// Dont really care about memos, but we can add them, if needed.
 						if !memo.is_empty() {
 							log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
@@ -228,13 +239,14 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 							// We directly remove so that we dont have to store a cursor:
 						pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
-							log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
+						log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
 
 						messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
 					}
 					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
 				},
 				CrowdloanStage::CrowdloanReserve => {
+					// TODO: not much slower without last_key?
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
 							inner_key = CrowdloanStage::CrowdloanReserve;
