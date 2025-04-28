@@ -114,6 +114,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"sp-staking/std"
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -152,6 +153,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks"
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
