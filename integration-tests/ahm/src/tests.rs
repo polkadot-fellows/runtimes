@@ -557,7 +557,6 @@ async fn some_account_migration_works() {
 				account_id,
 				rc_account,
 				&mut WeightMeter::new(),
-				&mut WeightMeter::new(),
 				0,
 			)
 			.unwrap_or_else(|err| {

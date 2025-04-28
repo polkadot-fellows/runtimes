@@ -230,6 +230,16 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 
 		let mut maybe_last_key = last_key;
 		loop {
+			// account the weight for migrating a single account on Relay Chain.
+			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() {
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
 			let Some((who, account_info)) = iter.next() else {
 				maybe_last_key = None;
 				break;
@@ -240,7 +250,6 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 					match Self::withdraw_account(
 						who.clone(),
 						account_info.clone(),
-						weight_counter,
 						&mut ah_weight,
 						batch.len() as u32,
 					) {
@@ -305,15 +314,9 @@ impl<T: Config> AccountsMigrator<T> {
 	pub fn withdraw_account(
 		who: T::AccountId,
 		account_info: AccountInfoFor<T>,
-		rc_weight: &mut WeightMeter,
 		ah_weight: &mut WeightMeter,
 		batch_len: u32,
 	) -> Result<Option<AccountFor<T>>, Error<T>> {
-		// account for `get_rc_state` read below
-		if rc_weight.try_consume(T::DbWeight::get().reads(1)).is_err() {
-			return Err(Error::OutOfWeight);
-		}
-
 		if let AccountState::Preserve = Self::get_rc_state(&who) {
 			log::debug!(
 				target: LOG_TARGET,
@@ -341,11 +344,6 @@ impl<T: Config> AccountsMigrator<T> {
 		if !Self::can_migrate_account(&who, &account_info) {
 			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
 			return Ok(None);
-		}
-
-		// account the weight for migrating a single account on Relay Chain.
-		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
-			return Err(Error::OutOfWeight);
 		}
 
 		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
@@ -535,6 +533,7 @@ impl<T: Config> AccountsMigrator<T> {
 			})?;
 			Ok::<_, Error<T>>(())
 		})?;
+
 		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
@@ -551,12 +550,7 @@ impl<T: Config> AccountsMigrator<T> {
 		// account the weight for receiving a single account on Asset Hub.
 		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
-			log::debug!(
-				target: LOG_TARGET,
-				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
-				ah_weight,
-				ah_receive_weight
-			);
+			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
 			return Err(Error::OutOfWeight);
 		}
 

@@ -40,11 +40,20 @@ impl<T: Config> PalletMigration for PreimageRequestStatusMigrator<T> {
 
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		_weight_counter: &mut WeightMeter,
+		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut batch = Vec::new();
 
 		let new_next_key = loop {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_preimage_request_status((batch.len() + 1) as u32))
 			{
