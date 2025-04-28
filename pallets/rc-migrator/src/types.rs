@@ -266,9 +266,103 @@ impl<T: Encode> XcmBatch<T> {
 		self.sized_batches.pop_front().map(|(_, batch)| batch)
 	}
 }
+/// A wrapper around `XcmBatch` that tracks the weight consumed by batches.
+///
+/// This struct automatically accumulates weight for each new batch created
+/// when messages are pushed, making it easier to track and consume weight
+/// for batch processing operations.
+pub struct XcmBatchAndMeter<T: Encode> {
+	/// The underlying batch of XCM messages
+	batch: XcmBatch<T>,
+	/// The weight cost for processing a single batch
+	batch_weight: Weight,
+	/// The number of batches that have been accounted for in the accumulated weight
+	tracked_batch_count: u32,
+	/// The total accumulated weight for all tracked batches
+	accumulated_weight: Weight,
+}
+
+impl<T: Encode> XcmBatchAndMeter<T> {
+	/// Creates a new empty batch with the specified weight per batch.
+	///
+	/// # Parameters
+	/// - `batch_weight`: The weight cost for processing a single batch
+	pub fn new(batch_weight: Weight) -> Self {
+		Self {
+			batch: XcmBatch::new(),
+			batch_weight,
+			tracked_batch_count: 0,
+			accumulated_weight: Weight::zero(),
+		}
+	}
+
+	/// Creates a new empty batch with the weight from the pallet's configuration.
+	///
+	/// # Type Parameters
+	/// - `C`: The pallet configuration that provides weight information
+	pub fn new_from_config<C: Config>() -> Self {
+		Self::new(C::RcWeightInfo::send_chunked_xcm_and_track())
+	}
+}
+
+impl<T: Encode> XcmBatchAndMeter<T> {
+	/// Pushes a message to the batch and updates the accumulated weight if a new batch is created.
+	///
+	/// # Parameters
+	/// - `message`: The message to add to the batch
+	pub fn push(&mut self, message: T) {
+		self.batch.push(message);
+		if self.batch.batch_count() > self.tracked_batch_count {
+			self.accumulated_weight += self.batch_weight;
+			self.tracked_batch_count = self.batch.batch_count();
+		}
+	}
+
+	/// Consumes and returns the accumulated weight, resetting it to zero.
+	///
+	/// # Returns
+	/// The total accumulated weight that was tracked
+	pub fn consume_weight(&mut self) -> Weight {
+		let weight = self.accumulated_weight;
+		self.accumulated_weight = Weight::zero();
+		weight
+	}
+
+	/// Consumes this wrapper and returns the inner `XcmBatch`.
+	///
+	/// # Returns
+	/// The underlying batch of XCM messages
+	pub fn into_inner(self) -> XcmBatch<T> {
+		self.batch
+	}
+
+	/// Returns the total number of messages in all batches.
+	///
+	/// # Returns
+	/// The count of all messages across all batches
+	pub fn len(&self) -> u32 {
+		self.batch.len()
+	}
+
+	/// Checks if the batch is empty.
+	///
+	/// # Returns
+	/// `true` if there are no messages in any batches, `false` otherwise
+	pub fn is_empty(&self) -> bool {
+		self.batch.is_empty()
+	}
+
+	/// Returns the number of batches.
+	///
+	/// # Returns
+	/// The count of batches
+	pub fn batch_count(&self) -> u32 {
+		self.batch.batch_count()
+	}
+}
 
 #[cfg(test)]
-mod tests {
+mod xcm_batch_tests {
 	use super::*;
 	use codec::Encode;
 
@@ -388,5 +482,121 @@ mod tests {
 		// Should be empty now
 		assert!(batch.is_empty());
 		assert_eq!(batch.len(), 0);
+	}
+}
+
+#[cfg(test)]
+mod batch_and_meter_tests {
+	use super::*;
+	use codec::Encode;
+	use frame_support::weights::Weight;
+
+	#[derive(Encode)]
+	struct TestMessage(Vec<u8>);
+
+	impl TestMessage {
+		fn new(size: usize) -> Self {
+			Self(vec![0; size])
+		}
+	}
+
+	#[test]
+	fn test_new_creates_empty_batch_and_meter() {
+		let batch_weight = Weight::from_parts(100, 5);
+		let meter: XcmBatchAndMeter<TestMessage> = XcmBatchAndMeter::new(batch_weight);
+
+		assert_eq!(meter.batch_weight, batch_weight);
+		assert_eq!(meter.tracked_batch_count, 0);
+		assert_eq!(meter.accumulated_weight, Weight::zero());
+		assert!(meter.batch.is_empty());
+	}
+
+	#[test]
+	fn test_push_tracks_weight_for_new_batches() {
+		let batch_weight = Weight::from_parts(100, 5);
+		let mut meter = XcmBatchAndMeter::new(batch_weight);
+
+		// First message creates first batch but doesn't exceed tracked count
+		meter.push(TestMessage::new(10));
+		assert_eq!(meter.tracked_batch_count, 1);
+		assert_eq!(meter.accumulated_weight, batch_weight);
+
+		// Second message in same batch doesn't add weight
+		meter.push(TestMessage::new(10));
+		assert_eq!(meter.tracked_batch_count, 1);
+		assert_eq!(meter.accumulated_weight, batch_weight);
+
+		// Add message that creates a new batch
+		let message_size = (MAX_XCM_SIZE / 2) as usize;
+		meter.push(TestMessage::new(message_size));
+		meter.push(TestMessage::new(message_size));
+
+		// Should have tracked a second batch's weight
+		assert_eq!(meter.tracked_batch_count, 2);
+		assert_eq!(meter.accumulated_weight, batch_weight.saturating_mul(2));
+	}
+
+	#[test]
+	fn test_consume_weight_returns_and_resets_accumulated_weight() {
+		let batch_weight = Weight::from_parts(100, 5);
+		let mut meter = XcmBatchAndMeter::new(batch_weight);
+
+		// Add messages to create two batches
+		meter.push(TestMessage::new(10));
+		let message_size = (MAX_XCM_SIZE / 2) as usize;
+		meter.push(TestMessage::new(message_size));
+		meter.push(TestMessage::new(message_size));
+
+		// Should have accumulated weight for two batches
+		assert_eq!(meter.accumulated_weight, batch_weight.saturating_mul(2));
+
+		// Consume weight should return accumulated weight and reset it
+		let consumed = meter.consume_weight();
+		assert_eq!(consumed, batch_weight.saturating_mul(2));
+		assert_eq!(meter.accumulated_weight, Weight::zero());
+
+		// Adding another batch should start accumulating from zero
+		meter.push(TestMessage::new(1));
+		meter.push(TestMessage::new(message_size));
+		assert_eq!(meter.accumulated_weight, batch_weight);
+	}
+
+	#[test]
+	fn test_into_inner_returns_batch() {
+		let batch_weight = Weight::from_parts(100, 5);
+		let mut meter = XcmBatchAndMeter::new(batch_weight);
+
+		// Add a message to the batch
+		meter.push(TestMessage::new(10));
+
+		// Convert to inner batch
+		let batch = meter.into_inner();
+		assert_eq!(batch.len(), 1);
+		assert!(!batch.is_empty());
+	}
+
+	#[test]
+	fn test_delegated_methods() {
+		let batch_weight = Weight::from_parts(100, 5);
+		let mut meter = XcmBatchAndMeter::new(batch_weight);
+
+		// Empty batch
+		assert_eq!(meter.len(), 0);
+		assert!(meter.is_empty());
+		assert_eq!(meter.batch_count(), 0);
+
+		// Add a message
+		meter.push(TestMessage::new(10));
+		assert_eq!(meter.len(), 1);
+		assert!(!meter.is_empty());
+		assert_eq!(meter.batch_count(), 1);
+
+		// Add message that creates a new batch
+		let message_size = (MAX_XCM_SIZE / 2) as usize;
+		meter.push(TestMessage::new(message_size));
+		meter.push(TestMessage::new(message_size));
+
+		assert_eq!(meter.len(), 3);
+		assert_eq!(meter.batch_count(), 2);
 	}
 }
