@@ -21,7 +21,7 @@ extern crate alloc;
 use super::*;
 use alloc::string::String;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
-use sp_runtime::FixedU128;
+use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
 
 pub trait ToPolkadotSs58 {
@@ -352,6 +352,9 @@ impl<T: Encode> XcmBatchAndMeter<T> {
 	/// # Returns
 	/// The total accumulated weight that was tracked
 	pub fn consume_weight(&mut self) -> Weight {
+		if self.accumulated_weight.is_zero() {
+			return Weight::zero();
+		}
 		let weight = self.accumulated_weight;
 		self.accumulated_weight = Weight::zero();
 		weight

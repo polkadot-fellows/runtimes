@@ -56,7 +56,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		let last_key = loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 2))
-				.is_err()
+				.is_err() || weight_counter.try_consume(batch.consume_weight()).is_err()
 			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {

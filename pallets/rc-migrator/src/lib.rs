@@ -622,8 +622,8 @@ pub mod pallet {
 					return weight_counter.consumed();
 				},
 				MigrationStage::AccountsMigrationInit => {
-					// TODO: weights
-					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
+					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
+					weight_counter.consume(weight);
 					RcMigratedBalance::<T>::mutate(|tracker| {
 						// initialize `kept` balance as total issuance, we'll substract from it as
 						// we migrate accounts

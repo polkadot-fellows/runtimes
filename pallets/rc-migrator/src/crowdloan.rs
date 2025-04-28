@@ -109,7 +109,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(2, 1))
-				.is_err()
+				.is_err() || weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {

@@ -102,7 +102,10 @@ impl<T: Config> ReferendaMigrator<T> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -172,7 +175,9 @@ impl<T: Config> ReferendaMigrator<T> {
 		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
