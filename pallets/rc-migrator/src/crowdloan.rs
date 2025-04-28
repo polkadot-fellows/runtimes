@@ -214,8 +214,15 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
 					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
-						// TODO: account for weight, might have many iterations. or migrate 
-						// one `RcCrowdloanMessage::CrowdloanContribution` per block.
+						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+							// we break in outer loop for simplicity, but still consume the weight.
+							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
+
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+							// we break in outer loop for simplicity.
+							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
 
 						// Dont really care about memos, but we can add them, if needed.
 						if !memo.is_empty() {
@@ -239,6 +246,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
 				},
 				CrowdloanStage::CrowdloanReserve => {
+					// TODO: not much slower without last_key?
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
 							inner_key = CrowdloanStage::CrowdloanReserve;
