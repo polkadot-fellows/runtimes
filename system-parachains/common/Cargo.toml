@@ -1,0 +1,33 @@
+[package]
+authors.workspace = true
+description = "Shared utilities"
+edition.workspace = true
+license.workspace = true
+name = "system-parachains-common"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+xcm-executor = { workspace = true }
+xcm-builder = { workspace = true }
+frame-support = { workspace = true }
+xcm = { workspace = true }
+polkadot-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
+
+[features]
+default = ["std"]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+]
+std = [
+	"frame-support/std",
+	"polkadot-primitives/std",
+	"polkadot-runtime-common/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
+]
