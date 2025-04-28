@@ -56,10 +56,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		let mut messages = Vec::new();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
-			{
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -155,10 +152,7 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
-			{
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);

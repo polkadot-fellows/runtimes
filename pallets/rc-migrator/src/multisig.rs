@@ -121,10 +121,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		};
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
-			{
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);

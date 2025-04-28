@@ -59,10 +59,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 		let mut made_progress = false;
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
-			{
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if !made_progress {
 					return Err(Error::OutOfWeight);
