@@ -28,7 +28,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{
 	currency::CENTS,
-	system_parachain::{AssetHubParaId, *},
+	system_parachain::{AssetHubParaId, PeopleParaId, *},
 };
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
@@ -136,7 +136,7 @@ parameter_types! {
 	pub KsmForBridgeHub: (AssetFilter, Location) = (Ksm::get(), BridgeHubLocation::get());
 	pub Broker: Location = Parachain(BROKER_ID).into_location();
 	pub KsmForBroker: (AssetFilter, Location) = (Ksm::get(), Broker::get());
-	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub People: Location = Parachain(PeopleParaId::get().into()).into_location();
 	pub KsmForPeople: (AssetFilter, Location) = (Ksm::get(), People::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }

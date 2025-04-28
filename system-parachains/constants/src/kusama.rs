@@ -136,11 +136,13 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::parameter_types;
-	use kusama_runtime_constants::system_parachain::AssetHubParaId;
+	use kusama_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
 	use xcm::latest::prelude::{Junction::*, Location, ParentThen};
 
 	parameter_types! {
 		pub AssetHubLocation: Location = ParentThen(
 			Parachain(AssetHubParaId::get().into()).into()).into();
+		pub PeopleLocation: Location = ParentThen(
+			Parachain(PeopleParaId::get().into()).into()).into();
 	}
 }

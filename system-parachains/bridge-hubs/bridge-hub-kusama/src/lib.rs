@@ -795,7 +795,6 @@ mod benches {
 				BenchmarkError::Stop("XcmVersion was not stored!")
 			})?;
 
-
 			let remote_parachain_id = Parachain(5678);
 			let sibling_parachain_location = AssetHubLocation::get();
 

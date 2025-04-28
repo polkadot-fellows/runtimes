@@ -46,7 +46,7 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
-use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+use polkadot_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
 
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
@@ -143,7 +143,7 @@ parameter_types! {
 	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
 	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
-	pub People: Location = Parachain(PEOPLE_ID).into_location();
+	pub People: Location = Parachain(PeopleParaId::get().into()).into_location();
 	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }

@@ -667,7 +667,7 @@ mod benches {
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
-			// Relay/native token can be teleported between People and Relay.
+			// Relay/native token can be teleported between People and Asset Hub.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Parent.into()) },
 				AssetHubLocation::get(),
