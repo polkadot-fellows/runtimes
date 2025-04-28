@@ -72,7 +72,6 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-		SLOT_DURATION,
 	},
 	kusama::{
 		consensus::{
@@ -97,6 +96,11 @@ use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
+
+/// The Kusama People Chain slot duration.
+// Async backing was launched with a 6 second slot duration for Kusama People Chain. We maintain
+// this value rather than inheriting the 12 second duration defined in the common constants.
+pub const SLOT_DURATION: u64 = 6_000;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
