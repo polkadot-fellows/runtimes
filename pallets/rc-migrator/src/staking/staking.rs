@@ -16,8 +16,14 @@
 
 //! Pallet staking migration.
 
-use crate::*;
+pub use crate::staking::message::{
+	AhEquivalentStakingMessageOf, RcStakingMessage, RcStakingMessageOf,
+};
+use crate::{staking::Convert2, *};
+use codec::{EncodeLike, HasCompact};
+use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
+use frame_support::traits::DefensiveTruncateInto;
 use pallet_staking::{
 	slashing::{SlashingSpans, SpanIndex, SpanRecord},
 	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
@@ -70,173 +76,8 @@ pub enum StakingStage<AccountId> {
 
 pub type StakingStageOf<T> = StakingStage<<T as frame_system::Config>::AccountId>;
 
-#[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct StakingValues<Balance> {
-	pub validator_count: u32,
-	pub min_validator_count: u32,
-	pub min_nominator_bond: Balance,
-	pub min_validator_bond: Balance,
-	pub min_active_stake: Balance,
-	pub min_commission: Perbill,
-	pub max_validators_count: Option<u32>,
-	pub max_nominators_count: Option<u32>,
-	pub current_era: Option<EraIndex>,
-	pub active_era: Option<ActiveEraInfo>,
-	pub force_era: Forcing,
-	pub max_staked_rewards: Option<Percent>,
-	pub slash_reward_fraction: Perbill,
-	pub canceled_slash_payout: Balance,
-	pub current_planned_session: SessionIndex,
-	pub chill_threshold: Option<Percent>,
-}
-
-pub type StakingValuesOf<T> = StakingValues<<T as pallet_staking::Config>::CurrencyBalance>;
-
 pub type BalanceOf<T> = <T as pallet_staking::Config>::CurrencyBalance;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-
-#[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	TypeInfo,
-	RuntimeDebugNoBound,
-	CloneNoBound,
-	PartialEqNoBound,
-	EqNoBound,
-)]
-#[scale_info(skip_type_params(T))]
-pub enum RcStakingMessage<T: pallet_staking::Config> {
-	Values(StakingValues<BalanceOf<T>>),
-	Invulnerables(Vec<AccountIdOf<T>>),
-	Bonded {
-		stash: AccountIdOf<T>,
-		controller: AccountIdOf<T>,
-	},
-	// Stupid staking pallet forces us to use `T` since its staking ledger requires that...
-	Ledger {
-		controller: AccountIdOf<T>,
-		ledger: StakingLedger<T>,
-	},
-	Payee {
-		stash: AccountIdOf<T>,
-		payment: RewardDestination<AccountIdOf<T>>,
-	},
-	Validators {
-		stash: AccountIdOf<T>,
-		validators: ValidatorPrefs,
-	},
-	Nominators {
-		stash: AccountIdOf<T>,
-		nominations: Nominations<T>,
-	},
-	VirtualStakers(AccountIdOf<T>),
-	ErasStartSessionIndex {
-		era: EraIndex,
-		session: SessionIndex,
-	},
-	ErasStakersOverview {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		exposure: PagedExposureMetadata<BalanceOf<T>>,
-	},
-	ErasStakersPaged {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		page: Page,
-		exposure: ExposurePage<AccountIdOf<T>, BalanceOf<T>>,
-	},
-	ClaimedRewards {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		rewards: Vec<Page>,
-	},
-	ErasValidatorPrefs {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		prefs: ValidatorPrefs,
-	},
-	ErasValidatorReward {
-		era: EraIndex,
-		reward: BalanceOf<T>,
-	},
-	ErasRewardPoints {
-		era: EraIndex,
-		points: EraRewardPoints<AccountIdOf<T>>,
-	},
-	ErasTotalStake {
-		era: EraIndex,
-		total_stake: BalanceOf<T>,
-	},
-	BondedEras(Vec<(EraIndex, SessionIndex)>),
-	ValidatorSlashInEra {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		slash: (Perbill, BalanceOf<T>),
-	},
-	NominatorSlashInEra {
-		era: EraIndex,
-		validator: AccountIdOf<T>,
-		slash: BalanceOf<T>,
-	},
-	SlashingSpans {
-		account: AccountIdOf<T>,
-		spans: SlashingSpans,
-	},
-	SpanSlash {
-		account: AccountIdOf<T>,
-		span: SpanIndex,
-		slash: SpanRecord<BalanceOf<T>>,
-	},
-}
-
-pub type RcStakingMessageOf<T> = RcStakingMessage<T>;
-
-impl<T: pallet_staking::Config> StakingMigrator<T> {
-	pub fn take_values() -> StakingValuesOf<T> {
-		use pallet_staking::*;
-
-		StakingValues {
-			validator_count: ValidatorCount::<T>::take(),
-			min_validator_count: MinimumValidatorCount::<T>::take(),
-			min_nominator_bond: MinNominatorBond::<T>::take(),
-			min_validator_bond: MinValidatorBond::<T>::take(),
-			min_active_stake: MinimumActiveStake::<T>::take(),
-			min_commission: MinCommission::<T>::take(),
-			max_validators_count: MaxValidatorsCount::<T>::take(),
-			max_nominators_count: MaxNominatorsCount::<T>::take(),
-			current_era: CurrentEra::<T>::take(),
-			active_era: ActiveEra::<T>::take(),
-			force_era: ForceEra::<T>::take(),
-			max_staked_rewards: MaxStakedRewards::<T>::take(),
-			slash_reward_fraction: SlashRewardFraction::<T>::take(),
-			canceled_slash_payout: CanceledSlashPayout::<T>::take(),
-			current_planned_session: CurrentPlannedSession::<T>::take(),
-			chill_threshold: ChillThreshold::<T>::take(),
-		}
-	}
-
-	pub fn put_values(values: StakingValuesOf<T>) {
-		use pallet_staking::*;
-
-		ValidatorCount::<T>::put(&values.validator_count);
-		MinimumValidatorCount::<T>::put(&values.min_validator_count);
-		MinNominatorBond::<T>::put(&values.min_nominator_bond);
-		MinValidatorBond::<T>::put(&values.min_validator_bond);
-		MinimumActiveStake::<T>::put(&values.min_active_stake);
-		MinCommission::<T>::put(&values.min_commission);
-		MaxValidatorsCount::<T>::set(values.max_validators_count);
-		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era);
-		ForceEra::<T>::put(values.force_era);
-		MaxStakedRewards::<T>::set(values.max_staked_rewards);
-		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
-		CanceledSlashPayout::<T>::set(values.canceled_slash_payout);
-		CurrentPlannedSession::<T>::put(values.current_planned_session);
-		ChillThreshold::<T>::set(values.chill_threshold);
-	}
-}
 
 impl<T: Config> PalletMigration for StakingMigrator<T> {
 	type Key = StakingStageOf<T>;
@@ -274,7 +115,7 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 				},
 				StakingStage::Invulnerables => {
 					let invulnerables = pallet_staking::Invulnerables::<T>::take();
-					messages.push(RcStakingMessage::Invulnerables(invulnerables.into_inner()));
+					messages.push(RcStakingMessage::Invulnerables(invulnerables));
 					StakingStage::Bonded(None)
 				},
 				StakingStage::Bonded(who) => {
