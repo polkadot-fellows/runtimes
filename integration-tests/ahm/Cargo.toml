@@ -21,6 +21,7 @@ grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
 pallet-rc-migrator = { workspace = true, default-features = true }
 pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-ah-ops = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
@@ -86,6 +87,7 @@ runtime-benchmarks = [
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
 ]
 
 ahm-westend = [
