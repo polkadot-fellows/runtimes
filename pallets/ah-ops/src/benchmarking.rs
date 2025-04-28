@@ -19,10 +19,6 @@ use crate::*;
 use frame_benchmarking::{account, v2::*};
 use frame_support::{dispatch::RawOrigin, traits::Currency};
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
-	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
-}
-
 #[benchmarks]
 pub mod benchmarks {
 	use super::*;
