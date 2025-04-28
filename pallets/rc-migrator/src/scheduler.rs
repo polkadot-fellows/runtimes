@@ -53,7 +53,7 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(SchedulerStage::IncompleteSince);
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter
@@ -151,7 +151,7 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		mut last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {

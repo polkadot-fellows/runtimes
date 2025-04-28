@@ -62,7 +62,7 @@ pub use weights::*;
 
 use crate::{
 	accounts::MigratedBalances,
-	types::{MigrationFinishedData, XcmBatch},
+	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 	xcm_config::TrustedTeleportersBeforeAndAfter,
 };
 use accounts::AccountsMigrator;
@@ -1453,10 +1453,11 @@ pub mod pallet {
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm<E: Encode>(
-			mut items: XcmBatch<E>,
+			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
+			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
 			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
 			let mut batch_count = 0;
@@ -1560,7 +1561,7 @@ pub mod pallet {
 		///
 		/// Check the `send_chunked_xcm` function for the documentation.
 		pub fn send_chunked_xcm_and_track<E: Encode>(
-			items: XcmBatch<E>,
+			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {

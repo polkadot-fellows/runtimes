@@ -84,7 +84,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(TreasuryStage::ProposalCount);
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter

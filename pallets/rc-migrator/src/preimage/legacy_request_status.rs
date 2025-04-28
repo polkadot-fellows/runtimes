@@ -46,7 +46,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 		mut next_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = XcmBatch::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let new_next_key = loop {
 			if weight_counter

@@ -62,7 +62,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(BountiesStage::BountyCount);
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		log::info!(target: LOG_TARGET, "Migrating Bounties at stage {:?}", &last_key);
 
@@ -153,7 +153,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
+				messages.into_inner(),
 				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
 				|len| T::AhWeightInfo::receive_bounties_messages(len),
 			)?;

@@ -31,7 +31,7 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		log::info!(target: LOG_TARGET, "Migrating asset rates");
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter

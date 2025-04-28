@@ -62,7 +62,7 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(BagsListStage::ListNodes(None));
-		let mut messages = XcmBatch::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter

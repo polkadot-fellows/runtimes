@@ -71,7 +71,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		mut last_key: Option<AccountIdOf<T>>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
-		let mut batch = XcmBatch::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
@@ -172,7 +172,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = XcmBatch::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut last_processed = None;
 
 		// Get iterator starting after last processed key

@@ -289,6 +289,12 @@ impl<T: Encode> XcmBatch<T> {
 	}
 }
 
+impl<T: Encode> Into<XcmBatch<T>> for XcmBatchAndMeter<T> {
+	fn into(self) -> XcmBatch<T> {
+		self.batch
+	}
+}
+
 /// A wrapper around `XcmBatch` that tracks the weight consumed by batches.
 ///
 /// This struct automatically accumulates weight for each new batch created
