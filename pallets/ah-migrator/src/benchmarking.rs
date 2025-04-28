@@ -15,15 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! To run these benchmarks, you will need a modified version of `frame-omni-bencher` that can load
-//! snapshots of the relay and asset hub. You can find it on branch `oty-ahm-omni-bencher` of the
-//! SDK. Install it with
-//! `cargo install --path substrate/utils/frame/omni-bencher --profile production`
-//!
-//! ```bash
-//! frame-omni-bencher v1 benchmark pallet --runtime=target/release/wbuild/asset-hub-polkadot-runtime/asset_hub_polkadot_runtime.wasm --pallet "pallet-ah-migrator" --extrinsic "" --snap=ah-polkadot.snap --rc-snap=polkadot.snap
-//! ```
-
 use crate::*;
 use frame_benchmarking::v2::*;
 use frame_support::traits::{
@@ -84,37 +75,6 @@ pub mod benchmarks {
 			Pallet::<T>::on_finalize(block_num)
 		}
 	}
-
-	// TODO: breaks CI, not needed for now
-	// #[benchmark]
-	// fn receive_multisigs_from_snap(n: Linear<1, 255>) {
-	// 	verify_snapshot::<T>();
-	// 	let (mut messages, _cursor) = relay_snapshot(|| {
-	// 		unwrap_no_debug(
-	// 			pallet_rc_migrator::multisig::MultisigMigrator::<T, ()>::migrate_out_many(
-	// 				None,
-	// 				&mut WeightMeter::new(),
-	// 				&mut WeightMeter::new(),
-	// 			),
-	// 		)
-	// 	});
-
-	// 	// TODO: unreserve fails since accounts should migrate first to make it successful. we will
-	// 	// have a similar issue with the other calls benchmarks.
-	// 	// TODO: possible we can truncate to n to have weights based on the number of messages
-	// 	// TODO: for calls that have messages with `m` number of variants, we perhaps need to have
-	// 	// `m` parameters like `n` parameter in this function. and we filter the returned by
-	// 	// `migrate_out_many` `messages` or we pass these parameters to `migrate_out_many`.
-	// 	messages.truncate(n as usize);
-
-	// 	#[extrinsic_call]
-	// 	receive_multisigs(RawOrigin::Root, messages);
-
-	// 	for event in frame_system::Pallet::<T>::events() {
-	// 		let encoded = event.encode();
-	// 		log::info!("Event of pallet: {} and event: {}", encoded[0], encoded[1]);
-	// 	}
-	// }
 
 	#[benchmark]
 	fn receive_multisigs(n: Linear<1, 255>) {
@@ -1213,52 +1173,4 @@ pub mod benchmarks {
 	{
 		_receive_preimage_chunk::<T>(m, true)
 	}
-}
-
-/// Unwrap something that does not implement Debug. Otherwise we would need to require
-/// `pallet_rc_migrator::Config` on out runtime `T`.
-pub fn unwrap_no_debug<T, E>(result: Result<T, E>) -> T {
-	match result {
-		Ok(t) => t,
-		Err(_) => panic!("unwrap_no_debug"),
-	}
-}
-
-/// Check that Oliver's account has some balance on AH and Relay.
-///
-/// This serves as sanity check that the snapshots were loaded correctly.
-fn verify_snapshot<T: Config>() {
-	let raw_acc: [u8; 32] =
-		hex::decode("6c9e3102dd2c24274667d416e07570ebce6f20ab80ee3fc9917bf4a7568b8fd2")
-			.unwrap()
-			.try_into()
-			.unwrap();
-	let acc = AccountId32::from(raw_acc);
-	frame_system::Pallet::<T>::reset_events();
-
-	// Sanity check that this is the right account
-	let ah_acc = frame_system::Account::<T>::get(&acc);
-	if ah_acc.data.free == 0 {
-		panic!("No or broken snapshot: account does not have any balance");
-	}
-
-	let key = frame_system::Account::<T>::hashed_key_for(&acc);
-	let raw_acc = relay_snapshot(|| {
-		frame_support::storage::unhashed::get::<
-			pallet_balances::AccountData<<T as pallet_balances::Config>::Balance>,
-		>(key.as_ref())
-	})
-	.unwrap();
-
-	if raw_acc.free == 0 {
-		panic!("No or broken snapshot: account does not have any balance");
-	}
-}
-
-/// Read something from the relay chain snapshot instead of the asset hub one.
-fn relay_snapshot<R, F: FnOnce() -> R>(f: F) -> R {
-	sp_io::storage::get(b"relay_chain_enable");
-	let result = f();
-	sp_io::storage::get(b"relay_chain_disable");
-	result
 }

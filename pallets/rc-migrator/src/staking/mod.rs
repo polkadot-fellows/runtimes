@@ -20,6 +20,15 @@ pub mod nom_pools;
 pub mod nom_pools_alias;
 
 #[cfg(feature = "ahm-staking-migration")]
+pub mod message;
+#[cfg(feature = "ahm-staking-migration")]
 pub mod staking;
 #[cfg(feature = "ahm-staking-migration")]
 pub use staking::*;
+
+// Copy&paster of Convert trait so that we can implement it here on external types
+/// Infallible conversion trait. Generic over both source and destination types.
+pub trait Convert2<A, B> {
+	/// Make conversion.
+	fn convert2(a: A) -> B;
+}
