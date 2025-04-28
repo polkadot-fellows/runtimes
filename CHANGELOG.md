@@ -20,7 +20,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Enable Async Backing for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/659](https://github.com/polkadot-fellows/runtimes/pull/659))
 - Update to SDK version `2412-2` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
   - Changed from `SignedExtension` to `TransactionExtension` ([paritytech/polkadot-sdk/pull/3685](https://github.com/paritytech/polkadot-sdk/pull/3685))
   - Identity: Decouple usernames from identities ([https://github.com/paritytech/polkadot-sdk/pull/5554](https://github.com/paritytech/polkadot-sdk/pull/5554))
@@ -29,10 +28,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
   - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
 - Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
-
-### Fixed
-
 - Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
+- Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
+- Asset Hub: remove XCM sufficient asset fee trader ([polkadot-fellows/runtimes#502](https://github.com/polkadot-fellows/runtimes/pull/502))
+- Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
+- Enable Async Backing for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/659](https://github.com/polkadot-fellows/runtimes/pull/659))
 
 ## [1.4.3] 14.04.2025
 
