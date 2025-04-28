@@ -30,7 +30,7 @@ pub enum ReferendaStage {
 	ReferendumInfo(Option<u32>),
 }
 
-pub struct ReferendaMigrator<T: Config> {
+pub struct ReferendaMigrator<T> {
 	_phantom: sp_std::marker::PhantomData<T>,
 }
 
@@ -252,5 +252,55 @@ impl<T: Config> ReferendaMigrator<T> {
 						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
 				},
 		}
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for ReferendaMigrator<T> {
+	type RcPrePayload = Vec<u8>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let count = ReferendumCount::<T, ()>::get();
+		let deciding_count: Vec<_> = DecidingCount::<T, ()>::iter().collect();
+		let track_queue: Vec<_> = TrackQueue::<T, ()>::iter()
+			.map(|(track_id, queue)| (track_id, queue.into_inner()))
+			.collect();
+		let metadata: Vec<_> = MetadataOf::<T, ()>::iter().collect();
+		let referenda: Vec<_> = ReferendumInfoFor::<T, ()>::iter().collect();
+		// (ReferendumCount, DecidingCount, TrackQueue, MetadataOf, ReferendumInfoFor)
+		(count, deciding_count, track_queue, metadata, referenda).encode()
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Referenda::ReferendumCount::rc_post::empty'
+		assert_eq!(
+			ReferendumCount::<T, ()>::get(),
+			0,
+			"Referendum count should be 0 on RC post migration"
+		);
+
+		// Assert storage 'Referenda::DecidingCount::rc_post::empty'
+		assert!(
+			DecidingCount::<T, ()>::iter().next().is_none(),
+			"Deciding count map should be empty on RC post migration"
+		);
+
+		// Assert storage 'Referenda::TrackQueue::rc_post::empty'
+		assert!(
+			TrackQueue::<T, ()>::iter().next().is_none(),
+			"Track queue map should be empty on RC post migration"
+		);
+
+		// Assert storage 'Referenda::MetadataOf::rc_post::empty'
+		assert!(
+			MetadataOf::<T, ()>::iter().next().is_none(),
+			"MetadataOf map should be empty on RC post migration"
+		);
+
+		// Assert storage 'Referenda::ReferendumInfoFor::rc_post::empty'
+		assert!(
+			ReferendumInfoFor::<T, ()>::iter().next().is_none(),
+			"Referendum info for map should be empty on RC post migration"
+		);
 	}
 }

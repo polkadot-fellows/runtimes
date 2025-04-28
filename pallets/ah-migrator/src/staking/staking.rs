@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
 			Values(values) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingValues");
 				// FIXME ggwpez FAIL-CI
-				//pallet_rc_migrator::staking::StakingMigrator::<T>::put_values(values);
+				pallet_rc_migrator::staking::StakingMigrator::<T>::put_values(values);
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");

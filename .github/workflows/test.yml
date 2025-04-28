@@ -240,7 +240,7 @@ jobs:
         run: |
           SDK=$PWD/polkadot-sdk
           cd integration-tests/ahm
-          just port westend $SDK $SDK/cumulus/test/ahm
+          just port westend $SDK cumulus/test/ahm
         env:
           RUST_BACKTRACE: 1
           RUST_LOG: "warn"

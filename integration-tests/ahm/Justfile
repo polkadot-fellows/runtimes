@@ -28,7 +28,7 @@ snapshot RUNTIME:
 
 # Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
 # Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
-# Example: just port westend ~polkadot-sdk/cumulus/test/ahm
+# Example: just port westend cumulus/test/ahm
 port RUNTIME SDK FOLDER:
 	#!/usr/bin/env bash
 	set -e
@@ -60,7 +60,7 @@ port RUNTIME SDK FOLDER:
 		just code-substitute {{SDK}} westend
 	fi
 
-	cd {{FOLDER}}
+	cd {{SDK}}/{{FOLDER}}
 	cargo fetch
 	zepter
 
