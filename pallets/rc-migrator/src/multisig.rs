@@ -157,7 +157,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				details: Some(k1.clone()),
 			}); // TODO continue here // @ggwpez not sure what you mean with this TODO
 
-			// TODO delete old // @ggwpez should we delete?
+			aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
 			last_key = Some((k1, k2));
 		}
 
