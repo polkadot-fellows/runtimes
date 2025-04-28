@@ -206,21 +206,33 @@ impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr
 		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
 	}
 }
-
 /// A utility struct for batching XCM messages to stay within size limits.
+///
+/// This struct manages collections of XCM messages, automatically creating
+/// new batches when size limits would be exceeded, ensuring that all batches
+/// remain within the maximum allowed XCM size.
 pub struct XcmBatch<T: Encode> {
+	/// Collection of batches with their sizes and messages
 	sized_batches: VecDeque<(u32, Vec<T>)>,
 }
 
 impl<T: Encode> XcmBatch<T> {
-	/// Create a new batch.
+	/// Creates a new empty batch.
+	///
+	/// # Returns
+	/// A new XcmBatch instance with no messages.
 	pub fn new() -> Self {
 		Self { sized_batches: VecDeque::new() }
 	}
 
-	/// Push a message to the batch.
+	/// Pushes a message to the batch.
 	///
-	/// Fails if the message is too large to be added to the batch.
+	/// Adds the message to an existing batch if it fits within size limits,
+	/// otherwise creates a new batch for the message. Messages that exceed
+	/// the maximum XCM size will trigger a defensive assertion.
+	///
+	/// # Parameters
+	/// - `message`: The message to add to the batch
 	pub fn push(&mut self, message: T) {
 		let message_size = message.encoded_size() as u32;
 		if message_size > MAX_XCM_SIZE {
@@ -238,7 +250,10 @@ impl<T: Encode> XcmBatch<T> {
 		}
 	}
 
-	/// Get the total number of messages in all batches.
+	/// Gets the total number of messages across all batches.
+	///
+	/// # Returns
+	/// The total count of messages in all batches.
 	pub fn len(&self) -> u32 {
 		let mut total: u32 = 0;
 		for (_, batch) in &self.sized_batches {
@@ -247,25 +262,33 @@ impl<T: Encode> XcmBatch<T> {
 		total
 	}
 
-	/// Get the number of batches.
+	/// Gets the number of batches.
+	///
+	/// # Returns
+	/// The count of batches.
 	pub fn batch_count(&self) -> u32 {
 		self.sized_batches.len() as u32
 	}
 
-	/// Check if the batch is empty.
+	/// Checks if the batch is empty.
+	///
+	/// # Returns
+	/// `true` if there are no batches or if the only batch is empty, `false` otherwise.
 	pub fn is_empty(&self) -> bool {
 		self.sized_batches.is_empty() ||
 			(self.sized_batches.len() == 1 &&
 				self.sized_batches.front().is_none_or(|(_, batch)| batch.is_empty()))
 	}
 
-	/// Take the first batch.
+	/// Takes the first batch of messages.
 	///
-	/// Returns `None` if it is empty.
+	/// # Returns
+	/// The first batch of messages if available, or `None` if empty.
 	pub fn pop_front(&mut self) -> Option<Vec<T>> {
 		self.sized_batches.pop_front().map(|(_, batch)| batch)
 	}
 }
+
 /// A wrapper around `XcmBatch` that tracks the weight consumed by batches.
 ///
 /// This struct automatically accumulates weight for each new batch created
