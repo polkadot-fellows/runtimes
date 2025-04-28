@@ -210,7 +210,7 @@ jobs:
         with:
           repository: paritytech/polkadot-sdk
           path: polkadot-sdk
-          ref: donal-ahm
+          ref: oty-staking-more3 # FAIL-CI
           fetch-depth: 1
 
       - name: Install updates and dependencies

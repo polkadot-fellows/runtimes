@@ -17,7 +17,7 @@
 //! The messages that we use to send the staking data over from RC to AH.
 
 use crate::{
-	staking::{AccountIdOf, BalanceOf, Convert2, StakingMigrator},
+	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
 	*,
 };
 use codec::{EncodeLike, HasCompact};
@@ -52,6 +52,8 @@ pub enum RcStakingMessage<
 	EraRewardPoints,
 	RewardDestination,
 	ValidatorPrefs,
+	UnappliedSlash,
+	SlashingSpans,
 >
 // We do not want to pull in the Config trait; hence this
 where
@@ -63,6 +65,8 @@ where
 	EraRewardPoints: Debug + PartialEq + Clone,
 	RewardDestination: Debug + PartialEq + Clone,
 	ValidatorPrefs: Debug + PartialEq + Clone,
+	UnappliedSlash: Debug + PartialEq + Clone,
+	SlashingSpans: Debug + PartialEq + Clone,
 {
 	Values(StakingValues<Balance>),
 	Invulnerables(Vec<AccountId>),
@@ -125,6 +129,10 @@ where
 		era: EraIndex,
 		total_stake: Balance,
 	},
+	UnappliedSlashes {
+		era: EraIndex,
+		slash: UnappliedSlash,
+	},
 	BondedEras(Vec<(EraIndex, SessionIndex)>),
 	ValidatorSlashInEra {
 		era: EraIndex,
@@ -157,6 +165,8 @@ pub type RcStakingMessageOf<T> = RcStakingMessage<
 	pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
 	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking::ValidatorPrefs,
+	pallet_staking::UnappliedSlash<<T as frame_system::Config>::AccountId, <T as pallet_staking::Config>::CurrencyBalance>,
+	pallet_staking::slashing::SlashingSpans,
 >;
 
 /// Translated staking message that the Asset Hub can understand.
@@ -173,6 +183,8 @@ pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
 	pallet_staking_async::EraRewardPoints<<T as frame_system::Config>::AccountId>,
 	pallet_staking_async::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking_async::ValidatorPrefs,
+	pallet_staking_async::UnappliedSlash<T>,
+	pallet_staking_async::slashing::SlashingSpans,
 >;
 
 #[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
@@ -198,13 +210,13 @@ pub struct StakingValues<Balance> {
 pub type RcStakingValuesOf<T> = StakingValues<<T as pallet_staking::Config>::CurrencyBalance>;
 pub type AhStakingValuesOf<T> = StakingValues<<T as pallet_staking_async::Config>::CurrencyBalance>;
 
-impl<T, Ah> Convert2<pallet_staking::StakingLedger<T>, pallet_staking_async::StakingLedger<Ah>>
+impl<T, Ah> IntoAh<pallet_staking::StakingLedger<T>, pallet_staking_async::StakingLedger<Ah>>
 	for pallet_staking::StakingLedger<T>
 where
 	T: pallet_staking::Config,
 	Ah: pallet_staking_async::Config<AccountId = AccountIdOf<T>, CurrencyBalance = BalanceOf<T>>,
 {
-	fn convert2(
+	fn intoAh(
 		ledger: pallet_staking::StakingLedger<T>,
 	) -> pallet_staking_async::StakingLedger<Ah> {
 		pallet_staking_async::StakingLedger {
@@ -214,7 +226,7 @@ where
 			unlocking: ledger
 				.unlocking
 				.into_iter()
-				.map(pallet_staking::UnlockChunk::convert2)
+				.map(pallet_staking::UnlockChunk::intoAh)
 				.collect::<Vec<_>>()
 				.defensive_truncate_into(),
 			// legacy_claimed_rewards not migrated
@@ -225,7 +237,7 @@ where
 
 // NominationsQuota is an associated trait - not a type, therefore more mental gymnastics are needed
 impl<T, Ah, SNomQuota, SSNomQuota>
-	Convert2<pallet_staking::Nominations<T>, pallet_staking_async::Nominations<Ah>>
+	IntoAh<pallet_staking::Nominations<T>, pallet_staking_async::Nominations<Ah>>
 	for pallet_staking::Nominations<T>
 where
 	T: pallet_staking::Config<NominationsQuota = SNomQuota>,
@@ -240,7 +252,7 @@ where
 		MaxNominations = SNomQuota::MaxNominations,
 	>,
 {
-	fn convert2(
+	fn intoAh(
 		nominations: pallet_staking::Nominations<T>,
 	) -> pallet_staking_async::Nominations<Ah> {
 		pallet_staking_async::Nominations {
@@ -252,12 +264,12 @@ where
 }
 
 impl<Balance>
-	Convert2<
+	IntoAh<
 		pallet_staking::slashing::SpanRecord<Balance>,
 		pallet_staking_async::slashing::SpanRecord<Balance>,
 	> for pallet_staking::slashing::SpanRecord<Balance>
 {
-	fn convert2(
+	fn intoAh(
 		record: pallet_staking::slashing::SpanRecord<Balance>,
 	) -> pallet_staking_async::slashing::SpanRecord<Balance> {
 		pallet_staking_async::slashing::SpanRecord {
@@ -268,12 +280,12 @@ impl<Balance>
 }
 
 impl<AccountId: Ord>
-	Convert2<
+	IntoAh<
 		pallet_staking::EraRewardPoints<AccountId>,
 		pallet_staking_async::EraRewardPoints<AccountId>,
 	> for pallet_staking::EraRewardPoints<AccountId>
 {
-	fn convert2(
+	fn intoAh(
 		points: pallet_staking::EraRewardPoints<AccountId>,
 	) -> pallet_staking_async::EraRewardPoints<AccountId> {
 		pallet_staking_async::EraRewardPoints { total: points.total, individual: points.individual }
@@ -281,12 +293,12 @@ impl<AccountId: Ord>
 }
 
 impl<AccountId>
-	Convert2<
+	IntoAh<
 		pallet_staking::RewardDestination<AccountId>,
 		pallet_staking_async::RewardDestination<AccountId>,
 	> for pallet_staking::RewardDestination<AccountId>
 {
-	fn convert2(
+	fn intoAh(
 		destination: pallet_staking::RewardDestination<AccountId>,
 	) -> pallet_staking_async::RewardDestination<AccountId> {
 		match destination {
@@ -304,10 +316,10 @@ impl<AccountId>
 	}
 }
 
-impl Convert2<pallet_staking::ValidatorPrefs, pallet_staking_async::ValidatorPrefs>
+impl IntoAh<pallet_staking::ValidatorPrefs, pallet_staking_async::ValidatorPrefs>
 	for pallet_staking::ValidatorPrefs
 {
-	fn convert2(prefs: pallet_staking::ValidatorPrefs) -> pallet_staking_async::ValidatorPrefs {
+	fn intoAh(prefs: pallet_staking::ValidatorPrefs) -> pallet_staking_async::ValidatorPrefs {
 		pallet_staking_async::ValidatorPrefs {
 			commission: prefs.commission,
 			blocked: prefs.blocked,
@@ -315,18 +327,30 @@ impl Convert2<pallet_staking::ValidatorPrefs, pallet_staking_async::ValidatorPre
 	}
 }
 impl<Balance: HasCompact + MaxEncodedLen>
-	Convert2<pallet_staking::UnlockChunk<Balance>, pallet_staking_async::UnlockChunk<Balance>>
+	IntoAh<pallet_staking::UnlockChunk<Balance>, pallet_staking_async::UnlockChunk<Balance>>
 	for pallet_staking::UnlockChunk<Balance>
 {
-	fn convert2(
+	fn intoAh(
 		chunk: pallet_staking::UnlockChunk<Balance>,
 	) -> pallet_staking_async::UnlockChunk<Balance> {
 		pallet_staking_async::UnlockChunk { value: chunk.value, era: chunk.era }
 	}
 }
 
+impl IntoAh<pallet_staking::slashing::SlashingSpans, pallet_staking_async::slashing::SlashingSpans>
+	for pallet_staking::slashing::SlashingSpans
+{
+	fn intoAh(spans: pallet_staking::slashing::SlashingSpans) -> pallet_staking_async::slashing::SlashingSpans {
+		pallet_staking_async::slashing::SlashingSpans {
+			span_index: spans.span_index,
+			last_start: spans.last_start,
+			last_nonzero_slash: spans.last_nonzero_slash,
+			prior: spans.prior,
+		}
+	}
+}
 // StakingLedger requires a T instead of having a `StakingLedgerOf` :(
-impl<T, Ah, SNomQuota, SSNomQuota> Convert2<RcStakingMessageOf<T>, AhEquivalentStakingMessageOf<Ah>>
+impl<T, Ah, SNomQuota, SSNomQuota> IntoAh<RcStakingMessageOf<T>, AhEquivalentStakingMessageOf<Ah>>
 	for RcStakingMessageOf<T>
 where
 	T: pallet_staking::Config<NominationsQuota = SNomQuota>,
@@ -341,7 +365,7 @@ where
 		MaxNominations = SNomQuota::MaxNominations,
 	>,
 {
-	fn convert2(message: RcStakingMessageOf<T>) -> AhEquivalentStakingMessageOf<Ah> {
+	fn intoAh(message: RcStakingMessageOf<T>) -> AhEquivalentStakingMessageOf<Ah> {
 		use RcStakingMessage::*;
 		match message {
 			// It looks like nothing happens here, but it does. We swap the omitted generics of
@@ -350,16 +374,16 @@ where
 			Invulnerables(invulnerables) => Invulnerables(invulnerables),
 			Bonded { stash, controller } => Bonded { stash, controller },
 			Ledger { controller, ledger } =>
-				Ledger { controller, ledger: pallet_staking::StakingLedger::convert2(ledger) },
+				Ledger { controller, ledger: pallet_staking::StakingLedger::intoAh(ledger) },
 			Payee { stash, payment } =>
-				Payee { stash, payment: pallet_staking::RewardDestination::convert2(payment) },
+				Payee { stash, payment: pallet_staking::RewardDestination::intoAh(payment) },
 			Validators { stash, validators } => Validators {
 				stash,
-				validators: pallet_staking::ValidatorPrefs::convert2(validators),
+				validators: pallet_staking::ValidatorPrefs::intoAh(validators),
 			},
 			Nominators { stash, nominations } => Nominators {
 				stash,
-				nominations: pallet_staking::Nominations::convert2(nominations),
+				nominations: pallet_staking::Nominations::intoAh(nominations),
 			},
 			VirtualStakers(staker) => VirtualStakers(staker),
 			ErasStartSessionIndex { era, session } => ErasStartSessionIndex { era, session },
@@ -372,22 +396,33 @@ where
 			ErasValidatorPrefs { era, validator, prefs } => ErasValidatorPrefs {
 				era,
 				validator,
-				prefs: pallet_staking::ValidatorPrefs::convert2(prefs),
+				prefs: pallet_staking::ValidatorPrefs::intoAh(prefs),
 			},
 			ErasValidatorReward { era, reward } => ErasValidatorReward { era, reward },
 			ErasRewardPoints { era, points } =>
-				ErasRewardPoints { era, points: pallet_staking::EraRewardPoints::convert2(points) },
+				ErasRewardPoints { era, points: pallet_staking::EraRewardPoints::intoAh(points) },
 			ErasTotalStake { era, total_stake } => ErasTotalStake { era, total_stake },
+			UnappliedSlashes { era, slash } => {
+				// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
+				UnappliedSlashes { era, slash: pallet_staking_async::UnappliedSlash {
+					validator: slash.validator,
+					own: slash.own,
+					// TODO defensive truncate
+					others: WeakBoundedVec::force_from(slash.others, None),
+					payout: slash.payout,
+					reporter: slash.reporters.first().cloned(),
+				} }
+			},
 			BondedEras(eras) => BondedEras(eras),
 			ValidatorSlashInEra { era, validator, slash } =>
 				ValidatorSlashInEra { era, validator, slash },
 			NominatorSlashInEra { era, validator, slash } =>
 				NominatorSlashInEra { era, validator, slash },
-			SlashingSpans { account, spans } => SlashingSpans { account, spans },
+			SlashingSpans { account, spans } => SlashingSpans { account, spans: pallet_staking::slashing::SlashingSpans::intoAh(spans) },
 			SpanSlash { account, span, slash } => SpanSlash {
 				account,
 				span,
-				slash: pallet_staking::slashing::SpanRecord::convert2(slash),
+				slash: pallet_staking::slashing::SpanRecord::intoAh(slash),
 			},
 		}
 	}
@@ -423,7 +458,7 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		use pallet_staking_async::*;
 
 		ValidatorCount::<T>::put(&values.validator_count);
-		//MinimumValidatorCount::<T>::put(&values.min_validator_count);
+		// MinimumValidatorCount is not migrated
 		MinNominatorBond::<T>::put(&values.min_nominator_bond);
 		MinValidatorBond::<T>::put(&values.min_validator_bond);
 		MinimumActiveStake::<T>::put(&values.min_active_stake);
@@ -431,18 +466,18 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		MaxValidatorsCount::<T>::set(values.max_validators_count);
 		MaxNominatorsCount::<T>::set(values.max_nominators_count);
 		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era.map(pallet_staking::ActiveEraInfo::convert2));
-		ForceEra::<T>::put(pallet_staking::Forcing::convert2(values.force_era));
+		ActiveEra::<T>::set(values.active_era.map(pallet_staking::ActiveEraInfo::intoAh));
+		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
 		MaxStakedRewards::<T>::set(values.max_staked_rewards);
 		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
 		CanceledSlashPayout::<T>::set(values.canceled_slash_payout);
-		//CurrentPlannedSession::<T>::put(values.current_planned_session);
+		// CurrentPlannedSession is not migrated
 		ChillThreshold::<T>::set(values.chill_threshold);
 	}
 }
 
-impl Convert2<pallet_staking::Forcing, pallet_staking_async::Forcing> for pallet_staking::Forcing {
-	fn convert2(forcing: pallet_staking::Forcing) -> pallet_staking_async::Forcing {
+impl IntoAh<pallet_staking::Forcing, pallet_staking_async::Forcing> for pallet_staking::Forcing {
+	fn intoAh(forcing: pallet_staking::Forcing) -> pallet_staking_async::Forcing {
 		match forcing {
 			pallet_staking::Forcing::NotForcing => pallet_staking_async::Forcing::NotForcing,
 			pallet_staking::Forcing::ForceNew => pallet_staking_async::Forcing::ForceNew,
@@ -452,10 +487,10 @@ impl Convert2<pallet_staking::Forcing, pallet_staking_async::Forcing> for pallet
 	}
 }
 
-impl Convert2<pallet_staking::ActiveEraInfo, pallet_staking_async::ActiveEraInfo>
+impl IntoAh<pallet_staking::ActiveEraInfo, pallet_staking_async::ActiveEraInfo>
 	for pallet_staking::ActiveEraInfo
 {
-	fn convert2(active_era: pallet_staking::ActiveEraInfo) -> pallet_staking_async::ActiveEraInfo {
+	fn intoAh(active_era: pallet_staking::ActiveEraInfo) -> pallet_staking_async::ActiveEraInfo {
 		pallet_staking_async::ActiveEraInfo { index: active_era.index, start: active_era.start }
 	}
 }
