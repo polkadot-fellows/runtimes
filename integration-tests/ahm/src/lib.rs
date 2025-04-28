@@ -18,8 +18,9 @@
 
 #![cfg(test)]
 
-pub mod bench;
+pub mod bench_ah;
 pub mod bench_ops;
+pub mod bench_rc;
 pub mod call_filter_asset_hub;
 pub mod call_filter_relay;
 pub mod checks;

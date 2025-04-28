@@ -48,6 +48,8 @@ pub mod weights;
 pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 #[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
@@ -55,6 +57,8 @@ pub mod scheduler;
 #[cfg(not(feature = "ahm-westend"))]
 pub mod treasury;
 pub mod xcm_config;
+
+pub use weights::*;
 
 use crate::{
 	accounts::MigratedBalances, types::MigrationFinishedData,
@@ -102,7 +106,6 @@ use staking::{
 use storage::TransactionOutcome;
 use types::PalletMigration;
 use vesting::VestingMigrator;
-use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
@@ -527,7 +530,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::force_set_stage())]
 		pub fn force_set_stage(
 			origin: OriginFor<T>,
 			stage: Box<MigrationStageOf<T>>,
@@ -539,7 +542,7 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start_moment: DispatchTime<BlockNumberFor<T>>,
@@ -557,7 +560,7 @@ pub mod pallet {
 		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
 		/// migration data.
 		#[pallet::call_index(2)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
@@ -566,7 +569,7 @@ pub mod pallet {
 
 		/// Update the total number of XCM messages processed by the Asset Hub.
 		#[pallet::call_index(3)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::update_ah_msg_processed_count())]
 		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::update_msg_processed_count(count);
@@ -666,7 +669,7 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T, T::AhWeightInfo, T::MaxAhWeight>::migrate_many(
+						match MultisigMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						) {

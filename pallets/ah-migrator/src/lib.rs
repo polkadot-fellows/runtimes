@@ -977,7 +977,8 @@ pub mod pallet {
 					#[cfg(feature = "stable2503")]
 					fallback_max_weight: None,
 					#[cfg(not(feature = "stable2503"))]
-					require_weight_at_most: Weight::from_all(1), // TODO
+					// TODO: just big enough weight to work for all calls; remove with xcm5
+					require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
 					call: call.encode().into(),
 				},
 			]);

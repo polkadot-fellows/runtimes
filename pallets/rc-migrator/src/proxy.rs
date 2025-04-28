@@ -139,7 +139,8 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 		batch_len: u32,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
-		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			log::info!("RC weight limit reached at batch length {}, stopping", batch_len);
 			return Err(OutOfWeightError);
 		}
 

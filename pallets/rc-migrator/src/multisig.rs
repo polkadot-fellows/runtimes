@@ -98,15 +98,21 @@ type BalanceOf<T> = <<T as pallet_multisig::Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
-pub struct MultisigMigrator<T, W, L> {
-	_marker: sp_std::marker::PhantomData<(T, W, L)>,
+pub struct MultisigMigrator<T> {
+	_marker: sp_std::marker::PhantomData<T>,
 }
 
-impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrator<T, W, L> {
-	pub fn migrate_out_many(
-		mut last_key: Option<(T::AccountId, [u8; 32])>,
-		rc_weight: &mut WeightMeter,
-	) -> Result<(Vec<RcMultisigOf<T>>, Option<(T::AccountId, [u8; 32])>), Error<T>> {
+impl<T: Config> PalletMigration for MultisigMigrator<T> {
+	type Key = (T::AccountId, [u8; 32]);
+	type Error = Error<T>;
+
+	/// Migrate until the weight is exhausted. Start at the given key.
+	///
+	/// Storage changes must be rolled back on error.
+	fn migrate_many(
+		mut last_key: Option<Self::Key>,
+		weight_counter: &mut WeightMeter,
+	) -> Result<Option<Self::Key>, Error<T>> {
 		let mut batch = Vec::new();
 		let mut iter = match last_key.clone() {
 			Some((k1, k2)) =>
@@ -115,6 +121,26 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrat
 		};
 
 		loop {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_multisigs((batch.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
 			let kv = iter.next();
 			let Some((k1, k2, multisig)) = kv else {
 				last_key = None;
@@ -124,68 +150,24 @@ impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrat
 
 			log::debug!(target: LOG_TARGET, "Migrating multisigs of acc {:?}", k1);
 
-			match Self::migrate_single(k1.clone(), multisig, rc_weight, batch.len() as u32) {
-				Ok(ms) => batch.push(ms), // TODO continue here
-				// Account does not need to be migrated
-				// Not enough weight, lets try again in the next block since we made some progress.
-				Err(OutOfWeightError) if !batch.is_empty() => break,
-				// Not enough weight and was unable to make progress, bad.
-				Err(OutOfWeightError) => {
-					defensive!("Not enough weight to migrate a single account");
-					return Err(Error::OutOfWeight);
-				},
-			}
+			batch.push(RcMultisig {
+				creator: multisig.depositor,
+				deposit: multisig.deposit,
+				details: Some(k1.clone()),
+			}); // TODO continue here // @ggwpez not sure what you mean with this TODO
 
-			// TODO delete old
+			// TODO delete old // @ggwpez should we delete?
 			last_key = Some((k1, k2));
 		}
-
-		Ok((batch, last_key))
-	}
-}
-
-impl<T: Config, W: AhWeightInfo, L: Get<Weight>> PalletMigration for MultisigMigrator<T, W, L> {
-	type Key = (T::AccountId, [u8; 32]);
-	type Error = Error<T>;
-
-	/// Migrate until the weight is exhausted. Start at the given key.
-	///
-	/// Storage changes must be rolled back on error.
-	fn migrate_many(
-		last_key: Option<Self::Key>,
-		weight_counter: &mut WeightMeter,
-	) -> Result<Option<Self::Key>, Error<T>> {
-		let (batch, last_key) = Self::migrate_out_many(last_key, weight_counter)?;
 
 		if !batch.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveMultisigs { multisigs: batch },
-				|n| W::receive_multisigs(n),
+				|n| T::AhWeightInfo::receive_multisigs(n),
 			)?;
 		}
 
 		Ok(last_key)
-	}
-}
-
-impl<T: pallet_multisig::Config, W: AhWeightInfo, L: Get<Weight>> MultisigMigrator<T, W, L> {
-	fn migrate_single(
-		k1: AccountIdOf<T>,
-		ms: aliases::MultisigOf<T>,
-		rc_weight: &mut WeightMeter,
-		batch_len: u32,
-	) -> Result<RcMultisigOf<T>, OutOfWeightError> {
-		// TODO weight
-		if rc_weight.try_consume(Weight::from_all(1_000)).is_err() {
-			return Err(OutOfWeightError);
-		}
-
-		if L::get().any_lt(W::receive_multisigs(batch_len + 1)) {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
-			return Err(OutOfWeightError);
-		}
-
-		Ok(RcMultisig { creator: ms.depositor, deposit: ms.deposit, details: Some(k1) })
 	}
 }
