@@ -319,6 +319,9 @@ pub mod pallet {
 
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		#[cfg(feature = "ahm-staking-migration")]
+		type RcStakingMessage: Parameter + Convert2<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
