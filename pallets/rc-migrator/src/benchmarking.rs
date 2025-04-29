@@ -95,7 +95,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::StageTransition {
 				old: MigrationStageOf::<T>::Pending,
-				new: MigrationStageOf::<T>::AccountsMigrationInit,
+				new: MigrationStageOf::<T>::Starting,
 			}
 			.into(),
 		);

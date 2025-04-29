@@ -153,9 +153,9 @@ async fn pallet_migration_works() {
 	ah_migrate(&mut ah, dmp_messages);
 
 	ah.execute_with(|| {
-		assert!(
-			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get() ==
-				pallet_ah_migrator::MigrationStage::MigrationDone
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get(),
+			pallet_ah_migrator::MigrationStage::MigrationDone
 		);
 	});
 
