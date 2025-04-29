@@ -12,7 +12,7 @@ paste = { workspace = true }
 hex-literal = { workspace = true }
 
 # Substrate
-frame-support= { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 
@@ -28,6 +28,7 @@ asset-test-utils = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",

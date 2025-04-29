@@ -254,7 +254,7 @@ fn register_token_from_ethereum_to_asset_hub() {
 		// Construct RegisterToken message and sent to inbound queue
 		let message = VersionedMessage::V1(MessageV1 {
 			chain_id: CHAIN_ID,
-			command: Command::RegisterToken { token: token_id.into(), fee: XCM_FEE },
+			command: Command::RegisterToken { token: token_id, fee: XCM_FEE },
 		});
 		// Convert the message to XCM
 		let (xcm, _) = EthereumInboundQueue::do_convert([0; 32].into(), message).unwrap();
