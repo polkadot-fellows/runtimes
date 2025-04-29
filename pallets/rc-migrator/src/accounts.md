@@ -9,6 +9,10 @@ Users need to be aware that all of their funds will be moved from the Relay chai
 The Account ID will stay the same. This ensures that normal user accounts will be to control their
 funds on Asset Hub.
 
+- 🚨 All funds will be **moved** from the Relay Chain to the Asset Hub.
+- 🚨 Account IDs of parachain sovereign accounts will be translated from their Relay child to their sibling parachain account.
+- The Account ID of normal accounts will stay the same.
+
 ## Sovereign Account Translation
 
 For parachain sovereign accounts, it is not possible to just use the same account ID. The sovereign
