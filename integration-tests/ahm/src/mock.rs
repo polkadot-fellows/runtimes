@@ -39,6 +39,7 @@ use runtime_parachains::{
 };
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
+//use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
 const LOG_RC: &str = "runtime::relay";
@@ -240,8 +241,8 @@ pub fn rc_migrate(
 			dmps.extend(new_dmps);
 
 			match RcMigrationStageStorage::<Polkadot>::get() {
-				RcMigrationStage::Initializing => {
-					log::info!("Migration initializing, waiting for AH signal");
+				RcMigrationStage::WaitingForAh => {
+					log::info!("Migration waiting for AH signal");
 					break dmps;
 				},
 				RcMigrationStage::MigrationDone => {

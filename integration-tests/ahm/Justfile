@@ -67,7 +67,7 @@ port RUNTIME SDK FOLDER:
 	# Actually run the test
 	export SKIP_WASM_BUILD=1
 	export RUST_BACKTRACE=1
-	export RUST_LOG="warn"
+	export RUST_LOG="info"
 
 	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet -- --nocapture
 
@@ -84,6 +84,7 @@ code-substitute SDK RUNTIME:
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/Cargo.toml
 	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/Cargo.toml
+	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/test/ahm/src/mock.rs
 	# Comment the "Not on {{RUNTIME}}" lines
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs

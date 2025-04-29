@@ -223,12 +223,13 @@ pub mod pallet {
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 		+ pallet_asset_rate::Config
-		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_timestamp::Config<Moment = u64>
 		+ pallet_ah_ops::Config
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
 		//+ pallet_staking_async::Config // Only on westend
+		//+ pallet_staking_async_rc_client::Config // Only on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -320,6 +321,10 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
+		/// Messaging type that the staking migration uses.
+		///
+		/// We need to inject this here to be able to convert it. The message type is require to
+		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
 		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 	}
@@ -926,10 +931,6 @@ pub mod pallet {
 			);
 			AhBalancesBefore::<T>::put(balances_before);
 
-			// Staking
-			#[cfg(feature = "ahm-staking-migration")]
-			Self::staking_migration_start_hook();
-
 			Self::transition(MigrationStage::DataMigrationOngoing);
 			Ok(())
 		}
@@ -945,10 +946,6 @@ pub mod pallet {
 				#[cfg(not(feature = "ahm-westend"))]
 				defensive!("Account migration failed: {:?}", err);
 			}
-
-			// Staking
-			#[cfg(feature = "ahm-staking-migration")]
-			Self::staking_migration_finish_hook();
 
 			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
