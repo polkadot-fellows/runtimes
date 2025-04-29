@@ -102,6 +102,22 @@ pub mod benchmarks {
 	}
 
 	#[benchmark]
+	fn send_chunked_xcm_and_track() {
+		let mut batches = XcmBatch::new();
+		batches.push(vec![0u8; (MAX_XCM_SIZE / 2 - 10) as usize]);
+		batches.push(vec![1u8; (MAX_XCM_SIZE / 2 - 10) as usize]);
+		#[block]
+		{
+			let res = Pallet::<T>::send_chunked_xcm_and_track(
+				batches,
+				|batch| types::AhMigratorCall::<T>::TestCall { data: batch },
+				|_| Weight::from_all(1),
+			);
+			assert_eq!(res.unwrap(), 1);
+		}
+	}
+
+	#[benchmark]
 	fn update_ah_msg_processed_count() {
 		let new_processed = 100;
 
@@ -136,5 +152,10 @@ pub mod benchmarks {
 	#[cfg(feature = "std")]
 	pub fn test_update_ah_msg_processed_count<T: Config>() {
 		_update_ah_msg_processed_count::<T>(true /* enable checks */);
+	}
+
+	#[cfg(feature = "std")]
+	pub fn test_send_chunked_xcm_and_track<T: Config>() {
+		_send_chunked_xcm_and_track::<T>(true /* enable checks */);
 	}
 }

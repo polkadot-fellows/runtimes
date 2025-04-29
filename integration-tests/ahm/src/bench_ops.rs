@@ -18,14 +18,14 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use pallet_rc_migrator::benchmarking::*;
-use polkadot_runtime::{Runtime as RelayChain, System as RcSystem};
+use asset_hub_polkadot_runtime::{Runtime as AssetHub, System as AssetHubSystem};
+use pallet_ah_ops::benchmarking::*;
 use sp_runtime::BuildStorage;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::<RelayChain>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::<AssetHub>::default().build_storage().unwrap();
 
-	pallet_xcm::GenesisConfig::<RelayChain> {
+	pallet_xcm::GenesisConfig::<AssetHub> {
 		safe_xcm_version: Some(xcm::latest::VERSION),
 		..Default::default()
 	}
@@ -33,48 +33,27 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
-	ext.execute_with(|| RcSystem::set_block_number(1));
+	ext.execute_with(|| AssetHubSystem::set_block_number(1));
 	ext
 }
 
 #[test]
-fn test_bench_withdraw_account() {
+fn test_bench_unreserve_lease_deposit() {
 	new_test_ext().execute_with(|| {
-		test_withdraw_account::<RelayChain>();
+		test_unreserve_lease_deposit::<AssetHub>();
 	});
 }
 
 #[test]
-fn test_bench_force_set_stage() {
+fn test_bench_withdraw_crowdloan_contribution() {
 	new_test_ext().execute_with(|| {
-		test_force_set_stage::<RelayChain>();
+		test_withdraw_crowdloan_contribution::<AssetHub>();
 	});
 }
 
 #[test]
-fn test_bench_schedule_migration() {
+fn test_bench_unreserve_crowdloan_reserve() {
 	new_test_ext().execute_with(|| {
-		test_schedule_migration::<RelayChain>();
-	});
-}
-
-#[test]
-fn test_bench_start_data_migration() {
-	new_test_ext().execute_with(|| {
-		test_start_data_migration::<RelayChain>();
-	});
-}
-
-#[test]
-fn test_bench_update_ah_msg_processed_count() {
-	new_test_ext().execute_with(|| {
-		test_update_ah_msg_processed_count::<RelayChain>();
-	});
-}
-
-#[test]
-fn test_bench_send_chunked_xcm_and_track() {
-	new_test_ext().execute_with(|| {
-		test_send_chunked_xcm_and_track::<RelayChain>();
+		test_unreserve_crowdloan_reserve::<AssetHub>();
 	});
 }
