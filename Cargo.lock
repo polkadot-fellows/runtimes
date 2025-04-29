@@ -7692,6 +7692,7 @@ name = "pallet-ah-ops"
 version = "0.1.0"
 dependencies = [
  "cumulus-primitives-core",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -10052,6 +10053,7 @@ dependencies = [
  "hex",
  "log",
  "pallet-ah-migrator",
+ "pallet-ah-ops",
  "pallet-balances",
  "pallet-bounties",
  "pallet-indices",

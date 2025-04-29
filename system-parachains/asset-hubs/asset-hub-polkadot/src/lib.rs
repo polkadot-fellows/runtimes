@@ -1128,6 +1128,7 @@ impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 }
 
 impl pallet_ah_migrator::Config for Runtime {
@@ -1313,6 +1314,7 @@ mod benches {
 		[pallet_asset_rate, AssetRate]
 		[pallet_ah_migrator, AhMigrator]
 		[polkadot_runtime_common::claims, Claims]
+		[pallet_ah_ops, AhOps]
 		// TODO: [pallet_bags_list, VoterList]
 		// TODO: [pallet_fast_unstake, FastUnstake]
 

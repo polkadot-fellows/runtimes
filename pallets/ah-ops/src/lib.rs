@@ -31,7 +31,12 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+pub mod weights;
+
 pub use pallet::*;
+pub use weights::WeightInfo;
 
 use cumulus_primitives_core::ParaId;
 use frame_support::{
@@ -76,6 +81,9 @@ pub mod pallet {
 
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
+		/// The Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	/// Amount of balance that was reserved for winning a lease auction.
@@ -197,7 +205,7 @@ pub mod pallet {
 		///
 		/// Solo bidder accounts that won lease auctions can use this to unreserve their amount.
 		#[pallet::call_index(0)]
-		#[pallet::weight({0})] // TODO weight
+		#[pallet::weight(<T as Config>::WeightInfo::unreserve_lease_deposit())]
 		pub fn unreserve_lease_deposit(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -218,7 +226,7 @@ pub mod pallet {
 		///
 		/// Can be called by any signed origin.
 		#[pallet::call_index(1)]
-		#[pallet::weight({0})] // TODO weight
+		#[pallet::weight(<T as Config>::WeightInfo::withdraw_crowdloan_contribution())]
 		pub fn withdraw_crowdloan_contribution(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
@@ -240,7 +248,7 @@ pub mod pallet {
 		/// Can be called by any signed origin. The condition that all contributions are withdrawn
 		/// is in place since the reserve acts as a storage deposit.
 		#[pallet::call_index(2)]
-		#[pallet::weight({0})] // TODO weight
+		#[pallet::weight(<T as Config>::WeightInfo::unreserve_crowdloan_reserve())]
 		pub fn unreserve_crowdloan_reserve(
 			origin: OriginFor<T>,
 			block: BlockNumberFor<T>,
