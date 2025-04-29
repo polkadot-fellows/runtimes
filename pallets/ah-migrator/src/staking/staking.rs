@@ -17,17 +17,13 @@
 //! Pallet staking migration.
 
 use crate::*;
-use sp_runtime::Perbill;
 use frame_support::traits::DefensiveTruncateInto;
+use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
-	pub fn staking_migration_start_hook() {
-		
-	}
+	pub fn staking_migration_start_hook() {}
 
-	pub fn staking_migration_finish_hook() {
-		
-	}
+	pub fn staking_migration_finish_hook() {}
 
 	pub fn do_receive_staking_messages(
 		messages: Vec<AhEquivalentStakingMessageOf<T>>,

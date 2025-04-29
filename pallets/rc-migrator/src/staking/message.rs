@@ -165,7 +165,10 @@ pub type RcStakingMessageOf<T> = RcStakingMessage<
 	pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
 	pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking::ValidatorPrefs,
-	pallet_staking::UnappliedSlash<<T as frame_system::Config>::AccountId, <T as pallet_staking::Config>::CurrencyBalance>,
+	pallet_staking::UnappliedSlash<
+		<T as frame_system::Config>::AccountId,
+		<T as pallet_staking::Config>::CurrencyBalance,
+	>,
 	pallet_staking::slashing::SlashingSpans,
 >;
 
@@ -216,9 +219,7 @@ where
 	T: pallet_staking::Config,
 	Ah: pallet_staking_async::Config<AccountId = AccountIdOf<T>, CurrencyBalance = BalanceOf<T>>,
 {
-	fn intoAh(
-		ledger: pallet_staking::StakingLedger<T>,
-	) -> pallet_staking_async::StakingLedger<Ah> {
+	fn intoAh(ledger: pallet_staking::StakingLedger<T>) -> pallet_staking_async::StakingLedger<Ah> {
 		pallet_staking_async::StakingLedger {
 			stash: ledger.stash,
 			total: ledger.total,
@@ -340,7 +341,9 @@ impl<Balance: HasCompact + MaxEncodedLen>
 impl IntoAh<pallet_staking::slashing::SlashingSpans, pallet_staking_async::slashing::SlashingSpans>
 	for pallet_staking::slashing::SlashingSpans
 {
-	fn intoAh(spans: pallet_staking::slashing::SlashingSpans) -> pallet_staking_async::slashing::SlashingSpans {
+	fn intoAh(
+		spans: pallet_staking::slashing::SlashingSpans,
+	) -> pallet_staking_async::slashing::SlashingSpans {
 		pallet_staking_async::slashing::SlashingSpans {
 			span_index: spans.span_index,
 			last_start: spans.last_start,
@@ -377,14 +380,10 @@ where
 				Ledger { controller, ledger: pallet_staking::StakingLedger::intoAh(ledger) },
 			Payee { stash, payment } =>
 				Payee { stash, payment: pallet_staking::RewardDestination::intoAh(payment) },
-			Validators { stash, validators } => Validators {
-				stash,
-				validators: pallet_staking::ValidatorPrefs::intoAh(validators),
-			},
-			Nominators { stash, nominations } => Nominators {
-				stash,
-				nominations: pallet_staking::Nominations::intoAh(nominations),
-			},
+			Validators { stash, validators } =>
+				Validators { stash, validators: pallet_staking::ValidatorPrefs::intoAh(validators) },
+			Nominators { stash, nominations } =>
+				Nominators { stash, nominations: pallet_staking::Nominations::intoAh(nominations) },
 			VirtualStakers(staker) => VirtualStakers(staker),
 			ErasStartSessionIndex { era, session } => ErasStartSessionIndex { era, session },
 			ErasStakersOverview { era, validator, exposure } =>
@@ -404,21 +403,27 @@ where
 			ErasTotalStake { era, total_stake } => ErasTotalStake { era, total_stake },
 			UnappliedSlashes { era, slash } => {
 				// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
-				UnappliedSlashes { era, slash: pallet_staking_async::UnappliedSlash {
-					validator: slash.validator,
-					own: slash.own,
-					// TODO defensive truncate
-					others: WeakBoundedVec::force_from(slash.others, None),
-					payout: slash.payout,
-					reporter: slash.reporters.first().cloned(),
-				} }
+				UnappliedSlashes {
+					era,
+					slash: pallet_staking_async::UnappliedSlash {
+						validator: slash.validator,
+						own: slash.own,
+						// TODO defensive truncate
+						others: WeakBoundedVec::force_from(slash.others, None),
+						payout: slash.payout,
+						reporter: slash.reporters.first().cloned(),
+					},
+				}
 			},
 			BondedEras(eras) => BondedEras(eras),
 			ValidatorSlashInEra { era, validator, slash } =>
 				ValidatorSlashInEra { era, validator, slash },
 			NominatorSlashInEra { era, validator, slash } =>
 				NominatorSlashInEra { era, validator, slash },
-			SlashingSpans { account, spans } => SlashingSpans { account, spans: pallet_staking::slashing::SlashingSpans::intoAh(spans) },
+			SlashingSpans { account, spans } => SlashingSpans {
+				account,
+				spans: pallet_staking::slashing::SlashingSpans::intoAh(spans),
+			},
 			SpanSlash { account, span, slash } => SpanSlash {
 				account,
 				span,

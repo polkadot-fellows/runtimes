@@ -936,7 +936,9 @@ pub mod pallet {
 		}
 
 		/// Auxiliary logic to be done after the migration finishes.
-		pub fn migration_finish_hook(data: MigrationFinishedData<T::Balance>) -> Result<(), Error<T>> {
+		pub fn migration_finish_hook(
+			data: MigrationFinishedData<T::Balance>,
+		) -> Result<(), Error<T>> {
 			// Accounts
 			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
 				// FIXME fails only on Westend

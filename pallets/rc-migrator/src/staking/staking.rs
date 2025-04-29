@@ -390,17 +390,15 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 					match iter.next() {
 						Some((era, slashes)) => {
 							pallet_staking::UnappliedSlashes::<T>::remove(&era);
-							
+
 							if slashes.len() > 1000 {
 								defensive!("Lots of unapplied slashes for era, this is odd");
 							}
 
 							// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
-							for slash in slashes.into_iter().take(1000) { // First 1000 slashes should be enough, just to avoid unbound loop
-								messages.push(RcStakingMessage::UnappliedSlashes {
-									era,
-									slash,
-								});
+							for slash in slashes.into_iter().take(1000) {
+								// First 1000 slashes should be enough, just to avoid unbound loop
+								messages.push(RcStakingMessage::UnappliedSlashes { era, slash });
 							}
 							StakingStage::UnappliedSlashes(Some(era))
 						},
