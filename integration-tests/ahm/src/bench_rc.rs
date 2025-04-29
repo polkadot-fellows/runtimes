@@ -71,3 +71,10 @@ fn test_bench_update_ah_msg_processed_count() {
 		test_update_ah_msg_processed_count::<RelayChain>();
 	});
 }
+
+#[test]
+fn test_bench_send_chunked_xcm_and_track() {
+	new_test_ext().execute_with(|| {
+		test_send_chunked_xcm_and_track::<RelayChain>();
+	});
+}

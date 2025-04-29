@@ -100,11 +100,29 @@ impl<T: frame_system::Config> pallet_rc_migrator::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `4`
 		//  Estimated: `2693`
-		// Minimum execution time: 15_340_000 picoseconds.
-		Weight::from_parts(16_900_000, 0)
-			.saturating_add(Weight::from_parts(0, 2693))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		// Minimum execution time: 13_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 2693)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `Dmp::DeliveryFeeFactor` (r:1 w:0)
+	/// Proof: `Dmp::DeliveryFeeFactor` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `XcmPallet::SupportedVersion` (r:1 w:0)
+	/// Proof: `XcmPallet::SupportedVersion` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueues` (r:1 w:1)
+	/// Proof: `Dmp::DownwardMessageQueues` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Dmp::DownwardMessageQueueHeads` (r:1 w:1)
+	/// Proof: `Dmp::DownwardMessageQueueHeads` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
+	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	fn send_chunked_xcm_and_track() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `118`
+		//  Estimated: `3583`
+		// Minimum execution time: 246_000_000 picoseconds.
+		Weight::from_parts(258_000_000, 3583)
+			.saturating_add(T::DbWeight::get().reads(5_u64))
+			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
 	/// Storage: `RcMigrator::DmpDataMessageCounts` (r:1 w:1)
 	/// Proof: `RcMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)

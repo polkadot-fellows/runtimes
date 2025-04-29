@@ -50,11 +50,13 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 		mut next_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut ah_weight_counter = WeightMeter::new();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);

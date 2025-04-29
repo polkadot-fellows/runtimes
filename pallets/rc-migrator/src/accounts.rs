@@ -213,14 +213,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		// we should not send more than we allocated on AH for the migration.
 		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts batch for the current iteration.
-		let mut batch = Vec::new();
-
-		// TODO transport weight. probably we need to leave some buffer since we do not know how
-		// many send batches the one migrate_many will require.
-		let xcm_weight = Weight::from_all(1);
-		if weight_counter.try_consume(xcm_weight).is_err() {
-			return Err(Error::OutOfWeight);
-		}
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let mut iter = if let Some(ref last_key) = last_key {
 			SystemAccount::<T>::iter_from_key(last_key)
@@ -231,7 +224,9 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		let mut maybe_last_key = last_key;
 		loop {
 			// account the weight for migrating a single account on Relay Chain.
-			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() {
+			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
@@ -670,6 +665,7 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {
 			if deposit == 0 {
@@ -679,6 +675,7 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
@@ -689,16 +686,19 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
 		}
 
 		for (_, info) in Paras::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			update_reserves(info.manager, info.deposit);
 		}
 
 		for (id, rc_reserved) in reserves {
+			weight += T::DbWeight::get().reads(4);
 			let account_entry = SystemAccount::<T>::get(&id);
 			let free = <T as Config>::Currency::balance(&id);
 			let total_frozen = account_entry.data.frozen;
@@ -728,6 +728,7 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 
 			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
+				weight += T::DbWeight::get().writes(1);
 				// when there is no much free balance and the account is used only for reserves
 				// for parachains registering or hrmp channels we will keep the entire account on
 				// the RC.
@@ -738,6 +739,7 @@ impl<T: Config> AccountsMigrator<T> {
 				);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
+				weight += T::DbWeight::get().writes(1);
 				log::debug!(
 					target: LOG_TARGET,
 					"Keep part of account: {:?} reserve: {:?} on the RC",
@@ -747,9 +749,7 @@ impl<T: Config> AccountsMigrator<T> {
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}
-
-		// TODO: define actual weight
-		Weight::from_all(1)
+		weight
 	}
 
 	/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.
