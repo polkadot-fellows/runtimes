@@ -34,3 +34,8 @@ funds on their relay sovereign account. However, please note that someone could 
 that address before or after the migration.
 
 Example for Bifrost: this is the [relay sovereign account](https://polkadot.subscan.io/account/13YMK2eeopZtUNpeHnJ1Ws2HqMQG6Ts9PGCZYGyFbSYoZfcm) and it gets translated to this [sibling sovereign account](https://assethub-polkadot.subscan.io/account/13cKp89TtYknbyYnqnF6dWN75q5ZosvFSuqzoEVkUAaNR47A).
+
+## XCM
+
+The migration happens over XCM. There will be events emitted for the balance being removed from the
+Relay Chain and events emitted for the balance being deposited into Asset Hub.

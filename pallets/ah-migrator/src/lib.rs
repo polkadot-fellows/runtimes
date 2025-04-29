@@ -388,6 +388,16 @@ pub mod pallet {
 		BatchReceived { pallet: PalletEventName, count: u32 },
 		/// We processed a batch of messages for this pallet.
 		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is emitted.
+		///
+		/// This event is equivalent to `StageTransition { new: DataMigrationOngoing, .. }` but is easier to
+		/// understand. The activation is immediate and affects all events happening afterwards.
+		AssetHubMigrationStarted,
+		/// The Asset Hub Migration finished.
+		///
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier to
+		/// understand. The finishing is immediate and affects all events happening afterwards.
+		AssetHubMigrationFinished,
 	}
 
 	#[pallet::pallet]
@@ -950,6 +960,16 @@ pub mod pallet {
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
+
+			if new == MigrationStage::DataMigrationOngoing {
+				defensive_assert!(old == MigrationStage::Pending, "Data migration can only enter from Pending");
+				Self::deposit_event(Event::AssetHubMigrationStarted);
+			}
+			if new == MigrationStage::MigrationDone {
+				defensive_assert!(old == MigrationStage::DataMigrationOngoing, "MigrationDone can only enter from DataMigrationOngoing");
+				Self::deposit_event(Event::AssetHubMigrationFinished);
+			}
+
 			AhMigrationStage::<T>::put(&new);
 			log::warn!(
 				target: LOG_TARGET,
