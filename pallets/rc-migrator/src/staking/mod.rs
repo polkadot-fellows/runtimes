@@ -28,7 +28,7 @@ pub use staking::*;
 
 // Copy&paster of Convert trait so that we can implement it here on external types
 /// Infallible conversion trait. Generic over both source and destination types.
-pub trait Convert2<A, B> {
+pub trait IntoAh<A, B> {
 	/// Make conversion.
-	fn convert2(a: A) -> B;
+	fn intoAh(a: A) -> B;
 }
