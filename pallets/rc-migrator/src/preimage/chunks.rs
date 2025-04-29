@@ -48,11 +48,23 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 	// This makes the code simpler.
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		_weight_counter: &mut WeightMeter,
+		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
+		let mut ah_weight_counter = WeightMeter::new();
 
 		let last_key = loop {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 2)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
 			let (next_key_inner, mut last_offset) = match next_key {
 				None => {
 					let (maybe_next_key, skipped) = Self::next_key();
@@ -116,6 +128,19 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 				continue;
 			};
 
+			// check if AH can process the next chunk
+			if ah_weight_counter
+				.try_consume(T::AhWeightInfo::receive_preimage_chunk(last_offset / CHUNK_SIZE))
+				.is_err()
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break Some((next_key_inner, last_offset));
+				}
+			}
+
 			batch.push(RcPreimageChunk {
 				preimage_hash: next_key_inner.0,
 				preimage_len: next_key_inner.1,
@@ -148,7 +173,7 @@ impl<T: Config> PalletMigration for PreimageChunkMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceivePreimageChunks { chunks: batch },
-				|_| Weight::from_all(1), // TODO
+				|_| Weight::from_all(1), // TODO remove with xcm v5
 			)?;
 		}
 

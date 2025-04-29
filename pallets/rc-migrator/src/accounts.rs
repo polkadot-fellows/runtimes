@@ -76,10 +76,10 @@ use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
 use sp_core::ByteArray;
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, BoundedVec};
 
 /// Account type meant to transfer data between RC and AH.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// The account address
@@ -104,19 +104,19 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	/// - DelegatedStaking: StakingDelegation (only on Kusama)
 	/// - Preimage: Preimage
 	/// - Staking: Staking - later instead of "staking " lock
-	pub holds: Vec<IdAmount<HoldReason, Balance>>,
+	pub holds: BoundedVec<IdAmount<HoldReason, Balance>, ConstU32<5>>,
 	/// Account freezes from Relay Chain.
 	///
 	/// Expected freeze reasons:
 	/// - NominationPools: PoolMinBalance
-	pub freezes: Vec<IdAmount<FreezeReason, Balance>>,
+	pub freezes: BoundedVec<IdAmount<FreezeReason, Balance>, ConstU32<5>>,
 	/// Account locks from Relay Chain.
 	///
 	/// Expected lock ids:
 	/// - "staking " - should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
 	/// - "vesting "
 	/// - "pyconvot"
-	pub locks: Vec<BalanceLock<Balance>>,
+	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
 	/// Unnamed reserve.
 	///
 	/// Only unnamed reserves for Polkadot and Kusama (no named ones).
@@ -213,14 +213,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		// we should not send more than we allocated on AH for the migration.
 		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts batch for the current iteration.
-		let mut batch = Vec::new();
-
-		// TODO transport weight. probably we need to leave some buffer since we do not know how
-		// many send batches the one migrate_many will require.
-		let xcm_weight = Weight::from_all(1);
-		if weight_counter.try_consume(xcm_weight).is_err() {
-			return Err(Error::OutOfWeight);
-		}
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let mut iter = if let Some(ref last_key) = last_key {
 			SystemAccount::<T>::iter_from_key(last_key)
@@ -230,6 +223,18 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 
 		let mut maybe_last_key = last_key;
 		loop {
+			// account the weight for migrating a single account on Relay Chain.
+			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+
 			let Some((who, account_info)) = iter.next() else {
 				maybe_last_key = None;
 				break;
@@ -240,7 +245,6 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 					match Self::withdraw_account(
 						who.clone(),
 						account_info.clone(),
-						weight_counter,
 						&mut ah_weight,
 						batch.len() as u32,
 					) {
@@ -290,7 +294,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveAccounts { accounts: batch },
-				|_| ah_weight.consumed(),
+				|n| T::AhWeightInfo::receive_liquid_accounts(n),
 			)?;
 		}
 
@@ -305,15 +309,9 @@ impl<T: Config> AccountsMigrator<T> {
 	pub fn withdraw_account(
 		who: T::AccountId,
 		account_info: AccountInfoFor<T>,
-		rc_weight: &mut WeightMeter,
 		ah_weight: &mut WeightMeter,
 		batch_len: u32,
 	) -> Result<Option<AccountFor<T>>, Error<T>> {
-		// account for `get_rc_state` read below
-		if rc_weight.try_consume(T::DbWeight::get().reads(1)).is_err() {
-			return Err(Error::OutOfWeight);
-		}
-
 		if let AccountState::Preserve = Self::get_rc_state(&who) {
 			log::debug!(
 				target: LOG_TARGET,
@@ -341,11 +339,6 @@ impl<T: Config> AccountsMigrator<T> {
 		if !Self::can_migrate_account(&who, &account_info) {
 			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
 			return Ok(None);
-		}
-
-		// account the weight for migrating a single account on Relay Chain.
-		if rc_weight.try_consume(T::RcWeightInfo::migrate_account()).is_err() {
-			return Err(Error::OutOfWeight);
 		}
 
 		let freezes: Vec<IdAmount<T::FreezeIdentifier, T::Balance>> =
@@ -535,28 +528,24 @@ impl<T: Config> AccountsMigrator<T> {
 			})?;
 			Ok::<_, Error<T>>(())
 		})?;
+
 		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
 			reserved: teleport_reserved,
 			frozen: account_data.frozen,
-			holds,
-			freezes,
-			locks,
+			holds: BoundedVec::defensive_truncate_from(holds),
+			freezes: BoundedVec::defensive_truncate_from(freezes),
+			locks: BoundedVec::defensive_truncate_from(locks),
 			unnamed_reserve,
 			consumers: Self::get_consumer_count(&who, &account_info),
 			providers: Self::get_provider_count(&who, &account_info),
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
-		let ah_receive_weight = Self::get_ah_receive_account_weight(batch_len, &withdrawn_account);
+		let ah_receive_weight = Self::weight_ah_receive_account(batch_len, &withdrawn_account);
 		if ah_weight.try_consume(ah_receive_weight).is_err() {
-			log::debug!(
-				target: LOG_TARGET,
-				"Out of weight for receiving account. weight meter: {:?}, weight required: {:?}",
-				ah_weight,
-				ah_receive_weight
-			);
+			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
 			return Err(Error::OutOfWeight);
 		}
 
@@ -607,17 +596,15 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Get the weight for importing a single account on Asset Hub.
 	///
 	/// The base weight is only included for the first imported account.
-	pub fn get_ah_receive_account_weight(batch_len: u32, account: &AccountFor<T>) -> Weight {
+	pub fn weight_ah_receive_account(batch_len: u32, account: &AccountFor<T>) -> Weight {
 		let weight_of = if account.is_liquid() {
 			T::AhWeightInfo::receive_liquid_accounts
 		} else {
-			T::AhWeightInfo::receive_accounts
+			// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where
+			// `require_weight_at_most` not required
+			T::AhWeightInfo::receive_liquid_accounts
 		};
-		if batch_len == 0 {
-			weight_of(1)
-		} else {
-			weight_of(1).saturating_sub(weight_of(0))
-		}
+		item_weight_of(weight_of, batch_len)
 	}
 
 	/// Consumer ref count of migrating to Asset Hub pallets except a reference for `reserved` and
@@ -678,6 +665,7 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {
 			if deposit == 0 {
@@ -687,6 +675,7 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
@@ -697,16 +686,19 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
 		}
 
 		for (_, info) in Paras::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			update_reserves(info.manager, info.deposit);
 		}
 
 		for (id, rc_reserved) in reserves {
+			weight += T::DbWeight::get().reads(4);
 			let account_entry = SystemAccount::<T>::get(&id);
 			let free = <T as Config>::Currency::balance(&id);
 			let total_frozen = account_entry.data.frozen;
@@ -736,6 +728,7 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 
 			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
+				weight += T::DbWeight::get().writes(1);
 				// when there is no much free balance and the account is used only for reserves
 				// for parachains registering or hrmp channels we will keep the entire account on
 				// the RC.
@@ -746,6 +739,7 @@ impl<T: Config> AccountsMigrator<T> {
 				);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
+				weight += T::DbWeight::get().writes(1);
 				log::debug!(
 					target: LOG_TARGET,
 					"Keep part of account: {:?} reserve: {:?} on the RC",
@@ -755,9 +749,7 @@ impl<T: Config> AccountsMigrator<T> {
 				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
 			}
 		}
-
-		// TODO: define actual weight
-		Weight::from_all(1)
+		weight
 	}
 
 	/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.

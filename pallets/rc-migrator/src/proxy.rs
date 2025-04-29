@@ -71,8 +71,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		mut last_key: Option<AccountIdOf<T>>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
-		let mut batch = Vec::new();
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
@@ -94,7 +93,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				acc.clone(),
 				(proxies.into_inner(), deposit),
 				weight_counter,
-				&mut ah_weight,
+				&mut batch,
 			) {
 				Ok(proxy) => {
 					pallet_proxy::Proxies::<T>::remove(&acc);
@@ -117,7 +116,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				batch,
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyProxies { proxies: batch },
-				|_len| Weight::from_all(1), // TODO T::AhWeightInfo::receive_proxy_proxies(len),
+				|n| T::AhWeightInfo::receive_proxy_proxies(n),
 			)?;
 		}
 
@@ -138,13 +137,17 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
-		ah_weight: &mut WeightMeter,
+		batch: &mut XcmBatchAndMeter<RcProxyLocalOf<T>>,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
-		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+			weight_counter.try_consume(batch.consume_weight()).is_err()
+		{
+			log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 			return Err(OutOfWeightError);
 		}
 
-		if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_proxies(1)).is_err() {
+		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch.len() + 1)) {
+			log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 			return Err(OutOfWeightError);
 		}
 
@@ -171,9 +174,8 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut last_processed = None;
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		// Get iterator starting after last processed key
 		let mut iter = if let Some(last_key) = last_key {
@@ -186,12 +188,26 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Process announcements until we run out of weight
 		for (acc, (_announcements, deposit)) in iter.by_ref() {
-			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-				break;
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
 
-			if ah_weight.try_consume(T::AhWeightInfo::receive_proxy_announcements(1)).is_err() {
-				break;
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
 
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });
@@ -205,7 +221,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 				|batch| types::AhMigratorCall::<T>::ReceiveProxyAnnouncements {
 					announcements: batch,
 				},
-				|len| T::AhWeightInfo::receive_proxy_announcements(len),
+				|n| T::AhWeightInfo::receive_proxy_announcements(n),
 			)?;
 		}
 

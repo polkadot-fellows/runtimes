@@ -21,7 +21,7 @@ pub mod chunks;
 pub mod legacy_request_status;
 pub mod request_status;
 
-pub use chunks::{PreimageChunkMigrator, RcPreimageChunk};
+pub use chunks::{PreimageChunkMigrator, RcPreimageChunk, CHUNK_SIZE};
 pub use legacy_request_status::{PreimageLegacyRequestStatusMigrator, RcPreimageLegacyStatusOf};
 pub use request_status::{PreimageRequestStatusMigrator, RcPreimageRequestStatusOf};
 

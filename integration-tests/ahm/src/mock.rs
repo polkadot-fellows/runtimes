@@ -16,7 +16,9 @@
 
 use crate::porting_prelude::*;
 
-use asset_hub_polkadot_runtime::{AhMigrator, Block as AssetHubBlock, Runtime as AssetHub};
+use asset_hub_polkadot_runtime::{
+	AhMigrator, Block as AssetHubBlock, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent,
+};
 use codec::Decode;
 use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
@@ -27,7 +29,9 @@ use pallet_rc_migrator::{
 	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
 };
 use polkadot_primitives::UpwardMessage;
-use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
+use polkadot_runtime::{
+	Block as PolkadotBlock, RcMigrator, Runtime as Polkadot, RuntimeEvent as RcRuntimeEvent,
+};
 use remote_externalities::{Builder, Mode, OfflineConfig, RemoteExternalities};
 use runtime_parachains::{
 	dmp::DownwardMessageQueues,
@@ -81,6 +85,25 @@ pub fn next_block_rc() {
 	<polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
 	<RcMigrator as OnFinalize<_>>::on_finalize(now);
 
+	let events = frame_system::Pallet::<Polkadot>::events();
+	assert!(
+		!events.iter().any(|record| {
+			if matches!(
+				record.event,
+				RcRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed {
+					success: false,
+					..
+				})
+			) {
+				log::error!(target: LOG_AH, "Message processing error: {:?}", events);
+				true
+			} else {
+				false
+			}
+		}),
+		"unexpected xcm message processing failure",
+	);
+
 	let limit = <Polkadot as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(
 		weight.all_lte(Perbill::from_percent(80) * limit),
@@ -95,11 +118,30 @@ pub fn next_block_ah() {
 	let now = past + 1;
 	log::debug!(target: LOG_AH, "Next block: {:?}", now);
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
-	frame_system::Pallet::<Polkadot>::reset_events();
+	frame_system::Pallet::<AssetHub>::reset_events();
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
 	let weight = <AhMigrator as OnInitialize<_>>::on_initialize(now).saturating_add(weight);
 	<asset_hub_polkadot_runtime::MessageQueue as OnFinalize<_>>::on_finalize(now);
 	<AhMigrator as OnFinalize<_>>::on_finalize(now);
+
+	let events = frame_system::Pallet::<AssetHub>::events();
+	assert!(
+		!events.iter().any(|record| {
+			if matches!(
+				record.event,
+				AhRuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed {
+					success: false,
+					..
+				})
+			) {
+				log::error!(target: LOG_AH, "Message processing error: {:?}", events);
+				true
+			} else {
+				false
+			}
+		}),
+		"unexpected xcm message processing failure",
+	);
 
 	let limit = <AssetHub as frame_system::Config>::BlockWeights::get().max_block;
 	assert!(

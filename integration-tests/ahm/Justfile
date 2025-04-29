@@ -28,7 +28,7 @@ snapshot RUNTIME:
 
 # Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
 # Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
-# Example: just port westend ~polkadot-sdk/cumulus/test/ahm
+# Example: just port westend cumulus/test/ahm
 port RUNTIME SDK FOLDER:
 	#!/usr/bin/env bash
 	set -e
@@ -60,7 +60,7 @@ port RUNTIME SDK FOLDER:
 		just code-substitute {{SDK}} westend
 	fi
 
-	cd {{FOLDER}}
+	cd {{SDK}}/{{FOLDER}}
 	cargo fetch
 	zepter
 
@@ -69,7 +69,7 @@ port RUNTIME SDK FOLDER:
 	export RUST_BACKTRACE=1
 	export RUST_LOG="warn"
 
-	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet pallet_migration_works -- --nocapture
+	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet -- --nocapture
 
 code-substitute SDK RUNTIME:
 	just code-substitute-pallet pallet_proxy {{SDK}}
@@ -82,6 +82,8 @@ code-substitute SDK RUNTIME:
 	# Uncomment the "Only on {{RUNTIME}}" lines
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/Cargo.toml
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/Cargo.toml
 	# Comment the "Not on {{RUNTIME}}" lines
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
@@ -92,8 +94,10 @@ code-substitute-pallet PALLET SDK:
 
 test-cargo-toml-replaces FOLDER RUNTIME:
 	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
+	perl -pi -e 's/^.*polkadot-runtime-constants\/runtime-benchmarks.*$//' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"polkadot-runtime\/runtime-benchmarks"/"{{RUNTIME}}-runtime\/runtime-benchmarks"/' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
 	# Toggle the default feature
 	perl -pi -e 's/"ahm-polkadot"/"ahm-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml

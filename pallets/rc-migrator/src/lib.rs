@@ -48,6 +48,8 @@ pub mod weights;
 pub mod weights_ah;
 pub use pallet::*;
 pub mod asset_rate;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 #[cfg(not(feature = "ahm-westend"))]
 pub mod bounties;
 pub mod conviction_voting;
@@ -56,8 +58,11 @@ pub mod scheduler;
 pub mod treasury;
 pub mod xcm_config;
 
+pub use weights::*;
+
 use crate::{
-	accounts::MigratedBalances, types::MigrationFinishedData,
+	accounts::MigratedBalances,
+	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
 	xcm_config::TrustedTeleportersBeforeAndAfter,
 };
 use accounts::AccountsMigrator;
@@ -71,7 +76,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, ContainsPair, Defensive, LockableCurrency, ReservableCurrency, VariantCount,
+		Contains, ContainsPair, Defensive, DefensiveTruncateFrom, LockableCurrency,
+		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 };
@@ -101,7 +107,6 @@ use staking::{
 use storage::TransactionOutcome;
 use types::PalletMigration;
 use vesting::VestingMigrator;
-use weights::WeightInfo;
 use weights_ah::WeightInfo as AhWeightInfo;
 use xcm::prelude::*;
 use xcm_builder::MintLocation;
@@ -264,6 +269,9 @@ pub enum MigrationStage<
 	SchedulerMigrationOngoing {
 		last_key: Option<scheduler::SchedulerStage<SchedulerBlockNumber>>,
 	},
+	SchedulerAgendaMigrationOngoing {
+		last_key: Option<BlockNumber>,
+	},
 	SchedulerMigrationDone,
 	ConvictionVotingMigrationInit,
 	ConvictionVotingMigrationOngoing {
@@ -366,6 +374,8 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 			#[cfg(not(feature = "ahm-westend"))]
 			"treasury" => MigrationStage::TreasuryMigrationInit,
 			"proxy" => MigrationStage::ProxyMigrationInit,
+			"nom_pools" => MigrationStage::NomPoolsMigrationInit,
+			"scheduler" => MigrationStage::SchedulerMigrationInit,
 			other => return Err(format!("Unknown migration stage: {}", other)),
 		})
 	}
@@ -521,7 +531,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(0)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::force_set_stage())]
 		pub fn force_set_stage(
 			origin: OriginFor<T>,
 			stage: Box<MigrationStageOf<T>>,
@@ -533,7 +543,7 @@ pub mod pallet {
 
 		/// Schedule the migration to start at a given moment.
 		#[pallet::call_index(1)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start_moment: DispatchTime<BlockNumberFor<T>>,
@@ -551,7 +561,7 @@ pub mod pallet {
 		/// This is typically called by the Asset Hub to indicate it's readiness to receive the
 		/// migration data.
 		#[pallet::call_index(2)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(MigrationStage::AccountsMigrationInit);
@@ -560,7 +570,7 @@ pub mod pallet {
 
 		/// Update the total number of XCM messages processed by the Asset Hub.
 		#[pallet::call_index(3)]
-		#[pallet::weight({0})] // TODO: weight
+		#[pallet::weight(T::RcWeightInfo::update_ah_msg_processed_count())]
 		pub fn update_ah_msg_processed_count(origin: OriginFor<T>, count: u32) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::update_msg_processed_count(count);
@@ -595,8 +605,7 @@ pub mod pallet {
 				},
 				MigrationStage::Scheduled { block_number } =>
 					if now >= block_number {
-						// TODO: weight
-						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, Weight::from_all(1)) {
+						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
 								Self::transition(MigrationStage::Initializing);
 							},
@@ -613,8 +622,8 @@ pub mod pallet {
 					return weight_counter.consumed();
 				},
 				MigrationStage::AccountsMigrationInit => {
-					// TODO: weights
-					let _ = AccountsMigrator::<T>::obtain_rc_accounts();
+					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
+					weight_counter.consume(weight);
 					RcMigratedBalance::<T>::mutate(|tracker| {
 						// initialize `kept` balance as total issuance, we'll substract from it as
 						// we migrate accounts
@@ -661,7 +670,7 @@ pub mod pallet {
 				},
 				MigrationStage::MultisigMigrationOngoing { last_key } => {
 					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
-						match MultisigMigrator::<T, T::AhWeightInfo>::migrate_many(
+						match MultisigMigrator::<T>::migrate_many(
 							last_key,
 							&mut weight_counter,
 						) {
@@ -1096,10 +1105,36 @@ pub mod pallet {
 
 					match res {
 						Ok(None) => {
-							Self::transition(MigrationStage::SchedulerMigrationDone);
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing { last_key: None });
 						},
 						Ok(Some(last_key)) => {
 							Self::transition(MigrationStage::SchedulerMigrationOngoing {
+								last_key: Some(last_key),
+							});
+						},
+						Err(err) => {
+							defensive!("Error while migrating scheduler: {:?}", err);
+						},
+					}
+				},
+				MigrationStage::SchedulerAgendaMigrationOngoing { last_key } => {
+					let res = with_transaction_opaque_err::<Option<_>, Error<T>, _>(|| {
+						match scheduler::SchedulerAgendaMigrator::<T>::migrate_many(
+							last_key,
+							&mut weight_counter,
+						) {
+							Ok(last_key) => TransactionOutcome::Commit(Ok(last_key)),
+							Err(e) => TransactionOutcome::Rollback(Err(e)),
+						}
+					})
+					.expect("Always returning Ok; qed");
+
+					match res {
+						Ok(None) => {
+							Self::transition(MigrationStage::SchedulerMigrationDone);
+						},
+						Ok(Some(last_key)) => {
+							Self::transition(MigrationStage::SchedulerAgendaMigrationOngoing {
 								last_key: Some(last_key),
 							});
 						},
@@ -1330,17 +1365,11 @@ pub mod pallet {
 						rc_balance_kept: tracker.kept,
 					};
 					let call = types::AhMigratorCall::<T>::FinishMigration { data };
-					match Self::send_xcm(call, Weight::from_all(1)) {
-						Ok(_) => {
-							Self::transition(MigrationStage::MigrationDone);
-						},
-						Err(_) => {
-							defensive!(
-								"Failed to send FinishMigration message to AH, \
-								retry with the next block"
-							);
-						},
+					if let Err(err) = Self::send_xcm(call, T::AhWeightInfo::finish_migration()) {
+						defensive!("Failed to send FinishMigration message to AH, \
+								retry with the next block: {:?}", err);
 					}
+
 					Self::transition(MigrationStage::MigrationDone);
 				},
 				MigrationStage::MigrationDone => (),
@@ -1424,31 +1453,16 @@ pub mod pallet {
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
 		pub fn send_chunked_xcm<E: Encode>(
-			mut items: Vec<E>,
+			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
+			let mut items = items.into();
 			log::info!(target: LOG_TARGET, "Batching {} items to send via XCM", items.len());
 			defensive_assert!(items.len() > 0, "Sending XCM with empty items");
-			items.reverse();
 			let mut batch_count = 0;
 
-			while !items.is_empty() {
-				let mut remaining_size: u32 = MAX_XCM_SIZE;
-				let mut batch = Vec::new();
-
-				while !items.is_empty() {
-					// Taking from the back as optimization is fine since we reversed
-					let item = items.last().unwrap(); // FAIL-CI no unwrap
-					let msg_size = item.encoded_size() as u32;
-					if msg_size > remaining_size {
-						break;
-					}
-					remaining_size -= msg_size;
-
-					batch.push(items.pop().unwrap()); // FAIL-CI no unwrap
-				}
-
+			while let Some(batch) = items.pop_front() {
 				let batch_len = batch.len() as u32;
 				log::info!(target: LOG_TARGET, "Sending XCM batch of {} items", batch_len);
 				let call = types::AssetHubPalletConfig::<T>::AhmController(create_call(batch));
@@ -1489,6 +1503,7 @@ pub mod pallet {
 				}
 			}
 
+			log::info!(target: LOG_TARGET, "Sent {} XCM batch/es", batch_count);
 			Ok(batch_count)
 		}
 
@@ -1546,7 +1561,7 @@ pub mod pallet {
 		///
 		/// Check the `send_chunked_xcm` function for the documentation.
 		pub fn send_chunked_xcm_and_track<E: Encode>(
-			items: Vec<E>,
+			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
 		) -> Result<u32, Error<T>> {
@@ -1593,6 +1608,18 @@ pub mod pallet {
 		fn is_finished() -> bool {
 			RcMigrationStage::<T>::get().is_finished()
 		}
+	}
+}
+
+/// Returns the weight for a single item in a batch.
+///
+/// If the next item in the batch is the first one, it includes the base weight of the
+/// `weight_of`, otherwise, it does not.
+pub fn item_weight_of(weight_of: impl Fn(u32) -> Weight, batch_len: u32) -> Weight {
+	if batch_len == 0 {
+		weight_of(1)
+	} else {
+		weight_of(1).saturating_sub(weight_of(0))
 	}
 }
 

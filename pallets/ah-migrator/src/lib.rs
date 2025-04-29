@@ -67,13 +67,15 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold, Unbalanced},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
 		tokens::{Fortitude, Pay, Preservation},
-		Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
+		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, OriginTrait, QueryPreimage,
 		ReservableCurrency, StorePreimage, VariantCount, WithdrawReasons as LockWithdrawReasons,
 	},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::{AccountData, Reasons as LockReasons};
 
+#[cfg(not(feature = "ahm-westend"))]
+use pallet_rc_migrator::bounties::RcBountiesMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::claims::RcClaimsMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
@@ -88,18 +90,14 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{
-		bags_list::RcBagsListMessage,
-		fast_unstake::{FastUnstakeMigrator, RcFastUnstakeMessage},
-		nom_pools::*,
-		*,
-	},
+	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
-use pallet_referenda::TrackIdOf;
+use pallet_referenda::{ReferendumInfo, TrackIdOf};
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
+use scheduler::RcSchedulerMessageOf;
 use sp_application_crypto::Ss58Codec;
 use sp_core::H256;
 use sp_runtime::{
@@ -154,6 +152,7 @@ pub enum PalletEventName {
 	ReferendaMetadata,
 	ReferendaReferendums,
 	Scheduler,
+	SchedulerAgenda,
 	ConvictionVoting,
 	AssetRates,
 	Staking,
@@ -200,7 +199,7 @@ pub struct BalancesBefore<Balance: Default> {
 
 pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 
-#[frame_support::pallet(dev_mode)]
+#[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use crate::xcm_config::{TrustedTeleportersBeforeAfter, TrustedTeleportersDuring};
@@ -210,7 +209,7 @@ pub mod pallet {
 	/// access to their items.
 	#[pallet::config]
 	pub trait Config:
-		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32>
+		frame_system::Config<AccountData = AccountData<u128>, AccountId = AccountId32, Hash = H256>
 		+ pallet_balances::Config<Balance = u128>
 		+ pallet_multisig::Config
 		+ pallet_proxy::Config
@@ -229,7 +228,7 @@ pub mod pallet {
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
-		//+ pallet_staking::Config // Only on westend
+		//+ pallet_staking_async::Config // Only on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -255,11 +254,11 @@ pub mod pallet {
 		/// Relay Chain Hold Reasons.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcHoldReason: Parameter + Default;
+		type RcHoldReason: Parameter + Default + MaxEncodedLen;
 		/// Relay Chain Freeze Reasons.
 		///
 		/// Additionally requires the `Default` implementation for the benchmarking mocks.
-		type RcFreezeReason: Parameter + Default;
+		type RcFreezeReason: Parameter + Default + MaxEncodedLen;
 		/// Relay Chain to Asset Hub Hold Reasons mapping.
 		type RcToAhHoldReason: Convert<Self::RcHoldReason, <Self as Config>::RuntimeHoldReason>;
 		/// Relay Chain to Asset Hub Freeze Reasons mapping.
@@ -278,7 +277,9 @@ pub mod pallet {
 		/// Access the block number of the Relay Chain.
 		type RcBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 		/// Some part of the Relay Chain origins used in Governance.
-		type RcPalletsOrigin: Parameter;
+		///
+		/// Additionally requires the `Default` implementation for the benchmarking mocks.
+		type RcPalletsOrigin: Parameter + Default;
 		/// Convert a Relay Chain origin to an Asset Hub one.
 		type RcToAhPalletsOrigin: TryConvert<
 			Self::RcPalletsOrigin,
@@ -312,15 +313,15 @@ pub mod pallet {
 				(),
 			>,
 		>;
-		/// Helper type for benchmarking.
-		#[cfg(feature = "runtime-benchmarks")]
-		type BenchmarkHelper: benchmarking::ParametersFactory<
-			RcMultisigOf<Self>,
-			RcAccountFor<Self>,
-			RcClaimsMessageOf<Self>,
-			RcProxyOf<Self, Self::RcProxyType>,
-			RcProxyAnnouncementOf<Self>,
-		>;
+
+		/// Calls that are allowed during the migration.
+		type AhIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		#[cfg(feature = "ahm-staking-migration")]
+		type RcStakingMessage: Parameter + Convert2<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -403,7 +404,9 @@ pub mod pallet {
 			let weight_of = |account: &RcAccountFor<T>| if account.is_liquid() {
 				T::AhWeightInfo::receive_liquid_accounts
 			} else {
-				T::AhWeightInfo::receive_accounts
+				// TODO: use `T::AhWeightInfo::receive_accounts` with xcm v5, where 
+				// `require_weight_at_most` not required
+				T::AhWeightInfo::receive_liquid_accounts
 			};
 			for account in accounts.iter() {
 				let weight = if total.is_zero() {
@@ -450,7 +453,7 @@ pub mod pallet {
 
 		/// Receive proxies from the Relay Chain.
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)] // TODO
+		#[pallet::weight(T::AhWeightInfo::receive_proxy_proxies(proxies.len() as u32))]
 		pub fn receive_proxy_proxies(
 			origin: OriginFor<T>,
 			proxies: Vec<RcProxyOf<T, T::RcProxyType>>,
@@ -481,6 +484,15 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
+		#[pallet::weight({1})]
+		// TODO use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for chunk in chunks.iter() {
+		// 		total = total.saturating_add(T::AhWeightInfo::receive_preimage_chunk(chunk.
+		// chunk_byte_offset / chunks::CHUNK_SIZE)); 	}
+		// 	total
+		// })]
 		pub fn receive_preimage_chunks(
 			origin: OriginFor<T>,
 			chunks: Vec<RcPreimageChunk>,
@@ -495,6 +507,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
+		#[pallet::weight(T::AhWeightInfo::receive_preimage_request_status(request_status.len() as u32))]
 		pub fn receive_preimage_request_status(
 			origin: OriginFor<T>,
 			request_status: Vec<RcPreimageRequestStatusOf<T>>,
@@ -509,6 +522,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
+		#[pallet::weight(T::AhWeightInfo::receive_preimage_legacy_status(legacy_status.len() as u32))]
 		pub fn receive_preimage_legacy_status(
 			origin: OriginFor<T>,
 			legacy_status: Vec<RcPreimageLegacyStatusOf<T>>,
@@ -523,6 +537,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
+		#[pallet::weight(T::AhWeightInfo::receive_nom_pools_messages(messages.len() as u32))]
 		pub fn receive_nom_pools_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcNomPoolsMessage<T>>,
@@ -537,6 +552,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
+		#[pallet::weight(T::AhWeightInfo::receive_vesting_schedules(schedules.len() as u32))]
 		pub fn receive_vesting_schedules(
 			origin: OriginFor<T>,
 			schedules: Vec<RcVestingSchedule<T>>,
@@ -551,6 +567,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(9)]
+		#[pallet::weight(T::AhWeightInfo::receive_fast_unstake_messages(messages.len() as u32))]
 		pub fn receive_fast_unstake_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcFastUnstakeMessage<T>>,
@@ -566,6 +583,7 @@ pub mod pallet {
 
 		/// Receive referendum counts, deciding counts, votes for the track queue.
 		#[pallet::call_index(10)]
+		#[pallet::weight(T::AhWeightInfo::receive_referenda_values())]
 		pub fn receive_referenda_values(
 			origin: OriginFor<T>,
 			referendum_count: u32,
@@ -586,6 +604,31 @@ pub mod pallet {
 
 		/// Receive referendums from the Relay Chain.
 		#[pallet::call_index(11)]
+		#[pallet::weight(T::AhWeightInfo::receive_complete_referendums(referendums.len() as u32))]
+		// TODO: use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for (_, info) in referendums.iter() {
+		// 		let weight = match info {
+		// 			ReferendumInfo::Ongoing(status) => {
+		// 				let len = status.proposal.len().defensive_unwrap_or(
+		// 					// should not happen, but we pick some sane call length.
+		// 					512,
+		// 				);
+		// 				T::AhWeightInfo::receive_single_active_referendums(len)
+		// 			},
+		// 			_ =>
+		// 				if total.is_zero() {
+		// 					T::AhWeightInfo::receive_complete_referendums(1)
+		// 				} else {
+		// 					T::AhWeightInfo::receive_complete_referendums(1)
+		// 						.saturating_sub(T::AhWeightInfo::receive_complete_referendums(0))
+		// 				},
+		// 		};
+		// 		total = total.saturating_add(weight);
+		// 	}
+		// 	total
+		// })]
 		pub fn receive_referendums(
 			origin: OriginFor<T>,
 			referendums: Vec<(u32, RcReferendumInfoOf<T, ()>)>,
@@ -601,6 +644,7 @@ pub mod pallet {
 
 		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(12)]
+		#[pallet::weight(T::AhWeightInfo::receive_claims(messages.len() as u32))]
 		pub fn receive_claims(
 			origin: OriginFor<T>,
 			messages: Vec<RcClaimsMessageOf<T>>,
@@ -615,6 +659,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(13)]
+		#[pallet::weight(T::AhWeightInfo::receive_bags_list_messages(messages.len() as u32))]
 		pub fn receive_bags_list_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcBagsListMessage<T>>,
@@ -629,9 +674,10 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(14)]
+		#[pallet::weight(T::AhWeightInfo::receive_scheduler_lookup(messages.len() as u32))]
 		pub fn receive_scheduler_messages(
 			origin: OriginFor<T>,
-			messages: Vec<scheduler::RcSchedulerMessageOf<T>>,
+			messages: Vec<RcSchedulerMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -643,6 +689,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(15)]
+		#[pallet::weight(T::AhWeightInfo::receive_indices(indices.len() as u32))]
 		pub fn receive_indices(
 			origin: OriginFor<T>,
 			indices: Vec<RcIndicesIndexOf<T>>,
@@ -657,6 +704,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(16)]
+		#[pallet::weight(T::AhWeightInfo::receive_conviction_voting_messages(messages.len() as u32))]
 		pub fn receive_conviction_voting_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcConvictionVotingMessageOf<T>>,
@@ -672,9 +720,10 @@ pub mod pallet {
 
 		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(17)]
+		#[pallet::weight(T::AhWeightInfo::receive_bounties_messages(messages.len() as u32))]
 		pub fn receive_bounties_messages(
 			origin: OriginFor<T>,
-			messages: Vec<pallet_rc_migrator::bounties::RcBountiesMessageOf<T>>,
+			messages: Vec<RcBountiesMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -686,6 +735,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(18)]
+		#[pallet::weight(T::AhWeightInfo::receive_asset_rates(rates.len() as u32))]
 		pub fn receive_asset_rates(
 			origin: OriginFor<T>,
 			rates: Vec<(<T as pallet_asset_rate::Config>::AssetKind, FixedU128)>,
@@ -701,6 +751,7 @@ pub mod pallet {
 
 		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(19)]
+		#[pallet::weight(T::AhWeightInfo::receive_crowdloan_messages(messages.len() as u32))]
 		pub fn receive_crowdloan_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcCrowdloanMessageOf<T>>,
@@ -715,6 +766,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(20)]
+		#[pallet::weight(T::AhWeightInfo::receive_referenda_metadata(metadata.len() as u32))]
 		pub fn receive_referenda_metadata(
 			origin: OriginFor<T>,
 			metadata: Vec<(u32, <T as frame_system::Config>::Hash)>,
@@ -730,6 +782,7 @@ pub mod pallet {
 
 		#[cfg(not(feature = "ahm-westend"))]
 		#[pallet::call_index(21)]
+		#[pallet::weight(T::AhWeightInfo::receive_treasury_messages(messages.len() as u32))]
 		pub fn receive_treasury_messages(
 			origin: OriginFor<T>,
 			messages: Vec<RcTreasuryMessageOf<T>>,
@@ -743,11 +796,45 @@ pub mod pallet {
 			res.map_err(Into::into)
 		}
 
+		#[pallet::call_index(22)]
+		#[pallet::weight({1})]
+		// TODO: use with xcm v5
+		// #[pallet::weight({
+		// 	let mut total = Weight::zero();
+		// 	for (_, agenda) in messages.iter() {
+		// 		for maybe_task in agenda {
+		// 			let Some(task) = maybe_task else {
+		// 				continue;
+		// 			};
+		// 			let preimage_len = task.call.len().defensive_unwrap_or(
+		// 				// should not happen, but we assume some sane call length.
+		// 				512,
+		// 			);
+		// 			total =
+		// total.saturating_add(T::AhWeightInfo::receive_single_scheduler_agenda(preimage_len));
+		// 		}
+		// 	}
+		// 	total
+		// })]
+		pub fn receive_scheduler_agenda_messages(
+			origin: OriginFor<T>,
+			messages: Vec<(BlockNumberFor<T>, Vec<Option<scheduler::RcScheduledOf<T>>>)>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let res = Self::do_receive_scheduler_agenda_messages(messages);
+
+			Self::increment_msg_received_count(res.is_err());
+
+			res.map_err(Into::into)
+		}
+
 		#[cfg(feature = "ahm-staking-migration")]
 		#[pallet::call_index(30)]
+		#[pallet::weight({1})] // TODO: weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<RcStakingMessageOf<T>>,
+			messages: Vec<AhEquivalentStakingMessageOf<T>>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -763,6 +850,7 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::ManagerOrigin`].
 		#[pallet::call_index(100)]
+		#[pallet::weight(T::AhWeightInfo::force_set_stage())]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::transition(stage);
@@ -774,6 +862,7 @@ pub mod pallet {
 		/// This is typically called by the Relay Chain to start the migration on the Asset Hub and
 		/// receive a handshake message indicating the Asset Hub's readiness.
 		#[pallet::call_index(101)]
+		#[pallet::weight(T::AhWeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
 			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
@@ -798,12 +887,22 @@ pub mod pallet {
 		///
 		/// This is typically called by the Relay Chain to signal the migration has finished.
 		#[pallet::call_index(110)]
+		#[pallet::weight(T::AhWeightInfo::finish_migration())]
 		pub fn finish_migration(
 			origin: OriginFor<T>,
 			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::finish_accounts_migration(data.rc_balance_kept)?;
+			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+				// FIXME fails only on Westend
+				#[cfg(feature = "ahm-westend")]
+				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
+
+				#[cfg(not(feature = "ahm-westend"))]
+				defensive!("Account migration failed: {:?}", err);
+			}
+
+			// We have to go into the Done state, otherwise the chain will be blocked
 			Self::transition(MigrationStage::MigrationDone);
 			Ok(())
 		}
@@ -852,9 +951,9 @@ pub mod pallet {
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
 			AhMigrationStage::<T>::put(&new);
-			log::info!(
+			log::warn!(
 				target: LOG_TARGET,
-				"[Block {:?}] Stage transition: {:?} -> {:?}",
+				"[Block {:?}] AH stage transition: {:?} -> {:?}",
 				frame_system::Pallet::<T>::block_number(),
 				&old,
 				&new
@@ -878,7 +977,8 @@ pub mod pallet {
 					#[cfg(feature = "stable2503")]
 					fallback_max_weight: None,
 					#[cfg(not(feature = "stable2503"))]
-					require_weight_at_most: Weight::from_all(1), // TODO
+					// TODO: just big enough weight to work for all calls; remove with xcm5
+					require_weight_at_most: Weight::from_parts(1_000_000_000, 10_000),
 					call: call.encode().into(),
 				},
 			]);
@@ -928,5 +1028,29 @@ pub mod pallet {
 			);
 			result
 		}
+	}
+}
+
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T> {
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = AhMigrationStage::<T>::get();
+
+		// We have to return whether the call is allowed:
+		const ALLOWED: bool = true;
+		const FORBIDDEN: bool = false;
+
+		// Once the migration is finished, forbid calls not in the `RcPostMigrationCalls` set.
+		if stage.is_finished() && !T::AhPostMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// If the migration is ongoing, forbid calls not in the `RcIntraMigrationCalls` set.
+		if stage.is_ongoing() && !T::AhIntraMigrationCalls::contains(call) {
+			return FORBIDDEN;
+		}
+
+		// Otherwise, allow the call.
+		// This also implicitly allows _any_ call if the migration has not yet started.
+		ALLOWED
 	}
 }

@@ -7692,6 +7692,7 @@ name = "pallet-ah-ops"
 version = "0.1.0"
 dependencies = [
  "cumulus-primitives-core",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -10045,12 +10046,14 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
+ "frame-benchmarking",
  "frame-remote-externalities",
  "frame-support",
  "frame-system",
  "hex",
  "log",
  "pallet-ah-migrator",
+ "pallet-ah-ops",
  "pallet-balances",
  "pallet-bounties",
  "pallet-indices",

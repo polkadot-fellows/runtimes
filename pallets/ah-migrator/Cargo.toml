@@ -28,6 +28,7 @@ pallet-multisig = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
+# pallet-staking-async = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
@@ -55,6 +56,9 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
+
+# [dev-dependencies]
+# asset-hub-polkadot-runtime = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
@@ -147,6 +151,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
