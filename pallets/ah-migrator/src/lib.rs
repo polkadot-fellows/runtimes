@@ -865,22 +865,8 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
-			let checking_account = T::CheckingAccount::get();
-			let balances_before = BalancesBefore {
-				checking_account: <T as Config>::Currency::total_balance(&checking_account),
-				total_issuance: <T as Config>::Currency::total_issuance(),
-			};
-			log::info!(
-				target: LOG_TARGET,
-				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
-				balances_before.checking_account, balances_before.total_issuance
-			);
-			AhBalancesBefore::<T>::put(balances_before);
-
-			Self::transition(MigrationStage::DataMigrationOngoing);
-			Ok(())
+			Self::migration_start_hook().map_err(Into::into)
 		}
 
 		/// Finish the migration.
@@ -893,18 +879,8 @@ pub mod pallet {
 			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				// FIXME fails only on Westend
-				#[cfg(feature = "ahm-westend")]
-				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
 
-				#[cfg(not(feature = "ahm-westend"))]
-				defensive!("Account migration failed: {:?}", err);
-			}
-
-			// We have to go into the Done state, otherwise the chain will be blocked
-			Self::transition(MigrationStage::MigrationDone);
-			Ok(())
+			Self::migration_finish_hook(data).map_err(Into::into)
 		}
 	}
 
@@ -933,6 +909,52 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Auxiliary logic to be done before the migration starts.
+		pub fn migration_start_hook() -> Result<(), Error<T>> {
+			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			// Accounts
+			let checking_account = T::CheckingAccount::get();
+			let balances_before = BalancesBefore {
+				checking_account: <T as Config>::Currency::total_balance(&checking_account),
+				total_issuance: <T as Config>::Currency::total_issuance(),
+			};
+			log::info!(
+				target: LOG_TARGET,
+				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
+				balances_before.checking_account, balances_before.total_issuance
+			);
+			AhBalancesBefore::<T>::put(balances_before);
+
+			// Staking
+			#[cfg(feature = "ahm-staking-migration")]
+			Self::staking_migration_start_hook();
+
+			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Auxiliary logic to be done after the migration finishes.
+		pub fn migration_finish_hook(data: MigrationFinishedData<T::Balance>) -> Result<(), Error<T>> {
+			// Accounts
+			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+				// FIXME fails only on Westend
+				#[cfg(feature = "ahm-westend")]
+				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
+
+				#[cfg(not(feature = "ahm-westend"))]
+				defensive!("Account migration failed: {:?}", err);
+			}
+
+			// Staking
+			#[cfg(feature = "ahm-staking-migration")]
+			Self::staking_migration_finish_hook();
+
+			// We have to go into the Done state, otherwise the chain will be blocked
+			Self::transition(MigrationStage::MigrationDone);
+			Ok(())
+		}
+
 		/// Increments the number of XCM messages received from the Relay Chain.
 		fn increment_msg_received_count(with_error: bool) {
 			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
