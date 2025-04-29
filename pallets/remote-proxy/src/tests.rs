@@ -18,7 +18,7 @@
 
 use super::*;
 use crate as remote_proxy;
-use codec::Decode;
+use codec::{Decode, DecodeWithMemTracking};
 use cumulus_pallet_parachain_system::OnSystemEvent;
 use frame_support::{
 	assert_err, assert_ok, construct_runtime, derive_impl,
@@ -76,6 +76,7 @@ impl pallet_utility::Config for Test {
 	PartialOrd,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
