@@ -1138,8 +1138,7 @@ impl
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use polkadot_runtime_constants::system_parachain::PeopleParaId;
-	use system_parachains_constants::polkadot::locations::PeopleLocation;
+	use system_parachains_constants::polkadot::locations::{PeopleLocation, PeopleParaId};
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
