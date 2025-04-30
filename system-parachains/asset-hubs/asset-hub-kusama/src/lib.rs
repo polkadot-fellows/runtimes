@@ -1388,7 +1388,7 @@ mod benches {
 				}))
 				.chain(core::iter::once(Asset {
 					id: AssetId(KsmLocation::get()),
-					fun: Fungible(2_000_000 * UNITS),
+					fun: Fungible(1_000_000 * UNITS),
 				}))
 				.chain((0..holding_non_fungibles).map(|i| Asset {
 					id: AssetId(GeneralIndex(i as u128).into()),
