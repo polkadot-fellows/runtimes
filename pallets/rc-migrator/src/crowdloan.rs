@@ -104,12 +104,12 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(CrowdloanStage::Setup);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter
 				.try_consume(T::DbWeight::get().reads_writes(2, 1))
-				.is_err()
+				.is_err() || weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {

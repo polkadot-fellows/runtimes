@@ -139,7 +139,7 @@ async fn pallet_migration_works() {
 	ah_migrate(&mut ah, dmp_messages);
 	// no upward messaging support in this test yet, just manually advance the stage
 	rc.execute_with(|| {
-		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::AccountsMigrationInit);
+		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::Starting);
 	});
 	rc.commit_all().unwrap();
 
@@ -153,9 +153,9 @@ async fn pallet_migration_works() {
 	ah_migrate(&mut ah, dmp_messages);
 
 	ah.execute_with(|| {
-		assert!(
-			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get() ==
-				pallet_ah_migrator::MigrationStage::MigrationDone
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get(),
+			pallet_ah_migrator::MigrationStage::MigrationDone
 		);
 	});
 
@@ -480,7 +480,7 @@ async fn scheduled_migration_works() {
 		next_block_rc();
 
 		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -519,13 +519,13 @@ async fn scheduled_migration_works() {
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 
 		next_block_rc();
 
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::AccountsMigrationOngoing { last_key: None }
+			RcMigrationStage::AccountsMigrationInit
 		);
 	});
 	rc.commit_all().unwrap();

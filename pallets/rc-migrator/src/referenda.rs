@@ -99,10 +99,13 @@ impl<T: Config> ReferendaMigrator<T> {
 	) -> Result<Option<u32>, Error<T>> {
 		log::debug!(target: LOG_TARGET, "Migrating referenda metadata");
 
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");
 					return Err(Error::OutOfWeight);
@@ -169,10 +172,12 @@ impl<T: Config> ReferendaMigrator<T> {
 		// we should not send more than AH can handle within the block.
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let last_key = loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					defensive!("Out of weight too early");

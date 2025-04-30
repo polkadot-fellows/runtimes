@@ -19,7 +19,7 @@
 pub use crate::staking::message::{
 	AhEquivalentStakingMessageOf, RcStakingMessage, RcStakingMessageOf,
 };
-use crate::{staking::Convert2, *};
+use crate::{staking::IntoAh, *};
 use codec::{EncodeLike, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
@@ -66,6 +66,7 @@ pub enum StakingStage<AccountId> {
 	ErasValidatorReward(Option<EraIndex>),
 	ErasRewardPoints(Option<EraIndex>),
 	ErasTotalStake(Option<EraIndex>),
+	UnappliedSlashes(Option<EraIndex>),
 	BondedEras,
 	ValidatorSlashInEra(Option<(EraIndex, AccountId)>),
 	NominatorSlashInEra(Option<(EraIndex, AccountId)>),
@@ -88,10 +89,12 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or_default();
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
@@ -377,6 +380,27 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::ErasTotalStake::<T>::remove(&era);
 							messages.push(RcStakingMessage::ErasTotalStake { era, total_stake });
 							StakingStage::ErasTotalStake(Some(era))
+						},
+						None => StakingStage::UnappliedSlashes(None),
+					}
+				},
+				StakingStage::UnappliedSlashes(era) => {
+					let mut iter = resume::<pallet_staking::UnappliedSlashes<T>, _, _>(era);
+
+					match iter.next() {
+						Some((era, slashes)) => {
+							pallet_staking::UnappliedSlashes::<T>::remove(&era);
+
+							if slashes.len() > 1000 {
+								defensive!("Lots of unapplied slashes for era, this is odd");
+							}
+
+							// Translate according to https://github.com/paritytech/polkadot-sdk/blob/43ea306f6307dff908551cb91099ef6268502ee0/substrate/frame/staking/src/migrations.rs#L94-L108
+							for slash in slashes.into_iter().take(1000) {
+								// First 1000 slashes should be enough, just to avoid unbound loop
+								messages.push(RcStakingMessage::UnappliedSlashes { era, slash });
+							}
+							StakingStage::UnappliedSlashes(Some(era))
 						},
 						None => StakingStage::BondedEras,
 					}

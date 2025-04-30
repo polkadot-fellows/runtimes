@@ -28,6 +28,7 @@ pallet-conviction-voting = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
 # pallet-staking-async = { workspace = true } # Only on westend
+# pallet-staking-async-ah-client = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-multisig = { workspace = true }
