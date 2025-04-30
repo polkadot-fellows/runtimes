@@ -802,7 +802,8 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ProxyMigrationDone => {
-					Self::transition(MigrationStage::PreimageMigrationInit);
+					// FAIL-CI DNM
+					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::PreimageMigrationInit => {
 					Self::transition(MigrationStage::PreimageMigrationChunksOngoing {

@@ -58,7 +58,7 @@ impl<T: Config> Pallet<T> {
 		let proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
 			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type) else {
 				// This is fine, eg. `Auction` proxy is not supported on AH
-				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy at index {} for {}", i, proxy.delegator.to_polkadot_ss58());
+				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy kind of index {} for {}", i, proxy.delegator.to_polkadot_ss58());
 				// TODO unreserve deposit
 				return None;
 			};
