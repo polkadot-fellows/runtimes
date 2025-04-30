@@ -621,8 +621,7 @@ construct_runtime!(
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use kusama_runtime_constants::system_parachain::AssetHubParaId;
-	use system_parachains_constants::kusama::locations::AssetHubLocation;
+	use system_parachains_constants::kusama::locations::{AssetHubLocation, AssetHubParaId};
 
 	frame_benchmarking::define_benchmarks!(
 		// Substrate

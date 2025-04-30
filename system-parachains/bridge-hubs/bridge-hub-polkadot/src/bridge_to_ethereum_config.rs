@@ -24,7 +24,6 @@ pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
 use frame_support::{parameter_types, weights::ConstantMultiplier};
 use pallet_xcm::EnsureXcm;
 use parachains_common::{AccountId, Balance};
-use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::AllowSiblingsOnly;
 use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlobExporter};

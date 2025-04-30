@@ -26,10 +26,7 @@ use frame_support::{
 	traits::{Contains, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
-use kusama_runtime_constants::{
-	currency::CENTS,
-	system_parachain::{AssetHubParaId, *},
-};
+use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
 use polkadot_runtime_common::{
 	xcm_sender::{ChildParachainRouter, ExponentialPrice},
 	ToAuthor,
@@ -128,7 +125,7 @@ pub type XcmRouter = WithUniqueTopic<(
 
 parameter_types! {
 	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
-	pub AssetHubLocation: Location = Parachain(AssetHubParaId::get().into()).into_location();
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
 	pub KsmForAssetHub: (AssetFilter, Location) = (Ksm::get(), AssetHubLocation::get());
 	pub Encointer: Location = Parachain(ENCOINTER_ID).into_location();
 	pub KsmForEncointer: (AssetFilter, Location) = (Ksm::get(), Encointer::get());
