@@ -2,6 +2,12 @@
 
 How to run the Rust migration test for Westend.
 
+Make sure you have the prerequisite tools installed:
+- just (https://github.com/casey/just)
+- curl
+- lz4
+- zepter (https://github.com/ggwpez/zepter)
+
 You need to have the `polkadot-sdk` and the `runtimes` repo both checked out. Polkadot-SDK must be on
 branch `donal-ahm`. Then go into the runtimes repo, navigate to the correct subfolder and run the
 Just command.
