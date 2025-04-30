@@ -96,7 +96,7 @@ use sp_version::RuntimeVersion;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
-	assert_ok, construct_runtime,
+	construct_runtime,
 	dispatch::DispatchClass,
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
@@ -1138,6 +1138,7 @@ impl
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
+	use frame_support::assert_ok;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
