@@ -1464,7 +1464,7 @@ pub mod pallet {
 			let old = RcMigrationStage::<T>::get();
 
 			if new == MigrationStage::Initializing {
-				defensive_assert!(matches!(old, MigrationStage::Scheduled { .. }), "Data migration can only enter from Scheduled");
+				defensive_assert!(matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }), "Data migration can only enter from WaitingForAh or Scheduled");
 				Self::deposit_event(Event::AssetHubMigrationStarted);
 			}
 
