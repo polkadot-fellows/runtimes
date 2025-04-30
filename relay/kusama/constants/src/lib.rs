@@ -109,8 +109,8 @@ pub mod system_parachain {
 	use xcm_builder::IsChildSystemParachain;
 
 	parameter_types! {
-		pub AssetHubParaId: ParaId = 1000.into();
-		pub PeopleParaId: ParaId = 1004.into();
+		pub AssetHubParaId: ParaId = ASSET_HUB_ID.into();
+		pub PeopleParaId: ParaId = PEOPLE_ID.into();
 	}
 
 	/// Asset Hub parachain ID.
