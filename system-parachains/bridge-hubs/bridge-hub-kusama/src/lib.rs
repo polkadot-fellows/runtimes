@@ -181,7 +181,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_004_003,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -575,8 +575,7 @@ use pallet_bridge_messages::LaneIdOf;
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
-	use kusama_runtime_constants::system_parachain::AssetHubParaId;
-	use system_parachains_constants::kusama::locations::AssetHubLocation;
+	use system_parachains_constants::kusama::locations::{AssetHubLocation, AssetHubParaId};
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]

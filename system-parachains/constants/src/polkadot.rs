@@ -156,13 +156,14 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::parameter_types;
-	use polkadot_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
-	use xcm::latest::prelude::{Junction::*, Location, ParentThen};
+	pub use polkadot_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
+	use xcm::latest::prelude::{Junction::*, Location};
 
 	parameter_types! {
-		pub AssetHubLocation: Location = ParentThen(
-			Parachain(AssetHubParaId::get().into()).into()).into();
-		pub PeopleLocation: Location = ParentThen(
-			Parachain(PeopleParaId::get().into()).into()).into();
+		pub AssetHubLocation: Location =
+			Location::new(1, Parachain(polkadot_runtime_constants::system_parachain::ASSET_HUB_ID));
+		pub PeopleLocation: Location =
+			Location::new(1, Parachain(polkadot_runtime_constants::system_parachain::PEOPLE_ID));
+
 	}
 }

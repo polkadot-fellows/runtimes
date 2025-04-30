@@ -46,8 +46,6 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
-use polkadot_runtime_constants::system_parachain::{AssetHubParaId, PeopleParaId};
-
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
 	/// The location of the DOT token, from the context of this chain. Since this token is native to this
@@ -135,7 +133,7 @@ pub type XcmRouter = WithUniqueTopic<(
 
 parameter_types! {
 	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
-	pub AssetHubLocation: Location = Parachain(AssetHubParaId::get().into()).into_location();
+	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
 	pub CollectivesLocation: Location = Parachain(COLLECTIVES_ID).into_location();
 	pub DotForCollectives: (AssetFilter, Location) = (Dot::get(), CollectivesLocation::get());
@@ -143,7 +141,7 @@ parameter_types! {
 	pub DotForCoretime: (AssetFilter, Location) = (Dot::get(), CoretimeLocation::get());
 	pub BridgeHubLocation: Location = Parachain(BRIDGE_HUB_ID).into_location();
 	pub DotForBridgeHub: (AssetFilter, Location) = (Dot::get(), BridgeHubLocation::get());
-	pub People: Location = Parachain(PeopleParaId::get().into()).into_location();
+	pub People: Location = Parachain(PEOPLE_ID).into_location();
 	pub DotForPeople: (AssetFilter, Location) = (Dot::get(), People::get());
 	pub const MaxAssetsIntoHolding: u32 = 64;
 }
