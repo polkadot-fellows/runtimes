@@ -127,9 +127,11 @@ pub mod system_parachain {
 	use xcm_builder::IsChildSystemParachain;
 
 	parameter_types! {
-		pub AssetHubParaId: ParaId = 1000.into();
+		pub AssetHubParaId: ParaId = ASSET_HUB_ID.into();
 	}
 
+	/// Asset Hub parachain ID.
+	pub const ASSET_HUB_ID: u32 = 1000;
 	/// Collectives parachain ID.
 	pub const COLLECTIVES_ID: u32 = 1001;
 	/// Bridge Hub parachain ID.

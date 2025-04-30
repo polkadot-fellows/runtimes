@@ -156,7 +156,7 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::parameter_types;
-	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
+	pub use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use xcm::latest::prelude::{Junction::*, Location, ParentThen};
 
 	parameter_types! {
