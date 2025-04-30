@@ -18,6 +18,7 @@
 
 #![cfg(test)]
 
+pub mod balances_test;
 pub mod bench_ah;
 pub mod bench_ops;
 pub mod bench_rc;

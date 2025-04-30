@@ -33,7 +33,10 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
+use super::{
+	balances_test::BalancesCrossChecker, checks::SanityChecks, mock::*,
+	proxy_test::ProxiesStillWork,
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -70,6 +73,7 @@ type RcChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
+	BalancesCrossChecker,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
@@ -101,6 +105,7 @@ type AhChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
+	BalancesCrossChecker,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,

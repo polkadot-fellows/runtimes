@@ -796,17 +796,16 @@ impl<T: Config> AccountsMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
-	// (rc_checking_before, rc_total_issuance_before)
-	type RcPrePayload = (BalanceOf<T>, BalanceOf<T>);
+	// Total issuance on the relay chain before migration
+	type RcPrePayload = BalanceOf<T>;
 
 	fn pre_check() -> Self::RcPrePayload {
 		let total_issuance = <T as Config>::Currency::total_issuance();
-		let checking_balance = <T as Config>::Currency::total_balance(&T::CheckingAccount::get());
-		(checking_balance, total_issuance)
+		total_issuance
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
-		let (_rc_checking_before, rc_total_issuance_before) = rc_pre_payload;
+		let rc_total_issuance_before = rc_pre_payload;
 		// Check that all accounts have been processed correctly
 		for (who, acc_state) in RcAccounts::<T>::iter() {
 			match acc_state {
@@ -910,13 +909,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 			}
 		}
 
-		// Check that checking account has no balance (fully migrated)
-		let check_account = T::CheckingAccount::get();
-		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		assert_eq!(
-			checking_balance, 0,
-			"Checking account should have no balance on the relay chain after migration"
-		);
 		let total_issuance = <T as Config>::Currency::total_issuance();
 		let tracker = RcMigratedBalance::<T>::get();
 		// verify total issuance hasn't changed for any other reason than the migrated funds
