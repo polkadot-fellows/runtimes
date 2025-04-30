@@ -41,9 +41,7 @@ use frame_support::{
 		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
 		Everything, InstanceFilter, TransformOrigin,
 	},
-	weights::{
-		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFee as _,
-	},
+	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
 };
 use frame_system::{
@@ -71,9 +69,20 @@ pub use sp_runtime::{MultiAddress, Perbill, Permill};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use system_parachains_constants::kusama::{
-	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::*, fee::WeightToFee,
+use system_parachains_constants::{
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	},
+	kusama::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
+
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
@@ -88,41 +97,10 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-/// This determines the average expected block time that we are targeting.
-///
-/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is
-/// picked up by `pallet_timestamp`, which is in turn picked up by `pallet_aura` to implement `fn
-/// slot_duration()`.
-///
-/// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6_000;
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
-/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-/// used to limit the maximal weight of a single extrinsic.
-pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
-/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
-/// `Operational` extrinsics.
-pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-
-/// We allow for 2 seconds of compute with a 6 second average block time.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-	WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-	polkadot_primitives::MAX_POV_SIZE as u64,
-);
-
-/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
-/// into the relay chain.
-pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 2;
-
-/// How many parachain blocks are processed by the relay chain per parent. Limits the
-/// number of blocks authored per slot.
-pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
+/// The Kusama People Chain slot duration.
+// Async backing was launched with a 6 second slot duration for Kusama People Chain. We maintain
+// this value rather than inheriting the 12 second duration defined in the common constants.
+pub const SLOT_DURATION: u64 = 6_000;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -186,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-kusama"),
 	impl_name: Cow::Borrowed("people-kusama"),
 	authoring_version: 1,
-	spec_version: 1_004_003,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
