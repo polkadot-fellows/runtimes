@@ -484,15 +484,18 @@ pub mod pallet {
 			/// The new stage after the transition.
 			new: MigrationStageOf<T>,
 		},
-		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is emitted.
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
+		/// emitted.
 		///
-		/// This event is equivalent to `StageTransition { new: Initializing, .. }` but is easier to
-		/// understand. The activation is immediate and affects all events happening afterwards.
+		/// This event is equivalent to `StageTransition { new: Initializing, .. }` but is easier
+		/// to understand. The activation is immediate and affects all events happening
+		/// afterwards.
 		AssetHubMigrationStarted,
 		/// The Asset Hub Migration finished.
 		///
-		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier to
-		/// understand. The finishing is immediate and affects all events happening afterwards.
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier
+		/// to understand. The finishing is immediate and affects all events happening
+		/// afterwards.
 		AssetHubMigrationFinished,
 	}
 
@@ -1463,13 +1466,19 @@ pub mod pallet {
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 
-			if new == MigrationStage::Initializing {
-				defensive_assert!(matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }), "Data migration can only enter from WaitingForAh or Scheduled");
+			if new == MigrationStage::Starting {
+				defensive_assert!(
+					matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }),
+					"Data migration can only enter from WaitingForAh or Scheduled"
+				);
 				Self::deposit_event(Event::AssetHubMigrationStarted);
 			}
 
 			if new == MigrationStage::MigrationDone {
-				defensive_assert!(old == MigrationStage::SignalMigrationFinish, "MigrationDone can only enter from SignalMigrationFinish");
+				defensive_assert!(
+					old == MigrationStage::SignalMigrationFinish,
+					"MigrationDone can only enter from SignalMigrationFinish"
+				);
 				Self::deposit_event(Event::AssetHubMigrationFinished);
 			}
 
