@@ -285,6 +285,8 @@ jobs:
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
           docker --version
+          # WIP:
+          docker images
 
       - name: Zombienet smoke test for polkadot-${{ matrix.docker.polkadot }} with polkadot-parachain-${{ matrix.docker.cumulus }})
         timeout-minutes: 20
@@ -295,6 +297,8 @@ jobs:
           export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
           export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
+          # WIP:
+          docker images
 
   build-runtimes:
     needs: [ runtime-matrix ]
