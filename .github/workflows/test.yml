@@ -233,17 +233,25 @@ jobs:
       - name: Download node binaries
         shell: bash
         run: |
-          # WIP: externalize
+          echo "WIP: Starting"
           POLKADOT_VERSIONS=("polkadot-stable2412-5" "polkadot-stable2503")
+          echo "${POLKADOT_VERSIONS[@]}"
           NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
+          echo "${NODE_BINARIES[@]}"
           PARACHAIN_BINARIES=("polkadot-parachain")
+          echo "${PARACHAIN_BINARIES[@]}"
           ALL_BINARIES=("${NODE_BINARIES[@]}" "${PARACHAIN_BINARIES[@]}")
+          echo "${ALL_BINARIES[@]}"
+          mkdir -p ./node-binaries
           for polkadot_version in "${POLKADOT_VERSIONS[@]}"; do
+            echo "Downloading for $polkadot_version"
             for binary in "${ALL_BINARIES[@]}"; do
+              echo "Downloading $binary"
               curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$polkadot_version/${binary} -o ./node-binaries/${binary}-$polkadot_version
               chmod +x ./${binary}-$polkadot_version
             done
           done
+          ls -lrt ./node-binaries
 
       - name: Upload node binaries to cache
         uses: actions/upload-artifact@v4
