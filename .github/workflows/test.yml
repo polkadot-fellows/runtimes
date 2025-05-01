@@ -317,7 +317,7 @@ jobs:
           export PATH=$(pwd)/for-zombienet-smoke:$PATH
           export PATH=$(pwd)/node-binaries:$PATH
 
-          ls ./node-binaries
+          ls -lrt ./node-binaries
 
           # WIP: externalize
           NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
@@ -330,7 +330,7 @@ jobs:
           for binary in "${PARACHAIN_BINARIES[@]}"; do
               cp ./node-binaries/${binary}-${{ matrix.docker.cumulus }} ./node-binaries/${binary}
           done
-          ls ./node-binaries
+          ls -lrt ./node-binaries
 
           export ZOMBIE_PROVIDER="Native"
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
