@@ -204,19 +204,27 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 				// Iterate over task and it's corresponding encoded call.
 				for (rc_task_opt, encoded_call_opt) in tasks.zip(encoded_calls) {
 					// Check both task and encoded call exist.
-					let (Some(rc_task), Some(encoded_call)) = (rc_task_opt, encoded_call_opt) else {
+					let Some(rc_task) = rc_task_opt else {
+						// No scheduled task for block number
+						continue;
+					};
+					let Some(encoded_call) = encoded_call_opt else {
+						// Call for scheduled task didn't come through.
+						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {} didn't come through.", block_number);
 						continue;
 					};
 
 					// Attempt origin conversion.
 					let Ok(ah_origin) = T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) else {
 						// Origin conversion failed, skip task.
+						log::info!(target: LOG_TARGET, "Origin for task scheduled at block number {} couldn't be converted.", block_number);
 						continue;
 					};
 
 					// Attempt call conversion.
 					let Ok(ah_call) = Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) else {
 						// Call conversion failed, skip task.
+						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {} couldn't be converted.", block_number);
 						continue;
 					};
 
@@ -230,7 +238,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 					};
 					ah_tasks.push(Some(ah_task));
 				}
-				
+
 				// Filter out blocks that end up with no valid tasks after conversion.
 				if !ah_tasks.is_empty() {
 					Some((block_number, ah_tasks))
