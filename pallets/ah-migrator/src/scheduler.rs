@@ -217,7 +217,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 					// Attempt origin conversion.
 					let Ok(ah_origin) = T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) else {
 						// Origin conversion failed, skip task.
-						defensive!(target: LOG_TARGET, "Origin for task scheduled at block number {:?} couldn't be converted.", block_number);
+						defensive!("Origin for task scheduled at block number {:?} couldn't be converted.", block_number);
 						continue;
 					};
 
