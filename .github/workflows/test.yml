@@ -232,6 +232,8 @@ jobs:
       - name: Download node binaries
         shell: bash
         run: |
+          # WIP:
+          uname -a
           POLKADOT_VERSIONS=("polkadot-stable2412-5" "polkadot-stable2503")
           NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
           PARACHAIN_BINARIES=("polkadot-parachain")
@@ -242,6 +244,7 @@ jobs:
               echo "Downloading $binary for $polkadot_version"
               curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$polkadot_version/${binary} -o ./node-binaries/${binary}-$polkadot_version
               chmod +x ./node-binaries/${binary}-$polkadot_version
+              file ./node-binaries/${binary}-$polkadot_version
             done
           done
           ls -lrt ./node-binaries
@@ -315,6 +318,8 @@ jobs:
         timeout-minutes: 20
         continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
+          # WIP:
+          uname -a
           # Add binaries to PATH
           export PATH=$(pwd)/for-zombienet-smoke:$PATH
           export PATH=$(pwd)/node-binaries:$PATH
@@ -327,10 +332,12 @@ jobs:
           for binary in "${NODE_BINARIES[@]}"; do
               cp ./node-binaries/${binary}-${{ matrix.docker.polkadot }} ./node-binaries/${binary}
               chmod +x ./node-binaries/${binary}
+              file ./node-binaries/${binary}
           done
           for binary in "${PARACHAIN_BINARIES[@]}"; do
               cp ./node-binaries/${binary}-${{ matrix.docker.cumulus }} ./node-binaries/${binary}
               chmod +x ./node-binaries/${binary}
+              file ./node-binaries/${binary}
           done
           ls -lrt ./node-binaries
 
