@@ -346,6 +346,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type AhBalancesBefore<T: Config> = StorageValue<_, BalancesBefore<T::Balance>, ValueQuery>;
 
+	/// Helper storage item to store the total balance that is migrated into Asset Hub.
+	#[pallet::storage]
+	pub type AhMigratedBalance<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The error that should to be replaced by something meaningful.

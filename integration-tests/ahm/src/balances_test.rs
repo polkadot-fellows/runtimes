@@ -36,6 +36,8 @@ pub struct BalancesCrossChecker;
 
 // Used to store the balance kept on the relay chain after migration.
 static RC_KEPT_AFTER: Mutex<Option<u128>> = Mutex::new(None);
+// Used to store the balance migrated out of the relay chain.
+static RC_MIGRATED_BALANCE: Mutex<Option<u128>> = Mutex::new(None);
 
 impl RcMigrationCheck for BalancesCrossChecker {
 	// (rc_total_issuance_before, rc_checking_balance_before)
@@ -59,8 +61,11 @@ impl RcMigrationCheck for BalancesCrossChecker {
 		);
 
 		let rc_kept_after = pallet_balances::Pallet::<RcRuntime>::total_issuance();
-		log::error!("rc_kept_after: {}", rc_kept_after);
 		*RC_KEPT_AFTER.lock().unwrap() = Some(rc_kept_after);
+
+		let rc_migrated_balance =
+			pallet_rc_migrator::RcMigratedBalance::<RcRuntime>::get().migrated;
+		*RC_MIGRATED_BALANCE.lock().unwrap() = Some(rc_migrated_balance);
 	}
 }
 
@@ -121,6 +126,16 @@ impl AhMigrationCheck for BalancesCrossChecker {
 				ah_total_issuance_before -
 				ah_checking_balance_before,
 			"Checking balance on asset hub after migration is incorrect"
+		);
+
+		let rc_migrated_balance = RC_MIGRATED_BALANCE
+			.lock()
+			.unwrap()
+			.expect("rc_migrated_balance should be set by RcMigrationCheck::post_check");
+		let ah_migrated_balance = pallet_ah_migrator::AhMigratedBalance::<AhRuntime>::get();
+		assert_eq!(
+			ah_migrated_balance, rc_migrated_balance,
+			"Balance migrated out of the relay chain should be equal to the balance migrated into Asset Hub"
 		);
 	}
 }

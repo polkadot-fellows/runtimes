@@ -84,6 +84,20 @@ impl<T: Config> Pallet<T> {
 		};
 		debug_assert!(minted == total_balance);
 
+		AhMigratedBalance::<T>::mutate(|balance| {
+			*balance = match (*balance).checked_add(total_balance) {
+				Some(new_balance) => new_balance,
+				None => {
+					log::error!(
+						target: LOG_TARGET,
+						"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
+						who.to_ss58check(), total_balance, balance,
+					);
+					*balance
+				},
+			};
+		});
+
 		for hold in account.holds {
 			if let Err(e) = <T as pallet::Config>::Currency::hold(
 				&T::RcToAhHoldReason::convert(hold.id),
