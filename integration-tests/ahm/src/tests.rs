@@ -37,7 +37,13 @@ use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
-use frame_support::traits::schedule::DispatchTime;
+use frame_support::{
+	assert_err,
+	traits::{
+		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement,
+		ReservableCurrency,
+	},
+};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
 	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
@@ -52,7 +58,7 @@ use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::AccountId32;
+use sp_runtime::{AccountId32, DispatchError, TokenError};
 use std::{collections::BTreeMap, str::FromStr};
 use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
@@ -141,7 +147,7 @@ async fn pallet_migration_works() {
 	ah_migrate(&mut ah, dmp_messages);
 	// no upward messaging support in this test yet, just manually advance the stage
 	rc.execute_with(|| {
-		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::AccountsMigrationInit);
+		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::Starting);
 	});
 	rc.commit_all().unwrap();
 
@@ -155,9 +161,9 @@ async fn pallet_migration_works() {
 	ah_migrate(&mut ah, dmp_messages);
 
 	ah.execute_with(|| {
-		assert!(
-			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get() ==
-				pallet_ah_migrator::MigrationStage::MigrationDone
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get(),
+			pallet_ah_migrator::MigrationStage::MigrationDone
 		);
 	});
 
@@ -482,7 +488,7 @@ async fn scheduled_migration_works() {
 		next_block_rc();
 
 		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -521,13 +527,13 @@ async fn scheduled_migration_works() {
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 
 		next_block_rc();
 
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::AccountsMigrationOngoing { last_key: None }
+			RcMigrationStage::AccountsMigrationInit
 		);
 	});
 	rc.commit_all().unwrap();
@@ -559,7 +565,6 @@ async fn some_account_migration_works() {
 				account_id,
 				rc_account,
 				&mut WeightMeter::new(),
-				&mut WeightMeter::new(),
 				0,
 			)
 			.unwrap_or_else(|err| {
@@ -590,4 +595,94 @@ async fn some_account_migration_works() {
 			log::info!("Account integration result: {:?}", res);
 		});
 	}
+}
+
+#[test]
+fn test_account_references() {
+	type PalletBalances = pallet_balances::Pallet<Polkadot>;
+	type PalletSystem = frame_system::Pallet<Polkadot>;
+
+	new_test_rc_ext().execute_with(|| {
+		// create new account.
+		let who: AccountId32 = [0; 32].into();
+		let ed = <PalletBalances as Currency<_>>::minimum_balance();
+		let _ = PalletBalances::deposit_creating(&who, ed + ed + ed);
+
+		// account is create with right balance and references.
+		assert_eq!(PalletBalances::balance(&who), ed + ed + ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// decrement consumer reference from `0`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed + ed + ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// reserve some balance which results `+1` consumer reference.
+		let _ = PalletBalances::reserve(&who, ed).expect("reserve failed");
+
+		// account data is valid.
+		assert_eq!(PalletBalances::balance(&who), ed + ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// force decrement consumer reference from `1`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed + ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// transfer some balance (or perform any update on account) to new account which results
+		// consumer reference to automatically correct the consumer reference since the reserve
+		// is still there.
+		let who2: AccountId32 = [1; 32].into();
+		let _ = PalletBalances::transfer(&who, &who2, ed, ExistenceRequirement::AllowDeath)
+			.expect("transfer failed");
+
+		// account is still alive, and consumer reference is corrected.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// force decrement consumer reference from `1`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive, and consumer reference is force decremented.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// try to kill the account by transfer all.
+		assert_eq!(
+			PalletBalances::transfer(&who, &who2, ed + ed, ExistenceRequirement::AllowDeath),
+			Err(TokenError::FundsUnavailable.into())
+		);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// try to transfer all free balance, leaving only reserve.
+		assert_eq!(
+			PalletBalances::transfer(&who, &who2, ed, ExistenceRequirement::AllowDeath),
+			Err(DispatchError::ConsumerRemaining)
+		);
+
+		// account is still alive. in this case consumer reference even gets corrected.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+	});
 }

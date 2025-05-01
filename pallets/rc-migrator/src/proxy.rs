@@ -71,7 +71,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 		mut last_key: Option<AccountIdOf<T>>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<AccountIdOf<T>>, Error<T>> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		// Get iterator starting after last processed key
 		let mut key_iter = if let Some(last_key) = last_key.clone() {
@@ -93,7 +93,7 @@ impl<T: Config> PalletMigration for ProxyProxiesMigrator<T> {
 				acc.clone(),
 				(proxies.into_inner(), deposit),
 				weight_counter,
-				batch.len() as u32,
+				&mut batch,
 			) {
 				Ok(proxy) => {
 					pallet_proxy::Proxies::<T>::remove(&acc);
@@ -137,14 +137,17 @@ impl<T: Config> ProxyProxiesMigrator<T> {
 			BalanceOf<T>,
 		),
 		weight_counter: &mut WeightMeter,
-		batch_len: u32,
+		batch: &mut XcmBatchAndMeter<RcProxyLocalOf<T>>,
 	) -> Result<RcProxyLocalOf<T>, OutOfWeightError> {
-		if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
+		if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+			weight_counter.try_consume(batch.consume_weight()).is_err()
+		{
+			log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 			return Err(OutOfWeightError);
 		}
 
-		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch_len + 1)) {
-			log::info!("AH weight limit reached at batch length {}, stopping", batch_len);
+		if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_proxy_proxies(batch.len() + 1)) {
+			log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
 			return Err(OutOfWeightError);
 		}
 
@@ -171,7 +174,7 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 		last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut last_processed = None;
 
 		// Get iterator starting after last processed key
@@ -185,15 +188,26 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 
 		// Process announcements until we run out of weight
 		for (acc, (_announcements, deposit)) in iter.by_ref() {
-			if weight_counter.try_consume(Weight::from_all(1_000)).is_err() {
-				break;
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
 
 			if T::MaxAhWeight::get()
 				.any_lt(T::AhWeightInfo::receive_proxy_announcements((batch.len() + 1) as u32))
 			{
 				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
-				break;
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
 			}
 
 			batch.push(RcProxyAnnouncement { depositor: acc.clone(), deposit });

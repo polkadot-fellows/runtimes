@@ -28,7 +28,7 @@ snapshot RUNTIME:
 
 # Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
 # Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
-# Example: just port westend ~polkadot-sdk/cumulus/test/ahm
+# Example: just port westend cumulus/test/ahm
 port RUNTIME SDK FOLDER:
 	#!/usr/bin/env bash
 	set -e
@@ -45,7 +45,7 @@ port RUNTIME SDK FOLDER:
 
 	# Add to workspace
 	perl -pi -e 's#members\s*=\s*\[#members = [\n\t"cumulus/pallets/rc-migrator",\n\t"cumulus/pallets/ah-migrator",\n\t"cumulus/test/ahm",\n\t"cumulus/pallets/ah-ops",#' {{SDK}}/Cargo.toml
-	perl -pi -e 's#\[workspace.dependencies\]#\[workspace.dependencies\]\npallet-rc-migrator = { path = "cumulus/pallets/rc-migrator" }\npallet-ah-migrator = { path = "cumulus/pallets/ah-migrator" }\npallet-ah-ops = { path = "cumulus/pallets/ah-ops" }#' {{SDK}}/Cargo.toml
+	perl -pi -e 's#\[workspace.dependencies\]#\[workspace.dependencies\]\npallet-rc-migrator = { path = "cumulus/pallets/rc-migrator", default-features = false }\npallet-ah-migrator = { path = "cumulus/pallets/ah-migrator", default-features = false }\npallet-ah-ops = { path = "cumulus/pallets/ah-ops", default-features = false }#' {{SDK}}/Cargo.toml
 
 	just test-cargo-toml-replaces {{SDK}}/cumulus/test/ahm {{RUNTIME}}
 	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator {{RUNTIME}}
@@ -60,7 +60,7 @@ port RUNTIME SDK FOLDER:
 		just code-substitute {{SDK}} westend
 	fi
 
-	cd {{FOLDER}}
+	cd {{SDK}}/{{FOLDER}}
 	cargo fetch
 	zepter
 
@@ -84,6 +84,7 @@ code-substitute SDK RUNTIME:
 	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/Cargo.toml
 	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/Cargo.toml
+	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/test/ahm/src/mock.rs
 	# Comment the "Not on {{RUNTIME}}" lines
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
 	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
