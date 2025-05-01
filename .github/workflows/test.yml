@@ -221,12 +221,35 @@ jobs:
       - name: Build chain-spec-generator
         run: |
           cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --locked
+          chmod +x target/debug/chain-spec-generator
 
       - name: Upload chain-spec-generator
         uses: actions/upload-artifact@v4
         with:
           name: chain-spec-generator-for-smoke
           path: target/debug/chain-spec-generator
+
+      # Define supported Polkadot versions
+      - name: Download node binaries
+        shell: bash
+        run: |
+          # WIP: externalize
+          POLKADOT_VERSIONS=("polkadot-stable2412-5" "polkadot-stable2503")
+          NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
+          PARACHAIN_BINARIES=("polkadot-parachain")
+          ALL_BINARIES=("${NODE_BINARIES[@]}" "${PARACHAIN_BINARIES[@]}")
+          for polkadot_version in "${POLKADOT_VERSIONS[@]}"; do
+            for binary in "${ALL_BINARIES[@]}"; do
+              curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$polkadot_version/${binary} -o ./node-binaries/${binary}-$polkadot_version
+              chmod +x ./${binary}-$polkadot_version
+            done
+          done
+
+      - name: Upload node binaries to cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-binaries-for-smoke
+          path: node-binaries
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
@@ -235,18 +258,18 @@ jobs:
     strategy:
       matrix:
         docker:
-          - polkadot: v1.17.4
-            cumulus: v1.17.4
+          - polkadot: polkadot-stable2412-5
+            cumulus: polkadot-stable2412-5
             can_fail: false
-          - polkadot: v1.17.4
-            cumulus: v1.18.0
+          - polkadot: polkadot-stable2412-5
+            cumulus: polkadot-stable2503
             can_fail: false
-          - polkadot: v1.18.0
-            cumulus: v1.18.0
+          - polkadot: polkadot-stable2503
+            cumulus: polkadot-stable2503
             can_fail: false
-          - polkadot: latest
-            cumulus: latest
-            can_fail: true
+          - polkadot: polkadot-stable2503
+            cumulus: polkadot-stable2412-5
+            can_fail: false
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -281,24 +304,36 @@ jobs:
           name: chain-spec-generator-for-smoke
           path: ./for-zombienet-smoke
 
-      - name: Wait for Docker to Start
-        run: |
-          timeout 30 sh -c 'until docker info; do sleep 1; done'
-          docker --version
-          # WIP:
-          docker images
+      - name: Download node binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: node-binaries-for-smoke
+          path: ./node-binaries
 
       - name: Zombienet smoke test for polkadot-${{ matrix.docker.polkadot }} with polkadot-parachain-${{ matrix.docker.cumulus }})
         timeout-minutes: 20
         continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
-          chmod +x ./for-zombienet-smoke/chain-spec-generator
           export PATH=$(pwd)/for-zombienet-smoke:$PATH
-          export POLKADOT_IMAGE="docker.io/parity/polkadot:${{ matrix.docker.polkadot }}"
-          export CUMULUS_IMAGE="docker.io/parity/polkadot-parachain:${{ matrix.docker.cumulus }}"
+          export PATH=$(pwd)/node-binaries:$PATH
+
+          ls ./node-binaries
+
+          # WIP: externalize
+          NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
+          PARACHAIN_BINARIES=("polkadot-parachain")
+
+          # Ensure matrix version for PATH
+          for binary in "${NODE_BINARIES[@]}"; do
+              cp ./node-binaries/${binary}-${{ matrix.docker.polkadot }} ./node-binaries/${binary}
+          done
+          for binary in "${PARACHAIN_BINARIES[@]}"; do
+              cp ./node-binaries/${binary}-${{ matrix.docker.cumulus }} ./node-binaries/${binary}
+          done
+          ls ./node-binaries
+
+          export ZOMBIE_PROVIDER="Native"
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
-          # WIP:
-          docker images
 
   build-runtimes:
     needs: [ runtime-matrix ]
