@@ -204,35 +204,33 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 				// Iterate over task and it's corresponding encoded call.
 				for (rc_task_opt, encoded_call_opt) in tasks.zip(encoded_calls) {
 					// Check both task and encoded call exist.
-					if let (Some(rc_task), Some(encoded_call)) = (rc_task_opt, encoded_call_opt) {
-						// Attempt origin conversion.
-						let ah_origin =
-							match T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) {
-								Ok(origin) => origin,
-								Err(_) => {
-									// Origin conversion failed, skip task.
-									continue;
-								},
-							};
+					let (Some(rc_task), Some(encoded_call)) = (rc_task_opt, encoded_call_opt) else {
+						continue;
+					};
 
-						// Attempt call conversion.
-						let ah_call = match Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) {
-							Ok(call) => call,
-							// Conversion failed, skip task.
-							Err(_) => return None,
-						};
+					// Attempt origin conversion.
+					let Ok(ah_origin) = T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) else {
+						// Origin conversion failed, skip task.
+						continue;
+					};
 
-						// Build new task.
-						let ah_task = Scheduled {
-							maybe_id: rc_task.maybe_id,
-							priority: rc_task.priority,
-							call: ah_call,
-							maybe_periodic: rc_task.maybe_periodic,
-							origin: ah_origin,
-						};
-						ah_tasks.push(Some(ah_task));
-					}
+					// Attempt call conversion.
+					let Ok(ah_call) = Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) else {
+						// Call conversion failed, skip task.
+						continue;
+					};
+
+					// Build new task.
+					let ah_task = Scheduled {
+						maybe_id: rc_task.maybe_id,
+						priority: rc_task.priority,
+						call: ah_call,
+						maybe_periodic: rc_task.maybe_periodic,
+						origin: ah_origin,
+					};
+					ah_tasks.push(Some(ah_task));
 				}
+				
 				// Filter out blocks that end up with no valid tasks after conversion.
 				if !ah_tasks.is_empty() {
 					Some((block_number, ah_tasks))
