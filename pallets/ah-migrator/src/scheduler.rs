@@ -210,21 +210,21 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 					};
 					let Some(encoded_call) = encoded_call_opt else {
 						// Call for scheduled task didn't come through.
-						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {} didn't come through.", block_number);
+						log::error!(target: LOG_TARGET, "Call for task scheduled at block number {:?} didn't come through.", block_number);
 						continue;
 					};
 
 					// Attempt origin conversion.
 					let Ok(ah_origin) = T::RcToAhPalletsOrigin::try_convert(rc_task.origin.clone()) else {
 						// Origin conversion failed, skip task.
-						log::info!(target: LOG_TARGET, "Origin for task scheduled at block number {} couldn't be converted.", block_number);
+						defensive!(target: LOG_TARGET, "Origin for task scheduled at block number {:?} couldn't be converted.", block_number);
 						continue;
 					};
 
 					// Attempt call conversion.
 					let Ok(ah_call) = Pallet::<T>::map_rc_ah_call_no_preimage(encoded_call) else {
 						// Call conversion failed, skip task.
-						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {} couldn't be converted.", block_number);
+						log::error!(target: LOG_TARGET, "Call for task scheduled at block number {:?} couldn't be converted.", block_number);
 						continue;
 					};
 
