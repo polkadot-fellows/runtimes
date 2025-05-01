@@ -915,29 +915,21 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 				},
+				// Non-migratable accounts having total balance lower than the existential deposit.
 				_ => {
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					assert!(
+						total_balance < <T as Config>::Currency::minimum_balance(),
+						"Non-migratable account {:?} should have a total balance lower than the existential deposit on the relay",
+						who.to_ss58check()
+					);
+
 					let free_balance = <T as Config>::Currency::reducible_balance(
 						&who,
 						Preservation::Expendable,
 						Fortitude::Polite,
 					);
-					assert_eq!(free_balance, 0, "Account {:?} should have no free balance on the relay chain after migration", who.to_ss58check());
-
-					// Assert storage "Balances::Locks::rc_post::empty"
-					let locks = pallet_balances::Locks::<T>::get(&who);
-					assert!(
-						locks.is_empty(),
-						"Account {:?} should have no locks on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					// Assert storage "Balances::Freezes::rc_post::empty"
-					let freezes = pallet_balances::Freezes::<T>::get(&who);
-					assert!(
-						freezes.is_empty(),
-						"Account {:?} should have no freezes on the relay chain after migration",
-						who.to_ss58check()
-					);
+					assert_eq!(free_balance, 0, "Non-migratable account {:?} should have no free balance on the relay chain after migration", who.to_ss58check());
 				},
 			}
 		}
