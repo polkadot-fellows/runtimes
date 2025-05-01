@@ -10,7 +10,6 @@ repository.workspace = true
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
-chrono = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -66,7 +65,6 @@ default = ["std"]
 std = [
 	"assets-common/std",
 	"assets-common/std",
-	"chrono/std",
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",

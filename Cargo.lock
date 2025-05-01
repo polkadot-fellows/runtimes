@@ -7639,7 +7639,6 @@ name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
  "assets-common",
- "chrono",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
