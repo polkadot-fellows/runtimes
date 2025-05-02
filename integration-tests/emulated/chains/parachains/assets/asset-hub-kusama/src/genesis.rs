@@ -18,11 +18,17 @@ use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::snowbridge::{
+	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
+use xcm::prelude::*;
+use xcm_builder::GlobalConsensusParachainConvertsFor;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_kusama_runtime::ExistentialDeposit::get();
@@ -37,7 +43,12 @@ frame_support::parameter_types! {
 				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID)].into();
+	pub AssetHubPolkadotLocation: Location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
+	pub AssetHubPolkadotSovereignAccount: AccountId = GlobalConsensusParachainConvertsFor::<UniversalLocation, AccountId>::convert_location(
+		&AssetHubPolkadotLocation::get(),
+	).unwrap();
 }
 
 pub fn genesis() -> sp_core::storage::Storage {
@@ -91,6 +102,20 @@ pub fn genesis() -> sp_core::storage::Storage {
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,
+				),
+				// Ether
+				(
+					EthLocationXcmV4::get(),
+					AssetHubPolkadotSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
+				),
+				// Weth
+				(
+					WethLocationXcmV4::get(),
+					AssetHubPolkadotSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()
