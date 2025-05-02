@@ -632,7 +632,7 @@ pub mod pallet {
 					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_start();
 
-					Self::transition(MigrationStage::AccountsMigrationInit);
+					Self::transition(MigrationStage::ProxyMigrationInit); // DNM
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let weight = AccountsMigrator::<T>::obtain_rc_accounts();

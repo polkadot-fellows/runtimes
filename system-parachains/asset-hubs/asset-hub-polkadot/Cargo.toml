@@ -194,6 +194,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -246,6 +247,7 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"polkadot-runtime/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -348,6 +350,7 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
+	"polkadot-runtime/std"
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.

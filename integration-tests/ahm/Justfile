@@ -100,6 +100,7 @@ test-cargo-toml-replaces FOLDER RUNTIME:
 	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/"polkadot-runtime\/runtime-benchmarks"/"{{RUNTIME}}-runtime\/runtime-benchmarks"/' {{FOLDER}}/Cargo.toml
 	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"polkadot-runtime\//"{{RUNTIME}}-runtime\//' {{FOLDER}}/Cargo.toml
 	# Toggle the default feature
 	perl -pi -e 's/"ahm-polkadot"/"ahm-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
 
