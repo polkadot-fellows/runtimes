@@ -972,7 +972,7 @@ pub mod pallet {
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
 			AhMigrationStage::<T>::put(&new);
-			log::warn!(
+			log::info!(
 				target: LOG_TARGET,
 				"[Block {:?}] AH stage transition: {:?} -> {:?}",
 				frame_system::Pallet::<T>::block_number(),

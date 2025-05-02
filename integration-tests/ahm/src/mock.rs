@@ -293,3 +293,20 @@ pub fn ah_migrate(
 	});
 	asset_hub.commit_all().unwrap();
 }
+
+pub fn new_test_rc_ext() -> sp_io::TestExternalities {
+	use sp_runtime::BuildStorage;
+
+	let mut t = frame_system::GenesisConfig::<Polkadot>::default().build_storage().unwrap();
+
+	pallet_xcm::GenesisConfig::<Polkadot> {
+		safe_xcm_version: Some(xcm::latest::VERSION),
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| frame_system::Pallet::<Polkadot>::set_block_number(1));
+	ext
+}

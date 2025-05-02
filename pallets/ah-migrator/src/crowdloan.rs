@@ -14,7 +14,6 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use chrono::TimeZone;
 use cumulus_primitives_core::ParaId;
 use pallet_rc_migrator::{
 	crowdloan::{CrowdloanMigrator, PreCheckMessage, RcCrowdloanMessage},
@@ -125,7 +124,7 @@ where
 		let lease_reserves = pallet_ah_ops::RcLeaseReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, para_id, who), value) in &lease_reserves {
 			println!(
-				"Lease Reserve [{unlock_block}] {para_id} {who}: {} ({})",
+				"Lease Reserve [{unlock_block}] {para_id} {who}: {} ({:?})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -142,7 +141,7 @@ where
 		let crowdloan_reserves = pallet_ah_ops::RcCrowdloanReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, para_id, who), value) in &crowdloan_reserves {
 			println!(
-				"Crowdloan Reserve [{unlock_block}] {para_id} {who}: {} ({})",
+				"Crowdloan Reserve [{unlock_block}] {para_id} {who}: {} ({:?})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -158,18 +157,24 @@ where
 	}
 
 	#[cfg(feature = "std")]
-	fn block_to_date(block: BlockNumberFor<T>) -> chrono::DateTime<chrono::Utc> {
+	fn block_to_date(block: BlockNumberFor<T>) -> std::time::SystemTime {
 		let anchor_block: u64 =
 			<T as crate::Config>::RcBlockNumberProvider::current_block_number().into();
 		// We are using the time from AH here, not relay. But the snapshots are taken together.
 		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get().into();
 
 		let block_diff: u64 = (block.into() - anchor_block).into();
-		let add_time_ms: i64 = (block_diff * 6_000) as i64;
+		let add_time_ms: u64 = block_diff * 6_000;
 
-		// convert anchor_timestamp to chrono timestamp
-		let anchor_timestamp = chrono::Utc.timestamp_millis_opt(anchor_timestamp as i64).unwrap();
-		let block_timestamp = anchor_timestamp + chrono::Duration::milliseconds(add_time_ms);
+		// Convert anchor_timestamp to SystemTime
+		let anchor_time = std::time::UNIX_EPOCH
+			.checked_add(std::time::Duration::from_millis(anchor_timestamp))
+			.expect("Timestamp addition should not overflow");
+
+		let block_timestamp = anchor_time
+			.checked_add(std::time::Duration::from_millis(add_time_ms))
+			.expect("Block timestamp addition should not overflow");
+
 		block_timestamp
 	}
 }
