@@ -98,40 +98,6 @@ impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
 	}
 }
 
-/// Relay Chain Proxy Type
-///
-/// Coped from https://github.com/polkadot-fellows/runtimes/blob/dde99603d7dbd6b8bf541d57eb30d9c07a4fce32/relay/polkadot/src/lib.rs#L986-L1010
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Default)]
-pub enum RcProxyType {
-	#[default]
-	Any = 0,
-	NonTransfer = 1,
-	Governance = 2,
-	Staking = 3,
-	// Skip 4 as it is now removed (was SudoBalances)
-	// Skip 5 as it was IdentityJudgement
-	CancelProxy = 6,
-	Auction = 7,
-	NominationPools = 8,
-	ParaRegistration = 9,
-}
-
-pub struct RcToProxyType;
-impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
-	fn try_convert(p: RcProxyType) -> Result<ProxyType, RcProxyType> {
-		match p {
-			RcProxyType::Any => Ok(ProxyType::Any),
-			RcProxyType::NonTransfer => Ok(ProxyType::NonTransfer),
-			RcProxyType::Governance => Ok(ProxyType::Governance),
-			RcProxyType::Staking => Ok(ProxyType::Staking),
-			RcProxyType::CancelProxy => Ok(ProxyType::CancelProxy),
-			RcProxyType::Auction => Err(p), // Does not exist on AH
-			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
-			RcProxyType::ParaRegistration => Err(p), // Does not exist on AH
-		}
-	}
-}
-
 /// Convert a Relay Chain Proxy Delay to a local AH one.
 // NOTE we assume Relay Chain and AH to have the same block type
 pub struct RcToAhDelay;

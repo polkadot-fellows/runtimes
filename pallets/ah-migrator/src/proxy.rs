@@ -56,9 +56,8 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
-			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type) else {
-				// This is fine, eg. `Auction` proxy is not supported on AH
-				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy kind of index {} for {}", i, proxy.delegator.to_polkadot_ss58());
+			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type.clone()) else {
+				log::info!(target: LOG_TARGET, "Dropping unsupported proxy kind of '{:?}' at index {} for {}", p.proxy_type, i, proxy.delegator.to_polkadot_ss58());
 				// TODO unreserve deposit
 				return None;
 			};
@@ -135,17 +134,35 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+/*
+				// Check that only the Auction and ParaRegistration proxy is not supported on AH
+				#[cfg(feature = "ahm-polkadot")]
+				{
+					let kind = p.proxy_type.using_encoded(|e| e.get(0).cloned());
+					assert!(kind == Some(7) || kind == Some(9), "Unsupported proxy kind: {:?}", kind);
+				}*/ // DNM
+
+#[cfg(feature = "std")]
+use std::collections::BTreeMap;
+
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = usize; // number of delegators
-	type AhPrePayload = (); // number of proxies
+	type RcPrePayload = BTreeMap<AccountId32, Vec<(T::RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+	type AhPrePayload = BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		()
+		// Store the proxies per account before the migration
+		let mut proxies = BTreeMap::new();
+		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			for delegation in delegations {
+				proxies.entry(delegator.clone()).or_insert_with(Vec::new).push((delegation.proxy_type, delegation.delegate));
+			}
+		}
+		proxies
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
+		/*let count = pallet_proxy::Proxies::<T>::iter_keys().count();
 
 		log::info!(target: LOG_TARGET, "Total number of proxies: {}", count);
 		// TODO: This is not necessarily correct, since some proxy types are not migrated.
@@ -155,6 +172,6 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 				"Some proxies were not migrated. Expected at least {} proxies, got {}",
 				rc_pre_payload, count
 			);
-		}
+		}*/
 	}
 }

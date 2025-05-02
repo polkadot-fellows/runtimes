@@ -121,6 +121,7 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-common = { workspace = true }
 assets-common = { workspace = true }
+polkadot-runtime = { workspace = true } # Pulling this in makes it easier to reference Proxy type etc
 
 # Bridges
 pallet-xcm-bridge-hub-router = { workspace = true }
