@@ -18,7 +18,7 @@ You only need to modify the first argument to where you have checked out the `po
 
 ```bash
 cd integration-tests/ahm
-just port /home/user/polkadot-sdk cumulus/test/ahm
+just port westend /home/user/polkadot-sdk cumulus/test/ahm
 ```
 You should see a lot of console output and eventually the Rust test running:
 
