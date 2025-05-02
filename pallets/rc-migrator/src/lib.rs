@@ -80,6 +80,7 @@ use frame_support::{
 		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
+	PalletId,
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
@@ -456,6 +457,10 @@ pub mod pallet {
 		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 		/// Contains calls that are allowed after the migration finished.
 		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		/// The hold reason for staking delegation.
+		type StakingDelegationReason: Get<<Self as Config>::RuntimeHoldReason>;
+		/// The pallet ID for on-demand pallet.
+		type OnDemandPalletId: Get<PalletId>;
 	}
 
 	#[pallet::error]

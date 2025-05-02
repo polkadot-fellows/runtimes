@@ -1550,6 +1550,8 @@ impl pallet_rc_migrator::Config for Runtime {
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
+	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
+	type OnDemandPalletId = OnDemandPalletId;
 }
 
 #[cfg(not(feature = "zombie-bite-sudo"))]
