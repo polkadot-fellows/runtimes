@@ -54,13 +54,13 @@ pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
 
 [features]
-default = ["std", "ahm-polkadot"]
+default = ["ahm-polkadot", "std"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
 	"hex/std",
 	"log/std",
-	"polkadot-runtime/std"
+	"polkadot-runtime/std",
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",

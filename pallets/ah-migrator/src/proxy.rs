@@ -17,8 +17,7 @@
 
 use crate::*;
 use pallet_rc_migrator::types::ToPolkadotSs58;
-use sp_runtime::{traits::Zero, BoundedSlice};
-use sp_runtime::Saturating;
+use sp_runtime::{traits::Zero, BoundedSlice, Saturating};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
@@ -86,9 +85,7 @@ impl<T: Config> Pallet<T> {
 			// Best effort: we sort descending by Kind and Delay with the assumption that Kind 0 is
 			// always the `Any` proxy and low Delay proxies are more important.
 			defensive!("Truncating proxy list with best-effort priority");
-			proxies.sort_by(|a, b| {
-				b.proxy_type.cmp(&a.proxy_type).then(b.delay.cmp(&a.delay))
-			});
+			proxies.sort_by(|a, b| b.proxy_type.cmp(&a.proxy_type).then(b.delay.cmp(&a.delay)));
 			proxies.truncate(max_proxies);
 		}
 
@@ -158,14 +155,18 @@ use std::collections::BTreeMap;
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 	type RcPrePayload = BTreeMap<AccountId32, Vec<(T::RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
-	type AhPrePayload = BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+	type AhPrePayload =
+		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		// Store the proxies per account before the migration
 		let mut proxies = BTreeMap::new();
 		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
 			for delegation in delegations {
-				proxies.entry(delegator.clone()).or_insert_with(Vec::new).push((delegation.proxy_type, delegation.delegate));
+				proxies
+					.entry(delegator.clone())
+					.or_insert_with(Vec::new)
+					.push((delegation.proxy_type, delegation.delegate));
 			}
 		}
 		proxies
@@ -175,11 +176,16 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
-		let mut delegators = rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
-		
+		let mut delegators =
+			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
+
 		for delegator in delegators {
 			let ah_pre_delegations = ah_pre.get(delegator).cloned().unwrap_or_default();
-			let ah_post_delegations = pallet_proxy::Proxies::<T>::get(&delegator).0.into_iter().map(|d| (d.proxy_type, d.delegate)).collect::<Vec<_>>();
+			let ah_post_delegations = pallet_proxy::Proxies::<T>::get(&delegator)
+				.0
+				.into_iter()
+				.map(|d| (d.proxy_type, d.delegate))
+				.collect::<Vec<_>>();
 
 			// All existing AH delegations are still here
 			for ah_pre_d in &ah_pre_delegations {
@@ -193,7 +199,10 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 					#[cfg(feature = "ahm-polkadot")]
 					{
 						let k = rc_pre_d.0.encode().get(0).cloned();
-						assert!(k == Some(7) || k == Some(9), "Must translate all proxy Kinds except Auction and ParaRegistration");
+						assert!(
+							k == Some(7) || k == Some(9),
+							"Must translate all proxy Kinds except Auction and ParaRegistration"
+						);
 					}
 					continue;
 				};

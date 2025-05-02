@@ -121,7 +121,7 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 system-parachains-common = { workspace = true }
 assets-common = { workspace = true }
-polkadot-runtime = { workspace = true } # Pulling this in makes it easier to reference Proxy type etc
+polkadot-runtime = { workspace = true }                                   # Pulling this in makes it easier to reference Proxy type etc
 
 # Bridges
 pallet-xcm-bridge-hub-router = { workspace = true }
@@ -186,6 +186,7 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -194,7 +195,6 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
 	"pallet-ah-migrator/try-runtime",
@@ -245,9 +245,9 @@ try-runtime = [
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
-	"polkadot-runtime/try-runtime"
 ]
 std = [
 	"pallet-ah-migrator/std",
@@ -321,6 +321,7 @@ std = [
 	"polkadot-parachain-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
+	"polkadot-runtime/std",
 	"primitive-types/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -350,7 +351,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"polkadot-runtime/std"
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.

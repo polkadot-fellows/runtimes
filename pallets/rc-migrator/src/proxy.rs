@@ -239,14 +239,18 @@ use std::collections::btree_map::BTreeMap;
 
 #[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+	type RcPrePayload =
+		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
 	fn pre_check() -> Self::RcPrePayload {
 		// Store the proxies per account before the migration
 		let mut proxies = BTreeMap::new();
 		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
 			for delegation in delegations {
-				proxies.entry(delegator.clone()).or_insert_with(Vec::new).push((delegation.proxy_type, delegation.delegate));
+				proxies
+					.entry(delegator.clone())
+					.or_insert_with(Vec::new)
+					.push((delegation.proxy_type, delegation.delegate));
 			}
 		}
 		proxies
