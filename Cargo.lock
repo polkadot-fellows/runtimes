@@ -9113,9 +9113,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-multisig"
-version = "39.1.0"
+version = "39.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e0cc99d268440cfea88aa04d79a68f7364792f7941b07614d9fe31afbf25889"
+checksum = "f05c6e97d290f1e03b3fed63244b8a2a22c575e842d2362bd2fef929cf17cace"
 dependencies = [
  "log",
  "parity-scale-codec",
