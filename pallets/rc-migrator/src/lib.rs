@@ -637,7 +637,7 @@ pub mod pallet {
 					#[cfg(feature = "ahm-staking-migration")]
 					pallet_staking_async_ah_client::Pallet::<T>::on_migration_start();
 
-					Self::transition(MigrationStage::ProxyMigrationInit); // DNM
+					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
@@ -807,8 +807,7 @@ pub mod pallet {
 					}
 				},
 				MigrationStage::ProxyMigrationDone => {
-					// FAIL-CI DNM
-					Self::transition(MigrationStage::SignalMigrationFinish);
+					Self::transition(MigrationStage::PreimageMigrationInit);
 				},
 				MigrationStage::PreimageMigrationInit => {
 					Self::transition(MigrationStage::PreimageMigrationChunksOngoing {
