@@ -134,11 +134,10 @@ async fn pallet_migration_works() {
 	set_initial_migration_stage(&mut rc);
 
 	// Pre-checks on the Relay
-	let rc_pre = run_check(|| <(pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>, ProxiesStillWork) as RcMigrationCheck>::pre_check(), &mut rc); // DNM
+	let rc_pre = run_check(|| RcChecks::pre_check(), &mut rc);
 
 	// Pre-checks on the Asset Hub
-	// let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah); // DNM
-	let ah_pre = run_check(|| <(pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>, ProxiesStillWork) as AhMigrationCheck>::pre_check(rc_pre.clone().unwrap()), &mut ah);
+	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
 	// Run relay chain, sends start signal to AH
 	let dmp_messages = rc_migrate(&mut rc);
@@ -154,8 +153,7 @@ async fn pallet_migration_works() {
 	let dmp_messages = rc_migrate(&mut rc);
 
 	// Post-checks on the Relay
-	//run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc); // DNM
-	run_check(|| <(pallet_rc_migrator::proxy::ProxyProxiesMigrator<Polkadot>, ProxiesStillWork) as RcMigrationCheck>::post_check(rc_pre.clone().unwrap()), &mut rc);
+	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
 
 	// Migrate the Asset Hub
 	ah_migrate(&mut ah, dmp_messages);
@@ -168,15 +166,15 @@ async fn pallet_migration_works() {
 	});
 
 	// Post-checks on the Asset Hub
-	run_check(|| <(pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>, ProxiesStillWork) as AhMigrationCheck>::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
+	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 }
 
 fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<B>) -> Option<R> {
-	//if std::env::var("START_STAGE").is_err() {
+	if std::env::var("START_STAGE").is_err() {
 		Some(ext.execute_with(|| f()))
-	//} else {
-	//	None // DNM
-	//}
+	} else {
+		None
+	}
 }
 
 #[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
