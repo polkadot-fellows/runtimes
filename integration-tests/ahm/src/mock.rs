@@ -196,8 +196,9 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 		match instruction {
 			xcm::v3::Instruction::Transact { call, .. } => {
 				// Interesting part here: ensure that the receiving runtime can decode the call
-				let call: Call = Decode::decode(&mut &call.into_encoded()[..]).expect("Must decode DMP XCM call");
-			}
+				let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+					.expect("Must decode DMP XCM call");
+			},
 			_ => (), // Fine, we only check Transacts
 		}
 	}
@@ -215,8 +216,9 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 		match instruction {
 			xcm::v5::Instruction::Transact { call, .. } => {
 				// Interesting part here: ensure that the receiving runtime can decode the call
-				let call: Call = Decode::decode(&mut &call.into_encoded()[..]).expect("Must decode DMP XCM call");
-			}
+				let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+					.expect("Must decode DMP XCM call");
+			},
 			_ => (), // Fine, we only check Transacts
 		}
 	}

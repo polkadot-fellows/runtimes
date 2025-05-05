@@ -25,9 +25,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn staking_migration_finish_hook() {}
 
-	pub fn do_receive_staking_messages(
-		messages: Vec<T::RcStakingMessage>,
-	) -> Result<(), Error<T>> {
+	pub fn do_receive_staking_messages(messages: Vec<T::RcStakingMessage>) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
