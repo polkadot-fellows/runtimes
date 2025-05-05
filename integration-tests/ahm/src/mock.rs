@@ -161,7 +161,7 @@ pub fn next_block_ah() {
 pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 	log::info!("Enqueuing {} DMP messages", msgs.len());
 	for msg in msgs {
-		sanity_check_dmp::<asset_hub_polkadot_runtime::RuntimeCall>(&msg.msg);
+		sanity_check_xcm::<asset_hub_polkadot_runtime::RuntimeCall>(&msg.msg);
 
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
@@ -171,8 +171,21 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 	}
 }
 
+/// Enqueue DMP messages on the parachain side.
+pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
+	for msg in msgs {
+		sanity_check_xcm::<polkadot_runtime::RuntimeCall>(&msg);
+
+		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
+		polkadot_runtime::MessageQueue::enqueue_message(
+			bounded_msg.as_bounded_slice(),
+			RcMessageOrigin::Ump(UmpQueueId::Para(AH_PARA_ID)),
+		);
+	}
+}
+
 #[cfg(feature = "ahm-polkadot")] // XCM V3
-fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
+fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	let xcm = match xcm {
 		VersionedXcm::V3(inner) => inner.0,
@@ -191,7 +204,7 @@ fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
 }
 
 #[cfg(feature = "ahm-westend")] // XCM V5
-fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
+fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
 	let xcm = match xcm {
 		VersionedXcm::V5(inner) => inner.0,
@@ -206,21 +219,6 @@ fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
 			}
 			_ => (), // Fine, we only check Transacts
 		}
-	}
-}
-
-/// Enqueue DMP messages on the parachain side.
-pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
-	for msg in msgs {
-		if let Err(e) = xcm::VersionedXcm::<polkadot_runtime::RuntimeCall>::decode(&mut &msg[..]) {
-			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg), e);
-		}
-
-		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
-		polkadot_runtime::MessageQueue::enqueue_message(
-			bounded_msg.as_bounded_slice(),
-			RcMessageOrigin::Ump(UmpQueueId::Para(AH_PARA_ID)),
-		);
 	}
 }
 
