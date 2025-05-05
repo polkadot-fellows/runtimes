@@ -16,7 +16,11 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
-use frame_support::traits::fungible::Mutate;
+use frame_support::{
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
+};
 use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
@@ -210,35 +214,46 @@ fn para_to_system_para_transfer_assets(t: ParaToSystemParaTest) -> DispatchResul
 }
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = ASSET_HUB_POLKADOT_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		AssetHubPolkadot,          // Origin
-		AssetHubPolkadotXcmConfig, // XCM Configuration
-		vec![BridgeHubPolkadot],   // Destinations
-		(native_asset, amount)
-	);
-}
-
-#[test]
-fn teleport_from_and_to_relay() {
-	let amount = POLKADOT_ED * 100;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Polkadot,
-		PolkadotXcmConfig,
 		vec![AssetHubPolkadot],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		AssetHubPolkadot,
-		AssetHubPolkadotXcmConfig,
 		Polkadot,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = POLKADOT_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		AssetHubPolkadot,
+		Polkadot,
+		amount,
+		limited_teleport_assets
 	);
 }
 

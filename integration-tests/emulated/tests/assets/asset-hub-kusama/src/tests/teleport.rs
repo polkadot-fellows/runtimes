@@ -16,7 +16,10 @@
 use crate::*;
 use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
-use frame_support::traits::fungible::Mutate;
+use frame_support::{
+	dispatch::{GetDispatchInfo, RawOrigin},
+	traits::fungible::Mutate,
+};
 use kusama_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
 use xcm_runtime_apis::{
 	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
@@ -211,35 +214,46 @@ fn system_para_to_para_transfer_assets(t: SystemParaToParaTest) -> DispatchResul
 }
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = ASSET_HUB_KUSAMA_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		AssetHubKusama,          // Origin
-		AssetHubKusamaXcmConfig, // XCM Configuration
-		vec![BridgeHubKusama],   // Destinations
-		(native_asset, amount)
-	);
-}
-
-#[test]
-fn teleport_from_and_to_relay() {
-	let amount = KUSAMA_ED * 100;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Kusama,
-		KusamaXcmConfig,
 		vec![AssetHubKusama],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = KUSAMA_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		AssetHubKusama,
-		AssetHubKusamaXcmConfig,
 		Kusama,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Kusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = KUSAMA_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		AssetHubKusama,
+		Kusama,
+		amount,
+		limited_teleport_assets
 	);
 }
 

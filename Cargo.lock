@@ -1682,7 +1682,6 @@ dependencies = [
 name = "bridge-hub-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
  "bp-bridge-hub-kusama",
  "bp-messages",
  "bridge-hub-kusama-runtime",
