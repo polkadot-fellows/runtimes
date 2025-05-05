@@ -30,4 +30,5 @@ std = [
 	"polkadot-runtime-common/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
+	"xcm/std",
 ]
