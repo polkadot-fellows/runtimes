@@ -191,7 +191,7 @@ impl ProxiesStillWork {
 	) {
 		if delay > 0 {
 			log::warn!(
-				"Skipping proxy delegatee {:?} -> {:?} because of delay: {:?}",
+				"Not testing proxy delegatee {:?} -> {:?} because of delay: {:?}",
 				delegator.to_polkadot_ss58(),
 				delegatee.to_polkadot_ss58(),
 				delay
