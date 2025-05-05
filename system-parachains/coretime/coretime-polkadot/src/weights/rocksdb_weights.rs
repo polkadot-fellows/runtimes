@@ -1,5 +1,6 @@
-// Copyright (C) Parity Technologies and the various Polkadot contributors, see Contributions.md
-// for a list of specific contributors.
+// This file is part of Cumulus.
+
+// Copyright (C) 2023 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
