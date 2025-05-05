@@ -10051,6 +10051,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex",
+ "hex-literal",
  "log",
  "pallet-ah-migrator",
  "pallet-ah-ops",

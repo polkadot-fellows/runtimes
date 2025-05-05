@@ -33,7 +33,7 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
+use super::{checks::SanityChecks, mock::*, proxy::{ProxyBasicWorks, ProxyWhaleWatching}};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -78,7 +78,8 @@ type RcChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxiesStillWork,
+	ProxyBasicWorks,
+	ProxyWhaleWatching,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
@@ -109,7 +110,8 @@ type AhChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxiesStillWork,
+	ProxyBasicWorks,
+	ProxyWhaleWatching,
 );
 
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains

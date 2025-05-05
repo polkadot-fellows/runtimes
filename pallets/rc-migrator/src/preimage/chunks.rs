@@ -226,6 +226,7 @@ impl<T: Config> RcMigrationCheck for PreimageChunkMigrator<T> {
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// "Assert storage 'Preimage::PreimageFor::rc_post::empty'"
 		assert_eq!(
 			alias::PreimageFor::<T>::iter_keys().count(),
 			0,

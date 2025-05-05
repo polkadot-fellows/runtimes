@@ -24,6 +24,7 @@
 //! types directly.
 
 use crate::porting_prelude::*;
+use super::Permission;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -41,50 +42,12 @@ use std::{collections::BTreeMap, str::FromStr};
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
-/// Intent based permission.
-///
-/// Should be a superset of all possible proxy types.
-#[derive(Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum Permission {
-	Any,
-	NonTransfer,
-	Governance,
-	Staking,
-	CancelProxy,
-	Auction,
-	NominationPools,
-	ParaRegistration,
-}
-
-// Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
-impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
-	fn try_convert(
-		proxy: rc_proxy_definition::ProxyType,
-	) -> Result<Self, rc_proxy_definition::ProxyType> {
-		use rc_proxy_definition::ProxyType::*;
-
-		Ok(match proxy {
-			Any => Permission::Any,
-			NonTransfer => Permission::NonTransfer,
-			Governance => Permission::Governance,
-			Staking => Permission::Staking,
-			CancelProxy => Permission::CancelProxy,
-			Auction => Permission::Auction,
-			NominationPools => Permission::NominationPools,
-			ParaRegistration => Permission::ParaRegistration,
-
-			#[cfg(feature = "ahm-westend")]
-			SudoBalances | IdentityJudgement => return Err(proxy),
-		})
-	}
-}
-
 /// Proxy accounts can still be controlled by their delegates with the correct permissions.
 ///
 /// This tests the actual functionality, not the raw data. It does so by dispatching calls from the
 /// delegatee account on behalf of the delegator. It then checks for whether or not the correct
 /// events were emitted.
-pub struct ProxiesStillWork;
+pub struct ProxyBasicWorks;
 
 /// An account that has some delegatees set to control it.
 ///
@@ -105,7 +68,7 @@ pub struct Proxy {
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
 type PureProxies = BTreeMap<(AccountId32, AccountId32), Vec<Permission>>;
 
-impl RcMigrationCheck for ProxiesStillWork {
+impl RcMigrationCheck for ProxyBasicWorks {
 	type RcPrePayload = PureProxies;
 
 	fn pre_check() -> Self::RcPrePayload {
@@ -148,7 +111,7 @@ impl RcMigrationCheck for ProxiesStillWork {
 	}
 }
 
-impl AhMigrationCheck for ProxiesStillWork {
+impl AhMigrationCheck for ProxyBasicWorks {
 	type RcPrePayload = PureProxies;
 	type AhPrePayload = ();
 
@@ -182,8 +145,8 @@ impl AhMigrationCheck for ProxiesStillWork {
 	}
 }
 
-impl ProxiesStillWork {
-	fn check_proxy(
+impl ProxyBasicWorks {
+	pub fn check_proxy(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
 		permissions: &Vec<Permission>,
