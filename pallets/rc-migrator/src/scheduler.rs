@@ -53,13 +53,13 @@ impl<T: Config> PalletMigration for SchedulerMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(SchedulerStage::IncompleteSince);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -151,14 +151,14 @@ impl<T: Config> PalletMigration for SchedulerAgendaMigrator<T> {
 		mut last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 		let mut ah_weight_counter = WeightMeter::with_limit(T::MaxAhWeight::get());
 
 		let last_key = loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
