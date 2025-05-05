@@ -369,6 +369,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type Preimages = ();
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {

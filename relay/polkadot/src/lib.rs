@@ -265,6 +265,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1006,6 +1007,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1159,6 +1161,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
 }
 
 impl parachains_origin::Config for Runtime {}
@@ -1467,6 +1470,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
 	// TODO: this will come back later (stable25XY)
 	// type Filter = pallet_staking::AllStakers<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
