@@ -336,8 +336,9 @@ impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> SchedulerMigrator<T> {
-	// Convert all task calls to their Vec<u8> encodings, either directly or by grabbing the
-	// preimage. Used for migration checks.
+	// Convert all scheduled task calls to their Vec<u8> encodings, either directly or by grabbing
+	// the preimage. Used for migration checks. Note: Does not return `Scheduled`, just the call
+	// encodings.
 	fn get_task_call_encodings(
 		tasks: BoundedVec<
 			Option<alias::ScheduledOf<T>>,
@@ -346,43 +347,38 @@ impl<T: Config> SchedulerMigrator<T> {
 	) -> Vec<Option<Vec<u8>>> {
 		use frame_support::traits::{Bounded, QueryPreimage};
 
+		// Convert based on Schedules existance and call type.
 		tasks
 			.into_inner()
 			.into_iter()
 			.map(|maybe_schedule| {
-				match maybe_schedule {
-					// Schedule existed. Attempt to inline it.
-					Some(sched) => {
-						match sched.call {
-							// Inline. Grab inlined call.
-							Bounded::Inline(bounded_call) => Some(bounded_call.into_inner()),
-							// Lookup. Fetch preimage and store.
-							Bounded::Lookup { hash, len } => {
-								let maybe_preimage =
-									<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(
-										&hash,
-										Some(len),
-									);
-								match maybe_preimage {
-									Ok(preimage) => Some(preimage.into_owned()),
-									Err(_) => None,
-								}
-							},
-							// Legacy. Fetch preimage and store.
-							Bounded::Legacy { hash, .. } => {
-								let maybe_preimage =
-									<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(
-										&hash, None,
-									);
-								match maybe_preimage {
-									Ok(preimage) => Some(preimage.into_owned()),
-									Err(_) => None,
-								}
-							},
-						}
-					},
+				let Some(sched) = maybe_schedule else {
 					// Schedule was none. Keep as None.
-					None => None,
+					None
+				};
+
+				// Schedule existed. Attempt to inline it's call.
+				match sched.call {
+					// Inline. Grab inlined call.
+					Bounded::Inline(bounded_call) => Some(bounded_call.into_inner()),
+					// Lookup. Fetch preimage and store.
+					Bounded::Lookup { hash, len } => {
+						let Some(preimage) =
+							<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len))
+						else {
+							None
+						};
+						Some(preimage.into_owned())
+					},
+					// Legacy. Fetch preimage and store.
+					Bounded::Legacy { hash, .. } => {
+						let Some(preimage) =
+							<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None)
+						else {
+							None
+						};
+						Some(preimage.into_owned())
+					},
 				}
 			})
 			.collect::<Vec<_>>()

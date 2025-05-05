@@ -210,7 +210,7 @@ impl<T: Config> crate::types::AhMigrationCheck for SchedulerMigrator<T> {
 					};
 					let Some(encoded_call) = encoded_call_opt else {
 						// Call for scheduled task didn't come through.
-						log::error!(target: LOG_TARGET, "Call for task scheduled at block number {:?} didn't come through.", block_number);
+						log::info!(target: LOG_TARGET, "Call for task scheduled at block number {:?} didn't come through.", block_number);
 						continue;
 					};
 
