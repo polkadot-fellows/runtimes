@@ -39,6 +39,7 @@ use runtime_parachains::{
 };
 use sp_runtime::{BoundedVec, Perbill};
 use std::str::FromStr;
+use xcm::prelude::*;
 //use frame_support::traits::QueueFootprintQuery; // Only on westend
 
 pub const AH_PARA_ID: ParaId = ParaId::new(1000);
@@ -160,18 +161,51 @@ pub fn next_block_ah() {
 pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 	log::info!("Enqueuing {} DMP messages", msgs.len());
 	for msg in msgs {
-		// Sanity check that we can decode it
-		if let Err(e) =
-			xcm::VersionedXcm::<asset_hub_polkadot_runtime::RuntimeCall>::decode(&mut &msg.msg[..])
-		{
-			panic!("Failed to decode XCM: 0x{}: {:?}", hex::encode(&msg.msg), e);
-		}
+		sanity_check_dmp::<asset_hub_polkadot_runtime::RuntimeCall>(&msg.msg);
 
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
 		asset_hub_polkadot_runtime::MessageQueue::enqueue_message(
 			bounded_msg.as_bounded_slice(),
 			ParachainMessageOrigin::Parent,
 		);
+	}
+}
+
+#[cfg(feature = "ahm-polkadot")] // XCM V3
+fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
+	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
+	let xcm = match xcm {
+		VersionedXcm::V3(inner) => inner.0,
+		_ => panic!("Wrong XCM version: {:?}", xcm),
+	};
+
+	for instruction in xcm {
+		match instruction {
+			xcm::v3::Instruction::Transact { call, .. } => {
+				// Interesting part here: ensure that the receiving runtime can decode the call
+				let call: Call = Decode::decode(&mut &call.into_encoded()[..]).expect("Must decode DMP XCM call");
+			}
+			_ => (), // Fine, we only check Transacts
+		}
+	}
+}
+
+#[cfg(feature = "ahm-westend")] // XCM V5
+fn sanity_check_dmp<Call: Decode>(msg: &[u8]) {
+	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
+	let xcm = match xcm {
+		VersionedXcm::V5(inner) => inner.0,
+		_ => panic!("Wrong XCM version: {:?}", xcm),
+	};
+
+	for instruction in xcm {
+		match instruction {
+			xcm::v5::Instruction::Transact { call, .. } => {
+				// Interesting part here: ensure that the receiving runtime can decode the call
+				let call: Call = Decode::decode(&mut &call.into_encoded()[..]).expect("Must decode DMP XCM call");
+			}
+			_ => (), // Fine, we only check Transacts
+		}
 	}
 }
 
