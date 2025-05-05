@@ -168,7 +168,7 @@ pallet-utility = { version = "39.1.0", default-features = false }
 pallet-vesting = { version = "39.1.0", default-features = false }
 pallet-whitelist = { version = "38.1.0", default-features = false }
 pallet-xcm = { version = "18.1.0", default-features = false }
-pallet-xcm-benchmarks = { version = "18.1.0", default-features = false }
+pallet-xcm-benchmarks = { version = "18.1.1", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.14.2", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.16.0", default-features = false }
 parachain-info = { version = "0.18.0", default-features = false, package = "staging-parachain-info" }
