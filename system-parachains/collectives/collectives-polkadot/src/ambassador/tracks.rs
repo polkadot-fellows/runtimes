@@ -17,7 +17,8 @@
 
 use super::Origin;
 use crate::{Balance, BlockNumber, RuntimeOrigin, DAYS, DOLLARS, HOURS};
-use sp_runtime::Perbill;
+use alloc::borrow::Cow;
+use sp_runtime::{str_array as s, Perbill};
 
 /// Referendum `TrackId` type.
 pub type TrackId = u16;
@@ -41,12 +42,14 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 	type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
 
 	/// Return the array of available tracks and their information.
-	fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
-		static DATA: [(TrackId, pallet_referenda::TrackInfo<Balance, BlockNumber>); 3] = [
-			(
-				constants::AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "ambassador",
+	fn tracks(
+	) -> impl Iterator<Item = Cow<'static, pallet_referenda::Track<Self::Id, Balance, BlockNumber>>>
+	{
+		static DATA: [pallet_referenda::Track<TrackId, Balance, BlockNumber>; 3] = [
+			pallet_referenda::Track {
+				id: constants::AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -64,11 +67,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				constants::SENIOR_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "senior ambassador",
+			},
+			pallet_referenda::Track {
+				id: constants::SENIOR_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("senior ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -86,11 +89,11 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
-			(
-				constants::HEAD_AMBASSADOR,
-				pallet_referenda::TrackInfo {
-					name: "head ambassador",
+			},
+			pallet_referenda::Track {
+				id: constants::HEAD_AMBASSADOR,
+				info: pallet_referenda::TrackInfo {
+					name: s("head ambassador"),
 					max_deciding: 10,
 					decision_deposit: 5 * DOLLARS,
 					prepare_period: 24 * HOURS,
@@ -108,9 +111,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 						ceil: Perbill::from_percent(50),
 					},
 				},
-			),
+			},
 		];
-		&DATA[..]
+		DATA.iter().map(Cow::Borrowed)
 	}
 
 	/// Determine the voting track for the given `origin`.
@@ -135,4 +138,3 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 }
 
 // implements [`frame_support::traits::Get`] for [`TracksInfo`]
-pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
