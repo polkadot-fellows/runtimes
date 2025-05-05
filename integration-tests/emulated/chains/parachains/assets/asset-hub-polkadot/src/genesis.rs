@@ -17,12 +17,19 @@
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 
 // Cumulus
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, RESERVABLE_ASSET_ID, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use integration_tests_helpers::common::snowbridge::{
+	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
+use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
+use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
@@ -46,6 +53,12 @@ frame_support::parameter_types! {
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
+	pub EthereumSovereignAccount: AccountId = EthereumLocationsConverterFor::<AccountId>::convert_location(
+		&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		),
+	).unwrap();
 }
 
 pub mod collators {
@@ -119,6 +132,15 @@ pub fn genesis() -> sp_core::storage::Storage {
 					PenpalBSiblingSovereignAccount::get(),
 					false,
 					ED,
+				),
+				// Ether
+				(EthLocationXcmV4::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
+				// Weth
+				(
+					WethLocationXcmV4::get(),
+					EthereumSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()
