@@ -352,34 +352,20 @@ impl<T: Config> SchedulerMigrator<T> {
 			.into_inner()
 			.into_iter()
 			.map(|maybe_schedule| {
-				let Some(sched) = maybe_schedule else {
-					// Schedule was none. Keep as None.
-					None
-				};
-
-				// Schedule existed. Attempt to inline it's call.
-				match sched.call {
+				maybe_schedule.and_then(|sched| match sched.call {
 					// Inline. Grab inlined call.
 					Bounded::Inline(bounded_call) => Some(bounded_call.into_inner()),
 					// Lookup. Fetch preimage and store.
-					Bounded::Lookup { hash, len } => {
-						let Some(preimage) =
-							<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len))
-						else {
-							None
-						};
-						Some(preimage.into_owned())
-					},
+					Bounded::Lookup { hash, len } =>
+						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len))
+							.ok()
+							.map(|preimage| preimage.into_owned()),
 					// Legacy. Fetch preimage and store.
-					Bounded::Legacy { hash, .. } => {
-						let Some(preimage) =
-							<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None)
-						else {
-							None
-						};
-						Some(preimage.into_owned())
-					},
-				}
+					Bounded::Legacy { hash, .. } =>
+						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None)
+							.ok()
+							.map(|preimage| preimage.into_owned()),
+				})
 			})
 			.collect::<Vec<_>>()
 	}
