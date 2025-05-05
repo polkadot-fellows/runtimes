@@ -859,11 +859,7 @@ impl pallet_staking::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	// TODO: this will come back later (stable25XY)
-	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
-	fn filter(who: &AccountId) -> bool {
-		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
-	}
+	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
 }
 
 impl pallet_fast_unstake::Config for Runtime {
