@@ -234,7 +234,7 @@ jobs:
         run: |
           # WIP:
           uname -a
-          POLKADOT_VERSIONS=("polkadot-stable2412-5" "polkadot-stable2503")
+          POLKADOT_VERSIONS=("polkadot-stable2412-4" "polkadot-stable2503")
           NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
           PARACHAIN_BINARIES=("polkadot-parachain")
           ALL_BINARIES=("${NODE_BINARIES[@]}" "${PARACHAIN_BINARIES[@]}")
@@ -262,17 +262,17 @@ jobs:
     strategy:
       matrix:
         docker:
-          - polkadot: polkadot-stable2412-5
-            cumulus: polkadot-stable2412-5
+          - polkadot: polkadot-stable2412-4
+            cumulus: polkadot-stable2412-4
             can_fail: false
-          - polkadot: polkadot-stable2412-5
+          - polkadot: polkadot-stable2412-4
             cumulus: polkadot-stable2503
             can_fail: false
           - polkadot: polkadot-stable2503
             cumulus: polkadot-stable2503
             can_fail: false
           - polkadot: polkadot-stable2503
-            cumulus: polkadot-stable2412-5
+            cumulus: polkadot-stable2412-4
             can_fail: false
     steps:
       - name: Cancel previous runs
