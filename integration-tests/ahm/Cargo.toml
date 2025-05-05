@@ -29,7 +29,7 @@ pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
-polkadot-runtime = { workspace = true }
+polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime-common = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
@@ -60,6 +60,7 @@ std = [
 	"frame-benchmarking/std",
 	"hex/std",
 	"log/std",
+	"polkadot-runtime/std",
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",

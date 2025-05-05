@@ -17,7 +17,7 @@
 
 use crate::*;
 use pallet_rc_migrator::types::ToPolkadotSs58;
-use sp_runtime::{traits::Zero, BoundedSlice};
+use sp_runtime::{traits::Zero, BoundedSlice, Saturating};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_proxies(proxies: Vec<RcProxyOf<T, T::RcProxyType>>) -> Result<(), Error<T>> {
@@ -48,23 +48,19 @@ impl<T: Config> Pallet<T> {
 
 	/// Receive a single proxy and write it to storage.
 	pub fn do_receive_proxy(proxy: RcProxyOf<T, T::RcProxyType>) -> Result<(), Error<T>> {
-		log::debug!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_polkadot_ss58(), proxy.deposit);
-
+		log::info!(target: LOG_TARGET, "Integrating proxy {}, deposit {:?}", proxy.delegator.to_polkadot_ss58(), proxy.deposit);
 		let max_proxies = <T as pallet_proxy::Config>::MaxProxies::get() as usize;
-		if proxy.proxies.len() > max_proxies {
-			log::error!(target: LOG_TARGET, "Truncating proxy list of {}", proxy.delegator.to_ss58check());
-		}
 
-		let proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
-			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type) else {
-				// This is fine, eg. `Auction` proxy is not supported on AH
-				log::warn!(target: LOG_TARGET, "Dropping unsupported proxy at index {} for {}", i, proxy.delegator.to_polkadot_ss58());
+		// Translate the incoming ones from RC
+		let mut proxies = proxy.proxies.into_iter().enumerate().filter_map(|(i, p)| {
+			let Ok(proxy_type) = T::RcToProxyType::try_convert(p.proxy_type.clone()) else {
+				log::info!(target: LOG_TARGET, "Dropping unsupported proxy kind of '{:?}' at index {} for {}", p.proxy_type, i, proxy.delegator.to_polkadot_ss58());
 				// TODO unreserve deposit
 				return None;
 			};
 			let delay = T::RcToAhDelay::convert(p.delay);
 
-			log::debug!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
+			log::info!(target: LOG_TARGET, "Proxy type: {:?} delegate: {:?}", proxy_type, p.delegate.to_polkadot_ss58());
 			Some(pallet_proxy::ProxyDefinition {
 				delegate: p.delegate,
 				delay,
@@ -74,13 +70,30 @@ impl<T: Config> Pallet<T> {
 		.take(max_proxies)
 		.collect::<Vec<_>>();
 
+		// Add the already existing ones from AH
+		let (existing_proxies, _deposit) = pallet_proxy::Proxies::<T>::get(&proxy.delegator);
+		for delegation in existing_proxies {
+			proxies.push(pallet_proxy::ProxyDefinition {
+				delegate: delegation.delegate,
+				delay: delegation.delay,
+				proxy_type: delegation.proxy_type,
+			});
+		}
+
+		if proxies.len() > max_proxies {
+			// Some serious shit about to go down: user has more proxies than we can migrate :(
+			// Best effort: we sort descending by Kind and Delay with the assumption that Kind 0 is
+			// always the `Any` proxy and low Delay proxies are more important.
+			defensive!("Truncating proxy list with best-effort priority");
+			proxies.sort_by(|a, b| b.proxy_type.cmp(&a.proxy_type).then(b.delay.cmp(&a.delay)));
+			proxies.truncate(max_proxies);
+		}
+
 		let Ok(bounded_proxies) =
-			BoundedSlice::try_from(proxies.as_slice()).defensive_proof("unreachable")
+			BoundedSlice::try_from(proxies.as_slice()).defensive_proof("Proxies should fit")
 		else {
 			return Err(Error::TODO);
 		};
-
-		// The deposit was already taken by the account migration
 
 		// Add the proxies
 		pallet_proxy::Proxies::<T>::insert(&proxy.delegator, (bounded_proxies, proxy.deposit));
@@ -126,9 +139,10 @@ impl<T: Config> Pallet<T> {
 			&announcement.depositor,
 			announcement.deposit,
 		);
+		let unreserved = announcement.deposit.saturating_sub(missing);
 
 		if !missing.is_zero() {
-			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, missing {:?}, before {:?}", announcement.depositor.to_ss58check(), missing, before);
+			log::warn!(target: LOG_TARGET, "Could not unreserve full proxy announcement deposit for {}, unreserved {:?} / {:?} since account had {:?} reserved", announcement.depositor.to_polkadot_ss58(), unreserved, &announcement.deposit, before.data.reserved);
 		}
 
 		Ok(())
@@ -136,25 +150,66 @@ impl<T: Config> Pallet<T> {
 }
 
 #[cfg(feature = "std")]
+use std::collections::BTreeMap;
+
+#[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = usize; // number of delegators
-	type AhPrePayload = (); // number of proxies
+	type RcPrePayload = BTreeMap<AccountId32, Vec<(T::RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+	type AhPrePayload =
+		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		()
+		// Store the proxies per account before the migration
+		let mut proxies = BTreeMap::new();
+		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			for delegation in delegations {
+				proxies
+					.entry(delegator.clone())
+					.or_insert_with(Vec::new)
+					.push((delegation.proxy_type, delegation.delegate));
+			}
+		}
+		proxies
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let count = pallet_proxy::Proxies::<T>::iter_keys().count();
+	fn post_check(rc_pre: Self::RcPrePayload, ah_pre: Self::AhPrePayload) {
+		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
+		// excluding the ones that are un-translateable.
 
-		log::info!(target: LOG_TARGET, "Total number of proxies: {}", count);
-		// TODO: This is not necessarily correct, since some proxy types are not migrated.
-		// Assert storage "Proxy::Proxies::ah_post::length"
-		if count < rc_pre_payload {
-			panic!(
-				"Some proxies were not migrated. Expected at least {} proxies, got {}",
-				rc_pre_payload, count
-			);
+		let mut delegators =
+			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
+
+		for delegator in delegators {
+			let ah_pre_delegations = ah_pre.get(delegator).cloned().unwrap_or_default();
+			let ah_post_delegations = pallet_proxy::Proxies::<T>::get(&delegator)
+				.0
+				.into_iter()
+				.map(|d| (d.proxy_type, d.delegate))
+				.collect::<Vec<_>>();
+
+			// All existing AH delegations are still here
+			for ah_pre_d in &ah_pre_delegations {
+				assert!(ah_post_delegations.contains(&ah_pre_d), "AH delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", delegator.to_polkadot_ss58(), ah_pre_d, ah_pre_delegations, ah_post_delegations);
+			}
+
+			// All RC delegations that could be translated are still here
+			for rc_pre_d in &rc_pre.get(delegator).cloned().unwrap_or_default() {
+				let Ok(translated_kind) = T::RcToProxyType::try_convert(rc_pre_d.0.clone()) else {
+					// Best effort sanity checking that only Auction and ParaRegistration dont work
+					#[cfg(feature = "ahm-polkadot")]
+					{
+						let k = rc_pre_d.0.encode().get(0).cloned();
+						assert!(
+							k == Some(7) || k == Some(9),
+							"Must translate all proxy Kinds except Auction and ParaRegistration"
+						);
+					}
+					continue;
+				};
+				let translated = (translated_kind, rc_pre_d.1.clone()); // Account Id stays the same
+
+				assert!(ah_post_delegations.contains(&translated), "RC delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", delegator.to_polkadot_ss58(), rc_pre_d, rc_pre.get(delegator).cloned().unwrap_or_default(), ah_pre_delegations);
+			}
 		}
 	}
 }
