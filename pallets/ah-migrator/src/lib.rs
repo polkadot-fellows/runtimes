@@ -852,7 +852,7 @@ pub mod pallet {
 		#[pallet::weight({1})] // TODO: weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<AhEquivalentStakingMessageOf<T>>,
+			messages: Vec<T::RcStakingMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
