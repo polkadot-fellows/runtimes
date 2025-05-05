@@ -143,3 +143,14 @@ pub mod fee {
 		<WeightToFee as frame_support::weights::WeightToFee>::weight_to_fee(weight)
 	}
 }
+
+pub mod locations {
+	use frame_support::parameter_types;
+	pub use kusama_runtime_constants::system_parachain::AssetHubParaId;
+	use xcm::latest::prelude::{Junction::*, Location};
+
+	parameter_types! {
+		pub AssetHubLocation: Location =
+			Location::new(1, Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID));
+	}
+}
