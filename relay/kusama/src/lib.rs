@@ -510,6 +510,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -857,7 +858,6 @@ impl pallet_staking::Config for Runtime {
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
 	// TODO: this will come back later (stable25XY)
 	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
@@ -1975,6 +1975,10 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
 		EnableRFC103Feature,
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
