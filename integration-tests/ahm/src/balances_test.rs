@@ -39,6 +39,9 @@ static RC_KEPT_AFTER: Mutex<Option<u128>> = Mutex::new(None);
 // Used to store the balance migrated out of the relay chain.
 static RC_MIGRATED_BALANCE: Mutex<Option<u128>> = Mutex::new(None);
 
+// Min tolerance for some balance checks in the tests, currently 0.1 DOT.
+const MIN_DOT_ERROR: u128 = 1000000000;
+
 impl RcMigrationCheck for BalancesCrossChecker {
 	// (rc_total_issuance_before, rc_checking_balance_before)
 	type RcPrePayload = (u128, u128);
@@ -93,7 +96,7 @@ impl AhMigrationCheck for BalancesCrossChecker {
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
-		let (_, rc_checking_balance_before) = rc_pre_payload;
+		let (rc_total_issuance_before, rc_checking_balance_before) = rc_pre_payload;
 		let (ah_total_issuance_before, ah_checking_balance_before) = ah_pre_payload;
 
 		let ah_checking_balance_after = pallet_balances::Pallet::<AhRuntime>::total_balance(
@@ -120,6 +123,7 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		);
 
 		// ah_check_after = `checking_balance` + rc_balance_kept - ah_total_before - ah_check_before
+		// explanation here: [pallets/ah-migrator/src/account.rs#finish_accounts_migration()](https://github.com/polkadot-fellows/runtimes/blob/f09750296a8ad40d64e295ff6568acac36c978f7/pallets/ah-migrator/src/account.rs#L177)
 		assert_eq!(
 			ah_checking_balance_after,
 			checking_balance + rc_kept_after -
@@ -136,6 +140,16 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		assert_eq!(
 			ah_migrated_balance, rc_migrated_balance,
 			"Balance migrated out of the relay chain should be equal to the balance migrated into Asset Hub"
+		);
+
+		let ah_total_issuance_after = pallet_balances::Pallet::<AhRuntime>::total_issuance();
+		// There is a small difference between the total issuance before and after migration but the
+		// reason is unknown. Currently ignoring it since the difference is less than 0.1 DOT.
+		assert!(
+			ah_total_issuance_after.abs_diff(rc_total_issuance_before) < MIN_DOT_ERROR,
+			"Total issuance is not correctly tracked: before migration {} after migration {}.",
+			rc_total_issuance_before,
+			ah_total_issuance_after
 		);
 	}
 }
