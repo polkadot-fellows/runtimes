@@ -777,21 +777,75 @@ impl<T: Config> AccountsMigrator<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
-	// rc_total_issuance_before
+	// Total issuance on the relay chain before migration
 	type RcPrePayload = BalanceOf<T>;
 
 	fn pre_check() -> Self::RcPrePayload {
-		// Store total issuance and checking account balance before migration
-		<T as Config>::Currency::total_issuance()
+		let total_issuance = <T as Config>::Currency::total_issuance();
+		total_issuance
 	}
 
-	fn post_check(rc_total_issuance_before: Self::RcPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload) {
+		let rc_total_issuance_before = rc_pre_payload;
+
+		let mut acc_state_maybe: Option<AccountStateFor<T>>;
 		// Check that all accounts have been processed correctly
-		let mut kept = 0;
-		for (who, acc_state) in RcAccounts::<T>::iter() {
-			match acc_state {
-				AccountState::Migrate => {
-					// Account should be fully migrated
+		for (who, _) in SystemAccount::<T>::iter() {
+			acc_state_maybe = None;
+			for (acc_id, acc_state) in RcAccounts::<T>::iter() {
+				if acc_id == who {
+					acc_state_maybe = Some(acc_state);
+					break;
+				}
+			}
+			match acc_state_maybe {
+				Some(AccountState::Part { reserved }) => {
+					// Account should have only the reserved amount
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					let free_balance = <T as Config>::Currency::reducible_balance(
+						&who,
+						Preservation::Expendable,
+						Fortitude::Polite,
+					);
+					assert_eq!(
+						free_balance, 0,
+						"Account {:?} should have no free balance on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Account::rc_post::empty"
+					assert_eq!(
+						total_balance, reserved + <T as Config>::Currency::minimum_balance(),
+						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Locks::rc_post::empty"
+					let locks = pallet_balances::Locks::<T>::get(&who);
+					assert!(
+						locks.is_empty(),
+						"Account {:?} should have no locks on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Holds::rc_post::empty"
+					let holds = pallet_balances::Holds::<T>::get(&who);
+					assert!(
+						holds.is_empty(),
+						"Account {:?} should have no holds on the relay chain after migration",
+						who.to_ss58check()
+					);
+
+					// Assert storage "Balances::Freezes::rc_post::empty"
+					let freezes = pallet_balances::Freezes::<T>::get(&who);
+					assert!(
+						freezes.is_empty(),
+						"Account {:?} should have no freezes on the relay chain after migration",
+						who.to_ss58check()
+					);
+				},
+				// The account should be fully migrated to Asset Hub.
+				Some(AccountState::Migrate) => {
 					// Assert storage "Balances::Account::rc_post::empty"
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					assert_eq!(
@@ -834,78 +888,30 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 				},
-				AccountState::Preserve => {
-					// Account should be fully preserved
+				// Non-migratable accounts having total balance lower than the existential deposit.
+				None => {
 					let total_balance = <T as Config>::Currency::total_balance(&who);
-					kept += total_balance;
-				},
-				AccountState::Part { reserved } => {
-					// Account should have only the reserved amount
-					let total_balance = <T as Config>::Currency::total_balance(&who);
+					assert!(
+						total_balance < <T as Config>::Currency::minimum_balance(),
+						"Non-migratable account {:?} should have a total balance lower than the existential deposit on the relay",
+						who.to_ss58check()
+					);
+
 					let free_balance = <T as Config>::Currency::reducible_balance(
 						&who,
 						Preservation::Expendable,
 						Fortitude::Polite,
 					);
-					let reserved_balance = reserved + <T as Config>::Currency::minimum_balance();
-					assert_eq!(
-						free_balance, 0,
-						"Account {:?} should have no free balance on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					// Assert storage "Balances::Account::rc_post::empty"
-					assert_eq!(
-						total_balance, reserved_balance,
-						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					// Assert storage "Balances::Locks::rc_post::empty"
-					let locks = pallet_balances::Locks::<T>::get(&who);
-					assert!(
-						locks.is_empty(),
-						"Account {:?} should have no locks on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					// Assert storage "Balances::Holds::rc_post::empty"
-					let holds = pallet_balances::Holds::<T>::get(&who);
-					assert!(
-						holds.is_empty(),
-						"Account {:?} should have no holds on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					// Assert storage "Balances::Freezes::rc_post::empty"
-					let freezes = pallet_balances::Freezes::<T>::get(&who);
-					assert!(
-						freezes.is_empty(),
-						"Account {:?} should have no freezes on the relay chain after migration",
-						who.to_ss58check()
-					);
-
-					kept += reserved;
+					assert_eq!(free_balance, 0, "Non-migratable account {:?} should have no free balance on the relay chain after migration", who.to_ss58check());
 				},
+				// No checks needed for preserved (unmodified) accounts on the relay chain after
+				// migration.
+				_ => (),
 			}
 		}
 
-		// Check that checking account has no balance (fully migrated)
-		let check_account = T::CheckingAccount::get();
-		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
-		assert_eq!(
-			checking_balance, 0,
-			"Checking account should have no balance on the relay chain after migration"
-		);
 		let total_issuance = <T as Config>::Currency::total_issuance();
 		let tracker = RcMigratedBalance::<T>::get();
-		// Check that total kept balance matches the one computed before the migration
-		// TODO: Giuseppe @re-gius
-		// assert_eq!(
-		// 	kept, tracker.kept,
-		// 	"Mismatch for total balance kept on the relay chain: after migration ({}) != computed
-		// before migration ({})", 	kept, tracker.kept,
-		// );
 		// verify total issuance hasn't changed for any other reason than the migrated funds
 		assert_eq!(total_issuance, rc_total_issuance_before - tracker.migrated);
 		assert_eq!(total_issuance, tracker.kept);
