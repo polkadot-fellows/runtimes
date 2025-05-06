@@ -234,11 +234,26 @@ impl<T: Config> PalletMigration for ProxyAnnouncementMigrator<T> {
 	}
 }
 
+#[cfg(feature = "std")]
+use std::collections::btree_map::BTreeMap;
+
+#[cfg(feature = "std")]
 impl<T: Config> RcMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = usize; // number of delegators
+	type RcPrePayload =
+		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
 	fn pre_check() -> Self::RcPrePayload {
-		pallet_proxy::Proxies::<T>::iter_keys().count()
+		// Store the proxies per account before the migration
+		let mut proxies = BTreeMap::new();
+		for (delegator, (delegations, _deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			for delegation in delegations {
+				proxies
+					.entry(delegator.clone())
+					.or_insert_with(Vec::new)
+					.push((delegation.proxy_type, delegation.delegate));
+			}
+		}
+		proxies
 	}
 
 	fn post_check(_: Self::RcPrePayload) {

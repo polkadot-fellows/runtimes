@@ -827,6 +827,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
+ "polkadot-runtime",
  "polkadot-runtime-common",
  "polkadot-runtime-constants",
  "primitive-types",
@@ -7639,7 +7640,6 @@ name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
  "assets-common",
- "chrono",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",

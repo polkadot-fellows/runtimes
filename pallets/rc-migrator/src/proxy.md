@@ -10,7 +10,6 @@ Information on the migration of the `Proxy` pallet from Polkadot Relay Chain to 
 - Existing proxies on Asset Hub will have more permissions and will be able to access the new pallets as well. For example, the `NonTransfer` proxy will also be able to use nomination pools. This may affect security assumptions of previously created proxies. Users are advised to review the new proxy permissions.
 - Pure proxies are treated like any other proxy. In order to access them on the Relay Chain, you need to use the AHM account recovery mechanism (todo) or remote proxy pallet (todo). There should be no use in accessing them on the Relay Chain though, since nearly all balances are transferred to Asset Hub.
 
-
 ## Proxy Delegations
 
 The [Proxies](https://github.com/paritytech/polkadot-sdk/blob/7c5224cb01710d0c14c87bf3463cc79e49b3e7b5/substrate/frame/proxy/src/lib.rs#L564-L579) storage maps a delegator to its delegatees. It is migrated one-to-one by mapping the `ProxyType` and `Delay` fields.

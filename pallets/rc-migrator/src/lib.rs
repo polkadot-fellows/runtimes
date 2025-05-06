@@ -80,6 +80,7 @@ use frame_support::{
 		ReservableCurrency, VariantCount,
 	},
 	weights::{Weight, WeightMeter},
+	PalletId,
 };
 use frame_system::{pallet_prelude::*, AccountInfo};
 use indices::IndicesMigrator;
@@ -171,11 +172,13 @@ pub enum MigrationStage<
 	Scheduled {
 		block_number: BlockNumber,
 	},
-	/// The migration is initializing.
+	/// The migration is waiting for confirmation from AH to go ahead.
 	///
 	/// This stage involves waiting for the notification from the Asset Hub that it is ready to
 	/// receive the migration data.
-	Initializing,
+	WaitingForAh,
+	/// The migration is starting and initialization hooks are being executed.
+	Starting,
 	/// Initializing the account migration process.
 	AccountsMigrationInit,
 	/// Migrating account balances.
@@ -414,10 +417,11 @@ pub mod pallet {
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
 		+ pallet_staking::Config // Not on westend
-		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
+		//+ pallet_staking::Config<RuntimeHoldReason = <Self as Config>::RuntimeHoldReason> // Only on westend
+		//+ pallet_staking_async_ah_client::Config // Only on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -453,6 +457,10 @@ pub mod pallet {
 		type RcIntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 		/// Contains calls that are allowed after the migration finished.
 		type RcPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+		/// The hold reason for staking delegation.
+		type StakingDelegationReason: Get<<Self as Config>::RuntimeHoldReason>;
+		/// The pallet ID for on-demand pallet.
+		type OnDemandPalletId: Get<PalletId>;
 	}
 
 	#[pallet::error]
@@ -481,6 +489,19 @@ pub mod pallet {
 			/// The new stage after the transition.
 			new: MigrationStageOf<T>,
 		},
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
+		/// emitted.
+		///
+		/// This event is equivalent to `StageTransition { new: Initializing, .. }` but is easier
+		/// to understand. The activation is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationStarted,
+		/// The Asset Hub Migration finished.
+		///
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier
+		/// to understand. The finishing is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationFinished,
 	}
 
 	/// The Relay Chain migration state.
@@ -564,7 +585,7 @@ pub mod pallet {
 		#[pallet::weight(T::RcWeightInfo::start_data_migration())]
 		pub fn start_data_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::transition(MigrationStage::AccountsMigrationInit);
+			Self::transition(MigrationStage::Starting);
 			Ok(())
 		}
 
@@ -607,7 +628,7 @@ pub mod pallet {
 					if now >= block_number {
 						match Self::send_xcm(types::AhMigratorCall::<T>::StartMigration, T::AhWeightInfo::start_migration()) {
 							Ok(_) => {
-								Self::transition(MigrationStage::Initializing);
+								Self::transition(MigrationStage::WaitingForAh);
 							},
 							Err(_) => {
 								defensive!(
@@ -617,9 +638,19 @@ pub mod pallet {
 							},
 						}
 					},
-				MigrationStage::Initializing => {
-					// waiting AH to send a message and to start sending the data
+				MigrationStage::WaitingForAh => {
+					// waiting AH to send a message and to start sending the data. This stage may be
+					// skipped if AH is fast.
+					log::debug!(target: LOG_TARGET, "Waiting for AH to start the migration");
+					// We transition out here in `start_data_migration`
 					return weight_counter.consumed();
+				},
+				MigrationStage::Starting => {
+					log::info!(target: LOG_TARGET, "Starting the migration");
+					#[cfg(feature = "ahm-staking-migration")]
+					pallet_staking_async_ah_client::Pallet::<T>::on_migration_start();
+
+					Self::transition(MigrationStage::AccountsMigrationInit);
 				},
 				MigrationStage::AccountsMigrationInit => {
 					let weight = AccountsMigrator::<T>::obtain_rc_accounts();
@@ -1359,7 +1390,10 @@ pub mod pallet {
 					Self::transition(MigrationStage::SignalMigrationFinish);
 				},
 				MigrationStage::SignalMigrationFinish => {
-					// TODO: weight
+					#[cfg(feature = "ahm-staking-migration")]
+					pallet_staking_async_ah_client::Pallet::<T>::on_migration_end();
+
+					// Send finish message to AH, TODO: weight
 					let tracker = RcMigratedBalance::<T>::get();
 					let data = MigrationFinishedData {
 						rc_balance_kept: tracker.kept,
@@ -1436,8 +1470,25 @@ pub mod pallet {
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
+
+			if new == MigrationStage::Starting {
+				defensive_assert!(
+					matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }),
+					"Data migration can only enter from WaitingForAh or Scheduled"
+				);
+				Self::deposit_event(Event::AssetHubMigrationStarted);
+			}
+
+			if new == MigrationStage::MigrationDone {
+				defensive_assert!(
+					old == MigrationStage::SignalMigrationFinish,
+					"MigrationDone can only enter from SignalMigrationFinish"
+				);
+				Self::deposit_event(Event::AssetHubMigrationFinished);
+			}
+
 			RcMigrationStage::<T>::put(&new);
-			log::info!(target: LOG_TARGET, "[Block {:?}] Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);
+			log::info!(target: LOG_TARGET, "[Block {:?}] RC Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);
 			Self::deposit_event(Event::StageTransition { old, new });
 		}
 
