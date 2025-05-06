@@ -345,6 +345,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -397,6 +398,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ForeignAssetsAssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	type CallbackHandle = ();
@@ -902,6 +904,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ConstU32<50>;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type CallbackHandle = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;

@@ -205,7 +205,7 @@ impl frame_system::Config for Runtime {
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-	type MaxConsumers = frame_support::traits::ConstU32<256>;
+w	type MaxConsumers = ConstU32<256>;
 	type SingleBlockMigrations = ();
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
@@ -323,6 +323,7 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = AssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
 	type CallbackHandle = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
@@ -364,6 +365,7 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ConstU32<50>;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
 	type CallbackHandle = ();
@@ -467,6 +469,7 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type ApprovalDeposit = ExistentialDeposit;
 	type StringLimit = ForeignAssetsAssetsStringLimit;
 	type Freezer = ();
+	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
 	type CallbackHandle = ();
