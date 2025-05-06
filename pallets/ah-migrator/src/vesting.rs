@@ -136,11 +136,21 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 		// Assert storage "Vesting::Vesting::ah_post::correct"
 		// Assert storage "Vesting::Vesting::ah_post::consistent"
-		// Assert storage "Vesting::Vesting::ah_post::length"
 		assert_eq!(
 			rc_pre,
 			all_post,
 			"Vesting schedules mismatch: Asset Hub schedules differ from original Relay Chain schedules"
 		);
+
+		// Assert storage "Vesting::Vesting::ah_post::length"
+		assert_eq!(
+			rc_pre.len(),
+			all_post.len(),
+			"Vesting schedules mismatch: Asset Hub schedules differ from original Relay Chain schedules"
+		);
+
+		// Assert storage "Vesting::StorageVersion::ah_post::correct"
+		// Assert storage "Vesting::StorageVersion::ah_post::consistent"
+		assert_eq!(alias::StorageVersion::<T>::get(), alias::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
 	}
 }
