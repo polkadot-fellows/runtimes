@@ -201,7 +201,9 @@ serde_json = { version = "1.0.113", default-features = false }
 smallvec = { version = "1.13.1" }
 snowbridge-beacon-primitives = { version = "0.13.1", default-features = false }
 snowbridge-core = { version = "0.13.1", default-features = false }
+snowbridge-merkle-tree = { version = "0.2.0", default-features = false }
 snowbridge-outbound-queue-runtime-api = { version = "0.13.0", default-features = false }
+snowbridge-outbound-queue-primitives = { version = "0.2.1", default-features = false }
 snowbridge-pallet-ethereum-client = { version = "0.13.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.13.1", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.21.0" }

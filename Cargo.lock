@@ -2159,6 +2159,8 @@ dependencies = [
  "serde_json",
  "snowbridge-beacon-primitives 0.13.1",
  "snowbridge-core 0.13.1",
+ "snowbridge-merkle-tree",
+ "snowbridge-outbound-queue-primitives",
  "snowbridge-outbound-queue-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-ethereum-client-fixtures",
