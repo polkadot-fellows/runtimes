@@ -33,7 +33,10 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
+use super::{
+	checks::SanityChecks, mock::*, multisig_test::MultisigsAccountIdStaysTheSame,
+	proxy_test::ProxiesStillWork,
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -84,6 +87,8 @@ type RcChecks = (
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
@@ -116,6 +121,8 @@ type AhChecks = (
 // (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,

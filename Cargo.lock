@@ -10058,6 +10058,7 @@ dependencies = [
  "pallet-bounties",
  "pallet-indices",
  "pallet-message-queue",
+ "pallet-multisig",
  "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-timestamp",

@@ -25,6 +25,7 @@ pub mod call_filter_asset_hub;
 pub mod call_filter_relay;
 pub mod checks;
 pub mod mock;
+pub mod multisig_test;
 pub mod proxy_test;
 pub mod tests;
 
@@ -60,8 +61,12 @@ pub mod porting_prelude {
 	pub use import_alias::*;
 
 	// Convenience aliases:
-	pub use asset_hub_polkadot_runtime::Runtime as AhRuntime;
-	pub use polkadot_runtime::Runtime as RcRuntime;
+	pub use asset_hub_polkadot_runtime::{
+		Runtime as AhRuntime, RuntimeCall as AhRuntimeCall, RuntimeOrigin as AhRuntimeOrigin,
+	};
+	pub use polkadot_runtime::{
+		Runtime as RcRuntime, RuntimeCall as RcRuntimeCall, RuntimeOrigin as RcRuntimeOrigin,
+	};
 
 	// Westend does not support remote proxies, so we have to figure out the import location:
 	#[cfg(feature = "ahm-westend")]
