@@ -73,3 +73,20 @@ impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
 		})
 	}
 }
+
+impl TryConvert<asset_hub_polkadot_runtime::ProxyType, Permission> for Permission {
+	fn try_convert(
+		proxy: asset_hub_polkadot_runtime::ProxyType,
+	) -> Result<Self, asset_hub_polkadot_runtime::ProxyType> {
+		use asset_hub_polkadot_runtime::ProxyType::*;
+
+		Ok(match proxy {
+			Any => Permission::Any,
+			NonTransfer => Permission::NonTransfer,
+			Governance => Permission::Governance,
+			Staking => Permission::Staking,
+			CancelProxy => Permission::CancelProxy,
+			Auction => Permission::Auction,
+		})
+	}
+}
