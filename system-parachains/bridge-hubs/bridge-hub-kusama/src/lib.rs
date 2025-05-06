@@ -827,18 +827,29 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
+		// TODO @bkontur: Check this out, please.
+		fn bench_reward() -> Self::Reward {
+			bp_relayers::RewardsAccountParams::new(
+				bp_messages::LegacyLaneId::default(),
+				*b"test",
+				bp_relayers::RewardsAccountOwner::ThisChain,
+			)
+		}
+
 		fn prepare_rewards_account(
 			account_params: bp_relayers::RewardsAccountParams<
 				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
 			>,
 			reward: Balance,
-		) {
+		) -> Option<AccountId> {
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
 				bp_messages::LegacyLaneId,
+				Balance,
 			>::rewards_account(account_params);
-			Self::deposit_account(rewards_account, reward);
+			Self::deposit_account(rewards_account.clone(), reward);
+			Some(rewards_account)
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
