@@ -525,55 +525,55 @@ fn resume<Map: frame_support::IterableStorageMap<K, V>, K: FullEncode, V: FullCo
 // The payload that will be passed between pre and post migration checks
 type RcPrePayload = (
 	// Values captured by `StakingMigrator::take_values()`.
-	crate::staking::message::RcStakingValuesOf<T>, //16
+	crate::staking::message::RcStakingValuesOf<T>,
 	// Invulnerables.
 	Vec<<T as frame_system::Config>::AccountId>,
-	// Bonded (stash, controller) pairs.
+	// Bonded map.
 	Vec<(<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId)>,
-	// Ledgers (controller, ledger).
+	// Ledger map.
 	Vec<(<T as frame_system::Config>::AccountId, pallet_staking::StakingLedger<T>)>,
-	// Payees (stash, payment_destination).
+	// Payee map.
 	Vec<(
 		<T as frame_system::Config>::AccountId,
 		pallet_staking::RewardDestination<<T as frame_system::Config>::AccountId>,
 	)>,
-	// Validators (stash, prefs).
+	// Validators map.
 	Vec<(<T as frame_system::Config>::AccountId, pallet_staking::ValidatorPrefs)>,
-	// Nominators (stash, nominations).
+	// Nominators map.
 	Vec<(<T as frame_system::Config>::AccountId, pallet_staking::Nominations<T>)>,
-	// VirtualStakers (staker_id).
+	// VirtualStakers map.
 	Vec<<T as frame_system::Config>::AccountId>,
-	// ErasStartSessionIndex (era, session_index).
+	// ErasStartSessionIndex map.
 	Vec<(sp_staking::EraIndex, sp_staking::SessionIndex)>,
-	// ErasStakersOverview (era, validator_stash, overview_metadata).
+	// ErasStakersOverview double map.
 	Vec<(
 		sp_staking::EraIndex,
 		<T as frame_system::Config>::AccountId,
 		sp_staking::PagedExposureMetadata<pallet_staking::BalanceOf<T>>,
 	)>,
-	// ErasStakersPaged ((era, validator_stash, page_index), page_data).
+	// ErasStakersPaged n map.
 	Vec<(
 		(sp_staking::EraIndex, <T as frame_system::Config>::AccountId, sp_staking::Page),
 		sp_staking::ExposurePage<<T as frame_system::Config>::AccountId, pallet_staking::BalanceOf<T>>,
 	)>,
-	// ClaimedRewards (era, validator_stash, Vec<page_index>).
+	// ClaimedRewards double map.
 	Vec<(sp_staking::EraIndex, <T as frame_system::Config>::AccountId, Vec<sp_staking::Page>)>,
-	// ErasValidatorPrefs (era, validator_stash, prefs).
+	// ErasValidatorPrefs double map.
 	Vec<(
 		sp_staking::EraIndex,
 		<T as frame_system::Config>::AccountId,
 		pallet_staking::ValidatorPrefs,
 	)>,
-	// ErasValidatorReward (era, reward_balance).
+	// ErasValidatorReward map.
 	Vec<(sp_staking::EraIndex, pallet_staking::BalanceOf<T>)>,
-	// ErasRewardPoints (era, points_data).
+	// ErasRewardPoints map.
 	Vec<(
 		sp_staking::EraIndex,
 		pallet_staking::EraRewardPoints<<T as frame_system::Config>::AccountId>,
 	)>,
-	// ErasTotalStake (era, total_stake_balance).
+	// ErasTotalStake map.
 	Vec<(sp_staking::EraIndex, pallet_staking::BalanceOf<T>)>,
-	// UnappliedSlashes (era, Vec<slash_details>).
+	// UnappliedSlashes map.
 	Vec<(
 		sp_staking::EraIndex,
 		Vec<
@@ -583,23 +583,23 @@ type RcPrePayload = (
 			>,
 		>,
 	)>,
-	// BondedEras (Vec<(era, session_index)>).
+	// BondedEras.
 	Vec<(sp_staking::EraIndex, sp_staking::SessionIndex)>,
-	// ValidatorSlashInEra (era, validator_stash, (slash_perbill, slash_amount)).
+	// ValidatorSlashInEra double map.
 	Vec<(
 		sp_staking::EraIndex,
 		<T as frame_system::Config>::AccountId,
 		(sp_runtime::Perbill, pallet_staking::BalanceOf<T>),
 	)>,
-	// NominatorSlashInEra (era, nominator_stash, slash_amount).
+	// NominatorSlashInEra double map.
 	Vec<(
 		sp_staking::EraIndex,
 		<T as frame_system::Config>::AccountId,
 		pallet_staking::BalanceOf<T>,
 	)>,
-	// SlashingSpans (account_id, spans_data).
+	// SlashingSpans map.
 	Vec<(<T as frame_system::Config>::AccountId, pallet_staking::slashing::SlashingSpans)>,
-	// SpanSlash ((account_id, span_index), record_data).
+	// SpanSlash map.
 	Vec<(
 		(<T as frame_system::Config>::AccountId, pallet_staking::slashing::SpanIndex),
 		pallet_staking::slashing::SpanRecord<pallet_staking::BalanceOf<T>>,
