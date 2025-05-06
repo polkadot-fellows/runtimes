@@ -83,10 +83,19 @@ use parachains_common::{
 	Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
-pub use system_parachains_constants::SLOT_DURATION;
+pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	async_backing::{
+		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	},
+	kusama::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
 };
 use xcm::{
 	latest::prelude::{AssetId, BodyId},
@@ -125,7 +134,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 1_004_003,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -208,7 +217,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -800,7 +809,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -1181,6 +1190,7 @@ impl
 mod benches {
 	use super::*;
 	use alloc::boxed::Box;
+	use frame_support::assert_ok;
 
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
@@ -1415,7 +1425,58 @@ mod benches {
 		}
 
 		fn worst_case_asset_exchange() -> Result<(XcmAssets, XcmAssets), BenchmarkError> {
-			Err(BenchmarkError::Skip)
+			let native_asset_location = xcm::v4::Location::parent();
+			let native_asset_id = xcm::v4::AssetId(native_asset_location.clone());
+			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
+			let origin = RuntimeOrigin::signed(account.clone());
+			let asset_location = xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(2001)]);
+			let asset_id = xcm::v4::AssetId(asset_location.clone());
+
+			// We set everything up, initial amounts, liquidity pools, liquidity...
+			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
+				&account,
+				ExistentialDeposit::get() + (2_000 * UNITS)
+			));
+
+			assert_ok!(ForeignAssets::force_create(
+				RuntimeOrigin::root(),
+				asset_location.clone().into(),
+				account.clone().into(),
+				true,
+				1,
+			));
+
+			assert_ok!(ForeignAssets::mint(
+				origin.clone(),
+				asset_location.clone().into(),
+				account.clone().into(),
+				4_000 * UNITS,
+			));
+
+			assert_ok!(AssetConversion::create_pool(
+				origin.clone(),
+				native_asset_location.clone().into(),
+				asset_location.clone().into(),
+			));
+
+			// 1 UNIT of the native asset is worth 2 UNITS of the foreign asset.
+			assert_ok!(AssetConversion::add_liquidity(
+				origin,
+				native_asset_location.into(),
+				asset_location.into(),
+				1_000 * UNITS,
+				2_000 * UNITS,
+				1,
+				1,
+				account.into(),
+			));
+
+			let native_asset_id_latest: AssetId = native_asset_id.try_into().unwrap();
+			let asset_id_latest: AssetId = asset_id.try_into().unwrap();
+			let give_assets: XcmAssets = (native_asset_id_latest, 500 * UNITS).into();
+			let receive_assets: XcmAssets = (asset_id_latest, 660 * UNITS).into();
+
+			Ok((give_assets, receive_assets))
 		}
 
 		fn universal_alias() -> Result<(Location, Junction), BenchmarkError> {

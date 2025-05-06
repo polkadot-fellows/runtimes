@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_004_003,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -740,7 +740,7 @@ parameter_types! {
 	pub const SpendPeriod: BlockNumber = 24 * DAYS;
 	pub const Burn: Permill = Permill::from_percent(1);
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-	pub const PayoutSpendPeriod: BlockNumber = 30 * DAYS;
+	pub const PayoutSpendPeriod: BlockNumber = 90 * DAYS;
 	// The asset's interior location for the paying account. This is the Treasury
 	// pallet instance (which sits at index 19).
 	pub TreasuryInteriorLocation: InteriorLocation = PalletInstance(TREASURY_PALLET_ID).into();
@@ -1795,6 +1795,7 @@ mod benches {
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 
+	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
 	use xcm_config::{
 		AssetHubLocation, LocalCheckAccount, SovereignAccountOf, TokenLocation, XcmConfig,
 	};
@@ -1812,7 +1813,6 @@ mod benches {
 			TokenLocation::get(),
 			ExistentialDeposit::get()
 		).into());
-		pub AssetHubParaId: ParaId = polkadot_runtime_constants::system_parachain::ASSET_HUB_ID.into();
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
 	}
 
@@ -1835,14 +1835,14 @@ mod benches {
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			Some(crate::xcm_config::AssetHubLocation::get())
+			Some(AssetHubLocation::get())
 		}
 
 		fn teleportable_asset_and_dest() -> Option<(Asset, Location)> {
 			// Relay/native token can be teleported to/from AH.
 			Some((
 				Asset { fun: Fungible(ExistentialDeposit::get()), id: AssetId(Here.into()) },
-				crate::xcm_config::AssetHubLocation::get(),
+				AssetHubLocation::get(),
 			))
 		}
 
@@ -1861,7 +1861,7 @@ mod benches {
 			// benchmarking as it's slightly heavier.
 			// Relay/native token can be teleported to/from AH.
 			let native_location = Here.into();
-			let dest = crate::xcm_config::AssetHubLocation::get();
+			let dest = AssetHubLocation::get();
 			pallet_xcm::benchmarking::helpers::native_teleport_as_asset_transfer::<Runtime>(
 				native_location,
 				dest,

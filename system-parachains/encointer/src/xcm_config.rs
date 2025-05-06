@@ -30,7 +30,7 @@ use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblin
 use polkadot_parachain_primitives::primitives::Sibling;
 
 use sp_core::ConstU32;
-
+use system_parachains_constants::kusama::locations::AssetHubLocation;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -47,7 +47,6 @@ use xcm_executor::XcmExecutor;
 parameter_types! {
 	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
-	pub AssetHubLocation: Location = Location::new(1, [Parachain(kusama_runtime_constants::system_parachain::ASSET_HUB_ID)]);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: Location = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();

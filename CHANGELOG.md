@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Enabled XCM instructions `ExchangeAsset` and `AliasOrigin` on the system parachains ([polkadot-fellows/runtimes/pull/700](https://github.com/polkadot-fellows/runtimes/pull/700))
+- Correct weights for pallet xcm's `transfer_asset` extrinsic for multiple chains ([polkadot-fellows/runtimes#673](https://github.com/polkadot-fellows/runtimes/pull/673))
+
+### Added
+
+- The Secretary Program ([polkadot-fellows/runtimes#347](https://github.com/polkadot-fellows/runtimes/pull/347))
+
+## [1.5.0] 22.04.2025
+
 ### Added
 
 - Now each system extension has its own weight, defined by `ExtensionWeightInfo` ([polkadot-fellows/runtimes/pull/606](https://github.com/polkadot-fellows/runtimes/pull/606))
@@ -16,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Bounties Pallet: add approve_bounty_with_curator call ([paritytech/polkadot-sdk/pull/5961](https://github.com/paritytech/polkadot-sdk/pull/5961))
   - Collective: Dynamic deposit based on number of proposals ([paritytech/polkadot-sdk/pull/3151](https://github.com/paritytech/polkadot-sdk/pull/3151))
   - New runtime api that returns the associated pool accounts with a nomination pool ([paritytech/polkadot-sdk/pull/6357](https://github.com/paritytech/polkadot-sdk/pull/6357))
-  - The Secretary Program ([polkadot-fellows/runtimes#347](https://github.com/polkadot-fellows/runtimes/pull/347))
+  - Enable RFC103 on Kusama ([polkadot-fellows/runtimes/pull/681](https://github.com/polkadot-fellows/runtimes/pull/681/))
 
 ### Changed
 
@@ -27,6 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Balances: fix: do not emit Issued { amount: 0 } event ([paritytech/polkadot-sdk/pull/5946](https://github.com/paritytech/polkadot-sdk/pull/5946))
   - Snowbridge: Support bridging native ETH ([paritytech/polkadot-sdk/pull/7090](https://github.com/paritytech/polkadot-sdk/pull/7090))
   - Runtime-APIs: Fix DryRunApi client-facing XCM versions ([paritytech/polkadot-sdk/pull/7689](https://github.com/paritytech/polkadot-sdk/pull/7689))
+- Kusama: disable/filter `Nis` and `NisCounterpartBalances` pallets calls ([polkadot-fellows/runtimes/pull/656](https://github.com/polkadot-fellows/runtimes/pull/656))
+- Increase spend payout period for treasuries from 30 to 90 days to provide sufficient time to address issues with insufficient balance of a specific asset in the treasury pot ([polkadot-fellows/runtimes/pull/647](https://github.com/polkadot-fellows/runtimes/pull/647))
+- Asset Hub: remove XCM sufficient asset fee trader ([polkadot-fellows/runtimes#502](https://github.com/polkadot-fellows/runtimes/pull/502))
+- Enable Async Backing for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/659](https://github.com/polkadot-fellows/runtimes/pull/659))
 
 ## [1.4.3] 14.04.2025
 
@@ -36,7 +51,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Disable MBM migrations for all runtimes for check-migrations CI ([polkadot-fellows/runtimes/pull/590](https://github.com/polkadot-fellows/runtimes/pull/590))
 - chain-spec-generator supports conditional building (`--no-default-features --features <runtime>` or `--no-default-features --features all-runtimes` or
   `--no-default-features --features all-polkadot` or `--no-default-features --features all-kusama`)([polkadot-fellows/runtimes/pull/637](https://github.com/polkadot-fellows/runtimes/pull/637))
-
 
 ## [1.4.2] 07.03.2025
 

@@ -128,7 +128,7 @@ pallet-insecure-randomness-collective-flip = { version = "27.0.0", default-featu
 pallet-membership = { version = "39.0.0", default-features = false }
 pallet-message-queue = { version = "42.0.0", default-features = false }
 pallet-mmr = { version = "39.0.0", default-features = false }
-pallet-multisig = { version = "39.1.0", default-features = false }
+pallet-multisig = { version = "39.1.1", default-features = false }
 pallet-nft-fractionalization = { version = "22.1.0", default-features = false }
 pallet-nfts = { version = "33.1.0", default-features = false }
 pallet-nfts-runtime-api = { version = "25.0.0", default-features = false }
@@ -167,7 +167,7 @@ pallet-utility = { version = "39.1.0", default-features = false }
 pallet-vesting = { version = "39.1.0", default-features = false }
 pallet-whitelist = { version = "38.1.0", default-features = false }
 pallet-xcm = { version = "18.1.0", default-features = false }
-pallet-xcm-benchmarks = { version = "18.1.0", default-features = false }
+pallet-xcm-benchmarks = { version = "18.1.1", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.14.2", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.16.0", default-features = false }
 parachain-info = { version = "0.18.0", default-features = false, package = "staging-parachain-info" }
