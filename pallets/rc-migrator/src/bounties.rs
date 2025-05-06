@@ -62,12 +62,14 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(BountiesStage::BountyCount);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		log::info!(target: LOG_TARGET, "Migrating Bounties at stage {:?}", &last_key);
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
@@ -150,7 +152,7 @@ impl<T: Config> PalletMigration for BountiesMigrator<T> {
 
 		if !messages.is_empty() {
 			Pallet::<T>::send_chunked_xcm_and_track(
-				messages,
+				messages.into_inner(),
 				|messages| types::AhMigratorCall::<T>::ReceiveBountiesMessages { messages },
 				|len| T::AhWeightInfo::receive_bounties_messages(len),
 			)?;

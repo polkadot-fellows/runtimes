@@ -17,11 +17,15 @@
 //! Pallet staking migration.
 
 use crate::*;
+use frame_support::traits::DefensiveTruncateInto;
+use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
-	pub fn do_receive_staking_messages(
-		messages: Vec<AhEquivalentStakingMessageOf<T>>,
-	) -> Result<(), Error<T>> {
+	pub fn staking_migration_start_hook() {}
+
+	pub fn staking_migration_finish_hook() {}
+
+	pub fn do_receive_staking_messages(messages: Vec<T::RcStakingMessage>) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -30,7 +34,8 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for message in messages {
-			match Self::do_receive_staking_message(message) {
+			let translated = T::RcStakingMessage::intoAh(message);
+			match Self::do_receive_staking_message(translated) {
 				Ok(_) => good += 1,
 				Err(_) => bad += 1,
 			}
@@ -53,13 +58,12 @@ impl<T: Config> Pallet<T> {
 		match message {
 			Values(values) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingValues");
-				// FIXME ggwpez FAIL-CI
 				pallet_rc_migrator::staking::StakingMigrator::<T>::put_values(values);
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::Invulnerables::<T>::put(invulnerables);
+				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
+				pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
 				log::debug!(target: LOG_TARGET, "Integrating Bonded of stash {:?}", stash);
@@ -71,13 +75,11 @@ impl<T: Config> Pallet<T> {
 			},
 			Payee { stash, payment } => {
 				log::debug!(target: LOG_TARGET, "Integrating Payee of stash {:?}", stash);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::Payee::<T>::insert(stash, payment);
+				pallet_staking_async::Payee::<T>::insert(stash, payment);
 			},
 			Validators { stash, validators } => {
 				log::debug!(target: LOG_TARGET, "Integrating Validators of stash {:?}", stash);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::Validators::<T>::insert(stash, validators);
+				pallet_staking_async::Validators::<T>::insert(stash, validators);
 			},
 			Nominators { stash, nominations } => {
 				log::debug!(target: LOG_TARGET, "Integrating Nominators of stash {:?}", stash);
@@ -103,12 +105,13 @@ impl<T: Config> Pallet<T> {
 				);
 			},
 			ClaimedRewards { era, validator, rewards } => {
-				// FIXME ErasClaimedRewards
+				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
+				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
+				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, rewards);
 			},
 			ErasValidatorPrefs { era, validator, prefs } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasValidatorPrefs {:?}/{:?}", validator, era);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::ErasValidatorPrefs::<T>::insert(era, validator, prefs);
+				pallet_staking_async::ErasValidatorPrefs::<T>::insert(era, validator, prefs);
 			},
 			ErasValidatorReward { era, reward } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasValidatorReward of era {:?}", era);
@@ -116,12 +119,16 @@ impl<T: Config> Pallet<T> {
 			},
 			ErasRewardPoints { era, points } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasRewardPoints of era {:?}", era);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::ErasRewardPoints::<T>::insert(era, points);
+				pallet_staking_async::ErasRewardPoints::<T>::insert(era, points);
 			},
 			ErasTotalStake { era, total_stake } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasTotalStake of era {:?}", era);
 				pallet_staking_async::ErasTotalStake::<T>::insert(era, total_stake);
+			},
+			UnappliedSlashes { era, slash } => {
+				log::debug!(target: LOG_TARGET, "Integrating UnappliedSlashes of era {:?}", era);
+				let slash_key = (slash.validator.clone(), Perbill::from_percent(99), 9999);
+				pallet_staking_async::UnappliedSlashes::<T>::insert(era, slash_key, slash);
 			},
 			BondedEras(bonded_eras) => {
 				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
@@ -137,13 +144,11 @@ impl<T: Config> Pallet<T> {
 			},
 			SlashingSpans { account, spans } => {
 				log::debug!(target: LOG_TARGET, "Integrating SlashingSpans {:?}", account);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::SlashingSpans::<T>::insert(account, spans);
+				pallet_staking_async::SlashingSpans::<T>::insert(account, spans);
 			},
 			SpanSlash { account, span, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating SpanSlash {:?}/{:?}", account, span);
-				// FIXME ggwpez FAIL-CI
-				//pallet_staking_async::SpanSlash::<T>::insert((account, span), slash);
+				pallet_staking_async::SpanSlash::<T>::insert((account, span), slash);
 			},
 		}
 

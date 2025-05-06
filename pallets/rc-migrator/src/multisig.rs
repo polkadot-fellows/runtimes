@@ -22,7 +22,6 @@ use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};
-use alloc::vec::Vec;
 
 mod aliases {
 	use super::*;
@@ -114,7 +113,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		mut last_key: Option<Self::Key>,
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Error<T>> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 		let mut iter = match last_key.clone() {
 			Some((k1, k2)) =>
 				aliases::Multisigs::<T>::iter_from(aliases::Multisigs::<T>::hashed_key_for(k1, k2)),
@@ -122,7 +121,9 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		};
 
 		loop {
-			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);

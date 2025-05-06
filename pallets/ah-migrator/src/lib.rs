@@ -223,12 +223,13 @@ pub mod pallet {
 		+ pallet_indices::Config
 		+ pallet_conviction_voting::Config
 		+ pallet_asset_rate::Config
-		+ pallet_timestamp::Config<Moment = u64> // Needed for testing
+		+ pallet_timestamp::Config<Moment = u64>
 		+ pallet_ah_ops::Config
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
 		+ pallet_treasury::Config // Not on westend
 		//+ pallet_staking_async::Config // Only on westend
+		//+ pallet_staking_async_rc_client::Config // Only on westend
 	{
 		type RuntimeHoldReason: Parameter + VariantCount;
 		/// The overarching event type.
@@ -320,8 +321,12 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type AhPostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
+		/// Messaging type that the staking migration uses.
+		///
+		/// We need to inject this here to be able to convert it. The message type is require to
+		/// also be able to convert messages from Relay to Asset Hub format.
 		#[cfg(feature = "ahm-staking-migration")]
-		type RcStakingMessage: Parameter + Convert2<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
+		type RcStakingMessage: Parameter + IntoAh<Self::RcStakingMessage, AhEquivalentStakingMessageOf<Self>>;
 	}
 
 	/// RC accounts that failed to migrate when were received on the Asset Hub.
@@ -388,6 +393,19 @@ pub mod pallet {
 		BatchReceived { pallet: PalletEventName, count: u32 },
 		/// We processed a batch of messages for this pallet.
 		BatchProcessed { pallet: PalletEventName, count_good: u32, count_bad: u32 },
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
+		/// emitted.
+		///
+		/// This event is equivalent to `StageTransition { new: DataMigrationOngoing, .. }` but is
+		/// easier to understand. The activation is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationStarted,
+		/// The Asset Hub Migration finished.
+		///
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier
+		/// to understand. The finishing is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationFinished,
 	}
 
 	#[pallet::pallet]
@@ -834,7 +852,7 @@ pub mod pallet {
 		#[pallet::weight({1})] // TODO: weight
 		pub fn receive_staking_messages(
 			origin: OriginFor<T>,
-			messages: Vec<AhEquivalentStakingMessageOf<T>>,
+			messages: Vec<T::RcStakingMessage>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -865,22 +883,8 @@ pub mod pallet {
 		#[pallet::weight(T::AhWeightInfo::start_migration())]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
 
-			let checking_account = T::CheckingAccount::get();
-			let balances_before = BalancesBefore {
-				checking_account: <T as Config>::Currency::total_balance(&checking_account),
-				total_issuance: <T as Config>::Currency::total_issuance(),
-			};
-			log::info!(
-				target: LOG_TARGET,
-				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
-				balances_before.checking_account, balances_before.total_issuance
-			);
-			AhBalancesBefore::<T>::put(balances_before);
-
-			Self::transition(MigrationStage::DataMigrationOngoing);
-			Ok(())
+			Self::migration_start_hook().map_err(Into::into)
 		}
 
 		/// Finish the migration.
@@ -893,18 +897,8 @@ pub mod pallet {
 			data: MigrationFinishedData<T::Balance>,
 		) -> DispatchResult {
 			<T as Config>::ManagerOrigin::ensure_origin(origin)?;
-			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
-				// FIXME fails only on Westend
-				#[cfg(feature = "ahm-westend")]
-				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
 
-				#[cfg(not(feature = "ahm-westend"))]
-				defensive!("Account migration failed: {:?}", err);
-			}
-
-			// We have to go into the Done state, otherwise the chain will be blocked
-			Self::transition(MigrationStage::MigrationDone);
-			Ok(())
+			Self::migration_finish_hook(data).map_err(Into::into)
 		}
 	}
 
@@ -933,6 +927,46 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Auxiliary logic to be done before the migration starts.
+		pub fn migration_start_hook() -> Result<(), Error<T>> {
+			Self::send_xcm(types::RcMigratorCall::StartDataMigration)?;
+
+			// Accounts
+			let checking_account = T::CheckingAccount::get();
+			let balances_before = BalancesBefore {
+				checking_account: <T as Config>::Currency::total_balance(&checking_account),
+				total_issuance: <T as Config>::Currency::total_issuance(),
+			};
+			log::info!(
+				target: LOG_TARGET,
+				"start_migration(): checking_account_balance {:?}, total_issuance {:?}",
+				balances_before.checking_account, balances_before.total_issuance
+			);
+			AhBalancesBefore::<T>::put(balances_before);
+
+			Self::transition(MigrationStage::DataMigrationOngoing);
+			Ok(())
+		}
+
+		/// Auxiliary logic to be done after the migration finishes.
+		pub fn migration_finish_hook(
+			data: MigrationFinishedData<T::Balance>,
+		) -> Result<(), Error<T>> {
+			// Accounts
+			if let Err(err) = Self::finish_accounts_migration(data.rc_balance_kept) {
+				// FIXME fails only on Westend
+				#[cfg(feature = "ahm-westend")]
+				log::error!(target: LOG_TARGET, "Account migration failed: {:?}", err);
+
+				#[cfg(not(feature = "ahm-westend"))]
+				defensive!("Account migration failed: {:?}", err);
+			}
+
+			// We have to go into the Done state, otherwise the chain will be blocked
+			Self::transition(MigrationStage::MigrationDone);
+			Ok(())
+		}
+
 		/// Increments the number of XCM messages received from the Relay Chain.
 		fn increment_msg_received_count(with_error: bool) {
 			let (processed, processed_with_error) = DmpDataMessageCounts::<T>::get();
@@ -950,8 +984,24 @@ pub mod pallet {
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStage) {
 			let old = AhMigrationStage::<T>::get();
+
+			if new == MigrationStage::DataMigrationOngoing {
+				defensive_assert!(
+					old == MigrationStage::Pending,
+					"Data migration can only enter from Pending"
+				);
+				Self::deposit_event(Event::AssetHubMigrationStarted);
+			}
+			if new == MigrationStage::MigrationDone {
+				defensive_assert!(
+					old == MigrationStage::DataMigrationOngoing,
+					"MigrationDone can only enter from DataMigrationOngoing"
+				);
+				Self::deposit_event(Event::AssetHubMigrationFinished);
+			}
+
 			AhMigrationStage::<T>::put(&new);
-			log::warn!(
+			log::info!(
 				target: LOG_TARGET,
 				"[Block {:?}] AH stage transition: {:?} -> {:?}",
 				frame_system::Pallet::<T>::block_number(),

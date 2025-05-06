@@ -17,34 +17,6 @@
 //! Account/Balance data migrator module.
 
 /*
-TODO: remove this dec comment when not needed
-
-Sources of account references
-
-provider refs:
-- crowdloans: fundraising system account / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/common/src/crowdloan/mod.rs#L416
-- parachains_assigner_on_demand / on_demand: pallet's account https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
-- balances: user account / existential deposit
-- session: initial validator set on Genesis / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L466
-- delegated-staking: delegators and agents (users)
-
-consumer refs:
-- balances:
--- might hold on account mutation / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/balances/src/lib.rs#L1007
--- on migration to new logic for every migrating account / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/balances/src/lib.rs#L877
-- session:
--- for user setting the keys / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
--- initial validator set on Genesis / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L461
-- recovery: user on recovery claim / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
-- staking:
--- for user bonding / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/staking/src/pallet/mod.rs#L1036
--- virtual bond / agent key / https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/staking/src/pallet/impls.rs#L1948
-
-sufficient refs:
-- must be zero since only assets pallet might hold such reference
-*/
-
-/*
 TODO: remove when not needed
 
 Regular native asset teleport from Relay (mint authority) to Asset Hub looks like:
@@ -213,14 +185,7 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		// we should not send more than we allocated on AH for the migration.
 		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
 		// accounts batch for the current iteration.
-		let mut batch = Vec::new();
-
-		// TODO transport weight. probably we need to leave some buffer since we do not know how
-		// many send batches the one migrate_many will require.
-		let xcm_weight = Weight::from_all(1);
-		if weight_counter.try_consume(xcm_weight).is_err() {
-			return Err(Error::OutOfWeight);
-		}
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let mut iter = if let Some(ref last_key) = last_key {
 			SystemAccount::<T>::iter_from_key(last_key)
@@ -231,7 +196,9 @@ impl<T: Config> PalletMigration for AccountsMigrator<T> {
 		let mut maybe_last_key = last_key;
 		loop {
 			// account the weight for migrating a single account on Relay Chain.
-			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() {
+			if weight_counter.try_consume(T::RcWeightInfo::withdraw_account()).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
 				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
 				if batch.is_empty() {
 					return Err(Error::OutOfWeight);
@@ -318,9 +285,9 @@ impl<T: Config> AccountsMigrator<T> {
 		batch_len: u32,
 	) -> Result<Option<AccountFor<T>>, Error<T>> {
 		if let AccountState::Preserve = Self::get_rc_state(&who) {
-			log::debug!(
+			log::info!(
 				target: LOG_TARGET,
-				"Preserve account '{:?}' on Relay Chain",
+				"Preserving account on Relay Chain: '{:?}'",
 				who.to_ss58check(),
 			);
 			return Ok(None);
@@ -461,17 +428,18 @@ impl<T: Config> AccountsMigrator<T> {
 			.defensive_unwrap_or_default();
 		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
 
-		// TODO: ensuring the account can be fully withdrawn from RC to AH requires force-updating
-		// the references here. After inspecting the state, it's clear that fully correcting the
-		// reference counts would be nearly impossible. Instead, for accounts meant to be fully
-		// migrated to the AH, we will calculate the actual reference counts based on the
-		// migrating pallets and transfer the counts to AH. This is done using the
-		// `Self::get_consumer_count` and `Self::get_provider_count` functions.
+		// ensuring the account can be fully withdrawn from RC to AH requires force-updating
+		// the references here. Instead, for accounts meant to be fully migrated to the AH, we will
+		// calculate the actual reference counts based on the migrating pallets and transfer the
+		// counts to AH. This is done using the `Self::get_consumer_count` and
+		// `Self::get_provider_count` functions.
 		//
-		// accounts fully migrating to AH will have a consumer count of `0` since all holds and
-		// freezes are removed. Accounts keeping some reserve on RC will have a consumer count of
-		// `1` as they have consumers of the reserve. The provider count is set to `1` to allow
-		// reaping accounts that provided the ED at the `burn_from` below.
+		// check accounts.md for more details.
+		//
+		// accounts fully migrating to AH will have a consumer count of `0` on Relay Chain since all
+		// holds and freezes are removed. Accounts keeping some reserve on RC will have a consumer
+		// count of `1` as they have consumers of the reserve. The provider count is set to `1` to
+		// allow reaping accounts that provided the ED at the `burn_from` below.
 		let consumers = if rc_reserve > 0 { 1 } else { 0 };
 		SystemAccount::<T>::mutate(&who, |a| {
 			a.consumers = consumers;
@@ -514,26 +482,10 @@ impl<T: Config> AccountsMigrator<T> {
 
 		debug_assert!(teleport_total == burned);
 
-		RcMigratedBalance::<T>::mutate(|tracker| {
-			tracker.migrated = tracker.migrated.checked_add(teleport_total).ok_or_else(|| {
-				log::error!(
-					target: LOG_TARGET,
-					"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
-					who.to_ss58check(), teleport_total, tracker.migrated,
-				);
-				Error::<T>::BalanceOverflow
-			})?;
-			tracker.kept = tracker.kept.checked_sub(teleport_total).ok_or_else(|| {
-				log::error!(
-					target: LOG_TARGET,
-					"Balance underflow when subtracting balance of {}, balance {:?}, from total kept {:?}",
-					who.to_ss58check(), teleport_total, tracker.kept,
-				);
-				Error::<T>::BalanceUnderflow
-			})?;
-			Ok::<_, Error<T>>(())
-		})?;
+		Self::update_migrated_balance(&who, teleport_total)?;
 
+		let consumers = Self::get_consumer_count(&who, &account_info);
+		let providers = Self::get_provider_count(&who, &account_info, &holds);
 		let withdrawn_account = Account {
 			who: who.clone(),
 			free: teleport_free,
@@ -543,8 +495,8 @@ impl<T: Config> AccountsMigrator<T> {
 			freezes: BoundedVec::defensive_truncate_from(freezes),
 			locks: BoundedVec::defensive_truncate_from(locks),
 			unnamed_reserve,
-			consumers: Self::get_consumer_count(&who, &account_info),
-			providers: Self::get_provider_count(&who, &account_info),
+			consumers,
+			providers,
 		};
 
 		// account the weight for receiving a single account on Asset Hub.
@@ -617,21 +569,9 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Since the `reserved` and `frozen` balances will be known on a receiving side (AH) they will
 	/// be calculated there.
+	///
+	/// Check accounts.md for more details.
 	pub fn get_consumer_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
-		// TODO: check the pallets for consumer references on Relay Chain.
-
-		// The following pallets increase consumers and are deployed on (Polkadot, Kusama, Westend):
-		// - `balances`: (P/K/W)
-		// - `recovery`: (/K/W)
-		// - `assets`: (//)
-		// - `contracts`: (//)
-		// - `nfts`: (//)
-		// - `uniques`: (//)
-		// - `revive`: (//)
-		// Staking stuff:
-		// - `session`: (P/K/W)
-		// - `staking`: (P/K/W)
-
 		0
 	}
 
@@ -640,29 +580,53 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Since the `free` balance will be known on a receiving side (AH) the ref count will be
 	/// calculated there.
-	pub fn get_provider_count(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> u8 {
-		// TODO: check the pallets for provider references on Relay Chain.
-
-		// The following pallets increase provider and are deployed on (Polkadot, Kusama, Westend):
-		// - `crowdloan`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/common/src/crowdloan/mod.rs#L416
-		// - `parachains_on_demand`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/parachains/src/on_demand/mod.rs#L407
-		// - `balances`: (P/K/W) https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/balances/src/lib.rs#L1026
-		// - `broker`: (_/_/_)
-		// - `delegate_staking`: (P/K/W)
-		// - `session`: (P/K/W) <- Don't count this one (see https://github.com/paritytech/polkadot-sdk/blob/8d4138f77106a6af49920ad84f3283f696f3f905/substrate/frame/session/src/lib.rs#L462-L465)
-
-		0
+	///
+	/// Check accounts.md for more details.
+	pub fn get_provider_count(
+		_who: &T::AccountId,
+		_info: &AccountInfoFor<T>,
+		freezes: &Vec<IdAmount<<T as Config>::RuntimeHoldReason, T::Balance>>,
+	) -> u8 {
+		if freezes.iter().any(|freeze| freeze.id == T::StakingDelegationReason::get()) {
+			// one extra provider for accounts with staking delegation
+			1
+		} else {
+			0
+		}
 	}
 
 	/// The part of the balance of the `who` that must stay on the Relay Chain.
 	pub fn get_rc_state(who: &T::AccountId) -> AccountStateFor<T> {
-		// TODO: static list of System Accounts that must stay on RC
-		// note: XCM teleport checking account not one of them - shall be completely migrated
-
 		if let Some(state) = RcAccounts::<T>::get(who) {
 			return state;
 		}
 		AccountStateFor::<T>::Migrate
+	}
+
+	fn update_migrated_balance(
+		who: &T::AccountId,
+		teleported_balance: T::Balance,
+	) -> Result<(), Error<T>> {
+		RcMigratedBalance::<T>::mutate(|tracker| {
+			tracker.migrated =
+				tracker.migrated.checked_add(teleported_balance).ok_or_else(|| {
+					log::error!(
+						target: LOG_TARGET,
+						"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
+						who.to_ss58check(), teleported_balance, tracker.migrated,
+					);
+					Error::<T>::BalanceOverflow
+				})?;
+			tracker.kept = tracker.kept.checked_sub(teleported_balance).ok_or_else(|| {
+				log::error!(
+					target: LOG_TARGET,
+					"Balance underflow when subtracting balance of {}, balance {:?}, from total kept {:?}",
+					who.to_ss58check(), teleported_balance, tracker.kept,
+				);
+				Error::<T>::BalanceUnderflow
+			})?;
+			Ok::<_, Error<T>>(())
+		})
 	}
 
 	/// Obtain all known accounts that must stay on RC and persist it to the [`RcAccounts`] storage
@@ -670,6 +634,7 @@ impl<T: Config> AccountsMigrator<T> {
 	///
 	/// Should be executed once before the migration starts.
 	pub fn obtain_rc_accounts() -> Weight {
+		let mut weight = Weight::zero();
 		let mut reserves = sp_std::collections::btree_map::BTreeMap::new();
 		let mut update_reserves = |id, deposit| {
 			if deposit == 0 {
@@ -679,6 +644,7 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 
 		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
@@ -689,16 +655,19 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			// source: https://github.com/paritytech/polkadot-sdk/blob/3dc3a11cd68762c2e5feb0beba0b61f448c4fc92/polkadot/runtime/parachains/src/hrmp.rs#L1475
 			let sender: T::AccountId = channel_id.sender.into_account_truncating();
 			update_reserves(sender, info.sender_deposit);
 		}
 
 		for (_, info) in Paras::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
 			update_reserves(info.manager, info.deposit);
 		}
 
 		for (id, rc_reserved) in reserves {
+			weight += T::DbWeight::get().reads(4);
 			let account_entry = SystemAccount::<T>::get(&id);
 			let free = <T as Config>::Currency::balance(&id);
 			let total_frozen = account_entry.data.frozen;
@@ -728,16 +697,18 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 
 			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
+				weight += T::DbWeight::get().writes(1);
 				// when there is no much free balance and the account is used only for reserves
 				// for parachains registering or hrmp channels we will keep the entire account on
 				// the RC.
 				log::debug!(
 					target: LOG_TARGET,
-					"Preserve account: {:?} on the RC",
+					"Preserve account on Relay Chain: '{:?}'",
 					id.to_ss58check()
 				);
 				RcAccounts::<T>::insert(&id, AccountState::Preserve);
 			} else {
+				weight += T::DbWeight::get().writes(1);
 				log::debug!(
 					target: LOG_TARGET,
 					"Keep part of account: {:?} reserve: {:?} on the RC",
@@ -748,8 +719,18 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 		}
 
-		// TODO: define actual weight
-		Weight::from_all(1)
+		// Keep the on-demand pallet account on the RC.
+		weight += T::DbWeight::get().writes(1);
+		let on_demand_pallet_account: T::AccountId =
+			T::OnDemandPalletId::get().into_account_truncating();
+		log::debug!(
+			target: LOG_TARGET,
+			"Preserve on-demand pallet account on Relay Chain: '{:?}'",
+			on_demand_pallet_account.to_ss58check()
+		);
+		RcAccounts::<T>::insert(&on_demand_pallet_account, AccountState::Preserve);
+
+		weight
 	}
 
 	/// Try to translate a Parachain sovereign account to the Parachain AH sovereign account.
