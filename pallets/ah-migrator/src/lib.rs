@@ -90,11 +90,11 @@ use pallet_rc_migrator::{
 	multisig::*,
 	preimage::*,
 	proxy::*,
-	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*, *},
+	staking::{bags_list::RcBagsListMessage, fast_unstake::RcFastUnstakeMessage, nom_pools::*},
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
-use pallet_referenda::{ReferendumInfo, TrackIdOf};
+use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
 use scheduler::RcSchedulerMessageOf;
