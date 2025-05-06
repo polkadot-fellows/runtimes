@@ -55,7 +55,7 @@ cumulus-pallet-xcmp-queue = { version = "0.20.0", default-features = false }
 cumulus-primitives-aura = { version = "0.17.0", default-features = false }
 cumulus-primitives-core = { version = "0.18.1", default-features = false }
 cumulus-primitives-utility = { version = "0.20.0", default-features = false }
-emulated-integration-tests-common = { version = "20.0.0" }
+emulated-integration-tests-common = { version = "20.0.1" }
 #encointer-balances-tx-payment = { version = "~15.1.0", default-features = false }
 #encointer-balances-tx-payment-rpc-runtime-api = { version = "~15.1.0", default-features = false }
 #encointer-kusama-runtime = { path = "system-parachains/encointer" }
@@ -175,7 +175,7 @@ parachains-common = { version = "21.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "22.0.0" }
 paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
-penpal-runtime = { version = "0.28.0" }
+penpal-runtime = { version = "0.28.1" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
 people-kusama-runtime = { path = "system-parachains/people/people-kusama" }
 people-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-polkadot" }
@@ -193,7 +193,7 @@ frame-metadata-hash-extension = { version = "0.8.0", default-features = false }
 remote-externalities = { version = "0.50.0", package = "frame-remote-externalities" }
 runtime-parachains = { version = "19.1.0", default-features = false, package = "polkadot-runtime-parachains" }
 sc-chain-spec = { version = "42.0.0" }
-sc-network = { version = "0.49.0" }
+sc-network = { version = "0.49.1" }
 scale-info = { version = "2.10.0", default-features = false }
 separator = { version = "0.4.1" }
 serde = { version = "1.0.196" }
@@ -205,9 +205,9 @@ snowbridge-outbound-queue-runtime-api = { version = "0.13.0", default-features =
 snowbridge-pallet-ethereum-client = { version = "0.13.0", default-features = false }
 snowbridge-pallet-inbound-queue = { version = "0.13.1", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { version = "0.21.0" }
-snowbridge-pallet-ethereum-client-fixtures = { version = "0.21.0" }
+snowbridge-pallet-ethereum-client-fixtures = { version = "0.21.1" }
 snowbridge-pallet-outbound-queue = { version = "0.13.0", default-features = false }
-snowbridge-pallet-system = { version = "0.13.1", default-features = false }
+snowbridge-pallet-system = { version = "0.13.2", default-features = false }
 snowbridge-router-primitives = { version = "0.18.1", default-features = false }
 snowbridge-runtime-common = { version = "0.13.0", default-features = false }
 snowbridge-runtime-test-common = { version = "0.15.0" }
@@ -221,7 +221,7 @@ sp-core = { version = "36.1.0", default-features = false }
 sp-debug-derive = { version = "14.0.0", default-features = false }
 sp-genesis-builder = { version = "0.17.0", default-features = false }
 sp-inherents = { version = "36.0.0", default-features = false }
-sp-io = { version = "40.0.0", default-features = false }
+sp-io = { version = "40.0.1", default-features = false }
 sp-keyring = { version = "41.0.0" }
 sp-npos-elections = { version = "36.1.0", default-features = false }
 sp-offchain = { version = "36.0.0", default-features = false }
@@ -236,12 +236,12 @@ sp-transaction-pool = { version = "36.0.0", default-features = false }
 sp-trie = { version = "39.1.0", default-features = false }
 sp-version = { version = "39.0.0", default-features = false }
 sp-weights = { version = "31.1.0", default-features = false }
-substrate-wasm-builder = { version = "26.0.0" }
+substrate-wasm-builder = { version = "26.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
 xcm = { version = "16.1.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "20.0.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.19.0" }
+xcm-builder = { version = "20.1.0", default-features = false, package = "staging-xcm-builder" }
+xcm-emulator = { version = "0.19.1" }
 xcm-executor = { version = "19.1.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.7.0", default-features = false }
 anyhow = { version = "1.0.82" }
