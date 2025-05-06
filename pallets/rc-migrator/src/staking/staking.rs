@@ -551,7 +551,7 @@ type RcPrePayload = (
 		<T as frame_system::Config>::AccountId,
 		sp_staking::PagedExposureMetadata<pallet_staking::BalanceOf<T>>,
 	)>,
-	// ErasStakersPaged n map.
+	// ErasStakersPaged N map.
 	Vec<(
 		(sp_staking::EraIndex, <T as frame_system::Config>::AccountId, sp_staking::Page),
 		sp_staking::ExposurePage<<T as frame_system::Config>::AccountId, pallet_staking::BalanceOf<T>>,
@@ -611,8 +611,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
 	type RcPrePayload = RcPrePayload<T>;
 
     fn pre_check() -> Self::RcPrePayload {
-        // To get the "before take" values for those covered by `take_values`, we re-fetch them here.
-        let pre_take_values = crate::staking::message::StakingValues {
+        let staking_values = crate::staking::message::StakingValues {
             validator_count: pallet_staking::ValidatorCount::<T>::get(),
             min_validator_count: pallet_staking::MinimumValidatorCount::<T>::get(),
             min_nominator_bond: pallet_staking::MinNominatorBond::<T>::get(),
@@ -631,7 +630,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
             chill_threshold: pallet_staking::ChillThreshold::<T>::get(),
         };
 
-        let invulnerables = pallet_staking::Invulnerables::<T>::get(); // .get() before take()
+        let invulnerables = pallet_staking::Invulnerables::<T>::get();
         let bonded: Vec<_> = pallet_staking::Bonded::<T>::iter().collect();
         let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
         let payees: Vec<_> = pallet_staking::Payee::<T>::iter().collect();
@@ -655,7 +654,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         let eras_reward_points: Vec<_> = pallet_staking::ErasRewardPoints::<T>::iter().collect();
         let eras_total_stake: Vec<_> = pallet_staking::ErasTotalStake::<T>::iter().collect();
         let unapplied_slashes: Vec<_> = pallet_staking::UnappliedSlashes::<T>::iter().collect();
-        let bonded_eras = pallet_staking::BondedEras::<T>::get(); // .get() before take()
+        let bonded_eras = pallet_staking::BondedEras::<T>::get();
         let validator_slash_in_era: Vec<_> =
             pallet_staking::ValidatorSlashInEra::<T>::iter()
             .map(|(era, validator, slash)| (era, validator, slash))
@@ -668,7 +667,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         let span_slashes: Vec<_> = pallet_staking::SpanSlash::<T>::iter().collect();
 
         (
-            pre_take_values,
+            staking_values,
             invulnerables,
             bonded,
             ledgers,
@@ -694,116 +693,112 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
     }
 
     fn post_check(_rc_pre_payload: Self::RcPrePayload) {
-        // Assertions for items handled by `take_values()`
-        // Assert storage 'Staking::ValidatorCount::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::ValidatorCount::rc_post::empty'
         assert_eq!(
             pallet_staking::ValidatorCount::<T>::get(),
             Default::default(),
             "ValidatorCount should be default on RC after migration"
         );
-        // Assert storage 'Staking::MinimumValidatorCount::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MinimumValidatorCount::rc_post::empty'
         assert_eq!(
             pallet_staking::MinimumValidatorCount::<T>::get(),
             Default::default(),
             "MinimumValidatorCount should be default on RC after migration"
         );
-        // Assert storage 'Staking::MinNominatorBond::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MinNominatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinNominatorBond::<T>::get(),
             Default::default(),
             "MinNominatorBond should be default on RC after migration"
         );
-        // Assert storage 'Staking::MinValidatorBond::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MinValidatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinValidatorBond::<T>::get(),
             Default::default(),
             "MinValidatorBond should be default on RC after migration"
         );
-        // Assert storage 'Staking::MinimumActiveStake::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MinimumActiveStake::rc_post::empty'
         assert_eq!(
             pallet_staking::MinimumActiveStake::<T>::get(),
             Default::default(), // Assuming BalanceOf<T> defaults to zero
             "MinimumActiveStake should be default on RC after migration"
         );
-        // Assert storage 'Staking::MinCommission::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MinCommission::rc_post::empty'
         assert_eq!(
             pallet_staking::MinCommission::<T>::get(),
             Default::default(), // Perbill::zero()
             "MinCommission should be default on RC after migration"
         );
-        // Assert storage 'Staking::MaxValidatorsCount::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MaxValidatorsCount::rc_post::empty'
         assert_eq!(
             pallet_staking::MaxValidatorsCount::<T>::get(),
             None,
             "MaxValidatorsCount should be None on RC after migration"
         );
-        // Assert storage 'Staking::MaxNominatorsCount::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MaxNominatorsCount::rc_post::empty'
         assert_eq!(
             pallet_staking::MaxNominatorsCount::<T>::get(),
             None,
             "MaxNominatorsCount should be None on RC after migration"
         );
-        // Assert storage 'Staking::CurrentEra::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::CurrentEra::rc_post::empty'
         assert_eq!(
             pallet_staking::CurrentEra::<T>::get(),
             None,
             "CurrentEra should be None on RC after migration"
         );
-        // Assert storage 'Staking::ActiveEra::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::ActiveEra::rc_post::empty'
         assert_eq!(
             pallet_staking::ActiveEra::<T>::get(),
             None,
             "ActiveEra should be None on RC after migration"
         );
-        // Assert storage 'Staking::ForceEra::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::ForceEra::rc_post::empty'
         assert_eq!(
             pallet_staking::ForceEra::<T>::get(),
             Default::default(), // Forcing::NotForcing
             "ForceEra should be default on RC after migration"
         );
-        // Assert storage 'Staking::MaxStakedRewards::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::MaxStakedRewards::rc_post::empty'
         assert_eq!(
             pallet_staking::MaxStakedRewards::<T>::get(),
             None,
             "MaxStakedRewards should be None on RC after migration"
         );
-        // Assert storage 'Staking::SlashRewardFraction::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::SlashRewardFraction::rc_post::empty'
         assert_eq!(
             pallet_staking::SlashRewardFraction::<T>::get(),
             Default::default(), // Perbill::zero()
             "SlashRewardFraction should be default on RC after migration"
         );
-        // Assert storage 'Staking::CanceledSlashPayout::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::CanceledSlashPayout::rc_post::empty'
         assert_eq!(
             pallet_staking::CanceledSlashPayout::<T>::get(),
             Default::default(), // Assuming BalanceOf<T> defaults to zero
             "CanceledSlashPayout should be default on RC after migration"
         );
-        // Assert storage 'Staking::CurrentPlannedSession::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::CurrentPlannedSession::rc_post::empty'
         assert_eq!(
             pallet_staking::CurrentPlannedSession::<T>::get(),
             Default::default(), // SessionIndex 0
             "CurrentPlannedSession should be default on RC after migration"
         );
-        // Assert storage 'Staking::ChillThreshold::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::ChillThreshold::rc_post::empty'
         assert_eq!(
             pallet_staking::ChillThreshold::<T>::get(),
             None,
             "ChillThreshold should be None on RC after migration"
         );
-
-        // Assert storage 'Staking::Invulnerables::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::Invulnerables::rc_post::empty'
         assert!(
             pallet_staking::Invulnerables::<T>::get().is_empty(),
             "Invulnerables should be empty on RC after migration"
         );
-        // Assert storage 'Staking::BondedEras::rc_post::empty_or_correct_default'
+        // Assert storage 'Staking::BondedEras::rc_post::empty'
         assert!(
             pallet_staking::BondedEras::<T>::get().is_empty(),
             "BondedEras should be empty on RC after migration"
         );
-
-        // Assertions for iterated and removed items
         // Assert storage 'Staking::Bonded::rc_post::empty'
         assert!(
             pallet_staking::Bonded::<T>::iter().next().is_none(),
