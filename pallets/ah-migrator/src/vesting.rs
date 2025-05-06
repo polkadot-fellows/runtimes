@@ -135,6 +135,7 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 			.collect();
 
 		// Assert storage "Vesting::Vesting::ah_post::correct"
+		// Assert storage "Vesting::Vesting::ah_post::consistent"
 		// Assert storage "Vesting::Vesting::ah_post::length"
 		assert_eq!(
 			rc_pre,
