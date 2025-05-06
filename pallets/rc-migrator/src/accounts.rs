@@ -799,14 +799,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 				}
 			}
 			match acc_state_maybe {
-				Some(AccountState::Preserve) => {
-					// Account should be fully preserved
-					let total_balance = <T as Config>::Currency::total_balance(&who);
-					assert!(
-						total_balance >= <T as Config>::Currency::minimum_balance(),
-						"Preserved accounts on the relay chain after migration should have at least the existential deposit as balance"
-					);
-				},
 				Some(AccountState::Part { reserved }) => {
 					// Account should have only the reserved amount
 					let total_balance = <T as Config>::Currency::total_balance(&who);
@@ -897,7 +889,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 					);
 				},
 				// Non-migratable accounts having total balance lower than the existential deposit.
-				_ => {
+				None => {
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					assert!(
 						total_balance < <T as Config>::Currency::minimum_balance(),
@@ -912,6 +904,9 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 					);
 					assert_eq!(free_balance, 0, "Non-migratable account {:?} should have no free balance on the relay chain after migration", who.to_ss58check());
 				},
+				// No checks needed for preserved (unmodified) accounts on the relay chain after
+				// migration.
+				_ => (),
 			}
 		}
 
