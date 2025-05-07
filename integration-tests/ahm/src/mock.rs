@@ -159,6 +159,9 @@ pub fn next_block_ah() {
 ///
 /// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
 /// enqueuing them.
+///
+/// The block number parameter indicates the block at which these messages were sent. It may be set
+/// to zero when the block number information is not important for a test.
 pub fn enqueue_dmp(msgs: (Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)) {
 	log::info!(target: LOG_AH, "Received {} DMP messages from RC block {}", msgs.0.len(), msgs.1);
 	for msg in msgs.0 {
@@ -173,6 +176,9 @@ pub fn enqueue_dmp(msgs: (Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)
 }
 
 /// Enqueue UMP messages on the Relay Chain side.
+///
+/// The block number parameter indicates the block at which these messages were sent. It may be set
+/// to zero when the block number information is not important for a test.
 pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
 	log::info!(target: LOG_RC, "Received {} UMP messages from AH block {}", msgs.0.len(), msgs.1);
 	for msg in msgs.0 {
