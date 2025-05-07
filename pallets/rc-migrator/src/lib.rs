@@ -469,7 +469,7 @@ pub mod pallet {
 		/// RC migrator.
 		/// This configuration generally should be influenced by the number of XCM messages sent by
 		/// this pallet to the Asset Hub per block and the size of the queue on AH.
-		type UnprocessedDmpBuffer: Get<u32>;
+		type UnprocessedMsgBuffer: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -1429,7 +1429,7 @@ pub mod pallet {
 			if !current.is_ongoing() {
 				return false;
 			}
-			let unprocessed_buffer = T::UnprocessedDmpBuffer::get();
+			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
 			let (sent, processed) = DmpDataMessageCounts::<T>::get();
 			if sent > (processed + unprocessed_buffer) {
 				log::info!(
