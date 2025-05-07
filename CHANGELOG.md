@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Max PoV size 10mb for Kusama Asset Hub and People chains ([polkadot-fellows/runtimes/pull/718](https://github.com/polkadot-fellows/runtimes/pull/718))
+
 ### Fixed
 
 - Enabled XCM instructions `ExchangeAsset` and `AliasOrigin` on the system parachains ([polkadot-fellows/runtimes/pull/700](https://github.com/polkadot-fellows/runtimes/pull/700))
