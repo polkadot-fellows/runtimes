@@ -25,6 +25,7 @@ pub mod call_filter_asset_hub;
 pub mod call_filter_relay;
 pub mod checks;
 pub mod mock;
+pub mod multisig_still_work;
 pub mod proxy;
 pub mod tests;
 

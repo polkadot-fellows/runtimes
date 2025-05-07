@@ -33,7 +33,7 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, proxy::{ProxyBasicWorks, ProxyWhaleWatching}};
+use super::{checks::SanityChecks, mock::*, proxy::{ProxyBasicWorks, ProxyWhaleWatching}, multisig_still_work::MultisigStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
@@ -80,6 +80,7 @@ type RcChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	ProxyWhaleWatching,
+	MultisigStillWork,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
@@ -112,6 +113,7 @@ type AhChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	ProxyWhaleWatching,
+	MultisigStillWork,
 );
 
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
@@ -364,9 +366,9 @@ fn ah_account_migration_weight() {
 	}
 }
 
-#[ignore] // Slow
+//#[ignore] // Slow
 #[tokio::test(flavor = "current_thread")]
-async fn migration_works() {
+async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
 	// Set the initial migration stage from env var if set.

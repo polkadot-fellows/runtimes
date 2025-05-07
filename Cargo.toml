@@ -261,6 +261,7 @@ zombienet-sdk = { version = "0.2.4" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
+rand = { version = "0.9.1", default-features = false }
 
 [workspace]
 resolver = "2"

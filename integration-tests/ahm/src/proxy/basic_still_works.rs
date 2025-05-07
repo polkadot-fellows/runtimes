@@ -106,9 +106,7 @@ impl RcMigrationCheck for ProxyBasicWorks {
 		pre_payload
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
-		()
-	}
+	fn post_check(_: Self::RcPrePayload) { }
 }
 
 impl AhMigrationCheck for ProxyBasicWorks {
