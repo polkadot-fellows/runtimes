@@ -90,6 +90,7 @@ pub mod async_backing {
 	// TODO: This value is copied from the recent update of the `polkadot_primitives::MAX_POV_SIZE`
 	// constant. When PR https://github.com/paritytech/polkadot-sdk/pull/5884 is included in
 	// the SDK release, this constant should be replaced with a direct reference.
+	// issue: https://github.com/polkadot-fellows/runtimes/issues/719
 	pub const MAX_POV_SIZE: u64 = 10 * 1024 * 1024;
 
 	/// We allow for 2 seconds of compute with a 6 second average block time.
