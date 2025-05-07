@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Max PoV size 10mb for Kusama Asset Hub and People chains ([polkadot-fellows/runtimes/pull/718](https://github.com/polkadot-fellows/runtimes/pull/718))
+- Max PoV size 10mb for System Parachains ([polkadot-fellows/runtimes/pull/718](https://github.com/polkadot-fellows/runtimes/pull/718))
 
 ### Fixed
 
