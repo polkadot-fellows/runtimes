@@ -220,19 +220,20 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: `Multisig::Multisigs` (r:1 w:1)
-	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(3346), added: 5821, mode: `MaxEncodedLen`)
-	/// The range of component `s` is `[2, 100]`.
-	fn poke_deposit(s: u32, ) -> Weight {
+	/// Storage: `Proxy::Proxies` (r:1 w:1)
+	/// Proof: `Proxy::Proxies` (`max_values`: None, `max_size`: Some(1241), added: 3716, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `Proxy::Announcements` (r:1 w:1)
+	/// Proof: `Proxy::Announcements` (`max_values`: None, `max_size`: Some(2233), added: 4708, mode: `MaxEncodedLen`)
+	fn poke_deposit() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `458 + s * (1 ±0)`
-		//  Estimated: `6811`
-		// Minimum execution time: 34_917_000 picoseconds.
-		Weight::from_parts(36_141_350, 0)
-			.saturating_add(Weight::from_parts(0, 6811))
-			// Standard Error: 1_247
-			.saturating_add(Weight::from_parts(166_544, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
+		//  Measured:  `452`
+		//  Estimated: `5698`
+		// Minimum execution time: 49_684_000 picoseconds.
+		Weight::from_parts(50_366_000, 0)
+			.saturating_add(Weight::from_parts(0, 5698))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }

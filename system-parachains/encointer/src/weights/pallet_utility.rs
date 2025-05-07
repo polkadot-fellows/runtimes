@@ -104,4 +104,12 @@ impl<T: frame_system::Config> pallet_utility::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(7_583_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
+	fn if_else() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 8_440_000 picoseconds.
+		Weight::from_parts(8_843_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
 }
