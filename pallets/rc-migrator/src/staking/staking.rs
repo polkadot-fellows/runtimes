@@ -708,19 +708,19 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         // Assert storage 'Staking::MinNominatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinNominatorBond::<T>::get(),
-            0,
+            Default::default(),
             "MinNominatorBond should be default on RC after migration"
         );
         // Assert storage 'Staking::MinValidatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinValidatorBond::<T>::get(),
-            0,
+            Default::default(),
             "MinValidatorBond should be default on RC after migration"
         );
         // Assert storage 'Staking::MinimumActiveStake::rc_post::empty'
         assert_eq!(
             pallet_staking::MinimumActiveStake::<T>::get(),
-            0,
+            Default::default(),
             "MinimumActiveStake should be default on RC after migration"
         );
         // Assert storage 'Staking::MinCommission::rc_post::empty'
@@ -774,7 +774,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         // Assert storage 'Staking::CanceledSlashPayout::rc_post::empty'
         assert_eq!(
             pallet_staking::CanceledSlashPayout::<T>::get(),
-            0,
+            Default::default(),
             "CanceledSlashPayout should be default on RC after migration"
         );
         // Assert storage 'Staking::CurrentPlannedSession::rc_post::empty'
