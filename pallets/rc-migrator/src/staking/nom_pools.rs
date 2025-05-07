@@ -556,66 +556,66 @@ impl<T: Config> crate::types::RcMigrationCheck for NomPoolsMigrator<T> {
 		assert_eq!(
 			pallet_nomination_pools::TotalValueLocked::<T>::get(),
 			tests::Zero::zero(),
-			"Assert storage 'NominationPools::TotalValueLocked::rc_post::deleted'"
+			"Assert storage 'NominationPools::TotalValueLocked::rc_post::empty'"
 		);
 		assert_eq!(
 			pallet_nomination_pools::MinJoinBond::<T>::get(),
 			tests::Zero::zero(),
-			"Assert storage 'NominationPools::MinJoinBond::rc_post::deleted'"
+			"Assert storage 'NominationPools::MinJoinBond::rc_post::empty'"
 		);
 		assert_eq!(
 			pallet_nomination_pools::MinCreateBond::<T>::get(),
 			tests::Zero::zero(),
-			"Assert storage 'NominationPools::MinCreateBond::rc_post::deleted'"
+			"Assert storage 'NominationPools::MinCreateBond::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::MaxPools::<T>::get().is_none(),
-			"Assert storage 'NominationPools::MaxPools::rc_post::deleted'"
+			"Assert storage 'NominationPools::MaxPools::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::MaxPoolMembers::<T>::get().is_none(),
-			"Assert storage 'NominationPools::MaxPoolMembers::rc_post::deleted'"
+			"Assert storage 'NominationPools::MaxPoolMembers::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::MaxPoolMembersPerPool::<T>::get().is_none(),
-			"Assert storage 'NominationPools::MaxPoolMembersPerPool::rc_post::deleted'"
+			"Assert storage 'NominationPools::MaxPoolMembersPerPool::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::GlobalMaxCommission::<T>::get().is_none(),
-			"Assert storage 'NominationPools::GlobalMaxCommission::rc_post::deleted'"
+			"Assert storage 'NominationPools::GlobalMaxCommission::rc_post::empty'"
 		);
 		assert_eq!(
 			pallet_nomination_pools::LastPoolId::<T>::get(),
 			0,
-			"Assert storage 'NominationPools::LastPoolId::rc_post::deleted'"
+			"Assert storage 'NominationPools::LastPoolId::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::PoolMembers::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::PoolMembers::rc_post::deleted'"
+			"Assert storage 'NominationPools::PoolMembers::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::BondedPools::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::BondedPools::rc_post::deleted'"
+			"Assert storage 'NominationPools::BondedPools::rc_post::empty'"
 		);
 		assert!(
 			alias::RewardPools::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::RewardPools::rc_post::deleted'"
+			"Assert storage 'NominationPools::RewardPools::rc_post::empty'"
 		);
 		assert!(
 			alias::SubPoolsStorage::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::SubPoolsStorage::rc_post::deleted'"
+			"Assert storage 'NominationPools::SubPoolsStorage::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::Metadata::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::Metadata::rc_post::deleted'"
+			"Assert storage 'NominationPools::Metadata::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::ReversePoolIdLookup::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::ReversePoolIdLookup::rc_post::deleted'"
+			"Assert storage 'NominationPools::ReversePoolIdLookup::rc_post::empty'"
 		);
 		assert!(
 			pallet_nomination_pools::ClaimPermissions::<T>::iter().next().is_none(),
-			"Assert storage 'NominationPools::ClaimPermissions::rc_post::deleted'"
+			"Assert storage 'NominationPools::ClaimPermissions::rc_post::empty'"
 		);
 	}
 }

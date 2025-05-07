@@ -345,10 +345,10 @@ impl<T: Config> crate::types::AhMigrationCheck for NomPoolsMigrator<T> {
 			})
 			.collect();
 
-		// Assert storage "NominationPools::*::ah_post::correct"
+		// Assert storage "NominationPools::Metadata::ah_post::correct"
 		assert_eq!(
 			rc_pre_payload, ah_filtered,
-			"Assert storage 'NominationPools::*::ah_post::correct'"
+			"Assert storage 'NominationPools::Metadata::ah_post::correct'"
 		);
 	}
 }
