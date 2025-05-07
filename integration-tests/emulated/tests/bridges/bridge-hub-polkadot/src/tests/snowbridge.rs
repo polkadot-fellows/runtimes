@@ -42,16 +42,12 @@ use polkadot_system_emulated_network::{
 use snowbridge_beacon_primitives::{
 	types::deneb, AncestryProof, BeaconHeader, ExecutionProof, VersionedExecutionPayloadHeader,
 };
-use snowbridge_core::{
-	gwei,
-	inbound::{InboundQueueFixture, Log, Message, Proof},
-	meth,
-	outbound::OperatingMode,
-	AssetMetadata, Rewards, TokenIdOf,
-};
+use snowbridge_core::{gwei, meth, AssetMetadata, Rewards, TokenIdOf};
 use snowbridge_inbound_queue_primitives::{
-	Command, Destination, EthereumLocationsConverterFor, MessageV1, VersionedMessage,
+	v1::{Command, Destination, MessageV1, VersionedMessage},
+	EthereumLocationsConverterFor, EventFixture, EventProof, Log, Proof,
 };
+use snowbridge_outbound_queue_primitives::OperatingMode;
 use snowbridge_pallet_system::PricingParametersOf;
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
@@ -83,7 +79,7 @@ pub enum SnowbridgeControl {
 	Control(ControlCall),
 }
 
-pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
+pub fn send_inbound_message(fixture: EventFixture) -> DispatchResult {
 	EthereumBeaconClient::store_finalized_header(
 		fixture.finalized_header,
 		fixture.block_roots_root,
@@ -92,146 +88,8 @@ pub fn send_inbound_message(fixture: InboundQueueFixture) -> DispatchResult {
 
 	EthereumInboundQueue::submit(
 		RuntimeOrigin::signed(BridgeHubPolkadotSender::get()),
-		fixture.message,
+		fixture.event,
 	)
-}
-
-/// Create an agent on Ethereum. An agent is a representation of an entity in the Polkadot
-/// ecosystem (like a parachain) on Ethereum.
-#[test]
-fn create_agent() {
-	let origin_para: u32 = 1001;
-	// Fund the origin parachain sovereign account so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
-	// Fund Treasury account with ED so that when create agent fees are paid to treasury,
-	// the treasury account may exist.
-	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
-
-	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
-	let destination = Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
-
-	let create_agent_call = SnowbridgeControl::Control(ControlCall::CreateAgent {});
-	// Construct XCM to create an agent for para 1001
-	let remote_xcm = VersionedXcm::from(Xcm(vec![
-		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-		DescendOrigin(Parachain(origin_para).into()),
-		Transact {
-			fallback_max_weight: Some(3000000000.into()),
-			origin_kind: OriginKind::Xcm,
-			call: create_agent_call.encode().into(),
-		},
-	]));
-
-	// Polkadot Global Consensus
-	// Send XCM message from Relay Chain to Bridge Hub source Parachain
-	Polkadot::execute_with(|| {
-		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
-			sudo_origin,
-			bx!(destination),
-			bx!(remote_xcm),
-		));
-
-		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-		// Check that the Transact message was sent
-		assert_expected_events!(
-			Polkadot,
-			vec![
-				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
-			]
-		);
-	});
-
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-
-		let events = BridgeHubPolkadot::events();
-		assert!(
-			events.iter().any(|event| !matches!(
-				event,
-				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateAgent { .. })
-			)),
-			"Create agent event found while not expected."
-		);
-	});
-}
-
-/// Create a channel for a consensus system. A channel is a bidirectional messaging channel
-/// between BridgeHub and Ethereum.
-#[test]
-fn create_channel() {
-	let origin_para: u32 = 1001;
-	// Fund AssetHub sovereign account so that it can pay execution fees.
-	BridgeHubPolkadot::fund_para_sovereign(origin_para.into(), INITIAL_FUND);
-	// Fund Treasury account with ED so that when create agent fees are paid to treasury,
-	// the treasury account may exist.
-	BridgeHubPolkadot::fund_accounts(vec![(RelayTreasuryPalletAccount::get(), INITIAL_FUND)]);
-
-	let sudo_origin = <Polkadot as Chain>::RuntimeOrigin::root();
-	let destination: VersionedLocation =
-		Polkadot::child_location_of(BridgeHubPolkadot::para_id()).into();
-
-	let create_agent_call = SnowbridgeControl::Control(ControlCall::CreateAgent {});
-	// Construct XCM to create an agent for para 1001
-	let create_agent_xcm = VersionedXcm::from(Xcm(vec![
-		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-		DescendOrigin(Parachain(origin_para).into()),
-		Transact {
-			fallback_max_weight: Some(3000000000.into()),
-			origin_kind: OriginKind::Xcm,
-			call: create_agent_call.encode().into(),
-		},
-	]));
-
-	let create_channel_call =
-		SnowbridgeControl::Control(ControlCall::CreateChannel { mode: OperatingMode::Normal });
-	// Construct XCM to create a channel for para 1001
-	let create_channel_xcm = VersionedXcm::from(Xcm(vec![
-		UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-		DescendOrigin(Parachain(origin_para).into()),
-		Transact {
-			fallback_max_weight: Some(3000000000.into()),
-			origin_kind: OriginKind::Xcm,
-			call: create_channel_call.encode().into(),
-		},
-	]));
-
-	// Polkadot Global Consensus
-	// Send XCM message from Relay Chain to Bridge Hub source Parachain
-	Polkadot::execute_with(|| {
-		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
-			sudo_origin.clone(),
-			bx!(destination.clone()),
-			bx!(create_agent_xcm),
-		));
-
-		assert_ok!(<Polkadot as PolkadotPallet>::XcmPallet::send(
-			sudo_origin,
-			bx!(destination),
-			bx!(create_channel_xcm),
-		));
-
-		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-
-		assert_expected_events!(
-			Polkadot,
-			vec![
-				RuntimeEvent::XcmPallet(pallet_xcm::Event::Sent { .. }) => {},
-			]
-		);
-	});
-
-	BridgeHubPolkadot::execute_with(|| {
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-
-		let events = BridgeHubPolkadot::events();
-		assert!(
-			events.iter().any(|event| !matches!(
-				event,
-				RuntimeEvent::EthereumSystem(snowbridge_pallet_system::Event::CreateChannel { .. })
-			)),
-			"Create channel event found while not expected."
-		);
-	});
 }
 
 /// Tests the registering of a token as an asset on AssetHub.
@@ -783,9 +641,9 @@ fn ethereum_sovereign_account() -> AccountId {
 	EthereumLocationsConverterFor::<AccountId>::convert_location(&origin_location).unwrap()
 }
 
-fn make_register_token_message() -> InboundQueueFixture {
-	InboundQueueFixture{
-		message: Message {
+fn make_register_token_message() -> EventFixture {
+	EventFixture{
+		event: EventProof {
 			event_log: Log{
 				address: hex!("eda338e4dc46038493b885327842fd3e301cab39").into(),
 				topics: vec![
