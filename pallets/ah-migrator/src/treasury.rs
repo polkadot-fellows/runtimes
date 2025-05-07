@@ -245,6 +245,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		);
 
 		// Assert storage 'Treasury::ProposalCount::ah_post::consistent'
+		// Assert storage 'Treasury::Proposals::ah_post::length'
 		assert_eq!(
 			pallet_treasury::Proposals::<T>::iter_keys().count() as u32,
 			proposals.len() as u32,
@@ -252,6 +253,7 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		);
 
 		// Assert storage 'Treasury::Proposals::ah_post::consistent'
+		// Assert storage 'Treasury::Proposals::ah_post::correct'
 		assert_eq!(
 			proposals,
 			pallet_treasury::Proposals::<T>::iter_keys().collect::<Vec<_>>(),
@@ -259,13 +261,22 @@ impl<T: Config> crate::types::AhMigrationCheck for TreasuryMigrator<T> {
 		);
 
 		// Assert storage 'Treasury::Approvals::ah_post::correct'
+		// Assert storage 'Treasury::Approvals::ah_post::consistent'
 		assert_eq!(
 			pallet_treasury::Approvals::<T>::get().into_inner(),
 			approvals,
 			"Approvals on Asset Hub should match Relay Chain approvals"
 		);
 
+		// Assert storage 'Treasury::Approvals::ah_post::length'
+		assert_eq!(
+			pallet_treasury::Approvals::<T>::get().into_inner().len(),
+			approvals.len(),
+			"Treasury::Approvals::ah_post::length"
+		);
+
 		// Assert storage 'Treasury::SpendCount::ah_post::consistent'
+		// Assert storage 'Treasury::SpendCount::ah_post::length'
 		assert_eq!(
 			treasury_alias::Spends::<T>::iter_keys().count() as u32,
 			spends.len() as u32,
