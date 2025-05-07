@@ -686,6 +686,7 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 16
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 impl pallet_staking::Config for Runtime {
@@ -695,9 +696,9 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = Treasury;
+	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury;
+	type Slash = ResolveTo<TreasuryAccount, Balances>;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
