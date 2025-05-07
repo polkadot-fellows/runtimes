@@ -43,5 +43,5 @@ runtime-benchmarks = [
 	"polkadot-emulated-chain/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"snowbridge-router-primitives/runtime-benchmarks",
-	"xcm/runtime-benchmarks"
+	"xcm/runtime-benchmarks",
 ]

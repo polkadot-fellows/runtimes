@@ -38,5 +38,5 @@ std = [
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
-	"xcm/runtime-benchmarks"
+	"xcm/runtime-benchmarks",
 ]

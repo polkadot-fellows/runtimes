@@ -193,6 +193,8 @@ std = [
 	"serde_json/std",
 	"snowbridge-beacon-primitives/std",
 	"snowbridge-core/std",
+	"snowbridge-merkle-tree/std",
+	"snowbridge-outbound-queue-primitives/std",
 	"snowbridge-outbound-queue-runtime-api/std",
 	"snowbridge-pallet-ethereum-client/std",
 	"snowbridge-pallet-inbound-queue/std",
@@ -221,8 +223,6 @@ std = [
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
 	"xcm/std",
-	"snowbridge-outbound-queue-primitives/std",
-	"snowbridge-merkle-tree/std"
 ]
 
 runtime-benchmarks = [
@@ -274,7 +274,7 @@ runtime-benchmarks = [
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
-	"xcm/runtime-benchmarks"
+	"xcm/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -308,8 +308,8 @@ try-runtime = [
 	"snowbridge-pallet-inbound-queue/try-runtime",
 	"snowbridge-pallet-outbound-queue/try-runtime",
 	"snowbridge-pallet-system/try-runtime",
+	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
-	"snowbridge-runtime-common/try-runtime"
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
