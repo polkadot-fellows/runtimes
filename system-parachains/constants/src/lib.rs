@@ -51,16 +51,11 @@ pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
 /// Operational  extrinsics.
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
-/// Maximum PoV size.
-// TODO: This value is copied from the recent update of the `polkadot_primitives::MAX_POV_SIZE`
-// constant. When PR https://github.com/paritytech/polkadot-sdk/pull/5884 is included in
-// the SDK release, this constant should be replaced with a direct reference.
-// issue: https://github.com/polkadot-fellows/runtimes/issues/719
-pub const MAX_POV_SIZE: u64 = 10 * 1024 * 1024;
-
 /// We allow for 0.5 seconds of compute with a 6 second average block time.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight =
-	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(2), MAX_POV_SIZE as u64);
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	polkadot_primitives::MAX_POV_SIZE as u64,
+);
 
 /// Treasury pallet id of the local chain, used to convert into AccountId
 pub const TREASURY_PALLET_ID: PalletId = PalletId(*b"py/trsry");
@@ -70,7 +65,6 @@ pub const TREASURY_PALLET_ID: PalletId = PalletId(*b"py/trsry");
 /// Once all system chains have migrated to the new async backing mechanism, the parameters
 /// in this namespace will replace those currently defined in `super::*`.
 pub mod async_backing {
-	use super::MAX_POV_SIZE;
 	use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
 	pub use parachains_common::BlockNumber;
 	use sp_runtime::Perbill;
@@ -91,6 +85,13 @@ pub mod async_backing {
 	/// We allow `Normal` extrinsics to fill up the block up to 85%, the rest can be used by
 	/// Operational  extrinsics.
 	pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(85);
+
+	/// Maximum PoV size.
+	// TODO: This value is copied from the recent update of the `polkadot_primitives::MAX_POV_SIZE`
+	// constant. When PR https://github.com/paritytech/polkadot-sdk/pull/5884 is included in
+	// the SDK release, this constant should be replaced with a direct reference.
+	// issue: https://github.com/polkadot-fellows/runtimes/issues/719
+	pub const MAX_POV_SIZE: u64 = 10 * 1024 * 1024;
 
 	/// We allow for 2 seconds of compute with a 6 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight =
