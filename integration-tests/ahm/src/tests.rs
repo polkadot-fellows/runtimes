@@ -62,7 +62,6 @@ use sp_core::crypto::Ss58Codec;
 use sp_runtime::{AccountId32, DispatchError, TokenError};
 use std::{
 	collections::{BTreeMap, VecDeque},
-	f64::consts::E,
 	str::FromStr,
 };
 use xcm::latest::*;
