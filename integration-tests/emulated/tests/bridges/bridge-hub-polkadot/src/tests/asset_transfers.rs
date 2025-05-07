@@ -107,8 +107,7 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let amount = ASSET_HUB_POLKADOT_ED * 1_000;
 	let sender = AssetHubPolkadotSender::get();
 	let receiver = AssetHubKusamaReceiver::get();
-	let dot_at_asset_hub_polkadot_latest: Location =
-		dot_at_asset_hub_polkadot().try_into().unwrap();
+	let dot_at_asset_hub_polkadot_latest: Location = dot_at_ah_polkadot().try_into().unwrap();
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 
 	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
@@ -337,6 +336,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 	let sender = PolkadotSender::get();
 	let receiver = AssetHubKusamaReceiver::get();
 	let dot_at_polkadot: Location = Here.into();
+	let bridged_dot_at_ah_kusama_latest = Location::try_from(bridged_dot_at_ah_kusama()).unwrap();
 	let bridged_dot_at_ah_kusama = bridged_dot_at_ah_kusama();
 
 	create_foreign_on_ah_kusama(bridged_dot_at_ah_kusama.clone(), true);
@@ -365,7 +365,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 		let beneficiary = AccountId32Junction { network: None, id: receiver.clone().into() }.into();
 		// use DOT as fees on the final destination (KAH), only use half the amount as some
 		// of it was already spent on intermediate hop (PAH)
-		let remote_fees: Asset = (bridged_dot_at_ah_kusama.clone(), amount / 2).into();
+		let remote_fees: Asset = (bridged_dot_at_ah_kusama_latest, amount / 2).into();
 		// buy execution using DOTs, then deposit all unspent DOTs
 		let xcm_on_final_dest = Xcm::<()>(vec![
 			BuyExecution { fees: remote_fees, weight_limit: WeightLimit::Unlimited },

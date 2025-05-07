@@ -339,6 +339,8 @@ fn send_ksm_from_kusama_relay_through_asset_hub_kusama_to_asset_hub_polkadot() {
 	let sender = KusamaSender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
 	let ksm_at_kusama: Location = Here.into();
+	let bridged_ksm_at_ah_polkadot_latest =
+		Location::try_from(bridged_ksm_at_ah_polkadot()).unwrap();
 	let bridged_ksm_at_ah_polkadot = bridged_ksm_at_ah_polkadot();
 
 	create_foreign_on_ah_polkadot(bridged_ksm_at_ah_polkadot.clone(), true);
@@ -367,7 +369,7 @@ fn send_ksm_from_kusama_relay_through_asset_hub_kusama_to_asset_hub_polkadot() {
 		let beneficiary = AccountId32Junction { network: None, id: receiver.clone().into() }.into();
 		// use KSM as fees on the final destination (PAH), only use half the amount as some
 		// of it was already spent on intermediate hop (KAH)
-		let remote_fees: Asset = (bridged_ksm_at_ah_polkadot.clone(), amount / 2).into();
+		let remote_fees: Asset = (bridged_ksm_at_ah_polkadot_latest, amount / 2).into();
 		// buy execution using KSMs, then deposit all unspent KSMs
 		let xcm_on_final_dest = Xcm::<()>(vec![
 			BuyExecution { fees: remote_fees, weight_limit: WeightLimit::Unlimited },
