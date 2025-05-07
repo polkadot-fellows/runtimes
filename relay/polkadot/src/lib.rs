@@ -75,7 +75,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
