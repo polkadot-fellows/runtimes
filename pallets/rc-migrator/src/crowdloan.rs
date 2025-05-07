@@ -504,7 +504,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			"Crowdloan contributions should be empty after migration"
 		);
 
-		// Verify that no funds remain in the pallet
+		// Assert storage "Crowdloan::Funds::rc_post::empty"
 		assert!(
 			pallet_crowdloan::Funds::<T>::iter().next().is_none(),
 			"pallet_crowdloan::Funds should be empty after migration"
