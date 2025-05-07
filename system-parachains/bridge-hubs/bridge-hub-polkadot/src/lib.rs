@@ -155,6 +155,7 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
+	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
