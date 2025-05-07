@@ -205,7 +205,7 @@ impl frame_system::Config for Runtime {
 	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-w	type MaxConsumers = ConstU32<256>;
+	type MaxConsumers = ConstU32<256>;
 	type SingleBlockMigrations = ();
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
