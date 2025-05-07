@@ -523,7 +523,7 @@ fn resume<Map: frame_support::IterableStorageMap<K, V>, K: FullEncode, V: FullCo
 }
 
 // The payload that will be passed between pre and post migration checks
-type RcPrePayload = (
+pub type RcPrePayload = (
 	// Values captured by `StakingMigrator::take_values()`.
 	crate::staking::message::RcStakingValuesOf<T>,
 	// Invulnerables.
@@ -606,7 +606,7 @@ type RcPrePayload = (
 	)>,
 );
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "ahm-staking-migration"))]
 impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
 	type RcPrePayload = RcPrePayload<T>;
 

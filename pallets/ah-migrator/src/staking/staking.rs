@@ -155,3 +155,19 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 }
+
+#[cfg(all(feature = "std", feature = "ahm-staking-migration"))]
+impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::StakingMigrator<T> {
+	use pallet_rc_migrator::RcPrePayload;
+	
+	type RcPrePayload = RcPrePayload<T>;
+	type AhPrePayload = ();
+
+	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
+
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+
+	}
+}
