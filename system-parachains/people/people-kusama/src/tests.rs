@@ -121,3 +121,14 @@ fn location_conversion_works() {
 		assert_eq!(got, expected, "{}", tc.description);
 	}
 }
+
+#[test]
+fn xcm_payment_api_works() {
+	use crate::{Block, Runtime, RuntimeCall, RuntimeOrigin};
+	parachains_runtimes_test_utils::test_cases::xcm_payment_api_with_native_token_works::<
+		Runtime,
+		RuntimeCall,
+		RuntimeOrigin,
+		Block,
+	>();
+}

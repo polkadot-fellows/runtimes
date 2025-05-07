@@ -17,10 +17,11 @@
 use crate::XcmOverBridgeHubKusama;
 
 use super::{
-	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balances,
+	bridge_to_ethereum_config::EthereumNetwork, AccountId, AllPalletsWithSystem, Balance, Balances,
 	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
 	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
+use core::marker::PhantomData;
 use frame_support::{
 	parameter_types,
 	traits::{tokens::imbalance::ResolveTo, ConstU32, Contains, Equals, Everything, Nothing},
@@ -36,7 +37,6 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_runtime_common::XcmExportFeeToSibling;
 use sp_runtime::traits::AccountIdConversion;
-use sp_std::marker::PhantomData;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -232,7 +232,7 @@ impl xcm_executor::Config for XcmConfig {
 		WaivedLocations,
 		(
 			XcmExportFeeToSibling<
-				bp_polkadot::Balance,
+				Balance,
 				AccountId,
 				DotRelayLocation,
 				EthereumNetwork,

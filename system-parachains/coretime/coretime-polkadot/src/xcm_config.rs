@@ -33,12 +33,13 @@ use parachains_common::xcm_config::{
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
+use system_parachains_constants::{polkadot::locations::AssetHubLocation, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses,
-	AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain,
-	DenyThenTry, DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
+	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
+	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
+	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
 	NonFungibleAdapter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
@@ -50,7 +51,7 @@ use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
 	pub const DotRelayLocation: Location = Location::parent();
-	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
+	pub const RelayNetwork: Option<NetworkId> = Some(Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
 		(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())).into();
@@ -208,11 +209,15 @@ pub type WaivedLocations = (
 	FellowsPlurality,
 );
 
+/// We allow locations to alias into their own child locations, as well as
+/// AssetHub to alias into anything.
+pub type Aliasers = (AliasChildLocation, AliasOriginRootUsingFilter<AssetHubLocation, Everything>);
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type XcmRecorder = ();
+	type XcmRecorder = PolkadotXcm;
 	type AssetTransactor = AssetTransactors;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	// Coretime chain does not recognize a reserve location for any asset. Users must teleport DOT
@@ -250,7 +255,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
-	type Aliasers = Nothing;
+	type Aliasers = Aliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
 	type HrmpChannelAcceptedHandler = ();

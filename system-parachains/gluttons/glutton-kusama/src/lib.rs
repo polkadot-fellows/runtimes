@@ -43,22 +43,24 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 pub mod weights;
 pub mod xcm_config;
 
+use alloc::{borrow::Cow, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::AggregateMessageOrigin;
 use sp_api::impl_runtime_apis;
 use sp_core::OpaqueMetadata;
 use sp_runtime::{
-	create_runtime_str, generic,
+	generic,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
-use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -88,14 +90,14 @@ pub use sp_runtime::{Perbill, Permill};
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("glutton"),
-	impl_name: create_runtime_str!("glutton"),
+	spec_name: Cow::Borrowed("glutton"),
+	impl_name: Cow::Borrowed("glutton"),
 	authoring_version: 1,
-	spec_version: 1_003_003,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -160,8 +162,9 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = Everything;
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
+	type ExtensionsWeightInfo = weights::frame_system_extensions::WeightInfo<Runtime>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type SS58Prefix = SS58Prefix;
@@ -192,6 +195,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 	type ConsensusHook = cumulus_pallet_parachain_system::consensus_hook::ExpectParentIncluded;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -205,9 +209,8 @@ impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MessageProcessor = pallet_message_queue::mock_helpers::NoopMessageProcessor<
-		cumulus_primitives_core::AggregateMessageOrigin,
-	>;
+	type MessageProcessor =
+		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MessageProcessor = xcm_builder::ProcessXcmMessage<
 		AggregateMessageOrigin,
@@ -270,8 +273,8 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type SignedBlock = generic::SignedBlock<Block>;
 /// BlockId type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
-/// The SignedExtension to the basic transaction logic.
-pub type SignedExtra = (
+/// The TransactionExtension to the basic transaction logic.
+pub type TxExtension = (
 	pallet_sudo::CheckOnlySudoAccount<Runtime>,
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
@@ -282,7 +285,7 @@ pub type SignedExtra = (
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -294,13 +297,39 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+	use super::*;
+
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
+		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_glutton, Glutton]
 		[pallet_message_queue, MessageQueue]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 	);
+
+	impl frame_system_benchmarking::Config for Runtime {
+		fn setup_set_code_requirements(code: &Vec<u8>) -> Result<(), BenchmarkError> {
+			ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
+			Ok(())
+		}
+
+		fn verify_set_code() {
+			System::assert_last_event(
+				cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into(),
+			);
+		}
+	}
+
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
+	pub use frame_system_benchmarking::{
+		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
+	};
+	pub use sp_storage::TrackedStorageKey;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+use benches::*;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -326,7 +355,7 @@ impl_runtime_apis! {
 			Runtime::metadata_at_version(version)
 		}
 
-		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+		fn metadata_versions() -> Vec<u32> {
 			Runtime::metadata_versions()
 		}
 	}
@@ -409,10 +438,6 @@ impl_runtime_apis! {
 			Vec<frame_benchmarking::BenchmarkList>,
 			Vec<frame_support::traits::StorageInfo>,
 		) {
-			use frame_benchmarking::{Benchmarking, BenchmarkList};
-			use frame_support::traits::StorageInfoTrait;
-			use frame_system_benchmarking::Pallet as SystemBench;
-
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
 
@@ -423,23 +448,7 @@ impl_runtime_apis! {
 
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch,  BenchmarkError};
-			use sp_storage::TrackedStorageKey;
-
-			use frame_system_benchmarking::Pallet as SystemBench;
-			impl frame_system_benchmarking::Config for Runtime {
-				fn setup_set_code_requirements(code: &sp_std::vec::Vec<u8>) -> Result<(), BenchmarkError> {
-					ParachainSystem::initialize_for_set_code_benchmark(code.len() as u32);
-					Ok(())
-				}
-
-				fn verify_set_code() {
-					System::assert_last_event(cumulus_pallet_parachain_system::Event::<Runtime>::ValidationFunctionStored.into());
-				}
-			}
-
-			use frame_support::traits::WhitelistedStorageKeys;
+		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
 			let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
 
 			let mut batches = Vec::<BenchmarkBatch>::new();

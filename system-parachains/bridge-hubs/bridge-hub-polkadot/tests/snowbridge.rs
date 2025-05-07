@@ -22,7 +22,7 @@ use bridge_hub_polkadot_runtime::{
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
+	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
 	UncheckedExtrinsic,
 };
 use codec::{Decode, Encode};
@@ -53,8 +53,8 @@ parameter_types! {
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
-fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
-	bridge_hub_test_utils::CollatorSessionKeys::new(
+fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
+	CollatorSessionKeys::new(
 		AccountId::from(Alice),
 		AccountId::from(Alice),
 		SessionKeys { aura: AuraId::from(Alice.public()) },
@@ -387,7 +387,7 @@ fn construct_extrinsic(
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
-	let extra: SignedExtra = (
+	let extra: TxExtension = (
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),

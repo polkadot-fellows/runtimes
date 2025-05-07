@@ -5,7 +5,8 @@
     "path": "relay/polkadot",
     "uri": "wss://try-runtime.polkadot.io:443",
     "is_relay": true,
-    "blocktime": 6000
+    "blocktime": 6000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "kusama",
@@ -13,14 +14,17 @@
     "path": "relay/kusama",
     "uri": "wss://try-runtime-kusama.polkadot.io:443",
     "is_relay": true,
-    "blocktime": 6000
+    "blocktime": 6000,
+    "benchmarks_exclude_extrinsics": "pallet_nomination_pools::apply_slash_fail",
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "glutton-kusama",
     "package": "glutton-kusama-runtime",
     "path": "system-parachains/gluttons/glutton-kusama",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "asset-hub-kusama",
@@ -28,7 +32,9 @@
     "path": "system-parachains/asset-hubs/asset-hub-kusama",
     "uri": "wss://kusama-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 6000,
+    "extra_args": "--disable-mbm-checks",
+    "try_runtime_args": "--overwrite-state-version 1"
   },
   {
     "name": "asset-hub-polkadot",
@@ -36,7 +42,9 @@
     "path": "system-parachains/asset-hubs/asset-hub-polkadot",
     "uri": "wss://polkadot-asset-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks",
+    "try_runtime_args": "--overwrite-state-version 1"
   },
   {
     "name": "bridge-hub-kusama",
@@ -44,7 +52,8 @@
     "path": "system-parachains/bridge-hubs/bridge-hub-kusama",
     "uri": "wss://kusama-bridge-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "bridge-hub-polkadot",
@@ -52,7 +61,8 @@
     "path": "system-parachains/bridge-hubs/bridge-hub-polkadot",
     "uri": "wss://polkadot-bridge-hub-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "collectives-polkadot",
@@ -60,7 +70,8 @@
     "path": "system-parachains/collectives/collectives-polkadot",
     "uri": "wss://polkadot-collectives-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "coretime-kusama",
@@ -68,7 +79,8 @@
     "path": "system-parachains/coretime/coretime-kusama",
     "uri": "wss://kusama-coretime-rpc.polkadot.io:443",
     "is_relay": false,
-    "blocktime": 12000
+    "blocktime": 12000,
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "coretime-polkadot",
@@ -76,7 +88,8 @@
     "path": "system-parachains/coretime/coretime-polkadot",
     "is_relay": false,
     "blocktime": 12000,
-    "uri": "wss://polkadot-coretime-rpc.polkadot.io:443"
+    "uri": "wss://polkadot-coretime-rpc.polkadot.io:443",
+    "extra_args": "--disable-mbm-checks"
   },
   {
     "name": "people-kusama",

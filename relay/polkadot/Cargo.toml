@@ -24,7 +24,6 @@ sp-transaction-pool = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-api = { workspace = true }
 sp-genesis-builder = { workspace = true }
-sp-std = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
@@ -210,10 +209,10 @@ std = [
 	"sp-runtime/std",
 	"sp-session/std",
 	"sp-staking/std",
-	"sp-std/std",
 	"sp-storage/std",
 	"sp-tracing/std",
 	"sp-transaction-pool/std",
+	"sp-trie/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"xcm-builder/std",
@@ -257,6 +256,7 @@ runtime-benchmarks = [
 	"pallet-staking/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
+	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
@@ -266,6 +266,8 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
