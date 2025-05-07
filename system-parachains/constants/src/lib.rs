@@ -86,9 +86,13 @@ pub mod async_backing {
 	/// Operational  extrinsics.
 	pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(85);
 
+	/// Maximum PoV size.
+	// TODO: This value is copied from the recent update of the `polkadot_primitives::MAX_POV_SIZE`
+	// constant. When PR https://github.com/paritytech/polkadot-sdk/pull/5884 is included in
+	// the SDK release, this constant should be replaced with a direct reference.
+	pub const MAX_POV_SIZE: u64 = 10 * 1024 * 1024;
+
 	/// We allow for 2 seconds of compute with a 6 second average block time.
-	pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-		WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-		polkadot_primitives::MAX_POV_SIZE as u64,
-	);
+	pub const MAXIMUM_BLOCK_WEIGHT: Weight =
+		Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), MAX_POV_SIZE);
 }
