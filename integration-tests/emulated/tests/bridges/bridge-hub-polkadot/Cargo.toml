@@ -52,6 +52,7 @@ snowbridge-inbound-queue-primitives = { workspace = true, default-features = tru
 snowbridge-pallet-system = { workspace = true, default-features = true }
 snowbridge-pallet-outbound-queue = { workspace = true, default-features = true }
 snowbridge-pallet-inbound-queue-fixtures = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 
 [features]
 runtime-benchmarks = [
