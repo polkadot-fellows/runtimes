@@ -696,37 +696,37 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         // Assert storage 'Staking::ValidatorCount::rc_post::empty'
         assert_eq!(
             pallet_staking::ValidatorCount::<T>::get(),
-            Default::default(),
+            0,
             "ValidatorCount should be default on RC after migration"
         );
         // Assert storage 'Staking::MinimumValidatorCount::rc_post::empty'
         assert_eq!(
             pallet_staking::MinimumValidatorCount::<T>::get(),
-            Default::default(),
+            0,
             "MinimumValidatorCount should be default on RC after migration"
         );
         // Assert storage 'Staking::MinNominatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinNominatorBond::<T>::get(),
-            Default::default(),
+            0,
             "MinNominatorBond should be default on RC after migration"
         );
         // Assert storage 'Staking::MinValidatorBond::rc_post::empty'
         assert_eq!(
             pallet_staking::MinValidatorBond::<T>::get(),
-            Default::default(),
+            0,
             "MinValidatorBond should be default on RC after migration"
         );
         // Assert storage 'Staking::MinimumActiveStake::rc_post::empty'
         assert_eq!(
             pallet_staking::MinimumActiveStake::<T>::get(),
-            Default::default(),
+            0,
             "MinimumActiveStake should be default on RC after migration"
         );
         // Assert storage 'Staking::MinCommission::rc_post::empty'
         assert_eq!(
             pallet_staking::MinCommission::<T>::get(),
-            Default::default(),
+            <Perbill as Default>::default(),
             "MinCommission should be default on RC after migration"
         );
         // Assert storage 'Staking::MaxValidatorsCount::rc_post::empty'
@@ -756,7 +756,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         // Assert storage 'Staking::ForceEra::rc_post::empty'
         assert_eq!(
             pallet_staking::ForceEra::<T>::get(),
-            Default::default(),
+            <Forcing as Default>::default(),
             "ForceEra should be default on RC after migration"
         );
         // Assert storage 'Staking::MaxStakedRewards::rc_post::empty'
@@ -768,19 +768,19 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         // Assert storage 'Staking::SlashRewardFraction::rc_post::empty'
         assert_eq!(
             pallet_staking::SlashRewardFraction::<T>::get(),
-            Default::default(),
+            <Perbill as Default>::default(),
             "SlashRewardFraction should be default on RC after migration"
         );
         // Assert storage 'Staking::CanceledSlashPayout::rc_post::empty'
         assert_eq!(
             pallet_staking::CanceledSlashPayout::<T>::get(),
-            Default::default(),
+            0,
             "CanceledSlashPayout should be default on RC after migration"
         );
         // Assert storage 'Staking::CurrentPlannedSession::rc_post::empty'
         assert_eq!(
             pallet_staking::CurrentPlannedSession::<T>::get(),
-            Default::default(),
+            0,
             "CurrentPlannedSession should be default on RC after migration"
         );
         // Assert storage 'Staking::ChillThreshold::rc_post::empty'
