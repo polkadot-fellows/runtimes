@@ -220,4 +220,19 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `Multisig::Multisigs` (r:1 w:1)
+	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(3346), added: 5821, mode: `MaxEncodedLen`)
+	/// The range of component `s` is `[2, 100]`.
+	fn poke_deposit(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `458 + s * (1 ±0)`
+		//  Estimated: `6811`
+		// Minimum execution time: 34_917_000 picoseconds.
+		Weight::from_parts(36_141_350, 0)
+			.saturating_add(Weight::from_parts(0, 6811))
+			// Standard Error: 1_247
+			.saturating_add(Weight::from_parts(166_544, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
