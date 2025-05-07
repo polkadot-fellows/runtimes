@@ -56,7 +56,7 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 // constant. When PR https://github.com/paritytech/polkadot-sdk/pull/5884 is included in
 // the SDK release, this constant should be replaced with a direct reference.
 // issue: https://github.com/polkadot-fellows/runtimes/issues/719
-pub const MAX_POV_SIZE: u32 = 10 * 1024 * 1024;
+pub const MAX_POV_SIZE: u64 = 10 * 1024 * 1024;
 
 /// We allow for 0.5 seconds of compute with a 6 second average block time.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight =
@@ -94,5 +94,5 @@ pub mod async_backing {
 
 	/// We allow for 2 seconds of compute with a 6 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight =
-		Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), MAX_POV_SIZE as u64);
+		Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), MAX_POV_SIZE);
 }
