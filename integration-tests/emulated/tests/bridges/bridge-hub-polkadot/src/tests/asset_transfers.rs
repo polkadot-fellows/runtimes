@@ -366,7 +366,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 		// use DOT as fees on the final destination (KAH), only use half the amount as some
 		// of it was already spent on intermediate hop (PAH)
 		let remote_fees: Asset = (bridged_dot_at_ah_kusama.clone(), amount / 2).into();
-		// buy execution using KSMs, then deposit all unspent KSMs
+		// buy execution using DOTs, then deposit all unspent DOTs
 		let xcm_on_final_dest = Xcm::<()>(vec![
 			BuyExecution { fees: remote_fees, weight_limit: WeightLimit::Unlimited },
 			DepositAsset { assets: Wild(AllCounted(1)), beneficiary },
