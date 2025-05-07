@@ -49,10 +49,10 @@ use snowbridge_core::{
 	outbound::OperatingMode,
 	AssetMetadata, Rewards, TokenIdOf,
 };
-use snowbridge_pallet_system::PricingParametersOf;
-use snowbridge_router_primitives::inbound::{
+use snowbridge_inbound_queue_primitives::{
 	Command, Destination, EthereumLocationsConverterFor, MessageV1, VersionedMessage,
 };
+use snowbridge_pallet_system::PricingParametersOf;
 use sp_core::{H160, H256, U256};
 use sp_runtime::{DispatchError::Token, FixedU128, TokenError::FundsUnavailable};
 use system_parachains_constants::polkadot::currency::UNITS;

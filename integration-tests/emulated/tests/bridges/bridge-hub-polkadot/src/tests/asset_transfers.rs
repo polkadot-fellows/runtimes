@@ -15,7 +15,7 @@
 
 use crate::tests::*;
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
-use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
+use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
