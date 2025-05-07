@@ -467,8 +467,8 @@ pub mod pallet {
 		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
 		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
 		/// RC migrator.
-		/// This configuration generally should be influenced by the median number of XCM messages
-		/// sent by this pallet to the Asset Hub per block.
+		/// This configuration generally should be influenced by the number of XCM messages sent by
+		/// this pallet to the Asset Hub per block and the size of the queue on AH.
 		type UnprocessedDmpBuffer: Get<u32>;
 	}
 
