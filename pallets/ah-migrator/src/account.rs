@@ -135,7 +135,7 @@ impl<T: Config> Pallet<T> {
 			);
 		}
 
-		log::debug!(
+		log::trace!(
 			target: LOG_TARGET,
 			"Integrating account: {}", who.to_ss58check(),
 		);
