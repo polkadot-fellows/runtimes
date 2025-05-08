@@ -17,7 +17,11 @@
 //! XCM configurations for the Relay Chain for the AHM migration.
 
 use crate::{types::MigrationStatus, PhantomData};
-use frame_support::{parameter_types, traits::ContainsPair};
+use frame_support::traits::Contains;
+use frame_support::{
+	parameter_types,
+	traits::{ContainsPair, Equals},
+};
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
@@ -27,6 +31,7 @@ use polkadot_runtime_constants::system_parachain::*;
 use westend_runtime_constants::system_parachain::*;
 
 parameter_types! {
+	pub const RootLocation: Location = Here.into_location();
 	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
 	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
@@ -68,5 +73,35 @@ impl<Stage: MigrationStatus> ContainsPair<Asset, Location> for TrustedTeleporter
 			asset, origin, result
 		);
 		result
+	}
+}
+
+mod before {
+	use super::*;
+	pub struct LocalPlurality;
+	impl Contains<Location> for LocalPlurality {
+		fn contains(loc: &Location) -> bool {
+			matches!(loc.unpack(), (0, [Plurality { .. }]))
+		}
+	}
+	pub type WaivedLocationsBeforeDuring = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+}
+mod after {
+	use super::*;
+	pub type WaivedLocationsAfter = (SystemParachains, Equals<RootLocation>);
+}
+
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
+/// We only waive fees for system functions, which these locations represent.
+pub struct WaivedLocations<Stage>(PhantomData<Stage>);
+impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
+	fn contains(location: &Location) -> bool {
+		if Stage::is_finished() {
+			log::trace!(target: "xcm::WaivedLocations::contains", "migration finished");
+			after::WaivedLocationsAfter::contains(location)
+		} else {
+			log::trace!(target: "xcm::WaivedLocations::contains", "migration not finished");
+			before::WaivedLocationsBeforeDuring::contains(location)
+		}
 	}
 }

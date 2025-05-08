@@ -380,7 +380,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
 		pallet_ah_migrator::xcm_config::WaivedLocations<crate::AhMigrator>,
-		// TODO: post-ahm-migration move the Treasury funds from this sov account to a local account.
+		// TODO: post-ahm move the Treasury funds from this sov account to a local account.
 		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();
