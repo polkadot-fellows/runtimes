@@ -472,8 +472,10 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		MinCommission::<T>::put(&values.min_commission);
 		MaxValidatorsCount::<T>::set(values.max_validators_count);
 		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era.map(pallet_staking::ActiveEraInfo::intoAh));
+		let active_era = values.active_era.map(pallet_staking::ActiveEraInfo::intoAh);
+		
+		ActiveEra::<T>::set(active_era.clone());
+		CurrentEra::<T>::set(active_era.map(|a| a.index));
 		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
 		MaxStakedRewards::<T>::set(values.max_staked_rewards);
 		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
