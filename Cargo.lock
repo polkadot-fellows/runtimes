@@ -17214,9 +17214,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-emulator"
-version = "0.19.1"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42dca9b3d5697a871f9c2d54f3c97a7a311dd9a885d47a358a5383a1b6ca8b58"
+checksum = "00a953a53ebb45e665f99509973672a2cbeef0a714685a1929594e671571dd09"
 dependencies = [
  "array-bytes",
  "cumulus-pallet-parachain-system",

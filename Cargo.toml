@@ -243,7 +243,7 @@ system-parachains-constants = { path = "system-parachains/constants", default-fe
 tokio = { version = "1.36.0" }
 xcm = { version = "16.1.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "20.1.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.19.1" }
+xcm-emulator = { version = "0.19.2" }
 xcm-executor = { version = "19.1.0", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.7.0", default-features = false }
 anyhow = { version = "1.0.82" }
