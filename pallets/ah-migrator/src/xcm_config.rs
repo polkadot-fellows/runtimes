@@ -16,14 +16,17 @@
 
 //! XCM configurations for Asset Hub for the AHM migration.
 
+use crate::PhantomData;
 use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation};
 use cumulus_primitives_core::ParaId;
 use frame_support::parameter_types;
-use frame_support::traits::{Contains, Equals};
-use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
+use frame_support::traits::{Contains, ContainsPair, Equals, ProcessMessageError};
+use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use xcm::latest::prelude::*;
 use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
+use xcm_executor::traits::{Properties, ShouldExecute};
 
+use crate::types::GetAhMigrationStage;
 #[cfg(feature = "ahm-polkadot")]
 use polkadot_runtime_constants::system_parachain;
 #[cfg(feature = "ahm-westend")]
@@ -113,7 +116,7 @@ pub mod common {
 		IsForeignConcreteAsset<FromSiblingParachain<AssetHubParaId>>;
 }
 
-pub mod before {
+mod before {
 	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
 	use super::*;
 
@@ -153,11 +156,11 @@ pub mod before {
 	);
 }
 
-pub mod during {
+mod during {
 	use super::*;
 }
 
-pub mod after {
+mod after {
 	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
 	use super::*;
 
@@ -185,4 +188,66 @@ pub mod after {
 		FellowshipEntities,
 		AmbassadorEntities,
 	);
+}
+
+/// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+pub struct TrustedTeleporters<Stage>(PhantomData<Stage>);
+impl<Stage: GetAhMigrationStage> ContainsPair<Asset, Location> for TrustedTeleporters<Stage> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let stage = Stage::ah_migration_stage();
+		log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
+		let result = if stage.is_ongoing() {
+			common::TrustedTeleportersDuring::contains(asset, origin)
+		} else {
+			// before and after migration use normal filter
+			common::TrustedTeleportersBeforeAfter::contains(asset, origin)
+		};
+		log::trace!(
+			target: "xcm::IsTeleport::contains",
+			"asset: {:?} origin {:?} result {:?}",
+			asset, origin, result
+		);
+		result
+	}
+}
+
+pub struct UnpaidExecutionFilter<Stage>(PhantomData<Stage>);
+impl<Stage: GetAhMigrationStage> ShouldExecute for UnpaidExecutionFilter<Stage> {
+	fn should_execute<Call>(
+		origin: &Location,
+		instructions: &mut [Instruction<Call>],
+		max_weight: Weight,
+		_properties: &mut Properties,
+	) -> Result<(), ProcessMessageError> {
+		let stage = Stage::ah_migration_stage();
+		log::trace!(target: "xcm::UnpaidExecutionFilter::should_execute", "migration stage: {:?}", stage);
+		if stage.is_finished() {
+			after::UnpaidExecutionAfter::should_execute(
+				origin,
+				instructions,
+				max_weight,
+				_properties,
+			)
+		} else {
+			before::UnpaidExecutionBeforeDuring::should_execute(
+				origin,
+				instructions,
+				max_weight,
+				_properties,
+			)
+		}
+	}
+}
+
+pub struct WaivedLocations<Stage>(PhantomData<Stage>);
+impl<Stage: GetAhMigrationStage> Contains<Location> for WaivedLocations<Stage> {
+	fn contains(location: &Location) -> bool {
+		let stage = Stage::ah_migration_stage();
+		log::trace!(target: "xcm::WaivedLocations::contains", "migration stage: {:?}", stage);
+		if stage.is_finished() {
+			after::WaivedLocationsAfter::contains(location)
+		} else {
+			before::WaivedLocationsBeforeDuring::contains(location)
+		}
+	}
 }

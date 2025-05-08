@@ -15,11 +15,11 @@
 
 use super::{
 	AccountId, AllPalletsWithSystem, AssetConversion, Assets, Authorship, Balance, Balances,
-	CollatorSelection, ForeignAssets, NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm,
-	PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	ToKusamaXcmRouter, TrustBackedAssetsInstance, WeightToFee, XcmpQueue,
+	CollatorSelection, ForeignAssets, ForeignAssetsInstance, NativeAndAssets, ParachainInfo,
+	ParachainSystem, PolkadotXcm, PoolAssets, PriceForParentDelivery, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeOrigin, ToKusamaXcmRouter, TrustBackedAssetsInstance, WeightToFee,
+	XcmpQueue,
 };
-use crate::ForeignAssetsInstance;
 use assets_common::{
 	matching::{FromNetwork, IsForeignConcreteAsset, ParentLocation},
 	TrustBackedAssetsAsLocation,
@@ -268,8 +268,8 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
-					// TODO: replace with pallet instance
-					pallet_ah_migrator::xcm_config::before::UnpaidExecutionBeforeDuring,
+					// Explicit unpaid execution barrier.
+					pallet_ah_migrator::xcm_config::UnpaidExecutionFilter<crate::AhMigrator>,
 				),
 				UniversalLocation,
 				ConstU32<8>,
@@ -309,7 +309,7 @@ impl xcm_executor::Config for XcmConfig {
 		bridging::to_kusama::KusamaAssetFromAssetHubKusama,
 		bridging::to_ethereum::EthereumAssetFromEthereum,
 	);
-	type IsTeleporter = crate::AhMigrator;
+	type IsTeleporter = pallet_ah_migrator::xcm_config::TrustedTeleporters<crate::AhMigrator>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
@@ -379,8 +379,8 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetLocker = ();
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
-		// TODO: replace with pallet instance
-		pallet_ah_migrator::xcm_config::before::WaivedLocationsBeforeDuring,
+		pallet_ah_migrator::xcm_config::WaivedLocations<crate::AhMigrator>,
+		// TODO: post-ahm-migration move the Treasury funds from this sov account to a local account.
 		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
 	>;
 	type MessageExporter = ();

@@ -83,6 +83,7 @@ use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
+use crate::types::GetAhMigrationStage;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
@@ -202,8 +203,6 @@ pub type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::xcm_config::common::{TrustedTeleportersBeforeAfter, TrustedTeleportersDuring};
-	use frame_support::traits::ContainsPair;
 
 	/// Super config trait for all pallets that the migration depends on, providing convenient
 	/// access to their items.
@@ -1059,25 +1058,11 @@ pub mod pallet {
 			AhMigrationStage::<T>::get().is_finished()
 		}
 	}
+}
 
-	// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
-	impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
-		fn contains(asset: &Asset, origin: &Location) -> bool {
-			let stage = AhMigrationStage::<T>::get();
-			log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
-			let result = if stage.is_ongoing() {
-				TrustedTeleportersDuring::contains(asset, origin)
-			} else {
-				// before and after migration use normal filter
-				TrustedTeleportersBeforeAfter::contains(asset, origin)
-			};
-			log::trace!(
-				target: "xcm::IsTeleport::contains",
-				"asset: {:?} origin {:?} result {:?}",
-				asset, origin, result
-			);
-			result
-		}
+impl<T: Config> GetAhMigrationStage for Pallet<T> {
+	fn ah_migration_stage() -> MigrationStage {
+		AhMigrationStage::<T>::get()
 	}
 }
 
