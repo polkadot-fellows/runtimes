@@ -16,13 +16,13 @@
 
 //! XCM configurations for Asset Hub for the AHM migration.
 
-use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset};
+use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation};
 use cumulus_primitives_core::ParaId;
 use frame_support::parameter_types;
 use frame_support::traits::{Contains, Equals};
 use parachains_common::xcm_config::{ConcreteAssetFromSystem, ParentRelayOrSiblingParachains};
 use xcm::latest::prelude::*;
-use xcm_builder::AllowExplicitUnpaidExecutionFrom;
+use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
 
 #[cfg(feature = "ahm-polkadot")]
 use polkadot_runtime_constants::system_parachain;
@@ -114,7 +114,7 @@ pub mod common {
 }
 
 pub mod before {
-	use super::common::{AmbassadorEntities, FellowshipEntities};
+	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
 	use super::*;
 
 	parameter_types! {
@@ -129,17 +129,28 @@ pub mod before {
 		}
 	}
 
-	/// The locations listed below get free execution:
+	/// For use in XCM Barriers: the locations listed below get free execution:
 	///
 	/// Parent, its pluralities (i.e. governance bodies), the Fellows plurality, AmbassadorEntities
-	/// and sibling parachains' root get free execution.
+	/// and sibling system parachains' root get free execution.
 	pub type UnpaidExecutionBeforeDuring = AllowExplicitUnpaidExecutionFrom<(
 		ParentOrParentsPlurality,
-		FellowshipEntities,
+		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		Equals<RelayTreasuryLocation>,
+		FellowshipEntities,
 		AmbassadorEntities,
-		ParentRelayOrSiblingParachains,
 	)>;
+
+	/// Locations that will not be charged fees in the executor, either execution or delivery.
+	///
+	/// We only waive fees for system functions, which these locations represent.
+	pub type WaivedLocationsBeforeDuring = (
+		Equals<ParentLocation>,
+		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
+		Equals<RelayTreasuryLocation>,
+		FellowshipEntities,
+		AmbassadorEntities,
+	);
 }
 
 pub mod during {
@@ -147,16 +158,31 @@ pub mod during {
 }
 
 pub mod after {
-	use super::common::{AmbassadorEntities, FellowshipEntities};
+	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
 	use super::*;
 
-	/// The locations listed below get free execution:
+	/// For use in XCM Barriers: the locations listed below get free execution:
 	///
-	/// Parent, its pluralities (i.e. governance bodies), the Fellows plurality, AmbassadorEntities
-	/// and sibling parachains' root get free execution.
+	/// Parent, the Fellows plurality, AmbassadorEntities and sibling system parachains' root
+	/// get free execution.
 	pub type UnpaidExecutionAfter = AllowExplicitUnpaidExecutionFrom<(
+		// outside this pallet, when the `Runtime` type is available, the below can be replaced with
+		// `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
+		Equals<ParentLocation>,
+		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		FellowshipEntities,
 		AmbassadorEntities,
-		ParentRelayOrSiblingParachains,
 	)>;
+
+	/// Locations that will not be charged fees in the executor, either execution or delivery.
+	///
+	/// We only waive fees for system functions, which these locations represent.
+	pub type WaivedLocationsAfter = (
+		// outside this pallet, when the `Runtime` type is available, the below can be replaced with
+		// `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
+		Equals<ParentLocation>,
+		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
+		FellowshipEntities,
+		AmbassadorEntities,
+	);
 }
