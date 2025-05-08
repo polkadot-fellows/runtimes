@@ -2244,7 +2244,7 @@ mod benches {
 	pub type Native = pallet_balances::Pallet<Runtime, ()>;
 	pub type NisCounterpart = pallet_balances::Pallet<Runtime, NisCounterpartInstance>;
 	pub use frame_benchmarking::{
-		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking,
+		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList,
 	};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use frame_system_benchmarking::{

@@ -1023,7 +1023,7 @@ mod benches {
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-	pub use frame_benchmarking::{BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::BenchmarkList;
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
