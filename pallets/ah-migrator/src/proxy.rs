@@ -150,7 +150,7 @@ impl<T: Config> Pallet<T> {
 }
 
 pub struct ProxyBasicChecks<T, RcProxyType> {
-	_p: core::marker::PhantomData<(T, RcProxyType)>
+	_p: core::marker::PhantomData<(T, RcProxyType)>,
 }
 
 #[cfg(feature = "std")]

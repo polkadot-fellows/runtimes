@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod whale_watching;
 pub mod basic_still_works;
+pub mod whale_watching;
 
-pub use whale_watching::ProxyWhaleWatching;
 pub use basic_still_works::ProxyBasicWorks;
+pub use whale_watching::ProxyWhaleWatching;
 
 use crate::porting_prelude::*;
 
@@ -27,13 +27,13 @@ use frame_support::{
 	traits::{Currency, Defensive},
 };
 use frame_system::pallet_prelude::*;
+use hex_literal::hex;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
 use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
 };
-use hex_literal::hex;
 use std::{collections::BTreeMap, str::FromStr};
 
 /// Intent based permission.

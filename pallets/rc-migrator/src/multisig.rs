@@ -156,7 +156,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				deposit: multisig.deposit,
 				details: Some(k1.clone()),
 			});
-			
+
 			last_key = Some((k1, k2));
 		}
 

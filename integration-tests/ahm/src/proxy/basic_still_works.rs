@@ -23,8 +23,8 @@
 //! yet, they are here. This test is also very simple, it is not generic and just uses the Runtime
 //! types directly.
 
-use crate::porting_prelude::*;
 use super::Permission;
+use crate::porting_prelude::*;
 
 use frame_support::{
 	pallet_prelude::*,
@@ -106,7 +106,7 @@ impl RcMigrationCheck for ProxyBasicWorks {
 		pre_payload
 	}
 
-	fn post_check(_: Self::RcPrePayload) { }
+	fn post_check(_: Self::RcPrePayload) {}
 }
 
 impl AhMigrationCheck for ProxyBasicWorks {

@@ -25,11 +25,11 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
+use rand::prelude::*;
 use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
 };
-use rand::prelude::*;
 use std::{collections::BTreeMap, str::FromStr};
 
 type RelayRuntime = polkadot_runtime::Runtime;
@@ -52,7 +52,10 @@ impl RcMigrationCheck for MultisigStillWork {
 	fn pre_check() -> Self::RcPrePayload {
 		// We generate 100 multisigs consisting of between 1 and 10 signatories.
 		// Just use the first 1000 accs to make the generation a bit faster.
-		let accounts = frame_system::Account::<RelayRuntime>::iter().take(1000).map(|(_id, a)| a.data).collect::<Vec<_>>();
+		let accounts = frame_system::Account::<RelayRuntime>::iter()
+			.take(1000)
+			.map(|(_id, a)| a.data)
+			.collect::<Vec<_>>();
 		let mut multisigs = Vec::new();
 		//let mut rng = rand::rng();
 
@@ -64,13 +67,13 @@ impl RcMigrationCheck for MultisigStillWork {
 		multisigs
 	}
 
-	fn post_check(_: Self::RcPrePayload) { }
+	fn post_check(_: Self::RcPrePayload) {}
 }
 
 impl AhMigrationCheck for MultisigStillWork {
 	type RcPrePayload = Vec<MultisigOf<AssetHubRuntime>>;
 	type AhPrePayload = ();
 
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload { }
-	fn post_check(_rc_pre: Self::RcPrePayload, _: Self::AhPrePayload) { }
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
+	fn post_check(_rc_pre: Self::RcPrePayload, _: Self::AhPrePayload) {}
 }

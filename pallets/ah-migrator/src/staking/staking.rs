@@ -103,7 +103,8 @@ impl<T: Config> Pallet<T> {
 			ClaimedRewards { era, validator, rewards } => {
 				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
 				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
-				let bounded: BoundedVec<_, pallet_staking_async::ErasClaimedRewardsBound<T>> = rewards.defensive_truncate_into();
+				let bounded: BoundedVec<_, pallet_staking_async::ErasClaimedRewardsBound<T>> =
+					rewards.defensive_truncate_into();
 				let weak_bounded = WeakBoundedVec::force_from(bounded.into_inner(), None);
 				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, weak_bounded);
 			},
