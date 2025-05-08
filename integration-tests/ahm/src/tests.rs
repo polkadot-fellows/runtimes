@@ -76,8 +76,7 @@ type RcChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
-	#[cfg(feature = "ahm-staking-migration")]
-	pallet_rc_migrator::staking::staking::StakingMigrator<Polkadot>,
+	RcStakingChecks,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
@@ -96,6 +95,15 @@ pub type RcPolkadotChecks = (
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type RcPolkadotChecks = ();
 
+// Checks that are specific to Staking on relay chain
+#[cfg(feature = "ahm-staking-migration")]
+pub type RcStakingChecks = (
+	pallet_rc_migrator::staking::staking::StakingMigrator<Polkadot>,
+);
+
+#[cfg(not(feature = "ahm-staking-migration"))]
+pub type RcStakingChecks = ();
+
 type AhChecks = (
 	SanityChecks,
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
@@ -109,8 +117,7 @@ type AhChecks = (
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
-	#[cfg(feature = "ahm-staking-migration")]
-	pallet_rc_migrator::staking::StakingMigrator<AssetHub>,
+	AhStakingChecks,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxiesStillWork,
@@ -129,6 +136,15 @@ pub type AhPolkadotChecks = (
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type AhPolkadotChecks = ();
+
+// Checks that are specific to Staking on AssetHub
+#[cfg(feature = "ahm-staking-migration")]
+pub type AhStakingChecks = (
+	pallet_rc_migrator::staking::staking::StakingMigrator<AssetHub>,
+);
+
+#[cfg(not(feature = "ahm-staking-migration"))]
+pub type AhStakingChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {

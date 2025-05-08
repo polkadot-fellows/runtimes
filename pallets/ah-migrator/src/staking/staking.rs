@@ -158,9 +158,9 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(all(feature = "std", feature = "ahm-staking-migration"))]
 impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::StakingMigrator<T> {
-	use pallet_rc_migrator::RcPrePayload;
+	// use pallet_rc_migrator::staking::RcPrePayload;
 	
-	type RcPrePayload = RcPrePayload<T>;
+	type RcPrePayload = Vec<T::RcStakingMessage>;
 	type AhPrePayload = ();
 
 	fn pre_check(_rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
@@ -168,6 +168,17 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+		use RcStakingMessage::*;
 
+		let ledgers: Vec<_> = rc_pre_payload.into_iter().map(|message| match T::RcStakingMessage::intoAh(message) {
+			Ledger { controller, ledger } => {
+				(controller, ledger)
+			},
+			_ => todo!(),
+		}).collect();
+
+		let x = pallet_staking_async::Ledger::<T>::iter().collect::<Vec<_>>().len();
+
+		assert_eq!(x as u32, ledgers.len() as u32);
 	}
 }
