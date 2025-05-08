@@ -160,7 +160,7 @@ use std::collections::BTreeMap;
 impl<T, RcProxyType> crate::types::AhMigrationCheck for ProxyBasicChecks<T, RcProxyType>
 where
 	T: Config,
-	RcProxyType: Into<T::RcProxyType> + Clone,
+	RcProxyType: Into<T::RcProxyType> + Clone + core::fmt::Debug + Encode,
 {
 	type RcPrePayload = BTreeMap<AccountId32, Vec<(RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 	type AhPrePayload =
@@ -184,7 +184,7 @@ where
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
-		/*let mut delegators =
+		let mut delegators =
 			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
 
 		for delegator in delegators {
@@ -202,11 +202,12 @@ where
 
 			// All RC delegations that could be translated are still here
 			for rc_pre_d in &rc_pre.get(delegator).cloned().unwrap_or_default() {
-				let Ok(translated_kind) = T::RcToProxyType::try_convert(rc_pre_d.0.clone()) else {
+				let translated: T::RcProxyType = rc_pre_d.0.clone().into();
+				let Ok(translated_kind) = T::RcToProxyType::try_convert(translated.clone()) else {
 					// Best effort sanity checking that only Auction and ParaRegistration dont work
 					#[cfg(feature = "ahm-polkadot")]
 					{
-						let k = rc_pre_d.0.encode().get(0).cloned();
+						let k = translated.encode().get(0).cloned();
 						assert!(
 							k == Some(7) || k == Some(9),
 							"Must translate all proxy Kinds except Auction and ParaRegistration"
@@ -218,7 +219,6 @@ where
 
 				assert!(ah_post_delegations.contains(&translated), "RC delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", delegator.to_polkadot_ss58(), rc_pre_d, rc_pre.get(delegator).cloned().unwrap_or_default(), ah_pre_delegations);
 			}
-		}*/
-		todo!()
+		}
 	}
 }
