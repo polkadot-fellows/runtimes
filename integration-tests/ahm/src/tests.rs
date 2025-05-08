@@ -37,6 +37,7 @@ use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location, ParaId};
+use pallet_ah_migrator::proxy::ProxyBasicChecks;
 use frame_support::{
 	assert_err,
 	traits::{
@@ -106,7 +107,7 @@ type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::vesting::VestingMigrator<AssetHub>,
-	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
+	pallet_ah_migrator::proxy::ProxyBasicChecks<AssetHub, <Polkadot as pallet_proxy::Config>::ProxyType>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,

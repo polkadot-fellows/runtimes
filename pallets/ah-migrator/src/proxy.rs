@@ -149,12 +149,20 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+pub struct ProxyBasicChecks<T, RcProxyType> {
+	_p: core::marker::PhantomData<(T, RcProxyType)>
+}
+
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = BTreeMap<AccountId32, Vec<(T::RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+impl<T, RcProxyType> crate::types::AhMigrationCheck for ProxyBasicChecks<T, RcProxyType>
+where
+	T: Config,
+	RcProxyType: Into<T::RcProxyType> + Clone,
+{
+	type RcPrePayload = BTreeMap<AccountId32, Vec<(RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 	type AhPrePayload =
 		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
@@ -176,7 +184,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
-		let mut delegators =
+		/*let mut delegators =
 			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
 
 		for delegator in delegators {
@@ -210,6 +218,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 
 				assert!(ah_post_delegations.contains(&translated), "RC delegations are still available on AH for delegator: {:?}, Missing {:?} in {:?} vs {:?}", delegator.to_polkadot_ss58(), rc_pre_d, rc_pre.get(delegator).cloned().unwrap_or_default(), ah_pre_delegations);
 			}
-		}
+		}*/
+		todo!()
 	}
 }

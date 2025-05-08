@@ -1008,6 +1008,12 @@ parameter_types! {
 )]
 pub struct TransparentProxyType<T>(pub T);
 
+impl Into<ProxyType> for TransparentProxyType<ProxyType> {
+	fn into(self) -> ProxyType {
+		self.0
+	}
+}
+
 impl<T: scale_info::TypeInfo> scale_info::TypeInfo for TransparentProxyType<T> {
 	type Identity = T::Identity;
 
