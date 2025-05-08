@@ -1972,6 +1972,7 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
 		EnableRFC103Feature,
+		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
 		pallet_session::migrations::v1::MigrateV0ToV1<
 			Runtime,
 			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
