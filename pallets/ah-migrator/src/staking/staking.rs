@@ -62,7 +62,7 @@ impl<T: Config> Pallet<T> {
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
+				let bounded = BoundedVec::truncate_from(invulnerables);
 				pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
@@ -103,8 +103,7 @@ impl<T: Config> Pallet<T> {
 			ClaimedRewards { era, validator, rewards } => {
 				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
 				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
-				let bounded: BoundedVec<_, pallet_staking_async::ErasClaimedRewardsBound<T>> =
-					rewards.defensive_truncate_into();
+				let bounded = BoundedVec::<_, pallet_staking_async::ErasClaimedRewardsBound<T>>::truncate_from(rewards);
 				let weak_bounded = WeakBoundedVec::force_from(bounded.into_inner(), None);
 				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, weak_bounded);
 			},
@@ -131,7 +130,7 @@ impl<T: Config> Pallet<T> {
 			},
 			BondedEras(bonded_eras) => {
 				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				let bounded: BoundedVec<_, _> = bonded_eras.defensive_truncate_into();
+				let bounded = BoundedVec::truncate_from(bonded_eras); // FIXME
 				pallet_staking_async::BondedEras::<T>::put(bounded);
 			},
 			ValidatorSlashInEra { era, validator, slash } => {
