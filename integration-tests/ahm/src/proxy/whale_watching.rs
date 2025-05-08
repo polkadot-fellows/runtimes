@@ -14,17 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Test that proxies can still be used correctly after migration.
-//!
-//! This is additional to the tests in the AH and RC migrator pallets. Those tests just check that
-//! the data was moved over - not that the functionality is retained.
-//!
-//! NOTE: These tests should be written in the E2E chopsticks framework, but since that is not up
-//! yet, they are here. This test is also very simple, it is not generic and just uses the Runtime
-//! types directly.
-
 use crate::porting_prelude::*;
+use super::Permission;
 
+use super::ProxyBasicWorks;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{Currency, Defensive},
@@ -36,153 +29,83 @@ use sp_runtime::{
 	traits::{Dispatchable, TryConvert},
 	AccountId32,
 };
+use hex_literal::hex;
 use std::{collections::BTreeMap, str::FromStr};
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
 
-/// Intent based permission.
+/// Whale accounts that have a lot of proxies. We double-check those to make sure that all is well.
 ///
-/// Should be a superset of all possible proxy types.
-#[derive(Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum Permission {
-	Any,
-	NonTransfer,
-	Governance,
-	Staking,
-	CancelProxy,
-	Auction,
-	NominationPools,
-	ParaRegistration,
-}
+/// We also store the number of proxies.
+const WHALES: &[(AccountId32, usize)] = &[
+	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 6),
+	(AccountId32::new(hex!("6c1b752375304917c15af9c2e7a4426b3af513054d89f6c7bb26cd7e30e4413e")), 6),
+	(AccountId32::new(hex!("d10577dd7d364b294d2e9a0768363ac885efb8b1c469da6c4f2141d4f6560c1f")), 6),
+	(AccountId32::new(hex!("9561809d76c46eaad3f19d2d392e0a4962086ce116a8739fe7d458bdc3bd4f1d")), 5),
+	(AccountId32::new(hex!("429b067ff314c1fed75e57fcf00a6a4ff8611268e75917b5744ac8c4e1810d17")), 5),
+];
 
-// Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
-impl TryConvert<rc_proxy_definition::ProxyType, Permission> for Permission {
-	fn try_convert(
-		proxy: rc_proxy_definition::ProxyType,
-	) -> Result<Self, rc_proxy_definition::ProxyType> {
-		use rc_proxy_definition::ProxyType::*;
-
-		Ok(match proxy {
-			Any => Permission::Any,
-			NonTransfer => Permission::NonTransfer,
-			Governance => Permission::Governance,
-			Staking => Permission::Staking,
-			CancelProxy => Permission::CancelProxy,
-			Auction => Permission::Auction,
-			NominationPools => Permission::NominationPools,
-			ParaRegistration => Permission::ParaRegistration,
-
-			#[cfg(feature = "ahm-westend")]
-			SudoBalances | IdentityJudgement => return Err(proxy),
-		})
-	}
-}
+const MILLION_DOT: polkadot_primitives::Balance = polkadot_runtime_constants::DOLLARS * 1_000 * 1_000;
 
 /// Proxy accounts can still be controlled by their delegates with the correct permissions.
 ///
 /// This tests the actual functionality, not the raw data. It does so by dispatching calls from the
 /// delegatee account on behalf of the delegator. It then checks for whether or not the correct
 /// events were emitted.
-pub struct ProxiesStillWork;
+pub struct ProxyWhaleWatching;
 
-/// An account that has some delegatees set to control it.
-///
-/// Can be pure or impure.
-#[derive(Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct Proxy {
-	pub who: AccountId32,
-	/// The original proxy type as set on the Relay Chain.
-	///
-	/// We will use this to check that the intention of the proxy is still the same. This should
-	/// catch issues with translation and index collision.
-	pub permissions: Vec<Permission>,
-	/// Can control `who`.
-	pub delegatee: AccountId32,
-	// TODO also check the delay
-}
-
-/// Map of (Delegatee, Delegator) to Vec<Permissions>
-type PureProxies = BTreeMap<(AccountId32, AccountId32), Vec<Permission>>;
-
-impl RcMigrationCheck for ProxiesStillWork {
-	type RcPrePayload = PureProxies;
+impl RcMigrationCheck for ProxyWhaleWatching {
+	type RcPrePayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
-		let mut pre_payload = BTreeMap::new();
+		// All whales alive
+		for (whale, num_proxies) in WHALES {
+			let acc = frame_system::Account::<RelayRuntime>::get(whale);
+			assert!(acc.nonce == 0, "Whales are pure");
+			assert!(acc.data.free + acc.data.reserved >= MILLION_DOT, "Whales are rich on the relay");
 
-		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
-			for proxy in proxies.into_iter() {
-				#[cfg(not(feature = "ahm-westend"))]
-				let inner = proxy.proxy_type.0;
-				#[cfg(feature = "ahm-westend")] // Westend does not have remote proxies
-				let inner = proxy.proxy_type;
-
-				let permission = match Permission::try_convert(inner) {
-					Ok(permission) => permission,
-					Err(e) => {
-						#[cfg(feature = "ahm-westend")]
-						if inner == westend_runtime::ProxyType::IdentityJudgement ||
-							inner == westend_runtime::ProxyType::SudoBalances
-						{
-							// These cannot be converted currently TODO
-							continue;
-						}
-
-						defensive!("Proxy could not be converted: {:?}", e);
-						continue;
-					},
-				};
-				pre_payload
-					.entry((proxy.delegate, delegator.clone()))
-					.or_insert_with(Vec::new)
-					.push(permission);
-			}
+			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(&whale).0;
+			assert_eq!(delegations.len(), *num_proxies, "Number of proxies is correct");
 		}
-
-		pre_payload
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
-		()
-	}
+	fn post_check(_: Self::RcPrePayload) {}
 }
 
-impl AhMigrationCheck for ProxiesStillWork {
-	type RcPrePayload = PureProxies;
+impl AhMigrationCheck for ProxyWhaleWatching {
+	type RcPrePayload = ();
 	type AhPrePayload = ();
 
-	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
-		// Not empty in this case
-		assert!(
-			!pallet_proxy::Proxies::<AssetHubRuntime>::iter().next().is_none(),
-			"Assert storage 'Proxy::Proxies::ah_pre::empty'"
-		);
-	}
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload { }
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		for ((delegatee, delegator), permissions) in rc_pre_payload.iter() {
-			// Assert storage "Proxy::Proxies::ah_post::correct"
-			let (entry, _) = pallet_proxy::Proxies::<AssetHubRuntime>::get(&delegator);
-			if entry.is_empty() {
-				// FIXME possibly bug
-				log::error!(
-					"Storage entry must exist for {:?} -> {:?}",
-					delegator.to_polkadot_ss58(),
-					delegatee.to_polkadot_ss58()
-				);
-				continue
+		// Whales still afloat
+		for (whale, num_proxies) in WHALES {
+			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);
+			assert!(acc.data.free + acc.data.reserved >= MILLION_DOT, "Whales are rich on the asset hub");
+
+			let delegations = pallet_proxy::Proxies::<AssetHubRuntime>::get(&whale).0;
+			assert_eq!(delegations.len(), *num_proxies, "Number of proxies is correct");
+
+			for delegation in delegations.iter() {
+				// We need to take the superset of the permissions here. Not that this means that we
+				// will test the delegatee multiple times, but it should not matter and the code is
+				// easier that to mess around with maps.
+				let permissions = delegations.iter()
+					.filter(|d| d.delegate == delegation.delegate)
+					.map(|d|
+						// The translation could fail at any point, but for now it seems to hold.
+						Permission::try_convert(d.proxy_type).expect("Whale proxies must translate")
+					).collect::<Vec<_>>();
+
+				ProxyBasicWorks::check_proxy(&delegation.delegate, whale, &permissions, delegation.delay);
 			}
-
-			let maybe_delay =
-				entry.iter().find(|proxy| proxy.delegate == *delegatee).map(|proxy| proxy.delay);
-
-			Self::check_proxy(delegatee, delegator, permissions, maybe_delay.unwrap_or(0));
 		}
 	}
 }
 
-impl ProxiesStillWork {
+impl ProxyWhaleWatching {
 	fn check_proxy(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,

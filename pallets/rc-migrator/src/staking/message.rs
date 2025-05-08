@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use alloc::collections::BTreeMap;
 use crate::{
 	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
 	*,
@@ -283,12 +284,15 @@ impl<AccountId: Ord, Ah: pallet_staking_async::Config<AccountId = AccountId>>
 		pallet_staking::EraRewardPoints<AccountId>,
 		pallet_staking_async::EraRewardPoints<Ah>,
 	> for pallet_staking::EraRewardPoints<AccountId>
+where
+	AccountId: Ord,
+	Ah: pallet_staking_async::Config<AccountId = AccountId>,
 {
 	fn intoAh(
 		points: pallet_staking::EraRewardPoints<AccountId>,
 	) -> pallet_staking_async::EraRewardPoints<Ah> {
-		let truncated = points.individual.into_iter().take(<Ah as pallet_staking_async::Config>::MaxValidatorSet::get() as usize).collect::<alloc::collections::BTreeMap<_, _>>();
-		pallet_staking_async::EraRewardPoints { total: points.total, individual: truncated.try_into().defensive_proof("Truncated, must fit; qed").unwrap_or_default() }
+		let bounded = points.individual.into_iter().take(<Ah as pallet_staking_async::Config>::MaxValidatorSet::get() as usize).collect::<BTreeMap<_, _>>();
+		pallet_staking_async::EraRewardPoints { total: points.total, individual: BoundedBTreeMap::try_from(bounded).defensive().unwrap_or_default() }
 	}
 }
 
@@ -468,8 +472,10 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		MinCommission::<T>::put(&values.min_commission);
 		MaxValidatorsCount::<T>::set(values.max_validators_count);
 		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era.map(pallet_staking::ActiveEraInfo::intoAh));
+		let active_era = values.active_era.map(pallet_staking::ActiveEraInfo::intoAh);
+		
+		ActiveEra::<T>::set(active_era.clone());
+		CurrentEra::<T>::set(active_era.map(|a| a.index));
 		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
 		MaxStakedRewards::<T>::set(values.max_staked_rewards);
 		SlashRewardFraction::<T>::set(values.slash_reward_fraction);

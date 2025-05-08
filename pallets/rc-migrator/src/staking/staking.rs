@@ -58,7 +58,6 @@ pub enum StakingStage<AccountId> {
 	Validators(Option<AccountId>),
 	Nominators(Option<AccountId>),
 	VirtualStakers(Option<AccountId>),
-	ErasStartSessionIndex(Option<EraIndex>),
 	ErasStakersOverview(Option<(EraIndex, AccountId)>),
 	ErasStakersPaged(Option<(EraIndex, AccountId, Page)>),
 	ClaimedRewards(Option<(EraIndex, AccountId)>),

@@ -25,7 +25,8 @@ pub mod call_filter_asset_hub;
 pub mod call_filter_relay;
 pub mod checks;
 pub mod mock;
-pub mod proxy_test;
+pub mod multisig_still_work;
+pub mod proxy;
 pub mod tests;
 
 /// Imports for the AHM tests that can be reused for other chains.
