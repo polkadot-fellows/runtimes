@@ -84,7 +84,6 @@ type RcChecks = (
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
-	ProxyWhaleWatching,
 	MultisigStillWork,
 );
 
@@ -96,6 +95,7 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	ProxyWhaleWatching,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -117,7 +117,6 @@ type AhChecks = (
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
-	ProxyWhaleWatching,
 	MultisigStillWork,
 );
 
@@ -130,6 +129,7 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	ProxyWhaleWatching,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]

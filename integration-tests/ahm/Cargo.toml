@@ -54,6 +54,7 @@ cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
 rand = { workspace = true, default-feature = true }
+# testnet-parachains-constants = { workspace = true } # Only on westend
 
 [features]
 default = ["ahm-polkadot", "std"]

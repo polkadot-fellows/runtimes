@@ -50,13 +50,15 @@ pub mod porting_prelude {
 	// Import renaming depending on runtimes or SDK names:
 	#[cfg(feature = "ahm-polkadot")]
 	pub mod import_alias {
-		// Polkadot is canon
+		pub use polkadot_runtime_constants::DOLLARS as RC_DOLLARS;
 	}
 	#[cfg(feature = "ahm-westend")]
 	pub mod import_alias {
 		pub use asset_hub_westend_runtime as asset_hub_polkadot_runtime;
 		pub use westend_runtime as polkadot_runtime;
 		pub use westend_runtime_constants as polkadot_runtime_constants;
+
+		pub use testnet_parachains_constants::westend::currency::DOLLARS as RC_DOLLARS;
 	}
 	pub use import_alias::*;
 
