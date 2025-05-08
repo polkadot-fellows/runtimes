@@ -232,22 +232,6 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							messages.push(RcStakingMessage::VirtualStakers(staker.clone()));
 							StakingStage::VirtualStakers(Some(staker))
 						},
-						None => StakingStage::ErasStartSessionIndex(None),
-					}
-				},
-				StakingStage::ErasStartSessionIndex(who) => {
-					let mut iter = if let Some(who) = who {
-						pallet_staking::ErasStartSessionIndex::<T>::iter_from_key(who)
-					} else {
-						pallet_staking::ErasStartSessionIndex::<T>::iter()
-					};
-
-					match iter.next() {
-						Some((era, session)) => {
-							pallet_staking::ErasStartSessionIndex::<T>::remove(&era);
-							messages.push(RcStakingMessage::ErasStartSessionIndex { era, session });
-							StakingStage::ErasStartSessionIndex(Some(era))
-						},
 						None => StakingStage::ErasStakersOverview(None),
 					}
 				},

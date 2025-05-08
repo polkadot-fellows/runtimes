@@ -89,10 +89,6 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating VirtualStakers of staker {:?}", staker);
 				pallet_staking_async::VirtualStakers::<T>::insert(staker, ());
 			},
-			ErasStartSessionIndex { era, session } => {
-				log::debug!(target: LOG_TARGET, "Integrating ErasStartSessionIndex {:?}/{:?}", era, session);
-				pallet_staking_async::ErasStartSessionIndex::<T>::insert(era, session);
-			},
 			ErasStakersOverview { era, validator, exposure } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasStakersOverview {:?}/{:?}", validator, era);
 				pallet_staking_async::ErasStakersOverview::<T>::insert(era, validator, exposure);
