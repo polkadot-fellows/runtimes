@@ -21,12 +21,12 @@ use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset, Pare
 use cumulus_primitives_core::ParaId;
 use frame_support::parameter_types;
 use frame_support::traits::{Contains, ContainsPair, Equals, ProcessMessageError};
+use pallet_rc_migrator::types::MigrationStatus;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use xcm::latest::prelude::*;
 use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
 use xcm_executor::traits::{Properties, ShouldExecute};
 
-use crate::types::GetAhMigrationStage;
 #[cfg(feature = "ahm-polkadot")]
 use polkadot_runtime_constants::system_parachain;
 #[cfg(feature = "ahm-westend")]
@@ -192,11 +192,11 @@ mod after {
 
 /// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
 pub struct TrustedTeleporters<Stage>(PhantomData<Stage>);
-impl<Stage: GetAhMigrationStage> ContainsPair<Asset, Location> for TrustedTeleporters<Stage> {
+impl<Stage: MigrationStatus> ContainsPair<Asset, Location> for TrustedTeleporters<Stage> {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
-		let stage = Stage::ah_migration_stage();
-		log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
-		let result = if stage.is_ongoing() {
+		let migration_ongoing = Stage::is_ongoing();
+		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {:?}", migration_ongoing);
+		let result = if migration_ongoing {
 			common::TrustedTeleportersDuring::contains(asset, origin)
 		} else {
 			// before and after migration use normal filter
@@ -212,16 +212,15 @@ impl<Stage: GetAhMigrationStage> ContainsPair<Asset, Location> for TrustedTelepo
 }
 
 pub struct UnpaidExecutionFilter<Stage>(PhantomData<Stage>);
-impl<Stage: GetAhMigrationStage> ShouldExecute for UnpaidExecutionFilter<Stage> {
+impl<Stage: MigrationStatus> ShouldExecute for UnpaidExecutionFilter<Stage> {
 	fn should_execute<Call>(
 		origin: &Location,
 		instructions: &mut [Instruction<Call>],
 		max_weight: Weight,
 		_properties: &mut Properties,
 	) -> Result<(), ProcessMessageError> {
-		let stage = Stage::ah_migration_stage();
-		log::trace!(target: "xcm::UnpaidExecutionFilter::should_execute", "migration stage: {:?}", stage);
-		if stage.is_finished() {
+		if Stage::is_finished() {
+			log::trace!(target: "xcm::UnpaidExecutionFilter::should_execute", "migration finished");
 			after::UnpaidExecutionAfter::should_execute(
 				origin,
 				instructions,
@@ -229,6 +228,7 @@ impl<Stage: GetAhMigrationStage> ShouldExecute for UnpaidExecutionFilter<Stage> 
 				_properties,
 			)
 		} else {
+			log::trace!(target: "xcm::UnpaidExecutionFilter::should_execute", "migration not finished");
 			before::UnpaidExecutionBeforeDuring::should_execute(
 				origin,
 				instructions,
@@ -240,13 +240,13 @@ impl<Stage: GetAhMigrationStage> ShouldExecute for UnpaidExecutionFilter<Stage> 
 }
 
 pub struct WaivedLocations<Stage>(PhantomData<Stage>);
-impl<Stage: GetAhMigrationStage> Contains<Location> for WaivedLocations<Stage> {
+impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
 	fn contains(location: &Location) -> bool {
-		let stage = Stage::ah_migration_stage();
-		log::trace!(target: "xcm::WaivedLocations::contains", "migration stage: {:?}", stage);
-		if stage.is_finished() {
+		if Stage::is_finished() {
+			log::trace!(target: "xcm::WaivedLocations::contains", "migration finished");
 			after::WaivedLocationsAfter::contains(location)
 		} else {
+			log::trace!(target: "xcm::WaivedLocations::contains", "migration not finished");
 			before::WaivedLocationsBeforeDuring::contains(location)
 		}
 	}

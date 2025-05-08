@@ -42,12 +42,6 @@ pub enum RcMigratorCall {
 	UpdateAhMsgProcessedCount(u32),
 }
 
-/// Trait to provide the current stage of the AH migration.
-pub trait GetAhMigrationStage {
-	/// Return the current stage of the AH migration.
-	fn ah_migration_stage() -> MigrationStage;
-}
-
 /// Trait to run some checks on the Asset Hub before and after a pallet migration.
 ///
 /// This needs to be called by the test harness.

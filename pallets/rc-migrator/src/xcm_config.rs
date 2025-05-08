@@ -16,7 +16,8 @@
 
 //! XCM configurations for the Relay Chain for the AHM migration.
 
-use frame_support::parameter_types;
+use crate::{types::MigrationStatus, PhantomData};
+use frame_support::{parameter_types, traits::ContainsPair};
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
@@ -47,3 +48,25 @@ pub type TrustedTeleportersBeforeAndAfter = (
 	Case<DotForCoretime>,
 	Case<DotForPeople>,
 );
+
+/// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+pub struct TrustedTeleporters<Stage>(PhantomData<Stage>);
+impl<Stage: MigrationStatus> ContainsPair<Asset, Location> for TrustedTeleporters<Stage> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let migration_ongoing = Stage::is_ongoing();
+		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {:?}", migration_ongoing);
+		let result = if migration_ongoing {
+			// during migration, no teleports (in or out) allowed
+			false
+		} else {
+			// before and after migration use normal filter
+			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+		};
+		log::trace!(
+			target: "xcm::IsTeleport::contains",
+			"asset: {:?} origin {:?} result {:?}",
+			asset, origin, result
+		);
+		result
+	}
+}

@@ -46,7 +46,7 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
-pub use pallet_rc_migrator::xcm_config::*;
+pub use pallet_rc_migrator::xcm_config::{AssetHubLocation, CollectivesLocation};
 
 parameter_types! {
 	pub const RootLocation: Location = Here.into_location();
@@ -195,7 +195,7 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = crate::RcMigrator;
+	type IsTeleporter = pallet_rc_migrator::xcm_config::TrustedTeleporters<crate::RcMigrator>;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<

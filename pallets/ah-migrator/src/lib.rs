@@ -83,7 +83,6 @@ use pallet_rc_migrator::crowdloan::RcCrowdloanMessageOf;
 #[cfg(not(feature = "ahm-westend"))]
 use pallet_rc_migrator::treasury::RcTreasuryMessage;
 
-use crate::types::GetAhMigrationStage;
 use pallet_rc_migrator::{
 	accounts::Account as RcAccount,
 	conviction_voting::RcConvictionVotingMessageOf,
@@ -1057,12 +1056,6 @@ pub mod pallet {
 		fn is_finished() -> bool {
 			AhMigrationStage::<T>::get().is_finished()
 		}
-	}
-}
-
-impl<T: Config> GetAhMigrationStage for Pallet<T> {
-	fn ah_migration_stage() -> MigrationStage {
-		AhMigrationStage::<T>::get()
 	}
 }
 
