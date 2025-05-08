@@ -151,7 +151,7 @@ impl ProxyBasicWorks {
 		delay: BlockNumberFor<AssetHubRuntime>,
 	) {
 		if delay > 0 {
-			log::warn!(
+			log::debug!(
 				"Not testing proxy delegatee {:?} -> {:?} because of delay: {:?}",
 				delegator.to_polkadot_ss58(),
 				delegatee.to_polkadot_ss58(),
@@ -164,7 +164,7 @@ impl ProxyBasicWorks {
 		let alice =
 			AccountId32::from_str("5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu").unwrap();
 
-		log::warn!(
+		log::debug!(
 			"Checking that proxy relation {:?} -> {:?} still works with permissions {:?}",
 			delegator.to_polkadot_ss58(),
 			delegatee.to_polkadot_ss58(),
@@ -230,7 +230,7 @@ impl ProxyBasicWorks {
 			.into();
 			let hint = if hint { " (it should)" } else { " (it should not)" };
 
-			log::warn!(
+			log::debug!(
 				"Checking whether {:?} can transfer on behalf of {:?}{}",
 				delegatee.to_polkadot_ss58(),
 				delegator.to_polkadot_ss58(),
@@ -266,7 +266,7 @@ impl ProxyBasicWorks {
 
 			let hint = if hint { " (it should)" } else { " (it should not)" };
 
-			log::warn!(
+			log::debug!(
 				"Checking whether {:?} can do governance on behalf of {:?}{}",
 				delegatee.to_polkadot_ss58(),
 				delegator.to_polkadot_ss58(),

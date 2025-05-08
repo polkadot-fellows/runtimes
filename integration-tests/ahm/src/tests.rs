@@ -378,7 +378,7 @@ fn ah_account_migration_weight() {
 	}
 }
 
-//#[ignore] // Slow
+#[ignore] // Slow
 #[tokio::test(flavor = "current_thread")]
 async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
