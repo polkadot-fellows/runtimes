@@ -41,7 +41,6 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::system_parachain;
 use snowbridge_router_primitives::inbound::GlobalConsensusEthereumConvertsFor;
 use sp_runtime::traits::{AccountIdConversion, ConvertInto, TryConvertInto};
-use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -72,19 +71,26 @@ parameter_types! {
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub PoolAssetsPalletLocation: Location =
 		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	// Account address: `14xmwinmCEz6oRrFdczHKqHgWNMiCysE2KrA4jXXAAM1Eogk`
-	pub RelayTreasuryPalletAccount: AccountId =
+	pub PreMigrationRelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
+			.unwrap_or(system_parachains_constants::TREASURY_PALLET_ID.into_account_truncating());
+	pub PostMigrationTreasuryAccount: AccountId = crate::Treasury::account_id();
 	/// The Checking Account along with the indication that the local chain is able to mint tokens.
 	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::AhMigrator::teleport_tracking();
 }
+
+/// Treasury account that changes once migration ends.
+pub type TreasuryAccount = pallet_ah_migrator::xcm_config::TreasuryAccount<
+	crate::AhMigrator,
+	PreMigrationRelayTreasuryPalletAccount,
+	PostMigrationTreasuryAccount,
+>;
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
 ///
@@ -380,8 +386,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = PoolAssetsExchanger;
 	type FeeManager = XcmFeeManagerFromComponents<
 		pallet_ah_migrator::xcm_config::WaivedLocations<crate::AhMigrator>,
-		// TODO: post-ahm move the Treasury funds from this sov account to a local account.
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases =

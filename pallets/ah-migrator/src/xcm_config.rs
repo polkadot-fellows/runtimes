@@ -20,9 +20,10 @@ use crate::PhantomData;
 use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation};
 use cumulus_primitives_core::ParaId;
 use frame_support::parameter_types;
-use frame_support::traits::{Contains, ContainsPair, Equals, ProcessMessageError};
+use frame_support::traits::{Contains, ContainsPair, Equals, ProcessMessageError, TypedGet};
 use pallet_rc_migrator::types::MigrationStatus;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
+use sp_runtime::{traits::Get, AccountId32};
 use xcm::latest::prelude::*;
 use xcm_builder::{AllowExplicitUnpaidExecutionFrom, IsSiblingSystemParachain};
 use xcm_executor::traits::{Properties, ShouldExecute};
@@ -156,10 +157,6 @@ mod before {
 	);
 }
 
-mod during {
-	use super::*;
-}
-
 mod after {
 	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
 	use super::*;
@@ -249,5 +246,53 @@ impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
 			log::trace!(target: "xcm::WaivedLocations::contains", "migration not finished");
 			before::WaivedLocationsBeforeDuring::contains(location)
 		}
+	}
+}
+
+pub struct TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount>(
+	PhantomData<(Stage, PreMigrationAccount, PostMigrationAccount)>,
+);
+impl<Stage, PreMigrationAccount, PostMigrationAccount> Get<AccountId32>
+	for TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount>
+where
+	Stage: MigrationStatus,
+	PreMigrationAccount: Get<AccountId32>,
+	PostMigrationAccount: Get<AccountId32>,
+{
+	fn get() -> AccountId32 {
+		let treasury_account = if Stage::is_finished() {
+			PostMigrationAccount::get()
+		} else {
+			PreMigrationAccount::get()
+		};
+		log::trace!(target: "xcm::TreasuryAccount::get", "{:?}", treasury_account);
+		treasury_account
+	}
+}
+
+impl<Stage, PreMigrationAccount, PostMigrationAccount> TypedGet
+	for TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount>
+where
+	Stage: MigrationStatus,
+	PreMigrationAccount: Get<AccountId32>,
+	PostMigrationAccount: Get<AccountId32>,
+{
+	type Type = AccountId32;
+	fn get() -> AccountId32 {
+		<TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount> as Get<AccountId32>>::get(
+		)
+	}
+}
+
+impl<Stage, PreMigrationAccount, PostMigrationAccount> Get<Location>
+	for TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount>
+where
+	Stage: MigrationStatus,
+	PreMigrationAccount: Get<AccountId32>,
+	PostMigrationAccount: Get<AccountId32>,
+{
+	fn get() -> Location {
+		<TreasuryAccount<Stage, PreMigrationAccount, PostMigrationAccount> as Get<AccountId32>>::get(
+		).into()
 	}
 }
