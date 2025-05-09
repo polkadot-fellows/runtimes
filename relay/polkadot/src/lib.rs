@@ -1008,6 +1008,12 @@ parameter_types! {
 )]
 pub struct TransparentProxyType<T>(pub T);
 
+impl Into<ProxyType> for TransparentProxyType<ProxyType> {
+	fn into(self) -> ProxyType {
+		self.0
+	}
+}
+
 impl<T: scale_info::TypeInfo> scale_info::TypeInfo for TransparentProxyType<T> {
 	type Identity = T::Identity;
 
@@ -1552,6 +1558,7 @@ impl pallet_rc_migrator::Config for Runtime {
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
 	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
 	type OnDemandPalletId = OnDemandPalletId;
+	type UnprocessedMsgBuffer = ConstU32<5>;
 }
 
 #[cfg(not(feature = "zombie-bite-sudo"))]

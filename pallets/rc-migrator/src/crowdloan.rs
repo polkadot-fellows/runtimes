@@ -375,7 +375,8 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Stay consistent with migrate_many: remap for leases
-			let remapped_para_id = if para_id == ParaId::from(2030) {
+			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
 				para_id
@@ -421,7 +422,8 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 
 		// Process crowdloan funds and contributions
 		for (original_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
-			let para_id = if original_para_id == ParaId::from(2030) {
+			let para_id = if cfg!(feature = "ahm-polkadot") && original_para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
 				original_para_id
@@ -471,7 +473,8 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
 		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
 			// Remap Bifrost para_id consistently with pre_check
-			let remapped_para_id = if para_id == ParaId::from(2030) {
+			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
 				ParaId::from(3356)
 			} else {
 				para_id
@@ -501,7 +504,7 @@ impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
 			"Crowdloan contributions should be empty after migration"
 		);
 
-		// Verify that no funds remain in the pallet
+		// Assert storage "Crowdloan::Funds::rc_post::empty"
 		assert!(
 			pallet_crowdloan::Funds::<T>::iter().next().is_none(),
 			"pallet_crowdloan::Funds should be empty after migration"

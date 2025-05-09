@@ -268,23 +268,23 @@ impl<T: Config> crate::types::RcMigrationCheck for ClaimsMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		assert!(
 			!pallet_claims::Total::<T>::exists(),
-			"Claims total should be empty after migration"
+			"Assert storage 'Claims::Total::rc_post::empty'"
 		);
 		assert!(
 			alias::Claims::<T>::iter().next().is_none(),
-			"Claims should be empty after migration"
+			"Assert storage 'Claims::Claims::rc_post::empty'"
 		);
 		assert!(
 			alias::Vesting::<T>::iter().next().is_none(),
-			"Vesting should be empty after migration"
+			"Assert storage 'Claims::Vesting::rc_post::empty'"
 		);
 		assert!(
 			alias::Signing::<T>::iter().next().is_none(),
-			"Signing should be empty after migration"
+			"Assert storage 'Claims::Signing::rc_post::empty'"
 		);
 		assert!(
 			alias::Preclaims::<T>::iter().next().is_none(),
-			"Preclaims should be empty after migration"
+			"Assert storage 'Claims::Preclaims::rc_post::empty'"
 		);
 
 		log::info!("All claims data successfully migrated and cleared from the Relay Chain.");

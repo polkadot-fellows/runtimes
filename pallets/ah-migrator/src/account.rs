@@ -135,7 +135,7 @@ impl<T: Config> Pallet<T> {
 			);
 		}
 
-		log::debug!(
+		log::trace!(
 			target: LOG_TARGET,
 			"Integrating account: {}", who.to_ss58check(),
 		);
@@ -239,6 +239,12 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		assert!(
 			pallet_balances::Freezes::<T>::iter().next().is_none(),
 			"No freezes should exist on Asset Hub before migration"
+		);
+
+		// Assert storage "Balances::Account::ah_pre::empty"
+		assert!(
+			pallet_balances::Account::<T>::iter().next().is_none(),
+			"No Account should exist on Asset Hub before migration"
 		);
 
 		let check_account = T::CheckingAccount::get();
