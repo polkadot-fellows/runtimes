@@ -96,27 +96,27 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 		// "Assert storage 'Claims::Total::ah_pre::empty'"
 		assert!(
 			!pallet_claims::Total::<T>::exists(),
-			"Claims total should be empty before migration starts"
+			"Assert storage 'Claims::Total::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Claims::ah_pre::empty'"
 		assert!(
 			alias::Claims::<T>::iter().next().is_none(),
-			"Claims should be empty before migration starts"
+			"Assert storage 'Claims::Claims::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Vesting::ah_pre::empty'"
 		assert!(
 			alias::Vesting::<T>::iter().next().is_none(),
-			"Vesting should be empty before migration starts"
+			"Assert storage 'Claims::Vesting::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Signing::ah_pre::empty'"
 		assert!(
 			alias::Signing::<T>::iter().next().is_none(),
-			"Signing should be empty before migration starts"
+			"Assert storage 'Claims::Signing::ah_pre::empty'"
 		);
 		// "Assert storage 'Claims::Preclaims::ah_pre::empty'"
 		assert!(
 			alias::Preclaims::<T>::iter().next().is_none(),
-			"Preclaims should be empty before migration starts"
+			"Assert storage 'Claims::Preclaims::ah_pre::empty'"
 		);
 	}
 
@@ -148,6 +148,21 @@ impl<T: Config> crate::types::AhMigrationCheck for ClaimsMigrator<T> {
 			ah_messages.push(RcClaimsMessage::Preclaims((account_id, address)));
 		}
 
+		// Assert storage "Claims::Claims::ah_post::length"
+		// Assert storage "Claims::Claims::ah_post::consistent"
+		// Assert storage "Claims::Claims::ah_post::correct"
+		// Assert storage "Claims::Vesting::ah_post::length"
+		// Assert storage "Claims::Vesting::ah_post::consistent"
+		// Assert storage "Claims::Vesting::ah_post::correct"
+		// Assert storage "Claims::Signing::ah_post::length"
+		// Assert storage "Claims::Signing::ah_post::consistent"
+		// Assert storage "Claims::Signing::ah_post::correct"
+		// Assert storage "Claims::Preclaims::ah_post::length"
+		// Assert storage "Claims::Preclaims::ah_post::consistent"
+		// Assert storage "Claims::Preclaims::ah_post::correct"
+		// Assert storage "Claims::Total::ah_post::length"
+		// Assert storage "Claims::Total::ah_post::consistent"
+		// Assert storage "Claims::Total::ah_post::correct"
 		assert_eq!(
 			rc_pre_payload, ah_messages,
 			"Claims data mismatch: Asset Hub schedules differ from original Relay Chain schedules"
