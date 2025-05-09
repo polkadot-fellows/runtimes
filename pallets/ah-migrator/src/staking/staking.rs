@@ -405,28 +405,28 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         type ActiveEraInfoAsync = pallet_staking_async::ActiveEraInfo;
         type ForcingAsync = pallet_staking_async::Forcing;
 
-    //     let mut expected_values_opt: Option<AhStakingValues<T>> = None;
-    //     let mut expected_invulnerables: Vec<AccountId<T>> = Vec::new();
-    //     let mut expected_bonded: BTreeMap<AccountId<T>, AccountId<T>> = BTreeMap::new();
-    //     let mut expected_ledger: BTreeMap<AccountId<T>, StakingLedgerAsync<T>> = BTreeMap::new();
-    //     let mut expected_payee: BTreeMap<AccountId<T>, RewardDestinationAsync<T>> = BTreeMap::new();
-    //     let mut expected_validators: BTreeMap<AccountId<T>, ValidatorPrefsAsync> = BTreeMap::new();
-    //     let mut expected_nominators: BTreeMap<AccountId<T>, NominationsAsync<T>> = BTreeMap::new();
-    //     let mut expected_virtual_stakers: HashSet<AccountId<T>> = HashSet::new();
-    //     let mut expected_eras_start_session_index: BTreeMap<EraIndex, SessionIndex> = BTreeMap::new();
-    //     let mut expected_eras_stakers_overview: BTreeMap<(EraIndex, AccountId<T>), PagedExposureMetadataAsync<T>> = BTreeMap::new();
-    //     let mut expected_eras_stakers_paged: BTreeMap<(EraIndex, AccountId<T>, Page), ExposurePageAsync<T>> = BTreeMap::new();
-    //     let mut expected_claimed_rewards: BTreeMap<(EraIndex, AccountId<T>), Vec<Page>> = BTreeMap::new();
-    //     let mut expected_eras_validator_prefs: BTreeMap<(EraIndex, AccountId<T>), ValidatorPrefsAsync> = BTreeMap::new();
-    //     let mut expected_eras_validator_reward: BTreeMap<EraIndex, Balance<T>> = BTreeMap::new();
-    //     let mut expected_eras_reward_points: BTreeMap<EraIndex, EraRewardPointsAsync<T>> = BTreeMap::new();
-    //     let mut expected_eras_total_stake: BTreeMap<EraIndex, Balance<T>> = BTreeMap::new();
-    //     let mut expected_unapplied_slashes: BTreeMap<(EraIndex, (AccountId<T>, Perbill, u32)), UnappliedSlashAsync<T>> = BTreeMap::new();
-    //     let mut expected_bonded_eras: Vec<(EraIndex, SessionIndex)> = Vec::new();
-    //     let mut expected_validator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), (Perbill, Balance<T>)> = BTreeMap::new();
-    //     let mut expected_nominator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), Balance<T>> = BTreeMap::new();
-    //     let mut expected_slashing_spans: BTreeMap<AccountId<T>, SlashingSpansAsync> = BTreeMap::new();
-    // //     let mut expected_span_slash: BTreeMap<(AccountId<T>, SpanIndex), SpanRecordAsync<T>> = BTreeMap::new();
+        let mut expected_values_opt: Option<AhStakingValues<T>> = None;
+        let mut expected_invulnerables: Vec<AccountId<T>> = Vec::new();
+        let mut expected_bonded: BTreeMap<AccountId<T>, AccountId<T>> = BTreeMap::new();
+        let mut expected_ledger: BTreeMap<AccountId<T>, StakingLedgerAsync<T>> = BTreeMap::new();
+        let mut expected_payee: BTreeMap<AccountId<T>, RewardDestinationAsync<T>> = BTreeMap::new();
+        let mut expected_validators: BTreeMap<AccountId<T>, ValidatorPrefsAsync> = BTreeMap::new();
+        let mut expected_nominators: BTreeMap<AccountId<T>, NominationsAsync<T>> = BTreeMap::new();
+        let mut expected_virtual_stakers: HashSet<AccountId<T>> = HashSet::new();
+        let mut expected_eras_start_session_index: BTreeMap<EraIndex, SessionIndex> = BTreeMap::new();
+        let mut expected_eras_stakers_overview: BTreeMap<(EraIndex, AccountId<T>), PagedExposureMetadataAsync<T>> = BTreeMap::new();
+        let mut expected_eras_stakers_paged: BTreeMap<(EraIndex, AccountId<T>, Page), ExposurePageAsync<T>> = BTreeMap::new();
+        let mut expected_claimed_rewards: BTreeMap<(EraIndex, AccountId<T>), Vec<Page>> = BTreeMap::new();
+        let mut expected_eras_validator_prefs: BTreeMap<(EraIndex, AccountId<T>), ValidatorPrefsAsync> = BTreeMap::new();
+        let mut expected_eras_validator_reward: BTreeMap<EraIndex, Balance<T>> = BTreeMap::new();
+        let mut expected_eras_reward_points: BTreeMap<EraIndex, EraRewardPointsAsync<T>> = BTreeMap::new();
+        let mut expected_eras_total_stake: BTreeMap<EraIndex, Balance<T>> = BTreeMap::new();
+        let mut expected_unapplied_slashes: BTreeMap<(EraIndex, (AccountId<T>, Perbill, u32)), UnappliedSlashAsync<T>> = BTreeMap::new();
+        let mut expected_bonded_eras: Vec<(EraIndex, SessionIndex)> = Vec::new();
+        let mut expected_validator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), (Perbill, Balance<T>)> = BTreeMap::new();
+        let mut expected_nominator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), Balance<T>> = BTreeMap::new();
+        let mut expected_slashing_spans: BTreeMap<AccountId<T>, SlashingSpansAsync> = BTreeMap::new();
+    //     let mut expected_span_slash: BTreeMap<(AccountId<T>, SpanIndex), SpanRecordAsync<T>> = BTreeMap::new();
 
     //     for rc_message in rc_pre_payload {
     //         let ah_message = T::RcStakingMessage::intoAh(rc_message);
@@ -457,7 +457,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
     //             NominatorSlashInEra { era, validator, slash } => { expected_nominator_slash_in_era.insert((era, validator.clone()), slash); },
     //             SlashingSpans { account, spans } => { expected_slashing_spans.insert(account, spans); },
     // //            SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
-    //             _ => todo!(), // Spanslash removes from master branch
+    //             _ => todo!(), // Spanslash removed from master branch, remove for now
     //         }
     //     }
 
