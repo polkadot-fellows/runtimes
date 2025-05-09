@@ -101,13 +101,11 @@ accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
 
-- session (P/K/W): Validator accounts may be removed from RC during migration (unless they maintain
-HRMP channels or register a parachain). Validators who later wish to interact with the session
-pallet (e.g., set/remove keys) will need to teleport funds to RC and reinitialize their account. The
-only possible inconsistency is if a validator removes already existing keys, causing the consumer
-count to decrement from 0 (if no holds/freezes) or from 1 otherwise. Case 1: From 0 — no issue.
-Case 2: From 1 — results in a temporarily incorrect consumer count, which will self-correct on any
-account update.
+- session (P/K/W): Validator accounts that set keys in the session pallet receive an additional
+consumer reference to prevent the existential deposit (ED) from being withdrawn, preserving it as a
+deposit. During migration, these EDs with the consumer reference will remain on the Relay Chain if
+the validator account has sufficient balance. If a validator account has insufficient balance, which
+would indicate a data inconsistency, we will proceed with migrating those accounts anyway.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
 
