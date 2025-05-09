@@ -116,7 +116,7 @@ Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0
 - assets, contracts, nfts, uniques, revive (//): Not relevant for RC and AH runtimes.
 
 
-### XCM "Checking Account" and DOT/KSM Total Issuance tracking
+### XCM "Checking Account" and DOT/KSM Total Issuance Tracking
 
 The Relay Chain is currently the "native location" of DOT/KSM, and it is responsible for keeping
 track of the token's **total issuance** (across the entire ecosystem).  
@@ -129,7 +129,7 @@ On top of that, the checking account is also used to enforce that the amount of 
 During AHM, we move all of the above responsibilities from the Relay Chain to Asset Hub. AH will be
 the source of truth for DOT/KSM *total issuance*.
 
-#### Migration design assumptions
+#### Migration Design Assumptions
 
 1. AHM has no implications for the other System Chains' checking accounts - only Relay and AH.
 2. Migration of checking account balance falls under base case of generic account migration: no
@@ -160,7 +160,7 @@ account before, during and after the migration.
 | _During_ |     No Checking       |   No Checking     |
 | _After_  |     No Checking      |   Yes, MintLocal     |
 
-#### Tracking Total Issuance post-migration
+#### Tracking Total Issuance Post-Migration
 
 Pre-migration RC checking account tracks total DOT/KSM that "left" RC and is currently on some other
 system chain. The DOT/KSM in various accounts on AH is also tracked in this same RC checking account.
@@ -171,7 +171,7 @@ currrently living on RC or other system chains.
 The **important invariant** here is that the DOT/KSM **total issuance** reported by RC pre-migration
 matches the total issuance reported by AH post-migration.
 
-To achieve this, we implement the followint arithmetic algorithm:
+To achieve this, we implement the following arithmetic algorithm:
 
 After all accounts (including checking account) are migrated from RC to AH:
 
