@@ -251,6 +251,7 @@ zombienet-sdk = { version = "0.2.30" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
+system-parachains-common = { path = "system-parachains/common", default-features = false }
 
 [workspace]
 resolver = "2"
@@ -299,6 +300,7 @@ members = [
 	"system-parachains/bridge-hubs/bridge-hub-polkadot/primitives",
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/collectives/collectives-polkadot/constants",
+	"system-parachains/common",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",

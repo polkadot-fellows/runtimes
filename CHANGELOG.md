@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Correct weights for pallet xcm's `transfer_asset` extrinsic for multiple chains ([polkadot-fellows/runtimes#673](https://github.com/polkadot-fellows/runtimes/pull/673))
 - Snowbridge: Update transfer token gas and fee ([polkadot-fellows/runtimes#721](https://github.com/polkadot-fellows/runtimes/pull/721))
 
+### Changed
+
+- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub
+
 ## [1.5.0] 22.04.2025
 
 ### Added
