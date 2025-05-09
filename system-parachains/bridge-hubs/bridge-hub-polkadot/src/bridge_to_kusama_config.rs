@@ -29,6 +29,7 @@ use bp_messages::{
 	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,
 };
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+use bp_relayers::RewardsAccountParams;
 use bp_runtime::Chain;
 use bridge_hub_common::xcm_version::XcmVersionOfDestAndRemoteBridge;
 use frame_support::{
@@ -92,11 +93,13 @@ pub type RelayersForLegacyLaneIdsMessagesInstance = ();
 /// Allows collect and claim rewards for relayers.
 impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Reward = Balance;
+	type RewardBalance = Balance;
+	type Reward = RewardsAccountParams<LegacyLaneId>;
 	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
 		pallet_balances::Pallet<Runtime>,
 		AccountId,
-		Self::LaneId,
+		LegacyLaneId,
+		Self::RewardBalance,
 	>;
 	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 		AccountId,
@@ -106,7 +109,7 @@ impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> fo
 		RequiredStakeForStakeAndSlash,
 		RelayerStakeLease,
 	>;
-	type LaneId = LegacyLaneId;
+	type Balance = Balance;
 	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
 }
 
@@ -163,7 +166,6 @@ pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersTransa
 		RelayersForLegacyLaneIdsMessagesInstance,
 		PriorityBoostPerMessage,
 	>,
-	LaneIdOf<Runtime, WithBridgeHubKusamaMessagesInstance>,
 >;
 bp_runtime::generate_static_str_provider!(OnBridgeHubPolkadotRefundBridgeHubKusamaMessages);
 

@@ -27,7 +27,7 @@ use alloc::{
 	vec,
 	vec::Vec,
 };
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
 use frame_support::{
 	dispatch::RawOrigin,
@@ -286,6 +286,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -509,6 +510,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -656,7 +658,18 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type Score = sp_npos_elections::VoteWeight;
 }
 
-#[derive(Default, MaxEncodedLen, Encode, Decode, TypeInfo, Clone, Eq, PartialEq, Debug)]
+#[derive(
+	Default,
+	MaxEncodedLen,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	TypeInfo,
+	Clone,
+	Eq,
+	PartialEq,
+	Debug,
+)]
 pub struct BurnDestinationAccount(pub Option<AccountId>);
 
 impl BurnDestinationAccount {
@@ -816,18 +829,21 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 24
 	pub const MaxNominations: u32 = <NposCompactSolution24 as NposSolution>::LIMIT as u32;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 impl pallet_staking::Config for Runtime {
+	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
 	type ElectionProvider = ElectionProviderMultiPhase;
 	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
-	type RewardRemainder = Treasury;
+	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury;
+	type Slash = ResolveTo<TreasuryAccount, Balances>;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -845,13 +861,8 @@ impl pallet_staking::Config for Runtime {
 	type MaxControllersInDeprecationBatch = ConstU32<5169>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	// TODO: this will come back later (stable25XY)
-	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
-	fn filter(who: &AccountId) -> bool {
-		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
-	}
+	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1137,6 +1148,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1155,6 +1167,7 @@ impl pallet_recovery::Config for Runtime {
 	type FriendDepositFactor = FriendDepositFactor;
 	type MaxFriends = MaxFriends;
 	type RecoveryDeposit = RecoveryDeposit;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1176,6 +1189,7 @@ impl pallet_society::Config for Runtime {
 	type MaxBids = ConstU32<512>;
 	type PalletId = SocietyPalletId;
 	type WeightInfo = weights::pallet_society::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1219,6 +1233,7 @@ parameter_types! {
 	PartialOrd,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	RuntimeDebug,
 	MaxEncodedLen,
 	Default,
@@ -1364,6 +1379,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
 }
 
 impl parachains_origin::Config for Runtime {}
@@ -1505,7 +1521,6 @@ impl Get<InteriorLocation> for BrokerPot {
 impl coretime::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type BrokerId = BrokerId;
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
@@ -1716,8 +1731,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type PalletId = PoolsPalletId;
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	// TODO: this will come back later (stable25XY)
-	// type Filter = pallet_staking::AllStakers<Runtime>;
+	type Filter = pallet_staking::AllStakers<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1957,6 +1972,11 @@ pub mod migrations {
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
 		EnableRFC103Feature,
+		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -2225,7 +2245,7 @@ mod benches {
 	pub type Native = pallet_balances::Pallet<Runtime, ()>;
 	pub type NisCounterpart = pallet_balances::Pallet<Runtime, NisCounterpartInstance>;
 	pub use frame_benchmarking::{
-		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking,
+		baseline::Pallet as Baseline, BenchmarkBatch, BenchmarkError, BenchmarkList,
 	};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use frame_system_benchmarking::{
@@ -2486,10 +2506,12 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
 		fn async_backing_params() -> polkadot_primitives::AsyncBackingParams {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::async_backing_params::<Runtime>()
 		}
 

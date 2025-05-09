@@ -195,6 +195,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type AlarmInterval = AlarmInterval;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;

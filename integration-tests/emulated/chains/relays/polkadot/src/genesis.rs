@@ -56,6 +56,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		system: polkadot_runtime::SystemConfig::default(),
 		balances: polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			dev_accounts: None,
 		},
 		session: polkadot_runtime::SessionConfig {
 			keys: validators::initial_authorities()

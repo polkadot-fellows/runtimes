@@ -318,6 +318,7 @@ impl CoretimeInterface for CoretimeAllocator {
 
 parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
+	pub const MinimumCreditPurchase: Balance = UNITS / 10;
 }
 
 pub struct SovereignAccountOf;
@@ -344,4 +345,5 @@ impl pallet_broker::Config for Runtime {
 	type SovereignAccountOf = SovereignAccountOf;
 	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::CenterTargetPrice<Balance>;
+	type MinimumCreditPurchase = MinimumCreditPurchase;
 }
