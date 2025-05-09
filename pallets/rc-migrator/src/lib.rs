@@ -461,6 +461,15 @@ pub mod pallet {
 		type StakingDelegationReason: Get<<Self as Config>::RuntimeHoldReason>;
 		/// The pallet ID for on-demand pallet.
 		type OnDemandPalletId: Get<PalletId>;
+		/// Maximum number of unprocessed DMP messages allowed before the RC migrator temporarily
+		/// pauses sending data messages to the Asset Hub.
+		/// 
+		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
+		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
+		/// RC migrator.
+		/// This configuration generally should be influenced by the number of XCM messages sent by
+		/// this pallet to the Asset Hub per block and the size of the queue on AH.
+		type UnprocessedMsgBuffer: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -1420,8 +1429,9 @@ pub mod pallet {
 			if !current.is_ongoing() {
 				return false;
 			}
+			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
 			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if sent > processed {
+			if sent > (processed + unprocessed_buffer) {
 				log::info!(
 					target: LOG_TARGET,
 					"Excess unconfirmed XCM messages: sent = {}, processed = {}",

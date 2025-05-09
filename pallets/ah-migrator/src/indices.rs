@@ -74,6 +74,7 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 		// Note that by using BTreeMaps, we implicitly check the case that an AH entry is not
 		// overwritten by a RC entry since we iterate over the RC entries first before the collect.
 		// Assert storage "Indices::Accounts::ah_post::correct"
+		// Assert storage "Indices::Accounts::ah_post::consistent"
 		// Assert storage "Indices::Accounts::ah_post::length"
 		assert_eq!(all_pre, all_post, "RC and AH indices are present");
 	}

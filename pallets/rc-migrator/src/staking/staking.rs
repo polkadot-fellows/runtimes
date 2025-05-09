@@ -58,7 +58,6 @@ pub enum StakingStage<AccountId> {
 	Validators(Option<AccountId>),
 	Nominators(Option<AccountId>),
 	VirtualStakers(Option<AccountId>),
-	ErasStartSessionIndex(Option<EraIndex>),
 	ErasStakersOverview(Option<(EraIndex, AccountId)>),
 	ErasStakersPaged(Option<(EraIndex, AccountId, Page)>),
 	ClaimedRewards(Option<(EraIndex, AccountId)>),
@@ -231,22 +230,6 @@ impl<T: Config> PalletMigration for StakingMigrator<T> {
 							pallet_staking::VirtualStakers::<T>::remove(&staker);
 							messages.push(RcStakingMessage::VirtualStakers(staker.clone()));
 							StakingStage::VirtualStakers(Some(staker))
-						},
-						None => StakingStage::ErasStartSessionIndex(None),
-					}
-				},
-				StakingStage::ErasStartSessionIndex(who) => {
-					let mut iter = if let Some(who) = who {
-						pallet_staking::ErasStartSessionIndex::<T>::iter_from_key(who)
-					} else {
-						pallet_staking::ErasStartSessionIndex::<T>::iter()
-					};
-
-					match iter.next() {
-						Some((era, session)) => {
-							pallet_staking::ErasStartSessionIndex::<T>::remove(&era);
-							messages.push(RcStakingMessage::ErasStartSessionIndex { era, session });
-							StakingStage::ErasStartSessionIndex(Some(era))
 						},
 						None => StakingStage::ErasStakersOverview(None),
 					}
