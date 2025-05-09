@@ -69,7 +69,12 @@ impl RcMigrationCheck for ProxyWhaleWatching {
 			);
 
 			let delegations = pallet_proxy::Proxies::<RelayRuntime>::get(&whale).0;
-			assert_eq!(delegations.len(), *num_proxies, "Number of proxies is correct for whale {:?}", whale);
+			assert_eq!(
+				delegations.len(),
+				*num_proxies,
+				"Number of proxies is correct for whale {:?}",
+				whale
+			);
 		}
 	}
 
