@@ -24,6 +24,7 @@ use cumulus_primitives_core::{
 	AggregateMessageOrigin as ParachainMessageOrigin, InboundDownwardMessage, ParaId,
 };
 use frame_support::traits::{EnqueueMessage, OnFinalize, OnInitialize};
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_rc_migrator::{
 	DmpDataMessageCounts as RcDmpDataMessageCounts, MigrationStage as RcMigrationStage,
 	MigrationStageOf as RcMigrationStageOf, RcMigrationStage as RcMigrationStageStorage,
@@ -79,7 +80,7 @@ pub async fn remote_ext_test_setup<Block: sp_runtime::traits::Block>(
 pub fn next_block_rc() {
 	let past = frame_system::Pallet::<Polkadot>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_RC, "Next block: {:?}", now);
+	log::debug!(target: LOG_RC, "Executing RC block: {:?}", now);
 	frame_system::Pallet::<Polkadot>::set_block_number(now);
 	frame_system::Pallet::<Polkadot>::reset_events();
 	let weight = <polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -97,7 +98,7 @@ pub fn next_block_rc() {
 					..
 				})
 			) {
-				log::error!(target: LOG_AH, "Message processing error: {:?}", events);
+				log::error!(target: LOG_RC, "Message processing error: {:?}", events);
 				true
 			} else {
 				false
@@ -118,7 +119,7 @@ pub fn next_block_rc() {
 pub fn next_block_ah() {
 	let past = frame_system::Pallet::<AssetHub>::block_number();
 	let now = past + 1;
-	log::debug!(target: LOG_AH, "Next block: {:?}", now);
+	log::debug!(target: LOG_AH, "Executing AH block: {:?}", now);
 	frame_system::Pallet::<AssetHub>::set_block_number(now);
 	frame_system::Pallet::<AssetHub>::reset_events();
 	let weight = <asset_hub_polkadot_runtime::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -158,9 +159,12 @@ pub fn next_block_ah() {
 ///
 /// This bypasses `set_validation_data` and `enqueue_inbound_downward_messages` by just directly
 /// enqueuing them.
-pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
-	log::info!("Enqueuing {} DMP messages", msgs.len());
-	for msg in msgs {
+///
+/// The block number parameter indicates the block at which these messages were sent. It may be set
+/// to zero when the block number information is not important for a test.
+pub fn enqueue_dmp(msgs: (Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)) {
+	log::info!(target: LOG_AH, "Received {} DMP messages from RC block {}", msgs.0.len(), msgs.1);
+	for msg in msgs.0 {
 		sanity_check_xcm::<asset_hub_polkadot_runtime::RuntimeCall>(&msg.msg);
 
 		let bounded_msg: BoundedVec<u8, _> = msg.msg.try_into().expect("DMP message too big");
@@ -171,9 +175,13 @@ pub fn enqueue_dmp(msgs: Vec<InboundDownwardMessage>) {
 	}
 }
 
-/// Enqueue DMP messages on the parachain side.
-pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
-	for msg in msgs {
+/// Enqueue UMP messages on the Relay Chain side.
+///
+/// The block number parameter indicates the block at which these messages were sent. It may be set
+/// to zero when the block number information is not important for a test.
+pub fn enqueue_ump(msgs: (Vec<UpwardMessage>, BlockNumberFor<AssetHub>)) {
+	log::info!(target: LOG_RC, "Received {} UMP messages from AH block {}", msgs.0.len(), msgs.1);
+	for msg in msgs.0 {
 		sanity_check_xcm::<polkadot_runtime::RuntimeCall>(&msg);
 
 		let bounded_msg: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
@@ -184,24 +192,36 @@ pub fn enqueue_ump(msgs: Vec<UpwardMessage>) {
 	}
 }
 
-#[cfg(feature = "ahm-polkadot")] // XCM V3
+#[cfg(feature = "ahm-polkadot")] // XCM V3 or V4
 fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 	let xcm = xcm::VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode DMP XCM");
-	let xcm = match xcm {
-		VersionedXcm::V3(inner) => inner.0,
+	match xcm {
+		VersionedXcm::V3(inner) =>
+			for instruction in inner.0 {
+				match instruction {
+					xcm::v3::Instruction::Transact { call, .. } => {
+						// Interesting part here: ensure that the receiving runtime can decode the
+						// call
+						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+							.expect("Must decode DMP XCM call");
+					},
+					_ => (), // Fine, we only check Transacts
+				}
+			},
+		VersionedXcm::V4(inner) =>
+			for instruction in inner.0 {
+				match instruction {
+					xcm::v4::Instruction::Transact { call, .. } => {
+						// Interesting part here: ensure that the receiving runtime can decode the
+						// call
+						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+							.expect("Must decode DMP XCM call");
+					},
+					_ => (), // Fine, we only check Transacts
+				}
+			},
 		_ => panic!("Wrong XCM version: {:?}", xcm),
 	};
-
-	for instruction in xcm {
-		match instruction {
-			xcm::v3::Instruction::Transact { call, .. } => {
-				// Interesting part here: ensure that the receiving runtime can decode the call
-				let call: Call = Decode::decode(&mut &call.into_encoded()[..])
-					.expect("Must decode DMP XCM call");
-			},
-			_ => (), // Fine, we only check Transacts
-		}
-	}
 }
 
 #[cfg(feature = "ahm-westend")] // XCM V5
@@ -305,7 +325,7 @@ pub fn ah_migrate(
 	asset_hub.execute_with(|| {
 		let mut fp =
 			asset_hub_polkadot_runtime::MessageQueue::footprint(ParachainMessageOrigin::Parent);
-		enqueue_dmp(dmp_messages);
+		enqueue_dmp((dmp_messages, 0u32.into()));
 
 		// Loop until no more DMPs are queued
 		loop {

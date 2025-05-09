@@ -33,10 +33,15 @@
 
 use crate::porting_prelude::*;
 
-use super::{checks::SanityChecks, mock::*, proxy_test::ProxiesStillWork};
+use super::{
+	checks::SanityChecks,
+	mock::*,
+	multisig_still_work::MultisigStillWork,
+	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
+use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location, ParaId};
 use frame_support::{
 	assert_err,
 	traits::{
@@ -46,20 +51,24 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
-	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
+	proxy::ProxyBasicChecks, types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
 	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
+use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{AccountId32, DispatchError, TokenError};
-use std::{collections::BTreeMap, str::FromStr};
+use std::{
+	collections::{BTreeMap, VecDeque},
+	str::FromStr,
+};
 use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
@@ -78,7 +87,8 @@ type RcChecks = (
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxiesStillWork,
+	ProxyBasicWorks,
+	MultisigStillWork,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
@@ -89,6 +99,7 @@ pub type RcPolkadotChecks = (
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	ProxyWhaleWatching,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -102,14 +113,18 @@ type AhChecks = (
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::vesting::VestingMigrator<AssetHub>,
-	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
+	pallet_ah_migrator::proxy::ProxyBasicChecks<
+		AssetHub,
+		<Polkadot as pallet_proxy::Config>::ProxyType,
+	>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
-	ProxiesStillWork,
+	ProxyBasicWorks,
+	MultisigStillWork,
 );
 
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
@@ -121,6 +136,7 @@ pub type AhPolkadotChecks = (
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
 	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	ProxyWhaleWatching,
 );
 
 #[cfg(not(feature = "ahm-polkadot"))]
@@ -364,7 +380,7 @@ fn ah_account_migration_weight() {
 
 #[ignore] // Slow
 #[tokio::test(flavor = "current_thread")]
-async fn migration_works() {
+async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
 	// Set the initial migration stage from env var if set.
@@ -376,45 +392,79 @@ async fn migration_works() {
 	// Pre-checks on the Asset Hub
 	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
-	let mut rc_block_count = 0;
-	// finish the loop when the migration is done.
-	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
-		RcMigrationStage::MigrationDone
-	{
-		// execute next RC block.
-		let dmp_messages = rc.execute_with(|| {
-			next_block_rc();
+	let rc_block_start = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
+	let ah_block_start = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
 
-			DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID)
+	// we push first message to be popped for the first RC block and the second one to delay the ump
+	// messages from the first AH block, since with async backing and full blocks we generally
+	// expect the AH+0 block to be backed at RC+2 block, where RC+0 is its parent RC block. Hence
+	// the only RC+2 block will receive and process the messages from the AH+0 block.
+	let mut ump_messages: VecDeque<(Vec<UpwardMessage>, BlockNumberFor<AssetHub>)> =
+		vec![(vec![], ah_block_start - 1), (vec![], ah_block_start)].into();
+	// AH generally builds the blocks on every new RC block, therefore every DMP message received
+	// and processed immediately without delay.
+	let mut dmp_messages: VecDeque<(Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)> =
+		vec![].into();
+
+	// finish the loop when the migration is done.
+	while ah.execute_with(|| AhMigrationStageStorage::<AssetHub>::get()) !=
+		AhMigrationStage::MigrationDone
+	{
+		// with async backing having three unincluded segments, we expect the Asset Hub block
+		// to typically be backed not in the immediate next block, but in the block after that.
+		// therefore, the queue should always contain at least two messages: one from the most
+		// recent Asset Hub block and one from the previous block.
+		assert!(ump_messages.len() > 1, "ump_messages queue should contain at least two messages");
+
+		// enqueue UMP messages from AH to RC.
+		rc.execute_with(|| {
+			enqueue_ump(
+				ump_messages.pop_front().expect("should contain at least empty message package"),
+			);
 		});
+
+		// execute next RC block.
+		rc.execute_with(|| {
+			next_block_rc();
+		});
+
+		// read dmp messages sent to AH.
+		dmp_messages.push_back(rc.execute_with(|| {
+			(
+				DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID),
+				frame_system::Pallet::<Polkadot>::block_number(),
+			)
+		}));
+
+		// end of RC cycle.
 		rc.commit_all().unwrap();
 
 		// enqueue DMP messages from RC to AH.
 		ah.execute_with(|| {
-			// TODO: bound the `dmp_messages` total size
-			enqueue_dmp(dmp_messages);
+			enqueue_dmp(
+				dmp_messages.pop_front().expect("should contain at least empty message package"),
+			);
 		});
+
+		// execute next AH block.
+		ah.execute_with(|| {
+			next_block_ah();
+		});
+
+		// collect UMP messages from AH generated by the current block execution.
+		ump_messages.push_back(ah.execute_with(|| {
+			(
+				PendingUpwardMessages::<AssetHub>::take(),
+				frame_system::Pallet::<AssetHub>::block_number(),
+			)
+		}));
+
+		// end of AH cycle.
 		ah.commit_all().unwrap();
-
-		// execute next AH block on every second RC block.
-		if rc_block_count % 2 == 0 {
-			let ump_messages = ah.execute_with(|| {
-				next_block_ah();
-
-				PendingUpwardMessages::<AssetHub>::take()
-			});
-			ah.commit_all().unwrap();
-
-			// enqueue UMP messages from AH to RC.
-			rc.execute_with(|| {
-				// TODO: bound the `ump_messages` total size
-				enqueue_ump(ump_messages);
-			});
-			rc.commit_all().unwrap();
-		}
-
-		rc_block_count += 1;
 	}
+
+	let rc_block_end = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
+	let ah_block_end = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
 
 	// Post-checks on the Relay
 	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
@@ -422,7 +472,11 @@ async fn migration_works() {
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 
-	println!("Migration done in {} RC blocks", rc_block_count);
+	println!(
+		"Migration done in {} RC blocks, {} AH blocks",
+		rc_block_end - rc_block_start,
+		ah_block_end - ah_block_start
+	);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -495,7 +549,7 @@ async fn scheduled_migration_works() {
 
 	// enqueue DMP messages from RC to AH.
 	ah.execute_with(|| {
-		enqueue_dmp(dmp_messages);
+		enqueue_dmp((dmp_messages, 0u32.into()));
 	});
 	ah.commit_all().unwrap();
 
@@ -518,7 +572,7 @@ async fn scheduled_migration_works() {
 
 	// enqueue UMP messages from AH to RC.
 	rc.execute_with(|| {
-		enqueue_ump(ump_messages);
+		enqueue_ump((ump_messages, 0u32.into()));
 	});
 	rc.commit_all().unwrap();
 
