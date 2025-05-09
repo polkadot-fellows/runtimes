@@ -74,13 +74,13 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 		// Assert storage "VoterList::ListNodes::ah_pre::empty"
 		assert!(
 			alias::ListNodes::<T>::iter().next().is_none(),
-			"ListNodes should be empty before migration starts"
+			"VoterList::ListNodes::ah_pre::empty"
 		);
 
 		// Assert storage "VoterList::ListBags::ah_pre::empty"
 		assert!(
 			alias::ListBags::<T>::iter().next().is_none(),
-			"ListBags should be empty before migration starts"
+			"VoterList::ListBags::ah_pre::empty"
 		);
 	}
 
@@ -109,8 +109,17 @@ impl<T: Config> crate::types::AhMigrationCheck for BagsListMigrator<T> {
 			});
 		}
 
+		// Assert storage "VoterList::ListBags::ah_post::length"
+		// Assert storage "VoterList::ListBags::ah_post::length"
+		assert_eq!(
+			rc_pre_payload.len(), ah_messages.len(),
+			"Bags list length mismatch: Asset Hub data length differs from original Relay Chain data"
+		);
+
 		// Assert storage "VoterList::ListNodes::ah_post::correct"
+		// Assert storage "VoterList::ListNodes::ah_post::consistent"
 		// Assert storage "VoterList::ListBags::ah_post::correct"
+		// Assert storage "VoterList::ListBags::ah_post::consistent"
 		assert_eq!(
 			rc_pre_payload, ah_messages,
 			"Bags list data mismatch: Asset Hub data differs from original Relay Chain data"
