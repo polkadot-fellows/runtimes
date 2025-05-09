@@ -416,6 +416,7 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
+		+ pallet_session::Config<ValidatorId = AccountId32>
 		+ pallet_staking::Config // Not on westend
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
