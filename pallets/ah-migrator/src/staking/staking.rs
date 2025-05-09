@@ -428,38 +428,38 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         let mut expected_slashing_spans: BTreeMap<AccountId<T>, SlashingSpansAsync> = BTreeMap::new();
     //     let mut expected_span_slash: BTreeMap<(AccountId<T>, SpanIndex), SpanRecordAsync<T>> = BTreeMap::new();
 
-    //     for rc_message in rc_pre_payload {
-    //         let ah_message = T::RcStakingMessage::intoAh(rc_message);
-    //         use pallet_rc_migrator::staking::message::RcStakingMessage::*;
-    //         match ah_message {
-    //             Values(v) => expected_values_opt = Some(v),
-    //             Invulnerables(inv) => expected_invulnerables = inv,
-    //             Bonded { stash, controller } => { expected_bonded.insert(stash, controller); },
-    //             Ledger { controller, ledger } => { expected_ledger.insert(controller, ledger); },
-    //             Payee { stash, payment } => { expected_payee.insert(stash, payment); },
-    //             Validators { stash, validators } => { expected_validators.insert(stash, validators); },
-    //             Nominators { stash, nominations } => { expected_nominators.insert(stash, nominations); },
-    //             VirtualStakers(staker) => { expected_virtual_stakers.insert(staker); },
-    // //             ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
-    //             ErasStakersOverview { era, validator, exposure } => { expected_eras_stakers_overview.insert((era, validator.clone()), exposure); },
-    //             ErasStakersPaged { era, validator, page, exposure } => { expected_eras_stakers_paged.insert((era, validator.clone(), page), exposure.into()); },
-    //             ClaimedRewards { era, validator, rewards } => { expected_claimed_rewards.insert((era, validator.clone()), rewards); },
-    //             ErasValidatorPrefs { era, validator, prefs } => { expected_eras_validator_prefs.insert((era, validator.clone()), prefs); },
-    //             ErasValidatorReward { era, reward } => { expected_eras_validator_reward.insert(era, reward); },
-    //             ErasRewardPoints { era, points } => { expected_eras_reward_points.insert(era, points); },
-    //             ErasTotalStake { era, total_stake } => { expected_eras_total_stake.insert(era, total_stake); },
-    //             UnappliedSlashes { era, slash } => {
-    //                 let slash_map_key_tuple = (slash.validator.clone(), Perbill::from_percent(99), 9999u32);
-    //                 expected_unapplied_slashes.insert((era, slash_map_key_tuple), slash);
-    //             },
-    //             BondedEras(be) => expected_bonded_eras = be,
-    //             ValidatorSlashInEra { era, validator, slash } => { expected_validator_slash_in_era.insert((era, validator.clone()), slash); },
-    //             NominatorSlashInEra { era, validator, slash } => { expected_nominator_slash_in_era.insert((era, validator.clone()), slash); },
-    //             SlashingSpans { account, spans } => { expected_slashing_spans.insert(account, spans); },
-    // //            SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
-    //             _ => todo!(), // Spanslash removed from master branch, remove for now
-    //         }
-    //     }
+        for rc_message in rc_pre_payload {
+            let ah_message = T::RcStakingMessage::intoAh(rc_message);
+            use pallet_rc_migrator::staking::message::RcStakingMessage::*;
+            match ah_message {
+                Values(v) => expected_values_opt = Some(v),
+                Invulnerables(inv) => expected_invulnerables = inv,
+                Bonded { stash, controller } => { expected_bonded.insert(stash, controller); },
+                Ledger { controller, ledger } => { expected_ledger.insert(controller, ledger); },
+                Payee { stash, payment } => { expected_payee.insert(stash, payment); },
+                Validators { stash, validators } => { expected_validators.insert(stash, validators); },
+                Nominators { stash, nominations } => { expected_nominators.insert(stash, nominations); },
+                VirtualStakers(staker) => { expected_virtual_stakers.insert(staker); },
+    //             ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
+                ErasStakersOverview { era, validator, exposure } => { expected_eras_stakers_overview.insert((era, validator.clone()), exposure); },
+                ErasStakersPaged { era, validator, page, exposure } => { expected_eras_stakers_paged.insert((era, validator.clone(), page), exposure.into()); },
+                ClaimedRewards { era, validator, rewards } => { expected_claimed_rewards.insert((era, validator.clone()), rewards); },
+                ErasValidatorPrefs { era, validator, prefs } => { expected_eras_validator_prefs.insert((era, validator.clone()), prefs); },
+                ErasValidatorReward { era, reward } => { expected_eras_validator_reward.insert(era, reward); },
+                ErasRewardPoints { era, points } => { expected_eras_reward_points.insert(era, points); },
+                ErasTotalStake { era, total_stake } => { expected_eras_total_stake.insert(era, total_stake); },
+                UnappliedSlashes { era, slash } => {
+                    let slash_map_key_tuple = (slash.validator.clone(), Perbill::from_percent(99), 9999u32);
+                    expected_unapplied_slashes.insert((era, slash_map_key_tuple), slash);
+                },
+                BondedEras(be) => expected_bonded_eras = be,
+                ValidatorSlashInEra { era, validator, slash } => { expected_validator_slash_in_era.insert((era, validator.clone()), slash); },
+                NominatorSlashInEra { era, validator, slash } => { expected_nominator_slash_in_era.insert((era, validator.clone()), slash); },
+                SlashingSpans { account, spans } => { expected_slashing_spans.insert(account, spans); },
+    //            SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
+                _ => todo!(), // Spanslash removed from master branch, remove for now
+            }
+        }
 
     //     if let Some(values) = expected_values_opt {
     //         // "Assert storage 'StakingAsync::ValidatorCount::ah_post::correct'"
