@@ -527,72 +527,256 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
 	type RcPrePayload = Vec<RcStakingMessageOf<T>>;
 
     fn pre_check() -> Self::RcPrePayload {
-		let mut messages = Vec::new();
+        let mut messages = Vec::new();
 
-		let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
-		let ledger_messages: Vec<_> = ledgers.into_iter().map(|(controller, ledger)| RcStakingMessage::Ledger {
-			controller: controller.clone(),
-			ledger,
-		}).collect();
+        // StakingStage::Values
+        let staking_values = crate::staking::message::RcStakingValuesOf::<T> {
+            validator_count: pallet_staking::ValidatorCount::<T>::get(),
+            min_validator_count: pallet_staking::MinimumValidatorCount::<T>::get(),
+            min_nominator_bond: pallet_staking::MinNominatorBond::<T>::get(),
+            min_validator_bond: pallet_staking::MinValidatorBond::<T>::get(),
+            min_active_stake: pallet_staking::MinimumActiveStake::<T>::get(),
+            min_commission: pallet_staking::MinCommission::<T>::get(),
+            max_validators_count: pallet_staking::MaxValidatorsCount::<T>::get(),
+            max_nominators_count: pallet_staking::MaxNominatorsCount::<T>::get(),
+            current_era: pallet_staking::CurrentEra::<T>::get(),
+            active_era: pallet_staking::ActiveEra::<T>::get(),
+            force_era: pallet_staking::ForceEra::<T>::get(),
+            max_staked_rewards: pallet_staking::MaxStakedRewards::<T>::get(),
+            slash_reward_fraction: pallet_staking::SlashRewardFraction::<T>::get(),
+            canceled_slash_payout: pallet_staking::CanceledSlashPayout::<T>::get(),
+            current_planned_session: pallet_staking::CurrentPlannedSession::<T>::get(),
+            chill_threshold: pallet_staking::ChillThreshold::<T>::get(),
+        };
+        messages.push(RcStakingMessage::Values(staking_values));
 
-		messages.extend(ledger_messages);
+        // StakingStage::Invulnerables
+        let invulnerables = pallet_staking::Invulnerables::<T>::get();
+        messages.push(RcStakingMessage::Invulnerables(invulnerables));
 
-		messages
+        // StakingStage::Bonded
+        let bonded_items: Vec<_> = pallet_staking::Bonded::<T>::iter().collect();
+        let bonded_messages: Vec<_> = bonded_items
+            .into_iter()
+            .map(|(stash, controller)| RcStakingMessage::Bonded {
+                stash,
+                controller,
+            })
+            .collect();
+        messages.extend(bonded_messages);
 
-        // let staking_values = crate::staking::message::RcStakingValuesOf::<T> {
-        //     validator_count: pallet_staking::ValidatorCount::<T>::get(),
-        //     min_validator_count: pallet_staking::MinimumValidatorCount::<T>::get(),
-        //     min_nominator_bond: pallet_staking::MinNominatorBond::<T>::get(),
-        //     min_validator_bond: pallet_staking::MinValidatorBond::<T>::get(),
-        //     min_active_stake: pallet_staking::MinimumActiveStake::<T>::get(),
-        //     min_commission: pallet_staking::MinCommission::<T>::get(),
-        //     max_validators_count: pallet_staking::MaxValidatorsCount::<T>::get(),
-        //     max_nominators_count: pallet_staking::MaxNominatorsCount::<T>::get(),
-        //     current_era: pallet_staking::CurrentEra::<T>::get(),
-        //     active_era: pallet_staking::ActiveEra::<T>::get(),
-        //     force_era: pallet_staking::ForceEra::<T>::get(),
-        //     max_staked_rewards: pallet_staking::MaxStakedRewards::<T>::get(),
-        //     slash_reward_fraction: pallet_staking::SlashRewardFraction::<T>::get(),
-        //     canceled_slash_payout: pallet_staking::CanceledSlashPayout::<T>::get(),
-        //     current_planned_session: pallet_staking::CurrentPlannedSession::<T>::get(),
-        //     chill_threshold: pallet_staking::ChillThreshold::<T>::get(),
-        // };
+        // StakingStage::Ledger
+        let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
+        let ledger_messages: Vec<_> = ledgers
+            .into_iter()
+            .map(|(controller, ledger)| RcStakingMessage::Ledger {
+                controller: controller.clone(),
+                ledger,
+            })
+            .collect();
+        messages.extend(ledger_messages);
 
-        // let invulnerables = pallet_staking::Invulnerables::<T>::get();
-        // let bonded: Vec<_> = pallet_staking::Bonded::<T>::iter().collect();
-        // let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
-        // let payees: Vec<_> = pallet_staking::Payee::<T>::iter().collect();
-        // let validators: Vec<_> = pallet_staking::Validators::<T>::iter().collect();
-        // let nominators: Vec<_> = pallet_staking::Nominators::<T>::iter().collect();
-        // let virtual_stakers: Vec<_> = pallet_staking::VirtualStakers::<T>::iter().map(|(k, _)| k).collect();
-        // let eras_start_session_index: Vec<_> =
-        //     pallet_staking::ErasStartSessionIndex::<T>::iter().collect();
-        // let eras_stakers_overview: Vec<_> = pallet_staking::ErasStakersOverview::<T>::iter()
-        //     .map(|(era, validator, exposure)| (era, validator, exposure))
-        //     .collect();
-        // let eras_stakers_paged: Vec<_> = pallet_staking::ErasStakersPaged::<T>::iter().collect();
-        // let claimed_rewards: Vec<_> = pallet_staking::ClaimedRewards::<T>::iter()
-        //     .map(|(era, validator, rewards)| (era, validator, rewards))
-        //     .collect();
-        // let eras_validator_prefs: Vec<_> = pallet_staking::ErasValidatorPrefs::<T>::iter()
-        //     .map(|(era, validator, prefs)| (era, validator, prefs))
-        //     .collect();
-        // let eras_validator_reward: Vec<_> =
-        //     pallet_staking::ErasValidatorReward::<T>::iter().collect();
-        // let eras_reward_points: Vec<_> = pallet_staking::ErasRewardPoints::<T>::iter().collect();
-        // let eras_total_stake: Vec<_> = pallet_staking::ErasTotalStake::<T>::iter().collect();
-        // let unapplied_slashes: Vec<_> = pallet_staking::UnappliedSlashes::<T>::iter().collect();
-        // let bonded_eras = pallet_staking::BondedEras::<T>::get();
-        // let validator_slash_in_era: Vec<_> =
-        //     pallet_staking::ValidatorSlashInEra::<T>::iter()
-        //     .map(|(era, validator, slash)| (era, validator, slash))
-        //     .collect();
-        // let nominator_slash_in_era: Vec<_> =
-        //     pallet_staking::NominatorSlashInEra::<T>::iter()
-        //     .map(|(era, validator, slash)| (era, validator, slash))
-        //     .collect();
-        // let slashing_spans: Vec<_> = pallet_staking::SlashingSpans::<T>::iter().collect();
-        // let span_slashes: Vec<_> = pallet_staking::SpanSlash::<T>::iter().collect();
+        // StakingStage::Payee
+        let payees: Vec<_> = pallet_staking::Payee::<T>::iter().collect();
+        let payee_messages: Vec<_> = payees
+            .into_iter()
+            .map(|(stash, payment)| RcStakingMessage::Payee {
+                stash,    
+                payment,  
+            })
+            .collect();
+        messages.extend(payee_messages);
+
+        // StakingStage::Validators
+        let validators_items: Vec<_> = pallet_staking::Validators::<T>::iter().collect();
+        let validators_messages: Vec<_> = validators_items
+            .into_iter()
+            .map(|(stash, validators_prefs)| RcStakingMessage::Validators {
+                stash, 
+                validators: validators_prefs, 
+            })
+            .collect();
+        messages.extend(validators_messages);
+
+        // StakingStage::Nominators
+        let nominators_items: Vec<_> = pallet_staking::Nominators::<T>::iter().collect();
+        let nominators_messages: Vec<_> = nominators_items
+            .into_iter()
+            .map(|(stash, nominations)| RcStakingMessage::Nominators {
+                stash, 
+                nominations, 
+            })
+            .collect();
+        messages.extend(nominators_messages);
+
+        // StakingStage::VirtualStakers
+        let virtual_stakers_keys: Vec<_> =
+            pallet_staking::VirtualStakers::<T>::iter().map(|(k, _)| k).collect();
+        let virtual_stakers_messages: Vec<_> = virtual_stakers_keys
+            .into_iter()
+            .map(|staker| RcStakingMessage::VirtualStakers(staker)) 
+            .collect();
+        messages.extend(virtual_stakers_messages);
+
+        // StakingStage::ErasStartSessionIndex
+        let eras_ssi_items: Vec<_> = pallet_staking::ErasStartSessionIndex::<T>::iter().collect();
+        let eras_ssi_messages: Vec<_> = eras_ssi_items
+            .into_iter()
+            .map(|(era, session)| RcStakingMessage::ErasStartSessionIndex {
+                era,     
+                session, 
+            })
+            .collect();
+        messages.extend(eras_ssi_messages);
+
+        // StakingStage::ErasStakersOverview
+        let eras_so_items: Vec<_> = pallet_staking::ErasStakersOverview::<T>::iter().collect();
+        let eras_so_messages: Vec<_> = eras_so_items
+            .into_iter()
+            .map(|(era, validator, exposure)| RcStakingMessage::ErasStakersOverview {
+                era,       
+                validator, 
+                exposure,  
+            })
+            .collect();
+        messages.extend(eras_so_messages);
+
+        // StakingStage::ErasStakersPaged
+        let eras_sp_items: Vec<_> = pallet_staking::ErasStakersPaged::<T>::iter().collect();
+        let eras_sp_messages: Vec<_> = eras_sp_items
+            .into_iter()
+            .map(|((era, validator, page), exposure)| RcStakingMessage::ErasStakersPaged {
+                era,       
+                validator, 
+                page,      
+                exposure,  
+            })
+            .collect();
+        messages.extend(eras_sp_messages);
+
+        // StakingStage::ClaimedRewards
+        let claimed_rewards_items: Vec<_> = pallet_staking::ClaimedRewards::<T>::iter().collect();
+        let claimed_rewards_messages: Vec<_> = claimed_rewards_items
+            .into_iter()
+            .map(|(era, validator, rewards)| RcStakingMessage::ClaimedRewards {
+                era,       
+                validator, 
+                rewards,   
+            })
+            .collect();
+        messages.extend(claimed_rewards_messages);
+
+        // StakingStage::ErasValidatorPrefs
+        let eras_vp_items: Vec<_> = pallet_staking::ErasValidatorPrefs::<T>::iter().collect();
+        let eras_vp_messages: Vec<_> = eras_vp_items
+            .into_iter()
+            .map(|(era, validator, prefs)| RcStakingMessage::ErasValidatorPrefs {
+                era,       
+                validator, 
+                prefs,     
+            })
+            .collect();
+        messages.extend(eras_vp_messages);
+
+        // StakingStage::ErasValidatorReward
+        let eras_vr_items: Vec<_> = pallet_staking::ErasValidatorReward::<T>::iter().collect();
+        let eras_vr_messages: Vec<_> = eras_vr_items
+            .into_iter()
+            .map(|(era, reward)| RcStakingMessage::ErasValidatorReward {
+                era,    
+                reward, 
+            })
+            .collect();
+        messages.extend(eras_vr_messages);
+
+        // StakingStage::ErasRewardPoints
+        let eras_rp_items: Vec<_> = pallet_staking::ErasRewardPoints::<T>::iter().collect();
+        let eras_rp_messages: Vec<_> = eras_rp_items
+            .into_iter()
+            .map(|(era, points)| RcStakingMessage::ErasRewardPoints {
+                era,    
+                points, 
+            })
+            .collect();
+        messages.extend(eras_rp_messages);
+
+        // StakingStage::ErasTotalStake
+        let eras_ts_items: Vec<_> = pallet_staking::ErasTotalStake::<T>::iter().collect();
+        let eras_ts_messages: Vec<_> = eras_ts_items
+            .into_iter()
+            .map(|(era, total_stake)| RcStakingMessage::ErasTotalStake {
+                era,         
+                total_stake, 
+            })
+            .collect();
+        messages.extend(eras_ts_messages);
+
+        // StakingStage::UnappliedSlashes
+        let unapplied_slashes_items: Vec<_> =
+            pallet_staking::UnappliedSlashes::<T>::iter().collect();
+        for (era, slashes_vec) in unapplied_slashes_items {
+            for slash_item in slashes_vec {
+                messages.push(RcStakingMessage::UnappliedSlashes {
+                    era, 
+                    slash: slash_item,
+                });
+            }
+        }
+
+        // StakingStage::BondedEras
+        let bonded_eras = pallet_staking::BondedEras::<T>::get(); 
+        messages.push(RcStakingMessage::BondedEras(bonded_eras));
+
+        // StakingStage::ValidatorSlashInEra
+        let val_slash_items: Vec<_> =
+            pallet_staking::ValidatorSlashInEra::<T>::iter().collect();
+        let val_slash_messages: Vec<_> = val_slash_items
+            .into_iter()
+            .map(|(era, validator, slash)| RcStakingMessage::ValidatorSlashInEra {
+                era,       
+                validator, 
+                slash,     
+            })
+            .collect();
+        messages.extend(val_slash_messages);
+
+        // StakingStage::NominatorSlashInEra
+        let nom_slash_items: Vec<_> =
+            pallet_staking::NominatorSlashInEra::<T>::iter().collect();
+        let nom_slash_messages: Vec<_> = nom_slash_items
+            .into_iter()
+            .map(|(era, validator, slash)| RcStakingMessage::NominatorSlashInEra {
+                era,       
+                validator, 
+                slash,     
+            })
+            .collect();
+        messages.extend(nom_slash_messages);
+
+        // StakingStage::SlashingSpans
+        let slashing_spans_items: Vec<_> = pallet_staking::SlashingSpans::<T>::iter().collect();
+        let slashing_spans_messages: Vec<_> = slashing_spans_items
+            .into_iter()
+            .map(|(account, spans)| RcStakingMessage::SlashingSpans {
+                account, 
+                spans,   
+            })
+            .collect();
+        messages.extend(slashing_spans_messages);
+
+        // StakingStage::SpanSlash
+        let span_slash_items: Vec<_> = pallet_staking::SpanSlash::<T>::iter().collect();
+        let span_slash_messages: Vec<_> = span_slash_items
+            .into_iter()
+            .map(|((account, span_idx), slash_record)| RcStakingMessage::SpanSlash {
+                account,      
+                span: span_idx, 
+                slash: slash_record, 
+            })
+            .collect();
+        messages.extend(span_slash_messages);
+
+        messages
     }
 
     fn post_check(_rc_pre_payload: Self::RcPrePayload) {
