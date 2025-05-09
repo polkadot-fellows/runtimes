@@ -406,6 +406,8 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         type ForcingAsync = pallet_staking_async::Forcing;
 
         let mut expected_values_opt: Option<AhStakingValues<T>> = None;
+        let mut expected_active_era_opt: Option<pallet_staking_async::ActiveEraInfo> = None;
+        let mut expected_force_era_opt: Option<pallet_staking_async::Forcing> = None;
         let mut expected_invulnerables: Vec<AccountId<T>> = Vec::new();
         let mut expected_bonded: BTreeMap<AccountId<T>, AccountId<T>> = BTreeMap::new();
         let mut expected_ledger: BTreeMap<AccountId<T>, StakingLedgerAsync<T>> = BTreeMap::new();
@@ -432,7 +434,11 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
             let ah_message = T::RcStakingMessage::intoAh(rc_message);
             use pallet_rc_migrator::staking::message::RcStakingMessage::*;
             match ah_message {
-                Values(v) => expected_values_opt = Some(v),
+                Values(v) => {
+                    expected_active_era_opt = v.clone().active_era.map(pallet_staking::ActiveEraInfo::intoAh);
+                    expected_force_era_opt = Some(pallet_staking::Forcing::intoAh(v.clone().force_era));
+                    expected_values_opt = Some(v)
+                },
                 Invulnerables(inv) => expected_invulnerables = inv,
                 Bonded { stash, controller } => { expected_bonded.insert(stash, controller); },
                 Ledger { controller, ledger } => { expected_ledger.insert(controller, ledger); },
@@ -461,36 +467,38 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
             }
         }
 
-    //     if let Some(values) = expected_values_opt {
-    //         // "Assert storage 'StakingAsync::ValidatorCount::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::ValidatorCount::<T>::get(), values.validator_count, "StakingAsync::ValidatorCount mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MinNominatorBond::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MinNominatorBond::<T>::get(), values.min_nominator_bond, "StakingAsync::MinNominatorBond mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MinValidatorBond::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MinValidatorBond::<T>::get(), values.min_validator_bond, "StakingAsync::MinValidatorBond mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MinimumActiveStake::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MinimumActiveStake::<T>::get(), values.min_active_stake, "StakingAsync::MinimumActiveStake mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MinCommission::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MinCommission::<T>::get(), values.min_commission, "StakingAsync::MinCommission mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MaxValidatorsCount::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MaxValidatorsCount::<T>::get(), values.max_validators_count, "StakingAsync::MaxValidatorsCount mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MaxNominatorsCount::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MaxNominatorsCount::<T>::get(), values.max_nominators_count, "StakingAsync::MaxNominatorsCount mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::CurrentEra::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::CurrentEra::<T>::get(), values.current_era, "StakingAsync::CurrentEra mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::ActiveEra::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::ActiveEra::<T>::get(), values.active_era, "StakingAsync::ActiveEra mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::ForceEra::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::ForceEra::<T>::get(), values.force_era, "StakingAsync::ForceEra mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::MaxStakedRewards::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::MaxStakedRewards::<T>::get(), values.max_staked_rewards, "StakingAsync::MaxStakedRewards mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::SlashRewardFraction::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::SlashRewardFraction::<T>::get(), values.slash_reward_fraction, "StakingAsync::SlashRewardFraction mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::CanceledSlashPayout::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::CanceledSlashPayout::<T>::get(), values.canceled_slash_payout, "StakingAsync::CanceledSlashPayout mismatch on AH post-migration");
-    //         // "Assert storage 'StakingAsync::ChillThreshold::ah_post::correct'"
-    //         assert_eq!(pallet_staking_async::ChillThreshold::<T>::get(), values.chill_threshold, "StakingAsync::ChillThreshold mismatch on AH post-migration");
-    //     }
+        if let Some(values) = expected_values_opt {
+            let expected_force_era = expected_force_era_opt.expect("Bundled with values above");
+
+            // "Assert storage 'StakingAsync::ValidatorCount::ah_post::correct'"
+            assert_eq!(pallet_staking_async::ValidatorCount::<T>::get(), values.validator_count, "StakingAsync::ValidatorCount mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MinNominatorBond::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MinNominatorBond::<T>::get(), values.min_nominator_bond, "StakingAsync::MinNominatorBond mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MinValidatorBond::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MinValidatorBond::<T>::get(), values.min_validator_bond, "StakingAsync::MinValidatorBond mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MinimumActiveStake::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MinimumActiveStake::<T>::get(), values.min_active_stake, "StakingAsync::MinimumActiveStake mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MinCommission::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MinCommission::<T>::get(), values.min_commission, "StakingAsync::MinCommission mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MaxValidatorsCount::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MaxValidatorsCount::<T>::get(), values.max_validators_count, "StakingAsync::MaxValidatorsCount mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MaxNominatorsCount::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MaxNominatorsCount::<T>::get(), values.max_nominators_count, "StakingAsync::MaxNominatorsCount mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::CurrentEra::ah_post::correct'"
+            assert_eq!(pallet_staking_async::CurrentEra::<T>::get(), expected_active_era_opt.clone().map(|a| a.index), "StakingAsync::CurrentEra mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::ActiveEra::ah_post::correct'"
+            assert_eq!(pallet_staking_async::ActiveEra::<T>::get(), expected_active_era_opt, "StakingAsync::ActiveEra mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::ForceEra::ah_post::correct'"
+            assert_eq!(pallet_staking_async::ForceEra::<T>::get(), expected_force_era, "StakingAsync::ForceEra mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::MaxStakedRewards::ah_post::correct'"
+            assert_eq!(pallet_staking_async::MaxStakedRewards::<T>::get(), values.max_staked_rewards, "StakingAsync::MaxStakedRewards mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::SlashRewardFraction::ah_post::correct'"
+            assert_eq!(pallet_staking_async::SlashRewardFraction::<T>::get(), values.slash_reward_fraction, "StakingAsync::SlashRewardFraction mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::CanceledSlashPayout::ah_post::correct'"
+            assert_eq!(pallet_staking_async::CanceledSlashPayout::<T>::get(), values.canceled_slash_payout, "StakingAsync::CanceledSlashPayout mismatch on AH post-migration");
+            // "Assert storage 'StakingAsync::ChillThreshold::ah_post::correct'"
+            assert_eq!(pallet_staking_async::ChillThreshold::<T>::get(), values.chill_threshold, "StakingAsync::ChillThreshold mismatch on AH post-migration");
+        }
 
     //     // "Assert storage 'StakingAsync::Invulnerables::ah_post::correct'"
     //     assert_eq!(pallet_staking_async::Invulnerables::<T>::get().into_inner(), expected_invulnerables, "StakingAsync::Invulnerables mismatch on AH post-migration");
