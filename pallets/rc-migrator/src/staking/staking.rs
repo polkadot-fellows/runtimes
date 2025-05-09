@@ -601,17 +601,6 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
             .collect();
         messages.extend(virtual_stakers_messages);
 
-        // StakingStage::ErasStartSessionIndex
-        let eras_ssi_items: Vec<_> = pallet_staking::ErasStartSessionIndex::<T>::iter().collect();
-        let eras_ssi_messages: Vec<_> = eras_ssi_items
-            .into_iter()
-            .map(|(era, session)| RcStakingMessage::ErasStartSessionIndex {
-                era,     
-                session, 
-            })
-            .collect();
-        messages.extend(eras_ssi_messages);
-
         // StakingStage::ErasStakersOverview
         let eras_so_items: Vec<_> = pallet_staking::ErasStakersOverview::<T>::iter().collect();
         let eras_so_messages: Vec<_> = eras_so_items
@@ -899,11 +888,6 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
             pallet_staking::VirtualStakers::<T>::iter().next().is_none(),
             "VirtualStakers map should be empty on RC after migration"
         );
-        // Assert storage 'Staking::ErasStartSessionIndex::rc_post::empty'
-        assert!(
-            pallet_staking::ErasStartSessionIndex::<T>::iter().next().is_none(),
-            "ErasStartSessionIndex map should be empty on RC after migration"
-        );
         // Assert storage 'Staking::ErasStakersOverview::rc_post::empty'
         assert!(
             pallet_staking::ErasStakersOverview::<T>::iter().next().is_none(),
@@ -965,7 +949,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
             "SpanSlash map should be empty on RC after migration"
         );
 
-		// -- Ensure deprecated storage items empty as well --
+		// -- Ensure deprecated storage or not migrated items are empty as well --
 
 		// Assert storage 'Staking::ErasStakers::rc_post::empty'
         assert!(
@@ -976,6 +960,11 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
         assert!(
             pallet_staking::ErasStakersClipped::<T>::iter().next().is_none(),
             "ErasStakersClipped map should be empty on RC after migration (deprecated item)"
+        );
+		// Assert storage 'Staking::ErasStartSessionIndex::rc_post::empty'
+        assert!(
+            pallet_staking::ErasStartSessionIndex::<T>::iter().next().is_none(),
+            "ErasStartSessionIndex map should be empty on RC after migration"
         );
     }
 }
