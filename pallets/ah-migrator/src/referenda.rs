@@ -312,6 +312,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 			.expect("Failed to decode RcPrePayload bytes");
 
 		// Assert storage 'Referenda::ReferendumCount::ah_post::correct'
+		// Assert storage 'Referenda::ReferendumCount::ah_post::consistent'
 		assert_eq!(
 			ReferendumCount::<T, ()>::get(),
 			rc_payload.referendum_count,
@@ -326,6 +327,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		);
 
 		// Assert storage 'Referenda::DecidingCount::ah_post::correct'
+		// Assert storage 'Referenda::DecidingCount::ah_post::consistent'
 		assert_eq!(
 			DecidingCount::<T, ()>::iter().collect::<Vec<_>>(),
 			rc_payload.deciding_count,
@@ -340,6 +342,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		);
 
 		// Assert storage 'Referenda::TrackQueue::ah_post::correct'
+		// Assert storage 'Referenda::TrackQueue::ah_post::consistent'
 		assert_eq!(
 			TrackQueue::<T, ()>::iter()
 				.map(|(track_id, queue)| (track_id, queue.into_inner()))
@@ -356,6 +359,7 @@ impl<T: Config> crate::types::AhMigrationCheck for ReferendaMigrator<T> {
 		);
 
 		// Assert storage 'Referenda::MetadataOf::ah_post::correct'
+		// Assert storage 'Referenda::MetadataOf::ah_post::consistent'
 		assert_eq!(
 			MetadataOf::<T, ()>::iter().collect::<Vec<_>>(),
 			rc_payload.metadata,
