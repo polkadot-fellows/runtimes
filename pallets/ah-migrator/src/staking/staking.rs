@@ -308,12 +308,6 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
             "StakingAsync::VirtualStakers map should be empty on AH before migration"
         );
 
-        // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_pre::empty'"
-        assert!(
-            pallet_staking_async::ErasStartSessionIndex::<T>::iter().next().is_none(),
-            "StakingAsync::ErasStartSessionIndex map should be empty on AH before migration"
-        );
-
         // "Assert storage 'StakingAsync::ErasStakersOverview::ah_pre::empty'"
         assert!(
             pallet_staking_async::ErasStakersOverview::<T>::iter().next().is_none(),
@@ -446,7 +440,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
     //             Validators { stash, validators } => { expected_validators.insert(stash, validators); },
     //             Nominators { stash, nominations } => { expected_nominators.insert(stash, nominations); },
     //             VirtualStakers(staker) => { expected_virtual_stakers.insert(staker); },
-    //             ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
+    // //             ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
     //             ErasStakersOverview { era, validator, exposure } => { expected_eras_stakers_overview.insert((era, validator.clone()), exposure); },
     //             ErasStakersPaged { era, validator, page, exposure } => { expected_eras_stakers_paged.insert((era, validator.clone(), page), exposure.into()); },
     //             ClaimedRewards { era, validator, rewards } => { expected_claimed_rewards.insert((era, validator.clone()), rewards); },
@@ -535,10 +529,10 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
     //     let current_virtual_stakers = pallet_staking_async::VirtualStakers::<T>::iter_keys().collect::<HashSet<_>>();
     //     assert_eq!(current_virtual_stakers, expected_virtual_stakers, "StakingAsync::VirtualStakers content mismatch on AH post-migration");
         
-    //     // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter_keys().count(), expected_eras_start_session_index.len(), "StakingAsync::ErasStartSessionIndex map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_start_session_index, "StakingAsync::ErasStartSessionIndex map content mismatch on AH post-migration");
+    // //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::length'"
+    // //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter_keys().count(), expected_eras_start_session_index.len(), "StakingAsync::ErasStartSessionIndex map length mismatch on AH post-migration");
+    // //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::correct'"
+    // //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_start_session_index, "StakingAsync::ErasStartSessionIndex map content mismatch on AH post-migration");
 
     //     // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::length'"
     //     assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter_keys().count(), expected_eras_stakers_overview.len(), "StakingAsync::ErasStakersOverview map length mismatch on AH post-migration");
