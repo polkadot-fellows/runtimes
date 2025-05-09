@@ -29,7 +29,7 @@ pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
-polkadot-runtime = { workspace = true }
+polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime-common = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
@@ -47,11 +47,14 @@ pallet-proxy = { workspace = true, default-features = true }
 sp-application-crypto = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 hex = { workspace = true }
+hex-literal = { workspace = true }
 pallet-whitelist = { workspace = true, default-features = true }
 pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 frame-benchmarking = { workspace = true }
+rand = { workspace = true, default-feature = true }
+# testnet-parachains-constants = { workspace = true } # Only on westend
 
 [features]
 default = ["ahm-polkadot", "std"]
@@ -60,6 +63,8 @@ std = [
 	"frame-benchmarking/std",
 	"hex/std",
 	"log/std",
+	"polkadot-runtime/std",
+	"rand/std",
 ]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",

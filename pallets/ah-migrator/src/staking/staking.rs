@@ -25,9 +25,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn staking_migration_finish_hook() {}
 
-	pub fn do_receive_staking_messages(
-		messages: Vec<AhEquivalentStakingMessageOf<T>>,
-	) -> Result<(), Error<T>> {
+	pub fn do_receive_staking_messages(messages: Vec<T::RcStakingMessage>) -> Result<(), Error<T>> {
 		let (mut good, mut bad) = (0, 0);
 		log::info!(target: LOG_TARGET, "Integrating {} StakingMessages", messages.len());
 		Self::deposit_event(Event::BatchReceived {
@@ -36,7 +34,8 @@ impl<T: Config> Pallet<T> {
 		});
 
 		for message in messages {
-			match Self::do_receive_staking_message(message) {
+			let translated = T::RcStakingMessage::intoAh(message);
+			match Self::do_receive_staking_message(translated) {
 				Ok(_) => good += 1,
 				Err(_) => bad += 1,
 			}
@@ -63,7 +62,7 @@ impl<T: Config> Pallet<T> {
 			},
 			Invulnerables(invulnerables) => {
 				log::debug!(target: LOG_TARGET, "Integrating StakingInvulnerables");
-				let bounded: BoundedVec<_, _> = invulnerables.defensive_truncate_into();
+				let bounded = BoundedVec::truncate_from(invulnerables);
 				pallet_staking_async::Invulnerables::<T>::put(bounded);
 			},
 			Bonded { stash, controller } => {
@@ -90,10 +89,6 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating VirtualStakers of staker {:?}", staker);
 				pallet_staking_async::VirtualStakers::<T>::insert(staker, ());
 			},
-			ErasStartSessionIndex { era, session } => {
-				log::debug!(target: LOG_TARGET, "Integrating ErasStartSessionIndex {:?}/{:?}", era, session);
-				pallet_staking_async::ErasStartSessionIndex::<T>::insert(era, session);
-			},
 			ErasStakersOverview { era, validator, exposure } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasStakersOverview {:?}/{:?}", validator, era);
 				pallet_staking_async::ErasStakersOverview::<T>::insert(era, validator, exposure);
@@ -108,7 +103,9 @@ impl<T: Config> Pallet<T> {
 			ClaimedRewards { era, validator, rewards } => {
 				// NOTE: This is being renamed from `ClaimedRewards` to `ErasClaimedRewards`
 				log::debug!(target: LOG_TARGET, "Integrating ErasClaimedRewards {:?}/{:?}", validator, era);
-				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, rewards);
+				let bounded = BoundedVec::<_, pallet_staking_async::ErasClaimedRewardsBound<T>>::truncate_from(rewards);
+				let weak_bounded = WeakBoundedVec::force_from(bounded.into_inner(), None);
+				pallet_staking_async::ErasClaimedRewards::<T>::insert(era, validator, weak_bounded);
 			},
 			ErasValidatorPrefs { era, validator, prefs } => {
 				log::debug!(target: LOG_TARGET, "Integrating ErasValidatorPrefs {:?}/{:?}", validator, era);
@@ -133,7 +130,8 @@ impl<T: Config> Pallet<T> {
 			},
 			BondedEras(bonded_eras) => {
 				log::debug!(target: LOG_TARGET, "Integrating BondedEras");
-				pallet_staking_async::BondedEras::<T>::put(bonded_eras);
+				let bounded = BoundedVec::truncate_from(bonded_eras); // FIXME
+				pallet_staking_async::BondedEras::<T>::put(bounded);
 			},
 			ValidatorSlashInEra { era, validator, slash } => {
 				log::debug!(target: LOG_TARGET, "Integrating ValidatorSlashInEra {:?}/{:?}", validator, era);

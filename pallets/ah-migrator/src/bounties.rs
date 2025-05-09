@@ -132,6 +132,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		);
 
 		// Assert storage 'Bounties::Bounties::ah_post::correct'
+		// Assert storage 'Bounties::Bounties::ah_post::consistent'
 		assert_eq!(
 			pallet_bounties::Bounties::<T>::iter().collect::<Vec<_>>(),
 			rc_bounties,
@@ -146,6 +147,7 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 		);
 
 		// Assert storage 'Bounties::BountyDescriptions::ah_post::correct'
+		// Assert storage 'Bounties::BountyDescriptions::ah_post::consistent'
 		assert_eq!(
 			pallet_bounties::BountyDescriptions::<T>::iter()
 				.map(|(key, bounded_vec)| { (key, bounded_vec.into_inner()) })
@@ -154,7 +156,15 @@ impl<T: Config> crate::types::AhMigrationCheck for BountiesMigrator<T> {
 			"Bounty descriptions map value on Asset Hub should match RC value"
 		);
 
+		// Assert storage 'Bounties::BountyApprovals::ah_post::length'
+		assert_eq!(
+			pallet_bounties::BountyApprovals::<T>::get().into_inner().len(),
+			rc_approvals.len(),
+			"Bounty approvals vec value on Asset Hub should match RC values"
+		);
+
 		// Assert storage 'Bounties::BountyApprovals::ah_post::correct'
+		// Assert storage 'Bounties::BountyApprovals::ah_post::consistent'
 		assert_eq!(
 			pallet_bounties::BountyApprovals::<T>::get().into_inner(),
 			rc_approvals,

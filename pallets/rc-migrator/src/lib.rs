@@ -461,6 +461,15 @@ pub mod pallet {
 		type StakingDelegationReason: Get<<Self as Config>::RuntimeHoldReason>;
 		/// The pallet ID for on-demand pallet.
 		type OnDemandPalletId: Get<PalletId>;
+		/// Maximum number of unprocessed DMP messages allowed before the RC migrator temporarily
+		/// pauses sending data messages to the Asset Hub.
+		/// 
+		/// The Asset Hub confirms processed message counts back to this pallet. Due to async backing,
+		/// there is typically a delay of 1-2 blocks before these confirmations are received by the
+		/// RC migrator.
+		/// This configuration generally should be influenced by the number of XCM messages sent by
+		/// this pallet to the Asset Hub per block and the size of the queue on AH.
+		type UnprocessedMsgBuffer: Get<u32>;
 	}
 
 	#[pallet::error]
@@ -489,6 +498,19 @@ pub mod pallet {
 			/// The new stage after the transition.
 			new: MigrationStageOf<T>,
 		},
+		/// The Asset Hub Migration started and is active until `AssetHubMigrationFinished` is
+		/// emitted.
+		///
+		/// This event is equivalent to `StageTransition { new: Initializing, .. }` but is easier
+		/// to understand. The activation is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationStarted,
+		/// The Asset Hub Migration finished.
+		///
+		/// This event is equivalent to `StageTransition { new: MigrationDone, .. }` but is easier
+		/// to understand. The finishing is immediate and affects all events happening
+		/// afterwards.
+		AssetHubMigrationFinished,
 	}
 
 	/// The Relay Chain migration state.
@@ -1407,8 +1429,9 @@ pub mod pallet {
 			if !current.is_ongoing() {
 				return false;
 			}
+			let unprocessed_buffer = T::UnprocessedMsgBuffer::get();
 			let (sent, processed) = DmpDataMessageCounts::<T>::get();
-			if sent > processed {
+			if sent > (processed + unprocessed_buffer) {
 				log::info!(
 					target: LOG_TARGET,
 					"Excess unconfirmed XCM messages: sent = {}, processed = {}",
@@ -1457,6 +1480,23 @@ pub mod pallet {
 		/// Execute a stage transition and log it.
 		fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
+
+			if new == MigrationStage::Starting {
+				defensive_assert!(
+					matches!(old, MigrationStage::WaitingForAh | MigrationStage::Scheduled { .. }),
+					"Data migration can only enter from WaitingForAh or Scheduled"
+				);
+				Self::deposit_event(Event::AssetHubMigrationStarted);
+			}
+
+			if new == MigrationStage::MigrationDone {
+				defensive_assert!(
+					old == MigrationStage::SignalMigrationFinish,
+					"MigrationDone can only enter from SignalMigrationFinish"
+				);
+				Self::deposit_event(Event::AssetHubMigrationFinished);
+			}
+
 			RcMigrationStage::<T>::put(&new);
 			log::info!(target: LOG_TARGET, "[Block {:?}] RC Stage transition: {:?} -> {:?}", frame_system::Pallet::<T>::block_number(), &old, &new);
 			Self::deposit_event(Event::StageTransition { old, new });

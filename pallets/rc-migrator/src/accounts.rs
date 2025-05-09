@@ -293,7 +293,7 @@ impl<T: Config> AccountsMigrator<T> {
 			return Ok(None);
 		}
 
-		log::debug!(
+		log::trace!(
 			target: LOG_TARGET,
 			"Migrating account '{}'",
 			who.to_ss58check(),
