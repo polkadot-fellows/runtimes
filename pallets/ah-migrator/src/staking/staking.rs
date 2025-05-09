@@ -521,31 +521,32 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         // "Assert storage 'StakingAsync::Payee::ah_post::correct'"
         assert_eq!(pallet_staking_async::Payee::<T>::iter().collect::<BTreeMap<_,_>>(), expected_payee, "StakingAsync::Payee map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::Validators::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::Validators::<T>::iter_keys().count(), expected_validators.len(), "StakingAsync::Validators map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::Validators::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::Validators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_validators, "StakingAsync::Validators map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::Validators::ah_post::length'"
+        assert_eq!(pallet_staking_async::Validators::<T>::iter_keys().count(), expected_validators.len(), "StakingAsync::Validators map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::Validators::ah_post::correct'"
+        assert_eq!(pallet_staking_async::Validators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_validators, "StakingAsync::Validators map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::Nominators::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::Nominators::<T>::iter_keys().count(), expected_nominators.len(), "StakingAsync::Nominators map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::Nominators::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::Nominators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_nominators, "StakingAsync::Nominators map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::Nominators::ah_post::length'"
+        assert_eq!(pallet_staking_async::Nominators::<T>::iter_keys().count(), expected_nominators.len(), "StakingAsync::Nominators map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::Nominators::ah_post::correct'"
+        assert_eq!(pallet_staking_async::Nominators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_nominators, "StakingAsync::Nominators map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::VirtualStakers::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::VirtualStakers::<T>::iter_keys().count(), expected_virtual_stakers.len(), "StakingAsync::VirtualStakers length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::VirtualStakers::ah_post::correct'"
-    //     let current_virtual_stakers = pallet_staking_async::VirtualStakers::<T>::iter_keys().collect::<HashSet<_>>();
-    //     assert_eq!(current_virtual_stakers, expected_virtual_stakers, "StakingAsync::VirtualStakers content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::VirtualStakers::ah_post::length'"
+        assert_eq!(pallet_staking_async::VirtualStakers::<T>::iter_keys().count(), expected_virtual_stakers.len(), "StakingAsync::VirtualStakers length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::VirtualStakers::ah_post::correct'"
+        let current_virtual_stakers = pallet_staking_async::VirtualStakers::<T>::iter_keys().collect::<HashSet<_>>();
+        assert_eq!(current_virtual_stakers, expected_virtual_stakers, "StakingAsync::VirtualStakers content mismatch on AH post-migration");
         
-    // //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::length'"
-    // //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter_keys().count(), expected_eras_start_session_index.len(), "StakingAsync::ErasStartSessionIndex map length mismatch on AH post-migration");
-    // //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::correct'"
-    // //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_start_session_index, "StakingAsync::ErasStartSessionIndex map content mismatch on AH post-migration");
+        // No longer migrated
+    //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::length'"
+    //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter_keys().count(), expected_eras_start_session_index.len(), "StakingAsync::ErasStartSessionIndex map length mismatch on AH post-migration");
+    //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::correct'"
+    //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_start_session_index, "StakingAsync::ErasStartSessionIndex map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter_keys().count(), expected_eras_stakers_overview.len(), "StakingAsync::ErasStakersOverview map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_stakers_overview, "StakingAsync::ErasStakersOverview map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::length'"
+        assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter_keys().count(), expected_eras_stakers_overview.len(), "StakingAsync::ErasStakersOverview map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::correct'"
+        assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter().map(|(era, account_id, metadata)| ((era, account_id), metadata)).collect::<BTreeMap<_,_>>(), expected_eras_stakers_overview, "StakingAsync::ErasStakersOverview map content mismatch on AH post-migration");
         
     //     // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::length'"
     //     assert_eq!(pallet_staking_async::ErasStakersPaged::<T>::iter_keys().count(), expected_eras_stakers_paged.len(), "StakingAsync::ErasStakersPaged map length mismatch on AH post-migration");
@@ -601,6 +602,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
     //     // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::correct'"
     //     assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter().collect::<BTreeMap<_,_>>(), expected_nominator_slash_in_era, "StakingAsync::NominatorSlashInEra map content mismatch on AH post-migration");
 
+    // SlashSpans gone in latest polkadot-sdk master branch
     // //     // "Assert storage 'StakingAsync::SlashingSpans::ah_post::length'"
     // //     assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter_keys().count(), expected_slashing_spans.len(), "StakingAsync::SlashingSpans map length mismatch on AH post-migration");
     // //     // "Assert storage 'StakingAsync::SlashingSpans::ah_post::correct'"
