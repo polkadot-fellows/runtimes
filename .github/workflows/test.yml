@@ -192,9 +192,85 @@ jobs:
           RUSTFLAGS: "-C debug-assertions -D warnings"
           SKIP_WASM_BUILD: 1
 
+  # Preparation for zombienet smoking
+  zombienet-smoke-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+        with:
+          shared-key: "fellowship-cache-zombienet-tests"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build chain-spec-generator
+        run: |
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --locked
+
+      - name: Upload chain-spec-generator
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-spec-generator-for-smoke
+          path: target/debug/chain-spec-generator
+
+      # Define supported Polkadot versions
+      - name: Download node binaries
+        shell: bash
+        run: |
+          POLKADOT_VERSIONS=("polkadot-stable2412-4" "polkadot-stable2503")
+          NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
+          PARACHAIN_BINARIES=("polkadot-parachain")
+          ALL_BINARIES=("${NODE_BINARIES[@]}" "${PARACHAIN_BINARIES[@]}")
+          mkdir -p ./node-binaries
+          for polkadot_version in "${POLKADOT_VERSIONS[@]}"; do
+            for binary in "${ALL_BINARIES[@]}"; do
+              echo "Downloading $binary for $polkadot_version"
+              curl -sL https://github.com/paritytech/polkadot-sdk/releases/download/$polkadot_version/${binary} -o ./node-binaries/${binary}-$polkadot_version
+              chmod +x ./node-binaries/${binary}-$polkadot_version
+            done
+          done
+          ls -lrt ./node-binaries
+
+      - name: Upload node binaries to cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-binaries-for-smoke
+          path: node-binaries
+
   # Job required by "confirmTestPassed"
   zombienet-smoke:
+    needs: [zombienet-smoke-setup]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        docker:
+          - polkadot: polkadot-stable2412-4
+            cumulus: polkadot-stable2412-4
+            can_fail: false
+          - polkadot: polkadot-stable2412-4
+            cumulus: polkadot-stable2503
+            can_fail: false
+          - polkadot: polkadot-stable2503
+            cumulus: polkadot-stable2503
+            can_fail: false
+          - polkadot: polkadot-stable2503
+            cumulus: polkadot-stable2412-4
+            can_fail: false
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -223,26 +299,51 @@ jobs:
           shared-key: "fellowship-cache-zombienet-tests"
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build
-        run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: chain-spec-generator-for-smoke
+          path: ./for-zombienet-smoke
 
-      - name: Wait for Docker to Start
-        run: |
-          timeout 30 sh -c 'until docker info; do sleep 1; done'
-          docker --version
+      - name: Download node binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: node-binaries-for-smoke
+          path: ./node-binaries
 
-      - name: Zombienet smoke test
+      - name: Zombienet smoke test for polkadot-${{ matrix.docker.polkadot }} with polkadot-parachain-${{ matrix.docker.cumulus }})
         timeout-minutes: 20
+        continue-on-error: ${{ matrix.docker.can_fail }}
         run: |
-          export PATH=$(pwd)/target/release:$PATH
+          # Add binaries to PATH
+          export PATH=$(pwd)/for-zombienet-smoke:$PATH
+          export PATH=$(pwd)/node-binaries:$PATH
+
+          chmod +x ./for-zombienet-smoke/chain-spec-generator
+          # Ensure a matrix version for PATH
+          # WIP: externalize
+          NODE_BINARIES=("polkadot" "polkadot-execute-worker" "polkadot-prepare-worker")
+          PARACHAIN_BINARIES=("polkadot-parachain")
+          for binary in "${NODE_BINARIES[@]}"; do
+              cp ./node-binaries/${binary}-${{ matrix.docker.polkadot }} ./node-binaries/${binary}
+              chmod +x ./node-binaries/${binary}
+              file ./node-binaries/${binary}
+          done
+          for binary in "${PARACHAIN_BINARIES[@]}"; do
+              cp ./node-binaries/${binary}-${{ matrix.docker.cumulus }} ./node-binaries/${binary}
+              chmod +x ./node-binaries/${binary}
+              file ./node-binaries/${binary}
+          done
+          ls -lrt ./node-binaries
+
+          export ZOMBIE_PROVIDER="Native"
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
 
   build-runtimes:
     needs: [ runtime-matrix ]
     runs-on: ubuntu-latest
     strategy:
-      # Ensure the other jobs are continue
+      # Ensure the other jobs are continued
       fail-fast: false
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -331,7 +432,7 @@ jobs:
           command: cd ecosystem-tests && yarn test
 
   # This will only run if all the tests in its "needs" array passed.
-  # Add this as your required job, becuase if the matrix changes size (new things get added)
+  # Add this as your required job, because if the matrix changes size (new things get added),
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
