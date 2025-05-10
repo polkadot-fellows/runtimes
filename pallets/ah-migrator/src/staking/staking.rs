@@ -465,7 +465,6 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
                 NominatorSlashInEra { era, validator, slash } => { expected_nominator_slash_in_era.insert((era, validator.clone()), slash); },
                 SlashingSpans { account, spans } => { expected_slashing_spans.insert(account, spans); },
                 SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
-                _ => todo!(), // Spanslash removed from master branch, remove for now
             }
         }
 
