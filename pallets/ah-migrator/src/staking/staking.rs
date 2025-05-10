@@ -445,10 +445,13 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
                 Validators { stash, validators } => { expected_validators.insert(stash, validators); },
                 Nominators { stash, nominations } => { expected_nominators.insert(stash, nominations); },
                 VirtualStakers(staker) => { expected_virtual_stakers.insert(staker); },
-    //             ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
+    //          ErasStartSessionIndex { era, session } => { expected_eras_start_session_index.insert(era, session); },
                 ErasStakersOverview { era, validator, exposure } => { expected_eras_stakers_overview.insert((era, validator.clone()), exposure); },
                 ErasStakersPaged { era, validator, page, exposure } => { expected_eras_stakers_paged.insert((era, validator.clone(), page), exposure.into()); },
-                ClaimedRewards { era, validator, rewards } => { expected_claimed_rewards.insert((era, validator.clone()), rewards); },
+                ClaimedRewards { era, validator, rewards } => { 
+                    let bounded = BoundedVec::<Page, pallet_staking_async::ErasClaimedRewardsBound<T>>::truncate_from(rewards);
+                    expected_claimed_rewards.insert((era, validator.clone()), bounded.into_inner()); 
+                },
                 ErasValidatorPrefs { era, validator, prefs } => { expected_eras_validator_prefs.insert((era, validator.clone()), prefs); },
                 ErasValidatorReward { era, reward } => { expected_eras_validator_reward.insert(era, reward); },
                 ErasRewardPoints { era, points } => { expected_eras_reward_points.insert(era, points); },
@@ -469,93 +472,93 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         if let Some(values) = expected_values_opt {
             let expected_force_era = expected_force_era_opt.expect("Bundled with values");
 
-            // "Assert storage 'StakingAsync::ValidatorCount::ah_post::correct'"
+            // "Assert storage 'StakingAsync::ValidatorCount::ah_post::consistent'"
             assert_eq!(pallet_staking_async::ValidatorCount::<T>::get(), values.validator_count, "StakingAsync::ValidatorCount mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MinNominatorBond::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MinNominatorBond::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MinNominatorBond::<T>::get(), values.min_nominator_bond, "StakingAsync::MinNominatorBond mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MinValidatorBond::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MinValidatorBond::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MinValidatorBond::<T>::get(), values.min_validator_bond, "StakingAsync::MinValidatorBond mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MinimumActiveStake::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MinimumActiveStake::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MinimumActiveStake::<T>::get(), values.min_active_stake, "StakingAsync::MinimumActiveStake mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MinCommission::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MinCommission::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MinCommission::<T>::get(), values.min_commission, "StakingAsync::MinCommission mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MaxValidatorsCount::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MaxValidatorsCount::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MaxValidatorsCount::<T>::get(), values.max_validators_count, "StakingAsync::MaxValidatorsCount mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MaxNominatorsCount::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MaxNominatorsCount::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MaxNominatorsCount::<T>::get(), values.max_nominators_count, "StakingAsync::MaxNominatorsCount mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::CurrentEra::ah_post::correct'"
+            // "Assert storage 'StakingAsync::CurrentEra::ah_post::consistent'"
             assert_eq!(pallet_staking_async::CurrentEra::<T>::get(), expected_active_era_opt.clone().map(|a| a.index), "StakingAsync::CurrentEra mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::ActiveEra::ah_post::correct'"
+            // "Assert storage 'StakingAsync::ActiveEra::ah_post::consistent'"
             assert_eq!(pallet_staking_async::ActiveEra::<T>::get(), expected_active_era_opt, "StakingAsync::ActiveEra mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::ForceEra::ah_post::correct'"
+            // "Assert storage 'StakingAsync::ForceEra::ah_post::consistent'"
             assert_eq!(pallet_staking_async::ForceEra::<T>::get(), expected_force_era, "StakingAsync::ForceEra mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::MaxStakedRewards::ah_post::correct'"
+            // "Assert storage 'StakingAsync::MaxStakedRewards::ah_post::consistent'"
             assert_eq!(pallet_staking_async::MaxStakedRewards::<T>::get(), values.max_staked_rewards, "StakingAsync::MaxStakedRewards mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::SlashRewardFraction::ah_post::correct'"
+            // "Assert storage 'StakingAsync::SlashRewardFraction::ah_post::consistent'"
             assert_eq!(pallet_staking_async::SlashRewardFraction::<T>::get(), values.slash_reward_fraction, "StakingAsync::SlashRewardFraction mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::CanceledSlashPayout::ah_post::correct'"
+            // "Assert storage 'StakingAsync::CanceledSlashPayout::ah_post::consistent'"
             assert_eq!(pallet_staking_async::CanceledSlashPayout::<T>::get(), values.canceled_slash_payout, "StakingAsync::CanceledSlashPayout mismatch on AH post-migration");
-            // "Assert storage 'StakingAsync::ChillThreshold::ah_post::correct'"
+            // "Assert storage 'StakingAsync::ChillThreshold::ah_post::consistent'"
             assert_eq!(pallet_staking_async::ChillThreshold::<T>::get(), values.chill_threshold, "StakingAsync::ChillThreshold mismatch on AH post-migration");
         }
 
-        // "Assert storage 'StakingAsync::Invulnerables::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Invulnerables::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Invulnerables::<T>::get().into_inner(), expected_invulnerables, "StakingAsync::Invulnerables mismatch on AH post-migration");
 
-        // "Assert storage 'StakingAsync::BondedEras::ah_post::correct'"
+        // "Assert storage 'StakingAsync::BondedEras::ah_post::consistent'"
         assert_eq!(pallet_staking_async::BondedEras::<T>::get().into_inner(), expected_bonded_eras, "StakingAsync::BondedEras mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::Bonded::ah_post::length'"
         assert_eq!(pallet_staking_async::Bonded::<T>::iter_keys().count(), expected_bonded.len(), "StakingAsync::Bonded map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::Bonded::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Bonded::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Bonded::<T>::iter().collect::<BTreeMap<_,_>>(), expected_bonded, "StakingAsync::Bonded map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::Ledger::ah_post::length'"
         assert_eq!(pallet_staking_async::Ledger::<T>::iter_keys().count(), expected_ledger.len(), "StakingAsync::Ledger map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::Ledger::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Ledger::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Ledger::<T>::iter().collect::<BTreeMap<_,_>>(), expected_ledger, "StakingAsync::Ledger map content mismatch on AH post-migration");
         
         // "Assert storage 'StakingAsync::Payee::ah_post::length'"
         assert_eq!(pallet_staking_async::Payee::<T>::iter_keys().count(), expected_payee.len(), "StakingAsync::Payee map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::Payee::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Payee::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Payee::<T>::iter().collect::<BTreeMap<_,_>>(), expected_payee, "StakingAsync::Payee map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::Validators::ah_post::length'"
         assert_eq!(pallet_staking_async::Validators::<T>::iter_keys().count(), expected_validators.len(), "StakingAsync::Validators map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::Validators::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Validators::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Validators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_validators, "StakingAsync::Validators map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::Nominators::ah_post::length'"
         assert_eq!(pallet_staking_async::Nominators::<T>::iter_keys().count(), expected_nominators.len(), "StakingAsync::Nominators map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::Nominators::ah_post::correct'"
+        // "Assert storage 'StakingAsync::Nominators::ah_post::consistent'"
         assert_eq!(pallet_staking_async::Nominators::<T>::iter().collect::<BTreeMap<_,_>>(), expected_nominators, "StakingAsync::Nominators map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::VirtualStakers::ah_post::length'"
         assert_eq!(pallet_staking_async::VirtualStakers::<T>::iter_keys().count(), expected_virtual_stakers.len(), "StakingAsync::VirtualStakers length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::VirtualStakers::ah_post::correct'"
+        // "Assert storage 'StakingAsync::VirtualStakers::ah_post::consistent'"
         let current_virtual_stakers = pallet_staking_async::VirtualStakers::<T>::iter_keys().collect::<HashSet<_>>();
         assert_eq!(current_virtual_stakers, expected_virtual_stakers, "StakingAsync::VirtualStakers content mismatch on AH post-migration");
         
         // No longer migrated
     //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::length'"
     //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter_keys().count(), expected_eras_start_session_index.len(), "StakingAsync::ErasStartSessionIndex map length mismatch on AH post-migration");
-    //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::correct'"
+    //    // "Assert storage 'StakingAsync::ErasStartSessionIndex::ah_post::consistent'"
     //    assert_eq!(pallet_staking_async::ErasStartSessionIndex::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_start_session_index, "StakingAsync::ErasStartSessionIndex map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter_keys().count(), expected_eras_stakers_overview.len(), "StakingAsync::ErasStakersOverview map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasStakersOverview::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ErasStakersOverview::<T>::iter().map(|(era, account_id, metadata)| ((era, account_id), metadata)).collect::<BTreeMap<_,_>>(), expected_eras_stakers_overview, "StakingAsync::ErasStakersOverview map content mismatch on AH post-migration");
         
         // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasStakersPaged::<T>::iter_keys().count(), expected_eras_stakers_paged.len(), "StakingAsync::ErasStakersPaged map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::consistent'"
         let current_eras_stakers_paged = pallet_staking_async::ErasStakersPaged::<T>::iter().collect::<BTreeMap<_,_>>();
         assert_eq!(current_eras_stakers_paged, expected_eras_stakers_paged, "StakingAsync::ErasStakersPaged map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasClaimedRewards::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasClaimedRewards::<T>::iter_keys().count(), expected_claimed_rewards.len(), "StakingAsync::ErasClaimedRewards map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasClaimedRewards::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasClaimedRewards::ah_post::consistent'"
         let current_claimed_rewards = pallet_staking_async::ErasClaimedRewards::<T>::iter()
             .map(|(k1, k2, v_weak_bounded)| ((k1, k2), v_weak_bounded.into_inner()))
             .collect::<BTreeMap<_,_>>();
@@ -563,27 +566,27 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
 
         // "Assert storage 'StakingAsync::ErasValidatorPrefs::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasValidatorPrefs::<T>::iter_keys().count(), expected_eras_validator_prefs.len(), "StakingAsync::ErasValidatorPrefs map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasValidatorPrefs::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasValidatorPrefs::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ErasValidatorPrefs::<T>::iter().map(|(era, account, prefs)| ((era, account), prefs)).collect::<BTreeMap<_,_>>(), expected_eras_validator_prefs, "StakingAsync::ErasValidatorPrefs map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasValidatorReward::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasValidatorReward::<T>::iter_keys().count(), expected_eras_validator_reward.len(), "StakingAsync::ErasValidatorReward map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasValidatorReward::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasValidatorReward::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ErasValidatorReward::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_validator_reward, "StakingAsync::ErasValidatorReward map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasRewardPoints::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasRewardPoints::<T>::iter_keys().count(), expected_eras_reward_points.len(), "StakingAsync::ErasRewardPoints map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasRewardPoints::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasRewardPoints::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ErasRewardPoints::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_reward_points, "StakingAsync::ErasRewardPoints map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter_keys().count(), expected_eras_total_stake.len(), "StakingAsync::ErasTotalStake map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_total_stake, "StakingAsync::ErasTotalStake map content mismatch on AH post-migration");
         
         // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::length'"
         assert_eq!(pallet_staking_async::UnappliedSlashes::<T>::iter_keys().count(), expected_unapplied_slashes.len(), "StakingAsync::UnappliedSlashes map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::correct'"
+        // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::consistent'"
         let current_unapplied_slashes = pallet_staking_async::UnappliedSlashes::<T>::iter()
             .map(|(k1_era, k2_tuple, v_slash)| ((k1_era, k2_tuple), v_slash))
             .collect::<BTreeMap<_,_>>();
@@ -591,23 +594,23 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
 
         // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::length'"
         assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter_keys().count(), expected_validator_slash_in_era.len(), "StakingAsync::ValidatorSlashInEra map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::correct'"
+        // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::consistent'"
         assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter().map(|(era, account, slash)| ((era, account), slash)).collect::<BTreeMap<_,_>>(), expected_validator_slash_in_era, "StakingAsync::ValidatorSlashInEra map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::length'"
         assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter_keys().count(), expected_nominator_slash_in_era.len(), "StakingAsync::NominatorSlashInEra map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::correct'"
+        // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::consistent'"
         assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter().map(|(era, account, balance)| ((era, account), balance)).collect::<BTreeMap<_,_>>(), expected_nominator_slash_in_era, "StakingAsync::NominatorSlashInEra map content mismatch on AH post-migration");
 
         // SlashSpans gone in latest polkadot-sdk master branch
         // "Assert storage 'StakingAsync::SlashingSpans::ah_post::length'"
         assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter_keys().count(), expected_slashing_spans.len(), "StakingAsync::SlashingSpans map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::SlashingSpans::ah_post::correct'"
+        // "Assert storage 'StakingAsync::SlashingSpans::ah_post::consistent'"
         assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter().collect::<BTreeMap<_,_>>(), expected_slashing_spans, "StakingAsync::SlashingSpans map content mismatch on AH post-migration");
         
         // "Assert storage 'StakingAsync::SpanSlash::ah_post::length'"
         assert_eq!(pallet_staking_async::SpanSlash::<T>::iter_keys().count(), expected_span_slash.len(), "StakingAsync::SpanSlash map length mismatch on AH post-migration");
-        // "Assert storage 'StakingAsync::SpanSlash::ah_post::correct'"
+        // "Assert storage 'StakingAsync::SpanSlash::ah_post::consistent'"
         assert_eq!(pallet_staking_async::SpanSlash::<T>::iter().collect::<BTreeMap<_,_>>(), expected_span_slash, "StakingAsync::SpanSlash map content mismatch on AH post-migration");
     }
 }
