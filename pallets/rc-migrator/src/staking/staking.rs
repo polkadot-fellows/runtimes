@@ -21,9 +21,7 @@ pub use crate::staking::message::{
 };
 use crate::*;
 pub use frame_election_provider_support::PageIndex;
-use pallet_staking::{
-	slashing::SpanIndex,
-};
+use pallet_staking::slashing::SpanIndex;
 use sp_staking::{EraIndex, Page};
 
 pub struct StakingMigrator<T> {
@@ -503,464 +501,438 @@ fn resume<Map: frame_support::IterableStorageMap<K, V>, K: FullEncode, V: FullCo
 impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
 	type RcPrePayload = Vec<RcStakingMessageOf<T>>;
 
-    fn pre_check() -> Self::RcPrePayload {
-        let mut messages = Vec::new();
+	fn pre_check() -> Self::RcPrePayload {
+		let mut messages = Vec::new();
 
-        // StakingStage::Values
-        let staking_values = crate::staking::message::RcStakingValuesOf::<T> {
-            validator_count: pallet_staking::ValidatorCount::<T>::get(),
-            min_validator_count: pallet_staking::MinimumValidatorCount::<T>::get(),
-            min_nominator_bond: pallet_staking::MinNominatorBond::<T>::get(),
-            min_validator_bond: pallet_staking::MinValidatorBond::<T>::get(),
-            min_active_stake: pallet_staking::MinimumActiveStake::<T>::get(),
-            min_commission: pallet_staking::MinCommission::<T>::get(),
-            max_validators_count: pallet_staking::MaxValidatorsCount::<T>::get(),
-            max_nominators_count: pallet_staking::MaxNominatorsCount::<T>::get(),
-            current_era: pallet_staking::CurrentEra::<T>::get(),
-            active_era: pallet_staking::ActiveEra::<T>::get(),
-            force_era: pallet_staking::ForceEra::<T>::get(),
-            max_staked_rewards: pallet_staking::MaxStakedRewards::<T>::get(),
-            slash_reward_fraction: pallet_staking::SlashRewardFraction::<T>::get(),
-            canceled_slash_payout: pallet_staking::CanceledSlashPayout::<T>::get(),
-            current_planned_session: pallet_staking::CurrentPlannedSession::<T>::get(),
-            chill_threshold: pallet_staking::ChillThreshold::<T>::get(),
-        };
-        messages.push(RcStakingMessage::Values(staking_values));
+		// StakingStage::Values
+		let staking_values = crate::staking::message::RcStakingValuesOf::<T> {
+			validator_count: pallet_staking::ValidatorCount::<T>::get(),
+			min_validator_count: pallet_staking::MinimumValidatorCount::<T>::get(),
+			min_nominator_bond: pallet_staking::MinNominatorBond::<T>::get(),
+			min_validator_bond: pallet_staking::MinValidatorBond::<T>::get(),
+			min_active_stake: pallet_staking::MinimumActiveStake::<T>::get(),
+			min_commission: pallet_staking::MinCommission::<T>::get(),
+			max_validators_count: pallet_staking::MaxValidatorsCount::<T>::get(),
+			max_nominators_count: pallet_staking::MaxNominatorsCount::<T>::get(),
+			current_era: pallet_staking::CurrentEra::<T>::get(),
+			active_era: pallet_staking::ActiveEra::<T>::get(),
+			force_era: pallet_staking::ForceEra::<T>::get(),
+			max_staked_rewards: pallet_staking::MaxStakedRewards::<T>::get(),
+			slash_reward_fraction: pallet_staking::SlashRewardFraction::<T>::get(),
+			canceled_slash_payout: pallet_staking::CanceledSlashPayout::<T>::get(),
+			current_planned_session: pallet_staking::CurrentPlannedSession::<T>::get(),
+			chill_threshold: pallet_staking::ChillThreshold::<T>::get(),
+		};
+		messages.push(RcStakingMessage::Values(staking_values));
 
-        // StakingStage::Invulnerables
-        let invulnerables = pallet_staking::Invulnerables::<T>::get();
-        messages.push(RcStakingMessage::Invulnerables(invulnerables));
+		// StakingStage::Invulnerables
+		let invulnerables = pallet_staking::Invulnerables::<T>::get();
+		messages.push(RcStakingMessage::Invulnerables(invulnerables));
 
-        // StakingStage::Bonded
-        let bonded_items: Vec<_> = pallet_staking::Bonded::<T>::iter().collect();
-        let bonded_messages: Vec<_> = bonded_items
-            .into_iter()
-            .map(|(stash, controller)| RcStakingMessage::Bonded {
-                stash,
-                controller,
-            })
-            .collect();
-        messages.extend(bonded_messages);
+		// StakingStage::Bonded
+		let bonded_items: Vec<_> = pallet_staking::Bonded::<T>::iter().collect();
+		let bonded_messages: Vec<_> = bonded_items
+			.into_iter()
+			.map(|(stash, controller)| RcStakingMessage::Bonded { stash, controller })
+			.collect();
+		messages.extend(bonded_messages);
 
-        // StakingStage::Ledger
-        let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
-        let ledger_messages: Vec<_> = ledgers
-            .into_iter()
-            .map(|(controller, ledger)| RcStakingMessage::Ledger {
-                controller: controller.clone(),
-                ledger,
-            })
-            .collect();
-        messages.extend(ledger_messages);
+		// StakingStage::Ledger
+		let ledgers: Vec<_> = pallet_staking::Ledger::<T>::iter().collect();
+		let ledger_messages: Vec<_> = ledgers
+			.into_iter()
+			.map(|(controller, ledger)| RcStakingMessage::Ledger {
+				controller: controller.clone(),
+				ledger,
+			})
+			.collect();
+		messages.extend(ledger_messages);
 
-        // StakingStage::Payee
-        let payees: Vec<_> = pallet_staking::Payee::<T>::iter().collect();
-        let payee_messages: Vec<_> = payees
-            .into_iter()
-            .map(|(stash, payment)| RcStakingMessage::Payee {
-                stash,    
-                payment,  
-            })
-            .collect();
-        messages.extend(payee_messages);
+		// StakingStage::Payee
+		let payees: Vec<_> = pallet_staking::Payee::<T>::iter().collect();
+		let payee_messages: Vec<_> = payees
+			.into_iter()
+			.map(|(stash, payment)| RcStakingMessage::Payee { stash, payment })
+			.collect();
+		messages.extend(payee_messages);
 
-        // StakingStage::Validators
-        let validators_items: Vec<_> = pallet_staking::Validators::<T>::iter().collect();
-        let validators_messages: Vec<_> = validators_items
-            .into_iter()
-            .map(|(stash, validators_prefs)| RcStakingMessage::Validators {
-                stash, 
-                validators: validators_prefs, 
-            })
-            .collect();
-        messages.extend(validators_messages);
+		// StakingStage::Validators
+		let validators_items: Vec<_> = pallet_staking::Validators::<T>::iter().collect();
+		let validators_messages: Vec<_> = validators_items
+			.into_iter()
+			.map(|(stash, validators_prefs)| RcStakingMessage::Validators {
+				stash,
+				validators: validators_prefs,
+			})
+			.collect();
+		messages.extend(validators_messages);
 
-        // StakingStage::Nominators
-        let nominators_items: Vec<_> = pallet_staking::Nominators::<T>::iter().collect();
-        let nominators_messages: Vec<_> = nominators_items
-            .into_iter()
-            .map(|(stash, nominations)| RcStakingMessage::Nominators {
-                stash, 
-                nominations, 
-            })
-            .collect();
-        messages.extend(nominators_messages);
+		// StakingStage::Nominators
+		let nominators_items: Vec<_> = pallet_staking::Nominators::<T>::iter().collect();
+		let nominators_messages: Vec<_> = nominators_items
+			.into_iter()
+			.map(|(stash, nominations)| RcStakingMessage::Nominators { stash, nominations })
+			.collect();
+		messages.extend(nominators_messages);
 
-        // StakingStage::VirtualStakers
-        let virtual_stakers_keys: Vec<_> =
-            pallet_staking::VirtualStakers::<T>::iter().map(|(k, _)| k).collect();
-        let virtual_stakers_messages: Vec<_> = virtual_stakers_keys
-            .into_iter()
-            .map(|staker| RcStakingMessage::VirtualStakers(staker)) 
-            .collect();
-        messages.extend(virtual_stakers_messages);
+		// StakingStage::VirtualStakers
+		let virtual_stakers_keys: Vec<_> =
+			pallet_staking::VirtualStakers::<T>::iter().map(|(k, _)| k).collect();
+		let virtual_stakers_messages: Vec<_> = virtual_stakers_keys
+			.into_iter()
+			.map(|staker| RcStakingMessage::VirtualStakers(staker))
+			.collect();
+		messages.extend(virtual_stakers_messages);
 
-        // StakingStage::ErasStakersOverview
-        let eras_so_items: Vec<_> = pallet_staking::ErasStakersOverview::<T>::iter().collect();
-        let eras_so_messages: Vec<_> = eras_so_items
-            .into_iter()
-            .map(|(era, validator, exposure)| RcStakingMessage::ErasStakersOverview {
-                era,       
-                validator, 
-                exposure,  
-            })
-            .collect();
-        messages.extend(eras_so_messages);
+		// StakingStage::ErasStakersOverview
+		let eras_so_items: Vec<_> = pallet_staking::ErasStakersOverview::<T>::iter().collect();
+		let eras_so_messages: Vec<_> = eras_so_items
+			.into_iter()
+			.map(|(era, validator, exposure)| RcStakingMessage::ErasStakersOverview {
+				era,
+				validator,
+				exposure,
+			})
+			.collect();
+		messages.extend(eras_so_messages);
 
-        // StakingStage::ErasStakersPaged
-        let eras_sp_items: Vec<_> = pallet_staking::ErasStakersPaged::<T>::iter().collect();
-        let eras_sp_messages: Vec<_> = eras_sp_items
-            .into_iter()
-            .map(|((era, validator, page), exposure)| RcStakingMessage::ErasStakersPaged {
-                era,       
-                validator, 
-                page,      
-                exposure,  
-            })
-            .collect();
-        messages.extend(eras_sp_messages);
+		// StakingStage::ErasStakersPaged
+		let eras_sp_items: Vec<_> = pallet_staking::ErasStakersPaged::<T>::iter().collect();
+		let eras_sp_messages: Vec<_> = eras_sp_items
+			.into_iter()
+			.map(|((era, validator, page), exposure)| RcStakingMessage::ErasStakersPaged {
+				era,
+				validator,
+				page,
+				exposure,
+			})
+			.collect();
+		messages.extend(eras_sp_messages);
 
-        // StakingStage::ClaimedRewards
-        let claimed_rewards_items: Vec<_> = pallet_staking::ClaimedRewards::<T>::iter().collect();
-        let claimed_rewards_messages: Vec<_> = claimed_rewards_items
-            .into_iter()
-            .map(|(era, validator, rewards)| RcStakingMessage::ClaimedRewards {
-                era,       
-                validator, 
-                rewards,   
-            })
-            .collect();
-        messages.extend(claimed_rewards_messages);
+		// StakingStage::ClaimedRewards
+		let claimed_rewards_items: Vec<_> = pallet_staking::ClaimedRewards::<T>::iter().collect();
+		let claimed_rewards_messages: Vec<_> = claimed_rewards_items
+			.into_iter()
+			.map(|(era, validator, rewards)| RcStakingMessage::ClaimedRewards {
+				era,
+				validator,
+				rewards,
+			})
+			.collect();
+		messages.extend(claimed_rewards_messages);
 
-        // StakingStage::ErasValidatorPrefs
-        let eras_vp_items: Vec<_> = pallet_staking::ErasValidatorPrefs::<T>::iter().collect();
-        let eras_vp_messages: Vec<_> = eras_vp_items
-            .into_iter()
-            .map(|(era, validator, prefs)| RcStakingMessage::ErasValidatorPrefs {
-                era,       
-                validator, 
-                prefs,     
-            })
-            .collect();
-        messages.extend(eras_vp_messages);
+		// StakingStage::ErasValidatorPrefs
+		let eras_vp_items: Vec<_> = pallet_staking::ErasValidatorPrefs::<T>::iter().collect();
+		let eras_vp_messages: Vec<_> = eras_vp_items
+			.into_iter()
+			.map(|(era, validator, prefs)| RcStakingMessage::ErasValidatorPrefs {
+				era,
+				validator,
+				prefs,
+			})
+			.collect();
+		messages.extend(eras_vp_messages);
 
-        // StakingStage::ErasValidatorReward
-        let eras_vr_items: Vec<_> = pallet_staking::ErasValidatorReward::<T>::iter().collect();
-        let eras_vr_messages: Vec<_> = eras_vr_items
-            .into_iter()
-            .map(|(era, reward)| RcStakingMessage::ErasValidatorReward {
-                era,    
-                reward, 
-            })
-            .collect();
-        messages.extend(eras_vr_messages);
+		// StakingStage::ErasValidatorReward
+		let eras_vr_items: Vec<_> = pallet_staking::ErasValidatorReward::<T>::iter().collect();
+		let eras_vr_messages: Vec<_> = eras_vr_items
+			.into_iter()
+			.map(|(era, reward)| RcStakingMessage::ErasValidatorReward { era, reward })
+			.collect();
+		messages.extend(eras_vr_messages);
 
-        // StakingStage::ErasRewardPoints
-        let eras_rp_items: Vec<_> = pallet_staking::ErasRewardPoints::<T>::iter().collect();
-        let eras_rp_messages: Vec<_> = eras_rp_items
-            .into_iter()
-            .map(|(era, points)| RcStakingMessage::ErasRewardPoints {
-                era,    
-                points, 
-            })
-            .collect();
-        messages.extend(eras_rp_messages);
+		// StakingStage::ErasRewardPoints
+		let eras_rp_items: Vec<_> = pallet_staking::ErasRewardPoints::<T>::iter().collect();
+		let eras_rp_messages: Vec<_> = eras_rp_items
+			.into_iter()
+			.map(|(era, points)| RcStakingMessage::ErasRewardPoints { era, points })
+			.collect();
+		messages.extend(eras_rp_messages);
 
-        // StakingStage::ErasTotalStake
-        let eras_ts_items: Vec<_> = pallet_staking::ErasTotalStake::<T>::iter().collect();
-        let eras_ts_messages: Vec<_> = eras_ts_items
-            .into_iter()
-            .map(|(era, total_stake)| RcStakingMessage::ErasTotalStake {
-                era,         
-                total_stake, 
-            })
-            .collect();
-        messages.extend(eras_ts_messages);
+		// StakingStage::ErasTotalStake
+		let eras_ts_items: Vec<_> = pallet_staking::ErasTotalStake::<T>::iter().collect();
+		let eras_ts_messages: Vec<_> = eras_ts_items
+			.into_iter()
+			.map(|(era, total_stake)| RcStakingMessage::ErasTotalStake { era, total_stake })
+			.collect();
+		messages.extend(eras_ts_messages);
 
-        // StakingStage::UnappliedSlashes
-        let unapplied_slashes_items: Vec<_> =
-            pallet_staking::UnappliedSlashes::<T>::iter().collect();
-        for (era, slashes_vec) in unapplied_slashes_items {
-            for slash_item in slashes_vec {
-                messages.push(RcStakingMessage::UnappliedSlashes {
-                    era, 
-                    slash: slash_item,
-                });
-            }
-        }
+		// StakingStage::UnappliedSlashes
+		let unapplied_slashes_items: Vec<_> =
+			pallet_staking::UnappliedSlashes::<T>::iter().collect();
+		for (era, slashes_vec) in unapplied_slashes_items {
+			for slash_item in slashes_vec {
+				messages.push(RcStakingMessage::UnappliedSlashes { era, slash: slash_item });
+			}
+		}
 
-        // StakingStage::BondedEras
-        let bonded_eras = pallet_staking::BondedEras::<T>::get(); 
-        messages.push(RcStakingMessage::BondedEras(bonded_eras));
+		// StakingStage::BondedEras
+		let bonded_eras = pallet_staking::BondedEras::<T>::get();
+		messages.push(RcStakingMessage::BondedEras(bonded_eras));
 
-        // StakingStage::ValidatorSlashInEra
-        let val_slash_items: Vec<_> =
-            pallet_staking::ValidatorSlashInEra::<T>::iter().collect();
-        let val_slash_messages: Vec<_> = val_slash_items
-            .into_iter()
-            .map(|(era, validator, slash)| RcStakingMessage::ValidatorSlashInEra {
-                era,       
-                validator, 
-                slash,     
-            })
-            .collect();
-        messages.extend(val_slash_messages);
+		// StakingStage::ValidatorSlashInEra
+		let val_slash_items: Vec<_> = pallet_staking::ValidatorSlashInEra::<T>::iter().collect();
+		let val_slash_messages: Vec<_> = val_slash_items
+			.into_iter()
+			.map(|(era, validator, slash)| RcStakingMessage::ValidatorSlashInEra {
+				era,
+				validator,
+				slash,
+			})
+			.collect();
+		messages.extend(val_slash_messages);
 
-        // StakingStage::NominatorSlashInEra
-        let nom_slash_items: Vec<_> =
-            pallet_staking::NominatorSlashInEra::<T>::iter().collect();
-        let nom_slash_messages: Vec<_> = nom_slash_items
-            .into_iter()
-            .map(|(era, validator, slash)| RcStakingMessage::NominatorSlashInEra {
-                era,       
-                validator, 
-                slash,     
-            })
-            .collect();
-        messages.extend(nom_slash_messages);
+		// StakingStage::NominatorSlashInEra
+		let nom_slash_items: Vec<_> = pallet_staking::NominatorSlashInEra::<T>::iter().collect();
+		let nom_slash_messages: Vec<_> = nom_slash_items
+			.into_iter()
+			.map(|(era, validator, slash)| RcStakingMessage::NominatorSlashInEra {
+				era,
+				validator,
+				slash,
+			})
+			.collect();
+		messages.extend(nom_slash_messages);
 
-        // StakingStage::SlashingSpans
-        let slashing_spans_items: Vec<_> = pallet_staking::SlashingSpans::<T>::iter().collect();
-        let slashing_spans_messages: Vec<_> = slashing_spans_items
-            .into_iter()
-            .map(|(account, spans)| RcStakingMessage::SlashingSpans {
-                account, 
-                spans,   
-            })
-            .collect();
-        messages.extend(slashing_spans_messages);
+		// StakingStage::SlashingSpans
+		let slashing_spans_items: Vec<_> = pallet_staking::SlashingSpans::<T>::iter().collect();
+		let slashing_spans_messages: Vec<_> = slashing_spans_items
+			.into_iter()
+			.map(|(account, spans)| RcStakingMessage::SlashingSpans { account, spans })
+			.collect();
+		messages.extend(slashing_spans_messages);
 
-        // StakingStage::SpanSlash
-        let span_slash_items: Vec<_> = pallet_staking::SpanSlash::<T>::iter().collect();
-        let span_slash_messages: Vec<_> = span_slash_items
-            .into_iter()
-            .map(|((account, span_idx), slash_record)| RcStakingMessage::SpanSlash {
-                account,      
-                span: span_idx, 
-                slash: slash_record, 
-            })
-            .collect();
-        messages.extend(span_slash_messages);
+		// StakingStage::SpanSlash
+		let span_slash_items: Vec<_> = pallet_staking::SpanSlash::<T>::iter().collect();
+		let span_slash_messages: Vec<_> = span_slash_items
+			.into_iter()
+			.map(|((account, span_idx), slash_record)| RcStakingMessage::SpanSlash {
+				account,
+				span: span_idx,
+				slash: slash_record,
+			})
+			.collect();
+		messages.extend(span_slash_messages);
 
-        messages
-    }
+		messages
+	}
 
-    fn post_check(_rc_pre_payload: Self::RcPrePayload) {
-        // Assert storage 'Staking::ValidatorCount::rc_post::empty'
-        assert_eq!(
-            pallet_staking::ValidatorCount::<T>::get(),
-            0,
-            "ValidatorCount should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MinimumValidatorCount::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MinimumValidatorCount::<T>::get(),
-            0,
-            "MinimumValidatorCount should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MinNominatorBond::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MinNominatorBond::<T>::get(),
-            Default::default(),
-            "MinNominatorBond should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MinValidatorBond::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MinValidatorBond::<T>::get(),
-            Default::default(),
-            "MinValidatorBond should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MinimumActiveStake::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MinimumActiveStake::<T>::get(),
-            Default::default(),
-            "MinimumActiveStake should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MinCommission::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MinCommission::<T>::get(),
-            Default::default(),
-            "MinCommission should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MaxValidatorsCount::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MaxValidatorsCount::<T>::get(),
-            None,
-            "MaxValidatorsCount should be None on RC after migration"
-        );
-        // Assert storage 'Staking::MaxNominatorsCount::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MaxNominatorsCount::<T>::get(),
-            None,
-            "MaxNominatorsCount should be None on RC after migration"
-        );
-        // Assert storage 'Staking::CurrentEra::rc_post::empty'
-        assert_eq!(
-            pallet_staking::CurrentEra::<T>::get(),
-            None,
-            "CurrentEra should be None on RC after migration"
-        );
-        // Assert storage 'Staking::ActiveEra::rc_post::empty'
-        assert_eq!(
-            pallet_staking::ActiveEra::<T>::get(),
-            None,
-            "ActiveEra should be None on RC after migration"
-        );
-        // Assert storage 'Staking::ForceEra::rc_post::empty'
-        assert_eq!(
-            pallet_staking::ForceEra::<T>::get(),
-            Default::default(),
-            "ForceEra should be default on RC after migration"
-        );
-        // Assert storage 'Staking::MaxStakedRewards::rc_post::empty'
-        assert_eq!(
-            pallet_staking::MaxStakedRewards::<T>::get(),
-            None,
-            "MaxStakedRewards should be None on RC after migration"
-        );
-        // Assert storage 'Staking::SlashRewardFraction::rc_post::empty'
-        assert_eq!(
-            pallet_staking::SlashRewardFraction::<T>::get(),
-            Default::default(),
-            "SlashRewardFraction should be default on RC after migration"
-        );
-        // Assert storage 'Staking::CanceledSlashPayout::rc_post::empty'
-        assert_eq!(
-            pallet_staking::CanceledSlashPayout::<T>::get(),
-            Default::default(),
-            "CanceledSlashPayout should be default on RC after migration"
-        );
-        // Assert storage 'Staking::CurrentPlannedSession::rc_post::empty'
-        assert_eq!(
-            pallet_staking::CurrentPlannedSession::<T>::get(),
-            0,
-            "CurrentPlannedSession should be default on RC after migration"
-        );
-        // Assert storage 'Staking::ChillThreshold::rc_post::empty'
-        assert_eq!(
-            pallet_staking::ChillThreshold::<T>::get(),
-            None,
-            "ChillThreshold should be None on RC after migration"
-        );
-        // Assert storage 'Staking::Invulnerables::rc_post::empty'
-        assert!(
-            pallet_staking::Invulnerables::<T>::get().is_empty(),
-            "Invulnerables should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::BondedEras::rc_post::empty'
-        assert!(
-            pallet_staking::BondedEras::<T>::get().is_empty(),
-            "BondedEras should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::Bonded::rc_post::empty'
-        assert!(
-            pallet_staking::Bonded::<T>::iter().next().is_none(),
-            "Bonded map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::Ledger::rc_post::empty'
-        assert!(
-            pallet_staking::Ledger::<T>::iter().next().is_none(),
-            "Ledger map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::Payee::rc_post::empty'
-        assert!(
-            pallet_staking::Payee::<T>::iter().next().is_none(),
-            "Payee map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::Validators::rc_post::empty'
-        assert!(
-            pallet_staking::Validators::<T>::iter().next().is_none(),
-            "Validators map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::Nominators::rc_post::empty'
-        assert!(
-            pallet_staking::Nominators::<T>::iter().next().is_none(),
-            "Nominators map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::VirtualStakers::rc_post::empty'
-        assert!(
-            pallet_staking::VirtualStakers::<T>::iter().next().is_none(),
-            "VirtualStakers map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasStakersOverview::rc_post::empty'
-        assert!(
-            pallet_staking::ErasStakersOverview::<T>::iter().next().is_none(),
-            "ErasStakersOverview map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasStakersPaged::rc_post::empty'
-        assert!(
-            pallet_staking::ErasStakersPaged::<T>::iter().next().is_none(),
-            "ErasStakersPaged map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ClaimedRewards::rc_post::empty'
-        assert!(
-            pallet_staking::ClaimedRewards::<T>::iter().next().is_none(),
-            "ClaimedRewards map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasValidatorPrefs::rc_post::empty'
-        assert!(
-            pallet_staking::ErasValidatorPrefs::<T>::iter().next().is_none(),
-            "ErasValidatorPrefs map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasValidatorReward::rc_post::empty'
-        assert!(
-            pallet_staking::ErasValidatorReward::<T>::iter().next().is_none(),
-            "ErasValidatorReward map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasRewardPoints::rc_post::empty'
-        assert!(
-            pallet_staking::ErasRewardPoints::<T>::iter().next().is_none(),
-            "ErasRewardPoints map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ErasTotalStake::rc_post::empty'
-        assert!(
-            pallet_staking::ErasTotalStake::<T>::iter().next().is_none(),
-            "ErasTotalStake map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::UnappliedSlashes::rc_post::empty'
-        assert!(
-            pallet_staking::UnappliedSlashes::<T>::iter().next().is_none(),
-            "UnappliedSlashes map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::ValidatorSlashInEra::rc_post::empty'
-        assert!(
-            pallet_staking::ValidatorSlashInEra::<T>::iter().next().is_none(),
-            "ValidatorSlashInEra map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::NominatorSlashInEra::rc_post::empty'
-        assert!(
-            pallet_staking::NominatorSlashInEra::<T>::iter().next().is_none(),
-            "NominatorSlashInEra map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::SlashingSpans::rc_post::empty'
-        assert!(
-            pallet_staking::SlashingSpans::<T>::iter().next().is_none(),
-            "SlashingSpans map should be empty on RC after migration"
-        );
-        // Assert storage 'Staking::SpanSlash::rc_post::empty'
-        assert!(
-            pallet_staking::SpanSlash::<T>::iter().next().is_none(),
-            "SpanSlash map should be empty on RC after migration"
-        );
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Staking::ValidatorCount::rc_post::empty'
+		assert_eq!(
+			pallet_staking::ValidatorCount::<T>::get(),
+			0,
+			"ValidatorCount should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MinimumValidatorCount::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MinimumValidatorCount::<T>::get(),
+			0,
+			"MinimumValidatorCount should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MinNominatorBond::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MinNominatorBond::<T>::get(),
+			Default::default(),
+			"MinNominatorBond should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MinValidatorBond::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MinValidatorBond::<T>::get(),
+			Default::default(),
+			"MinValidatorBond should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MinimumActiveStake::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MinimumActiveStake::<T>::get(),
+			Default::default(),
+			"MinimumActiveStake should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MinCommission::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MinCommission::<T>::get(),
+			Default::default(),
+			"MinCommission should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MaxValidatorsCount::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MaxValidatorsCount::<T>::get(),
+			None,
+			"MaxValidatorsCount should be None on RC after migration"
+		);
+		// Assert storage 'Staking::MaxNominatorsCount::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MaxNominatorsCount::<T>::get(),
+			None,
+			"MaxNominatorsCount should be None on RC after migration"
+		);
+		// Assert storage 'Staking::CurrentEra::rc_post::empty'
+		assert_eq!(
+			pallet_staking::CurrentEra::<T>::get(),
+			None,
+			"CurrentEra should be None on RC after migration"
+		);
+		// Assert storage 'Staking::ActiveEra::rc_post::empty'
+		assert_eq!(
+			pallet_staking::ActiveEra::<T>::get(),
+			None,
+			"ActiveEra should be None on RC after migration"
+		);
+		// Assert storage 'Staking::ForceEra::rc_post::empty'
+		assert_eq!(
+			pallet_staking::ForceEra::<T>::get(),
+			Default::default(),
+			"ForceEra should be default on RC after migration"
+		);
+		// Assert storage 'Staking::MaxStakedRewards::rc_post::empty'
+		assert_eq!(
+			pallet_staking::MaxStakedRewards::<T>::get(),
+			None,
+			"MaxStakedRewards should be None on RC after migration"
+		);
+		// Assert storage 'Staking::SlashRewardFraction::rc_post::empty'
+		assert_eq!(
+			pallet_staking::SlashRewardFraction::<T>::get(),
+			Default::default(),
+			"SlashRewardFraction should be default on RC after migration"
+		);
+		// Assert storage 'Staking::CanceledSlashPayout::rc_post::empty'
+		assert_eq!(
+			pallet_staking::CanceledSlashPayout::<T>::get(),
+			Default::default(),
+			"CanceledSlashPayout should be default on RC after migration"
+		);
+		// Assert storage 'Staking::CurrentPlannedSession::rc_post::empty'
+		assert_eq!(
+			pallet_staking::CurrentPlannedSession::<T>::get(),
+			0,
+			"CurrentPlannedSession should be default on RC after migration"
+		);
+		// Assert storage 'Staking::ChillThreshold::rc_post::empty'
+		assert_eq!(
+			pallet_staking::ChillThreshold::<T>::get(),
+			None,
+			"ChillThreshold should be None on RC after migration"
+		);
+		// Assert storage 'Staking::Invulnerables::rc_post::empty'
+		assert!(
+			pallet_staking::Invulnerables::<T>::get().is_empty(),
+			"Invulnerables should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::BondedEras::rc_post::empty'
+		assert!(
+			pallet_staking::BondedEras::<T>::get().is_empty(),
+			"BondedEras should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::Bonded::rc_post::empty'
+		assert!(
+			pallet_staking::Bonded::<T>::iter().next().is_none(),
+			"Bonded map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::Ledger::rc_post::empty'
+		assert!(
+			pallet_staking::Ledger::<T>::iter().next().is_none(),
+			"Ledger map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::Payee::rc_post::empty'
+		assert!(
+			pallet_staking::Payee::<T>::iter().next().is_none(),
+			"Payee map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::Validators::rc_post::empty'
+		assert!(
+			pallet_staking::Validators::<T>::iter().next().is_none(),
+			"Validators map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::Nominators::rc_post::empty'
+		assert!(
+			pallet_staking::Nominators::<T>::iter().next().is_none(),
+			"Nominators map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::VirtualStakers::rc_post::empty'
+		assert!(
+			pallet_staking::VirtualStakers::<T>::iter().next().is_none(),
+			"VirtualStakers map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasStakersOverview::rc_post::empty'
+		assert!(
+			pallet_staking::ErasStakersOverview::<T>::iter().next().is_none(),
+			"ErasStakersOverview map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasStakersPaged::rc_post::empty'
+		assert!(
+			pallet_staking::ErasStakersPaged::<T>::iter().next().is_none(),
+			"ErasStakersPaged map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ClaimedRewards::rc_post::empty'
+		assert!(
+			pallet_staking::ClaimedRewards::<T>::iter().next().is_none(),
+			"ClaimedRewards map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasValidatorPrefs::rc_post::empty'
+		assert!(
+			pallet_staking::ErasValidatorPrefs::<T>::iter().next().is_none(),
+			"ErasValidatorPrefs map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasValidatorReward::rc_post::empty'
+		assert!(
+			pallet_staking::ErasValidatorReward::<T>::iter().next().is_none(),
+			"ErasValidatorReward map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasRewardPoints::rc_post::empty'
+		assert!(
+			pallet_staking::ErasRewardPoints::<T>::iter().next().is_none(),
+			"ErasRewardPoints map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ErasTotalStake::rc_post::empty'
+		assert!(
+			pallet_staking::ErasTotalStake::<T>::iter().next().is_none(),
+			"ErasTotalStake map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::UnappliedSlashes::rc_post::empty'
+		assert!(
+			pallet_staking::UnappliedSlashes::<T>::iter().next().is_none(),
+			"UnappliedSlashes map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::ValidatorSlashInEra::rc_post::empty'
+		assert!(
+			pallet_staking::ValidatorSlashInEra::<T>::iter().next().is_none(),
+			"ValidatorSlashInEra map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::NominatorSlashInEra::rc_post::empty'
+		assert!(
+			pallet_staking::NominatorSlashInEra::<T>::iter().next().is_none(),
+			"NominatorSlashInEra map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::SlashingSpans::rc_post::empty'
+		assert!(
+			pallet_staking::SlashingSpans::<T>::iter().next().is_none(),
+			"SlashingSpans map should be empty on RC after migration"
+		);
+		// Assert storage 'Staking::SpanSlash::rc_post::empty'
+		assert!(
+			pallet_staking::SpanSlash::<T>::iter().next().is_none(),
+			"SpanSlash map should be empty on RC after migration"
+		);
 
 		// -- Ensure deprecated storage or not migrated items are empty as well --
 
 		// Assert storage 'Staking::ErasStakers::rc_post::empty'
-        assert!(
-            pallet_staking::ErasStakers::<T>::iter().next().is_none(),
-            "ErasStakers map should be empty on RC after migration (deprecated item)"
-        );
-        // Assert storage 'Staking::ErasStakersClipped::rc_post::empty'
-        assert!(
-            pallet_staking::ErasStakersClipped::<T>::iter().next().is_none(),
-            "ErasStakersClipped map should be empty on RC after migration (deprecated item)"
-        );
+		assert!(
+			pallet_staking::ErasStakers::<T>::iter().next().is_none(),
+			"ErasStakers map should be empty on RC after migration (deprecated item)"
+		);
+		// Assert storage 'Staking::ErasStakersClipped::rc_post::empty'
+		assert!(
+			pallet_staking::ErasStakersClipped::<T>::iter().next().is_none(),
+			"ErasStakersClipped map should be empty on RC after migration (deprecated item)"
+		);
 
 		// Fails - should we remove state during migration?
 		// Assert storage 'Staking::ErasStartSessionIndex::rc_post::empty'
-        // assert!(
-        //     pallet_staking::ErasStartSessionIndex::<T>::iter().next().is_none(),
-        //     "ErasStartSessionIndex map should be empty on RC after migration"
-        // );
-    }
+		// assert!(
+		//     pallet_staking::ErasStartSessionIndex::<T>::iter().next().is_none(),
+		//     "ErasStartSessionIndex map should be empty on RC after migration"
+		// );
+	}
 }

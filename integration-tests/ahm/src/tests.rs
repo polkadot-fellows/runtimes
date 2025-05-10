@@ -108,9 +108,7 @@ pub type RcPolkadotChecks = ();
 
 // Checks that are specific to Staking on relay chain
 #[cfg(feature = "ahm-staking-migration")]
-pub type RcStakingChecks = (
-	pallet_rc_migrator::staking::staking::StakingMigrator<Polkadot>,
-);
+pub type RcStakingChecks = (pallet_rc_migrator::staking::staking::StakingMigrator<Polkadot>,);
 
 #[cfg(not(feature = "ahm-staking-migration"))]
 pub type RcStakingChecks = ();
@@ -155,9 +153,7 @@ pub type AhPolkadotChecks = ();
 
 // Checks that are specific to Staking on AssetHub
 #[cfg(feature = "ahm-staking-migration")]
-pub type AhStakingChecks = (
-	pallet_rc_migrator::staking::staking::StakingMigrator<AssetHub>,
-);
+pub type AhStakingChecks = (pallet_rc_migrator::staking::staking::StakingMigrator<AssetHub>,);
 
 #[cfg(not(feature = "ahm-staking-migration"))]
 pub type AhStakingChecks = ();
