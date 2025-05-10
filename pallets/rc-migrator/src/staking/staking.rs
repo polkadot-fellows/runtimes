@@ -962,7 +962,7 @@ impl<T: Config> crate::types::RcMigrationCheck for StakingMigrator<T> {
             "ErasStakersClipped map should be empty on RC after migration (deprecated item)"
         );
 
-		// Fails - should we remove during migration?
+		// Fails - should we remove state during migration?
 		// Assert storage 'Staking::ErasStartSessionIndex::rc_post::empty'
         // assert!(
         //     pallet_staking::ErasStartSessionIndex::<T>::iter().next().is_none(),
