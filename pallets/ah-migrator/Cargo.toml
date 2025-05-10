@@ -34,7 +34,7 @@ pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
-pallet-staking = { workspace = true}
+pallet-staking = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
