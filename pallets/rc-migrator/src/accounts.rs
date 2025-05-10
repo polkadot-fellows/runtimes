@@ -44,7 +44,10 @@ AH: mint_into(checking, checking_total - total_issuance) // publishes Balances::
 
 use crate::{types::*, *};
 use codec::DecodeAll;
-use frame_support::{traits::tokens::IdAmount, weights::WeightMeter};
+use frame_support::{
+	traits::tokens::{Balance as BalanceT, IdAmount},
+	weights::WeightMeter,
+};
 use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
 use sp_core::ByteArray;
@@ -137,12 +140,67 @@ pub enum AccountState<Balance> {
 	/// Cases:
 	/// - accounts placed deposit for parachain registration (paras_registrar pallet);
 	/// - accounts placed deposit for hrmp channel registration (parachains_hrmp pallet);
+	/// - accounts storing the keys within the session pallet with a consumer reference.
 	Part {
+		/// The free balance that must be preserved on RC.
+		///
+		/// Includes ED.
+		free: Balance,
 		/// The reserved balance that must be preserved on RC.
 		///
 		/// In practice reserved by old `Currency` api and has no associated reason.
 		reserved: Balance,
+		/// The number of consumers that must be preserved on RC.
+		///
+		/// Generally one consumer reference of reserved balance or/and consumer reference of the
+		/// session pallet.
+		consumers: u32,
 	},
+}
+
+impl<Balance: BalanceT> AccountState<Balance> {
+	/// Account must be fully preserved on RC.
+	pub fn is_preserve(&self) -> bool {
+		matches!(self, AccountState::Preserve)
+	}
+	/// Get the free balance on RC.
+	pub fn get_rc_free(&self) -> Balance {
+		match self {
+			// preserve the `free` balance on RC.
+			AccountState::Part { free, .. } => *free,
+			// no free balance on RC, migrate the entire account balance.
+			AccountState::Migrate => Balance::zero(),
+			AccountState::Preserve => {
+				defensive!("Account must be preserved on RC");
+				Balance::zero()
+			},
+		}
+	}
+	/// Get the reserved balance on RC.
+
+	pub fn get_rc_reserved(&self) -> Balance {
+		match self {
+			AccountState::Part { reserved, .. } => *reserved,
+			AccountState::Migrate => Balance::zero(),
+			AccountState::Preserve => {
+				defensive!("Account must be preserved on RC");
+				Balance::zero()
+			},
+		}
+	}
+	/// Get the consumer count on RC.
+	pub fn get_rc_consumers(&self) -> u32 {
+		match self {
+			AccountState::Part { consumers, .. } => *consumers,
+			// accounts fully migrating to AH will have a consumer count of `0` on Relay Chain since
+			// all holds and freezes are removed.
+			AccountState::Migrate => 0,
+			AccountState::Preserve => {
+				defensive!("Account must be preserved on RC");
+				0
+			},
+		}
+	}
 }
 
 pub type AccountStateFor<T> = AccountState<<T as pallet_balances::Config>::Balance>;
@@ -284,7 +342,8 @@ impl<T: Config> AccountsMigrator<T> {
 		ah_weight: &mut WeightMeter,
 		batch_len: u32,
 	) -> Result<Option<AccountFor<T>>, Error<T>> {
-		if let AccountState::Preserve = Self::get_rc_state(&who) {
+		let account_state = Self::get_account_state(&who);
+		if account_state.is_preserve() {
 			log::info!(
 				target: LOG_TARGET,
 				"Preserving account on Relay Chain: '{:?}'",
@@ -309,7 +368,7 @@ impl<T: Config> AccountsMigrator<T> {
 		let account_data: AccountData<T::Balance> = account_info.data.clone();
 
 		if !Self::can_migrate_account(&who, &account_info) {
-			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
+			log::info!(target: LOG_TARGET, "Account cannot be migrated '{}'", who.to_ss58check());
 			return Ok(None);
 		}
 
@@ -397,34 +456,9 @@ impl<T: Config> AccountsMigrator<T> {
 			<T as Config>::Currency::remove_lock(lock.id, &who);
 		}
 
-		let rc_state = Self::get_rc_state(&who);
-		let (rc_reserve, rc_free_min) = match rc_state {
-			AccountState::Part { reserved } => {
-				log::debug!(
-					target: LOG_TARGET,
-					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
-					who.to_ss58check(),
-					&reserved,
-				);
-				(reserved, <T as Config>::Currency::minimum_balance())
-			},
-			// migrate the entire account
-			AccountState::Migrate => (0, 0),
-			// this should not happen bc AccountState::Preserve is checked at the very beginning.
-			_ => {
-				log::warn!(
-					target: LOG_TARGET,
-					"Unexpected account state for '{:?}' on Relay Chain: {:?}",
-					who.to_ss58check(),
-					rc_state,
-				);
-				return Err(Error::FailedToWithdrawAccount);
-			},
-		};
-
 		// unreserve the unnamed reserve but keep some reserve on RC if needed.
 		let unnamed_reserve = <T as Config>::Currency::reserved_balance(&who)
-			.checked_sub(rc_reserve)
+			.checked_sub(account_state.get_rc_reserved())
 			.defensive_unwrap_or_default();
 		let _ = <T as Config>::Currency::unreserve(&who, unnamed_reserve);
 
@@ -435,14 +469,10 @@ impl<T: Config> AccountsMigrator<T> {
 		// `Self::get_provider_count` functions.
 		//
 		// check accounts.md for more details.
-		//
-		// accounts fully migrating to AH will have a consumer count of `0` on Relay Chain since all
-		// holds and freezes are removed. Accounts keeping some reserve on RC will have a consumer
-		// count of `1` as they have consumers of the reserve. The provider count is set to `1` to
-		// allow reaping accounts that provided the ED at the `burn_from` below.
-		let consumers = if rc_reserve > 0 { 1 } else { 0 };
 		SystemAccount::<T>::mutate(&who, |a| {
-			a.consumers = consumers;
+			a.consumers = account_state.get_rc_consumers();
+			// the provider count is set to `1` to allow reaping accounts that provided the ED at
+			// the `burn_from` below.
 			a.providers = 1;
 		});
 
@@ -453,12 +483,19 @@ impl<T: Config> AccountsMigrator<T> {
 			Fortitude::Polite,
 		);
 
-		let teleport_free =
-			account_data.free.checked_sub(rc_free_min).defensive_unwrap_or_default();
-		let teleport_reserved =
-			account_data.reserved.checked_sub(rc_reserve).defensive_unwrap_or_default();
+		let teleport_free = account_data
+			.free
+			.checked_sub(account_state.get_rc_free())
+			.defensive_unwrap_or_default();
+		let teleport_reserved = account_data
+			.reserved
+			.checked_sub(account_state.get_rc_reserved())
+			.defensive_unwrap_or_default();
 
-		defensive_assert!(teleport_total == total_balance - rc_free_min - rc_reserve);
+		defensive_assert!(
+			teleport_total ==
+				total_balance - account_state.get_rc_free() - account_state.get_rc_reserved()
+		);
 		defensive_assert!(teleport_total == teleport_free + teleport_reserved);
 
 		let burned = match <T as Config>::Currency::burn_from(
@@ -595,9 +632,12 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 	}
 
-	/// The part of the balance of the `who` that must stay on the Relay Chain.
-	pub fn get_rc_state(who: &T::AccountId) -> AccountStateFor<T> {
+	/// Returns the migration state for the given account.
+	///
+	/// The state is retrieved from storage if previously set, otherwise defaults to `Migrate`.
+	pub fn get_account_state(who: &T::AccountId) -> AccountStateFor<T> {
 		if let Some(state) = RcAccounts::<T>::get(who) {
+			log::debug!(target: LOG_TARGET, "Account state for '{}': {:?}", who.to_ss58check(), state);
 			return state;
 		}
 		AccountStateFor::<T>::Migrate
@@ -715,8 +755,63 @@ impl<T: Config> AccountsMigrator<T> {
 					id.to_ss58check(),
 					rc_reserved
 				);
-				RcAccounts::<T>::insert(&id, AccountState::Part { reserved: rc_reserved });
+				RcAccounts::<T>::insert(
+					&id,
+					// one consumer reference of reserved balance.
+					AccountState::Part { free: rc_ed, reserved: rc_reserved, consumers: 1 },
+				);
 			}
+		}
+
+		// every key owner has to preserve ED on the RC with a consumer reference.
+
+		let rc_ed = <T as Config>::Currency::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
+		for (who, _keys) in pallet_session::NextKeys::<T>::iter() {
+			weight += T::DbWeight::get().reads(1);
+			if let Some(mut state) = RcAccounts::<T>::get(&who) {
+				match state {
+					AccountState::Part { ref mut consumers, .. } => {
+						log::debug!(
+							target: LOG_TARGET,
+							"Increase session pallet consumer reference for account state: {:?}",
+							who.to_ss58check(),
+						);
+						*consumers += 1;
+						RcAccounts::<T>::insert(&who, state);
+					},
+					_ => {
+						log::debug!(
+							target: LOG_TARGET,
+							"Session pallet account already fully preserved on RC: {:?}",
+							who.to_ss58check(),
+						);
+					},
+				}
+				continue;
+			}
+
+			weight += T::DbWeight::get().reads(1);
+
+			let free = <T as Config>::Currency::balance(&who);
+			if free < rc_ed || free.saturating_sub(rc_ed) < ah_ed {
+				log::debug!(
+					target: LOG_TARGET,
+					"Session pallet account doesn't have enough free balance to keep on RC or migrate to AH. account: {:?}",
+					who.to_ss58check(),
+				);
+				continue;
+			}
+
+			log::debug!(
+				target: LOG_TARGET,
+				"Keep part of account on RC for session pallet: {:?}",
+				who.to_ss58check(),
+			);
+			RcAccounts::<T>::insert(
+				&who,
+				AccountState::Part { free: rc_ed, reserved: 0, consumers: 1 },
+			);
 		}
 
 		// Keep the on-demand pallet account on the RC.
@@ -789,7 +884,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 		// Check that all accounts have been processed correctly
 		let mut kept = 0;
 		for (who, acc_state) in RcAccounts::<T>::iter() {
-			match acc_state {
+			match &acc_state {
 				AccountState::Migrate => {
 					// Account should be fully migrated
 					// Assert storage "Balances::Account::rc_post::empty"
@@ -839,26 +934,23 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					kept += total_balance;
 				},
-				AccountState::Part { reserved } => {
-					// Account should have only the reserved amount
-					let total_balance = <T as Config>::Currency::total_balance(&who);
-					let free_balance = <T as Config>::Currency::reducible_balance(
-						&who,
-						Preservation::Expendable,
-						Fortitude::Polite,
-					);
-					let reserved_balance = reserved + <T as Config>::Currency::minimum_balance();
+				AccountState::Part { free, reserved, consumers } => {
 					assert_eq!(
-						free_balance, 0,
-						"Account {:?} should have no free balance on the relay chain after migration",
-						who.to_ss58check()
+						<T as Config>::Currency::reserved_balance(&who), *reserved,
+						"Incorrect reserve balance on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), acc_state
 					);
 
-					// Assert storage "Balances::Account::rc_post::empty"
 					assert_eq!(
-						total_balance, reserved_balance,
-						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
-						who.to_ss58check()
+						<T as Config>::Currency::balance(&who), *free,
+						"Incorrect free balance on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), acc_state
+					);
+
+					assert_eq!(
+						frame_system::Pallet::<T>::consumers(&who), *consumers,
+						"Incorrect consumer count on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), acc_state
 					);
 
 					// Assert storage "Balances::Locks::rc_post::empty"
@@ -885,7 +977,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 
-					kept += reserved;
+					kept += *reserved + *free;
 				},
 			}
 		}
