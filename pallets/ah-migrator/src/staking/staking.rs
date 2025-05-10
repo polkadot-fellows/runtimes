@@ -382,9 +382,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
     }
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
-        use sp_staking::{EraIndex, Page, SessionIndex, 
-            // SpanIndex,
-        };
+        use sp_staking::{EraIndex, Page, SessionIndex};
         use sp_runtime::{Perbill, Percent};
         use std::collections::{BTreeMap, HashSet};
         use frame_support::BoundedVec;
@@ -404,6 +402,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         type AhStakingValues<T> = pallet_rc_migrator::staking::message::AhStakingValuesOf<T>;
         type ActiveEraInfoAsync = pallet_staking_async::ActiveEraInfo;
         type ForcingAsync = pallet_staking_async::Forcing;
+        type SpanIndex = u32;
 
         let mut expected_values_opt: Option<AhStakingValues<T>> = None;
         let mut expected_active_era_opt: Option<pallet_staking_async::ActiveEraInfo> = None;
@@ -428,7 +427,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         let mut expected_validator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), (Perbill, Balance<T>)> = BTreeMap::new();
         let mut expected_nominator_slash_in_era: BTreeMap<(EraIndex, AccountId<T>), Balance<T>> = BTreeMap::new();
         let mut expected_slashing_spans: BTreeMap<AccountId<T>, SlashingSpansAsync> = BTreeMap::new();
-    //     let mut expected_span_slash: BTreeMap<(AccountId<T>, SpanIndex), SpanRecordAsync<T>> = BTreeMap::new();
+        let mut expected_span_slash: BTreeMap<(AccountId<T>, SpanIndex), SpanRecordAsync<T>> = BTreeMap::new();
 
         for rc_message in rc_pre_payload {
             let ah_message = T::RcStakingMessage::intoAh(rc_message);
@@ -462,7 +461,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
                 ValidatorSlashInEra { era, validator, slash } => { expected_validator_slash_in_era.insert((era, validator.clone()), slash); },
                 NominatorSlashInEra { era, validator, slash } => { expected_nominator_slash_in_era.insert((era, validator.clone()), slash); },
                 SlashingSpans { account, spans } => { expected_slashing_spans.insert(account, spans); },
-    //            SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
+                SpanSlash { account, span, slash } => { expected_span_slash.insert((account, span), slash); },
                 _ => todo!(), // Spanslash removed from master branch, remove for now
             }
         }
@@ -551,9 +550,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::length'"
         assert_eq!(pallet_staking_async::ErasStakersPaged::<T>::iter_keys().count(), expected_eras_stakers_paged.len(), "StakingAsync::ErasStakersPaged map length mismatch on AH post-migration");
         // "Assert storage 'StakingAsync::ErasStakersPaged::ah_post::correct'"
-        let current_eras_stakers_paged = pallet_staking_async::ErasStakersPaged::<T>::iter()
-            // .map(|(key, v_bounded)| (key, v_bounded))
-            .collect::<BTreeMap<_,_>>();
+        let current_eras_stakers_paged = pallet_staking_async::ErasStakersPaged::<T>::iter().collect::<BTreeMap<_,_>>();
         assert_eq!(current_eras_stakers_paged, expected_eras_stakers_paged, "StakingAsync::ErasStakersPaged map content mismatch on AH post-migration");
 
         // "Assert storage 'StakingAsync::ErasClaimedRewards::ah_post::length'"
@@ -579,38 +576,38 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         // "Assert storage 'StakingAsync::ErasRewardPoints::ah_post::correct'"
         assert_eq!(pallet_staking_async::ErasRewardPoints::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_reward_points, "StakingAsync::ErasRewardPoints map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter_keys().count(), expected_eras_total_stake.len(), "StakingAsync::ErasTotalStake map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_total_stake, "StakingAsync::ErasTotalStake map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::length'"
+        assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter_keys().count(), expected_eras_total_stake.len(), "StakingAsync::ErasTotalStake map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ErasTotalStake::ah_post::correct'"
+        assert_eq!(pallet_staking_async::ErasTotalStake::<T>::iter().collect::<BTreeMap<_,_>>(), expected_eras_total_stake, "StakingAsync::ErasTotalStake map content mismatch on AH post-migration");
         
-    //     // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::UnappliedSlashes::<T>::iter_keys().count(), expected_unapplied_slashes.len(), "StakingAsync::UnappliedSlashes map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::correct'"
-    //     let current_unapplied_slashes = pallet_staking_async::UnappliedSlashes::<T>::iter()
-    //         .map(|(k1_era, k2_tuple, v_slash)| ((k1_era, k2_tuple), v_slash))
-    //         .collect::<BTreeMap<_,_>>();
-    //     assert_eq!(current_unapplied_slashes, expected_unapplied_slashes, "StakingAsync::UnappliedSlashes map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::length'"
+        assert_eq!(pallet_staking_async::UnappliedSlashes::<T>::iter_keys().count(), expected_unapplied_slashes.len(), "StakingAsync::UnappliedSlashes map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::UnappliedSlashes::ah_post::correct'"
+        let current_unapplied_slashes = pallet_staking_async::UnappliedSlashes::<T>::iter()
+            .map(|(k1_era, k2_tuple, v_slash)| ((k1_era, k2_tuple), v_slash))
+            .collect::<BTreeMap<_,_>>();
+        assert_eq!(current_unapplied_slashes, expected_unapplied_slashes, "StakingAsync::UnappliedSlashes map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter_keys().count(), expected_validator_slash_in_era.len(), "StakingAsync::ValidatorSlashInEra map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter().collect::<BTreeMap<_,_>>(), expected_validator_slash_in_era, "StakingAsync::ValidatorSlashInEra map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::length'"
+        assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter_keys().count(), expected_validator_slash_in_era.len(), "StakingAsync::ValidatorSlashInEra map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::ValidatorSlashInEra::ah_post::correct'"
+        assert_eq!(pallet_staking_async::ValidatorSlashInEra::<T>::iter().map(|(era, account, slash)| ((era, account), slash)).collect::<BTreeMap<_,_>>(), expected_validator_slash_in_era, "StakingAsync::ValidatorSlashInEra map content mismatch on AH post-migration");
 
-    //     // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter_keys().count(), expected_nominator_slash_in_era.len(), "StakingAsync::NominatorSlashInEra map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter().collect::<BTreeMap<_,_>>(), expected_nominator_slash_in_era, "StakingAsync::NominatorSlashInEra map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::length'"
+        assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter_keys().count(), expected_nominator_slash_in_era.len(), "StakingAsync::NominatorSlashInEra map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::NominatorSlashInEra::ah_post::correct'"
+        assert_eq!(pallet_staking_async::NominatorSlashInEra::<T>::iter().map(|(era, account, balance)| ((era, account), balance)).collect::<BTreeMap<_,_>>(), expected_nominator_slash_in_era, "StakingAsync::NominatorSlashInEra map content mismatch on AH post-migration");
 
-    // SlashSpans gone in latest polkadot-sdk master branch
-    // //     // "Assert storage 'StakingAsync::SlashingSpans::ah_post::length'"
-    // //     assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter_keys().count(), expected_slashing_spans.len(), "StakingAsync::SlashingSpans map length mismatch on AH post-migration");
-    // //     // "Assert storage 'StakingAsync::SlashingSpans::ah_post::correct'"
-    // //     assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter().collect::<BTreeMap<_,_>>(), expected_slashing_spans, "StakingAsync::SlashingSpans map content mismatch on AH post-migration");
+        // SlashSpans gone in latest polkadot-sdk master branch
+        // "Assert storage 'StakingAsync::SlashingSpans::ah_post::length'"
+        assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter_keys().count(), expected_slashing_spans.len(), "StakingAsync::SlashingSpans map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::SlashingSpans::ah_post::correct'"
+        assert_eq!(pallet_staking_async::SlashingSpans::<T>::iter().collect::<BTreeMap<_,_>>(), expected_slashing_spans, "StakingAsync::SlashingSpans map content mismatch on AH post-migration");
         
-    //     // "Assert storage 'StakingAsync::SpanSlash::ah_post::length'"
-    //     assert_eq!(pallet_staking_async::SpanSlash::<T>::iter_keys().count(), expected_span_slash.len(), "StakingAsync::SpanSlash map length mismatch on AH post-migration");
-    //     // "Assert storage 'StakingAsync::SpanSlash::ah_post::correct'"
-    //     assert_eq!(pallet_staking_async::SpanSlash::<T>::iter().collect::<BTreeMap<_,_>>(), expected_span_slash, "StakingAsync::SpanSlash map content mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::SpanSlash::ah_post::length'"
+        assert_eq!(pallet_staking_async::SpanSlash::<T>::iter_keys().count(), expected_span_slash.len(), "StakingAsync::SpanSlash map length mismatch on AH post-migration");
+        // "Assert storage 'StakingAsync::SpanSlash::ah_post::correct'"
+        assert_eq!(pallet_staking_async::SpanSlash::<T>::iter().collect::<BTreeMap<_,_>>(), expected_span_slash, "StakingAsync::SpanSlash map content mismatch on AH post-migration");
     }
 }
