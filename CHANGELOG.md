@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Correct weights for pallet xcm's `transfer_asset` extrinsic for multiple chains ([polkadot-fellows/runtimes#673](https://github.com/polkadot-fellows/runtimes/pull/673))
 - Snowbridge: Update transfer token gas and fee ([polkadot-fellows/runtimes#721](https://github.com/polkadot-fellows/runtimes/pull/721))
 
+### Added
+
+- The Secretary Program ([polkadot-fellows/runtimes#347](https://github.com/polkadot-fellows/runtimes/pull/347))
+
 ## [1.5.0] 22.04.2025
 
 ### Added
@@ -82,7 +86,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hubs: added an AssetExchanger to be able to swap tokens using the xcm executor, even for delivery fees ([polkadot-fellows/runtimes#539](https://github.com/polkadot-fellows/runtimes/pull/539)).
 - Location conversion tests for relays and parachains ([polkadot-fellows/runtimes#487](https://github.com/polkadot-fellows/runtimes/pull/487))
 - Asset Hubs: XcmPaymentApi now returns all assets in a pool with the native token as acceptable as fee payment ([polkadot-fellows/runtimes#523](https://github.com/polkadot-fellows/runtimes/pull/523))
-
 - ParaRegistration proxy for Polkadot and Kusama ([polkadot-fellows/runtimes#520](https://github.com/polkadot-fellows/runtimes/pull/520))
 - Encointer: Swap community currency for KSM from community treasuries subject to democratic decision on allowance ([polkadot-fellows/runtimes#541](https://github.com/polkadot-fellows/runtimes/pull/541))
 - Delegate stake pools in Kusama ([polkadot-fellows/runtimes#540](https://github.com/polkadot-fellows/runtimes/pull/540))
