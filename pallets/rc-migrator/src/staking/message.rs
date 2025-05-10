@@ -23,14 +23,13 @@ use crate::{
 	*,
 };
 use alloc::collections::BTreeMap;
-use codec::{EncodeLike, HasCompact};
+use codec::HasCompact;
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
 use frame_support::traits::DefensiveTruncateInto;
 use pallet_staking::{
-	slashing::{SlashingSpans, SpanIndex, SpanRecord},
-	ActiveEraInfo, EraRewardPoints, Forcing, Nominations, RewardDestination, StakingLedger,
-	ValidatorPrefs,
+	slashing::SpanIndex,
+	ActiveEraInfo, Forcing,
 };
 use sp_runtime::{Perbill, Percent};
 use sp_staking::{EraIndex, ExposurePage, Page, PagedExposureMetadata, SessionIndex};

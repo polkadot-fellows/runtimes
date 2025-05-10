@@ -17,7 +17,6 @@
 //! Pallet staking migration.
 
 use crate::*;
-use frame_support::traits::DefensiveTruncateInto;
 use sp_runtime::Perbill;
 
 impl<T: Config> Pallet<T> {
@@ -383,7 +382,7 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
         use sp_staking::{EraIndex, Page, SessionIndex};
-        use sp_runtime::{Perbill, Percent};
+        use sp_runtime::Perbill;
         use std::collections::{BTreeMap, HashSet};
         use frame_support::BoundedVec;
 
@@ -405,8 +404,8 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         type SpanIndex = u32;
 
         let mut expected_values_opt: Option<AhStakingValues<T>> = None;
-        let mut expected_active_era_opt: Option<pallet_staking_async::ActiveEraInfo> = None;
-        let mut expected_force_era_opt: Option<pallet_staking_async::Forcing> = None;
+        let mut expected_active_era_opt: Option<ActiveEraInfoAsync> = None;
+        let mut expected_force_era_opt: Option<ForcingAsync> = None;
         let mut expected_invulnerables: Vec<AccountId<T>> = Vec::new();
         let mut expected_bonded: BTreeMap<AccountId<T>, AccountId<T>> = BTreeMap::new();
         let mut expected_ledger: BTreeMap<AccountId<T>, StakingLedgerAsync<T>> = BTreeMap::new();
@@ -414,7 +413,6 @@ impl<T: Config> crate::types::AhMigrationCheck for pallet_rc_migrator::staking::
         let mut expected_validators: BTreeMap<AccountId<T>, ValidatorPrefsAsync> = BTreeMap::new();
         let mut expected_nominators: BTreeMap<AccountId<T>, NominationsAsync<T>> = BTreeMap::new();
         let mut expected_virtual_stakers: HashSet<AccountId<T>> = HashSet::new();
-        let mut expected_eras_start_session_index: BTreeMap<EraIndex, SessionIndex> = BTreeMap::new();
         let mut expected_eras_stakers_overview: BTreeMap<(EraIndex, AccountId<T>), PagedExposureMetadataAsync<T>> = BTreeMap::new();
         let mut expected_eras_stakers_paged: BTreeMap<(EraIndex, AccountId<T>, Page), ExposurePageAsync<T>> = BTreeMap::new();
         let mut expected_claimed_rewards: BTreeMap<(EraIndex, AccountId<T>), Vec<Page>> = BTreeMap::new();
