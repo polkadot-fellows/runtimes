@@ -88,13 +88,14 @@ type RcChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
+	RcWestendChecks,
 	RcPolkadotChecks,
-	// other checks go here (if available on Polkadot, Kusama and Westend)
+	// other checks go here (if available on Polkadot, Kusama and Westend).
 	ProxyBasicWorks,
 	MultisigStillWork,
 );
 
-// Checks that are specific to Polkadot, and not available on other chains (like Westend)
+// Checks that are specific to Polkadot, and not available on other chains (like Westend).
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
@@ -106,6 +107,13 @@ pub type RcPolkadotChecks = (
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type RcPolkadotChecks = ();
+
+// Checks that are specific to Westend, and not available on other chains (like Polkadot).
+#[cfg(feature = "ahm-westend")]
+pub type RcWestendChecks = (pallet_rc_migrator::staking::staking::StakingMigrator<Polkadot>,);
+
+#[cfg(not(feature = "ahm-westend"))]
+pub type RcWestendChecks = ();
 
 type AhChecks = (
 	SanityChecks,
@@ -126,14 +134,15 @@ type AhChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
+	AhWestendChecks,
 	AhPolkadotChecks,
-	// other checks go here (if available on Polkadot, Kusama and Westend)
+	// other checks go here (if available on Polkadot, Kusama and Westend).
 	ProxyBasicWorks,
 	MultisigStillWork,
 );
 
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
-// (like AH Westend)
+// (like AH Westend).
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
@@ -145,6 +154,14 @@ pub type AhPolkadotChecks = (
 
 #[cfg(not(feature = "ahm-polkadot"))]
 pub type AhPolkadotChecks = ();
+
+// Checks that are specific to Asset Hub Migration on Westend, and not available on other chains
+// (like AH Polkadot).
+#[cfg(feature = "ahm-westend")]
+pub type AhWestendChecks = (pallet_rc_migrator::staking::staking::StakingMigrator<AssetHub>,);
+
+#[cfg(not(feature = "ahm-westend"))]
+pub type AhWestendChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
