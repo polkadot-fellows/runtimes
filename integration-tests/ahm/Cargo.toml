@@ -57,7 +57,7 @@ rand = { workspace = true, default-feature = true }
 # testnet-parachains-constants = { workspace = true } # Only on westend
 
 [features]
-default = ["ahm-polkadot", "std", "ahm-staking-migration"]
+default = ["ahm-polkadot", "std"]
 std = [
 	"cumulus-pallet-parachain-system/std",
 	"frame-benchmarking/std",
