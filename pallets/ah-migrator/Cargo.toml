@@ -34,7 +34,7 @@ pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
-pallet-staking = { workspace = true }
+pallet-staking = { workspace = true}
 pallet-state-trie-migration = { workspace = true }
 pallet-vesting = { workspace = true }
 pallet-treasury = { workspace = true }
@@ -50,7 +50,7 @@ sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-sp-staking = { workspace = true }
+sp-staking = { workspace = true, optional = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
 xcm = { workspace = true }
@@ -198,4 +198,5 @@ stable2503 = [
 ]
 ahm-staking-migration = [
 	"pallet-rc-migrator/ahm-staking-migration",
+	"dep:sp-staking"
 ]
