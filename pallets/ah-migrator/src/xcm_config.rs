@@ -19,8 +19,10 @@
 use crate::PhantomData;
 use assets_common::matching::{FromSiblingParachain, IsForeignConcreteAsset, ParentLocation};
 use cumulus_primitives_core::ParaId;
-use frame_support::parameter_types;
-use frame_support::traits::{Contains, ContainsPair, Equals, ProcessMessageError, TypedGet};
+use frame_support::{
+	parameter_types,
+	traits::{Contains, ContainsPair, Equals, ProcessMessageError, TypedGet},
+};
 use pallet_rc_migrator::types::MigrationStatus;
 use parachains_common::xcm_config::ConcreteAssetFromSystem;
 use sp_runtime::{traits::Get, AccountId32};
@@ -118,8 +120,10 @@ pub mod common {
 }
 
 mod before {
-	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
-	use super::*;
+	use super::{
+		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities},
+		*,
+	};
 
 	parameter_types! {
 		pub RelayTreasuryLocation: Location =
@@ -158,16 +162,18 @@ mod before {
 }
 
 mod after {
-	use super::common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities};
-	use super::*;
+	use super::{
+		common::{AmbassadorEntities, AssetHubParaId, FellowshipEntities},
+		*,
+	};
 
 	/// For use in XCM Barriers: the locations listed below get free execution:
 	///
 	/// Parent, the Fellows plurality, AmbassadorEntities and sibling system parachains' root
 	/// get free execution.
 	pub type UnpaidExecutionAfter = AllowExplicitUnpaidExecutionFrom<(
-		// outside this pallet, when the `Runtime` type is available, the below can be replaced with
-		// `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
+		// outside this pallet, when the `Runtime` type is available, the below can be replaced
+		// with `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
 		Equals<ParentLocation>,
 		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		FellowshipEntities,
@@ -178,8 +184,8 @@ mod after {
 	///
 	/// We only waive fees for system functions, which these locations represent.
 	pub type WaivedLocationsAfter = (
-		// outside this pallet, when the `Runtime` type is available, the below can be replaced with
-		// `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
+		// outside this pallet, when the `Runtime` type is available, the below can be replaced
+		// with `RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>`
 		Equals<ParentLocation>,
 		IsSiblingSystemParachain<ParaId, AssetHubParaId>,
 		FellowshipEntities,

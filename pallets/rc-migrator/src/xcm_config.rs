@@ -17,10 +17,9 @@
 //! XCM configurations for the Relay Chain for the AHM migration.
 
 use crate::{types::MigrationStatus, PhantomData};
-use frame_support::traits::Contains;
 use frame_support::{
 	parameter_types,
-	traits::{ContainsPair, Equals},
+	traits::{Contains, ContainsPair, Equals},
 };
 use xcm::latest::prelude::*;
 use xcm_builder::Case;

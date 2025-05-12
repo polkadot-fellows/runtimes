@@ -339,9 +339,9 @@ impl<AccountId, BlockNumber, BagsListScore, VotingClass, AssetKind, SchedulerBlo
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(
 			self,
-			MigrationStage::Pending
-				| MigrationStage::Scheduled { .. }
-				| MigrationStage::MigrationDone
+			MigrationStage::Pending |
+				MigrationStage::Scheduled { .. } |
+				MigrationStage::MigrationDone
 		)
 	}
 }
