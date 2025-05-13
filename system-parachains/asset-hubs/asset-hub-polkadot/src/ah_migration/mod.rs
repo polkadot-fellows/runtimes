@@ -33,7 +33,7 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 	fn get() -> (AccountId, Vec<Location>) {
 		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
 		(
-			xcm_config::RelayTreasuryPalletAccount::get(),
+			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
 				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),

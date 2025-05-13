@@ -42,6 +42,7 @@ pallet-timestamp = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
+collectives-polkadot-runtime-constants = { workspace = true }
 runtime-parachains = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 serde = { features = ["derive"], optional = true, workspace = true }
