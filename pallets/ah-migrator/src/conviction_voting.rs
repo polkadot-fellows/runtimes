@@ -108,8 +108,17 @@ impl<T: Config> crate::types::AhMigrationCheck for ConvictionVotingMigrator<T> {
 				.push(RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class));
 		}
 
+		// Assert storage "ConvictionVoting::VotingFor::ah_post::length"
+		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::length"
+		assert_eq!(
+            rc_pre_payload.len(), ah_messages.len(),
+            "Conviction voting length mismatch: Asset Hub length differs from original Relay Chain data"
+        );
+
 		// Assert storage "ConvictionVoting::VotingFor::ah_post::correct"
+		// Assert storage "ConvictionVoting::VotingFor::ah_post::consistent"
 		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::correct"
+		// Assert storage "ConvictionVoting::ClassLocksFor::ah_post::consistent"
 		assert_eq!(
             rc_pre_payload, ah_messages,
             "Conviction voting data mismatch: Asset Hub data differs from original Relay Chain data"

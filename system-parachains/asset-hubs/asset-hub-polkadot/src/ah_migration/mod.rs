@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod call_filter;
+
 use super::*;
 use codec::DecodeAll;
 use frame_support::pallet_prelude::{PalletInfoAccess, TypeInfo};
@@ -47,7 +49,7 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 }
 
 /// Relay Chain Hold Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
@@ -64,7 +66,7 @@ impl Default for RcHoldReason {
 }
 
 /// Relay Chain Freeze Reason
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum RcFreezeReason {
 	#[codec(index = 39u8)]
 	NominationPools(pallet_nomination_pools::FreezeReason),
@@ -96,36 +98,22 @@ impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
 	}
 }
 
-/// Relay Chain Proxy Type
-///
-/// Coped from https://github.com/polkadot-fellows/runtimes/blob/dde99603d7dbd6b8bf541d57eb30d9c07a4fce32/relay/polkadot/src/lib.rs#L986-L1010
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Default)]
-pub enum RcProxyType {
-	#[default]
-	Any = 0,
-	NonTransfer = 1,
-	Governance = 2,
-	Staking = 3,
-	// Skip 4 as it is now removed (was SudoBalances)
-	// Skip 5 as it was IdentityJudgement
-	CancelProxy = 6,
-	Auction = 7,
-	NominationPools = 8,
-	ParaRegistration = 9,
-}
+pub type RcProxyType = polkadot_runtime_constants::proxy::ProxyType;
 
 pub struct RcToProxyType;
 impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 	fn try_convert(p: RcProxyType) -> Result<ProxyType, RcProxyType> {
+		use polkadot_runtime_constants::proxy::ProxyType::*;
+
 		match p {
-			RcProxyType::Any => Ok(ProxyType::Any),
-			RcProxyType::NonTransfer => Ok(ProxyType::NonTransfer),
-			RcProxyType::Governance => Ok(ProxyType::Governance),
-			RcProxyType::Staking => Ok(ProxyType::Staking),
-			RcProxyType::CancelProxy => Ok(ProxyType::CancelProxy),
-			RcProxyType::Auction => Err(p), // Does not exist on AH
-			RcProxyType::NominationPools => Ok(ProxyType::NominationPools),
-			RcProxyType::ParaRegistration => Err(p), // Does not exist on AH
+			Any => Ok(ProxyType::Any),
+			NonTransfer => Ok(ProxyType::NonTransfer),
+			Governance => Ok(ProxyType::Governance),
+			Staking => Ok(ProxyType::Staking),
+			CancelProxy => Ok(ProxyType::CancelProxy),
+			Auction => Err(p), // Does not exist on PAH
+			NominationPools => Ok(ProxyType::NominationPools),
+			ParaRegistration => Err(p), // Does not exist on PAH
 		}
 	}
 }
@@ -153,6 +141,12 @@ pub enum RcPalletsOrigin {
 	Origins(pallet_custom_origins::Origin),
 }
 
+impl Default for RcPalletsOrigin {
+	fn default() -> Self {
+		RcPalletsOrigin::system(frame_system::Origin::<Runtime>::Root)
+	}
+}
+
 /// Convert a Relay Chain origin to an Asset Hub one.
 pub struct RcToAhPalletsOrigin;
 impl TryConvert<RcPalletsOrigin, OriginCaller> for RcToAhPalletsOrigin {
@@ -170,7 +164,8 @@ pub enum RcRuntimeCall {
 	// TODO: variant set code for Relay Chain
 	// TODO: variant set code for Parachains
 	// TODO: whitelisted caller
-	// TODO: remark
+	#[codec(index = 0u8)]
+	System(frame_system::Call<Runtime>),
 	#[codec(index = 19u8)]
 	Treasury(RcTreasuryCall),
 	#[codec(index = 21u8)]
@@ -256,6 +251,17 @@ impl<'a> TryConvert<&'a [u8], RuntimeCall> for RcToAhCall {
 impl RcToAhCall {
 	fn map(rc_call: RcRuntimeCall) -> Result<RuntimeCall, ()> {
 		match rc_call {
+			RcRuntimeCall::System(inner_call) => {
+				let call =
+					inner_call.using_encoded(|mut e| Decode::decode(&mut e)).map_err(|err| {
+						log::error!(
+							target: LOG_TARGET,
+							"Failed to decode RC Bounties call to AH System call: {:?}",
+							err
+						);
+					})?;
+				Ok(RuntimeCall::System(call))
+			},
 			RcRuntimeCall::Utility(RcUtilityCall::dispatch_as { as_origin, call }) => {
 				let origin = RcToAhPalletsOrigin::try_convert(*as_origin).map_err(|err| {
 					log::error!(

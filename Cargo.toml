@@ -192,7 +192,7 @@ polkadot-core-primitives = { version = "15.0.0", default-features = false }
 polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
 polkadot-parachain-primitives = { version = "14.0.0", default-features = false }
 polkadot-primitives = { version = "16.0.0", default-features = false }
-polkadot-runtime = { path = "relay/polkadot" }
+polkadot-runtime = { path = "relay/polkadot", default-features = false }
 polkadot-runtime-common = { version = "17.0.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
@@ -261,6 +261,7 @@ zombienet-sdk = { version = "0.2.4" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
+rand = { version = "0.9.1", default-features = false }
 pallets-common = { path = "pallets/common", default-features = false }
 
 [workspace]
@@ -330,7 +331,7 @@ members = [
 panic = "unwind"
 opt-level = 3
 # AHM: FAIL-CI
-# debug-assertions = true # TODO
+# debug-assertions = true
 overflow-checks = true
 
 [profile.production]

@@ -23,59 +23,31 @@
 //! yet, they are here. This test is also very simple, it is not generic and just uses the Runtime
 //! types directly.
 
-use frame_support::{pallet_prelude::*, traits::Currency};
+use super::Permission;
+use crate::porting_prelude::*;
+
+use frame_support::{
+	pallet_prelude::*,
+	traits::{Currency, Defensive},
+};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
 use sp_runtime::{
-	traits::{Convert, Dispatchable},
+	traits::{Dispatchable, TryConvert},
 	AccountId32,
 };
 use std::{collections::BTreeMap, str::FromStr};
 
-// toggle here if you need "generics" for Kusama or Westend
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;
-
-/// Intent based permission.
-///
-/// Should be a superset of all possible proxy types.
-#[derive(Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum Permission {
-	Any,
-	NonTransfer,
-	Governance,
-	Staking,
-	CancelProxy,
-	Auction,
-	NominationPools,
-	ParaRegistration,
-}
-
-// Implementation for the Polkadot runtime. Will need more for Kusama and Westend in the future.
-impl Convert<polkadot_runtime_constants::proxy::ProxyType, Permission> for Permission {
-	fn convert(proxy: polkadot_runtime_constants::proxy::ProxyType) -> Self {
-		use polkadot_runtime_constants::proxy::ProxyType::*;
-
-		match proxy {
-			Any => Permission::Any,
-			NonTransfer => Permission::NonTransfer,
-			Governance => Permission::Governance,
-			Staking => Permission::Staking,
-			CancelProxy => Permission::CancelProxy,
-			Auction => Permission::Auction,
-			NominationPools => Permission::NominationPools,
-			ParaRegistration => Permission::ParaRegistration,
-		}
-	}
-}
 
 /// Proxy accounts can still be controlled by their delegates with the correct permissions.
 ///
 /// This tests the actual functionality, not the raw data. It does so by dispatching calls from the
 /// delegatee account on behalf of the delegator. It then checks for whether or not the correct
 /// events were emitted.
-pub struct ProxiesStillWork;
+pub struct ProxyBasicWorks;
 
 /// An account that has some delegatees set to control it.
 ///
@@ -96,7 +68,7 @@ pub struct Proxy {
 /// Map of (Delegatee, Delegator) to Vec<Permissions>
 type PureProxies = BTreeMap<(AccountId32, AccountId32), Vec<Permission>>;
 
-impl RcMigrationCheck for ProxiesStillWork {
+impl RcMigrationCheck for ProxyBasicWorks {
 	type RcPrePayload = PureProxies;
 
 	fn pre_check() -> Self::RcPrePayload {
@@ -104,7 +76,26 @@ impl RcMigrationCheck for ProxiesStillWork {
 
 		for (delegator, (proxies, _deposit)) in pallet_proxy::Proxies::<RelayRuntime>::iter() {
 			for proxy in proxies.into_iter() {
-				let permission = Permission::convert(proxy.proxy_type.0);
+				#[cfg(not(feature = "ahm-westend"))]
+				let inner = proxy.proxy_type.0;
+				#[cfg(feature = "ahm-westend")] // Westend does not have remote proxies
+				let inner = proxy.proxy_type;
+
+				let permission = match Permission::try_convert(inner) {
+					Ok(permission) => permission,
+					Err(e) => {
+						#[cfg(feature = "ahm-westend")]
+						if inner == westend_runtime::ProxyType::IdentityJudgement ||
+							inner == westend_runtime::ProxyType::SudoBalances
+						{
+							// These cannot be converted currently TODO
+							continue;
+						}
+
+						defensive!("Proxy could not be converted: {:?}", e);
+						continue;
+					},
+				};
 				pre_payload
 					.entry((proxy.delegate, delegator.clone()))
 					.or_insert_with(Vec::new)
@@ -115,12 +106,10 @@ impl RcMigrationCheck for ProxiesStillWork {
 		pre_payload
 	}
 
-	fn post_check(_: Self::RcPrePayload) {
-		()
-	}
+	fn post_check(_: Self::RcPrePayload) {}
 }
 
-impl AhMigrationCheck for ProxiesStillWork {
+impl AhMigrationCheck for ProxyBasicWorks {
 	type RcPrePayload = PureProxies;
 	type AhPrePayload = ();
 
@@ -154,16 +143,16 @@ impl AhMigrationCheck for ProxiesStillWork {
 	}
 }
 
-impl ProxiesStillWork {
-	fn check_proxy(
+impl ProxyBasicWorks {
+	pub fn check_proxy(
 		delegatee: &AccountId32,
 		delegator: &AccountId32,
 		permissions: &Vec<Permission>,
 		delay: BlockNumberFor<AssetHubRuntime>,
 	) {
 		if delay > 0 {
-			log::warn!(
-				"Skipping proxy delegatee {:?} -> {:?} because of delay: {:?}",
+			log::debug!(
+				"Not testing proxy delegatee {:?} -> {:?} because of delay: {:?}",
 				delegator.to_polkadot_ss58(),
 				delegatee.to_polkadot_ss58(),
 				delay
@@ -186,38 +175,43 @@ impl ProxiesStillWork {
 		}
 
 		let allowed_transfer = permissions.contains(&Permission::Any);
-		let allowed_governance = permissions.contains(&Permission::Any) ||
-			permissions.contains(&Permission::NonTransfer) ||
-			permissions.contains(&Permission::Governance);
 
 		if allowed_transfer {
-			assert!(Self::can_transfer(delegatee, delegator), "`Any` can transfer");
+			assert!(Self::can_transfer(delegatee, delegator, true), "`Any` can transfer");
 		} else {
-			assert!(!Self::can_transfer(delegatee, delegator), "Only `Any` can transfer");
+			assert!(!Self::can_transfer(delegatee, delegator, false), "Only `Any` can transfer");
 		}
 
-		if allowed_governance {
-			assert!(
-				Self::can_governance(delegatee, delegator),
-				"`Any`, `NonTransfer`, or `Governance` can do governance"
-			);
-		} else {
-			assert!(
-				!Self::can_governance(delegatee, delegator),
-				"Only `Any`, `NonTransfer`, or `Governance` can do governance"
-			);
+		#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
+		{
+			let allowed_governance = permissions.contains(&Permission::Any) ||
+				permissions.contains(&Permission::NonTransfer) ||
+				permissions.contains(&Permission::Governance);
+			if allowed_governance {
+				assert!(
+					Self::can_governance(delegatee, delegator, true),
+					"`Any`, `NonTransfer`, or `Governance` can do governance"
+				);
+			} else {
+				assert!(
+					!Self::can_governance(delegatee, delegator, false),
+					"Only `Any`, `NonTransfer`, or `Governance` can do governance, permissions: {:?}",
+					permissions
+				);
+			}
 		}
 
 		// TODO add staking etc
 
 		// Alice cannot transfer
-		assert!(!Self::can_transfer(&alice, &delegator), "Alice cannot transfer");
+		assert!(!Self::can_transfer(&alice, &delegator, false), "Alice cannot transfer");
 		// Alice cannot do governance
-		assert!(!Self::can_governance(&alice, &delegator), "Alice cannot do governance");
+		#[cfg(not(feature = "ahm-westend"))]
+		assert!(!Self::can_governance(&alice, &delegator, false), "Alice cannot do governance");
 	}
 
 	/// Check that the `delegatee` can transfer balances on behalf of the `delegator`.
-	fn can_transfer(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
+	fn can_transfer(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
 		frame_support::hypothetically!({
 			let ed = Self::fund_accounts(delegatee, delegator);
 
@@ -234,11 +228,13 @@ impl ProxiesStillWork {
 				call: Box::new(transfer),
 			}
 			.into();
+			let hint = if hint { " (it should)" } else { " (it should not)" };
 
 			log::debug!(
-				"Checking whether {:?} can transfer on behalf of {:?}",
+				"Checking whether {:?} can transfer on behalf of {:?}{}",
 				delegatee.to_polkadot_ss58(),
-				delegator.to_polkadot_ss58()
+				delegator.to_polkadot_ss58(),
+				hint
 			);
 
 			frame_system::Pallet::<AssetHubRuntime>::reset_events();
@@ -252,7 +248,8 @@ impl ProxiesStillWork {
 	/// Check that the `delegatee` can do governance on behalf of the `delegator`.
 	///
 	/// Currently only checks the `bounties::propose_bounty` call.
-	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32) -> bool {
+	#[cfg(not(feature = "ahm-westend"))] // Westend has no Governance
+	fn can_governance(delegatee: &AccountId32, delegator: &AccountId32, hint: bool) -> bool {
 		frame_support::hypothetically!({
 			Self::fund_accounts(delegatee, delegator);
 
@@ -267,10 +264,13 @@ impl ProxiesStillWork {
 			}
 			.into();
 
+			let hint = if hint { " (it should)" } else { " (it should not)" };
+
 			log::debug!(
-				"Checking whether {:?} can do governance on behalf of {:?}",
+				"Checking whether {:?} can do governance on behalf of {:?}{}",
 				delegatee.to_polkadot_ss58(),
-				delegator.to_polkadot_ss58()
+				delegator.to_polkadot_ss58(),
+				hint
 			);
 
 			frame_system::Pallet::<AssetHubRuntime>::reset_events();
@@ -315,6 +315,7 @@ impl ProxiesStillWork {
 	}
 
 	/// Check if there is a `BountyProposed` event.
+	#[cfg(not(feature = "ahm-westend"))]
 	fn find_bounty_event() -> bool {
 		for event in frame_system::Pallet::<AssetHubRuntime>::events() {
 			if let asset_hub_polkadot_runtime::RuntimeEvent::Bounties(

@@ -168,7 +168,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadot"),
 	impl_name: create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_004_001,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1008,6 +1008,12 @@ parameter_types! {
 )]
 pub struct TransparentProxyType<T>(pub T);
 
+impl Into<ProxyType> for TransparentProxyType<ProxyType> {
+	fn into(self) -> ProxyType {
+		self.0
+	}
+}
+
 impl<T: scale_info::TypeInfo> scale_info::TypeInfo for TransparentProxyType<T> {
 	type Identity = T::Identity;
 
@@ -1525,6 +1531,7 @@ parameter_types! {
 }
 
 impl pallet_rc_migrator::Config for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
 	type ManagerOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
@@ -1539,11 +1546,13 @@ impl pallet_rc_migrator::Config for Runtime {
 	type MaxRcWeight = RcMigratorMaxWeight;
 	type MaxAhWeight = AhMigratorMaxWeight;
 	type AhExistentialDeposit = AhExistentialDeposit;
-	// TODO: weights::pallet_rc_migrator::WeightInfo
-	type RcWeightInfo = ();
+	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
 	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
 	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
 	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
+	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
+	type OnDemandPalletId = OnDemandPalletId;
+	type UnprocessedMsgBuffer = ConstU32<5>;
 }
 
 #[cfg(not(feature = "zombie-bite-sudo"))]
@@ -2214,6 +2223,7 @@ mod benches {
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
+		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]

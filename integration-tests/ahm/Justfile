@@ -1,0 +1,114 @@
+# Print help
+help:
+	@just --list
+
+snapshot RUNTIME:
+	#!/usr/bin/env bash
+	set -ex
+
+	# Check if {{RUNTIME}}.snap and ah-{{RUNTIME}}.snap exist, otherwise download
+	if [ ! -f {{RUNTIME}}.snap ]; then
+		echo "Downloading {{RUNTIME}}.snap"
+		curl -sL 'https://tasty.limo/uploads/{{RUNTIME}}.snap.lz4' -o {{RUNTIME}}.snap.lz4
+		echo "Decompressing {{RUNTIME}}.snap.lz4"
+		lz4 -d {{RUNTIME}}.snap.lz4 {{RUNTIME}}.snap
+	else
+		echo "{{RUNTIME}}.snap already exists"
+	fi
+
+	if [ ! -f ah-{{RUNTIME}}.snap ]; then
+		echo "Downloading ah-{{RUNTIME}}.snap"
+		curl -sL 'https://tasty.limo/uploads/ah-{{RUNTIME}}.snap.lz4' -o ah-{{RUNTIME}}.snap.lz4
+		echo "Decompressing ah-{{RUNTIME}}.snap.lz4"
+		lz4 -d ah-{{RUNTIME}}.snap.lz4 ah-{{RUNTIME}}.snap
+	else
+		echo "ah-{{RUNTIME}}.snap already exists"
+	fi
+	
+
+# Port the Asset Hub Migration Tests to another runtime (Westend or Kusama).
+# Will assume runtime.snap and ah-runtime.snap to be present in the root folder.
+# Example: just port westend cumulus/test/ahm
+port RUNTIME SDK FOLDER:
+	#!/usr/bin/env bash
+	set -e
+
+	just snapshot {{RUNTIME}}
+	export SNAP_RC="$PWD/{{RUNTIME}}.snap"
+	export SNAP_AH="$PWD/ah-{{RUNTIME}}.snap"
+
+	echo "Porting integration tests for {{RUNTIME}} to {{FOLDER}}"
+	rsync -a -v --ignore-existing ./ {{SDK}}/cumulus/test/ahm/ --exclude {{RUNTIME}}.snap --exclude ah-{{RUNTIME}}.snap --exclude {{RUNTIME}}.snap.lz4 --exclude ah-{{RUNTIME}}.snap.lz4
+	rsync -a -v --ignore-existing ../../pallets/rc-migrator {{SDK}}/cumulus/pallets/
+	rsync -a -v --ignore-existing ../../pallets/ah-migrator {{SDK}}/cumulus/pallets/
+	rsync -a -v --ignore-existing ../../pallets/ah-ops {{SDK}}/cumulus/pallets/
+
+	# Add to workspace
+	perl -pi -e 's#members\s*=\s*\[#members = [\n\t"cumulus/pallets/rc-migrator",\n\t"cumulus/pallets/ah-migrator",\n\t"cumulus/test/ahm",\n\t"cumulus/pallets/ah-ops",#' {{SDK}}/Cargo.toml
+	perl -pi -e 's#\[workspace.dependencies\]#\[workspace.dependencies\]\npallet-rc-migrator = { path = "cumulus/pallets/rc-migrator", default-features = false }\npallet-ah-migrator = { path = "cumulus/pallets/ah-migrator", default-features = false }\npallet-ah-ops = { path = "cumulus/pallets/ah-ops", default-features = false }#' {{SDK}}/Cargo.toml
+
+	just test-cargo-toml-replaces {{SDK}}/cumulus/test/ahm {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-migrator {{RUNTIME}}
+	just test-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-ops {{RUNTIME}}
+
+	if [ "{{RUNTIME}}" = "westend" ]; then
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/test/ahm
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/rc-migrator
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-migrator
+		just sdk-cargo-toml-replaces {{SDK}}/cumulus/pallets/ah-ops
+		just code-substitute {{SDK}} westend
+	fi
+
+	cd {{SDK}}/{{FOLDER}}
+	cargo fetch
+	zepter
+
+	# Actually run the test
+	export SKIP_WASM_BUILD=1
+	export RUST_BACKTRACE=1
+	export RUST_LOG="warn"
+
+	cargo test -p polkadot-integration-tests-ahm --features "ahm-{{RUNTIME}}" --profile testnet -- --nocapture
+
+code-substitute SDK RUNTIME:
+	just code-substitute-pallet pallet_proxy {{SDK}}
+	just code-substitute-pallet pallet_bounties {{SDK}}
+	just code-substitute-pallet pallet_scheduler {{SDK}}
+	just code-substitute-pallet pallet_nomination_pools {{SDK}}
+	perl -pi -e 's/\+ pallet_referenda::Config</+ pallet_referenda::Config<BlockNumberProvider = frame_system::Pallet<Self>, /' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+	perl -pi -e 's/\+ pallet_referenda::Config</+ pallet_referenda::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider, /' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+
+	# Uncomment the "Only on {{RUNTIME}}" lines
+	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/rc-migrator/Cargo.toml
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/pallets/ah-migrator/Cargo.toml
+	perl -pi -e 's|^\s*#\s*|| if /\s*# Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/test/ahm/Cargo.toml
+	perl -pi -e 's|^\s*//\s*|| if /\s*\/\/ Only on {{RUNTIME}}\s*$/' {{SDK}}/cumulus/test/ahm/src/mock.rs
+	# Comment the "Not on {{RUNTIME}}" lines
+	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+	perl -i -pe 's|^|// | if /Not on {{RUNTIME}}/i' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+
+code-substitute-pallet PALLET SDK:
+	perl -pi -e 's/\+ {{PALLET}}::Config$/+ {{PALLET}}::Config<BlockNumberProvider = frame_system::Pallet<Self>>/' {{SDK}}/cumulus/pallets/rc-migrator/src/lib.rs
+	perl -pi -e 's/\+ {{PALLET}}::Config$/+ {{PALLET}}::Config<BlockNumberProvider = <Self as Config>::RcBlockNumberProvider>/' {{SDK}}/cumulus/pallets/ah-migrator/src/lib.rs
+
+test-cargo-toml-replaces FOLDER RUNTIME:
+	# Sed differs between Linux and MacOS, so we use the second most cursed tool:
+	perl -pi -e 's/^.*polkadot-runtime-constants\/runtime-benchmarks.*$//' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/asset-hub-polkadot-runtime/asset-hub-{{RUNTIME}}-runtime/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/^polkadot-runtime /{{RUNTIME}}-runtime /' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"polkadot-runtime\/runtime-benchmarks"/"{{RUNTIME}}-runtime\/runtime-benchmarks"/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/polkadot-runtime-constants/{{RUNTIME}}-runtime-constants/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/"polkadot-runtime\//"{{RUNTIME}}-runtime\//' {{FOLDER}}/Cargo.toml
+	# Toggle the default feature
+	perl -pi -e 's/"ahm-polkadot"/"ahm-{{RUNTIME}}"/' {{FOLDER}}/Cargo.toml
+
+# The runtimes repo renamed some dependencies that the SDK does not have renamed.
+sdk-cargo-toml-replaces FOLDER:
+	perl -pi -e 's/authority-discovery-primitives/sp-authority-discovery/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/babe-primitives/sp-consensus-babe/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/beefy-primitives/sp-consensus-beefy/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/grandpa/sp-consensus-grandpa/' {{FOLDER}}/Cargo.toml
+	perl -pi -e 's/runtime-parachains/polkadot-runtime-parachains/' {{FOLDER}}/Cargo.toml

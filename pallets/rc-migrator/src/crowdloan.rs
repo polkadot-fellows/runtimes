@@ -15,6 +15,7 @@
 
 use crate::{types::AccountIdOf, *};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
+use sp_std::collections::btree_map::BTreeMap;
 
 pub struct CrowdloanMigrator<T> {
 	_marker: sp_std::marker::PhantomData<T>,
@@ -79,6 +80,7 @@ pub type RcCrowdloanMessageOf<T> =
 	RcCrowdloanMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>;
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, RuntimeDebug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum CrowdloanStage {
 	Setup,
 	LeaseReserve { last_key: Option<ParaId> },
@@ -102,20 +104,28 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(CrowdloanStage::Setup);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+				.try_consume(T::DbWeight::get().reads_writes(2, 1))
+				.is_err() || weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
 					break;
 				}
 			}
-
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
 			if messages.len() > 10_000 {
 				log::warn!("Weight allowed very big batch, stopping");
 				break;
@@ -126,18 +136,19 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 					inner_key = CrowdloanStage::LeaseReserve { last_key: None };
 
 					// Only thing to do here is to re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
-					let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
-					if leases.is_empty() {
-						defensive!("Bifrost fund maybe already ended, remove this");
-						continue;
+					if cfg!(feature = "ahm-polkadot") {
+						let leases = pallet_slots::Leases::<T>::take(ParaId::from(2030));
+						if leases.is_empty() {
+							defensive!("Bifrost fund maybe already ended, remove this");
+							continue;
+						}
+
+						// It would be better if we can re-map all contributions to the new para id, but
+						// that requires to iterate them all, so we go the other way around; changing
+						// the leases to the old Bifrost Crowdloan.
+						pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
+						log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
 					}
-
-					// It would be better if we can re-map all contributions to the new para id, but
-					// that requires to iterate them all, so we go the other way around; changing
-					// the leases to the old Bifrost Crowdloan.
-					pallet_slots::Leases::<T>::insert(ParaId::from(3356), leases);
-					log::info!(target: LOG_TARGET, "Migrated Bifrost Leases from crowdloan 2030 to 3356");
-
 					inner_key
 				},
 				CrowdloanStage::LeaseReserve { last_key } => {
@@ -202,34 +213,40 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 
 					let mut contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
 
-					match contributions_iter.next() {
-						Some((contributor, (amount, memo))) => {
-							inner_key = CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) };
-							// Dont really care about memos, but we can add them, if needed.
-							if !memo.is_empty() {
-								log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
-							}
+					while let Some((contributor, (amount, memo))) = contributions_iter.next() {
+						if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() {
+							// we break in outer loop for simplicity, but still consume the weight.
+							log::info!("RC weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
 
-							let leases = pallet_slots::Leases::<T>::get(para_id);
-							if leases.is_empty() {
-								defensive_assert!(fund.raised == 0u32.into(), "Crowdloan should be empty if there are no leases");
-							}
+						if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_crowdloan_messages((messages.len() + 1) as u32)) {
+							// we break in outer loop for simplicity.
+							log::info!("AH weight limit reached at contributions withdrawal iteration: {}, continuing", messages.len());
+						}
 
-							let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
-							let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
+						// Dont really care about memos, but we can add them, if needed.
+						if !memo.is_empty() {
+							log::warn!(target: LOG_TARGET, "Discarding crowdloan memo of length: {}", &memo.len());
+						}
+
+						let leases = pallet_slots::Leases::<T>::get(para_id);
+						if leases.is_empty() {
+							defensive_assert!(fund.raised == 0u32.into(), "Crowdloan should be empty if there are no leases");
+						}
+
+						let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
+						let withdraw_block = num_leases_to_ending_block::<T>(leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable)?;
 							// We directly remove so that we dont have to store a cursor:
-							pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
+						pallet_crowdloan::Pallet::<T>::contribution_kill(fund.fund_index, &contributor);
 
-							log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
+						log::debug!(target: LOG_TARGET, "Migrating out crowdloan contribution for para_id: {:?}, contributor: {:?}, amount: {:?}, withdraw_block: {:?}", &para_id, &contributor, &amount, &withdraw_block);							
 
-							messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
-
-							inner_key // does not change since we deleted the contribution
-						},
-						None =>	CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) },
+						messages.push(RcCrowdloanMessage::CrowdloanContribution { withdraw_block, contributor, para_id, amount: amount.into(), crowdloan_account });
 					}
+					CrowdloanStage::CrowdloanContribution { last_key: Some(para_id) }
 				},
 				CrowdloanStage::CrowdloanReserve => {
+					// TODO: not much slower without last_key?
 					match pallet_crowdloan::Funds::<T>::iter().next() {
 						Some((para_id, fund)) => {
 							inner_key = CrowdloanStage::CrowdloanReserve;
@@ -258,7 +275,7 @@ impl<T: Config> PalletMigration for CrowdloanMigrator<T>
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveCrowdloanMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_crowdloan_messages(len),
 			)?;
 		}
 
@@ -298,4 +315,199 @@ pub fn num_leases_to_ending_block<T: Config>(num_leases: u32) -> Result<BlockNum
 		.and_then(|x| x.checked_add(&offset))
 		.ok_or(())?;
 	Ok(last_period_end_block)
+}
+
+#[derive(Debug, Clone)]
+pub enum PreCheckMessage<BlockNumber, AccountId, Balance> {
+	// LeaseReserve {
+	// 	unreserve_block: u32,
+	// 	account: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// },
+	// CrowdloanContribution {
+	// 	withdraw_block: u32,
+	// 	contributor: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// 	crowdloan_account: String,
+	// },
+	// CrowdloanReserve {
+	// 	unreserve_block: u32,
+	// 	depositor: String,
+	// 	para_id: u32,
+	// 	amount: u128,
+	// },
+	LeaseReserve {
+		unreserve_block: BlockNumber,
+		account: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+	},
+	CrowdloanContribution {
+		withdraw_block: BlockNumber,
+		contributor: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+		crowdloan_account: AccountId,
+	},
+	CrowdloanReserve {
+		unreserve_block: BlockNumber,
+		depositor: AccountId,
+		para_id: ParaId,
+		amount: Balance,
+	},
+}
+
+impl<T: Config> crate::types::RcMigrationCheck for CrowdloanMigrator<T>
+	where
+	crate::BalanceOf<T>:
+		From<<<T as polkadot_runtime_common::slots::Config>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+	crate::BalanceOf<T>:
+		From<<<<T as polkadot_runtime_common::crowdloan::Config>::Auctioneer as polkadot_runtime_common::traits::Auctioneer<<<<T as frame_system::Config>::Block as sp_runtime::traits::Block>::Header as sp_runtime::traits::Header>::Number>>::Currency as frame_support::traits::Currency<sp_runtime::AccountId32>>::Balance>,
+{
+	type RcPrePayload = Vec<PreCheckMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut all_messages = Vec::new();
+
+		// Process leases and store them for later use
+		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
+		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
+			// Stay consistent with migrate_many: remap for leases
+			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
+				ParaId::from(3356)
+			} else {
+				para_id
+			};
+
+			let Some(last_lease) = leases.last() else {
+				log::warn!(target: LOG_TARGET, "Empty leases for para_id: {:?}", para_id);
+				continue;
+			};
+			let Some((lease_acc, _)) = last_lease else {
+				continue;
+			};
+
+			let amount: crate::BalanceOf<T> = leases.iter()
+				.flatten()
+				.map(|(_acc, amount)| amount)
+				.max()
+				.cloned()
+				.unwrap_or_default()
+				.into();
+
+			if amount == 0u32.into() {
+				defensive_assert!(remapped_para_id < ParaId::from(2000), "Only system chains are allowed to have zero lease reserve");
+				continue;
+			}
+
+			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
+				.defensive()
+				.map_err(|_| Error::<T>::Unreachable)
+				.unwrap_or_default();
+
+			// Push the LeaseReserve message
+			all_messages.push(PreCheckMessage::LeaseReserve {
+				unreserve_block: block_number,
+				account: lease_acc.clone(),
+				para_id: remapped_para_id,
+				amount,
+			});
+
+			// Store the leases for later use
+			processed_leases.insert(remapped_para_id, leases);
+		}
+
+		// Process crowdloan funds and contributions
+		for (original_para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+			let para_id = if cfg!(feature = "ahm-polkadot") && original_para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
+				ParaId::from(3356)
+			} else {
+				original_para_id
+			};
+			// Use the leases we have already processed and remapped
+			let leases = processed_leases.get(&para_id)
+				.cloned()
+				.unwrap_or_default();
+			let block_number = num_leases_to_ending_block::<T>(leases.len() as u32)
+				.defensive()
+				.map_err(|_| Error::<T>::Unreachable)
+				.unwrap_or_default();
+
+			let reserve_leases = pallet_slots::Leases::<T>::get(original_para_id);
+			let unreserve_block = num_leases_to_ending_block::<T>(reserve_leases.len() as u32).defensive().map_err(|_| Error::<T>::Unreachable).unwrap_or_default();
+
+			let crowdloan_account = pallet_crowdloan::Pallet::<T>::fund_account_id(fund.fund_index);
+			let contributions_iter = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index);
+
+			for (contributor, (amount, _)) in contributions_iter {
+				all_messages.push(PreCheckMessage::CrowdloanContribution {
+					withdraw_block: block_number,
+					contributor,
+					para_id,
+					amount: amount.into(),
+					crowdloan_account: crowdloan_account.clone(),
+				});
+			}
+
+			if !reserve_leases.is_empty() {
+				all_messages.push(PreCheckMessage::CrowdloanReserve {
+					unreserve_block,
+					depositor: fund.depositor,
+					para_id,
+					amount: fund.deposit.into(),
+				});
+			}
+		}
+
+		all_messages
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		use sp_std::collections::btree_map::BTreeMap;
+
+		// Process leases first, similar to pre_check
+		let mut processed_leases: BTreeMap<ParaId, _> = BTreeMap::new();
+		for (para_id, leases) in pallet_slots::Leases::<T>::iter() {
+			// Remap Bifrost para_id consistently with pre_check
+			let remapped_para_id = if cfg!(feature = "ahm-polkadot") && para_id == ParaId::from(2030) {
+				// re-map the bifrost crowdloan: https://polkadot.subsquare.io/referenda/524
+				ParaId::from(3356)
+			} else {
+				para_id
+			};
+			processed_leases.insert(remapped_para_id, leases);
+		}
+
+		// Process crowdloan funds and their contributions
+		let mut crowdloan_data: BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>> = BTreeMap::new();
+		for (para_id, fund) in pallet_crowdloan::Funds::<T>::iter() {
+			// Collect all contributions for this fund
+			let contributions: Vec<_> = pallet_crowdloan::Pallet::<T>::contribution_iterator(fund.fund_index)
+				.map(|(contributor, (amount, _memo))| {
+					// We don't need to decode block numbers here since we just want to verify everything is empty
+					(BlockNumberFor::<T>::default(), contributor, amount.try_into().unwrap_or_default())
+				})
+				.collect();
+
+			if !contributions.is_empty() {
+				crowdloan_data.insert(para_id, contributions);
+			}
+		}
+
+		// Verify that all crowdloan data has been properly migrated
+		assert!(
+			crowdloan_data.is_empty(),
+			"Crowdloan contributions should be empty after migration"
+		);
+
+		// Assert storage "Crowdloan::Funds::rc_post::empty"
+		assert!(
+			pallet_crowdloan::Funds::<T>::iter().next().is_none(),
+			"pallet_crowdloan::Funds should be empty after migration"
+		);
+	}
 }

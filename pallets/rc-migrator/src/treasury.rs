@@ -19,6 +19,7 @@ use pallet_treasury::{Proposal, ProposalIndex, SpendIndex};
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, Default, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum TreasuryStage {
 	#[default]
 	ProposalCount,
@@ -36,6 +37,7 @@ pub enum TreasuryStage {
 
 /// Message that is being sent to the AH Migrator.
 #[derive(Encode, Decode, Debug, Clone, TypeInfo, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcTreasuryMessage<
 	AccountId,
 	Balance,
@@ -58,6 +60,7 @@ pub enum RcTreasuryMessage<
 	Funds,
 }
 
+#[cfg(not(feature = "ahm-westend"))]
 pub type RcTreasuryMessageOf<T> = RcTreasuryMessage<
 	<T as frame_system::Config>::AccountId,
 	pallet_treasury::BalanceOf<T, ()>,
@@ -81,13 +84,23 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(TreasuryStage::ProposalCount);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_treasury_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -166,7 +179,7 @@ impl<T: Config> PalletMigration for TreasuryMigrator<T> {
 			Pallet::<T>::send_chunked_xcm(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveTreasuryMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_treasury_messages(len),
 			)?;
 		}
 

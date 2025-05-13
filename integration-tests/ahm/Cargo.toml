@@ -1,6 +1,6 @@
 [package]
 name = "polkadot-integration-tests-ahm"
-version.workspace = true
+version = "0.1.0"                                                      # Wont work in the SDK otherwise
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
@@ -21,6 +21,7 @@ grandpa = { workspace = true }
 log = { workspace = true, default-features = true }
 pallet-rc-migrator = { workspace = true, default-features = true }
 pallet-ah-migrator = { workspace = true, default-features = true }
+pallet-ah-ops = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-indices = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
@@ -28,7 +29,7 @@ pallet-timestamp = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
-polkadot-runtime = { workspace = true }
+polkadot-runtime = { workspace = true, default-features = true }
 polkadot-runtime-common = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }
@@ -46,7 +47,68 @@ pallet-proxy = { workspace = true, default-features = true }
 sp-application-crypto = { workspace = true, default-features = true }
 xcm = { workspace = true, default-features = true }
 hex = { workspace = true }
+hex-literal = { workspace = true }
 pallet-whitelist = { workspace = true, default-features = true }
 pallet-bounties = { workspace = true, default-features = true }
 cumulus-pallet-parachain-system = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
+frame-benchmarking = { workspace = true }
+rand = { workspace = true, default-feature = true }
+# testnet-parachains-constants = { workspace = true } # Only on westend
+
+[features]
+default = ["ahm-polkadot", "std"]
+std = [
+	"cumulus-pallet-parachain-system/std",
+	"frame-benchmarking/std",
+	"hex/std",
+	"log/std",
+	"polkadot-runtime/std",
+	"rand/std",
+]
+runtime-benchmarks = [
+	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-ah-migrator/runtime-benchmarks",
+	"pallet-ah-ops/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-bounties/runtime-benchmarks",
+	"pallet-indices/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
+	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+	"pallet-whitelist/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
+]
+
+ahm-westend = [
+	"pallet-ah-migrator/ahm-westend",
+	"pallet-ah-ops/ahm-westend",
+	"pallet-rc-migrator/ahm-westend",
+]
+ahm-polkadot = [
+	"pallet-ah-migrator/ahm-polkadot",
+	"pallet-ah-ops/ahm-polkadot",
+	"pallet-rc-migrator/ahm-polkadot",
+]
+
+# This will be changed by our porting script
+stable2503 = ["pallet-ah-migrator/stable2503", "pallet-rc-migrator/stable2503"]
+ahm-staking-migration = [
+	"pallet-ah-migrator/ahm-staking-migration",
+	"pallet-rc-migrator/ahm-staking-migration",
+]

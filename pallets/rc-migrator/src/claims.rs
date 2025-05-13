@@ -59,15 +59,23 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(ClaimsStage::StorageValues);
-		let mut messages = Vec::new();
-
-		let mut ah_weight = WeightMeter::with_limit(T::MaxAhWeight::get());
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err() || ah_weight.try_consume(T::AhWeightInfo::receive_claims(1)).is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_claims((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -163,7 +171,7 @@ impl<T: Config> PalletMigration for ClaimsMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveClaimsMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|n| T::AhWeightInfo::receive_claims(n),
 			)?;
 		}
 
@@ -221,4 +229,64 @@ pub mod alias {
 		EthereumAddress,
 		(BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>),
 	>;
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for ClaimsMigrator<T> {
+	type RcPrePayload = Vec<RcClaimsMessageOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut messages = Vec::new();
+
+		// Collect StorageValues
+		let total = pallet_claims::Total::<T>::get();
+		messages.push(RcClaimsMessage::StorageValues { total });
+
+		// Collect Claims
+		for (address, amount) in alias::Claims::<T>::iter() {
+			messages.push(RcClaimsMessage::Claims((address, amount)));
+		}
+
+		// Collect Vesting
+		for (address, schedule) in alias::Vesting::<T>::iter() {
+			messages.push(RcClaimsMessage::Vesting { who: address, schedule });
+		}
+
+		// Collect Signing
+		for (address, statement) in alias::Signing::<T>::iter() {
+			messages.push(RcClaimsMessage::Signing((address, statement)));
+		}
+
+		// Collect Preclaims
+		for (account_id, address) in alias::Preclaims::<T>::iter() {
+			messages.push(RcClaimsMessage::Preclaims((account_id, address)));
+		}
+
+		messages
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		assert!(
+			!pallet_claims::Total::<T>::exists(),
+			"Assert storage 'Claims::Total::rc_post::empty'"
+		);
+		assert!(
+			alias::Claims::<T>::iter().next().is_none(),
+			"Assert storage 'Claims::Claims::rc_post::empty'"
+		);
+		assert!(
+			alias::Vesting::<T>::iter().next().is_none(),
+			"Assert storage 'Claims::Vesting::rc_post::empty'"
+		);
+		assert!(
+			alias::Signing::<T>::iter().next().is_none(),
+			"Assert storage 'Claims::Signing::rc_post::empty'"
+		);
+		assert!(
+			alias::Preclaims::<T>::iter().next().is_none(),
+			"Assert storage 'Claims::Preclaims::rc_post::empty'"
+		);
+
+		log::info!("All claims data successfully migrated and cleared from the Relay Chain.");
+	}
 }

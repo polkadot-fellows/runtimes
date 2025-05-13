@@ -19,6 +19,7 @@ use crate::{preimage::*, types::*, *};
 
 /// An entry of the `StatusFor` storage map. Should only be used to unreserve funds on AH.
 #[derive(Encode, Decode, TypeInfo, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct RcPreimageLegacyStatus<AccountId, Balance> {
 	/// The hash of the original preimage.
 	///
@@ -43,11 +44,33 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 
 	fn migrate_many(
 		mut next_key: Option<Self::Key>,
-		_weight_counter: &mut WeightMeter,
+		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
-		let mut batch = Vec::new();
+		let mut batch = XcmBatchAndMeter::new_from_config::<T>();
 
 		let new_next_key = loop {
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(batch.consume_weight()).is_err()
+			{
+				log::info!("RC weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_preimage_legacy_status((batch.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", batch.len());
+				if batch.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break next_key;
+				}
+			}
+
 			let next_key_inner = match next_key {
 				Some(key) => key,
 				None => {
@@ -81,8 +104,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 			// Remove the migrated key from the relay chain
 			alias::StatusFor::<T>::remove(next_key_inner);
 
-			if batch.len() >= 10 || next_key.is_none() {
-				// TODO weight checking
+			if next_key.is_none() {
 				break next_key;
 			}
 		};
@@ -93,7 +115,7 @@ impl<T: Config> PalletMigration for PreimageLegacyRequestStatusMigrator<T> {
 				|batch| types::AhMigratorCall::<T>::ReceivePreimageLegacyStatus {
 					legacy_status: batch,
 				},
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_preimage_legacy_status(len),
 			)?;
 		}
 
@@ -122,9 +144,10 @@ impl<T: Config> RcMigrationCheck for PreimageLegacyRequestStatusMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		for hash in rc_pre_payload {
+			// "Assert storage 'Preimage::StatusFor::rc_post::empty'"
 			assert!(
 				!alias::StatusFor::<T>::contains_key(hash),
-				"migrated key in Preimage::StatusFor is still present on the relay chain"
+				"migrated key in Preimage::StatusFor must be deleted"
 			);
 		}
 	}

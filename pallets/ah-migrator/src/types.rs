@@ -65,20 +65,26 @@ pub trait AhMigrationCheck {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload);
 }
 
-#[impl_trait_for_tuples::impl_for_tuples(16)]
+#[impl_trait_for_tuples::impl_for_tuples(24)]
 impl AhMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 	for_tuples! { type AhPrePayload = (#( Tuple::AhPrePayload ),* ); }
 
 	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
 		(for_tuples! { #(
-			Tuple::pre_check(rc_pre_payload.Tuple)
+			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
+			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
+				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::pre_check(rc_pre_payload.Tuple)))
+			}).expect("Always returning Ok")
 		),* })
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		(for_tuples! { #(
-			Tuple::post_check(rc_pre_payload.Tuple, ah_pre_payload.Tuple)
+			// Copy&paste `frame_support::hypothetically` since we cannot use macros here
+			frame_support::storage::transactional::with_transaction(|| -> sp_runtime::TransactionOutcome<Result<_, sp_runtime::DispatchError>> {
+				sp_runtime::TransactionOutcome::Rollback(Ok(Tuple::post_check(rc_pre_payload.Tuple, ah_pre_payload.Tuple)))
+			}).expect("Always returning Ok")
 		),* });
 	}
 }

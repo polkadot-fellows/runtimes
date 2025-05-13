@@ -31,13 +31,24 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		log::info!(target: LOG_TARGET, "Migrating asset rates");
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
 			if weight_counter
 				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+				.is_err() || weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_asset_rates((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -74,7 +85,7 @@ impl<T: Config> PalletMigration for AssetRateMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveAssetRates { asset_rates: messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_asset_rates(len),
 			)?;
 		}
 

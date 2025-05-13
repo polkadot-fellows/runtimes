@@ -56,9 +56,7 @@ impl<T: Config> Pallet<T> {
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeStorageValues");
 			},
 			RcFastUnstakeMessage::Queue { member } => {
-				if pallet_fast_unstake::Queue::<T>::contains_key(&member.0) {
-					return Err(Error::<T>::InsertConflict);
-				}
+				debug_assert!(!pallet_fast_unstake::Queue::<T>::contains_key(&member.0));
 				log::debug!(target: LOG_TARGET, "Integrating FastUnstakeQueueMember: {:?}", &member.0);
 				pallet_fast_unstake::Queue::<T>::insert(member.0, member.1);
 			},
@@ -96,19 +94,22 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 		let ah_queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
 		let ah_eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
 
-		// Verify Head is None
+		// Assert storage "FastUnstake::Head::ah_post::correct"
+		// Assert storage "FastUnstake::Head::ah_post::consistent"
+		// Assert storage "FastUnstake::Head::ah_post::length"
 		assert!(
 			alias::Head::<T>::get().is_none(),
 			"Assert storage 'FastUnstake::Head::ah_post::correct'"
 		);
 
-		// Verify Queue entries
+		// Assert storage "FastUnstake::Queue::ah_post::length"
 		assert_eq!(
 			queue.len(),
 			ah_queue.len(),
 			"Assert storage 'FastUnstake::Queue::ah_post::length'"
 		);
-		// Verify Queue values match
+		// Assert storage "FastUnstake::Queue::ah_post::correct"
+		// Assert storage "FastUnstake::Queue::ah_post::consistent"
 		for (pre_entry, post_entry) in queue.iter().zip(ah_queue.iter()) {
 			assert_eq!(
 				pre_entry, post_entry,
@@ -116,7 +117,9 @@ impl<T: Config> crate::types::AhMigrationCheck for FastUnstakeMigrator<T> {
 			);
 		}
 
-		// Verify ErasToCheckPerBlock
+		// Assert storage "FastUnstake::ErasToCheckPerBlock::ah_post::correct"
+		// Assert storage "FastUnstake::ErasToCheckPerBlock::ah_post::consistent"
+		// Assert storage "FastUnstake::ErasToCheckPerBlock::ah_post::length"
 		assert_eq!(
 			eras_to_check, ah_eras_to_check,
 			"Assert storage 'FastUnstake::ErasToCheckPerBlock::ah_post::correct'"

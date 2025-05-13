@@ -19,6 +19,7 @@
 use crate::{types::*, *};
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum BagsListStage<AccountId, Score> {
 	ListNodes(Option<AccountId>),
 	ListBags(Option<Score>),
@@ -42,6 +43,7 @@ pub type BagsListStageOf<T> = BagsListStage<
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcBagsListMessage<T: pallet_bags_list::Config<pallet_bags_list::Instance1>> {
 	Node { id: T::AccountId, node: alias::NodeOf<T> },
 	Bag { score: T::Score, bag: alias::BagOf<T> },
@@ -60,13 +62,23 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(BagsListStage::ListNodes(None));
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_bags_list_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -123,7 +135,7 @@ impl<T: Config> PalletMigration for BagsListMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveBagsListMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_bags_list_messages(len),
 			)?;
 		}
 
@@ -140,6 +152,7 @@ pub mod alias {
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/bags-list/src/list/mod.rs#L818-L830 minus all the stuff that we don't need
 	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct Node<AccountId, Score> {
 		pub id: AccountId,
 		pub prev: Option<AccountId>,
@@ -154,6 +167,7 @@ pub mod alias {
 
 	// From https://github.com/paritytech/polkadot-sdk/blob/7ecf3f757a5d6f622309cea7f788e8a547a5dce8/substrate/frame/bags-list/src/list/mod.rs#L622-L630
 	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct Bag<AccountId> {
 		pub head: Option<AccountId>,
 		pub tail: Option<AccountId>,
@@ -181,6 +195,7 @@ pub mod alias {
 }
 
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum GenericBagsListMessage<AccountId, Score> {
 	Node { id: AccountId, node: alias::Node<AccountId, Score> },
 	Bag { score: Score, bag: alias::Bag<AccountId> },
@@ -219,13 +234,15 @@ impl<T: Config> crate::types::RcMigrationCheck for BagsListMigrator<T> {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage "VoterList::ListNodes::rc_post::empty"
 		assert!(
 			alias::ListNodes::<T>::iter().next().is_none(),
-			"ListNodes should be empty after migration"
+			"VoterList::ListNodes::rc_post::empty"
 		);
+		// Assert storage "VoterList::ListBags::rc_post::empty
 		assert!(
 			alias::ListBags::<T>::iter().next().is_none(),
-			"ListBags should be empty after migration"
+			"VoterList::ListBags::rc_post::empty"
 		);
 
 		log::info!("All bags list data successfully migrated and cleared from the Relay Chain.");

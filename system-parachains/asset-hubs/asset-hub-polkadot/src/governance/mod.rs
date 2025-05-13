@@ -42,6 +42,7 @@ impl pallet_conviction_voting::Config for Runtime {
 	// TODO: the `512` value is migrated from Relay Chain.
 	// Check that weights are sane, an overly large value can lead to extrinsics with large weight
 	// estimation: see `delegate` for instance.
+	type MaxVotes = ConstU32<512>;
 	// TODO: review - after/before migration check?
 	type MaxTurnout =
 		frame_support::traits::tokens::currency::ActiveIssuanceOf<Balances, Self::AccountId>;

@@ -83,4 +83,31 @@ impl<T: Config> Pallet<T> {
 			},
 		}
 	}
+
+	// Helper to convert the call without using the preimage pallet. Used in migration checks.
+	#[cfg(feature = "std")]
+	pub fn map_rc_ah_call_no_preimage(
+		encoded_call: Vec<u8>,
+	) -> Result<call::BoundedCallOf<T>, Error<T>> {
+		use frame_support::traits::BoundedInline;
+		use sp_runtime::traits::Hash;
+
+		// Convert call.
+		let call = if let Ok(call) = T::RcToAhCall::try_convert(&encoded_call) {
+			call
+		} else {
+			return Err(Error::<T>::FailedToConvertCall);
+		};
+
+		// Bound it.
+		let data = call.encode();
+		let len = data.len() as u32;
+		Ok(match BoundedInline::try_from(data) {
+			Ok(bounded) => Bounded::Inline(bounded),
+			Err(unbounded) => Bounded::Lookup {
+				hash: <<T as frame_system::Config>::Hashing as Hash>::hash(&unbounded[..]),
+				len,
+			},
+		})
+	}
 }

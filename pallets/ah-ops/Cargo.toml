@@ -18,12 +18,14 @@ pallet-timestamp = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
 	"cumulus-primitives-core/std",
+	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
@@ -32,10 +34,10 @@ std = [
 	"scale-info/std",
 	"sp-runtime/std",
 	"sp-std/std",
-
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -49,3 +51,5 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+ahm-polkadot = []
+ahm-westend = []

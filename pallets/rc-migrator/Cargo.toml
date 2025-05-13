@@ -14,7 +14,7 @@ serde = { features = ["derive"], optional = true, workspace = true }
 log = { workspace = true }
 impl-trait-for-tuples = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
-frame-support = { workspace = true }
+frame-support = { workspace = true, features = ["experimental"] }
 frame-system = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
@@ -27,6 +27,8 @@ pallet-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-staking = { workspace = true }
+# pallet-staking-async = { workspace = true } # Only on westend
+# pallet-staking-async-ah-client = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-multisig = { workspace = true }
@@ -45,12 +47,14 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 sp-staking = { workspace = true }
+frame-election-provider-support = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
@@ -90,6 +94,7 @@ std = [
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
@@ -118,6 +123,7 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 ]
 try-runtime = [
+	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-asset-rate/try-runtime",
@@ -140,3 +146,8 @@ try-runtime = [
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+
+ahm-polkadot = []
+ahm-westend = ["ahm-staking-migration", "stable2503"]
+stable2503 = []
+ahm-staking-migration = []

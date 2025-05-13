@@ -31,33 +31,50 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use super::{mock::*, proxy_test::ProxiesStillWork};
+use crate::porting_prelude::*;
+
+use super::{
+	checks::SanityChecks,
+	mock::*,
+	multisig_still_work::MultisigStillWork,
+	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
+};
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
-use cumulus_primitives_core::{BlockT, Junction, Location, ParaId};
-use frame_support::traits::schedule::DispatchTime;
+use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location, ParaId};
+use frame_support::{
+	assert_err,
+	traits::{
+		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement,
+		ReservableCurrency,
+	},
+};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
-	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
+	proxy::ProxyBasicChecks, types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
 	types::RcMigrationCheck, MigrationStage as RcMigrationStage,
 	RcMigrationStage as RcMigrationStageStorage,
 };
+use polkadot_primitives::UpwardMessage;
 use polkadot_runtime::{Block as PolkadotBlock, RcMigrator, Runtime as Polkadot};
 use polkadot_runtime_common::{paras_registrar, slots as pallet_slots};
 use remote_externalities::RemoteExternalities;
 use runtime_parachains::dmp::DownwardMessageQueues;
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::AccountId32;
-use std::{collections::BTreeMap, str::FromStr};
+use sp_runtime::{AccountId32, DispatchError, TokenError};
+use std::{
+	collections::{BTreeMap, VecDeque},
+	str::FromStr,
+};
 use xcm::latest::*;
 use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
+	SanityChecks,
 	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
-	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -67,33 +84,71 @@ type RcChecks = (
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<Polkadot>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<Polkadot>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<Polkadot>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<Polkadot>,
-	// other pallets go here
-	ProxiesStillWork,
+	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
+	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
+	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
+	RcPolkadotChecks,
+	// other checks go here (if available on Polkadot, Kusama and Westend)
+	ProxyBasicWorks,
+	MultisigStillWork,
 );
 
+// Checks that are specific to Polkadot, and not available on other chains (like Westend)
+#[cfg(feature = "ahm-polkadot")]
+pub type RcPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
+	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<Polkadot>,
+	ProxyWhaleWatching,
+);
+
+#[cfg(not(feature = "ahm-polkadot"))]
+pub type RcPolkadotChecks = ();
+
 type AhChecks = (
+	SanityChecks,
 	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
-	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::indices::IndicesMigrator<AssetHub>,
 	pallet_rc_migrator::vesting::VestingMigrator<AssetHub>,
-	pallet_rc_migrator::proxy::ProxyProxiesMigrator<AssetHub>,
+	pallet_ah_migrator::proxy::ProxyBasicChecks<
+		AssetHub,
+		<Polkadot as pallet_proxy::Config>::ProxyType,
+	>,
 	pallet_rc_migrator::staking::bags_list::BagsListMigrator<AssetHub>,
 	pallet_rc_migrator::staking::fast_unstake::FastUnstakeMigrator<AssetHub>,
 	pallet_rc_migrator::conviction_voting::ConvictionVotingMigrator<AssetHub>,
-	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::asset_rate::AssetRateMigrator<AssetHub>,
-	// other pallets go here
-	ProxiesStillWork,
+	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
+	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
+	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
+	AhPolkadotChecks,
+	// other checks go here (if available on Polkadot, Kusama and Westend)
+	ProxyBasicWorks,
+	MultisigStillWork,
 );
+
+// Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
+// (like AH Westend)
+#[cfg(feature = "ahm-polkadot")]
+pub type AhPolkadotChecks = (
+	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
+	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
+	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,
+	pallet_rc_migrator::crowdloan::CrowdloanMigrator<AssetHub>,
+	ProxyWhaleWatching,
+);
+
+#[cfg(not(feature = "ahm-polkadot"))]
+pub type AhPolkadotChecks = ();
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pallet_migration_works() {
-	let Some((mut rc, mut ah)) = load_externalities().await else { return };
+	let (mut rc, mut ah) = load_externalities().await.unwrap();
 
 	// Set the initial migration stage from env var if set.
 	set_initial_migration_stage(&mut rc);
@@ -104,6 +159,16 @@ async fn pallet_migration_works() {
 	// Pre-checks on the Asset Hub
 	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
+	// Run relay chain, sends start signal to AH
+	let dmp_messages = rc_migrate(&mut rc);
+	// AH process start signal, send back ack
+	ah_migrate(&mut ah, dmp_messages);
+	// no upward messaging support in this test yet, just manually advance the stage
+	rc.execute_with(|| {
+		RcMigrationStageStorage::<Polkadot>::put(RcMigrationStage::Starting);
+	});
+	rc.commit_all().unwrap();
+
 	// Migrate the Relay Chain
 	let dmp_messages = rc_migrate(&mut rc);
 
@@ -112,6 +177,13 @@ async fn pallet_migration_works() {
 
 	// Migrate the Asset Hub
 	ah_migrate(&mut ah, dmp_messages);
+
+	ah.execute_with(|| {
+		assert_eq!(
+			pallet_ah_migrator::AhMigrationStage::<AssetHub>::get(),
+			pallet_ah_migrator::MigrationStage::MigrationDone
+		);
+	});
 
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
@@ -125,6 +197,7 @@ fn run_check<R, B: BlockT>(f: impl FnOnce() -> R, ext: &mut RemoteExternalities<
 	}
 }
 
+#[cfg(not(feature = "ahm-westend"))] // No auctions on Westend
 #[tokio::test]
 async fn num_leases_to_ending_block_works_simple() {
 	let mut rc = remote_ext_test_setup::<PolkadotBlock>("SNAP_RC").await.unwrap();
@@ -309,8 +382,9 @@ fn ah_account_migration_weight() {
 	}
 }
 
+#[ignore] // Slow
 #[tokio::test(flavor = "current_thread")]
-async fn migration_works() {
+async fn migration_works_time() {
 	let Some((mut rc, mut ah)) = load_externalities().await else { return };
 
 	// Set the initial migration stage from env var if set.
@@ -322,45 +396,79 @@ async fn migration_works() {
 	// Pre-checks on the Asset Hub
 	let ah_pre = run_check(|| AhChecks::pre_check(rc_pre.clone().unwrap()), &mut ah);
 
-	let mut rc_block_count = 0;
-	// finish the loop when the migration is done.
-	while rc.execute_with(|| RcMigrationStageStorage::<Polkadot>::get()) !=
-		RcMigrationStage::MigrationDone
-	{
-		// execute next RC block.
-		let dmp_messages = rc.execute_with(|| {
-			next_block_rc();
+	let rc_block_start = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
+	let ah_block_start = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
 
-			DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID)
+	// we push first message to be popped for the first RC block and the second one to delay the ump
+	// messages from the first AH block, since with async backing and full blocks we generally
+	// expect the AH+0 block to be backed at RC+2 block, where RC+0 is its parent RC block. Hence
+	// the only RC+2 block will receive and process the messages from the AH+0 block.
+	let mut ump_messages: VecDeque<(Vec<UpwardMessage>, BlockNumberFor<AssetHub>)> =
+		vec![(vec![], ah_block_start - 1), (vec![], ah_block_start)].into();
+	// AH generally builds the blocks on every new RC block, therefore every DMP message received
+	// and processed immediately without delay.
+	let mut dmp_messages: VecDeque<(Vec<InboundDownwardMessage>, BlockNumberFor<Polkadot>)> =
+		vec![].into();
+
+	// finish the loop when the migration is done.
+	while ah.execute_with(|| AhMigrationStageStorage::<AssetHub>::get()) !=
+		AhMigrationStage::MigrationDone
+	{
+		// with async backing having three unincluded segments, we expect the Asset Hub block
+		// to typically be backed not in the immediate next block, but in the block after that.
+		// therefore, the queue should always contain at least two messages: one from the most
+		// recent Asset Hub block and one from the previous block.
+		assert!(ump_messages.len() > 1, "ump_messages queue should contain at least two messages");
+
+		// enqueue UMP messages from AH to RC.
+		rc.execute_with(|| {
+			enqueue_ump(
+				ump_messages.pop_front().expect("should contain at least empty message package"),
+			);
 		});
+
+		// execute next RC block.
+		rc.execute_with(|| {
+			next_block_rc();
+		});
+
+		// read dmp messages sent to AH.
+		dmp_messages.push_back(rc.execute_with(|| {
+			(
+				DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID),
+				frame_system::Pallet::<Polkadot>::block_number(),
+			)
+		}));
+
+		// end of RC cycle.
 		rc.commit_all().unwrap();
 
 		// enqueue DMP messages from RC to AH.
 		ah.execute_with(|| {
-			// TODO: bound the `dmp_messages` total size
-			enqueue_dmp(dmp_messages);
+			enqueue_dmp(
+				dmp_messages.pop_front().expect("should contain at least empty message package"),
+			);
 		});
+
+		// execute next AH block.
+		ah.execute_with(|| {
+			next_block_ah();
+		});
+
+		// collect UMP messages from AH generated by the current block execution.
+		ump_messages.push_back(ah.execute_with(|| {
+			(
+				PendingUpwardMessages::<AssetHub>::take(),
+				frame_system::Pallet::<AssetHub>::block_number(),
+			)
+		}));
+
+		// end of AH cycle.
 		ah.commit_all().unwrap();
-
-		// execute next AH block on every second RC block.
-		if rc_block_count % 2 == 0 {
-			let ump_messages = ah.execute_with(|| {
-				next_block_ah();
-
-				PendingUpwardMessages::<AssetHub>::take()
-			});
-			ah.commit_all().unwrap();
-
-			// enqueue UMP messages from AH to RC.
-			rc.execute_with(|| {
-				// TODO: bound the `ump_messages` total size
-				enqueue_ump(ump_messages);
-			});
-			rc.commit_all().unwrap();
-		}
-
-		rc_block_count += 1;
 	}
+
+	let rc_block_end = rc.execute_with(|| frame_system::Pallet::<Polkadot>::block_number());
+	let ah_block_end = ah.execute_with(|| frame_system::Pallet::<AssetHub>::block_number());
 
 	// Post-checks on the Relay
 	run_check(|| RcChecks::post_check(rc_pre.clone().unwrap()), &mut rc);
@@ -368,7 +476,11 @@ async fn migration_works() {
 	// Post-checks on the Asset Hub
 	run_check(|| AhChecks::post_check(rc_pre.unwrap(), ah_pre.unwrap()), &mut ah);
 
-	println!("Migration done in {} RC blocks", rc_block_count);
+	println!(
+		"Migration done in {} RC blocks, {} AH blocks",
+		rc_block_end - rc_block_start,
+		ah_block_end - ah_block_start
+	);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -432,7 +544,7 @@ async fn scheduled_migration_works() {
 		next_block_rc();
 
 		// migration started
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 		let dmp_messages = DownwardMessageQueues::<Polkadot>::take(AH_PARA_ID);
 		assert!(dmp_messages.len() > 0);
 
@@ -441,7 +553,7 @@ async fn scheduled_migration_works() {
 
 	// enqueue DMP messages from RC to AH.
 	ah.execute_with(|| {
-		enqueue_dmp(dmp_messages);
+		enqueue_dmp((dmp_messages, 0u32.into()));
 	});
 	ah.commit_all().unwrap();
 
@@ -464,20 +576,20 @@ async fn scheduled_migration_works() {
 
 	// enqueue UMP messages from AH to RC.
 	rc.execute_with(|| {
-		enqueue_ump(ump_messages);
+		enqueue_ump((ump_messages, 0u32.into()));
 	});
 	rc.commit_all().unwrap();
 
 	// Relay Chain receives the acknowledgement from the Asset Hub and starts sending the data.
 	rc.execute_with(|| {
 		log::info!("Receiving the acknowledgement from AH on RC");
-		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::Initializing);
+		assert_eq!(RcMigrationStageStorage::<Polkadot>::get(), RcMigrationStage::WaitingForAh);
 
 		next_block_rc();
 
 		assert_eq!(
 			RcMigrationStageStorage::<Polkadot>::get(),
-			RcMigrationStage::AccountsMigrationOngoing { last_key: None }
+			RcMigrationStage::AccountsMigrationInit
 		);
 	});
 	rc.commit_all().unwrap();
@@ -509,7 +621,6 @@ async fn some_account_migration_works() {
 				account_id,
 				rc_account,
 				&mut WeightMeter::new(),
-				&mut WeightMeter::new(),
 				0,
 			)
 			.unwrap_or_else(|err| {
@@ -540,4 +651,94 @@ async fn some_account_migration_works() {
 			log::info!("Account integration result: {:?}", res);
 		});
 	}
+}
+
+#[test]
+fn test_account_references() {
+	type PalletBalances = pallet_balances::Pallet<Polkadot>;
+	type PalletSystem = frame_system::Pallet<Polkadot>;
+
+	new_test_rc_ext().execute_with(|| {
+		// create new account.
+		let who: AccountId32 = [0; 32].into();
+		let ed = <PalletBalances as Currency<_>>::minimum_balance();
+		let _ = PalletBalances::deposit_creating(&who, ed + ed + ed);
+
+		// account is create with right balance and references.
+		assert_eq!(PalletBalances::balance(&who), ed + ed + ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// decrement consumer reference from `0`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed + ed + ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// reserve some balance which results `+1` consumer reference.
+		let _ = PalletBalances::reserve(&who, ed).expect("reserve failed");
+
+		// account data is valid.
+		assert_eq!(PalletBalances::balance(&who), ed + ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// force decrement consumer reference from `1`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed + ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// transfer some balance (or perform any update on account) to new account which results
+		// consumer reference to automatically correct the consumer reference since the reserve
+		// is still there.
+		let who2: AccountId32 = [1; 32].into();
+		let _ = PalletBalances::transfer(&who, &who2, ed, ExistenceRequirement::AllowDeath)
+			.expect("transfer failed");
+
+		// account is still alive, and consumer reference is corrected.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// force decrement consumer reference from `1`.
+		PalletSystem::dec_consumers(&who);
+
+		// account is still alive, and consumer reference is force decremented.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// try to kill the account by transfer all.
+		assert_eq!(
+			PalletBalances::transfer(&who, &who2, ed + ed, ExistenceRequirement::AllowDeath),
+			Err(TokenError::FundsUnavailable.into())
+		);
+
+		// account is still alive.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 0);
+		assert_eq!(PalletSystem::providers(&who), 1);
+
+		// try to transfer all free balance, leaving only reserve.
+		assert_eq!(
+			PalletBalances::transfer(&who, &who2, ed, ExistenceRequirement::AllowDeath),
+			Err(DispatchError::ConsumerRemaining)
+		);
+
+		// account is still alive. in this case consumer reference even gets corrected.
+		assert_eq!(PalletBalances::balance(&who), ed);
+		assert_eq!(PalletBalances::reserved_balance(&who), ed);
+		assert_eq!(PalletSystem::consumers(&who), 1);
+		assert_eq!(PalletSystem::providers(&who), 1);
+	});
 }

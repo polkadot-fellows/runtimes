@@ -21,6 +21,7 @@ use sp_runtime::traits::Zero;
 
 /// Stage of the scheduler pallet migration.
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum ConvictionVotingStage<AccountId, Class> {
 	VotingFor(Option<(AccountId, Class)>),
 	ClassLocksFor(Option<AccountId>),
@@ -28,6 +29,7 @@ pub enum ConvictionVotingStage<AccountId, Class> {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, TypeInfo, MaxEncodedLen, PartialEq, Eq)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcConvictionVotingMessage<AccountId, Class, Voting, Balance> {
 	VotingFor(AccountId, Class, Voting),
 	ClassLocksFor(AccountId, Vec<(Class, Balance)>),
@@ -53,14 +55,24 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut last_key = last_key.unwrap_or(ConvictionVotingStage::VotingFor(None));
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 		let mut made_progress = false;
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if !made_progress {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get().any_lt(T::AhWeightInfo::receive_conviction_voting_messages(
+				(messages.len() + 1) as u32,
+			)) {
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if !made_progress {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -143,11 +155,13 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			};
 		}
 
-		Pallet::<T>::send_chunked_xcm_and_track(
-			messages,
-			|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
-			|_| Weight::from_all(1), // TODO
-		)?;
+		if !messages.is_empty() {
+			Pallet::<T>::send_chunked_xcm_and_track(
+				messages,
+				|messages| types::AhMigratorCall::<T>::ReceiveConvictionVotingMessages { messages },
+				|len| T::AhWeightInfo::receive_conviction_voting_messages(len),
+			)?;
+		}
 
 		if last_key == ConvictionVotingStage::Finished {
 			Ok(None)
@@ -281,11 +295,11 @@ impl<T: Config> crate::types::RcMigrationCheck for ConvictionVotingMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		assert!(
 			alias::VotingFor::<T>::iter().next().is_none(),
-			"VotingFor should be empty after migration"
+			"VotingFor::VotingFor::rc_post::empty"
 		);
 		assert!(
 			pallet_conviction_voting::ClassLocksFor::<T>::iter().next().is_none(),
-			"ClassLocksFor should be empty after migration"
+			"VotingFor::ClassLocksFor::rc_post::empty"
 		);
 	}
 }

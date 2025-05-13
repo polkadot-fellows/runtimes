@@ -10,8 +10,8 @@ license.workspace = true
 [dependencies]
 
 # Asset Hub Migration concerning deps
-pallet-rc-migrator = { workspace = true }
-pallet-ah-migrator = { workspace = true }
+pallet-rc-migrator = { workspace = true, features = ["ahm-polkadot"] }
+pallet-ah-migrator = { workspace = true, features = ["ahm-polkadot"] }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }

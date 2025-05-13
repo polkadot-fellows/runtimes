@@ -10,7 +10,6 @@ repository.workspace = true
 [dependencies]
 codec = { workspace = true, features = ["max-encoded-len"] }
 cumulus-primitives-core = { workspace = true }
-chrono = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -28,6 +27,8 @@ pallet-multisig = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-preimage = { workspace = true }
+# pallet-staking-async = { workspace = true } # Only on westend
+# pallet-staking-async-rc-client = { workspace = true } # Only on westend
 pallet-proxy = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-rc-migrator = { workspace = true }
@@ -49,6 +50,7 @@ sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
+sp-staking = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
 xcm = { workspace = true }
@@ -56,12 +58,14 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
+# [dev-dependencies]
+# asset-hub-polkadot-runtime = { workspace = true, default-features = true }
+
 [features]
 default = ["std"]
 std = [
 	"assets-common/std",
 	"assets-common/std",
-	"chrono/std",
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
@@ -103,6 +107,7 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
+	"sp-staking/std",
 	"sp-std/std",
 	"xcm-builder/std",
 	"xcm-builder/std",
@@ -145,8 +150,10 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
+	# "asset-hub-polkadot-runtime/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
@@ -175,4 +182,22 @@ try-runtime = [
 	"polkadot-runtime-common/try-runtime",
 	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
+]
+
+ahm-polkadot = [
+	"pallet-ah-ops/ahm-polkadot",
+	"pallet-rc-migrator/ahm-polkadot",
+]
+ahm-westend = [
+	"ahm-staking-migration",
+	"pallet-ah-ops/ahm-westend",
+	"pallet-rc-migrator/ahm-westend",
+	"stable2503",
+
+]
+stable2503 = [
+	"pallet-rc-migrator/stable2503",
+]
+ahm-staking-migration = [
+	"pallet-rc-migrator/ahm-staking-migration",
 ]

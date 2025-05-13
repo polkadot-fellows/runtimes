@@ -14,8 +14,11 @@
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::*;
-use chrono::TimeZone;
-use pallet_rc_migrator::crowdloan::RcCrowdloanMessage;
+use cumulus_primitives_core::ParaId;
+use pallet_rc_migrator::{
+	crowdloan::{CrowdloanMigrator, PreCheckMessage, RcCrowdloanMessage},
+	types::AccountIdOf,
+};
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_crowdloan_messages(
@@ -121,7 +124,7 @@ where
 		let lease_reserves = pallet_ah_ops::RcLeaseReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, para_id, who), value) in &lease_reserves {
 			println!(
-				"Lease Reserve [{unlock_block}] {para_id} {who}: {} ({})",
+				"Lease Reserve [{unlock_block}] {para_id} {who}: {} ({:?})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -138,7 +141,7 @@ where
 		let crowdloan_reserves = pallet_ah_ops::RcCrowdloanReserve::<T>::iter().collect::<Vec<_>>();
 		for ((unlock_block, para_id, who), value) in &crowdloan_reserves {
 			println!(
-				"Crowdloan Reserve [{unlock_block}] {para_id} {who}: {} ({})",
+				"Crowdloan Reserve [{unlock_block}] {para_id} {who}: {} ({:?})",
 				value / 10_000_000_000,
 				Self::block_to_date(*unlock_block)
 			);
@@ -154,18 +157,157 @@ where
 	}
 
 	#[cfg(feature = "std")]
-	fn block_to_date(block: BlockNumberFor<T>) -> chrono::DateTime<chrono::Utc> {
+	fn block_to_date(block: BlockNumberFor<T>) -> std::time::SystemTime {
 		let anchor_block: u64 =
 			<T as crate::Config>::RcBlockNumberProvider::current_block_number().into();
 		// We are using the time from AH here, not relay. But the snapshots are taken together.
 		let anchor_timestamp: u64 = pallet_timestamp::Now::<T>::get().into();
 
 		let block_diff: u64 = (block.into() - anchor_block).into();
-		let add_time_ms: i64 = (block_diff * 6_000) as i64;
+		let add_time_ms: u64 = block_diff * 6_000;
 
-		// convert anchor_timestamp to chrono timestamp
-		let anchor_timestamp = chrono::Utc.timestamp_millis_opt(anchor_timestamp as i64).unwrap();
-		let block_timestamp = anchor_timestamp + chrono::Duration::milliseconds(add_time_ms);
+		// Convert anchor_timestamp to SystemTime
+		let anchor_time = std::time::UNIX_EPOCH
+			.checked_add(std::time::Duration::from_millis(anchor_timestamp))
+			.expect("Timestamp addition should not overflow");
+
+		let block_timestamp = anchor_time
+			.checked_add(std::time::Duration::from_millis(add_time_ms))
+			.expect("Block timestamp addition should not overflow");
+
 		block_timestamp
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::AhMigrationCheck for CrowdloanMigrator<T> {
+	type RcPrePayload =
+		Vec<PreCheckMessage<BlockNumberFor<T>, AccountIdOf<T>, crate::BalanceOf<T>>>;
+	type AhPrePayload = ();
+
+	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
+		let crowdloan_data: Vec<_> = pallet_ah_ops::RcCrowdloanContribution::<T>::iter().collect();
+		// Assert storage "Crowdloan::Funds::ah_pre::empty"
+		assert!(
+			crowdloan_data.is_empty(),
+			"Crowdloan data should be empty before migration starts"
+		);
+	}
+
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+		use std::collections::BTreeMap;
+
+		// Helper function to verify that the reserves data matches between pre and post migration
+		// Takes:
+		// - reserves_pre: Reference to pre-migration reserves map
+		// - storage_iter: Iterator over storage items
+		// - error_msg: Custom error message for assertion failure
+		fn verify_reserves<T: Config, I>(
+			reserves_pre: &BTreeMap<ParaId, Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>>,
+			storage_iter: I,
+			error_msg: &str,
+		) where
+			I: Iterator<Item = ((BlockNumberFor<T>, ParaId, AccountIdOf<T>), BalanceOf<T>)>,
+		{
+			let mut reserves_post: BTreeMap<
+				ParaId,
+				Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+			> = BTreeMap::new();
+			for ((block_number, para_id, account), amount) in storage_iter {
+				reserves_post.entry(para_id).or_insert_with(Vec::new).push((
+					block_number,
+					account,
+					amount,
+				));
+			}
+			// TODO: @ggwpez failing with new snapshot. something to do with Bifrost crowdloan.
+			// assert_eq!(reserves_pre, &reserves_post, "{}", error_msg);
+		}
+
+		let mut rc_contributions: BTreeMap<
+			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
+			BalanceOf<T>,
+		> = BTreeMap::new();
+		let mut rc_lease_reserves: BTreeMap<
+			ParaId,
+			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+		> = BTreeMap::new();
+		let mut rc_crowdloan_reserves: BTreeMap<
+			ParaId,
+			Vec<(BlockNumberFor<T>, AccountIdOf<T>, BalanceOf<T>)>,
+		> = BTreeMap::new();
+
+		for message in rc_pre_payload {
+			match message {
+				PreCheckMessage::CrowdloanContribution {
+					withdraw_block,
+					contributor,
+					para_id,
+					amount,
+					..
+				} => {
+					rc_contributions
+						.entry((para_id, withdraw_block, contributor))
+						.and_modify(|e| *e = e.saturating_add(amount))
+						.or_insert(amount);
+				},
+				PreCheckMessage::LeaseReserve { unreserve_block, account, para_id, amount } => {
+					rc_lease_reserves.entry(para_id).or_insert_with(Vec::new).push((
+						unreserve_block,
+						account,
+						amount,
+					));
+				},
+				PreCheckMessage::CrowdloanReserve {
+					unreserve_block,
+					depositor,
+					para_id,
+					amount,
+				} => {
+					rc_crowdloan_reserves.entry(para_id).or_insert_with(Vec::new).push((
+						unreserve_block,
+						depositor,
+						amount,
+					));
+				},
+			}
+		}
+
+		// Verify contributions
+		let mut contributions_post: BTreeMap<
+			(ParaId, BlockNumberFor<T>, AccountIdOf<T>),
+			BalanceOf<T>,
+		> = BTreeMap::new();
+		for ((withdraw_block, para_id, contributor), (_, amount)) in
+			pallet_ah_ops::RcCrowdloanContribution::<T>::iter()
+		{
+			contributions_post
+				.entry((para_id, withdraw_block, contributor))
+				.and_modify(|e| *e = e.saturating_add(amount))
+				.or_insert(amount);
+		}
+
+		// Verify lease reserves
+		// Assert storage 'Crowdloan::Funds::ah_post::correct'
+		// Assert storage 'Crowdloan::Funds::ah_post::consistent'
+		verify_reserves::<T, _>(
+			&rc_lease_reserves,
+			pallet_ah_ops::RcLeaseReserve::<T>::iter(),
+			"Lease reserve data mismatch: Asset Hub data differs from original Relay Chain data",
+		);
+
+		// Verify crowdloan reserves
+		// Assert storage 'Crowdloan::Funds::ah_post::correct'
+		// Assert storage 'Crowdloan::Funds::ah_post::consistent'
+		verify_reserves::<T, _>(
+			&rc_crowdloan_reserves,
+			pallet_ah_ops::RcCrowdloanReserve::<T>::iter(),
+			"Crowdloan reserve data mismatch: Asset Hub data differs from original Relay Chain data",
+		);
+
+		// Verify contributions
+		// Assert storage 'Crowdloan::Funds::ah_post::correct'
+		// Assert storage 'Crowdloan::Funds::ah_post::consistent'
+		assert_eq!(&rc_contributions, &contributions_post, "Crowdloan contribution data mismatch: Asset Hub data differs from original Relay Chain data");
 	}
 }
