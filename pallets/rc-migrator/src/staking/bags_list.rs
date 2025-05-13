@@ -234,13 +234,15 @@ impl<T: Config> crate::types::RcMigrationCheck for BagsListMigrator<T> {
 	}
 
 	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage "VoterList::ListNodes::rc_post::empty"
 		assert!(
 			alias::ListNodes::<T>::iter().next().is_none(),
-			"ListNodes should be empty after migration"
+			"VoterList::ListNodes::rc_post::empty"
 		);
+		// Assert storage "VoterList::ListBags::rc_post::empty
 		assert!(
 			alias::ListBags::<T>::iter().next().is_none(),
-			"ListBags should be empty after migration"
+			"VoterList::ListBags::rc_post::empty"
 		);
 
 		log::info!("All bags list data successfully migrated and cleared from the Relay Chain.");

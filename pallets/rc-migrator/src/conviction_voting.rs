@@ -295,11 +295,11 @@ impl<T: Config> crate::types::RcMigrationCheck for ConvictionVotingMigrator<T> {
 	fn post_check(_: Self::RcPrePayload) {
 		assert!(
 			alias::VotingFor::<T>::iter().next().is_none(),
-			"VotingFor should be empty after migration"
+			"VotingFor::VotingFor::rc_post::empty"
 		);
 		assert!(
 			pallet_conviction_voting::ClassLocksFor::<T>::iter().next().is_none(),
-			"ClassLocksFor should be empty after migration"
+			"VotingFor::ClassLocksFor::rc_post::empty"
 		);
 	}
 }

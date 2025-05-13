@@ -156,7 +156,7 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 				creator: multisig.depositor,
 				deposit: multisig.deposit,
 				details: Some(k1.clone()),
-			}); // TODO continue here // @ggwpez not sure what you mean with this TODO
+			});
 
 			aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
 			last_key = Some((k1, k2));

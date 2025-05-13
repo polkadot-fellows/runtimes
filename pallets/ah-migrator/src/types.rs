@@ -65,7 +65,7 @@ pub trait AhMigrationCheck {
 	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload);
 }
 
-#[impl_trait_for_tuples::impl_for_tuples(16)]
+#[impl_trait_for_tuples::impl_for_tuples(24)]
 impl AhMigrationCheck for Tuple {
 	for_tuples! { type RcPrePayload = (#( Tuple::RcPrePayload ),* ); }
 	for_tuples! { type AhPrePayload = (#( Tuple::AhPrePayload ),* ); }

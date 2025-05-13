@@ -41,7 +41,7 @@ pub enum RcSchedulerMessage<BlockNumber> {
 
 pub type RcSchedulerMessageOf<T> = RcSchedulerMessage<SchedulerBlockNumberFor<T>>;
 
-pub struct SchedulerMigrator<T: Config> {
+pub struct SchedulerMigrator<T> {
 	_phantom: PhantomData<T>,
 }
 
@@ -283,4 +283,90 @@ pub mod alias {
 		TaskName,
 		TaskAddress<SchedulerBlockNumberFor<T>>,
 	>;
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for SchedulerMigrator<T> {
+	type RcPrePayload = Vec<u8>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let incomplete_since = pallet_scheduler::IncompleteSince::<T>::get();
+		// When the Agenda state item is migrated on the AH side, it relies on pallet-preimage state
+		// for the call conversion, but it also changes the preimage state during that conversion,
+		// breaking any checks we try and do after. So we grab all the necessary data for call
+		// conversion upfront to avoid this reliance and allow for the checks to happen smoothly.
+		let agenda_and_call_encodings: Vec<_> = alias::Agenda::<T>::iter()
+			.map(|(bn, tasks)| {
+				(bn, tasks.clone().into_inner(), Self::get_task_call_encodings(tasks))
+			})
+			.collect();
+		let retries: Vec<_> = pallet_scheduler::Retries::<T>::iter().collect();
+		let lookup: Vec<_> = alias::Lookup::<T>::iter().collect();
+
+		// (IncompleteSince, Agendas and their schedule's call encodings, Retries, Lookup)
+		(incomplete_since, agenda_and_call_encodings, retries, lookup).encode()
+	}
+
+	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// Assert storage 'Scheduler::IncompleteSince::rc_post::empty'
+		assert!(
+			pallet_scheduler::IncompleteSince::<T>::get().is_none(),
+			"IncompleteSince should be None on RC after migration"
+		);
+
+		// Assert storage 'Scheduler::Agenda::rc_post::empty'
+		assert!(
+			alias::Agenda::<T>::iter().next().is_none(),
+			"Agenda map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Scheduler::Retries::rc_post::empty'
+		assert!(
+			pallet_scheduler::Retries::<T>::iter().next().is_none(),
+			"Retries map should be empty on RC after migration"
+		);
+
+		// Assert storage 'Scheduler::Lookup::rc_post::empty'
+		assert!(
+			alias::Lookup::<T>::iter().next().is_none(),
+			"Lookup map should be empty on RC after migration"
+		);
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> SchedulerMigrator<T> {
+	// Convert all scheduled task calls to their Vec<u8> encodings, either directly or by grabbing
+	// the preimage. Used for migration checks. Note: Does not return `Scheduled`, just the call
+	// encodings.
+	fn get_task_call_encodings(
+		tasks: BoundedVec<
+			Option<alias::ScheduledOf<T>>,
+			<T as pallet_scheduler::Config>::MaxScheduledPerBlock,
+		>,
+	) -> Vec<Option<Vec<u8>>> {
+		use frame_support::traits::{Bounded, QueryPreimage};
+
+		// Convert based on Schedules existance and call type.
+		tasks
+			.into_inner()
+			.into_iter()
+			.map(|maybe_schedule| {
+				maybe_schedule.and_then(|sched| match sched.call {
+					// Inline. Grab inlined call.
+					Bounded::Inline(bounded_call) => Some(bounded_call.into_inner()),
+					// Lookup. Fetch preimage and store.
+					Bounded::Lookup { hash, len } =>
+						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, Some(len))
+							.ok()
+							.map(|preimage| preimage.into_owned()),
+					// Legacy. Fetch preimage and store.
+					Bounded::Legacy { hash, .. } =>
+						<pallet_preimage::Pallet<T> as QueryPreimage>::fetch(&hash, None)
+							.ok()
+							.map(|preimage| preimage.into_owned()),
+				})
+			})
+			.collect::<Vec<_>>()
+	}
 }

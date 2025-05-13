@@ -149,12 +149,20 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+pub struct ProxyBasicChecks<T, RcProxyType> {
+	_p: core::marker::PhantomData<(T, RcProxyType)>,
+}
+
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
-	type RcPrePayload = BTreeMap<AccountId32, Vec<(T::RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
+impl<T, RcProxyType> crate::types::AhMigrationCheck for ProxyBasicChecks<T, RcProxyType>
+where
+	T: Config,
+	RcProxyType: Into<T::RcProxyType> + Clone + core::fmt::Debug + Encode,
+{
+	type RcPrePayload = BTreeMap<AccountId32, Vec<(RcProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 	type AhPrePayload =
 		BTreeMap<AccountId32, Vec<(<T as pallet_proxy::Config>::ProxyType, AccountId32)>>; // Map of Delegator -> (Kind, Delegatee)
 
@@ -194,11 +202,12 @@ impl<T: Config> crate::types::AhMigrationCheck for ProxyProxiesMigrator<T> {
 
 			// All RC delegations that could be translated are still here
 			for rc_pre_d in &rc_pre.get(delegator).cloned().unwrap_or_default() {
-				let Ok(translated_kind) = T::RcToProxyType::try_convert(rc_pre_d.0.clone()) else {
+				let translated: T::RcProxyType = rc_pre_d.0.clone().into();
+				let Ok(translated_kind) = T::RcToProxyType::try_convert(translated.clone()) else {
 					// Best effort sanity checking that only Auction and ParaRegistration dont work
 					#[cfg(feature = "ahm-polkadot")]
 					{
-						let k = rc_pre_d.0.encode().get(0).cloned();
+						let k = translated.encode().get(0).cloned();
 						assert!(
 							k == Some(7) || k == Some(9),
 							"Must translate all proxy Kinds except Auction and ParaRegistration"
