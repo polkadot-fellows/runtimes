@@ -110,7 +110,8 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 				multisig_info.multisig_id.clone(),
 				call_hash.clone()
 			),
-			"Sample multisig should have been correctly recreated on Asset Hub."
+			"Sample multisig {:?} should have been correctly re-created on Asset Hub.",
+			multisig_info.multisig_id.clone()
 		);
 		// Check that the multisig balance from the relay chain is preserved.
 		assert_eq!(
@@ -129,7 +130,8 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 				multisig_info.multisig_id.clone(),
 				call_hash.clone()
 			),
-			"Sample multisig should have been correctly recreated on Asset Hub."
+			"Sample multisig {:?} should have been correctly removed from Asset Hub after tests.",
+			multisig_info.multisig_id.clone()
 		);
 	}
 }
