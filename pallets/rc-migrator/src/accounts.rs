@@ -177,7 +177,6 @@ impl<Balance: BalanceT> AccountState<Balance> {
 		}
 	}
 	/// Get the reserved balance on RC.
-
 	pub fn get_rc_reserved(&self) -> Balance {
 		match self {
 			AccountState::Part { reserved, .. } => *reserved,
