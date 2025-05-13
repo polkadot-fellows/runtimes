@@ -37,7 +37,7 @@ use super::{
 	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
-	multisig_test::MultisigsAccountIdStaysTheSame
+	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
