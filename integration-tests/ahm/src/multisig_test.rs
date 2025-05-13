@@ -29,6 +29,7 @@ use crate::porting_prelude::*;
 use frame_support::{pallet_prelude::*, traits::Currency};
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::RcMigrationCheck;
+use sp_application_crypto::Ss58Codec;
 use sp_io::hashing::blake2_256;
 use sp_runtime::AccountId32;
 use std::str::FromStr;
@@ -71,6 +72,12 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 			multisig_info.multisig_id.clone(),
 			balance,
 		);
+		assert_eq!(
+			pallet_balances::Pallet::<RcRuntime>::total_balance(&multisig_info.multisig_id),
+			balance,
+			"Sample multisig account {:?} should have received the correct balance on the relay chain.",
+			multisig_info.multisig_id.clone().to_ss58check()
+		);
 		(multisig_info, balance)
 	}
 
@@ -79,7 +86,8 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert_eq!(
 			pallet_balances::Pallet::<RcRuntime>::total_balance(&multisig_info.multisig_id),
 			0,
-			"Sample multisig account should have no balance on the relay chain after migration."
+			"Sample multisig account {:?} should have no balance on the relay chain after migration.",
+			multisig_info.multisig_id.clone().to_ss58check()
 		);
 	}
 }
@@ -97,7 +105,8 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 		assert_eq!(
 			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
 			0,
-			"Sample multisig account should have no balance on Asset Hub before migration."
+			"Sample multisig account {:?} should have no balance on Asset Hub before migration.",
+			multisig_info.multisig_id.clone().to_ss58check()
 		);
 	}
 
@@ -111,13 +120,14 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 				call_hash.clone()
 			),
 			"Sample multisig {:?} should have been correctly re-created on Asset Hub.",
-			multisig_info.multisig_id.clone()
+			multisig_info.multisig_id.clone().to_ss58check()
 		);
 		// Check that the multisig balance from the relay chain is preserved.
 		assert_eq!(
 			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
 			balance,
-			"Sample multisig account balance should have been migrated to Asset Hub with the correct balance."
+			"Sample multisig account {:?} should have been migrated to Asset Hub with the correct balance.",
+			multisig_info.multisig_id.clone().to_ss58check()
 		);
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
 		pallet_multisig::Multisigs::<AhRuntime>::remove(
@@ -131,7 +141,7 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 				call_hash.clone()
 			),
 			"Sample multisig {:?} should have been correctly removed from Asset Hub after tests.",
-			multisig_info.multisig_id.clone()
+			multisig_info.multisig_id.clone().to_ss58check()
 		);
 	}
 }
