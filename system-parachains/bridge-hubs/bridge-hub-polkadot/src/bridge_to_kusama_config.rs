@@ -17,10 +17,11 @@
 //! Bridge definitions used for bridging with Kusama Bridge Hub.
 
 use crate::{
+	bridge_common_config::BridgeRelayersInstance,
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
-	AccountId, Balance, Balances, BlockNumber, BridgeKusamaMessages, PolkadotXcm, Runtime,
-	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
+	AccountId, Balance, Balances, BridgeKusamaMessages, PolkadotXcm, Runtime, RuntimeEvent,
+	RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
 };
 
 pub use bp_bridge_hub_kusama::bp_kusama;
@@ -29,7 +30,6 @@ use bp_messages::{
 	target_chain::FromBridgedChainMessagesProof, LegacyLaneId,
 };
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
-use bp_relayers::RewardsAccountParams;
 use bp_runtime::Chain;
 use bridge_hub_common::xcm_version::XcmVersionOfDestAndRemoteBridge;
 use frame_support::{
@@ -57,14 +57,6 @@ parameter_types! {
 	/// This payment is tracked by the `pallet_bridge_relayers` pallet at the Polkadot
 	/// Bridge Hub.
 	pub storage DeliveryRewardInBalance: Balance = constants::currency::UNITS / 2_000;
-
-	/// Registered relayer stake.
-	///
-	/// Any relayer may reserve this amount on his account and get a priority boost for his
-	/// message delivery transactions. In exchange, he risks losing his stake if he would
-	/// submit an invalid transaction. The set of such (registered) relayers is tracked
-	/// by the `pallet_bridge_relayers` pallet at the Polkadot Bridge Hub.
-	pub storage RequiredStakeForStakeAndSlash: Balance = 500 * constants::currency::UNITS;
 }
 
 // Parameters, used by both XCM and bridge code.
@@ -89,30 +81,6 @@ parameter_types! {
 	};
 }
 
-pub type RelayersForLegacyLaneIdsMessagesInstance = ();
-/// Allows collect and claim rewards for relayers.
-impl pallet_bridge_relayers::Config<RelayersForLegacyLaneIdsMessagesInstance> for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RewardBalance = Balance;
-	type Reward = RewardsAccountParams<LegacyLaneId>;
-	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
-		pallet_balances::Pallet<Runtime>,
-		AccountId,
-		LegacyLaneId,
-		Self::RewardBalance,
-	>;
-	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
-		AccountId,
-		BlockNumber,
-		Balances,
-		RelayerStakeReserveId,
-		RequiredStakeForStakeAndSlash,
-		RelayerStakeLease,
-	>;
-	type Balance = Balance;
-	type WeightInfo = weights::pallet_bridge_relayers::WeightInfo<Runtime>;
-}
-
 // Parameters, used by bridge transport code.
 parameter_types! {
 	/// Number of Kusama headers to keep in the runtime storage.
@@ -132,11 +100,6 @@ parameter_types! {
 	pub const BridgeHubKusamaChainId: bp_runtime::ChainId = bp_bridge_hub_kusama::BridgeHubKusama::ID;
 	/// Name of the `paras` pallet at Kusama that tracks all parachain heads.
 	pub const ParachainPalletNameAtKusama: &'static str = bp_kusama::PARAS_PALLET_NAME;
-
-	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
-	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
-	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
-	pub const RelayerStakeLease: u32 = 300;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 1_820_444_444_444;
@@ -163,7 +126,7 @@ pub type OnBridgeHubPolkadotRefundBridgeHubKusamaMessages = BridgeRelayersTransa
 		StrOnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
-		RelayersForLegacyLaneIdsMessagesInstance,
+		BridgeRelayersInstance,
 		PriorityBoostPerMessage,
 	>,
 >;
@@ -215,7 +178,7 @@ impl pallet_bridge_messages::Config<WithBridgeHubKusamaMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
-		RelayersForLegacyLaneIdsMessagesInstance,
+		BridgeRelayersInstance,
 		DeliveryRewardInBalance,
 	>;
 

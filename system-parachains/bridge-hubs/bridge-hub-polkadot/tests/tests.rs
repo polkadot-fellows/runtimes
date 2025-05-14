@@ -18,11 +18,11 @@ use bp_bridge_hub_kusama::Perbill;
 use bp_messages::LegacyLaneId;
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
+	bridge_common_config::{BridgeRelayersInstance, RequiredStakeForStakeAndSlash},
 	bridge_to_kusama_config::{
 		BridgeGrandpaKusamaInstance, BridgeHubKusamaLocation, BridgeParachainKusamaInstance,
 		DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
-		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RelayersForLegacyLaneIdsMessagesInstance,
-		RequiredStakeForStakeAndSlash, WithBridgeHubKusamaMessagesInstance,
+		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, WithBridgeHubKusamaMessagesInstance,
 		XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
@@ -71,7 +71,7 @@ type RuntimeTestsAdapter = from_parachain::WithRemoteParachainHelperAdapter<
 	BridgeGrandpaKusamaInstance,
 	BridgeParachainKusamaInstance,
 	WithBridgeHubKusamaMessagesInstance,
-	RelayersForLegacyLaneIdsMessagesInstance,
+	BridgeRelayersInstance,
 >;
 
 parameter_types! {
