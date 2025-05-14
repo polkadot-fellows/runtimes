@@ -18,11 +18,12 @@ use bp_bridge_hub_kusama::Perbill;
 use bp_messages::LegacyLaneId;
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
+	bridge_common_config::{BridgeRelayersInstance, RequiredStakeForStakeAndSlash},
 	bridge_to_kusama_config::{
 		BridgeGrandpaKusamaInstance, BridgeHubKusamaLocation, BridgeParachainKusamaInstance,
-		BridgeRelayersInstance, DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
-		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RequiredStakeForStakeAndSlash,
-		WithBridgeHubKusamaMessagesInstance, XcmOverBridgeHubKusamaInstance,
+		DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
+		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, WithBridgeHubKusamaMessagesInstance,
+		XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
 		DotRelayLocation, GovernanceLocation, LocationToAccountId, RelayNetwork,
