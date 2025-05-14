@@ -24,6 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+pub mod bridge_common_config;
 pub mod bridge_to_ethereum_config;
 pub mod bridge_to_kusama_config;
 // Genesis preset configurations.
@@ -161,7 +162,7 @@ pub type Migrations = (
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
 	pallet_bridge_relayers::migration::v2::MigrationToV2<
 		Runtime,
-		bridge_to_kusama_config::RelayersForLegacyLaneIdsMessagesInstance,
+		bridge_common_config::BridgeRelayersInstance,
 		bp_messages::LegacyLaneId,
 	>,
 	// permanent
@@ -931,7 +932,7 @@ mod benches {
 			>>::BridgedChain::ID;
 			pallet_bridge_relayers::Pallet::<
 				Runtime,
-				bridge_to_kusama_config::RelayersForLegacyLaneIdsMessagesInstance,
+				bridge_common_config::BridgeRelayersInstance,
 			>::relayer_reward(
 				relayer,
 				bp_relayers::RewardsAccountParams::new(

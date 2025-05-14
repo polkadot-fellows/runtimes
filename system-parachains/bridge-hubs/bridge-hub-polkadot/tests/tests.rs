@@ -20,10 +20,9 @@ use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_kusama_config::{
 		BridgeGrandpaKusamaInstance, BridgeHubKusamaLocation, BridgeParachainKusamaInstance,
-		DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
-		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RelayersForLegacyLaneIdsMessagesInstance,
-		RequiredStakeForStakeAndSlash, WithBridgeHubKusamaMessagesInstance,
-		XcmOverBridgeHubKusamaInstance,
+		BridgeRelayersInstance, DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
+		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RequiredStakeForStakeAndSlash,
+		WithBridgeHubKusamaMessagesInstance, XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
 		DotRelayLocation, GovernanceLocation, LocationToAccountId, RelayNetwork,
@@ -71,7 +70,7 @@ type RuntimeTestsAdapter = from_parachain::WithRemoteParachainHelperAdapter<
 	BridgeGrandpaKusamaInstance,
 	BridgeParachainKusamaInstance,
 	WithBridgeHubKusamaMessagesInstance,
-	RelayersForLegacyLaneIdsMessagesInstance,
+	BridgeRelayersInstance,
 >;
 
 parameter_types! {
