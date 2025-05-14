@@ -19,8 +19,11 @@
 use crate::{weights, AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeEvent};
 use bp_messages::LegacyLaneId;
 use bp_relayers::RewardsAccountParams;
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::parameter_types;
 use polkadot_runtime_constants as constants;
+use scale_info::TypeInfo;
+use xcm::VersionedLocation;
 
 parameter_types! {
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
@@ -36,18 +39,89 @@ parameter_types! {
 	pub storage RequiredStakeForStakeAndSlash: Balance = 500 * constants::currency::UNITS;
 }
 
+/// Showcasing that we can handle multiple different rewards with the same pallet.
+#[derive(
+	Clone,
+	Copy,
+	Debug,
+	Decode,
+	DecodeWithMemTracking,
+	Encode,
+	Eq,
+	MaxEncodedLen,
+	PartialEq,
+	TypeInfo,
+)]
+pub enum BridgeReward {
+	/// Rewards for the P/K bridge—distinguished by the `RewardsAccountParams` key.
+	PolkadotKusamaBridge(RewardsAccountParams<LegacyLaneId>),
+	/// Rewards for Snowbridge.
+	Snowbridge,
+}
+
+impl From<RewardsAccountParams<LegacyLaneId>> for BridgeReward {
+	fn from(value: RewardsAccountParams<LegacyLaneId>) -> Self {
+		Self::PolkadotKusamaBridge(value)
+	}
+}
+
+/// An enum representing the different types of supported beneficiaries.
+#[derive(
+	Clone, Debug, Decode, DecodeWithMemTracking, Encode, Eq, MaxEncodedLen, PartialEq, TypeInfo,
+)]
+pub enum BridgeRewardBeneficiaries {
+	/// A local chain account.
+	LocalAccount(AccountId),
+	/// A beneficiary specified by a VersionedLocation.
+	AssetHubLocation(VersionedLocation),
+}
+
+impl From<sp_runtime::AccountId32> for BridgeRewardBeneficiaries {
+	fn from(value: sp_runtime::AccountId32) -> Self {
+		BridgeRewardBeneficiaries::LocalAccount(value)
+	}
+}
+
+/// Implementation of `bp_relayers::PaymentProcedure` as a pay/claim rewards scheme.
+pub struct BridgeRewardPayer;
+impl bp_relayers::PaymentProcedure<AccountId, BridgeReward, u128> for BridgeRewardPayer {
+	type Error = sp_runtime::DispatchError;
+	type Beneficiary = BridgeRewardBeneficiaries;
+
+	fn pay_reward(
+		relayer: &AccountId,
+		reward_kind: BridgeReward,
+		reward: u128,
+		beneficiary: BridgeRewardBeneficiaries,
+	) -> Result<(), Self::Error> {
+		match reward_kind {
+			BridgeReward::PolkadotKusamaBridge(lane_params) => {
+				match beneficiary {
+					BridgeRewardBeneficiaries::LocalAccount(account) => {
+						bp_relayers::PayRewardFromAccount::<
+							Balances,
+							AccountId,
+							LegacyLaneId,
+							u128,
+						>::pay_reward(
+							&relayer, lane_params, reward, account,
+						)
+					},
+					BridgeRewardBeneficiaries::AssetHubLocation(_) => Err(Self::Error::Other("`AssetHubLocation` beneficiary is not supported for `PolkadotKusamaBridge` rewards!")),
+				}
+			},
+			BridgeReward::Snowbridge => Err(Self::Error::Other("Not supported for `Snowbridge` rewards yet!")),
+		}
+	}
+}
+
 /// Allows collect and claim rewards for relayers.
 pub type BridgeRelayersInstance = ();
 impl pallet_bridge_relayers::Config<BridgeRelayersInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RewardBalance = Balance;
-	type Reward = RewardsAccountParams<LegacyLaneId>;
-	type PaymentProcedure = bp_relayers::PayRewardFromAccount<
-		pallet_balances::Pallet<Runtime>,
-		AccountId,
-		LegacyLaneId,
-		Self::RewardBalance,
-	>;
+	type Reward = BridgeReward;
+	type PaymentProcedure = BridgeRewardPayer;
 	type StakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 		AccountId,
 		BlockNumber,
