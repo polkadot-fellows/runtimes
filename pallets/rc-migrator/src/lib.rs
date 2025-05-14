@@ -572,6 +572,10 @@ pub mod pallet {
 		}
 
 		/// Schedule the migration to start at a given moment.
+		///
+		/// `start_moment` must be a point within the current era before the validator election
+		/// process has started. Typically, this corresponds to the final session of the era, just
+		/// prior to the election kickoff.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::RcWeightInfo::schedule_migration())]
 		pub fn schedule_migration(
@@ -643,7 +647,7 @@ pub mod pallet {
 							let active_era = pallet_staking::ActiveEra::<T>::get().map(|a| a.index).defensive_unwrap_or(0);
 							// ensure new era is not planned when starting migration.
 							if current_era > active_era {
-								defensive!("New era is planned, migration cannot start until it is completed");
+								defensive!("Migration must start before the election starts on the chain.");
 								Self::transition(MigrationStage::Pending);
 								return weight_counter.consumed();
 							}
