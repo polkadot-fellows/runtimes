@@ -73,7 +73,16 @@ pub fn coretime_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Val
 }
 
 fn coretime_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	coretime_kusama_local_testnet_genesis(para_id)
+	coretime_kusama_genesis(
+		invulnerables(),
+		{
+			let mut accounts = testnet_accounts();
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			accounts.push(StakingPot::get());
+			accounts
+		},
+		para_id,
+	)
 }
 
 fn coretime_kusama_live_genesis(para_id: ParaId) -> serde_json::Value {
