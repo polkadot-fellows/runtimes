@@ -93,12 +93,12 @@ type RcChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
-	MultisigsAccountIdStaysTheSame,
 );
 
 // Checks that are specific to Polkadot, and not available on other chains (like Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
@@ -133,13 +133,13 @@ type AhChecks = (
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
 	MultisigStillWork,
-	MultisigsAccountIdStaysTheSame,
 );
 
 // Checks that are specific to Asset Hub Migration on Polkadot, and not available on other chains
 // (like AH Westend)
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
 	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
