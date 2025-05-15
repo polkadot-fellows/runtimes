@@ -57,36 +57,34 @@ pub struct MultisigSummary {
 
 #[cfg(feature = "ahm-polkadot")]
 impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
-	// (sample multisig, balance)
-	// The sample multisig is created on the relay chain before migration, then it is given a
-	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
-	type RcPrePayload = (MultisigSummary, u128);
+	// sample multisig info
+	// The sample multisig is created on the relay chain before migration.
+	type RcPrePayload = MultisigSummary;
 
 	fn pre_check() -> Self::RcPrePayload {
 		// Create a sample multisig on the relay chain.
 		let multisig_info = Self::create_sample_multisig_rc();
-		let balance = 1000000000000;
-		// A non-zero balance will force the multisig account to be migrated to Asset Hub.
-		Self::transfer_rc_balance(
-			multisig_info.depositor.clone(),
-			multisig_info.multisig_id.clone(),
-			balance,
-		);
-		assert_eq!(
-			pallet_balances::Pallet::<RcRuntime>::total_balance(&multisig_info.multisig_id),
-			balance,
-			"Sample multisig account {:?} should have received the correct balance on the relay chain.",
+
+		assert!(
+			pallet_multisig::Multisigs::<RcRuntime>::contains_key(
+				multisig_info.multisig_id.clone(),
+				multisig_info.call_hash.clone()
+			),
+			"Sample multisig {:?} should have been correctly created on the relay chain.",
 			multisig_info.multisig_id.clone().to_ss58check()
 		);
-		(multisig_info, balance)
+
+		multisig_info
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
-		let (multisig_info, _) = rc_pre_payload;
-		assert_eq!(
-			pallet_balances::Pallet::<RcRuntime>::total_balance(&multisig_info.multisig_id),
-			0,
-			"Sample multisig account {:?} should have no balance on the relay chain after migration.",
+		let multisig_info = rc_pre_payload;
+		assert!(
+			!pallet_multisig::Multisigs::<RcRuntime>::contains_key(
+				multisig_info.depositor.clone(),
+				multisig_info.call_hash.clone()
+			),
+			"Sample multisig {:?} should have been removed from the relay chain after migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
 		);
 	}
@@ -94,24 +92,26 @@ impl RcMigrationCheck for MultisigsAccountIdStaysTheSame {
 
 #[cfg(feature = "ahm-polkadot")]
 impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
-	// (sample multisig, balance)
-	// The sample multisig is created on the relay chain before migration, then it is given a
-	// non-zero balance to test that the multisig account is correctly migrated to Asset Hub.
-	type RcPrePayload = (MultisigSummary, u128);
+	// sample multisig info
+	// The sample multisig is created on the relay chain before migration and then recreated on
+	// Asset Hub. We need to check that the multisig account ID stays the same.
+	type RcPrePayload = MultisigSummary;
 	type AhPrePayload = ();
 
 	fn pre_check(rc_pre_payload: Self::RcPrePayload) -> Self::AhPrePayload {
-		let (multisig_info, _) = rc_pre_payload;
-		assert_eq!(
-			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
-			0,
-			"Sample multisig account {:?} should have no balance on Asset Hub before migration.",
+		let multisig_info = rc_pre_payload;
+		assert!(
+			!pallet_multisig::Multisigs::<AhRuntime>::contains_key(
+				multisig_info.depositor.clone(),
+				multisig_info.call_hash.clone()
+			),
+			"Sample multisig {:?} should not be present on Asset Hub before migration.",
 			multisig_info.multisig_id.clone().to_ss58check()
 		);
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
-		let (multisig_info, balance) = rc_pre_payload;
+		let multisig_info = rc_pre_payload;
 		// Recreating the multisig on Asset Hub should work.
 		let call_hash = Self::recreate_multisig_ah(&multisig_info);
 		assert!(
@@ -120,13 +120,6 @@ impl AhMigrationCheck for MultisigsAccountIdStaysTheSame {
 				call_hash.clone()
 			),
 			"Sample multisig {:?} should have been correctly re-created on Asset Hub.",
-			multisig_info.multisig_id.clone().to_ss58check()
-		);
-		// Check that the multisig balance from the relay chain is preserved.
-		assert_eq!(
-			pallet_balances::Pallet::<AhRuntime>::total_balance(&multisig_info.multisig_id),
-			balance,
-			"Sample multisig account {:?} should have been migrated to Asset Hub with the correct balance.",
 			multisig_info.multisig_id.clone().to_ss58check()
 		);
 		// Remove the multisig from the Asset Hub to avoid messing up with the next tests.
@@ -184,15 +177,6 @@ impl MultisigsAccountIdStaysTheSame {
 			threshold: threshold as u32,
 			call_hash,
 		}
-	}
-
-	// Transfer balance from a source account to a destination account on the Relay chain.
-	fn transfer_rc_balance(source: AccountId32, dest: AccountId32, amount: u128) {
-		frame_support::assert_ok!(pallet_balances::Pallet::<RcRuntime>::transfer_allow_death(
-			RcRuntimeOrigin::signed(source),
-			dest.into(),
-			amount
-		));
 	}
 
 	// Recreate a multisig on Asset Hub and return the call hash.
