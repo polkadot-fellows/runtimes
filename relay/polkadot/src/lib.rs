@@ -3192,9 +3192,7 @@ mod staking_tests {
 			// Then the solo staker cannot join a pool.
 			assert_noop!(
 				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
-				// Note: with sdk stable2503 onwards, this error would be
-				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
-				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
+				pallet_nomination_pools::Error::<Runtime>::Restricted
 			);
 
 			// And the pooled staker cannot solo-stake.
@@ -3204,9 +3202,7 @@ mod staking_tests {
 					stake,
 					pallet_staking::RewardDestination::Stash,
 				),
-				// Note: with sdk stable2503 onwards, this error would be
-				// `pallet_staking::Error::<Runtime>::Restricted`.
-				pallet_staking::Error::<Runtime>::BoundNotMet
+				pallet_staking::Error::<Runtime>::Restricted
 			);
 		});
 	}

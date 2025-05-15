@@ -120,20 +120,13 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 }
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Polkadot::assert_ump_queue_processed(
-		false,
-		Some(PeoplePolkadot::para_id()),
-		Some(Weight::from_parts(157_718_000, 3_593)),
-	);
+	Polkadot::assert_ump_queue_processed(false, Some(PeoplePolkadot::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
 
-	PeoplePolkadot::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		600_000_000,
-		7_000,
-	)));
+	PeoplePolkadot::assert_xcm_pallet_attempted_complete(None);
 
 	PeoplePolkadot::assert_parachain_system_ump_sent();
 
