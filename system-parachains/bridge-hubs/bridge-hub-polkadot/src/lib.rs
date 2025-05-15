@@ -851,29 +851,40 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
-		// TODO @bkontur: Check this out, please.
 		fn bench_reward() -> Self::Reward {
 			bp_relayers::RewardsAccountParams::new(
 				bp_messages::LegacyLaneId::default(),
 				*b"test",
 				bp_relayers::RewardsAccountOwner::ThisChain,
 			)
+			.into()
 		}
 
 		fn prepare_rewards_account(
-			account_params: bp_relayers::RewardsAccountParams<
-				LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>,
-			>,
+			reward_kind: Self::Reward,
 			reward: Balance,
-		) -> Option<AccountId> {
+		) -> Option<
+			pallet_bridge_relayers::BeneficiaryOf<
+				Runtime,
+				bridge_common_config::BridgeRelayersInstance,
+			>,
+		> {
+			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(reward_kind) = reward_kind
+			else {
+				panic!(
+					"Unexpected reward_kind: {:?} - not compatible with `bench_reward`!",
+					reward_kind
+				);
+			};
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
 				bp_messages::LegacyLaneId,
 				Balance,
-			>::rewards_account(account_params);
-			Self::deposit_account(rewards_account.clone(), reward);
-			Some(rewards_account)
+			>::rewards_account(reward_kind);
+			Self::deposit_account(rewards_account, reward);
+
+			None
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -935,11 +946,13 @@ mod benches {
 				bridge_common_config::BridgeRelayersInstance,
 			>::relayer_reward(
 				relayer,
-				bp_relayers::RewardsAccountParams::new(
-					bench_lane_id,
-					bridged_chain_id,
-					bp_relayers::RewardsAccountOwner::BridgedChain,
-				),
+				bridge_common_config::BridgeReward::PolkadotKusamaBridge(
+					bp_relayers::RewardsAccountParams::new(
+						bench_lane_id,
+						bridged_chain_id,
+						bp_relayers::RewardsAccountOwner::BridgedChain,
+					)
+				)
 			)
 			.is_some()
 		}
