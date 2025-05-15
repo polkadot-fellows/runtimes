@@ -187,9 +187,9 @@ pub type Barrier = TrailingSetTopicAsId<
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
+	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
-	Equals<RootLocation>,
 	LocalPlurality,
 );
 

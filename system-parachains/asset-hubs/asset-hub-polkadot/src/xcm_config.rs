@@ -62,6 +62,7 @@ use xcm_builder::{
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
+	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
 	pub const DotLocationV4: xcm::v4::Location = xcm::v4::Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
@@ -359,6 +360,7 @@ pub type Barrier = TrailingSetTopicAsId<
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
+	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowshipEntities,

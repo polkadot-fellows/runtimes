@@ -57,6 +57,7 @@ use xcm_executor::{
 };
 
 parameter_types! {
+	pub const RootLocation: Location = Location::here();
 	pub const DotRelayLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -189,6 +190,7 @@ pub type Barrier = TrailingSetTopicAsId<
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
 pub type WaivedLocations = (
+	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
@@ -323,7 +325,7 @@ impl<WaivedLocations: Contains<Location>, FeeHandler: HandleFee> FeeManager
 		let Some(loc) = origin else { return false };
 		if let Export { network, destination: Here } = fee_reason {
 			if network == EthereumNetwork::get() {
-				return false
+				return false;
 			}
 		}
 		WaivedLocations::contains(loc)
