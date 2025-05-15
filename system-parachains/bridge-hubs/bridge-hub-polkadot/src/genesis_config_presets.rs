@@ -84,8 +84,17 @@ pub fn preset_names() -> Vec<PresetId> {
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 	let patch = match id.as_ref() {
-		sp_genesis_builder::DEV_RUNTIME_PRESET =>
-			bridge_hub_polkadot_genesis(invulnerables(), testnet_accounts(), 1002.into(), vec![]),
+		sp_genesis_builder::DEV_RUNTIME_PRESET => bridge_hub_polkadot_genesis(
+			invulnerables(),
+			{
+				let mut accounts = testnet_accounts();
+				// Make sure `StakingPot` is funded for benchmarking purposes.
+				accounts.push(StakingPot::get());
+				accounts
+			},
+			1002.into(),
+			vec![],
+		),
 		sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET => bridge_hub_polkadot_genesis(
 			invulnerables(),
 			testnet_accounts(),
