@@ -18,6 +18,7 @@
 #![doc = include_str!("multisig.md")]
 
 use frame_support::traits::Currency;
+use sp_runtime::traits::Zero;
 
 extern crate alloc;
 use crate::{types::*, *};
@@ -143,6 +144,12 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 			}
 
 			let kv = iter.next();
+
+			// Remove the previous multisig from storage if it exists.
+			if let Some((k1, k2)) = last_key {
+				aliases::Multisigs::<T>::remove(k1.clone(), k2.clone());
+			}
+
 			let Some((k1, k2, multisig)) = kv else {
 				last_key = None;
 				log::info!(target: LOG_TARGET, "No more multisigs to migrate");
@@ -169,5 +176,38 @@ impl<T: Config> PalletMigration for MultisigMigrator<T> {
 		}
 
 		Ok(last_key)
+	}
+}
+
+/// Struct used to check the multisig migration in integration tests.
+pub struct MultisigMigrationChecker<T>(sp_std::marker::PhantomData<T>);
+
+#[cfg(feature = "std")]
+impl<T: Config> RcMigrationCheck for MultisigMigrationChecker<T> {
+	// Vec of multisig account ids with non-zero balance on the relay chain before migration
+	type RcPrePayload = Vec<AccountIdOf<T>>;
+
+	fn pre_check() -> Self::RcPrePayload {
+		let mut multisig_ids = Vec::new();
+		// Collect all multisig account ids with non-zero balance from storage
+		for (multisig_id, _, _) in aliases::Multisigs::<T>::iter() {
+			let multisig_balance =
+				<<T as pallet_multisig::Config>::Currency as frame_support::traits::Currency<
+					<T as frame_system::Config>::AccountId,
+				>>::total_balance(&multisig_id);
+			if !multisig_balance.is_zero() {
+				multisig_ids.push(multisig_id);
+			}
+		}
+
+		multisig_ids
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// Assert storage 'Multisig::Multisigs::rc_post::empty'
+		assert!(
+			pallet_multisig::Multisigs::<T>::iter().next().is_none(),
+			"Multisig storage should be empty on the relay chain after migration"
+		);
 	}
 }
