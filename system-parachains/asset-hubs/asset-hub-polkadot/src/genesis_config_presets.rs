@@ -87,7 +87,16 @@ pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::
 }
 
 fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_polkadot_local_testnet_genesis(para_id)
+	asset_hub_polkadot_genesis(
+		invulnerables_asset_hub_polkadot(),
+		{
+			let mut accounts = testnet_accounts();
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			accounts.push(StakingPot::get());
+			accounts
+		},
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.

@@ -80,6 +80,7 @@ pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<alloc::vec::Vec<u
 			invulnerables(),
 			{
 				let mut accounts = testnet_accounts();
+				// Make sure `StakingPot` is funded for benchmarking purposes.
 				accounts.push(StakingPot::get());
 				accounts
 			},

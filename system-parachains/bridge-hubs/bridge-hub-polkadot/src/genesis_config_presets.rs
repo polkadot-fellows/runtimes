@@ -88,6 +88,7 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			invulnerables(),
 			{
 				let mut accounts = testnet_accounts();
+				// Make sure `StakingPot` is funded for benchmarking purposes.
 				accounts.push(StakingPot::get());
 				accounts
 			},
