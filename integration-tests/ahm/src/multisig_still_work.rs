@@ -16,21 +16,8 @@
 
 //! Test that Multisig Account IDs result in the same IDs and they can still dispatch calls.
 
-use crate::porting_prelude::*;
-
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
-use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
-use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};
-use rand::prelude::*;
-use sp_runtime::{
-	traits::{Dispatchable, TryConvert},
-	AccountId32,
-};
-use std::{collections::BTreeMap, str::FromStr};
+use pallet_rc_migrator::types::RcMigrationCheck;
 
 type RelayRuntime = polkadot_runtime::Runtime;
 type AssetHubRuntime = asset_hub_polkadot_runtime::Runtime;

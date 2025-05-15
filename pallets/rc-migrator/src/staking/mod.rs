@@ -30,5 +30,5 @@ pub use staking::*;
 /// Infallible conversion trait. Generic over both source and destination types.
 pub trait IntoAh<A, B> {
 	/// Make conversion.
-	fn intoAh(a: A) -> B;
+	fn into_ah(a: A) -> B;
 }

@@ -24,12 +24,8 @@
 //! types directly.
 
 use super::Permission;
-use crate::porting_prelude::*;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, Defensive},
-};
+use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_ah_migrator::types::AhMigrationCheck;
 use pallet_rc_migrator::types::{RcMigrationCheck, ToPolkadotSs58};

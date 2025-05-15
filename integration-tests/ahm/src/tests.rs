@@ -31,8 +31,6 @@
 //! SNAP_RC="../../polkadot.snap" SNAP_AH="../../ah-polkadot.snap" RUST_LOG="info" ct polkadot-integration-tests-ahm -r on_initialize_works -- --nocapture
 //! ```
 
-use crate::porting_prelude::*;
-
 use super::{
 	checks::SanityChecks,
 	mock::*,
@@ -42,16 +40,12 @@ use super::{
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
 use cumulus_pallet_parachain_system::PendingUpwardMessages;
 use cumulus_primitives_core::{BlockT, InboundDownwardMessage, Junction, Location, ParaId};
-use frame_support::{
-	assert_err,
-	traits::{
-		fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement,
-		ReservableCurrency,
-	},
+use frame_support::traits::{
+	fungible::Inspect, schedule::DispatchTime, Currency, ExistenceRequirement, ReservableCurrency,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_ah_migrator::{
-	proxy::ProxyBasicChecks, types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
+	types::AhMigrationCheck, AhMigrationStage as AhMigrationStageStorage,
 	MigrationStage as AhMigrationStage,
 };
 use pallet_rc_migrator::{
