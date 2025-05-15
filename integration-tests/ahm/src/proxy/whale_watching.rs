@@ -77,7 +77,7 @@ impl AhMigrationCheck for ProxyWhaleWatching {
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
 		// Whales still afloat
 		for (whale, num_proxies) in WHALES {
 			let acc = frame_system::Account::<AssetHubRuntime>::get(whale);

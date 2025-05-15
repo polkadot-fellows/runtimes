@@ -66,13 +66,6 @@ mod aliases {
 			<T as pallet_multisig::Config>::MaxSignatories,
 		>,
 	>;
-
-	pub type MultisigOf<T> = Multisig<
-		BlockNumberFor<T>,
-		BalanceOf<T>,
-		AccountIdOf<T>,
-		<T as pallet_multisig::Config>::MaxSignatories,
-	>;
 }
 
 /// A multi sig that was migrated out and is ready to be received by AH.

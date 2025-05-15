@@ -39,14 +39,14 @@ impl RcMigrationCheck for MultisigStillWork {
 	fn pre_check() -> Self::RcPrePayload {
 		// We generate 100 multisigs consisting of between 1 and 10 signatories.
 		// Just use the first 1000 accs to make the generation a bit faster.
-		let accounts = frame_system::Account::<RelayRuntime>::iter()
+		let _accounts = frame_system::Account::<RelayRuntime>::iter()
 			.take(1000)
 			.map(|(_id, a)| a.data)
 			.collect::<Vec<_>>();
-		let mut multisigs = Vec::new();
+		let multisigs = Vec::new();
 		//let mut rng = rand::rng();
 
-		for i in 0..100 {
+		for _i in 0..100 {
 			//let num_signatories = rng.gen_range(1..=10);
 			//let signatories = TODO
 		}

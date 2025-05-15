@@ -52,7 +52,7 @@ impl AhMigrationCheck for SanityChecks {
 		);
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_: Self::RcPrePayload, _: Self::AhPrePayload) {
 		assert!(
 			pallet_ah_migrator::AhMigrationStage::<AhRuntime>::get() ==
 				pallet_ah_migrator::MigrationStage::MigrationDone
