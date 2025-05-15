@@ -81,7 +81,7 @@ fn coretime_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 			accounts.push(StakingPot::get());
 			accounts
 		},
-		para_id
+		para_id,
 	)
 }
 

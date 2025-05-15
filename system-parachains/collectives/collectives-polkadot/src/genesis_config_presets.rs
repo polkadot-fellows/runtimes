@@ -78,7 +78,7 @@ fn collectives_polkadot_development_genesis(para_id: ParaId) -> serde_json::Valu
 			accounts.push(StakingPot::get());
 			accounts
 		},
-		para_id
+		para_id,
 	)
 }
 
