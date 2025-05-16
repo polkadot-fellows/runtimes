@@ -226,6 +226,33 @@ pub mod benchmark_helpers {
 	}
 }
 
+pub mod migration {
+	use frame_support::weights::Weight;
+	use sp_core::Get;
+
+	/// Migrate ForeignToNativeId from XCMv4 to XCMv5.
+	pub struct MigrateToXcm5<T: snowbridge_pallet_system::Config>(core::marker::PhantomData<T>);
+
+	impl<T: snowbridge_pallet_system::Config> frame_support::traits::OnRuntimeUpgrade
+		for MigrateToXcm5<T>
+	{
+		fn on_runtime_upgrade() -> Weight {
+			let mut weight = T::DbWeight::get().reads(1);
+
+			let translate = |pre: xcm::v4::Location| -> Option<xcm::v5::Location> {
+				weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
+				let location = xcm::v5::Location::try_from(pre.clone()).expect("valid location");
+				log::info!("PNA migration from v4 {:?} to v5 {:?}", pre, location);
+				Some(location)
+			};
+			snowbridge_pallet_system::ForeignToNativeId::<T>::translate_values(translate);
+			log::info!("PNA migration finished!");
+
+			weight
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
