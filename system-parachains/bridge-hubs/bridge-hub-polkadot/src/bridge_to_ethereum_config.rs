@@ -241,7 +241,9 @@ pub mod migration {
 
 			let translate = |pre: xcm::v4::Location| -> Option<xcm::v5::Location> {
 				weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
-				Some(xcm::v5::Location::try_from(pre).expect("valid location"))
+				let location = xcm::v5::Location::try_from(pre.clone()).expect("valid location");
+				log::info!("PNA migration from v4 {:?} to v5 {:?}", pre, location);
+				Some(location)
 			};
 			snowbridge_pallet_system::ForeignToNativeId::<T>::translate_values(translate);
 
