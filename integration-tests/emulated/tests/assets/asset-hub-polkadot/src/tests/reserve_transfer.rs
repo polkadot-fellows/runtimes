@@ -85,7 +85,7 @@ pub fn system_para_to_para_receiver_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
 	PenpalB::assert_xcmp_queue_success(None);
 	for asset in t.args.assets.into_inner().into_iter() {
-		let mut expected_id: Location = asset.id.0.try_into().unwrap();
+		let mut expected_id: Location = asset.id.0;
 		let relative_id = match expected_id {
 			Location { parents: 1, interior: Here } => expected_id,
 			Location { parents: 2, .. } => expected_id,

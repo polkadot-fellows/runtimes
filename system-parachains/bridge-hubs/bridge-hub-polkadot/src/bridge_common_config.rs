@@ -17,6 +17,7 @@
 //! Bridge definitions that can be used by multiple bridges.
 
 use crate::{weights, AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeEvent};
+use alloc::boxed::Box;
 use bp_messages::LegacyLaneId;
 use bp_relayers::RewardsAccountParams;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
@@ -73,7 +74,7 @@ pub enum BridgeRewardBeneficiaries {
 	/// A local chain account.
 	LocalAccount(AccountId),
 	/// A beneficiary specified by a VersionedLocation.
-	AssetHubLocation(VersionedLocation),
+	AssetHubLocation(Box<VersionedLocation>),
 }
 
 impl From<sp_runtime::AccountId32> for BridgeRewardBeneficiaries {
@@ -104,7 +105,7 @@ impl bp_relayers::PaymentProcedure<AccountId, BridgeReward, u128> for BridgeRewa
 							LegacyLaneId,
 							u128,
 						>::pay_reward(
-							&relayer, lane_params, reward, account,
+							relayer, lane_params, reward, account,
 						)
 					},
 					BridgeRewardBeneficiaries::AssetHubLocation(_) => Err(Self::Error::Other("`AssetHubLocation` beneficiary is not supported for `PolkadotKusamaBridge` rewards!")),
