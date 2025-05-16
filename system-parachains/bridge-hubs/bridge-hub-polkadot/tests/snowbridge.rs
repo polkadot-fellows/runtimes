@@ -16,26 +16,32 @@
 
 #![cfg(test)]
 
+use bp_bridge_hub_polkadot::{snowbridge::EthereumLocation, BRIDGE_HUB_POLKADOT_PARACHAIN_ID};
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
+	xcm_config::{UniversalLocation, XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
 	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
 	UncheckedExtrinsic,
 };
 use codec::{Decode, Encode};
-use cumulus_primitives_core::XcmError::{FailedToTransactAsset, TooExpensive};
+use cumulus_primitives_core::{
+	ParaId,
+	XcmError::{FailedToTransactAsset, TooExpensive},
+};
 use frame_support::{
 	assert_err, assert_ok, parameter_types,
 	traits::{fungible::Mutate, Contains},
 };
+use hex_literal::hex;
 use parachains_common::{AccountId, AuraId, Balance};
 pub use parachains_runtimes_test_utils::test_cases::change_storage_constant_by_governance_works;
 use parachains_runtimes_test_utils::{
 	AccountIdOf, BalanceOf, CollatorSessionKeys, ExtBuilder, ValidatorIdOf,
 };
+use snowbridge_core::{TokenId, TokenIdOf};
 use snowbridge_pallet_ethereum_client::WeightInfo;
 use snowbridge_pallet_ethereum_client_fixtures::*;
 use sp_core::{Get, H160};
@@ -46,7 +52,8 @@ use sp_runtime::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::HandleFee;
-use xcm_executor::traits::{FeeManager, FeeReason};
+use xcm_executor::traits::{ConvertLocation, FeeManager, FeeReason};
+
 parameter_types! {
 	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
 }
@@ -414,4 +421,121 @@ fn construct_and_apply_extrinsic(
 	let xt = construct_extrinsic(origin, call);
 	let r = Executive::apply_extrinsic(xt);
 	r.unwrap()
+}
+
+#[test]
+fn check_token_id_on_chain_derived_from_xcm_v4_is_same_as_value_derived_from_xcm_v5() {
+	pub struct RegisterTokenTestCase {
+		/// Input: Location of Polkadot-native token relative to BH
+		pub native: Location,
+		/// Output: Reanchored, canonicalized location
+		pub reanchored: Location,
+		/// Output: Stable hash of reanchored location
+		pub foreign: TokenId,
+	}
+	let test_cases = vec![
+		// DOT
+		RegisterTokenTestCase {
+			native: Location::parent(),
+			reanchored: Location::new(1, GlobalConsensus(Polkadot)),
+			foreign: hex!("4e241583d94b5d48a27a22064cd49b2ed6f5231d2d950e432f9b7c2e0ade52b2")
+				.into(),
+		},
+		// KSM
+		RegisterTokenTestCase {
+			native: Location::new(2, [GlobalConsensus(Kusama)]),
+			reanchored: Location::new(1, [GlobalConsensus(Kusama)]),
+			foreign: hex!("03b6054d0c576dd8391e34e1609cf398f68050c23009d19ce93c000922bcd852")
+				.into(),
+		},
+		// PINK
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(23)]),
+			reanchored: Location::new(
+				1,
+				[GlobalConsensus(Polkadot), Parachain(1000), PalletInstance(50), GeneralIndex(23)],
+			),
+			foreign: hex!("bc8785969587ef3d22739d3385cb519a9e0133dd5da8d320c376772468c19be6")
+				.into(),
+		},
+		// TEER
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(2039)]),
+			reanchored: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+			foreign: hex!("3b7f577715347bdcde4739a1bf1a7f1dec71e8ff4dbe23a6a49348ebf920c658")
+				.into(),
+		},
+	];
+	for tc in test_cases.iter() {
+		ExtBuilder::<Runtime>::default()
+			.with_collators(collator_session_keys().collators())
+			.with_session_keys(collator_session_keys().session_keys())
+			.with_para_id(ParaId::from(BRIDGE_HUB_POLKADOT_PARACHAIN_ID))
+			.with_tracing()
+			.build()
+			.execute_with(|| {
+				let ethereum_location = EthereumLocation::get();
+				// reanchor to Ethereum context
+				let location = tc
+					.native
+					.clone()
+					.reanchored(&ethereum_location, &UniversalLocation::get())
+					.unwrap();
+				assert_eq!(location, tc.reanchored);
+
+				let token_id = TokenIdOf::convert_location(&location).unwrap();
+				assert_eq!(token_id, tc.foreign);
+			})
+	}
+}
+
+#[test]
+fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
+	use xcm::v4::prelude::{
+		GeneralIndex as GeneralIndexV4, GlobalConsensus as GlobalConsensusV4, Kusama as KusamaV4,
+		Location as LocationV4, PalletInstance as PalletInstanceV4, Parachain as ParachainV4,
+		Polkadot as PolkadotV4,
+	};
+	pub struct LocationEncodeDecodeTestCase {
+		pub v4: LocationV4,
+		pub v5: Location,
+	}
+	let test_cases = vec![
+		// DOT
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(1, GlobalConsensusV4(PolkadotV4)),
+			v5: Location::new(1, GlobalConsensus(Polkadot)),
+		},
+		// KSM
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(1, GlobalConsensusV4(KusamaV4)),
+			v5: Location::new(1, GlobalConsensus(Kusama)),
+		},
+		// PINK
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(
+				1,
+				[
+					GlobalConsensusV4(PolkadotV4),
+					ParachainV4(1000),
+					PalletInstanceV4(50),
+					GeneralIndexV4(23),
+				],
+			),
+			v5: Location::new(
+				1,
+				[GlobalConsensus(Polkadot), Parachain(1000), PalletInstance(50), GeneralIndex(23)],
+			),
+		},
+		// TEER
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(1, [GlobalConsensusV4(PolkadotV4), ParachainV4(2039)]),
+			v5: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+		},
+	];
+	for tc in test_cases.iter() {
+		let location: Location = Decode::decode(&mut tc.v4.encode().as_slice())
+			.expect("Stored data should decode to V5 format correctly");
+		assert_eq!(location, tc.v5);
+	}
 }
