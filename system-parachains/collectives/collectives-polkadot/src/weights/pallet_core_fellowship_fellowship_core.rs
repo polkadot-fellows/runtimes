@@ -235,6 +235,20 @@ impl<T: frame_system::Config> pallet_core_fellowship::WeightInfo for WeightInfo<
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// Storage: `FellowshipCore::Member` (r:1 w:1)
+	/// Proof: `FellowshipCore::Member` (`max_values`: None, `max_size`: Some(49), added: 2524, mode: `MaxEncodedLen`)
+	/// Storage: `FellowshipCollective::Members` (r:1 w:0)
+	/// Proof: `FellowshipCollective::Members` (`max_values`: None, `max_size`: Some(42), added: 2517, mode: `MaxEncodedLen`)
+	fn import_member() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `313`
+		//  Estimated: `3514`
+		// Minimum execution time: 16_951_000 picoseconds.
+		Weight::from_parts(17_461_000, 0)
+			.saturating_add(Weight::from_parts(0, 3514))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	/// Storage: `FellowshipCollective::Members` (r:1 w:0)
 	/// Proof: `FellowshipCollective::Members` (`max_values`: None, `max_size`: Some(42), added: 2517, mode: `MaxEncodedLen`)
 	/// Storage: `FellowshipCore::Member` (r:1 w:1)

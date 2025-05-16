@@ -35,6 +35,7 @@ fn asset_hub_kusama_genesis(
 				.cloned()
 				.map(|k| (k, ASSET_HUB_KUSAMA_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,

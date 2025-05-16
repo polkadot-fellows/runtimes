@@ -28,7 +28,7 @@ use integration_tests_helpers::common::snowbridge::{
 };
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_router_primitives::inbound::EthereumLocationsConverterFor;
+use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
@@ -84,6 +84,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.cloned()
 				.map(|k| (k, ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		parachain_info: asset_hub_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),

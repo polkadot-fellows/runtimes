@@ -27,6 +27,7 @@ use frame_support::{
 };
 use kusama_runtime::OriginCaller;
 use kusama_runtime_constants::currency::GRAND;
+use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_executor::traits::ConvertLocation;
 
@@ -50,6 +51,8 @@ fn spend_ksm_on_asset_hub() {
 		type Runtime = <Kusama as Chain>::Runtime;
 		type Balances = <Kusama as KusamaPallet>::Balances;
 		type Treasury = <Kusama as KusamaPallet>::Treasury;
+
+		Dmp::make_parachain_reachable(1000);
 
 		// Fund Treasury account on Asset Hub with KSMs.
 
@@ -206,6 +209,7 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		// create a conversion rate from `asset_kind` to the native currency.
 		assert_ok!(AssetRate::create(root.clone(), Box::new(asset_kind.clone()), 2.into()));
 
+		Dmp::make_parachain_reachable(1000);
 		// create and approve a treasury spend.
 		assert_ok!(Treasury::spend(
 			root,

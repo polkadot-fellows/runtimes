@@ -26,7 +26,8 @@ use pallet_xcm::EnsureXcm;
 use parachains_common::{AccountId, Balance};
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_core::AllowSiblingsOnly;
-use snowbridge_router_primitives::{inbound::MessageToXcm, outbound::EthereumBlobExporter};
+use snowbridge_inbound_queue_primitives::v1::MessageToXcm;
+use snowbridge_outbound_queue_primitives::v1::{ConstantGasMeter, EthereumBlobExporter};
 use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
 use system_parachains_constants::polkadot::fee::WeightToFee;
@@ -85,7 +86,7 @@ impl snowbridge_pallet_outbound_queue::Config for Runtime {
 	type Decimals = ConstU8<10>;
 	type MaxMessagePayloadSize = ConstU32<2048>;
 	type MaxMessagesPerBlock = ConstU32<32>;
-	type GasMeter = snowbridge_core::outbound::ConstantGasMeter;
+	type GasMeter = ConstantGasMeter;
 	type Balance = Balance;
 	type WeightToFee = WeightToFee;
 	type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue::WeightInfo<Runtime>;

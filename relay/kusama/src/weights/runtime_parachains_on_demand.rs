@@ -95,4 +95,28 @@ impl<T: frame_system::Config> runtime_parachains::on_demand::WeightInfo for Weig
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(Weight::from_parts(0, 8).saturating_mul(s.into()))
 	}
+	/// Storage: `OnDemandAssignmentProvider::QueueStatus` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::QueueStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::Credits` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::Credits` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::Revenue` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::Revenue` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::ParaIdAffinity` (r:1 w:0)
+	/// Proof: `OnDemandAssignmentProvider::ParaIdAffinity` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `OnDemandAssignmentProvider::FreeEntries` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::FreeEntries` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `s` is `[1, 9999]`.
+	fn place_order_with_credits(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `304 + s * (8 ±0)`
+		//  Estimated: `3767 + s * (8 ±0)`
+		// Minimum execution time: 28_187_000 picoseconds.
+		Weight::from_parts(12_021_424, 0)
+			.saturating_add(Weight::from_parts(0, 3767))
+			// Standard Error: 157
+			.saturating_add(Weight::from_parts(27_490, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
+			.saturating_add(Weight::from_parts(0, 8).saturating_mul(s.into()))
+	}
 }

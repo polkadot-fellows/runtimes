@@ -32,6 +32,7 @@ pub fn genesis() -> Storage {
 	let genesis_config = people_kusama_runtime::RuntimeGenesisConfig {
 		balances: people_kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			dev_accounts: None,
 		},
 		system: people_kusama_runtime::SystemConfig::default(),
 		parachain_info: people_kusama_runtime::ParachainInfoConfig {

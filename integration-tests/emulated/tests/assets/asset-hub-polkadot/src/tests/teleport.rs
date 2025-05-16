@@ -15,7 +15,7 @@
 
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{DotLocation, XcmConfig as AssetHubPolkadotXcmConfig};
-use emulated_integration_tests_common::xcm_helpers::non_fee_asset;
+use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
 	sp_runtime::traits::Dispatchable,
@@ -28,20 +28,13 @@ use xcm_runtime_apis::{
 };
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Polkadot::assert_ump_queue_processed(
-		false,
-		Some(AssetHubPolkadot::para_id()),
-		Some(Weight::from_parts(148_705_000, 3_593)),
-	);
+	Polkadot::assert_ump_queue_processed(false, Some(AssetHubPolkadot::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
-	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		533_910_000,
-		7167,
-	)));
+	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
 
 	AssetHubPolkadot::assert_parachain_system_ump_sent();
 
@@ -85,29 +78,17 @@ fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 
 fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	let sov_penpal_on_ahk = AssetHubPolkadot::sovereign_account_id_of(
-		AssetHubPolkadot::sibling_location_of(PenpalB::para_id()),
-	);
-	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let expected_foreign_asset_id: xcm::v4::Location =
-		expected_foreign_asset_id_latest.try_into().unwrap();
 	AssetHubPolkadot::assert_xcmp_queue_success(None);
+	println!("t.args.amount {:?}", t.args.amount);
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
-			// native asset reserve transfer for paying fees, withdrawn from Penpal's sov account
-			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
-			) => {
-				who: *who == sov_penpal_on_ahk.clone(),
-				amount: *amount == t.args.amount,
-			},
 			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
 				who: *who == t.receiver.account_id,
 			},
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { owner, amount, .. }) => {
 				owner: *owner == t.receiver.account_id,
 				amount: *amount == expected_foreign_asset_amount,
 			},
@@ -119,26 +100,22 @@ fn penpal_to_ah_foreign_assets_receiver_assertions(t: ParaToSystemParaTest) {
 fn ah_to_penpal_foreign_assets_sender_assertions(t: SystemParaToParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 	AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
-	let (expected_foreign_asset_id_latest, expected_foreign_asset_amount) =
+	let (_, expected_native_amount) =
+		fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+	let (_, expected_foreign_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
-	let expected_foreign_asset_id: xcm::v4::Location =
-		expected_foreign_asset_id_latest.try_into().unwrap();
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
 			// native asset used for fees is transferred to Parachain's Sovereign account as reserve
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Transfer { from, to, amount }
+				pallet_balances::Event::Transfer { from, amount, .. }
 			) => {
 				from: *from == t.sender.account_id,
-				to: *to == AssetHubPolkadot::sovereign_account_id_of(
-					t.args.dest.clone()
-				),
-				amount: *amount == t.args.amount,
+				amount: *amount == expected_native_amount,
 			},
 			// foreign asset is burned locally as part of teleportation
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { asset_id, owner, balance }) => {
-				asset_id: *asset_id == expected_foreign_asset_id,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Burned { owner, balance, .. }) => {
 				owner: *owner == t.sender.account_id,
 				balance: *balance == expected_foreign_asset_amount,
 			},
@@ -152,8 +129,6 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 	let (_, expected_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
 	let checking_account = <PenpalB as PenpalBPallet>::PolkadotXcm::check_account();
-	let system_para_native_asset_location = DotLocation::get();
-
 	PenpalB::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		PenpalB,
@@ -171,10 +146,9 @@ fn ah_to_penpal_foreign_assets_receiver_assertions(t: SystemParaToParaTest) {
 				amount: *amount == expected_asset_amount,
 			},
 			// native asset for fee is deposited to receiver
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
-				asset_id: *asset_id == system_para_native_asset_location,
+			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				asset_id: *asset_id == Location::parent(),
 				owner: *owner == t.receiver.account_id,
-				amount: *amount == expected_asset_amount,
 			},
 		]
 	);

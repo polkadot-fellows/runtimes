@@ -72,4 +72,5 @@ runtime-benchmarks = [
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
