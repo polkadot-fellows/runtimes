@@ -227,8 +227,18 @@ pub mod benchmark_helpers {
 }
 
 pub mod migration {
+	use crate::{vec, Vec};
 	use frame_support::weights::Weight;
+	use hex_literal::hex;
+	use snowbridge_core::TokenId;
 	use sp_core::Get;
+	use sp_runtime::TryRuntimeError;
+	use xcm::prelude::*;
+
+	pub struct RegisteredPNA {
+		pub location: Location,
+		pub token_id: TokenId,
+	}
 
 	/// Migrate ForeignToNativeId from XCMv4 to XCMv5.
 	pub struct MigrateToXcm5<T: snowbridge_pallet_system::Config>(core::marker::PhantomData<T>);
@@ -237,18 +247,111 @@ pub mod migration {
 		for MigrateToXcm5<T>
 	{
 		fn on_runtime_upgrade() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
+			let mut weight = T::DbWeight::get().reads_writes(1, 1);
 
 			let translate = |pre: xcm::v4::Location| -> Option<xcm::v5::Location> {
-				weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 1));
+				weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 2));
 				let location = xcm::v5::Location::try_from(pre.clone()).expect("valid location");
-				log::info!("PNA migration from v4 {:?} to v5 {:?}", pre, location);
+				log::info!("PNA migration {:?} from v4 to v5", pre);
 				Some(location)
 			};
 			snowbridge_pallet_system::ForeignToNativeId::<T>::translate_values(translate);
 			log::info!("PNA migration finished!");
 
 			weight
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
+			log::info!(
+				"Number of PNAs: {}",
+				snowbridge_pallet_system::ForeignToNativeId::<T>::iter().count()
+			);
+
+			Ok(Vec::new())
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(_: Vec<u8>) -> Result<(), TryRuntimeError> {
+			let test_cases = vec![
+				// DOT
+				RegisteredPNA {
+					location: Location::new(1, GlobalConsensus(Polkadot)),
+					token_id: hex!(
+						"4e241583d94b5d48a27a22064cd49b2ed6f5231d2d950e432f9b7c2e0ade52b2"
+					)
+					.into(),
+				},
+				// KSM
+				RegisteredPNA {
+					location: Location::new(1, [GlobalConsensus(Kusama)]),
+					token_id: hex!(
+						"03b6054d0c576dd8391e34e1609cf398f68050c23009d19ce93c000922bcd852"
+					)
+					.into(),
+				},
+				// PINK
+				RegisteredPNA {
+					location: Location::new(
+						1,
+						[
+							GlobalConsensus(Polkadot),
+							Parachain(1000),
+							PalletInstance(50),
+							GeneralIndex(23),
+						],
+					),
+					token_id: hex!(
+						"bc8785969587ef3d22739d3385cb519a9e0133dd5da8d320c376772468c19be6"
+					)
+					.into(),
+				},
+				// TEER
+				RegisteredPNA {
+					location: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+					token_id: hex!(
+						"3b7f577715347bdcde4739a1bf1a7f1dec71e8ff4dbe23a6a49348ebf920c658"
+					)
+					.into(),
+				},
+				// Hydration
+				RegisteredPNA {
+					location: Location::new(
+						1,
+						[GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)],
+					),
+					token_id: hex!(
+						"d5678e3bb6486c4fef73dc109cf23d5648654edd4b41fb32e1ce9f9a984a3d59"
+					)
+					.into(),
+				},
+				// Voucher DOT
+				RegisteredPNA {
+					location: Location::new(
+						1,
+						[
+							GlobalConsensus(Polkadot),
+							Parachain(2030),
+							GeneralKey {
+								length: 2,
+								data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+							},
+						],
+					),
+					token_id: hex!(
+						"2a8080362874bbfeb585d676eba3f06e3b878d7c5d5f98d2a092ebb375bd484c"
+					)
+					.into(),
+				},
+			];
+			for tc in test_cases.iter() {
+				let location = snowbridge_pallet_system::ForeignToNativeId::<T>::get(tc.token_id)
+					.expect("valid location");
+				assert_eq!(location, tc.location);
+			}
+			Ok(())
 		}
 	}
 }

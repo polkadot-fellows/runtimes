@@ -156,9 +156,9 @@ pub type Migrations = (
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
 	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
+	bridge_to_ethereum_config::migration::MigrateToXcm5<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-	bridge_to_ethereum_config::migration::MigrateToXcm5<Runtime>,
 );
 
 /// Executive: handles dispatch to the various modules.
