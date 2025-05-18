@@ -465,6 +465,46 @@ fn check_token_id_on_chain_derived_from_xcm_v4_is_same_as_value_derived_from_xcm
 			foreign: hex!("3b7f577715347bdcde4739a1bf1a7f1dec71e8ff4dbe23a6a49348ebf920c658")
 				.into(),
 		},
+		// Hydration
+		RegisterTokenTestCase {
+			native: Location::new(1, [Parachain(2034), GeneralIndex(0)]),
+			reanchored: Location::new(
+				1,
+				[GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)],
+			),
+			foreign: hex!("d5678e3bb6486c4fef73dc109cf23d5648654edd4b41fb32e1ce9f9a984a3d59")
+				.into(),
+		},
+		// Voucher DOT
+		RegisterTokenTestCase {
+			native: Location::new(
+				1,
+				[
+					Parachain(2030),
+					GeneralKey {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
+			reanchored: Location::new(
+				1,
+				[
+					GlobalConsensus(Polkadot),
+					Parachain(2030),
+					GeneralKey {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
+			foreign: hex!("2a8080362874bbfeb585d676eba3f06e3b878d7c5d5f98d2a092ebb375bd484c")
+				.into(),
+		},
 	];
 	for tc in test_cases.iter() {
 		ExtBuilder::<Runtime>::default()
@@ -492,9 +532,9 @@ fn check_token_id_on_chain_derived_from_xcm_v4_is_same_as_value_derived_from_xcm
 #[test]
 fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 	use xcm::v4::prelude::{
-		GeneralIndex as GeneralIndexV4, GlobalConsensus as GlobalConsensusV4, Kusama as KusamaV4,
-		Location as LocationV4, PalletInstance as PalletInstanceV4, Parachain as ParachainV4,
-		Polkadot as PolkadotV4,
+		GeneralIndex as GeneralIndexV4, GeneralKey as GeneralKeyV4,
+		GlobalConsensus as GlobalConsensusV4, Kusama as KusamaV4, Location as LocationV4,
+		PalletInstance as PalletInstanceV4, Parachain as ParachainV4, Polkadot as PolkadotV4,
 	};
 	pub struct LocationEncodeDecodeTestCase {
 		pub v4: LocationV4,
@@ -531,6 +571,43 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 		LocationEncodeDecodeTestCase {
 			v4: LocationV4::new(1, [GlobalConsensusV4(PolkadotV4), ParachainV4(2039)]),
 			v5: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+		},
+		// Hydration
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(
+				1,
+				[GlobalConsensusV4(PolkadotV4), ParachainV4(2034), GeneralIndexV4(0)],
+			),
+			v5: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)]),
+		},
+		// Voucher DOT
+		LocationEncodeDecodeTestCase {
+			v4: LocationV4::new(
+				1,
+				[
+					GlobalConsensusV4(PolkadotV4),
+					ParachainV4(2030),
+					GeneralKeyV4 {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
+			v5: Location::new(
+				1,
+				[
+					GlobalConsensus(Polkadot),
+					Parachain(2030),
+					GeneralKey {
+						length: 2,
+						data: hex!(
+							"0900000000000000000000000000000000000000000000000000000000000000"
+						),
+					},
+				],
+			),
 		},
 	];
 	for tc in test_cases.iter() {
