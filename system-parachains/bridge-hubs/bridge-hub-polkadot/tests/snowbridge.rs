@@ -538,18 +538,18 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 	};
 	pub struct LocationEncodeDecodeTestCase {
 		pub v4: LocationV4,
-		pub v5: Location,
+		pub latest: Location,
 	}
 	let test_cases = vec![
 		// DOT
 		LocationEncodeDecodeTestCase {
 			v4: LocationV4::new(1, GlobalConsensusV4(PolkadotV4)),
-			v5: Location::new(1, GlobalConsensus(Polkadot)),
+			latest: Location::new(1, GlobalConsensus(Polkadot)),
 		},
 		// KSM
 		LocationEncodeDecodeTestCase {
 			v4: LocationV4::new(1, GlobalConsensusV4(KusamaV4)),
-			v5: Location::new(1, GlobalConsensus(Kusama)),
+			latest: Location::new(1, GlobalConsensus(Kusama)),
 		},
 		// PINK
 		LocationEncodeDecodeTestCase {
@@ -562,7 +562,7 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 					GeneralIndexV4(23),
 				],
 			),
-			v5: Location::new(
+			latest: Location::new(
 				1,
 				[GlobalConsensus(Polkadot), Parachain(1000), PalletInstance(50), GeneralIndex(23)],
 			),
@@ -570,7 +570,7 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 		// TEER
 		LocationEncodeDecodeTestCase {
 			v4: LocationV4::new(1, [GlobalConsensusV4(PolkadotV4), ParachainV4(2039)]),
-			v5: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
+			latest: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2039)]),
 		},
 		// Hydration
 		LocationEncodeDecodeTestCase {
@@ -578,7 +578,7 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 				1,
 				[GlobalConsensusV4(PolkadotV4), ParachainV4(2034), GeneralIndexV4(0)],
 			),
-			v5: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)]),
+			latest: Location::new(1, [GlobalConsensus(Polkadot), Parachain(2034), GeneralIndex(0)]),
 		},
 		// Voucher DOT
 		LocationEncodeDecodeTestCase {
@@ -595,7 +595,7 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 					},
 				],
 			),
-			v5: Location::new(
+			latest: Location::new(
 				1,
 				[
 					GlobalConsensus(Polkadot),
@@ -613,6 +613,6 @@ fn check_location_encode_in_xcm_v4_can_be_decoded_by_xcm_v5() {
 	for tc in test_cases.iter() {
 		let location: Location = Decode::decode(&mut tc.v4.encode().as_slice())
 			.expect("Stored data should decode to V5 format correctly");
-		assert_eq!(location, tc.v5);
+		assert_eq!(location, tc.latest);
 	}
 }
