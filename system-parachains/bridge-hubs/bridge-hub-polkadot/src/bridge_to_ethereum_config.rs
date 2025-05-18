@@ -227,11 +227,14 @@ pub mod benchmark_helpers {
 }
 
 pub mod migration {
+	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
 	use frame_support::weights::Weight;
+	#[cfg(feature = "try-runtime")]
 	use hex_literal::hex;
 	use snowbridge_core::TokenId;
 	use sp_core::Get;
+	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
 	use xcm::prelude::*;
 
@@ -349,7 +352,7 @@ pub mod migration {
 			for tc in test_cases.iter() {
 				let location = snowbridge_pallet_system::ForeignToNativeId::<T>::get(tc.token_id)
 					.expect("valid location");
-				assert_eq!(location, tc.location);
+				frame_support::ensure!(location == tc.location, "pna location not match");
 			}
 			Ok(())
 		}
