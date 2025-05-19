@@ -72,12 +72,10 @@ pub fn collectives_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json
 fn collectives_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	collectives_polkadot_genesis(
 		invulnerables(),
-		{
-			let mut accounts = testnet_accounts();
+		testnet_accounts_with([
 			// Make sure `StakingPot` is funded for benchmarking purposes.
-			accounts.push(StakingPot::get());
-			accounts
-		},
+			StakingPot::get()
+		]),
 		para_id,
 	)
 }

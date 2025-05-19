@@ -78,12 +78,10 @@ pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<alloc::vec::Vec<u
 	let patch = match id.as_ref() {
 		sp_genesis_builder::DEV_RUNTIME_PRESET => bridge_hub_kusama_genesis(
 			invulnerables(),
-			{
-				let mut accounts = testnet_accounts();
+			testnet_accounts_with([
 				// Make sure `StakingPot` is funded for benchmarking purposes.
-				accounts.push(StakingPot::get());
-				accounts
-			},
+				StakingPot::get()
+			]),
 			1002.into(),
 			vec![],
 		),

@@ -75,12 +75,10 @@ fn coretime_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Value
 fn coretime_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	coretime_polkadot_genesis(
 		invulnerables(),
-		{
-			let mut accounts = testnet_accounts();
+		testnet_accounts_with([
 			// Make sure `StakingPot` is funded for benchmarking purposes.
-			accounts.push(StakingPot::get());
-			accounts
-		},
+			StakingPot::get()
+		]),
 		para_id,
 	)
 }
