@@ -18,7 +18,7 @@
     "blocktime": 6000,
     "benchmarks_exclude_extrinsics": "pallet_nomination_pools::apply_slash_fail",
     "extra_args": "--disable-mbm-checks",
-    "template": "benchmarking/template.hbs"
+    "benchmarks_xcm_template": "benchmarking/template.hbs"
   },
   {
     "name": "glutton-kusama",

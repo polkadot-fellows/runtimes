@@ -139,7 +139,7 @@ if args.command == 'bench':
             xcm_path = f"./{config['path']}/src/weights/xcm"
             template = None
             if pallet.startswith("pallet_xcm_benchmarks"):
-                template = config['template']
+                template = config['benchmarks_xcm_template']
                 output_path = xcm_path
             else:
                 output_path = default_path
