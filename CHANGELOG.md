@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Polkadot: Make the current inflation formula adjustable ([polkadot-fellows/runtimes#732](https://github.com/polkadot-fellows/runtimes/pull/732))
+
 ### Fixed
 
 - Enabled XCM instructions `ExchangeAsset` and `AliasOrigin` on the system parachains ([polkadot-fellows/runtimes/pull/700](https://github.com/polkadot-fellows/runtimes/pull/700))
