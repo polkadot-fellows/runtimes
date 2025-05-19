@@ -75,7 +75,7 @@ fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
 		invulnerables(),
 		testnet_accounts_with([
 			// Make sure `StakingPot` is funded for benchmarking purposes.
-			StakingPot::get()
+			StakingPot::get(),
 		]),
 		para_id,
 	)

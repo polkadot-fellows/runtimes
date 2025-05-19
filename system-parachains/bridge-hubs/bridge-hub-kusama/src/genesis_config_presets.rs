@@ -80,7 +80,7 @@ pub fn get_preset(id: &sp_genesis_builder::PresetId) -> Option<alloc::vec::Vec<u
 			invulnerables(),
 			testnet_accounts_with([
 				// Make sure `StakingPot` is funded for benchmarking purposes.
-				StakingPot::get()
+				StakingPot::get(),
 			]),
 			1002.into(),
 			vec![],

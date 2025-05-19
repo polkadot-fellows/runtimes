@@ -88,7 +88,7 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			invulnerables(),
 			testnet_accounts_with([
 				// Make sure `StakingPot` is funded for benchmarking purposes.
-				StakingPot::get()
+				StakingPot::get(),
 			]),
 			1002.into(),
 			vec![],
