@@ -70,6 +70,7 @@ use frame_election_provider_support::{
 };
 use frame_support::{
 	construct_runtime,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
@@ -623,6 +624,65 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type ElectionBounds = ElectionBounds;
 }
 
+/// Parameters that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used to calculate inflation.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod inflation {
+		/// The fixed amount minted per year (~120 M DOT).
+		/// Default set to 8% of 15_011_657_390_566_252_333, following execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
+		#[codec(index = 0)]
+		pub static YearlyEmission: u128 = 1_200_932_591_245_300_186;
+
+		/// The percentage of inflation diverted to the treasury.
+		/// Default to 15%, as per [Referendum 1139](https://polkadot.subsquare.io/referenda/1139).
+		#[codec(index = 1)]
+		pub static PercentToTreasury: Perquintill = Perquintill::from_percent(15);
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::YearlyEmission(
+			dynamic_params::inflation::YearlyEmission,
+			Some(1_200_932_591_245_300_186u128), // Value does not matter, just for benchmarks
+		))
+	}
+}
+
+/// Defines which origins can modify which dynamic parameters.
+pub struct DynamicParametersOrigins;
+impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey>
+	for DynamicParametersOrigins
+{
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		_key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		frame_system::ensure_root(origin.clone()).map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParametersOrigins;
+	type WeightInfo = (); //weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
@@ -648,17 +708,11 @@ impl pallet_staking::EraPayout<Balance> for EraPayout {
 		// A normal-sized era will have 1 / 365.25 here:
 		let relative_era_len =
 			FixedU128::from_rational(era_duration_millis.into(), MILLISECONDS_PER_YEAR.into());
-
-		// TI at the time of execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
-		let fixed_total_issuance: i128 = 15_011_657_390_566_252_333;
-		let fixed_inflation_rate = FixedU128::from_rational(8, 100);
-		let yearly_emission = fixed_inflation_rate.saturating_mul_int(fixed_total_issuance);
-
+		let yearly_emission = dynamic_params::inflation::YearlyEmission::get();
 		let era_emission = relative_era_len.saturating_mul_int(yearly_emission);
-		// 15% to treasury, as per ref 1139.
-		let to_treasury = FixedU128::from_rational(15, 100).saturating_mul_int(era_emission);
+		let percent_to_treasury = dynamic_params::inflation::PercentToTreasury::get();
+		let to_treasury = percent_to_treasury.mul_floor(era_emission);
 		let to_stakers = era_emission.saturating_sub(to_treasury);
-
 		(to_stakers.saturated_into(), to_treasury.saturated_into())
 	}
 }
@@ -1588,6 +1642,9 @@ construct_runtime! {
 		// Cunning utilities. Usable initially.
 		Utility: pallet_utility = 26,
 
+		// The settable runtime parameters module.
+		Parameters: pallet_parameters = 27,
+
 		// Identity: pallet_identity = 28, (removed post 1.2.8)
 
 		// Proxy module. Late addition.
@@ -2009,10 +2066,10 @@ impl Runtime {
 			stake_able_issuance,
 			era_duration,
 		);
-		// reverse-engineer the current inflation by looking at the total minted against the total
-		// issuance.
+
+		// Yearly emission / total issuance.
 		let inflation = Perquintill::from_rational(
-			(next_mint.0 + next_mint.1) * 36525 / 100,
+			dynamic_params::inflation::YearlyEmission::get(),
 			stake_able_issuance,
 		);
 
@@ -2925,7 +2982,6 @@ mod multiplier_tests {
 		dispatch::DispatchInfo,
 		traits::{OnFinalize, PalletInfoAccess},
 	};
-	use pallet_staking::EraPayout;
 	use polkadot_runtime_common::{MinimumMultiplier, TargetBlockFullness};
 	use separator::Separatable;
 	use sp_runtime::traits::Convert;
@@ -2955,113 +3011,6 @@ mod multiplier_tests {
 			let next = SlowAdjustingFeeUpdate::<Runtime>::convert(minimum_multiplier);
 			assert!(next > minimum_multiplier, "{:?} !>= {:?}", next, minimum_multiplier);
 		})
-	}
-
-	use approx::assert_relative_eq;
-	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
-
-	#[test]
-	fn staking_inflation_correct_single_era() {
-		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123, // ignored
-			456, // ignored
-			MILLISECONDS_PER_DAY,
-		);
-
-		// Values are within 0.1%
-		assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
-		assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
-		// Total per day is ~328,797 DOT
-		assert_relative_eq!(
-			(to_stakers as f64 + to_treasury as f64),
-			(328_797 * UNITS) as f64,
-			max_relative = 0.001
-		);
-	}
-
-	#[test]
-	fn staking_inflation_correct_longer_era() {
-		// Twice the era duration means twice the emission:
-		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123, // ignored
-			456, // ignored
-			2 * MILLISECONDS_PER_DAY,
-		);
-
-		assert_relative_eq!(
-			to_stakers as f64,
-			(279_477 * UNITS) as f64 * 2.0,
-			max_relative = 0.001
-		);
-		assert_relative_eq!(
-			to_treasury as f64,
-			(49_320 * UNITS) as f64 * 2.0,
-			max_relative = 0.001
-		);
-	}
-
-	#[test]
-	fn staking_inflation_correct_whole_year() {
-		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123,                                  // ignored
-			456,                                  // ignored
-			(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
-		);
-
-		// Our yearly emissions is about 120M DOT:
-		let yearly_emission = 120_093_259 * UNITS;
-		assert_relative_eq!(
-			to_stakers as f64 + to_treasury as f64,
-			yearly_emission as f64,
-			max_relative = 0.001
-		);
-
-		assert_relative_eq!(to_stakers as f64, yearly_emission as f64 * 0.85, max_relative = 0.001);
-		assert_relative_eq!(
-			to_treasury as f64,
-			yearly_emission as f64 * 0.15,
-			max_relative = 0.001
-		);
-	}
-
-	// 10 years into the future, our values do not overflow.
-	#[test]
-	fn staking_inflation_correct_not_overflow() {
-		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123,                                 // ignored
-			456,                                 // ignored
-			(36525 * MILLISECONDS_PER_DAY) / 10, // 10 years
-		);
-		let initial_ti: i128 = 15_011_657_390_566_252_333;
-		let projected_total_issuance = (to_stakers as i128 + to_treasury as i128) + initial_ti;
-
-		// In 2034, there will be about 2.7 billion DOT in existence.
-		assert_relative_eq!(
-			projected_total_issuance as f64,
-			(2_700_000_000 * UNITS) as f64,
-			max_relative = 0.001
-		);
-	}
-
-	// Print percent per year, just as convenience.
-	#[test]
-	fn staking_inflation_correct_print_percent() {
-		let (to_stakers, to_treasury) = super::EraPayout::era_payout(
-			123,                                  // ignored
-			456,                                  // ignored
-			(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
-		);
-		let yearly_emission = to_stakers + to_treasury;
-		let mut ti: i128 = 15_011_657_390_566_252_333;
-
-		for y in 0..10 {
-			let new_ti = ti + yearly_emission as i128;
-			let inflation = 100.0 * (new_ti - ti) as f64 / ti as f64;
-			println!("Year {y} inflation: {inflation}%");
-			ti = new_ti;
-
-			assert!(inflation <= 8.0 && inflation > 2.0, "sanity check");
-		}
 	}
 
 	#[test]
@@ -3164,6 +3113,220 @@ mod multiplier_tests {
 		}
 	}
 }
+
+#[cfg(test)]
+mod inflation_tests {
+	use super::*;
+	use crate::{dynamic_params::inflation, RuntimeParameters::Inflation};
+	use approx::assert_relative_eq;
+	use frame_support::{assert_noop, assert_ok};
+	use pallet_staking::EraPayout;
+	use sp_runtime::DispatchError;
+	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+
+	#[test]
+	fn staking_inflation_correct_single_era() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				MILLISECONDS_PER_DAY,
+			);
+
+			// Values are within 0.1%
+			assert_relative_eq!(to_stakers as f64, (279_477 * UNITS) as f64, max_relative = 0.001);
+			assert_relative_eq!(to_treasury as f64, (49_320 * UNITS) as f64, max_relative = 0.001);
+			// Total per day is ~328,797 DOT
+			assert_relative_eq!(
+				(to_stakers as f64 + to_treasury as f64),
+				(328_797 * UNITS) as f64,
+				max_relative = 0.001
+			);
+		});
+	}
+
+	#[test]
+	fn staking_inflation_correct_longer_era() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			// Twice the era duration means twice the emission:
+			let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+				123, // ignored
+				456, // ignored
+				2 * MILLISECONDS_PER_DAY,
+			);
+
+			assert_relative_eq!(
+				to_stakers as f64,
+				(279_477 * UNITS) as f64 * 2.0,
+				max_relative = 0.001
+			);
+			assert_relative_eq!(
+				to_treasury as f64,
+				(49_320 * UNITS) as f64 * 2.0,
+				max_relative = 0.001
+			);
+		});
+	}
+
+	#[test]
+	fn staking_inflation_correct_whole_year() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+				123,                                  // ignored
+				456,                                  // ignored
+				MILLISECONDS_PER_DAY * (36525 / 100), // 1 year
+			);
+
+			// Our yearly emissions is about 120M DOT:
+			let yearly_emission = 120_093_259 * UNITS;
+			assert_relative_eq!(
+				to_stakers as f64 + to_treasury as f64,
+				yearly_emission as f64,
+				max_relative = 0.001
+			);
+
+			assert_relative_eq!(
+				to_stakers as f64,
+				yearly_emission as f64 * 0.85,
+				max_relative = 0.001
+			);
+			assert_relative_eq!(
+				to_treasury as f64,
+				yearly_emission as f64 * 0.15,
+				max_relative = 0.001
+			);
+		});
+	}
+
+	// 10 years into the future, our values do not overflow.
+	#[test]
+	fn staking_inflation_correct_not_overflow() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+				123,                                 // ignored
+				456,                                 // ignored
+				MILLISECONDS_PER_DAY * (36525 / 10), // 10 years
+			);
+			let initial_ti: i128 = 15_011_657_390_566_252_333;
+			let projected_total_issuance = (to_stakers as i128 + to_treasury as i128) + initial_ti;
+
+			// In 2034, there will be about 2.7 billion DOT in existence.
+			assert_relative_eq!(
+				projected_total_issuance as f64,
+				(2_700_000_000 * UNITS) as f64,
+				max_relative = 0.001
+			);
+		});
+	}
+
+	// Print percent per year, just as convenience.
+	#[test]
+	fn staking_inflation_correct_print_percent() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let (to_stakers, to_treasury) = super::EraPayout::era_payout(
+				123,                                  // ignored
+				456,                                  // ignored
+				(36525 * MILLISECONDS_PER_DAY) / 100, // 1 year
+			);
+			let yearly_emission = to_stakers + to_treasury;
+			let mut ti: i128 = 15_011_657_390_566_252_333;
+
+			for y in 0..10 {
+				let new_ti = ti + yearly_emission as i128;
+				let inflation = 100.0 * (new_ti - ti) as f64 / ti as f64;
+				println!("Year {y} inflation: {inflation}%");
+				ti = new_ti;
+
+				assert!(inflation <= 8.0 && inflation > 2.0, "sanity check");
+			}
+		});
+	}
+
+	#[test]
+	fn inflation_only_settable_by_root() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			// Rejected since the origin is not root.
+			assert_noop!(
+				Parameters::set_parameter(
+					RuntimeOrigin::signed(AccountId::from([1u8; 32])),
+					Inflation(inflation::Parameters::YearlyEmission(
+						inflation::YearlyEmission,
+						Some(123u128)
+					)),
+				),
+				DispatchError::BadOrigin
+			);
+
+			// Accepted since origin is root.
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				Inflation(inflation::Parameters::YearlyEmission(
+					inflation::YearlyEmission,
+					Some(123u128)
+				)),
+			));
+		});
+	}
+}
+
+#[cfg(test)]
+mod staking_tests {
+	use super::*;
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
+	#[test]
+	fn accounts_cannot_dual_stake() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			let stake = ExistentialDeposit::get() * 10;
+			// Given a solo staker
+			let solo_staker = AccountId::from([1u8; 32]);
+			Balances::set_balance(&solo_staker, 3 * stake);
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(solo_staker.clone()),
+				stake,
+				pallet_staking::RewardDestination::Stash
+			));
+
+			// And a pooled staker
+			let pooled_staker = AccountId::from([2u8; 32]);
+			Balances::set_balance(&pooled_staker, 3 * stake);
+			assert_ok!(NominationPools::create(
+				RuntimeOrigin::signed(pooled_staker.clone()),
+				stake,
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into(),
+				pooled_staker.clone().into()
+			));
+
+			// Then the solo staker cannot join a pool.
+			assert_noop!(
+				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
+				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
+			);
+
+			// And the pooled staker cannot solo-stake.
+			assert_noop!(
+				pallet_staking::Pallet::<Runtime>::bond(
+					RuntimeOrigin::signed(pooled_staker),
+					stake,
+					pallet_staking::RewardDestination::Stash,
+				),
+				// Note: with sdk stable2503 onwards, this error would be
+				// `pallet_staking::Error::<Runtime>::Restricted`.
+				pallet_staking::Error::<Runtime>::BoundNotMet
+			);
+		});
+	}
+}
+
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests {
 	use super::*;
@@ -3337,6 +3500,8 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+			log::info!(target: LOG_TARGET, "yearlyEmission = {:?}", dynamic_params::inflation::YearlyEmission::get());
+			log::info!(target: LOG_TARGET, "percentToTreasury = {:?}", dynamic_params::inflation::PercentToTreasury::get());
 			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
 		});
 	}
