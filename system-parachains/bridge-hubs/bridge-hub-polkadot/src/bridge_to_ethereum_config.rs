@@ -244,10 +244,10 @@ pub mod migration {
 	}
 
 	/// Migrate ForeignToNativeId from XCMv4 to XCMv5.
-	pub struct MigrateToXcm5<T: snowbridge_pallet_system::Config>(core::marker::PhantomData<T>);
+	pub struct MigratePNAsToXcm5<T: snowbridge_pallet_system::Config>(core::marker::PhantomData<T>);
 
 	impl<T: snowbridge_pallet_system::Config> frame_support::traits::OnRuntimeUpgrade
-		for MigrateToXcm5<T>
+		for MigratePNAsToXcm5<T>
 	{
 		fn on_runtime_upgrade() -> Weight {
 			let mut weight = T::DbWeight::get().reads_writes(1, 1);
