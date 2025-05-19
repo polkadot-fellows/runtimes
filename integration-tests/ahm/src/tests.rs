@@ -34,7 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
-	balances_test::BalancesCrossChecker
+	balances_test::BalancesCrossChecker,
 	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
