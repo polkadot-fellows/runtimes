@@ -636,8 +636,8 @@ pub mod dynamic_params {
 		#[codec(index = 0)]
 		pub static YearlyEmission: u128 = 1_200_932_591_245_300_186;
 
-		/// The percentage of inflation diverted to the federal treasury.
-		/// Default to 15%, as per ref 1139.
+		/// The percentage of inflation diverted to the treasury.
+		/// Default to 15%, as per [Referendum 1139](https://polkadot.subsquare.io/referenda/1139).
 		#[codec(index = 1)]
 		pub static PercentToTreasury: Perquintill = Perquintill::from_percent(15);
 	}
@@ -3113,15 +3113,6 @@ mod inflation_tests {
 	use pallet_staking::EraPayout;
 	use approx::assert_relative_eq;
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
-
-	#[test]
-	fn check_values() {
-		let mut ext = sp_io::TestExternalities::new_empty();
-		ext.execute_with(|| {
-		let yearly_emission = dynamic_params::inflation::YearlyEmission::get();
-		print!("{:?}", yearly_emission);
-		});
-	}
 
 	#[test]
 	fn staking_inflation_correct_single_era() {
