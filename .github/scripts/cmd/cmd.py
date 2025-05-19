@@ -137,8 +137,13 @@ if args.command == 'bench':
             print(f'-- config: {config}')
             default_path = f"./{config['path']}/src/weights"
             xcm_path = f"./{config['path']}/src/weights/xcm"
-            output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
-            print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
+            template = None
+            if pallet.startswith("pallet_xcm_benchmarks"):
+                template = config['template']
+                output_path = xcm_path
+            else:
+                output_path = default_path
+            print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template}')
 
             status = os.system(f"frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
@@ -150,6 +155,7 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"{f'--template={template} ' if template else ''}"
                                )
             if status != 0 and not args.continue_on_fail:
                 print(f'Failed to benchmark {pallet} in {runtime}')
