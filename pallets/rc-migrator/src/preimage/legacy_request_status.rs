@@ -144,9 +144,10 @@ impl<T: Config> RcMigrationCheck for PreimageLegacyRequestStatusMigrator<T> {
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
 		for hash in rc_pre_payload {
+			// "Assert storage 'Preimage::StatusFor::rc_post::empty'"
 			assert!(
 				!alias::StatusFor::<T>::contains_key(hash),
-				"migrated key in Preimage::StatusFor is still present on the relay chain"
+				"migrated key in Preimage::StatusFor must be deleted"
 			);
 		}
 	}

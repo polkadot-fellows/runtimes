@@ -149,7 +149,7 @@ impl<T: Config> Pallet<T> {
 			);
 		}
 
-		log::debug!(
+		log::trace!(
 			target: LOG_TARGET,
 			"Integrating account: {}", who.to_ss58check(),
 		);
@@ -253,6 +253,21 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			pallet_balances::Freezes::<T>::iter().next().is_none(),
 			"No freezes should exist on Asset Hub before migration"
 		);
+
+		// Assert storage "Balances::Account::ah_pre::empty"
+		assert!(
+			pallet_balances::Account::<T>::iter().next().is_none(),
+			"No Account should exist on Asset Hub before migration"
+		);
+
+		let check_account = T::CheckingAccount::get();
+		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
+		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
+		// added DOT ED to all existing AH accounts.
+		// This is fine, we can just ignore/accept this small amount.
+		#[cfg(not(feature = "ahm-westend"))]
+		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
+		checking_balance
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.

@@ -16,10 +16,13 @@
 
 //! The messages that we use to send the staking data over from RC to AH.
 
+extern crate alloc;
+
 use crate::{
 	staking::{AccountIdOf, BalanceOf, IntoAh, StakingMigrator},
 	*,
 };
+use alloc::collections::BTreeMap;
 use codec::{EncodeLike, HasCompact};
 use core::fmt::Debug;
 pub use frame_election_provider_support::PageIndex;
@@ -92,10 +95,6 @@ where
 		nominations: Nominations,
 	},
 	VirtualStakers(AccountId),
-	ErasStartSessionIndex {
-		era: EraIndex,
-		session: SessionIndex,
-	},
 	ErasStakersOverview {
 		era: EraIndex,
 		validator: AccountId,
@@ -183,7 +182,7 @@ pub type AhEquivalentStakingMessageOf<T> = RcStakingMessage<
 	pallet_staking_async::slashing::SpanRecord<
 		<T as pallet_staking_async::Config>::CurrencyBalance,
 	>,
-	pallet_staking_async::EraRewardPoints<<T as frame_system::Config>::AccountId>,
+	pallet_staking_async::EraRewardPoints<T>,
 	pallet_staking_async::RewardDestination<<T as frame_system::Config>::AccountId>,
 	pallet_staking_async::ValidatorPrefs,
 	pallet_staking_async::UnappliedSlash<T>,
@@ -280,16 +279,25 @@ impl<Balance>
 	}
 }
 
-impl<AccountId: Ord>
-	IntoAh<
-		pallet_staking::EraRewardPoints<AccountId>,
-		pallet_staking_async::EraRewardPoints<AccountId>,
-	> for pallet_staking::EraRewardPoints<AccountId>
+impl<AccountId: Ord, Ah: pallet_staking_async::Config<AccountId = AccountId>>
+	IntoAh<pallet_staking::EraRewardPoints<AccountId>, pallet_staking_async::EraRewardPoints<Ah>>
+	for pallet_staking::EraRewardPoints<AccountId>
+where
+	AccountId: Ord,
+	Ah: pallet_staking_async::Config<AccountId = AccountId>,
 {
 	fn intoAh(
 		points: pallet_staking::EraRewardPoints<AccountId>,
-	) -> pallet_staking_async::EraRewardPoints<AccountId> {
-		pallet_staking_async::EraRewardPoints { total: points.total, individual: points.individual }
+	) -> pallet_staking_async::EraRewardPoints<Ah> {
+		let bounded = points
+			.individual
+			.into_iter()
+			.take(<Ah as pallet_staking_async::Config>::MaxValidatorSet::get() as usize)
+			.collect::<BTreeMap<_, _>>();
+		pallet_staking_async::EraRewardPoints {
+			total: points.total,
+			individual: BoundedBTreeMap::try_from(bounded).defensive().unwrap_or_default(),
+		}
 	}
 }
 
@@ -385,7 +393,6 @@ where
 			Nominators { stash, nominations } =>
 				Nominators { stash, nominations: pallet_staking::Nominations::intoAh(nominations) },
 			VirtualStakers(staker) => VirtualStakers(staker),
-			ErasStartSessionIndex { era, session } => ErasStartSessionIndex { era, session },
 			ErasStakersOverview { era, validator, exposure } =>
 				ErasStakersOverview { era, validator, exposure },
 			ErasStakersPaged { era, validator, page, exposure } =>
@@ -470,8 +477,10 @@ impl<T: pallet_staking_async::Config> StakingMigrator<T> {
 		MinCommission::<T>::put(&values.min_commission);
 		MaxValidatorsCount::<T>::set(values.max_validators_count);
 		MaxNominatorsCount::<T>::set(values.max_nominators_count);
-		CurrentEra::<T>::set(values.current_era);
-		ActiveEra::<T>::set(values.active_era.map(pallet_staking::ActiveEraInfo::intoAh));
+		let active_era = values.active_era.map(pallet_staking::ActiveEraInfo::intoAh);
+
+		ActiveEra::<T>::set(active_era.clone());
+		CurrentEra::<T>::set(active_era.map(|a| a.index));
 		ForceEra::<T>::put(pallet_staking::Forcing::intoAh(values.force_era));
 		MaxStakedRewards::<T>::set(values.max_staked_rewards);
 		SlashRewardFraction::<T>::set(values.slash_reward_fraction);
