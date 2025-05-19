@@ -137,12 +137,10 @@ if args.command == 'bench':
             print(f'-- config: {config}')
             default_path = f"./{config['path']}/src/weights"
             xcm_path = f"./{config['path']}/src/weights/xcm"
-            template = None
-            if pallet.startswith("pallet_xcm_benchmarks"):
-                template = config['benchmarks_xcm_template']
-                output_path = xcm_path
-            else:
-                output_path = default_path
+            output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
+            templates = config.get("benchmarks_templates", {}) or {}
+            template = templates.get(pallet)
+
             print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template}')
 
             status = os.system(f"frame-omni-bencher v1 benchmark pallet "
