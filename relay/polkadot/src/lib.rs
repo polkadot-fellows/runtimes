@@ -662,34 +662,17 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 {
 	type Success = ();
 
-	// fn try_origin(
-	// 	origin: RuntimeOrigin,
-	// 	key: &RuntimeParametersKey,
-	// ) -> Result<Self::Success, RuntimeOrigin> {
-	// 	use crate::RuntimeParametersKey::*;
-
-	// 	match key {
-	// 		Inflation(_) => frame_system::ensure_root(origin.clone()),
-	// 	}
-	// 	.map_err(|_| origin)
-	// }
-
 	fn try_origin(
-        origin: RuntimeOrigin,
-        key: &RuntimeParametersKey,
-    ) -> Result<Self::Success, RuntimeOrigin> {
-        use crate::RuntimeParametersKey::*;
-        use sp_runtime::traits::BadOrigin; // Add this use statement if needed
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
 
-        match key {
-            Inflation(_) => Ok::<(), BadOrigin>(()), // Specify the error type here
-        }
-        .map_err(|_| origin)?;
-
-        // You'll need to define what Self::Success should be
-        // For example, if it's an empty tuple `()`
-        Ok(())
-    }
+		match key {
+			Inflation(_) => frame_system::ensure_root(origin.clone()),
+		}
+		.map_err(|_| origin)
+	}
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
