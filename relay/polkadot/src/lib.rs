@@ -648,7 +648,7 @@ impl Default for RuntimeParameters {
 	fn default() -> Self {
 		RuntimeParameters::Inflation(dynamic_params::inflation::Parameters::YearlyEmission(
 			dynamic_params::inflation::YearlyEmission,
-			Some(1_200_932_591_245_300_186u128),
+			Some(1_200_932_591_245_300_186u128), // Value does not matter, just for benchmarks
 		))
 	}
 }
