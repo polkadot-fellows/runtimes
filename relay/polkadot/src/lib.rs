@@ -631,7 +631,7 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
 	pub mod inflation {
-		/// The fixed amount minted per year.
+		/// The fixed amount minted per year (~120 M DOT).
 		/// Default set to 8% of 15_011_657_390_566_252_333, following execution of [Referendum 1139](https://polkadot.subsquare.io/referenda/1139), block hash: `0x39422610299a75ef69860417f4d0e1d94e77699f45005645ffc5e8e619950f9f`.
 		#[codec(index = 0)]
 		pub static YearlyEmission: u128 = 1_200_932_591_245_300_186;
