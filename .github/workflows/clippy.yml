@@ -40,7 +40,8 @@ jobs:
       - name: Clippy
         run: |
           cargo clippy --version
-          cargo clippy --all-targets --locked -q
+          cargo clippy --all-targets --locked --workspace --quiet
+          cargo clippy --all-targets --all-features --locked --workspace --quiet
         env:
           RUSTFLAGS: "-D warnings"
           SKIP_WASM_BUILD: 1
