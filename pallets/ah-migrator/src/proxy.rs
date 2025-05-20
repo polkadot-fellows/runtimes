@@ -184,7 +184,7 @@ where
 		// We now check that the ah-post proxies are the merged version of RC pre and AH pre,
 		// excluding the ones that are un-translateable.
 
-		let mut delegators =
+		let delegators =
 			rc_pre.keys().chain(ah_pre.keys()).collect::<std::collections::BTreeSet<_>>();
 
 		for delegator in delegators {

@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::porting_prelude::*;
-
 use asset_hub_polkadot_runtime::{
 	AhMigrator, Block as AssetHubBlock, Runtime as AssetHub, RuntimeEvent as AhRuntimeEvent,
 };
@@ -202,7 +200,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					xcm::v3::Instruction::Transact { call, .. } => {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
 					},
 					_ => (), // Fine, we only check Transacts
@@ -214,7 +212,7 @@ fn sanity_check_xcm<Call: Decode>(msg: &[u8]) {
 					xcm::v4::Instruction::Transact { call, .. } => {
 						// Interesting part here: ensure that the receiving runtime can decode the
 						// call
-						let call: Call = Decode::decode(&mut &call.into_encoded()[..])
+						let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
 							.expect("Must decode DMP XCM call");
 					},
 					_ => (), // Fine, we only check Transacts

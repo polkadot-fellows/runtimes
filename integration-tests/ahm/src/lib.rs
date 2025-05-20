@@ -45,8 +45,6 @@ pub mod porting_prelude {
 		pub use sp_consensus_beefy as beefy_primitives;
 		pub use sp_consensus_grandpa as grandpa;
 	}
-	pub use dependency_alias::*;
-
 	// Import renaming depending on runtimes or SDK names:
 	#[cfg(feature = "ahm-polkadot")]
 	pub mod import_alias {
