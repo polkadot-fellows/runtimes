@@ -56,8 +56,8 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Minimum execution time: 2_390_000 picoseconds.
 		Weight::from_parts(2_620_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 161
-			.saturating_add(Weight::from_parts(14_397, 0).saturating_mul(b.into()))
+			// Standard Error: 0
+			.saturating_add(Weight::from_parts(383, 0).saturating_mul(b.into()))
 	}
 	/// The range of component `b` is `[0, 4456448]`.
 	fn remark_with_event(b: u32, ) -> Weight {
@@ -67,8 +67,8 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 		// Minimum execution time: 5_780_000 picoseconds.
 		Weight::from_parts(6_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 163
-			.saturating_add(Weight::from_parts(15_362, 0).saturating_mul(b.into()))
+			// Standard Error: 3
+			.saturating_add(Weight::from_parts(1_784, 0).saturating_mul(b.into()))
 	}
 	/// Storage: UNKNOWN KEY `0x3a686561707061676573` (r:0 w:1)
 	/// Proof: UNKNOWN KEY `0x3a686561707061676573` (r:0 w:1)
