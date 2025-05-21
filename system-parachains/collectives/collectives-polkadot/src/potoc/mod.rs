@@ -32,8 +32,8 @@ use crate::xcm_config::FellowshipAdminBodyId as PotocAdminBodyId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		DefensiveResult, EitherOf, EitherOfDiverse, MapSuccess, NeverEnsureOrigin,
-		OnRuntimeUpgrade, PalletInfoAccess, RankedMembers,
+		DefensiveResult, EitherOf, EitherOfDiverse, MapSuccess,
+		OnRuntimeUpgrade, PalletInfoAccess, RankedMembers, NeverEnsureOrigin,
 	},
 	PalletId,
 };
@@ -82,7 +82,7 @@ impl pallet_potoc_origins::Config for Runtime {}
 
 pub type PotocReferendaInstance = pallet_referenda::Instance3;
 impl pallet_referenda::Config<PotocReferendaInstance> for Runtime {
-	type WeightInfo = weights::pallet_referenda_fellowship_referenda::WeightInfo<Runtime>;
+	type WeightInfo = ();
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Scheduler = Scheduler;
@@ -145,7 +145,7 @@ impl pallet_ranked_collective::Config<PotocCollectiveInstance> for Runtime {
 pub type PotocCoreInstance = pallet_core_fellowship::Instance3;
 
 impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_core_fellowship_potoc_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, PotocCollectiveInstance>;
 	type Balance = Balance;
@@ -156,7 +156,7 @@ impl pallet_core_fellowship::Config<PotocCoreInstance> for Runtime {
 	// Fast promotions are not needed with a single rank and would require higher turnout.
 	type FastPromoteOrigin = NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
-	type MaxRank = ConstU32<1>;
+	type MaxRank = ConstU16<1>;
 }
 
 pub type PotocSalaryInstance = pallet_salary::Instance3;
@@ -313,9 +313,8 @@ impl OnRuntimeUpgrade for InsertSeedMembers {
 
 			log::info!("PoToC Seed member inserted: {address}");
 
-			// TODO use potoc weight
-			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::add_member());
-			weight.saturating_accrue(weights::pallet_ranked_collective_fellowship_collective::WeightInfo::<Runtime>::promote_member(1));
+			weight.saturating_accrue(weights::pallet_ranked_collective_potoc_collective::WeightInfo::<Runtime>::add_member());
+			weight.saturating_accrue(weights::pallet_ranked_collective_potoc_collective::WeightInfo::<Runtime>::promote_member(1));
 		}
 
 		weight

@@ -26,6 +26,7 @@ pub mod pallet_collator_selection;
 pub mod pallet_collective;
 pub mod pallet_core_fellowship_ambassador_core;
 pub mod pallet_core_fellowship_fellowship_core;
+pub mod pallet_core_fellowship_potoc_core;
 pub mod pallet_message_queue;
 pub mod pallet_multisig;
 pub mod pallet_preimage;
