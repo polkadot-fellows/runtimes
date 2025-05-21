@@ -398,9 +398,6 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self, I>>
 			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-		/// The origin required to add a member.
-		type AddOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
 		/// The origin required to remove a member.
 		///
 		/// The success value indicates the maximum rank *from which* the removal may be.
@@ -537,14 +534,14 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Introduce a new member.
 		///
-		/// - `origin`: Must be the `AddOrigin`.
+		/// - `origin`: Must be signed.
 		/// - `who`: Account of non-member which will become a member.
 		///
 		/// Weight: `O(1)`
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::add_member())]
 		pub fn add_member(origin: OriginFor<T>, who: AccountIdLookupOf<T>) -> DispatchResult {
-			T::AddOrigin::ensure_origin(origin)?;
+			ensure_origin(origin)?;
 			let who = T::Lookup::lookup(who)?;
 			Self::do_add_member(who, true)
 		}
