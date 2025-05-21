@@ -47,7 +47,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_xcm_benchmarks::generic`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> WeightInfo<T> {
 	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
 	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
@@ -60,7 +60,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn report_holding() -> Weight {
+	pub(crate) fn report_holding() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `175`
 		//  Estimated: `6196`
@@ -70,7 +70,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	fn buy_execution() -> Weight {
+	pub(crate) fn buy_execution() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -80,7 +80,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	fn pay_fees() -> Weight {
+	pub(crate) fn pay_fees() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `3593`
@@ -90,7 +90,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	fn asset_claimer() -> Weight {
+	pub(crate) fn asset_claimer() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -100,7 +100,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `PolkadotXcm::Queries` (r:1 w:0)
 	/// Proof: `PolkadotXcm::Queries` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn query_response() -> Weight {
+	pub(crate) fn query_response() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `3465`
@@ -109,7 +109,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(Weight::from_parts(0, 3465))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
-	fn transact() -> Weight {
+	pub(crate) fn transact() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -117,7 +117,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(7_590_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn refund_surplus() -> Weight {
+	pub(crate) fn refund_surplus() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -125,7 +125,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(2_760_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_error_handler() -> Weight {
+	pub(crate) fn set_error_handler() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -133,7 +133,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(780_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_appendix() -> Weight {
+	pub(crate) fn set_appendix() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -141,7 +141,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(760_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_error() -> Weight {
+	pub(crate) fn clear_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -149,7 +149,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(730_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn descend_origin() -> Weight {
+	pub(crate) fn descend_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -159,7 +159,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `Benchmark::Override` (r:0 w:0)
 	/// Proof: `Benchmark::Override` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn execute_with_origin() -> Weight {
+	pub(crate) fn execute_with_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -167,7 +167,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(18_446_744_073_709_551_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_origin() -> Weight {
+	pub(crate) fn clear_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -187,7 +187,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn report_error() -> Weight {
+	pub(crate) fn report_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `175`
 		//  Estimated: `6196`
@@ -199,7 +199,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `PolkadotXcm::AssetTraps` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AssetTraps` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn claim_asset() -> Weight {
+	pub(crate) fn claim_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `23`
 		//  Estimated: `3488`
@@ -209,7 +209,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	fn trap() -> Weight {
+	pub(crate) fn trap() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -227,7 +227,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn subscribe_version() -> Weight {
+	pub(crate) fn subscribe_version() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `42`
 		//  Estimated: `3507`
@@ -239,7 +239,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `PolkadotXcm::VersionNotifyTargets` (r:0 w:1)
 	/// Proof: `PolkadotXcm::VersionNotifyTargets` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn unsubscribe_version() -> Weight {
+	pub(crate) fn unsubscribe_version() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -248,7 +248,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	fn burn_asset() -> Weight {
+	pub(crate) fn burn_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -256,7 +256,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(25_350_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_asset() -> Weight {
+	pub(crate) fn expect_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -264,7 +264,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(7_530_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_origin() -> Weight {
+	pub(crate) fn expect_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -272,7 +272,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(740_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_error() -> Weight {
+	pub(crate) fn expect_error() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -280,7 +280,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(670_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn expect_transact_status() -> Weight {
+	pub(crate) fn expect_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -300,7 +300,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn query_pallet() -> Weight {
+	pub(crate) fn query_pallet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `175`
 		//  Estimated: `6196`
@@ -310,7 +310,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	fn expect_pallet() -> Weight {
+	pub(crate) fn expect_pallet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -330,7 +330,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ParachainSystem::HostConfiguration` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `ParachainSystem::PendingUpwardMessages` (r:1 w:1)
 	/// Proof: `ParachainSystem::PendingUpwardMessages` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn report_transact_status() -> Weight {
+	pub(crate) fn report_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `175`
 		//  Estimated: `6196`
@@ -340,7 +340,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
-	fn clear_transact_status() -> Weight {
+	pub(crate) fn clear_transact_status() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -348,7 +348,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(800_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn set_topic() -> Weight {
+	pub(crate) fn set_topic() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -356,7 +356,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(760_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn clear_topic() -> Weight {
+	pub(crate) fn clear_topic() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -370,7 +370,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	/// Proof: `ForeignAssets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
 	/// Storage: `ForeignAssets::Account` (r:1 w:1)
 	/// Proof: `ForeignAssets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
-	fn exchange_asset() -> Weight {
+	pub(crate) fn exchange_asset() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `491`
 		//  Estimated: `4273`
@@ -382,7 +382,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 	}
 	/// Storage: `ParachainInfo::ParachainId` (r:1 w:0)
 	/// Proof: `ParachainInfo::ParachainId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	fn universal_origin() -> Weight {
+	pub(crate) fn universal_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `32`
 		//  Estimated: `1489`
@@ -391,7 +391,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 			.saturating_add(Weight::from_parts(0, 1489))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
-	fn set_fees_mode() -> Weight {
+	pub(crate) fn set_fees_mode() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -399,7 +399,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(740_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn unpaid_execution() -> Weight {
+	pub(crate) fn unpaid_execution() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -407,7 +407,7 @@ impl<T: frame_system::Config> pallet_xcm_benchmarks::generic::WeightInfo for Wei
 		Weight::from_parts(760_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
-	fn alias_origin() -> Weight {
+	pub(crate) fn alias_origin() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
