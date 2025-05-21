@@ -662,14 +662,9 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 
 	fn try_origin(
 		origin: RuntimeOrigin,
-		key: &RuntimeParametersKey,
+		_key: &RuntimeParametersKey,
 	) -> Result<Self::Success, RuntimeOrigin> {
-		use crate::RuntimeParametersKey::*;
-
-		match key {
-			Inflation(_) => frame_system::ensure_root(origin.clone()),
-		}
-		.map_err(|_| origin)
+		frame_system::ensure_root(origin.clone()).map_err(|_| origin)
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
@@ -3108,8 +3103,11 @@ mod multiplier_tests {
 #[cfg(test)]
 mod inflation_tests {
 	use super::*;
+	use crate::{dynamic_params::inflation, RuntimeParameters::Inflation};
 	use approx::assert_relative_eq;
+	use frame_support::{assert_noop, assert_ok};
 	use pallet_staking::EraPayout;
+	use sp_runtime::DispatchError;
 	const MILLISECONDS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
 
 	#[test]
@@ -3232,6 +3230,33 @@ mod inflation_tests {
 
 				assert!(inflation <= 8.0 && inflation > 2.0, "sanity check");
 			}
+		});
+	}
+
+	#[test]
+	fn inflation_only_settable_by_root() {
+		let mut ext = sp_io::TestExternalities::new_empty();
+		ext.execute_with(|| {
+			// Rejected since the origin is not root.
+			assert_noop!(
+				Parameters::set_parameter(
+					RuntimeOrigin::signed(AccountId::from([1u8; 32])),
+					Inflation(inflation::Parameters::YearlyEmission(
+						inflation::YearlyEmission,
+						Some(123u128)
+					)),
+				),
+				DispatchError::BadOrigin
+			);
+
+			// Accepted since origin is root.
+			assert_ok!(Parameters::set_parameter(
+				RuntimeOrigin::root(),
+				Inflation(inflation::Parameters::YearlyEmission(
+					inflation::YearlyEmission,
+					Some(123u128)
+				)),
+			));
 		});
 	}
 }
@@ -3461,6 +3486,8 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {:?}", average_era_duration_millis);
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+			log::info!(target: LOG_TARGET, "yearlyEmission = {:?}", dynamic_params::inflation::YearlyEmission::get());
+			log::info!(target: LOG_TARGET, "percentToTreasury = {:?}", dynamic_params::inflation::PercentToTreasury::get());
 			log::info!(target: LOG_TARGET, "inflation_rate runtime API: {:?}", Runtime::impl_experimental_inflation_info());
 		});
 	}
