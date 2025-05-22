@@ -1113,7 +1113,10 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 			ProxyType::CancelProxy => {
-				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
+				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+					RuntimeCall::Utility { .. } |
+					RuntimeCall::Multisig { .. }
+				)
 			},
 			ProxyType::Auction => matches!(
 				c,
