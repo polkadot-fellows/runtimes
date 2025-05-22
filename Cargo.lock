@@ -2424,6 +2424,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-ranked-collective",
+ "pallet-ranked-collective-ambassador",
  "pallet-referenda",
  "pallet-salary",
  "pallet-scheduler",
@@ -9328,6 +9329,24 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples",
  "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-ranked-collective-ambassador"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "log",
+ "pallet-balances",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",

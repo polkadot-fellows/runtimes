@@ -57,7 +57,7 @@ use frame_support::{
 	ensure, impl_ensure_origin_with_arg_ignoring_arg,
 	traits::{
 		EnsureOrigin, EnsureOriginWithArg, PollStatus, Polling, RankedMembers,
-		RankedMembersSwapHandler, VoteTally,
+		RankedMembersSwapHandler, VoteTally, Currency, ReservableCurrency,
 	},
 	CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
@@ -444,6 +444,7 @@ pub mod pallet {
 
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
+		#[pallet::constant]
         type InductionDeposit: Get<BalanceOf<Self, I>>;
 
 		/// Setup a member for benchmarking.
@@ -541,7 +542,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::add_member())]
 		pub fn add_member(origin: OriginFor<T>, who: AccountIdLookupOf<T>) -> DispatchResult {
-			ensure_origin(origin)?;
+			let _ = ensure_signed(origin)?;
 			let who = T::Lookup::lookup(who)?;
 			Self::do_add_member(who, true)
 		}
