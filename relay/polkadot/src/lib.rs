@@ -3365,7 +3365,7 @@ mod remote_tests {
 			let (staking, leftover) = <Runtime as pallet_staking::Config>::EraPayout::era_payout(
 				total_staked,
 				total_issuance,
-				average_era_duration_millis.into(),
+				average_era_duration_millis,
 			);
 			use ss58_registry::TokenRegistry;
 			let token: ss58_registry::Token = TokenRegistry::Dot.into();
