@@ -64,7 +64,7 @@ enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "39.0.0", default-features = false }
 frame-election-provider-support = { version = "39.0.0", default-features = false }
 frame-executive = { version = "39.1.0", default-features = false }
-frame-support = { version = "39.1.0", default-features = false }
+frame-support = { version = "40.1.0", default-features = false }
 frame-system = { version = "39.1.0", default-features = false }
 frame-system-benchmarking = { version = "39.0.0", default-features = false }
 frame-system-rpc-runtime-api = { version = "35.0.0", default-features = false }
@@ -221,7 +221,7 @@ sp-core = { version = "35.0.0", default-features = false }
 sp-debug-derive = { version = "14.0.0", default-features = false }
 sp-genesis-builder = { version = "0.16.0", default-features = false }
 sp-inherents = { version = "35.0.0", default-features = false }
-sp-io = { version = "39.0.0", default-features = false }
+sp-io = { version = "40.0.1", default-features = false }
 sp-keyring = { version = "40.0.0" }
 sp-npos-elections = { version = "35.0.0", default-features = false }
 sp-offchain = { version = "35.0.0", default-features = false }
