@@ -55,7 +55,7 @@ cumulus-pallet-xcmp-queue = { version = "0.18.2", default-features = false }
 cumulus-primitives-aura = { version = "0.16.0", default-features = false }
 cumulus-primitives-core = { version = "0.17.0", default-features = false }
 cumulus-primitives-utility = { version = "0.18.1", default-features = false }
-emulated-integration-tests-common = { version = "19.0.2" }
+emulated-integration-tests-common = { version = "20.1.0" }
 encointer-balances-tx-payment = { version = "~15.1.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~15.1.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
@@ -166,7 +166,7 @@ pallet-uniques = { version = "39.1.0", default-features = false }
 pallet-utility = { version = "39.1.0", default-features = false }
 pallet-vesting = { version = "39.1.0", default-features = false }
 pallet-whitelist = { version = "38.1.0", default-features = false }
-pallet-xcm = { version = "18.1.0", default-features = false }
+pallet-xcm = { version = "19.1.1", default-features = false }
 pallet-xcm-benchmarks = { version = "18.1.1", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.14.2", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.16.0", default-features = false }
@@ -239,11 +239,11 @@ sp-weights = { version = "31.0.0", default-features = false }
 substrate-wasm-builder = { version = "25.0.0" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
-xcm = { version = "15.0.3", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "18.1.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.17.1" }
-xcm-executor = { version = "18.0.2", default-features = false, package = "staging-xcm-executor" }
-xcm-runtime-apis = { version = "0.5.1", default-features = false }
+xcm = { version = "16.2.0", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "20.1.1", default-features = false, package = "staging-xcm-builder" }
+xcm-emulator = { version = "0.19.3" }
+xcm-executor = { version = "19.1.2", default-features = false, package = "staging-xcm-executor" }
+xcm-runtime-apis = { version = "0.7.1", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.38.1" }
 tracing-subscriber = { version = "0.3.18" }
