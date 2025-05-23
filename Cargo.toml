@@ -166,7 +166,7 @@ pallet-uniques = { version = "40.1.0", default-features = false }
 pallet-utility = { version = "40.0.0", default-features = false }
 pallet-vesting = { version = "40.1.0", default-features = false }
 pallet-whitelist = { version = "39.0.0", default-features = false }
-pallet-xcm = { version = "19.1.0", default-features = false }
+pallet-xcm = { version = "19.1.1", default-features = false }
 pallet-xcm-benchmarks = { version = "20.0.0", default-features = false }
 pallet-xcm-bridge-hub = { version = "0.16.1", default-features = false }
 pallet-xcm-bridge-hub-router = { version = "0.18.0", default-features = false }
@@ -241,11 +241,11 @@ sp-weights = { version = "31.1.0", default-features = false }
 substrate-wasm-builder = { version = "26.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 tokio = { version = "1.36.0" }
-xcm = { version = "16.1.0", default-features = false, package = "staging-xcm" }
-xcm-builder = { version = "20.1.0", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.19.2" }
-xcm-executor = { version = "19.1.0", default-features = false, package = "staging-xcm-executor" }
-xcm-runtime-apis = { version = "0.7.0", default-features = false }
+xcm = { version = "16.2.0", default-features = false, package = "staging-xcm" }
+xcm-builder = { version = "20.1.1", default-features = false, package = "staging-xcm-builder" }
+xcm-emulator = { version = "0.19.3" }
+xcm-executor = { version = "19.1.2", default-features = false, package = "staging-xcm-executor" }
+xcm-runtime-apis = { version = "0.7.1", default-features = false }
 anyhow = { version = "1.0.82" }
 subxt = { version = "0.38.1" }
 tracing-subscriber = { version = "0.3.18" }

@@ -4671,9 +4671,9 @@ checksum = "28dd6caf6059519a65843af8fe2a3ae298b14b80179855aeb4adc2c1934ee619"
 
 [[package]]
 name = "frame-benchmarking"
-version = "40.0.0"
+version = "40.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55b0892434d3cc61fab58b2e48b27b12fc162465c5af48fa283ed15bb86dbfb2"
+checksum = "aaf87febd8e05e4fc404a4ff2654319f86baf02863d5ab19a1fa5cee5162e03d"
 dependencies = [
  "frame-support",
  "frame-support-procedural",
@@ -4864,9 +4864,9 @@ dependencies = [
 
 [[package]]
 name = "frame-support-procedural"
-version = "33.0.0"
+version = "33.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73bc18090aa96a5e69cd566fb755b5be08964b926864b2101dd900f64a870437"
+checksum = "bcb3c16c8fe1b4edc6df122212b50f776dfce31a94fa63305100841ba4eb7c93"
 dependencies = [
  "Inflector",
  "cfg-expr",
@@ -9678,9 +9678,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm"
-version = "19.1.0"
+version = "19.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab7e7cc378044212673fa3d477324504642178fa9f98d96e56981fb57bbbe3e1"
+checksum = "2634c61cdfe53073384659adea1ae2c4e0a4c1e35a9f7e7fc0acb68891df4c39"
 dependencies = [
  "bounded-collections",
  "frame-benchmarking",
@@ -14806,9 +14806,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm"
-version = "16.1.0"
+version = "16.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dead7481ba2dec11b0df89745cef3a76f3eef9c9df20155426cd7e9651b4c799"
+checksum = "d0126278d7fc6d7dec55e5a109f838bbf401dd084aecf2597e4e11ea07515a0a"
 dependencies = [
  "array-bytes",
  "bounded-collections",
@@ -14828,9 +14828,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-builder"
-version = "20.1.0"
+version = "20.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fdd44a74a38339c423f690900678a1b5a31d0a44d8e01a0f445a64c96ec3175"
+checksum = "6f031952c1496cf7f86d19ab38e3264be9a54b7d8eecb25ba69f977cc7549d08"
 dependencies = [
  "environmental",
  "frame-support",
@@ -14853,9 +14853,9 @@ dependencies = [
 
 [[package]]
 name = "staging-xcm-executor"
-version = "19.1.0"
+version = "19.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6d7cc19f02e4c088c2719fe11f22216041909d6a6ab130c71e8d25818d7768"
+checksum = "af9bc315e8c7018fcfe0371ce4b7e726fb699e37b2acc3e5effb87a7d131a3ff"
 dependencies = [
  "environmental",
  "frame-benchmarking",
@@ -17215,9 +17215,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-emulator"
-version = "0.19.2"
+version = "0.19.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00a953a53ebb45e665f99509973672a2cbeef0a714685a1929594e671571dd09"
+checksum = "f4e20001018517e43a6cde8803da661767e9c95bcd5509abe227dddccc220813"
 dependencies = [
  "array-bytes",
  "cumulus-pallet-parachain-system",
@@ -17245,6 +17245,7 @@ dependencies = [
  "sp-tracing",
  "staging-xcm",
  "staging-xcm-executor",
+ "xcm-simulator",
 ]
 
 [[package]]
@@ -17261,9 +17262,9 @@ dependencies = [
 
 [[package]]
 name = "xcm-runtime-apis"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c167c669dcff79985e7367c70a8adeba6021b156c710133615c1183a31a5895"
+checksum = "b87c89a2721a4423325f21453ff71bb7a874cfdbe31a25d70d571804b68c0e06"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -17271,6 +17272,28 @@ dependencies = [
  "sp-api",
  "sp-weights",
  "staging-xcm",
+ "staging-xcm-executor",
+]
+
+[[package]]
+name = "xcm-simulator"
+version = "20.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48e303a7ce56f8aa9c259b0e2ccb35938245b2e5e811ac6024faa2f51c76b3c7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "paste",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "staging-xcm",
+ "staging-xcm-builder",
  "staging-xcm-executor",
 ]
 
