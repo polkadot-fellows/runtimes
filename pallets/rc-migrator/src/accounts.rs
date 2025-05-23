@@ -72,22 +72,23 @@ pub struct Account<AccountId, Balance, HoldReason, FreezeReason> {
 	pub frozen: Balance,
 	/// Account holds from Relay Chain.
 	///
-	/// Expected hold reasons:
+	/// Expected hold reasons (HoldReason):
 	/// - DelegatedStaking: StakingDelegation (only on Kusama)
 	/// - Preimage: Preimage
-	/// - Staking: Staking - later instead of "staking " lock
+	/// - Staking: Staking - later instead of "staking " lock, moved to staking_async pallet on AH
 	pub holds: BoundedVec<IdAmount<HoldReason, Balance>, ConstU32<5>>,
 	/// Account freezes from Relay Chain.
 	///
-	/// Expected freeze reasons:
+	/// Expected freeze reasons (FreezeReason):
 	/// - NominationPools: PoolMinBalance
 	pub freezes: BoundedVec<IdAmount<FreezeReason, Balance>, ConstU32<5>>,
 	/// Account locks from Relay Chain.
 	///
 	/// Expected lock ids:
-	/// - "staking " - should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
-	/// - "vesting "
-	/// - "pyconvot"
+	/// - "staking " : pallet-staking locks have been transformed to holds with https://github.com/paritytech/polkadot-sdk/pull/5501
+	/// but the conversion was lazy, so there may be some staking locks left
+	/// - "vesting " : pallet-vesting
+	/// - "pyconvot" : pallet-conviction-voting
 	pub locks: BoundedVec<BalanceLock<Balance>, ConstU32<5>>,
 	/// Unnamed reserve.
 	///
@@ -125,9 +126,10 @@ impl<AccountId, Balance: Zero, HoldReason, FreezeReason>
 pub enum AccountState<Balance> {
 	/// The account should be migrated to AH and removed on RC.
 	Migrate,
-	/// The account must stay on RC.
+
+	/// The account must stay on RC with its balance.
 	///
-	/// E.g. RC system account.
+	/// E.g., RC system account.
 	Preserve,
 
 	// We might not need the `Part` variation since there are no many cases for `Part` we can just
@@ -310,6 +312,8 @@ impl<T: Config> AccountsMigrator<T> {
 
 		if !Self::can_migrate_account(&who, &account_info) {
 			log::info!(target: LOG_TARGET, "Account '{}' is not migrated", who.to_ss58check());
+			// Will be used for post-migration checks
+			RcAccounts::<T>::insert(&who, AccountState::Preserve);
 			return Ok(None);
 		}
 
@@ -345,7 +349,7 @@ impl<T: Config> AccountsMigrator<T> {
 			// prevents the free balance from being burned.
 			// This scenario causes a panic in the test environment - see:
 			// https://github.com/paritytech/polkadot-sdk/blob/35e6befc5dd61deb154ff0eb7c180a038e626d66/substrate/frame/balances/src/impl_fungible.rs#L285
-			let amount = if free < ed && amount.saturating_sub(ed - free) > 0 {
+			let mut amount = if free < ed && amount.saturating_sub(ed - free) > 0 {
 				log::debug!(
 					target: LOG_TARGET,
 					"Partially releasing hold to prevent the free balance from being burned"
@@ -371,7 +375,28 @@ impl<T: Config> AccountsMigrator<T> {
 				amount
 			};
 
-			if let Err(e) = <T as Config>::Currency::release(&id, &who, amount, Precision::Exact) {
+			// If the hold amount is greater than the reserved balance (inconsistent state), we just
+			// release the entire reserved balance
+			let reserved_balance = <T as Config>::Currency::reserved_balance(&who);
+			let mut release_precision = Precision::Exact;
+			if reserved_balance < amount {
+				log::error!(target: LOG_TARGET,
+					"Hold amount is greater than the reserved balance. \
+					Account: '{}', \
+					hold: {:?}, \
+					reserved: {:?}",
+					who.to_ss58check(),
+					amount,
+					<T as Config>::Currency::reserved_balance(&who),
+				);
+				log::debug!(target: LOG_TARGET,
+					"Releasing the entire reserved balance on best effort: {:?}",
+					reserved_balance,
+				);
+				amount = reserved_balance;
+				release_precision = Precision::BestEffort;
+			}
+			if let Err(e) = <T as Config>::Currency::release(&id, &who, amount, release_precision) {
 				log::error!(target: LOG_TARGET,
 					"Failed to release the hold: {:?} \
 					for account: {:?}, \
@@ -391,7 +416,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 		for lock in &locks {
 			// Expected lock ids:
-			// - "staking " // should be transformed to hold with https://github.com/paritytech/polkadot-sdk/pull/5501
+			// - "staking " : lazily migrated to holds
 			// - "vesting "
 			// - "pyconvot"
 			<T as Config>::Currency::remove_lock(lock.id, &who);
@@ -400,7 +425,7 @@ impl<T: Config> AccountsMigrator<T> {
 		let rc_state = Self::get_rc_state(&who);
 		let (rc_reserve, rc_free_min) = match rc_state {
 			AccountState::Part { reserved } => {
-				log::debug!(
+				log::info!(
 					target: LOG_TARGET,
 					"Keep part of account '{:?}' on Relay Chain. reserved: {}",
 					who.to_ss58check(),
@@ -682,8 +707,9 @@ impl<T: Config> AccountsMigrator<T> {
 			let rc_ed = <T as Config>::Currency::minimum_balance();
 			let ah_ed = T::AhExistentialDeposit::get();
 
-			// we prioritize the named holds over the unnamed reserve. if any named holds we will
-			// send them to the AH and keep up to the `rc_reserved` on the RC.
+			// we prioritize the named holds over the unnamed reserve. If the account to preserve
+			// has any named holds, we will send them to the AH and keep up to the unnamed reserves
+			// `rc_reserved` on the RC.
 			let rc_reserved = rc_reserved.min(total_reserved.saturating_sub(total_hold));
 			let ah_free = free.saturating_sub(rc_ed);
 
@@ -698,9 +724,9 @@ impl<T: Config> AccountsMigrator<T> {
 
 			if ah_free < ah_ed && rc_reserved >= total_reserved && total_frozen.is_zero() {
 				weight += T::DbWeight::get().writes(1);
-				// when there is no much free balance and the account is used only for reserves
-				// for parachains registering or hrmp channels we will keep the entire account on
-				// the RC.
+				// when there is not enough free balance to migrate to AH and the account is used
+				// only for reserves for parachains registering or hrmp channels, we will keep
+				// the entire account on the RC.
 				log::debug!(
 					target: LOG_TARGET,
 					"Preserve account on Relay Chain: '{:?}'",
@@ -791,13 +817,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 		let mut acc_state_maybe: Option<AccountStateFor<T>>;
 		// Check that all accounts have been processed correctly
 		for (who, _) in SystemAccount::<T>::iter() {
-			acc_state_maybe = None;
-			for (acc_id, acc_state) in RcAccounts::<T>::iter() {
-				if acc_id == who {
-					acc_state_maybe = Some(acc_state);
-					break;
-				}
-			}
+			acc_state_maybe = RcAccounts::<T>::get(who.clone());
 			match acc_state_maybe {
 				Some(AccountState::Part { reserved }) => {
 					// Account should have only the reserved amount
@@ -844,8 +864,50 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 				},
-				// The account should be fully migrated to Asset Hub.
-				Some(AccountState::Migrate) => {
+				Some(AccountState::Preserve) => {
+					// If the total balance is smaller than the existential deposit, we don't need
+					// to check anything else because this is a sufficient reason to preserve
+					// the account on the relay chain. If the total balance is greater or equal to
+					// the existential deposit, we need to check that the account has no Holds,
+					// Freezes, or Locks, and no free balance to be migrated to Asset Hub.
+					let total_balance = <T as Config>::Currency::total_balance(&who);
+					let ed = <T as Config>::Currency::minimum_balance();
+					if total_balance >= ed {
+						// Preserved accounts should have no Holds, Freezes, or Locks.
+						let holds = pallet_balances::Holds::<T>::get(&who);
+						assert!(
+							holds.is_empty(),
+							"Preserved account {:?} should have no holds on the relay chain after migration",
+							who.to_ss58check()
+						);
+
+						let freezes = pallet_balances::Freezes::<T>::get(&who);
+						assert!(
+							freezes.is_empty(),
+							"Preserved account {:?} should have no freezes on the relay chain after migration",
+							who.to_ss58check()
+						);
+
+						let locks = pallet_balances::Locks::<T>::get(&who);
+						assert!(
+							locks.is_empty(),
+							"Preserved account {:?} should have no locks on the relay chain after migration",
+							who.to_ss58check()
+						);
+
+						// Preserved accounts should not have enough free balance to be partly
+						// migrated to Asset Hub.
+						let free_balance = <T as Config>::Currency::reducible_balance(
+							&who,
+							Preservation::Expendable,
+							Fortitude::Polite,
+						);
+						assert!(free_balance < <T as Config>::Currency::minimum_balance() + T::AhExistentialDeposit::get(), "Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", who.to_ss58check());
+					}
+				},
+				// This corresponds to AccountState::Migrate: the account should be fully migrated
+				// to Asset Hub.
+				_ => {
 					// Assert storage "Balances::Account::rc_post::empty"
 					let total_balance = <T as Config>::Currency::total_balance(&who);
 					assert_eq!(
@@ -888,25 +950,6 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 						who.to_ss58check()
 					);
 				},
-				// Non-migratable accounts having total balance lower than the existential deposit.
-				None => {
-					let total_balance = <T as Config>::Currency::total_balance(&who);
-					assert!(
-						total_balance < <T as Config>::Currency::minimum_balance(),
-						"Non-migratable account {:?} should have a total balance lower than the existential deposit on the relay",
-						who.to_ss58check()
-					);
-
-					let free_balance = <T as Config>::Currency::reducible_balance(
-						&who,
-						Preservation::Expendable,
-						Fortitude::Polite,
-					);
-					assert_eq!(free_balance, 0, "Non-migratable account {:?} should have no free balance on the relay chain after migration", who.to_ss58check());
-				},
-				// No checks needed for preserved (unmodified) accounts on the relay chain after
-				// migration.
-				_ => (),
 			}
 		}
 
