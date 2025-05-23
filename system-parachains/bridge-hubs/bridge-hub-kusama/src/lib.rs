@@ -156,6 +156,16 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_polkadot_config::XcmOverBridgeHubPolkadotInstance,
 	>,
+	pallet_session::migrations::v1::MigrateV0ToV1<
+		Runtime,
+		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+	>,
+	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	pallet_bridge_relayers::migration::v2::MigrationToV2<
+		Runtime,
+		bridge_to_polkadot_config::RelayersForLegacyLaneIdsMessagesInstance,
+		bp_messages::LegacyLaneId,
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -460,6 +470,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -514,6 +525,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = ConstU32<100>;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -821,18 +833,29 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
+		// TODO @bkontur: Check this out, please.
+		fn bench_reward() -> Self::Reward {
+			bp_relayers::RewardsAccountParams::new(
+				bp_messages::LegacyLaneId::default(),
+				*b"test",
+				bp_relayers::RewardsAccountOwner::ThisChain,
+			)
+		}
+
 		fn prepare_rewards_account(
 			account_params: bp_relayers::RewardsAccountParams<
 				LaneIdOf<Runtime, bridge_to_polkadot_config::WithBridgeHubPolkadotMessagesInstance>,
 			>,
 			reward: Balance,
-		) {
+		) -> Option<AccountId> {
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
 				bp_messages::LegacyLaneId,
+				Balance,
 			>::rewards_account(account_params);
-			Self::deposit_account(rewards_account, reward);
+			Self::deposit_account(rewards_account.clone(), reward);
+			Some(rewards_account)
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -972,7 +995,7 @@ mod benches {
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,

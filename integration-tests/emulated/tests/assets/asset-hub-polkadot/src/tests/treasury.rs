@@ -17,6 +17,7 @@ use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
 use frame_support::traits::fungibles::Mutate;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 use xcm_executor::traits::ConvertLocation;
 
 #[test]
@@ -63,6 +64,7 @@ fn create_and_claim_treasury_spend_in_usdt() {
 		// create a conversion rate from `asset_kind` to the native currency.
 		assert_ok!(AssetRate::create(root.clone(), Box::new(asset_kind.clone()), 2.into()));
 
+		Dmp::make_parachain_reachable(1000);
 		// create and approve a treasury spend.
 		assert_ok!(Treasury::spend(
 			root,
