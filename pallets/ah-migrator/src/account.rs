@@ -84,6 +84,20 @@ impl<T: Config> Pallet<T> {
 		};
 		debug_assert!(minted == total_balance);
 
+		AhMigratedBalance::<T>::mutate(|balance| {
+			*balance = match (*balance).checked_add(total_balance) {
+				Some(new_balance) => new_balance,
+				None => {
+					log::error!(
+						target: LOG_TARGET,
+						"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
+						who.to_ss58check(), total_balance, balance,
+					);
+					*balance
+				},
+			};
+		});
+
 		for hold in account.holds {
 			if let Err(e) = <T as pallet::Config>::Currency::hold(
 				&T::RcToAhHoldReason::convert(hold.id),
@@ -214,10 +228,9 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
-	// rc_total_issuance_before
+	// Total issuance on the relay chain before migration
 	type RcPrePayload = BalanceOf<T>;
-	// ah_checking_account_before
-	type AhPrePayload = BalanceOf<T>;
+	type AhPrePayload = ();
 
 	/// Run some checks on asset hub before the migration and store intermediate payload.
 	///
@@ -241,12 +254,6 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 			"No freezes should exist on Asset Hub before migration"
 		);
 
-		// Assert storage "Balances::Account::ah_pre::empty"
-		assert!(
-			pallet_balances::Account::<T>::iter().next().is_none(),
-			"No Account should exist on Asset Hub before migration"
-		);
-
 		let check_account = T::CheckingAccount::get();
 		let checking_balance = <T as Config>::Currency::total_balance(&check_account);
 		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
@@ -254,7 +261,6 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		// This is fine, we can just ignore/accept this small amount.
 		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
-		checking_balance
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
@@ -263,15 +269,11 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(_rc_total_issuance_before: Self::RcPrePayload, _: Self::AhPrePayload) {
+	fn post_check(_rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		// Check that no failed accounts remain in storage
 		assert!(
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
-
-		// TODO: Giuseppe @re-gius
-		//   run post migration sanity checks like:
-		//    - rc_migrated_out == ah_migrated_in - failed accounts
 	}
 }

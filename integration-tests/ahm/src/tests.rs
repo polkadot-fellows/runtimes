@@ -34,6 +34,7 @@
 use crate::porting_prelude::*;
 
 use super::{
+	balances_test::BalancesCrossChecker,
 	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
@@ -88,6 +89,7 @@ type RcChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<Polkadot>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<Polkadot>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<Polkadot>,
+	BalancesCrossChecker,
 	RcPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
@@ -126,6 +128,7 @@ type AhChecks = (
 	pallet_rc_migrator::scheduler::SchedulerMigrator<AssetHub>,
 	pallet_rc_migrator::staking::nom_pools::NomPoolsMigrator<AssetHub>,
 	pallet_rc_migrator::referenda::ReferendaMigrator<AssetHub>,
+	BalancesCrossChecker,
 	AhPolkadotChecks,
 	// other checks go here (if available on Polkadot, Kusama and Westend)
 	ProxyBasicWorks,
