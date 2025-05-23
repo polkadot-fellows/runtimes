@@ -146,6 +146,7 @@ pallet-ranked-collective = { version = "39.0.0", default-features = false }
 pallet-recovery = { version = "39.1.0", default-features = false }
 pallet-referenda = { version = "39.1.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
+pallet-ranked-collective-ambassador = { path = "pallets/ranked-collective-ambassador", default-features = false }
 pallet-salary = { version = "24.0.0", default-features = false }
 pallet-scheduler = { version = "40.1.0", default-features = false }
 pallet-session = { version = "39.0.0", default-features = false }
@@ -251,6 +252,7 @@ zombienet-sdk = { version = "0.2.30" }
 tuplex = { version = "0.1.0", default-features = false }
 relay-common = { path = "relay/common", default-features = false }
 ss58-registry = { version = "1.47.0" }
+impl-trait-for-tuples = { version = "0.2.2" }
 
 [workspace]
 resolver = "2"
