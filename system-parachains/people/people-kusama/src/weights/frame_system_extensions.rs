@@ -132,4 +132,12 @@ impl<T: frame_system::Config> frame_system::ExtensionsWeightInfo for WeightInfo<
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn weight_reclaim() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 2_189_000 picoseconds.
+		Weight::from_parts(2_372_000, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
 }

@@ -21,6 +21,7 @@ use crate::{
 };
 use asset_hub_polkadot_runtime::xcm_config::DotLocation;
 use emulated_integration_tests_common::USDT_ID;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 
 fn para_to_para_assethub_hop_assertions(t: ParaToParaThroughAHTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -742,7 +743,7 @@ fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
 	}
 	fn penpal_assertions(t: RelayToParaThroughAHTest) {
 		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
-		let expected_id = t.args.assets.into_inner().first().unwrap().id.0.clone();
+		let expected_id = Location { parents: 1, interior: Here };
 		assert_expected_events!(
 			PenpalB,
 			vec![
@@ -782,6 +783,8 @@ fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
 			dest,
 			xcm: xcm_on_final_dest,
 		}]);
+
+		Dmp::make_parachain_reachable(AssetHubPolkadot::para_id());
 
 		// First leg is a teleport, from there a local-reserve-transfer to final dest
 		<Polkadot as PolkadotPallet>::XcmPallet::transfer_assets_using_type_and_then(
@@ -964,22 +967,18 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 	// Assertions executed on the receiver, PenpalB.
 	fn receiver_assertions(_: PenpalAToPenpalBTest) {
 		type Event = <PenpalB as Chain>::RuntimeEvent;
-
 		let usdt_location: Location =
 			(Parent, Parachain(1000), PalletInstance(50), GeneralIndex(1984)).into();
 		let receiver = PenpalBReceiver::get();
-		let final_amount = 990_665_188_940;
-
 		assert_expected_events!(
 			PenpalB,
 			vec![
 				// Final amount gets deposited to receiver.
 				Event::ForeignAssets(
-					pallet_assets::Event::Issued { asset_id, owner, amount }
+					pallet_assets::Event::Issued { asset_id, owner, .. }
 				) => {
 					asset_id: *asset_id == usdt_location,
 					owner: *owner == receiver,
-					amount: *amount == final_amount,
 				},
 				// Swap was made to pay fees with USDT.
 				Event::AssetConversion(

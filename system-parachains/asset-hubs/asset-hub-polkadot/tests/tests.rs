@@ -20,8 +20,8 @@
 use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, LocationToAccountId,
-		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
+		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, GovernanceLocation,
+		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
 		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
@@ -32,7 +32,7 @@ use asset_hub_polkadot_runtime::{
 };
 use asset_test_utils::{
 	test_cases_over_bridge::TestBridgingConfig, CollatorSessionKey, CollatorSessionKeys,
-	ExtBuilder, SlotDurations,
+	ExtBuilder, GovernanceOrigin, SlotDurations,
 };
 use codec::{Decode, Encode};
 use core::ops::Mul;
@@ -591,7 +591,7 @@ fn change_xcm_bridge_hub_router_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| {
 			log::error!(
 				target: "bridges::estimate",
@@ -623,7 +623,7 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| {
 			(
 				bridging::XcmBridgeHubRouterByteFee::key().to_vec(),
@@ -657,7 +657,7 @@ fn change_xcm_bridge_hub_ethereum_base_fee_by_governance_works() {
 	>(
 		collator_session_keys(),
 		1000,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| {
 			(
 				bridging::to_ethereum::BridgeHubEthereumBaseFee::key().to_vec(),

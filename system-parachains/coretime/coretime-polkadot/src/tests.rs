@@ -20,6 +20,8 @@ use crate::{
 	*,
 };
 use coretime::CoretimeAllocator;
+use cumulus_pallet_parachain_system::ValidationData;
+use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_ok,
 	traits::{
@@ -36,10 +38,27 @@ use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
 
+// We track the relay chain block number via the RelayChainDataProvider, but `set_block_number` is
+// not currently available in tests (only runtime-benchmarks).
+// See https://github.com/paritytech/polkadot-sdk/pull/8537
+fn set_relay_block_number(b: BlockNumber) {
+	let mut validation_data = ValidationData::<Runtime>::get().unwrap_or_else(||
+			// PersistedValidationData does not impl default in non-std
+			PersistedValidationData {
+				parent_head: vec![].into(),
+				relay_parent_number: Default::default(),
+				max_pov_size: Default::default(),
+				relay_parent_storage_root: Default::default(),
+			});
+	validation_data.relay_parent_number = b;
+	ValidationData::<Runtime>::put(validation_data)
+}
+
 fn advance_to(b: BlockNumber) {
 	while System::block_number() < b {
 		let block_number = System::block_number() + 1;
 		System::set_block_number(block_number);
+		set_relay_block_number(block_number);
 		Broker::on_initialize(block_number);
 	}
 }

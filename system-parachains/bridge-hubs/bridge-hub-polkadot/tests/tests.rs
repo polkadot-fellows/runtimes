@@ -18,28 +18,28 @@ use bp_bridge_hub_kusama::Perbill;
 use bp_messages::LegacyLaneId;
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
+	bridge_common_config::{BridgeRelayersInstance, RequiredStakeForStakeAndSlash},
 	bridge_to_kusama_config::{
 		BridgeGrandpaKusamaInstance, BridgeHubKusamaLocation, BridgeParachainKusamaInstance,
 		DeliveryRewardInBalance, KusamaGlobalConsensusNetwork,
-		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, RelayersForLegacyLaneIdsMessagesInstance,
-		RequiredStakeForStakeAndSlash, WithBridgeHubKusamaMessagesInstance,
+		OnBridgeHubPolkadotRefundBridgeHubKusamaMessages, WithBridgeHubKusamaMessagesInstance,
 		XcmOverBridgeHubKusamaInstance,
 	},
 	xcm_config::{
-		DotRelayLocation, LocationToAccountId, RelayNetwork, RelayTreasuryLocation,
-		RelayTreasuryPalletAccount, XcmConfig,
+		DotRelayLocation, GovernanceLocation, LocationToAccountId, RelayNetwork,
+		RelayTreasuryLocation, RelayTreasuryPalletAccount, XcmConfig,
 	},
 	AllPalletsWithoutSystem, Block, BridgeRejectObsoleteHeadersAndMessages, Executive,
 	ExistentialDeposit, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeOrigin, SessionKeys, TransactionPayment, TxExtension, UncheckedExtrinsic, SLOT_DURATION,
 };
-use bridge_hub_test_utils::{test_cases::from_parachain, SlotDurations};
+use bridge_hub_test_utils::{test_cases::from_parachain, GovernanceOrigin, SlotDurations};
 use codec::{Decode, Encode};
 use frame_support::{dispatch::GetDispatchInfo, parameter_types, traits::ConstU8};
 use parachains_common::{AccountId, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
-use sp_keyring::AccountKeyring::Alice;
+use sp_keyring::Sr25519Keyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
 	AccountId32,
@@ -71,7 +71,7 @@ type RuntimeTestsAdapter = from_parachain::WithRemoteParachainHelperAdapter<
 	BridgeGrandpaKusamaInstance,
 	BridgeParachainKusamaInstance,
 	WithBridgeHubKusamaMessagesInstance,
-	RelayersForLegacyLaneIdsMessagesInstance,
+	BridgeRelayersInstance,
 >;
 
 parameter_types! {
@@ -79,7 +79,7 @@ parameter_types! {
 }
 
 fn construct_extrinsic(
-	sender: sp_keyring::AccountKeyring,
+	sender: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
@@ -104,7 +104,7 @@ fn construct_extrinsic(
 }
 
 fn construct_and_apply_extrinsic(
-	relayer_at_target: sp_keyring::AccountKeyring,
+	relayer_at_target: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> sp_runtime::DispatchOutcome {
 	let xt = construct_extrinsic(relayer_at_target, call);
@@ -164,7 +164,11 @@ fn initialize_bridge_by_governance_works() {
 	bridge_hub_test_utils::test_cases::initialize_bridge_by_governance_works::<
 		Runtime,
 		BridgeGrandpaKusamaInstance,
-	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		GovernanceOrigin::Location(GovernanceLocation::get()),
+	)
 }
 
 #[test]
@@ -173,7 +177,11 @@ fn change_bridge_grandpa_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_grandpa_pallet_mode_by_governance_works::<
 		Runtime,
 		BridgeGrandpaKusamaInstance,
-	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		GovernanceOrigin::Location(GovernanceLocation::get()),
+	)
 }
 
 #[test]
@@ -182,7 +190,11 @@ fn change_bridge_parachains_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_parachains_pallet_mode_by_governance_works::<
 		Runtime,
 		BridgeParachainKusamaInstance,
-	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		GovernanceOrigin::Location(GovernanceLocation::get()),
+	)
 }
 
 #[test]
@@ -191,7 +203,11 @@ fn change_bridge_messages_pallet_mode_by_governance_works() {
 	bridge_hub_test_utils::test_cases::change_bridge_messages_pallet_mode_by_governance_works::<
 		Runtime,
 		WithBridgeHubKusamaMessagesInstance,
-	>(collator_session_keys(), bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID)
+	>(
+		collator_session_keys(),
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
+		GovernanceOrigin::Location(GovernanceLocation::get()),
+	)
 }
 
 #[test]
@@ -203,7 +219,7 @@ fn change_delivery_reward_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| (DeliveryRewardInBalance::key().to_vec(), DeliveryRewardInBalance::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)
@@ -218,7 +234,7 @@ fn change_required_stake_by_governance_works() {
 	>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| (RequiredStakeForStakeAndSlash::key().to_vec(), RequiredStakeForStakeAndSlash::get()),
 		|old_value| old_value.checked_mul(2).unwrap(),
 	)

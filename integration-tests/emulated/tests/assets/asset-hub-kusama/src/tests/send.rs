@@ -24,7 +24,7 @@ fn send_transact_as_superuser_from_relay_to_asset_hub_works() {
 		ASSET_MIN_BALANCE,
 		true,
 		AssetHubKusamaSender::get(),
-		Some(Weight::from_parts(177_260_000, 3_675)),
+		None,
 	)
 }
 

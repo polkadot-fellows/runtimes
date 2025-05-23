@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2412-4
+  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2503-5
 
 # cancel previous runs
 concurrency:
@@ -278,7 +278,7 @@ jobs:
           if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
             FEATURES="--features=metadata-hash"
           fi
-          
+
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
           cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
@@ -317,8 +317,8 @@ jobs:
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
             # Set the path to the build runtimes
             eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-          done 
-          
+          done
+
       - name: Installing dependencies of ecosystem tests
         working-directory: ./ecosystem-tests
         run: yarn install

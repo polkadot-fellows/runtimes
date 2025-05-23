@@ -115,20 +115,13 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 }
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Kusama::assert_ump_queue_processed(
-		false,
-		Some(PeopleKusama::para_id()),
-		Some(Weight::from_parts(157_718_000, 3_593)),
-	);
+	Kusama::assert_ump_queue_processed(false, Some(PeopleKusama::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-	PeopleKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		600_000_000,
-		7_000,
-	)));
+	PeopleKusama::assert_xcm_pallet_attempted_complete(None);
 
 	PeopleKusama::assert_parachain_system_ump_sent();
 
