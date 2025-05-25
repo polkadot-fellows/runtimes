@@ -1,0 +1,56 @@
+[package]
+name = "pallet-salary-ambassador"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+description = "Paymaster"
+readme = "README.md"
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+frame-benchmarking = { optional = true, workspace = true }
+frame-support = { workspace = true, features = ["experimental"] }
+frame-system = { workspace = true }
+pallet-ranked-collective-ambassador = { optional = true, workspace = true }
+log = { workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+
+[dev-dependencies]
+pallet-balances = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+    "frame-benchmarking/std",
+    "frame-support/std",
+	"frame-system/std",
+    "pallet-balances/std",
+    "pallet-ranked-collective-ambassador/std",
+	"log/std",
+    "scale-info/std",
+    "sp-arithmetic/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std"
+]
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+	"pallet-ranked-collective-ambassador/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances/try-runtime",
+	"pallet-ranked-collective-ambassador?/try-runtime",
+]

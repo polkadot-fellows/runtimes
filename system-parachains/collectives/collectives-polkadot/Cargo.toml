@@ -45,7 +45,9 @@ pallet-utility = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-ranked-collective = { workspace = true }
 pallet-core-fellowship = { workspace = true }
+pallet-core-fellowship-ambassador = { workspace = true }
 pallet-salary = { workspace = true }
+pallet-salary-ambassador = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
@@ -112,13 +114,16 @@ runtime-benchmarks = [
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-core-fellowship/runtime-benchmarks",
+	"pallet-core-fellowship-ambassador/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
+	"pallet-ranked-collective-ambassador/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-salary/runtime-benchmarks",
+	"pallet-salary-ambassador/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -153,13 +158,16 @@ try-runtime = [
 	"pallet-collator-selection/try-runtime",
 	"pallet-collective/try-runtime",
 	"pallet-core-fellowship/try-runtime",
+	"pallet-core-fellowship/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",
+	"pallet-ranked-collective-ambassador/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-salary/try-runtime",
+	"pallet-salary-ambassador/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -198,13 +206,16 @@ std = [
 	"pallet-collator-selection/std",
 	"pallet-collective/std",
 	"pallet-core-fellowship/std",
+	"pallet-core-fellowship-ambassador/std",
 	"pallet-message-queue/std",
 	"pallet-multisig/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
+	"pallet-ranked-collective-ambassador/std",
 	"pallet-referenda/std",
 	"pallet-salary/std",
+	"pallet-salary-ambassador/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",

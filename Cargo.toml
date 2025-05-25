@@ -104,6 +104,7 @@ pallet-collator-selection = { version = "20.1.0", default-features = false }
 pallet-collective = { version = "39.1.0", default-features = false }
 pallet-conviction-voting = { version = "39.1.0", default-features = false }
 pallet-core-fellowship = { version = "23.0.0", default-features = false }
+pallet-core-fellowship-ambassador = { path = "pallets/core-fellowship-ambassador", default-features = false }
 pallet-election-provider-multi-phase = { version = "38.1.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "38.0.0", default-features = false }
 pallet-encointer-balances = { version = "~15.2.0", default-features = false }
@@ -148,6 +149,7 @@ pallet-referenda = { version = "39.1.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
 pallet-ranked-collective-ambassador = { path = "pallets/ranked-collective-ambassador", default-features = false }
 pallet-salary = { version = "24.0.0", default-features = false }
+pallet-salary-ambassador = { path = "pallets/salary-ambassador", default-features = false }
 pallet-scheduler = { version = "40.1.0", default-features = false }
 pallet-session = { version = "39.0.0", default-features = false }
 pallet-session-benchmarking = { version = "39.1.0", default-features = false }

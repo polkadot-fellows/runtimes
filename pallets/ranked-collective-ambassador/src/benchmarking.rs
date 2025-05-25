@@ -25,6 +25,7 @@ use frame_benchmarking::{
 	v1::{account, BenchmarkError},
 	v2::*,
 };
+use sp_arithmetic::traits::Bounded;
 
 use frame_support::{assert_err, assert_ok, traits::NoOpPoll};
 use frame_system::RawOrigin as SystemOrigin;
@@ -41,10 +42,10 @@ fn assert_has_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::R
 
 fn make_member<T: Config<I>, I: 'static>(rank: Rank) -> T::AccountId {
 	let who = account::<T::AccountId>("member", MemberCount::<T, I>::get(0), SEED);
+	T::Currency::make_free_balance_be(&who, BalanceOf::<T, I>::max_value());
 	let who_lookup = T::Lookup::unlookup(who.clone());
 	assert_ok!(Pallet::<T, I>::add_member(
-		T::AddOrigin::try_successful_origin()
-			.expect("AddOrigin has no successful origin required for the benchmark"),
+		SystemOrigin::Signed(who.clone()).into(),
 		who_lookup.clone(),
 	));
 	for _ in 0..rank {
@@ -67,14 +68,11 @@ mod benchmarks {
 	fn add_member() -> Result<(), BenchmarkError> {
 		// Generate a test account for the new member.
 		let who = account::<T::AccountId>("member", 0, SEED);
+		T::Currency::make_free_balance_be(&who, BalanceOf::<T, I>::max_value());
 		let who_lookup = T::Lookup::unlookup(who.clone());
 
-		// Attempt to get the successful origin for adding a member.
-		let origin =
-			T::AddOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)?;
-
 		#[extrinsic_call]
-		_(origin as T::RuntimeOrigin, who_lookup);
+		_(SystemOrigin::Signed(who.clone()), who_lookup);
 
 		// Ensure the member count has increased (or is 1 for rank 0).
 		assert_eq!(MemberCount::<T, I>::get(0), 1);
@@ -300,6 +298,7 @@ mod benchmarks {
 
 		// Create a new account for the new member.
 		let new_who = account::<T::AccountId>("new-member", 0, SEED);
+		T::Currency::make_free_balance_be(&new_who, BalanceOf::<T, I>::max_value());
 		let new_who_lookup = T::Lookup::unlookup(new_who.clone());
 
 		// Attempt to get the successful origin for exchanging a member.

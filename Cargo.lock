@@ -2419,6 +2419,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-core-fellowship",
+ "pallet-core-fellowship-ambassador",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-preimage",
@@ -2427,6 +2428,7 @@ dependencies = [
  "pallet-ranked-collective-ambassador",
  "pallet-referenda",
  "pallet-salary",
+ "pallet-salary-ambassador",
  "pallet-scheduler",
  "pallet-session",
  "pallet-timestamp",
@@ -8603,6 +8605,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-core-fellowship-ambassador"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-ranked-collective-ambassador",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-delegated-staking"
 version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9421,6 +9441,24 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-ranked-collective",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-salary-ambassador"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-ranked-collective-ambassador",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",

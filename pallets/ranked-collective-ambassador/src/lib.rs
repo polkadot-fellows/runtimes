@@ -56,8 +56,8 @@ use frame_support::{
 	dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
 	ensure, impl_ensure_origin_with_arg_ignoring_arg,
 	traits::{
-		EnsureOrigin, EnsureOriginWithArg, PollStatus, Polling, RankedMembers,
-		RankedMembersSwapHandler, VoteTally, Currency, ReservableCurrency,
+		Currency, EnsureOrigin, EnsureOriginWithArg, PollStatus, Polling, RankedMembers,
+		RankedMembersSwapHandler, ReservableCurrency, VoteTally,
 	},
 	CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
@@ -442,10 +442,10 @@ pub mod pallet {
 		/// The `None` indicates no member count limit for the given rank.
 		type MaxMemberCount: MaybeConvert<Rank, MemberIndex>;
 
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
 		#[pallet::constant]
-        type InductionDeposit: Get<BalanceOf<Self, I>>;
+		type InductionDeposit: Get<BalanceOf<Self, I>>;
 
 		/// Setup a member for benchmarking.
 		#[cfg(feature = "runtime-benchmarks")]
@@ -780,7 +780,7 @@ pub mod pallet {
 				ensure!(count <= max, Error::<T, I>::TooManyMembers);
 			}
 
-            let deposit = T::InductionDeposit::get();
+			let deposit = T::InductionDeposit::get();
 			T::Currency::reserve(&who, deposit)?;
 
 			Members::<T, I>::insert(&who, MemberRecord { rank: 0 });
@@ -879,8 +879,8 @@ pub mod pallet {
 				Self::remove_from_rank(&who, r)?;
 			}
 			Members::<T, I>::remove(&who);
-            let deposit = T::InductionDeposit::get();
-            T::Currency::unreserve(who, deposit);
+			let deposit = T::InductionDeposit::get();
+			T::Currency::unreserve(who, deposit);
 			Ok(())
 		}
 	}

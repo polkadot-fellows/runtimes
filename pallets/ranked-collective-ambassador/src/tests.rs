@@ -30,7 +30,7 @@ use sp_runtime::{
 };
 
 use super::*;
-use crate as pallet_ranked_collective;
+use crate as pallet_ranked_collective_ambassador;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 type Class = Rank;
@@ -39,7 +39,7 @@ frame_support::construct_runtime!(
 	pub enum Test
 	{
 		System: frame_system,
-		Club: pallet_ranked_collective,
+		Club: pallet_ranked_collective_ambassador,
 		Balances: pallet_balances,
 	}
 );
@@ -214,16 +214,16 @@ impl ExtBuilder {
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 		let mut balances = vec![];
-	for i in 0..31 {
-		balances.push((i, 500_000));
-	}
-	balances.push((31, 500_000));
-	balances.push((40, 500_000));
-	balances.push((99, 1));
+		for i in 0..31 {
+			balances.push((i, 500_000));
+		}
+		balances.push((31, 500_000));
+		balances.push((40, 500_000));
+		balances.push((99, 1));
 
-	pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
-		.assimilate_storage(&mut t)
-		.unwrap();
+		pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
+			.assimilate_storage(&mut t)
+			.unwrap();
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
@@ -714,22 +714,22 @@ fn deposit_reserved_on_induction() {
 
 #[test]
 fn deposit_unreserved_on_removal() {
-    ExtBuilder::default().build_and_execute(|| {
-        let deposit = <Test as Config>::InductionDeposit::get();
-        let initial_balance = 500_000;
-        
-        // Set initial balance and verify
-        Balances::make_free_balance_be(&1, initial_balance);
-        assert_eq!(Balances::free_balance(&1), initial_balance);
-        
-        // Add member (should reserve deposit)
-        assert_ok!(Club::add_member(RuntimeOrigin::signed(1), 1));
-        assert_eq!(Balances::reserved_balance(&1), deposit);
-        assert_eq!(Balances::free_balance(&1), initial_balance - deposit);
-        
-        // Remove member (should unreserve deposit)
-        assert_ok!(Club::remove_member(RuntimeOrigin::root(), 1, 0));
-        assert_eq!(Balances::reserved_balance(&1), 0);
-        assert_eq!(Balances::free_balance(&1), initial_balance);  // Should return to original balance
-    });
+	ExtBuilder::default().build_and_execute(|| {
+		let deposit = <Test as Config>::InductionDeposit::get();
+		let initial_balance = 500_000;
+
+		// Set initial balance and verify
+		Balances::make_free_balance_be(&1, initial_balance);
+		assert_eq!(Balances::free_balance(&1), initial_balance);
+
+		// Add member (should reserve deposit)
+		assert_ok!(Club::add_member(RuntimeOrigin::signed(1), 1));
+		assert_eq!(Balances::reserved_balance(&1), deposit);
+		assert_eq!(Balances::free_balance(&1), initial_balance - deposit);
+
+		// Remove member (should unreserve deposit)
+		assert_ok!(Club::remove_member(RuntimeOrigin::root(), 1, 0));
+		assert_eq!(Balances::reserved_balance(&1), 0);
+		assert_eq!(Balances::free_balance(&1), initial_balance); // Should return to original balance
+	});
 }

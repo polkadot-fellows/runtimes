@@ -18,7 +18,7 @@
 //! The module defines the following on-chain functionality of the Ambassador Program:
 //!
 //! - Managed set of program members, where every member has a [rank](ranks) (via
-//!   [AmbassadorCollective](pallet_ranked_collective)).
+//!   [AmbassadorCollective](pallet_ranked_collective_ambassador)).
 //! - Referendum functionality for the program members to propose, vote on, and execute proposals on
 //!   behalf of the members of a certain [rank](Origin) (via
 //!   [AmbassadorReferenda](pallet_referenda)).
@@ -43,13 +43,12 @@ use frame_support::{
 };
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{EnsureAmbassadorsFrom, HeadAmbassadors, Origin, SeniorAmbassadors};
-use pallet_ranked_collective::{MemberIndex, Rank, Votes};
+use pallet_ranked_collective_ambassador::{MemberIndex, Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
 use sp_core::ConstU128;
 use sp_runtime::{
 	traits::{
 		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, MaybeConvert, Replace,
-		ReplaceWithDefault,
 	},
 	Permill,
 };
@@ -120,10 +119,10 @@ impl Convert<Rank, Votes> for VoteWeight {
 	}
 }
 
-pub type AmbassadorCollectiveInstance = pallet_ranked_collective::Instance2;
+pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;
 
-impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime {
-	type WeightInfo = weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
+impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> for Runtime {
+	type WeightInfo = ();
 	type RuntimeEvent = RuntimeEvent;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -131,7 +130,6 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	#[cfg(feature = "runtime-benchmarks")]
 	type PromoteOrigin = EnsureRootWithSuccess<AccountId, ConstU16<65535>>;
 	type DemoteOrigin = DemoteOrigin;
-	type AddOrigin = MapSuccess<Self::PromoteOrigin, ReplaceWithDefault<()>>;
 	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = sp_runtime::traits::Identity;
@@ -142,6 +140,8 @@ impl pallet_ranked_collective::Config<AmbassadorCollectiveInstance> for Runtime 
 	type MaxMemberCount = ();
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxMemberCount = AmbassadorMemberCount;
+	type Currency = Balances;
+	type InductionDeposit = InductionDeposit;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
 }
@@ -160,6 +160,7 @@ parameter_types! {
 	pub const AlarmInterval: BlockNumber = 1;
 	pub const SubmissionDeposit: Balance = 0;
 	pub const UndecidingTimeout: BlockNumber = 7 * DAYS;
+	pub const InductionDeposit: u64 = 1;
 }
 
 pub type AmbassadorReferendaInstance = pallet_referenda::Instance2;
@@ -171,7 +172,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type Scheduler = Scheduler;
 	type Currency = Balances;
 	// Any member of the Ambassador Program can submit a proposal.
-	type SubmitOrigin = pallet_ranked_collective::EnsureMember<
+	type SubmitOrigin = pallet_ranked_collective_ambassador::EnsureMember<
 		Runtime,
 		AmbassadorCollectiveInstance,
 		{ ranks::AMBASSADOR },
@@ -188,7 +189,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type KillOrigin = OpenGovOrHeadAmbassadors;
 	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
 	type Votes = Votes;
-	type Tally = pallet_ranked_collective::TallyOf<Runtime, AmbassadorCollectiveInstance>;
+	type Tally = pallet_ranked_collective_ambassador::TallyOf<Runtime, AmbassadorCollectiveInstance>;
 	type SubmissionDeposit = SubmissionDeposit;
 	type MaxQueued = ConstU32<20>;
 	type UndecidingTimeout = UndecidingTimeout;
@@ -197,12 +198,12 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	type Preimages = Preimage;
 }
 
-pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
+pub type AmbassadorCoreInstance = pallet_core_fellowship_ambassador::Instance2;
 
-impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
-	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
+impl pallet_core_fellowship_ambassador::Config<AmbassadorCoreInstance> for Runtime {
+	type WeightInfo = ();
 	type RuntimeEvent = RuntimeEvent;
-	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
+	type Members = pallet_ranked_collective_ambassador::Pallet<Runtime, AmbassadorCollectiveInstance>;
 	type Balance = Balance;
 	// Parameters are set by any of:
 	// - Root;
@@ -217,7 +218,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 		EnsureRoot<AccountId>,
 		EitherOfDiverse<
 			EnsureXcm<IsVoiceOfBody<GovernanceLocation, FellowshipAdminBodyId>>,
-			pallet_ranked_collective::EnsureMember<
+			pallet_ranked_collective_ambassador::EnsureMember<
 				Runtime,
 				AmbassadorCollectiveInstance,
 				{ ranks::AMBASSADOR },
@@ -229,7 +230,7 @@ impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type FastPromoteOrigin = frame_support::traits::NeverEnsureOrigin<u16>;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
-	type MaxRank = ConstU32<9>;
+	type MaxRank = ConstU16<6>;
 }
 
 parameter_types! {
@@ -253,10 +254,10 @@ pub type AmbassadorSalaryPaymaster = PayOverXcm<
 	AliasesIntoAccountId32<(), AccountId>,
 >;
 
-pub type AmbassadorSalaryInstance = pallet_salary::Instance2;
+pub type AmbassadorSalaryInstance = pallet_salary_ambassador::Instance2;
 
-impl pallet_salary::Config<AmbassadorSalaryInstance> for Runtime {
-	type WeightInfo = weights::pallet_salary_ambassador_salary::WeightInfo<Runtime>;
+impl pallet_salary_ambassador::Config<AmbassadorSalaryInstance> for Runtime {
+	type WeightInfo = ();
 	type RuntimeEvent = RuntimeEvent;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -266,7 +267,7 @@ impl pallet_salary::Config<AmbassadorSalaryInstance> for Runtime {
 		AmbassadorSalaryPaymaster,
 		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
 	>;
-	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
+	type Members = pallet_ranked_collective_ambassador::Pallet<Runtime, AmbassadorCollectiveInstance>;
 
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type Salary = pallet_core_fellowship::Pallet<Runtime, AmbassadorCoreInstance>;
@@ -362,7 +363,7 @@ mod tests {
 	use super::*;
 
 	type Limit =
-		<Runtime as pallet_ranked_collective::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
+		<Runtime as pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance>>::MaxMemberCount;
 
 	#[test]
 	fn ambassador_rank_limit_works() {
