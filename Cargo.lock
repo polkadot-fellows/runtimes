@@ -2428,7 +2428,6 @@ dependencies = [
  "pallet-ranked-collective-ambassador",
  "pallet-referenda",
  "pallet-salary",
- "pallet-salary-ambassador",
  "pallet-scheduler",
  "pallet-session",
  "pallet-timestamp",
@@ -9441,24 +9440,6 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-ranked-collective",
- "parity-scale-codec",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
-]
-
-[[package]]
-name = "pallet-salary-ambassador"
-version = "1.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-balances",
- "pallet-ranked-collective-ambassador",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",

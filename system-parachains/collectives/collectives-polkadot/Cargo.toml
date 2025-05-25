@@ -47,7 +47,6 @@ pallet-ranked-collective = { workspace = true }
 pallet-core-fellowship = { workspace = true }
 pallet-core-fellowship-ambassador = { workspace = true }
 pallet-salary = { workspace = true }
-pallet-salary-ambassador = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
@@ -123,7 +122,6 @@ runtime-benchmarks = [
 	"pallet-ranked-collective-ambassador/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-salary/runtime-benchmarks",
-	"pallet-salary-ambassador/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -167,7 +165,6 @@ try-runtime = [
 	"pallet-ranked-collective-ambassador/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-salary/try-runtime",
-	"pallet-salary-ambassador/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -215,7 +212,6 @@ std = [
 	"pallet-ranked-collective-ambassador/std",
 	"pallet-referenda/std",
 	"pallet-salary/std",
-	"pallet-salary-ambassador/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",

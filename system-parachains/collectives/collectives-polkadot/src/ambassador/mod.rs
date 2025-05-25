@@ -22,9 +22,8 @@
 //! - Referendum functionality for the program members to propose, vote on, and execute proposals on
 //!   behalf of the members of a certain [rank](Origin) (via
 //!   [AmbassadorReferenda](pallet_referenda)).
-//! - Promotion and demotion periods, register of members' activity, and rank based salaries (via
+//! - Promotion and demotion periods, register of members' activity(via
 //!   [AmbassadorCore](pallet_core_fellowship)).
-//! - Members' salaries (via [AmbassadorSalary](pallet_salary), requiring a member to be imported or
 //!   inducted into [AmbassadorCore](pallet_core_fellowship)).
 //! - Ambassador Program Sub-Treasury (via [AmbassadorTreasury](pallet_treasury)).
 
@@ -34,7 +33,7 @@ mod tracks;
 pub use origins::pallet_origins as pallet_ambassador_origins;
 
 use crate::{
-	xcm_config::{AssetHubUsdt, FellowshipAdminBodyId},
+	xcm_config::FellowshipAdminBodyId,
 	AssetRateWithNative, *,
 };
 use frame_support::{
@@ -48,7 +47,7 @@ use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationC
 use sp_core::ConstU128;
 use sp_runtime::{
 	traits::{
-		CheckedReduceBy, Convert, ConvertToValue, IdentityLookup, MaybeConvert, Replace,
+		CheckedReduceBy, Convert, IdentityLookup, MaybeConvert, Replace,
 	},
 	Permill,
 };
@@ -135,7 +134,7 @@ impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> f
 	type MinRankOfClass = sp_runtime::traits::Identity;
 	type VoteWeight = VoteWeight;
 	type ExchangeOrigin = OpenGovOrHeadAmbassadors;
-	type MemberSwappedHandler = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	type MemberSwappedHandler = crate::AmbassadorCore;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MaxMemberCount = ();
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -143,7 +142,7 @@ impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> f
 	type Currency = Balances;
 	type InductionDeposit = InductionDeposit;
 	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkSetup = (crate::AmbassadorCore, crate::AmbassadorSalary);
+	type BenchmarkSetup = crate::AmbassadorCore;
 }
 
 /// Limits the number of Head Ambassadors to 21.
@@ -231,57 +230,6 @@ impl pallet_core_fellowship_ambassador::Config<AmbassadorCoreInstance> for Runti
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
 	type MaxRank = ConstU16<6>;
-}
-
-parameter_types! {
-	// The interior location on AssetHub for the paying account. This is the Ambassador Salary
-	// pallet instance. This sovereign account will need funding.
-	pub AmbassadorSalaryLocation: InteriorLocation =
-		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
-}
-
-const USDT_UNITS: u128 = 1_000_000;
-
-/// [`PayOverXcm`] setup to pay the Ambassador salary on the AssetHub in USDt.
-pub type AmbassadorSalaryPaymaster = PayOverXcm<
-	AmbassadorSalaryLocation,
-	crate::xcm_config::XcmRouter,
-	crate::PolkadotXcm,
-	ConstU32<{ 6 * HOURS }>,
-	AccountId,
-	(),
-	ConvertToValue<AssetHubUsdt>,
-	AliasesIntoAccountId32<(), AccountId>,
->;
-
-pub type AmbassadorSalaryInstance = pallet_salary_ambassador::Instance2;
-
-impl pallet_salary_ambassador::Config<AmbassadorSalaryInstance> for Runtime {
-	type WeightInfo = ();
-	type RuntimeEvent = RuntimeEvent;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Paymaster = AmbassadorSalaryPaymaster;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Paymaster = crate::impls::benchmarks::PayWithEnsure<
-		AmbassadorSalaryPaymaster,
-		crate::impls::benchmarks::OpenHrmpChannel<ConstU32<1000>>,
-	>;
-	type Members = pallet_ranked_collective_ambassador::Pallet<Runtime, AmbassadorCollectiveInstance>;
-
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	type Salary = pallet_core_fellowship::Pallet<Runtime, AmbassadorCoreInstance>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type Salary = frame_support::traits::tokens::ConvertRank<
-		crate::impls::benchmarks::RankToSalary<Balances>,
-	>;
-	// 15 days to register for a salary payment.
-	type RegistrationPeriod = ConstU32<{ 15 * DAYS }>;
-	// 15 days to claim the salary payment.
-	type PayoutPeriod = ConstU32<{ 15 * DAYS }>;
-	// Total monthly salary budget.
-	// 10,000 USDT for up to 21 members.
-	type Budget = ConstU128<{ 10_000 * 21 * USDT_UNITS }>;
 }
 
 parameter_types! {

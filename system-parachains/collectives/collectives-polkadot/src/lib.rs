@@ -363,7 +363,6 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::AmbassadorCollective { .. } |
 					RuntimeCall::AmbassadorReferenda { .. } |
 					RuntimeCall::AmbassadorCore { .. } |
-					RuntimeCall::AmbassadorSalary { .. } |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -751,8 +750,7 @@ construct_runtime!(
 		AmbassadorReferenda: pallet_referenda::<Instance2> = 71,
 		AmbassadorOrigins: pallet_ambassador_origins = 72,
 		AmbassadorCore: pallet_core_fellowship_ambassador::<Instance2> = 73,
-		AmbassadorSalary: pallet_salary_ambassador::<Instance2> = 74,
-		AmbassadorTreasury: pallet_treasury::<Instance2> = 75,
+		AmbassadorTreasury: pallet_treasury::<Instance2> = 74,
 	}
 );
 
@@ -830,7 +828,6 @@ mod benches {
 		[pallet_referenda, AmbassadorReferenda]
 		[pallet_ranked_collective_ambassador, AmbassadorCollective]
 		[pallet_core_fellowship_ambassador, AmbassadorCore]
-		[pallet_salary_ambassador, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]

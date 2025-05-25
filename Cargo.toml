@@ -149,7 +149,6 @@ pallet-referenda = { version = "39.1.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
 pallet-ranked-collective-ambassador = { path = "pallets/ranked-collective-ambassador", default-features = false }
 pallet-salary = { version = "24.0.0", default-features = false }
-pallet-salary-ambassador = { path = "pallets/salary-ambassador", default-features = false }
 pallet-scheduler = { version = "40.1.0", default-features = false }
 pallet-session = { version = "39.0.0", default-features = false }
 pallet-session-benchmarking = { version = "39.1.0", default-features = false }
