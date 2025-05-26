@@ -218,13 +218,6 @@ pub mod pallet {
 		/// The origin which has permission update the parameters.
 		type ParamsOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// The origin which has permission to move a candidate into being tracked in this pallet.
-		/// Generally a very low-permission, such as a pre-existing member of rank 1 or above.
-		///
-		/// This allows the candidate to deposit evidence for their request to be promoted to a
-		/// member.
-		type InductOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
 		/// The origin which has permission to issue a proof that a member may retain their rank.
 		/// The `Success` value is the maximum rank of members it is able to prove.
 		type ApproveOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = RankOf<Self, I>>;
@@ -460,15 +453,11 @@ pub mod pallet {
 
 		/// Introduce a new and unranked candidate (rank zero).
 		///
-		/// - `origin`: An origin which satisfies `InductOrigin` or root.
 		/// - `who`: The account ID of the candidate to be inducted and become a member.
 		#[pallet::weight(T::WeightInfo::induct())]
 		#[pallet::call_index(4)]
 		pub fn induct(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
-			match T::InductOrigin::try_origin(origin) {
-				Ok(_) => {},
-				Err(origin) => ensure_root(origin)?,
-			}
+			let _ = ensure_signed(origin)?;
 			ensure!(!Member::<T, I>::contains_key(&who), Error::<T, I>::AlreadyInducted);
 			ensure!(T::Members::rank_of(&who).is_none(), Error::<T, I>::Ranked);
 
