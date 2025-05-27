@@ -16,32 +16,6 @@
 
 //! Account/Balance data migrator module.
 
-/*
-TODO: remove when not needed
-
-Regular native asset teleport from Relay (mint authority) to Asset Hub looks like:
-
-Relay: burn_from(source, amount) // publishes Balances::Burned event
-Relay: mint_into(checking, amount) // publishes Balances::Minted event
-Relay: no effect on total issuance
-Relay: XCM with teleport sent
-AH: mint_into(dest, amount) // publishes Balances::Minted event
-AH: total issuance increased by `amount`
-Relay: XCM teleport processed
-
-^ The minimum what we should replay while moving accounts from Relay to AH
-
-When the Asset Hub turned to the mint authority
-
-Relay: let checking_total = // total checking account balance
-Relay: burn_from(checking, checking_total) // publishes Balances::Burned event
-AH: let total_issuance = // total issuance on AH
-AH: mint_into(checking, checking_total - total_issuance) // publishes Balances::Minted event
-
-^ Ensure that this is the desired method of communicating the mint authority change via events.
-
-*/
-
 use crate::{types::*, *};
 use codec::DecodeAll;
 use frame_support::{
@@ -760,57 +734,6 @@ impl<T: Config> AccountsMigrator<T> {
 					AccountState::Part { free: rc_ed, reserved: rc_reserved, consumers: 1 },
 				);
 			}
-		}
-
-		// every key owner has to preserve ED on the RC with a consumer reference.
-
-		let rc_ed = <T as Config>::Currency::minimum_balance();
-		let ah_ed = T::AhExistentialDeposit::get();
-		for (who, _keys) in pallet_session::NextKeys::<T>::iter() {
-			weight += T::DbWeight::get().reads(1);
-			if let Some(mut state) = RcAccounts::<T>::get(&who) {
-				match state {
-					AccountState::Part { ref mut consumers, .. } => {
-						log::debug!(
-							target: LOG_TARGET,
-							"Increase session pallet consumer reference for account state: {:?}",
-							who.to_ss58check(),
-						);
-						*consumers += 1;
-						RcAccounts::<T>::insert(&who, state);
-					},
-					_ => {
-						log::debug!(
-							target: LOG_TARGET,
-							"Session pallet account already fully preserved on RC: {:?}",
-							who.to_ss58check(),
-						);
-					},
-				}
-				continue;
-			}
-
-			weight += T::DbWeight::get().reads(1);
-
-			let free = <T as Config>::Currency::balance(&who);
-			if free < rc_ed || free.saturating_sub(rc_ed) < ah_ed {
-				log::debug!(
-					target: LOG_TARGET,
-					"Session pallet account doesn't have enough free balance to keep on RC or migrate to AH. account: {:?}",
-					who.to_ss58check(),
-				);
-				continue;
-			}
-
-			log::debug!(
-				target: LOG_TARGET,
-				"Keep part of account on RC for session pallet: {:?}",
-				who.to_ss58check(),
-			);
-			RcAccounts::<T>::insert(
-				&who,
-				AccountState::Part { free: rc_ed, reserved: 0, consumers: 1 },
-			);
 		}
 
 		// Keep the on-demand pallet account on the RC.

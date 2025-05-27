@@ -8888,7 +8888,6 @@ dependencies = [
  "pallet-proxy",
  "pallet-referenda",
  "pallet-scheduler",
- "pallet-session",
  "pallet-staking",
  "pallet-treasury",
  "pallet-vesting",

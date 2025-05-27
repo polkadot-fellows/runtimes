@@ -40,6 +40,27 @@ Example for Bifrost: this is the [relay sovereign account](https://polkadot.subs
 The migration happens over XCM. There will be events emitted for the balance being removed from the
 Relay Chain and events emitted for the balance being deposited into Asset Hub.
 
+Regular XCM teleport operation, when the Relay Chain acts as the mint authority, follows this
+sequence:
+
+(1) Relay Chain: burn_from(source, amount) // emits Balances::Burned event
+(2) Relay Chain: mint_into(checking_account, amount) // emits Balances::Minted event
+(3) Relay Chain: total issuance remains unchanged
+(4) Relay Chain: sends XCM teleport message
+(5) Asset Hub: mint_into(dest, amount) // emits Balances::Minted event
+(6) Asset Hub: total issuance increases by `amount`
+
+During account migration, the process will emit `Balances::Burned` events on the Relay Chain and
+`Balances::Minted` events on the Asset Hub. However, unlike regular teleports, it will not mint into
+the `checking_account`, which means the total issuance on the Relay Chain will be updated be the
+migrating amount.
+For more details about the checking account migration and mint authority changes, please refer to
+the sections below.
+
+TODO: Consider a dedicated migration stage for updating the teleport/reserve location, adjusting
+total issuance and checking account balances. This approach prevents XCM teleport locking during the
+entire migration and requires only a two-block lock for the switch.
+
 ### Provider and Consumer References
 
 After inspecting the state, it’s clear that fully correcting all reference counts is nearly
@@ -101,12 +122,7 @@ accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
 
-- session (P/K/W): Validator accounts that set keys in the session pallet receive an additional
-consumer reference to prevent the existential deposit (ED) from being withdrawn, preserving it as a
-deposit. During migration, these EDs with the consumer reference will remain on the Relay Chain if
-the validator account has sufficient balance. If a validator account has insufficient balance, which
-would indicate a data inconsistency, we will proceed with migrating those accounts anyway.
-See test: `polkadot_integration_tests_ahm::tests::test_account_references`
+- session (P/K/W): TODO session set keys moving to AH
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
 
 - staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant. TODO: confirm with @Ank4n

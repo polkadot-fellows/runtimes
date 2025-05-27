@@ -416,7 +416,6 @@ pub mod pallet {
 		+ pallet_asset_rate::Config
 		+ pallet_slots::Config
 		+ pallet_crowdloan::Config
-		+ pallet_session::Config<ValidatorId = AccountId32>
 		+ pallet_staking::Config // Not on westend
 		+ pallet_claims::Config // Not on westend
 		+ pallet_bounties::Config // Not on westend
@@ -1514,7 +1513,7 @@ pub mod pallet {
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
-		pub fn send_chunked_xcm<E: Encode>(
+		fn send_chunked_xcm<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
