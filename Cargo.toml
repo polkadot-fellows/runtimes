@@ -63,7 +63,7 @@ encointer-primitives = { version = "~15.4.0", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "39.0.0", default-features = false }
 frame-election-provider-support = { version = "39.0.0", default-features = false }
-frame-executive = { version = "39.1.0", default-features = false }
+frame-executive = { version = "39.1.1", default-features = false }
 frame-support = { version = "39.1.0", default-features = false }
 frame-system = { version = "39.1.0", default-features = false }
 frame-system-benchmarking = { version = "39.0.0", default-features = false }
