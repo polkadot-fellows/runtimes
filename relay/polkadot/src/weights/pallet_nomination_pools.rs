@@ -87,10 +87,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn join() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3711`
+		//  Measured:  `3705`
 		//  Estimated: `8877`
-		// Minimum execution time: 296_202_000 picoseconds.
-		Weight::from_parts(299_201_000, 0)
+		// Minimum execution time: 269_808_000 picoseconds.
+		Weight::from_parts(275_158_000, 0)
 			.saturating_add(Weight::from_parts(0, 8877))
 			.saturating_add(T::DbWeight::get().reads(26))
 			.saturating_add(T::DbWeight::get().writes(15))
@@ -127,10 +127,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn bond_extra_transfer() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3868`
+		//  Measured:  `3862`
 		//  Estimated: `8877`
-		// Minimum execution time: 311_482_000 picoseconds.
-		Weight::from_parts(315_022_000, 0)
+		// Minimum execution time: 284_978_000 picoseconds.
+		Weight::from_parts(289_398_000, 0)
 			.saturating_add(Weight::from_parts(0, 8877))
 			.saturating_add(T::DbWeight::get().reads(23))
 			.saturating_add(T::DbWeight::get().writes(14))
@@ -161,7 +161,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `DelegatedStaking::Agents` (`max_values`: None, `max_size`: Some(120), added: 2595, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
 	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(103), added: 2578, mode: `MaxEncodedLen`)
-	/// Storage: `VoterList::ListNodes` (r:2 w:2)
+	/// Storage: `VoterList::ListNodes` (r:3 w:3)
 	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `MaxEncodedLen`)
 	/// Storage: `VoterList::ListBags` (r:2 w:2)
 	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `MaxEncodedLen`)
@@ -169,13 +169,13 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::TotalValueLocked` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	fn bond_extra_other() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3778`
-		//  Estimated: `8799`
-		// Minimum execution time: 346_682_000 picoseconds.
-		Weight::from_parts(352_691_000, 0)
-			.saturating_add(Weight::from_parts(0, 8799))
-			.saturating_add(T::DbWeight::get().reads(23))
-			.saturating_add(T::DbWeight::get().writes(14))
+		//  Measured:  `3927`
+		//  Estimated: `8877`
+		// Minimum execution time: 331_698_000 picoseconds.
+		Weight::from_parts(340_118_000, 0)
+			.saturating_add(Weight::from_parts(0, 8877))
+			.saturating_add(T::DbWeight::get().reads(24))
+			.saturating_add(T::DbWeight::get().writes(15))
 	}
 	/// Storage: `NominationPools::PoolMembers` (r:1 w:1)
 	/// Proof: `NominationPools::PoolMembers` (`max_values`: None, `max_size`: Some(717), added: 3192, mode: `MaxEncodedLen`)
@@ -201,10 +201,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::GlobalMaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn claim_payout() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2476`
+		//  Measured:  `2439`
 		//  Estimated: `6196`
-		// Minimum execution time: 164_391_000 picoseconds.
-		Weight::from_parts(166_401_000, 0)
+		// Minimum execution time: 140_428_000 picoseconds.
+		Weight::from_parts(144_038_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -232,7 +232,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:0)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(814), added: 3289, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::MinNominatorBond` (r:1 w:0)
 	/// Proof: `Staking::MinNominatorBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `VoterList::ListNodes` (r:3 w:3)
@@ -243,10 +243,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::CounterForSubPoolsStorage` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn unbond() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `3788`
+		//  Measured:  `3782`
 		//  Estimated: `8877`
-		// Minimum execution time: 242_801_000 picoseconds.
-		Weight::from_parts(245_901_000, 0)
+		// Minimum execution time: 218_327_000 picoseconds.
+		Weight::from_parts(222_687_000, 0)
 			.saturating_add(Weight::from_parts(0, 8877))
 			.saturating_add(T::DbWeight::get().reads(20))
 			.saturating_add(T::DbWeight::get().writes(11))
@@ -270,13 +270,13 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `s` is `[0, 100]`.
 	fn pool_withdraw_unbonded(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1941`
+		//  Measured:  `1899`
 		//  Estimated: `4556`
-		// Minimum execution time: 96_280_000 picoseconds.
-		Weight::from_parts(98_688_330, 0)
+		// Minimum execution time: 81_899_000 picoseconds.
+		Weight::from_parts(85_357_179, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
-			// Standard Error: 714
-			.saturating_add(Weight::from_parts(16_928, 0).saturating_mul(s.into()))
+			// Standard Error: 2_432
+			.saturating_add(Weight::from_parts(31_417, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -315,13 +315,13 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `s` is `[0, 100]`.
 	fn withdraw_unbonded_update(s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2542`
+		//  Measured:  `2500`
 		//  Estimated: `4662`
-		// Minimum execution time: 227_402_000 picoseconds.
-		Weight::from_parts(229_674_209, 0)
+		// Minimum execution time: 202_398_000 picoseconds.
+		Weight::from_parts(207_938_777, 0)
 			.saturating_add(Weight::from_parts(0, 4662))
-			// Standard Error: 1_013
-			.saturating_add(Weight::from_parts(13_322, 0).saturating_mul(s.into()))
+			// Standard Error: 8_278
+			.saturating_add(Weight::from_parts(100_943, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -352,7 +352,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:0)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(814), added: 3289, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::ReversePoolIdLookup` (r:1 w:1)
 	/// Proof: `NominationPools::ReversePoolIdLookup` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `NominationPools::TotalValueLocked` (r:1 w:1)
@@ -388,11 +388,11 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `s` is `[0, 100]`.
 	fn withdraw_unbonded_kill(_s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2907`
-		//  Estimated: `6372`
-		// Minimum execution time: 361_202_000 picoseconds.
-		Weight::from_parts(365_175_686, 0)
-			.saturating_add(Weight::from_parts(0, 6372))
+		//  Measured:  `2804`
+		//  Estimated: `6269`
+		// Minimum execution time: 331_107_000 picoseconds.
+		Weight::from_parts(345_582_540, 0)
+			.saturating_add(Weight::from_parts(0, 6269))
 			.saturating_add(T::DbWeight::get().reads(29))
 			.saturating_add(T::DbWeight::get().writes(26))
 	}
@@ -456,10 +456,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
 	fn create() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1236`
+		//  Measured:  `1168`
 		//  Estimated: `6196`
-		// Minimum execution time: 259_441_000 picoseconds.
-		Weight::from_parts(261_161_000, 0)
+		// Minimum execution time: 241_407_000 picoseconds.
+		Weight::from_parts(245_107_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(31))
 			.saturating_add(T::DbWeight::get().writes(23))
@@ -483,10 +483,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `NominationPools::MinJoinBond` (r:1 w:0)
 	/// Proof: `NominationPools::MinJoinBond` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:1)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(814), added: 3289, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::MaxNominatorsCount` (r:1 w:0)
 	/// Proof: `Staking::MaxNominatorsCount` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// Storage: `Staking::Validators` (r:17 w:0)
+	/// Storage: `Staking::Validators` (r:25 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:0)
 	/// Proof: `Staking::CurrentEra` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
@@ -498,16 +498,16 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
 	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
-	/// The range of component `n` is `[1, 16]`.
+	/// The range of component `n` is `[1, 24]`.
 	fn nominate(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2133`
+		//  Measured:  `2074`
 		//  Estimated: `4556 + n * (2520 ±0)`
-		// Minimum execution time: 137_811_000 picoseconds.
-		Weight::from_parts(137_224_249, 0)
+		// Minimum execution time: 113_289_000 picoseconds.
+		Weight::from_parts(114_189_184, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
-			// Standard Error: 6_047
-			.saturating_add(Weight::from_parts(2_288_969, 0).saturating_mul(n.into()))
+			// Standard Error: 24_192
+			.saturating_add(Weight::from_parts(2_462_590, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(5))
@@ -525,10 +525,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `MaxEncodedLen`)
 	fn set_state() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1598`
+		//  Measured:  `1560`
 		//  Estimated: `4556`
-		// Minimum execution time: 61_020_000 picoseconds.
-		Weight::from_parts(61_860_000, 0)
+		// Minimum execution time: 48_489_000 picoseconds.
+		Weight::from_parts(50_569_000, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -546,13 +546,13 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// The range of component `n` is `[1, 256]`.
 	fn set_metadata(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1262`
+		//  Measured:  `1296`
 		//  Estimated: `3735`
-		// Minimum execution time: 40_720_000 picoseconds.
-		Weight::from_parts(41_439_046, 0)
+		// Minimum execution time: 30_679_000 picoseconds.
+		Weight::from_parts(32_871_162, 0)
 			.saturating_add(Weight::from_parts(0, 3735))
-			// Standard Error: 99
-			.saturating_add(Weight::from_parts(678, 0).saturating_mul(n.into()))
+			// Standard Error: 508
+			.saturating_add(Weight::from_parts(398, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -572,8 +572,8 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_430_000 picoseconds.
-		Weight::from_parts(5_640_000, 0)
+		// Minimum execution time: 5_200_000 picoseconds.
+		Weight::from_parts(5_899_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -585,10 +585,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	fn update_roles() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1262`
+		//  Measured:  `1296`
 		//  Estimated: `3719`
-		// Minimum execution time: 44_260_000 picoseconds.
-		Weight::from_parts(44_820_000, 0)
+		// Minimum execution time: 34_011_000 picoseconds.
+		Weight::from_parts(36_569_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -610,7 +610,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:1)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(814), added: 3289, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CounterForNominators` (r:1 w:1)
 	/// Proof: `Staking::CounterForNominators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `VoterList::ListNodes` (r:1 w:1)
@@ -621,10 +621,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn chill() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2389`
+		//  Measured:  `2292`
 		//  Estimated: `4556`
-		// Minimum execution time: 130_291_000 picoseconds.
-		Weight::from_parts(130_841_000, 0)
+		// Minimum execution time: 106_489_000 picoseconds.
+		Weight::from_parts(109_708_000, 0)
 			.saturating_add(Weight::from_parts(0, 4556))
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(5))
@@ -641,10 +641,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::GlobalMaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn set_commission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1534`
+		//  Measured:  `1568`
 		//  Estimated: `6196`
-		// Minimum execution time: 64_660_000 picoseconds.
-		Weight::from_parts(65_220_000, 0)
+		// Minimum execution time: 52_531_000 picoseconds.
+		Weight::from_parts(54_039_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -659,10 +659,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::GlobalMaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn set_commission_max() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1302`
+		//  Measured:  `1336`
 		//  Estimated: `3719`
-		// Minimum execution time: 44_950_000 picoseconds.
-		Weight::from_parts(45_490_000, 0)
+		// Minimum execution time: 35_199_000 picoseconds.
+		Weight::from_parts(37_069_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -675,10 +675,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	fn set_commission_change_rate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1262`
+		//  Measured:  `1296`
 		//  Estimated: `3719`
-		// Minimum execution time: 44_411_000 picoseconds.
-		Weight::from_parts(45_040_000, 0)
+		// Minimum execution time: 34_629_000 picoseconds.
+		Weight::from_parts(36_770_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -691,10 +691,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::VirtualStakers` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	fn set_commission_claim_permission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1262`
+		//  Measured:  `1296`
 		//  Estimated: `3719`
-		// Minimum execution time: 43_840_000 picoseconds.
-		Weight::from_parts(44_871_000, 0)
+		// Minimum execution time: 34_240_000 picoseconds.
+		Weight::from_parts(35_889_000, 0)
 			.saturating_add(Weight::from_parts(0, 3719))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -719,10 +719,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::ClaimPermissions` (`max_values`: None, `max_size`: Some(41), added: 2516, mode: `MaxEncodedLen`)
 	fn set_claim_permission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2087`
+		//  Measured:  `2049`
 		//  Estimated: `4662`
-		// Minimum execution time: 81_020_000 picoseconds.
-		Weight::from_parts(82_150_000, 0)
+		// Minimum execution time: 69_468_000 picoseconds.
+		Weight::from_parts(71_559_000, 0)
 			.saturating_add(Weight::from_parts(0, 4662))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -739,10 +739,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::GlobalMaxCommission` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn claim_commission() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1732`
+		//  Measured:  `1766`
 		//  Estimated: `6196`
-		// Minimum execution time: 104_541_000 picoseconds.
-		Weight::from_parts(105_231_000, 0)
+		// Minimum execution time: 92_259_000 picoseconds.
+		Weight::from_parts(94_169_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -759,10 +759,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Balances::Locks` (`max_values`: None, `max_size`: Some(1299), added: 3774, mode: `MaxEncodedLen`)
 	fn adjust_pool_deposit() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1678`
+		//  Measured:  `1674`
 		//  Estimated: `6196`
-		// Minimum execution time: 113_491_000 picoseconds.
-		Weight::from_parts(114_391_000, 0)
+		// Minimum execution time: 102_159_000 picoseconds.
+		Weight::from_parts(104_329_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -787,10 +787,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn apply_slash() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `4298`
+		//  Measured:  `4199`
 		//  Estimated: `4662`
-		// Minimum execution time: 169_401_000 picoseconds.
-		Weight::from_parts(170_451_000, 0)
+		// Minimum execution time: 147_789_000 picoseconds.
+		Weight::from_parts(151_249_000, 0)
 			.saturating_add(Weight::from_parts(0, 4662))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -811,10 +811,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `NominationPools::SubPoolsStorage` (`max_values`: None, `max_size`: Some(1197), added: 3672, mode: `MaxEncodedLen`)
 	fn apply_slash_fail() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `4040`
+		//  Measured:  `3941`
 		//  Estimated: `4662`
-		// Minimum execution time: 86_300_000 picoseconds.
-		Weight::from_parts(87_041_000, 0)
+		// Minimum execution time: 73_689_000 picoseconds.
+		Weight::from_parts(75_539_000, 0)
 			.saturating_add(Weight::from_parts(0, 4662))
 			.saturating_add(T::DbWeight::get().reads(7))
 	}
@@ -829,7 +829,7 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Storage: `Staking::Validators` (r:1 w:0)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::Nominators` (r:1 w:0)
-	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(558), added: 3033, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::Nominators` (`max_values`: None, `max_size`: Some(814), added: 3289, mode: `MaxEncodedLen`)
 	/// Storage: `DelegatedStaking::Agents` (r:1 w:1)
 	/// Proof: `DelegatedStaking::Agents` (`max_values`: None, `max_size`: Some(120), added: 2595, mode: `MaxEncodedLen`)
 	/// Storage: `DelegatedStaking::Delegators` (r:2 w:1)
@@ -852,10 +852,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `Staking::Payee` (`max_values`: None, `max_size`: Some(73), added: 2548, mode: `MaxEncodedLen`)
 	fn pool_migrate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1950`
+		//  Measured:  `1853`
 		//  Estimated: `6196`
-		// Minimum execution time: 228_461_000 picoseconds.
-		Weight::from_parts(230_362_000, 0)
+		// Minimum execution time: 217_348_000 picoseconds.
+		Weight::from_parts(222_768_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().writes(11))
@@ -884,10 +884,10 @@ impl<T: frame_system::Config> pallet_nomination_pools::WeightInfo for WeightInfo
 	/// Proof: `DelegatedStaking::CounterForDelegators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	fn migrate_delegation() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2463`
+		//  Measured:  `2426`
 		//  Estimated: `6196`
-		// Minimum execution time: 172_051_000 picoseconds.
-		Weight::from_parts(173_660_000, 0)
+		// Minimum execution time: 155_629_000 picoseconds.
+		Weight::from_parts(164_958_000, 0)
 			.saturating_add(Weight::from_parts(0, 6196))
 			.saturating_add(T::DbWeight::get().reads(16))
 			.saturating_add(T::DbWeight::get().writes(6))
