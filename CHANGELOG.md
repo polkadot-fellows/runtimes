@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Add balance to StakingPot accounts for benchmarks for all system parachains ([polkadot-fellows/runtimes/pull/729](https://github.com/polkadot-fellows/runtimes/pull/729))
+
 ## [1.5.1] 22.05.2025
 
 ### Fixed
