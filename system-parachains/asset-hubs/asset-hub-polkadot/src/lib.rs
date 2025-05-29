@@ -62,6 +62,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 // Genesis preset configurations.
+pub mod bridge_to_ethereum_config;
 pub mod genesis_config_presets;
 mod impls;
 mod weights;
@@ -1009,6 +1010,7 @@ construct_runtime!(
 		// DmpQueue: cumulus_pallet_dmp_queue = 33, removed
 		ToKusamaXcmRouter: pallet_xcm_bridge_hub_router::<Instance1> = 34,
 		MessageQueue: pallet_message_queue = 35,
+		SnowbridgeSystemFrontend: snowbridge_pallet_system_frontend = 36,
 
 		// Handy utilities.
 		Utility: pallet_utility = 40,

@@ -587,6 +587,11 @@ construct_runtime!(
 		EthereumBeaconClient: snowbridge_pallet_ethereum_client = 82,
 		EthereumSystem: snowbridge_pallet_system = 83,
 
+		// Ethereum bridge pallets V2.
+		EthereumInboundQueueV2: snowbridge_pallet_inbound_queue_v2 = 90,
+		EthereumOutboundQueueV2: snowbridge_pallet_outbound_queue_v2 = 91,
+		EthereumSystemV2: snowbridge_pallet_system_v2 = 92,
+
 		// Message Queue. Importantly, it is registered after Snowbridge pallets
 		// so that messages are processed after the `on_initialize` hooks of bridging pallets.
 		MessageQueue: pallet_message_queue = 175,
@@ -631,6 +636,9 @@ mod benches {
 		[snowbridge_pallet_outbound_queue, EthereumOutboundQueue]
 		[snowbridge_pallet_system, EthereumSystem]
 		[snowbridge_pallet_ethereum_client, EthereumBeaconClient]
+		[snowbridge_pallet_inbound_queue_v2, EthereumInboundQueueV2]
+		[snowbridge_pallet_outbound_queue_v2, EthereumOutboundQueueV2]
+		[snowbridge_pallet_system_v2, EthereumSystemV2]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
