@@ -634,7 +634,7 @@ pub mod pallet {
 						PollStatus::None | PollStatus::Completed(..) =>
 							Err(Error::<T, I>::NotPolling)?,
 						PollStatus::Ongoing(ref mut tally, class) => {
-							match Voting::<T, I>::get(&poll, &who) {
+							match Voting::<T, I>::get(poll, &who) {
 								Some(Aye(votes)) => {
 									tally.bare_ayes.saturating_dec();
 									tally.ayes.saturating_reduce(votes);
@@ -652,7 +652,7 @@ pub mod pallet {
 								},
 								false => tally.nays.saturating_accrue(votes),
 							}
-							Voting::<T, I>::insert(&poll, &who, &vote);
+							Voting::<T, I>::insert(poll, &who, vote);
 							Ok((tally.clone(), vote))
 						},
 					}
@@ -754,7 +754,7 @@ pub mod pallet {
 		fn remove_from_rank(who: &T::AccountId, rank: Rank) -> DispatchResult {
 			MemberCount::<T, I>::try_mutate(rank, |last_index| {
 				last_index.saturating_dec();
-				let index = IdToIndex::<T, I>::get(rank, &who).ok_or(Error::<T, I>::Corruption)?;
+				let index = IdToIndex::<T, I>::get(rank, who).ok_or(Error::<T, I>::Corruption)?;
 				if index != *last_index {
 					let last = IndexToId::<T, I>::get(rank, *last_index)
 						.ok_or(Error::<T, I>::Corruption)?;
@@ -876,9 +876,9 @@ pub mod pallet {
 		/// Removes a member from the rank collective
 		pub fn do_remove_member_from_rank(who: &T::AccountId, rank: Rank) -> DispatchResult {
 			for r in 0..=rank {
-				Self::remove_from_rank(&who, r)?;
+				Self::remove_from_rank(who, r)?;
 			}
-			Members::<T, I>::remove(&who);
+			Members::<T, I>::remove(who);
 			let deposit = T::InductionDeposit::get();
 			T::Currency::unreserve(who, deposit);
 			Ok(())
@@ -1020,7 +1020,7 @@ pub mod pallet {
 		}
 
 		fn rank_of(who: &Self::AccountId) -> Option<Self::Rank> {
-			Some(Self::ensure_member(&who).ok()?.rank)
+			Some(Self::ensure_member(who).ok()?.rank)
 		}
 
 		fn induct(who: &Self::AccountId) -> DispatchResult {
