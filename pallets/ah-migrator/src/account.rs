@@ -290,6 +290,7 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
+
 		let (account_summaries, _) = rc_pre_payload;
 		for (who, summary) in account_summaries {
 			// assert_eq!(summary.migrated_free, <T as Config>::Currency::balance(&who));
@@ -334,15 +335,29 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
 				.saturating_sub(ah_free_before)
 				.saturating_add(ah_reserved_post.saturating_sub(ah_reserved_before));
 			let ah_ed = <T as Config>::Currency::minimum_balance();
+
 			// In case the balance migrated to AH is less than the existential deposit, minting the
-			// balance may fail.
+			// balance may fail. Therefore, we just check that the difference between the balance
+			// migrated from the RC to AH and the balance delta on AH before and after migration is
+			// less than AH existential deposit.
 			assert!(rc_migrated_balance.saturating_sub(ah_migrated_balance) <= ah_ed,
 				"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
 				who.to_ss58check()
 			);
+
+			// There are several `unreserve` operations on AH after migration (e.g., unreserve
+			// deposits for multisigs because they are not migrated to AH, adjust deposits for
+			// preimages, ...). Therefore, we just check that the change in reserved balance on AH
+			// after migration is less than the migrated reserved balance from RC.
 			assert!(ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved, "Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC", who.to_ss58check());
+
+			// There should be no frozen balance on AH before the migration so we just need to check
+			// that the frozen balance on AH after migration is the same as on RC before migration.
 			assert_eq!(summary.frozen, frozen, "Frozen balance mismatch for account {:?} between RC pre-migration and AH post-migration", who.to_ss58check());
 
+			// Holds migrated from RC may be merged on AH after migration. Therefore, we need to
+			// check that, for each hold reason, the sum of the hold amounts on AH after migration
+			// is the same as the sum of the hold amounts on RC before migration.
 			for (hold_id, hold_amount) in holds_enc {
 				let mut rc_hold_amount_for_id: u128 = 0;
 				for (id, amount) in summary.holds.clone() {
@@ -359,12 +374,17 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
 				);
 			}
 
+			// There should be no locks on AH before the migration so we just need to check that the
+			// locks on AH after migration are the same as on RC before migration.
 			assert_eq!(
 				summary.locks,
 				locks_enc,
 				"Locks mismatch for account {:?} between RC pre-migration and AH post-migration",
 				who.to_ss58check()
 			);
+
+			// There should be no freezes on AH before the migration so we just need to check that
+			// the freezes on AH after migration are the same as on RC before migration.
 			assert_eq!(
 				summary.freezes,
 				freezes_enc,

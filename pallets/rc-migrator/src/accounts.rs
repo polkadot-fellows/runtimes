@@ -922,6 +922,8 @@ impl<T: Config> RcKeptBalance<T> {
 
 #[cfg(feature = "std")]
 impl<T> AccountsMigrationChecker<T> {
+	// Translate the lock id to a u8 for both RC and AH using the different encodings for easier
+	// comparison. Lock Ids type is  `LockIdentifier = [u8; 8]` on Polkadot.
 	pub fn lock_id_to_u8(lock_id: [u8; 8], _chain_type: ChainType) -> u8 {
 		match lock_id.as_slice() {
 			b"staking " => 0,
@@ -938,6 +940,9 @@ impl<T> AccountsMigrationChecker<T> {
 		}
 	}
 
+	// Translate the freeze id to a u8 for both RC and AH using the different encodings for easier
+	// comparison. Freeze Ids type is enum `RuntimeFreezeReason` on Polkadot. Here we use the
+	// encoded enum.
 	pub fn freeze_id_encoding_to_u8(freeze_id: Vec<u8>, chain_type: ChainType) -> u8 {
 		let nomination_pools_encoding = match chain_type {
 			ChainType::RC => [39, 0],
@@ -951,6 +956,9 @@ impl<T> AccountsMigrationChecker<T> {
 		}
 	}
 
+	// Translate the hold id to a u8 for both RC and AH using the different encodings for easier
+	// comparison. Hold Ids type is enum `RuntimeHoldReason` on Polkadot. Here we use the encoded
+	// enum.
 	pub fn hold_id_encoding_to_u8(hold_id: Vec<u8>, chain_type: ChainType) -> u8 {
 		let preimage_encoding: [u8; 2] = match chain_type {
 			ChainType::RC => [10, 0],
@@ -980,6 +988,8 @@ impl<T> AccountsMigrationChecker<T> {
 		match hold_id.as_slice() {
 			// Preimage deposits are divided by 100 when migrated to Asset Hub.
 			[10, 0] => hold_amount.saturating_div(100),
+			// TODO: change to correct amounts for Staking if we decide to adjust deposits during
+			// migration.
 			_ => hold_amount,
 		}
 	}
