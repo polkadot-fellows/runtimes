@@ -182,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 1_005_000,
+	spec_version: 1_005_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -1944,22 +1944,6 @@ pub type Migrations = (migrations::Unreleased, migrations::Permanent);
 pub mod migrations {
 	use super::*;
 	use pallet_balances::WeightInfo;
-	use polkadot_primitives::node_features::FeatureIndex;
-	use runtime_parachains::configuration::WeightInfo as ParachainsWeightInfo;
-	/// Enable RFC103 feature.
-	///
-	/// This will make the Kusama relay chain runtime accept v2 candidate receipts.
-	pub struct EnableRFC103Feature;
-	impl frame_support::traits::OnRuntimeUpgrade for EnableRFC103Feature {
-		fn on_runtime_upgrade() -> Weight {
-			let _ = Configuration::set_node_feature(
-				RawOrigin::Root.into(),
-				FeatureIndex::CandidateReceiptV2 as u8,
-				true,
-			);
-			weights::runtime_parachains_configuration::WeightInfo::<Runtime>::set_node_feature()
-		}
-	}
 
 	parameter_types! {
 		/// Weight for balance unreservations
@@ -1968,10 +1952,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		parachains_shared::migration::MigrateToV1<Runtime>,
-		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
-		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
-		EnableRFC103Feature,
 		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
 		pallet_session::migrations::v1::MigrateV0ToV1<
 			Runtime,
