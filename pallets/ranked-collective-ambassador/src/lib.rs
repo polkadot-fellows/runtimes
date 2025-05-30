@@ -529,7 +529,6 @@ pub mod pallet {
 		SameMember,
 		/// The max member count for the rank has been reached.
 		TooManyMembers,
-		InEligibleRank,
 	}
 
 	#[pallet::call]
@@ -543,7 +542,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::add_member())]
 		pub fn add_member(origin: OriginFor<T>, who: AccountIdLookupOf<T>) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
+			ensure_signed(origin)?;
 			let who = T::Lookup::lookup(who)?;
 			Self::do_add_member(who, true)
 		}
@@ -625,7 +624,6 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let record = Self::ensure_member(&who)?;
-			//ensure!(record.rank > 0, Error::<T, I>::InEligibleRank);
 			use VoteRecord::*;
 			let mut pays = Pays::Yes;
 

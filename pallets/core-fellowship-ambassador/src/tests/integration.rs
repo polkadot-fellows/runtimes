@@ -43,7 +43,7 @@ type Block = frame_system::mocking::MockBlock<Test>;
 frame_support::construct_runtime!(
 	pub enum Test
 	{
-        Balances: pallet_balances,
+		Balances: pallet_balances,
 		System: frame_system,
 		CoreFellowship: pallet_core_fellowship,
 		Club: pallet_ranked_collective_ambassador,
@@ -58,7 +58,7 @@ parameter_types! {
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Test {
 	type Block = Block;
-    type AccountData = pallet_balances::AccountData<u64>;
+	type AccountData = pallet_balances::AccountData<u64>;
 }
 
 #[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
@@ -76,7 +76,7 @@ parameter_types! {
 }
 ord_parameter_types! {
 	pub const One: u64 = 1;
-    pub const InductionDeposit: u64 = 1;
+	pub const InductionDeposit: u64 = 1;
 }
 
 impl Config for Test {
@@ -129,20 +129,20 @@ impl pallet_ranked_collective_ambassador::Config for Test {
 	type MemberSwappedHandler = CoreFellowship;
 	type VoteWeight = Geometric;
 	type MaxMemberCount = ();
-    type Currency = Balances;
+	type Currency = Balances;
 
-    type InductionDeposit = InductionDeposit;
+	type InductionDeposit = InductionDeposit;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkSetup = CoreFellowship;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
-    let mut balances = vec![];
+	let mut balances = vec![];
 	for i in 0..101 {
 		balances.push((i, 500_000));
 	}
-    pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
+	pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
 		.assimilate_storage(&mut t)
 		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);

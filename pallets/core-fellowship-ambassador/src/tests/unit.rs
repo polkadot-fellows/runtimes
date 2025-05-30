@@ -132,16 +132,16 @@ impl Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let mut balances = vec![];
-		for i in 0..31 {
-			balances.push((i, 500_000));
-		}
-		balances.push((31, 500_000));
-		balances.push((40, 500_000));
-		balances.push((99, 1));
+	for i in 0..31 {
+		balances.push((i, 500_000));
+	}
+	balances.push((31, 500_000));
+	balances.push((40, 500_000));
+	balances.push((99, 1));
 
-		pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
-			.assimilate_storage(&mut t)
-			.unwrap();
+	pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
+		.assimilate_storage(&mut t)
+		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
 		set_rank(100, 9);

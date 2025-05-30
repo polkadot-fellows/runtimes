@@ -106,8 +106,8 @@ pub type OpenGovOrGlobalHeadAmbassador = EitherOfDiverse<
 pub struct VoteWeight;
 impl Convert<Rank, Votes> for VoteWeight {
 	fn convert(absolute_rank: Rank) -> Votes {
-    	(absolute_rank * (absolute_rank + 1) / 2).into()
-    }
+		(absolute_rank * (absolute_rank + 1) / 2).into()
+	}
 }
 
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;

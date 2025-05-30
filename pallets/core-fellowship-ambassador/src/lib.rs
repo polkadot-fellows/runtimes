@@ -73,8 +73,8 @@ use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
 	ensure,
 	traits::{
-		tokens::Balance as BalanceTrait, Get, RankedMembers,
-		RankedMembersSwapHandler, Currency, ReservableCurrency,
+		tokens::Balance as BalanceTrait, Currency, Get, RankedMembers, RankedMembersSwapHandler,
+		ReservableCurrency,
 	},
 	BoundedVec, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
@@ -778,7 +778,8 @@ impl<T: Config<I>, I: 'static> RankedMembersSwapHandler<T::AccountId, u16> for P
 
 #[cfg(feature = "runtime-benchmarks")]
 impl<T: Config<I>, I: 'static>
-	pallet_ranked_collective_ambassador::BenchmarkSetup<<T as frame_system::Config>::AccountId> for Pallet<T, I>
+	pallet_ranked_collective_ambassador::BenchmarkSetup<<T as frame_system::Config>::AccountId>
+	for Pallet<T, I>
 {
 	fn ensure_member(who: &<T as frame_system::Config>::AccountId) {
 		#[allow(deprecated)]
