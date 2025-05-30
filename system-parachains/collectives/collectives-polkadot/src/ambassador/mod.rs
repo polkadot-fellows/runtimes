@@ -40,7 +40,7 @@ use frame_support::{
 use frame_system::EnsureRootWithSuccess;
 use origins::pallet_origins::{
 	EnsureAmbassadorsFrom, EnsureCanFastPromoteTo, EnsureCanPromoteTo, EnsureCanRetainAt,
-	GlobalHeadAmbassador, Origin, Spender,
+	GlobalHeadAmbassador, Spender,
 };
 use pallet_ranked_collective_ambassador::{MemberIndex, Rank, Votes};
 use polkadot_runtime_common::impls::{LocatableAssetConverter, VersionedLocationConverter};
@@ -71,7 +71,6 @@ impl pallet_ambassador_origins::Config for Runtime {}
 /// Demotion is by any of:
 /// - Root can demote arbitrarily;
 /// - the FellowshipAdmin voice (i.e. token holder referendum) can demote arbitrarily;
-/// - Senior Ambassadors voice can demote Lead Ambassador or Associate Ambassador;
 /// - Senior Ambassadors voice can demote Ambassador.
 pub type DemoteOrigin = EitherOf<
 	EnsureRootWithSuccess<AccountId, ConstU16<65535>>,
@@ -97,7 +96,7 @@ pub type OpenGovOrGlobalHeadAmbassador = EitherOfDiverse<
 >;
 
 /// Ambassadors' vote weights for referendums.
-/// - Rank 0 (Advocate): 0 votes (not in voting system)
+/// - Rank 0 (Advocate): 1 votes (excluded in the voting system)
 /// - Rank I (Associate): 1 vote
 /// - Rank II (Lead): 3 votes (1+2)
 /// - Rank III (Senior): 6 votes (1+2+3)
@@ -106,13 +105,9 @@ pub type OpenGovOrGlobalHeadAmbassador = EitherOfDiverse<
 /// - Rank VI (Global Head): 21 votes (1+2+3+4+5+6)
 pub struct VoteWeight;
 impl Convert<Rank, Votes> for VoteWeight {
-	fn convert(rank: Rank) -> Votes {
-		if rank == 0 {
-			0
-		} else {
-			((rank * (rank + 1)) / 2).into()
-		}
-	}
+	fn convert(absolute_rank: Rank) -> Votes {
+    	(absolute_rank * (absolute_rank + 1) / 2).into()
+    }
 }
 
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;
@@ -129,7 +124,7 @@ impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> f
 	type RemoveOrigin = Self::DemoteOrigin;
 	type Polls = AmbassadorReferenda;
 	type MinRankOfClass = tracks::MinRankOfClass;
-	type VoteWeight = VoteWeight;
+	type VoteWeight = pallet_ranked_collective_ambassador::Geometric;
 	type ExchangeOrigin = OpenGovOrGlobalHeadAmbassador;
 	type MemberSwappedHandler = crate::AmbassadorCore;
 	#[cfg(feature = "runtime-benchmarks")]
@@ -223,6 +218,7 @@ impl pallet_core_fellowship_ambassador::Config<AmbassadorCoreInstance> for Runti
 		EnsureCanPromoteTo,
 	>;
 	type FastPromoteOrigin = EnsureCanFastPromoteTo;
+	type Currency = Balances;
 	type EvidenceSize = ConstU32<65536>;
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/370
 	type MaxRank = ConstU16<6>;

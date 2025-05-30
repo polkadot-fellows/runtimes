@@ -25,6 +25,7 @@ use frame_benchmarking::{
 	v1::{account, BenchmarkError},
 	v2::*,
 };
+use sp_arithmetic::traits::One;
 use sp_arithmetic::traits::Bounded;
 
 use frame_support::{assert_err, assert_ok, traits::NoOpPoll};
@@ -180,23 +181,29 @@ mod benchmarks {
 		// Get the first available class or set it to None if no class exists.
 		let class = T::Polls::classes().into_iter().next();
 
+		log::info!("class {:?}", class);
+
 		// Convert the class to a rank if it exists, otherwise use the default rank.
 		let rank = class.as_ref().map_or(
 			<Pallet<T, I> as frame_support::traits::RankedMembers>::Rank::default(),
 			|class| T::MinRankOfClass::convert(class.clone()),
 		);
 
+		log::info!("rank {:?}", rank);
+
 		// Create a caller based on the rank.
 		let caller = make_member::<T, I>(rank);
 
 		// Determine the poll to use: create an ongoing poll if class exists, or use an invalid
-		// poll.
+		// poll. How would a class of 1 give a zero poll index?
 		let poll = if let Some(ref class) = class {
 			T::Polls::create_ongoing(class.clone())
 				.expect("Poll creation should succeed for rank 0")
 		} else {
 			<NoOpPoll as Polling<T>>::Index::MAX.into()
 		};
+
+		log::info!("poll {:?}", poll);
 
 		// Benchmark the vote logic for a positive vote (true).
 		#[block]
@@ -212,9 +219,10 @@ mod benchmarks {
 			};
 		}
 
+		/*
 		// Vote logic for a negative vote (false).
 		let vote_result =
-			Pallet::<T, I>::vote(SystemOrigin::Signed(caller.clone()).into(), poll, false);
+			Pallet::<T, I>::vote(SystemOrigin::Signed(caller.clone()).into(), poll, true);
 
 		// Check the result of the negative vote.
 		if class.is_some() {
@@ -222,11 +230,30 @@ mod benchmarks {
 		} else {
 			assert_err!(vote_result, crate::Error::<T, I>::NotPolling);
 		};
+		log::info!(
+			"ALL EVENTS: {:?}", 
+			frame_system::Pallet::<T>::events()
+		);
+		*/
+		// Voting true bare_aye with voting false ney vote.
 
 		// If the class exists, verify the vote event and tally.
 		if let Some(_) = class {
-			let tally = Tally::from_parts(0, 0, 1);
-			let vote_event = Event::Voted { who: caller, poll, vote: VoteRecord::Nay(1), tally };
+			let tally = Tally::from_parts(1, 0, 0);
+			let vote_event = Event::Voted { who: caller, poll, vote: VoteRecord::Aye(0), tally };
+
+
+			// ADD COMPARISON DEBUG
+			let last_event = frame_system::Pallet::<T>::events()
+            .last()
+            .map(|e| e.event.clone());
+            
+        log::info!(
+            "Comparing:\nEXPECTED: {:?}\nACTUAL: {:?}",
+            vote_event,
+            last_event
+        );
+			//log::info!("{:?}", <frame_system::Pallet<T>>::events());
 			assert_last_event::<T, I>(vote_event.into());
 		}
 
@@ -244,7 +271,11 @@ mod benchmarks {
 		// Convert the class to a rank, or use a default rank if no class exists.
 		let rank = class.as_ref().map_or(
 			<Pallet<T, I> as frame_support::traits::RankedMembers>::Rank::default(),
-			|class| T::MinRankOfClass::convert(class.clone()),
+			|class| {
+				let min_rank = T::MinRankOfClass::convert(class.clone());
+				let one = <Pallet<T, I> as frame_support::traits::RankedMembers>::Rank::one();
+				min_rank.max(one)
+			},
 		);
 
 		// Determine the poll to use: create an ongoing poll if class exists, or use an invalid

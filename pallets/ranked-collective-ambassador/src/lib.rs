@@ -243,8 +243,8 @@ impl Convert<Rank, Votes> for Linear {
 pub struct Geometric;
 impl Convert<Rank, Votes> for Geometric {
 	fn convert(r: Rank) -> Votes {
-		let v = (r + 1) as Votes;
-		v * (v + 1) / 2
+		// let v = (r + 1) as Votes;
+		(r * (r + 1) / 2).into()
 	}
 }
 
@@ -529,6 +529,7 @@ pub mod pallet {
 		SameMember,
 		/// The max member count for the rank has been reached.
 		TooManyMembers,
+		InEligibleRank,
 	}
 
 	#[pallet::call]
@@ -624,6 +625,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let record = Self::ensure_member(&who)?;
+			//ensure!(record.rank > 0, Error::<T, I>::InEligibleRank);
 			use VoteRecord::*;
 			let mut pays = Pays::Yes;
 

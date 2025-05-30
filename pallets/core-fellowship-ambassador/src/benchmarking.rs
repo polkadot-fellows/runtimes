@@ -46,6 +46,7 @@ mod benchmarks {
 
 	fn make_member<T: Config<I>, I: 'static>(rank: u16) -> Result<T::AccountId, BenchmarkError> {
 		let member = account("member", 0, SEED);
+		T::Currency::make_free_balance_be(&member, BalanceOf::<T, I>::max_value());
 		T::Members::induct(&member)?;
 		for _ in 0..rank {
 			T::Members::promote(&member)?;
@@ -184,9 +185,10 @@ mod benchmarks {
 	#[benchmark]
 	fn induct() -> Result<(), BenchmarkError> {
 		let candidate: T::AccountId = account("candidate", 0, SEED);
+		T::Currency::make_free_balance_be(&candidate, BalanceOf::<T, I>::max_value());
 
 		#[extrinsic_call]
-		_(RawOrigin::Root, candidate.clone());
+		_(RawOrigin::Signed(candidate.clone()), candidate.clone());
 
 		assert_eq!(T::Members::rank_of(&candidate), Some(0));
 		assert!(Member::<T, I>::contains_key(&candidate));
@@ -267,6 +269,7 @@ mod benchmarks {
 	#[benchmark]
 	fn import() -> Result<(), BenchmarkError> {
 		let member = account("member", 0, SEED);
+		T::Currency::make_free_balance_be(&member, BalanceOf::<T, I>::max_value());
 		T::Members::induct(&member)?;
 		T::Members::promote(&member)?;
 
@@ -282,6 +285,7 @@ mod benchmarks {
 	#[benchmark]
 	fn import_member() -> Result<(), BenchmarkError> {
 		let member = account("member", 0, SEED);
+		T::Currency::make_free_balance_be(&member, BalanceOf::<T, I>::max_value());
 		let sender = account("sender", 0, SEED);
 
 		T::Members::induct(&member)?;

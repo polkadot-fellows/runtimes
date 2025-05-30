@@ -85,10 +85,10 @@ impl Config for Test {
 	type Members = Club;
 	type Balance = u64;
 	type ParamsOrigin = EnsureSignedBy<One, u64>;
-	type InductOrigin = EnsureInducted<Test, (), 1>;
 	type ApproveOrigin = TryMapSuccess<EnsureSignedBy<IsInVec<ZeroToNine>, u64>, TryMorphInto<u16>>;
 	type PromoteOrigin = TryMapSuccess<EnsureSignedBy<IsInVec<ZeroToNine>, u64>, TryMorphInto<u16>>;
 	type FastPromoteOrigin = Self::PromoteOrigin;
+	type Currency = Balances;
 	type EvidenceSize = EvidenceSize;
 	type MaxRank = ConstU16<9>;
 }

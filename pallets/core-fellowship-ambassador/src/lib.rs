@@ -74,7 +74,7 @@ use frame_support::{
 	ensure, impl_ensure_origin_with_arg_ignoring_arg,
 	traits::{
 		tokens::Balance as BalanceTrait, EnsureOrigin, EnsureOriginWithArg, Get, RankedMembers,
-		RankedMembersSwapHandler,
+		RankedMembersSwapHandler, Currency, ReservableCurrency,
 	},
 	BoundedVec, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
@@ -88,6 +88,9 @@ pub mod weights;
 
 pub use pallet::*;
 pub use weights::*;
+
+type BalanceOf<T, I> =
+	<<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 /// The desired outcome for which evidence is presented.
 #[derive(
@@ -233,6 +236,8 @@ pub mod pallet {
 		/// The maximum size in bytes submitted evidence is allowed to be.
 		#[pallet::constant]
 		type EvidenceSize: Get<u32>;
+
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
 		/// Represents the highest possible rank in this pallet.
 		///
@@ -743,43 +748,6 @@ pub mod pallet {
 			salary[index]
 		}
 	}
-}
-
-/// Guard to ensure that the given origin is inducted into this pallet with a given minimum rank.
-/// The account ID of the member is the `Success` value.
-pub struct EnsureInducted<T, I, const MIN_RANK: u16>(PhantomData<(T, I)>);
-impl<T: Config<I>, I: 'static, const MIN_RANK: u16> EnsureOrigin<T::RuntimeOrigin>
-	for EnsureInducted<T, I, MIN_RANK>
-{
-	type Success = T::AccountId;
-
-	fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
-		let who = <frame_system::EnsureSigned<_> as EnsureOrigin<_>>::try_origin(o)?;
-		match T::Members::rank_of(&who) {
-			Some(rank) if rank >= MIN_RANK && Member::<T, I>::contains_key(&who) => Ok(who),
-			_ => Err(frame_system::RawOrigin::Signed(who).into()),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<T::RuntimeOrigin, ()> {
-		let who = frame_benchmarking::account::<T::AccountId>("successful_origin", 0, 0);
-		if T::Members::rank_of(&who).is_none() {
-			T::Members::induct(&who).map_err(|_| ())?;
-		}
-		for _ in 0..MIN_RANK {
-			if T::Members::rank_of(&who).ok_or(())? < MIN_RANK {
-				T::Members::promote(&who).map_err(|_| ())?;
-			}
-		}
-		Ok(frame_system::RawOrigin::Signed(who).into())
-	}
-}
-
-impl_ensure_origin_with_arg_ignoring_arg! {
-	impl< { T: Config<I>, I: 'static, const MIN_RANK: u16, A } >
-		EnsureOriginWithArg<T::RuntimeOrigin, A> for EnsureInducted<T, I, MIN_RANK>
-	{}
 }
 
 impl<T: Config<I>, I: 'static> RankedMembersSwapHandler<T::AccountId, u16> for Pallet<T, I> {

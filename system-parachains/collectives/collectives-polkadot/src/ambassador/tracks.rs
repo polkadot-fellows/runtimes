@@ -41,7 +41,7 @@ pub mod constants {
 	pub const RETAIN_AT_LEAD_AMBASSADOR: TrackId = 12;
 	pub const RETAIN_AT_SENIOR_AMBASSADOR: TrackId = 13;
 	pub const RETAIN_AT_PRINCIPAL_AMBASSADOR: TrackId = 14;
-	pub const RETAIN_AT_GLOBAL_AMBASSADOR: TrackId = 15;
+	pub const RETAIN_AT_GLOBAL_AMBASSADOR: TrackId = 15; // this should be opengov vote
 
 	pub const PROMOTE_TO_ASSOCIATE_AMBASSADOR: TrackId = 21;
 	pub const PROMOTE_TO_LEAD_AMBASSADOR: TrackId = 22;
@@ -62,15 +62,20 @@ impl Convert<TrackId, Rank> for MinRankOfClass {
 	fn convert(a: TrackId) -> Rank {
 		match a {
 			// Just a regular vote: the track ID is conveniently the same as the minimum rank.
-			regular @ 1..=9 => regular,
+			regular @ 1..=6 => regular,
 			// A retention vote; the track ID turns out to be 8 more than the minimum required rank.
-			retention @ 11..=15 => retention - 7,
+			retention @ 11..=15 => retention - 8,
 			// A promotion vote; the track ID turns out to be 18 more than the minimum required
 			// rank.
-			promotion @ 21..=25 => promotion - 17,
+			promotion @ 21..=25 => promotion - 18,
 			// A fast promotion vote; the track ID turns out to be 28 more than the minimum required
 			// rank.
 			fast_promote @ 31..=33 => fast_promote - 28,
+			// 
+			41 => 3,
+			// 
+			42 => 5,
+			// 
 			_ => Rank::MAX,
 		}
 	}

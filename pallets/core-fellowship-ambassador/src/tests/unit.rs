@@ -41,6 +41,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		CoreFellowship: pallet_core_fellowship,
+		Balances: pallet_balances,
 	}
 );
 
@@ -52,6 +53,12 @@ parameter_types! {
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Test {
 	type Block = Block;
+	type AccountData = pallet_balances::AccountData<u64>;
+}
+
+#[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
+impl pallet_balances::Config for Test {
+	type AccountStore = System;
 }
 
 thread_local! {
@@ -114,16 +121,27 @@ impl Config for Test {
 	type Members = TestClub;
 	type Balance = u64;
 	type ParamsOrigin = EnsureSignedBy<One, u64>;
-	type InductOrigin = EnsureInducted<Test, (), 1>;
 	type ApproveOrigin = TryMapSuccess<EnsureSignedBy<IsInVec<ZeroToNine>, u64>, TryMorphInto<u16>>;
 	type PromoteOrigin = TryMapSuccess<EnsureSignedBy<IsInVec<ZeroToNine>, u64>, TryMorphInto<u16>>;
 	type FastPromoteOrigin = Self::PromoteOrigin;
+	type Currency = Balances;
 	type EvidenceSize = ConstU32<1024>;
 	type MaxRank = ConstU16<9>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+	let mut balances = vec![];
+		for i in 0..31 {
+			balances.push((i, 500_000));
+		}
+		balances.push((31, 500_000));
+		balances.push((40, 500_000));
+		balances.push((99, 1));
+
+		pallet_balances::GenesisConfig::<Test> { balances, ..Default::default() }
+			.assimilate_storage(&mut t)
+			.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
 		set_rank(100, 9);
@@ -292,8 +310,6 @@ fn induct_works() {
 		set_rank(1, 1);
 		assert_ok!(CoreFellowship::import(signed(1)));
 
-		assert_noop!(CoreFellowship::induct(signed(10), 10), DispatchError::BadOrigin);
-		assert_noop!(CoreFellowship::induct(signed(0), 10), DispatchError::BadOrigin);
 		assert_ok!(CoreFellowship::induct(signed(1), 10));
 		assert_noop!(CoreFellowship::induct(signed(1), 10), Error::<Test>::AlreadyInducted);
 	});

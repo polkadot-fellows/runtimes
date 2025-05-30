@@ -431,19 +431,19 @@ fn voting_works() {
 		assert_eq!(tally(3), Tally::from_parts(0, 0, 0));
 
 		assert_ok!(Club::vote(RuntimeOrigin::signed(1), 3, true));
-		assert_eq!(tally(3), Tally::from_parts(1, 1, 0));
+		assert_eq!(tally(3), Tally::from_parts(1, 0, 0));
 		assert_ok!(Club::vote(RuntimeOrigin::signed(1), 3, false));
-		assert_eq!(tally(3), Tally::from_parts(0, 0, 1));
+		assert_eq!(tally(3), Tally::from_parts(0, 0, 0));
 
 		assert_ok!(Club::vote(RuntimeOrigin::signed(2), 3, true));
-		assert_eq!(tally(3), Tally::from_parts(1, 3, 1));
+		assert_eq!(tally(3), Tally::from_parts(1, 1, 0));
 		assert_ok!(Club::vote(RuntimeOrigin::signed(2), 3, false));
-		assert_eq!(tally(3), Tally::from_parts(0, 0, 4));
+		assert_eq!(tally(3), Tally::from_parts(0, 0, 1));
 
 		assert_ok!(Club::vote(RuntimeOrigin::signed(3), 3, true));
-		assert_eq!(tally(3), Tally::from_parts(1, 6, 4));
+		assert_eq!(tally(3), Tally::from_parts(1, 3, 1));
 		assert_ok!(Club::vote(RuntimeOrigin::signed(3), 3, false));
-		assert_eq!(tally(3), Tally::from_parts(0, 0, 10));
+		assert_eq!(tally(3), Tally::from_parts(0, 0, 4));
 	});
 }
 
