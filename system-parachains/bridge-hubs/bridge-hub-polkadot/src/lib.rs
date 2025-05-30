@@ -155,6 +155,7 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
+	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -180,7 +181,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-polkadot"),
 	impl_name: Cow::Borrowed("bridge-hub-polkadot"),
 	authoring_version: 1,
-	spec_version: 1_005_000,
+	spec_version: 1_005_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
