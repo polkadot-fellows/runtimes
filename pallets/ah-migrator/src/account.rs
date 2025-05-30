@@ -18,7 +18,9 @@
 //! Account balance migration.
 
 use crate::*;
-use pallet_rc_migrator::accounts::AccountsMigrator;
+use pallet_rc_migrator::accounts::{AccountsMigrationChecker, BalanceSummary, ChainType};
+#[cfg(feature = "std")]
+use std::collections::BTreeMap;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_receive_accounts(
@@ -69,7 +71,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let who = account.who;
-		let total_balance = account.free + account.reserved;
+		let total_balance = account.free.saturating_add(account.reserved);
 		let minted = match <T as pallet::Config>::Currency::mint_into(&who, total_balance) {
 			Ok(minted) => minted,
 			Err(e) => {
@@ -227,10 +229,15 @@ impl<T: Config> Pallet<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
-	// Total issuance on the relay chain before migration
-	type RcPrePayload = BalanceOf<T>;
-	type AhPrePayload = ();
+impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
+	// The RC payload is a mapping from account to a summary of their balances, including holds,
+	// reserves, locks, and freezes. The second item is the total issuance on the relay chain
+	// before migration.
+	// The AH payload is a mapping from account to (ah_reserved_pre, ah_free_pre), i.e., the
+	// reserved balance on Asset Hub before migration and the free balance on Asset Hub before
+	// migration.
+	type RcPrePayload = (BTreeMap<T::AccountId, BalanceSummary>, u128);
+	type AhPrePayload = BTreeMap<T::AccountId, (u128, u128)>;
 
 	/// Run some checks on asset hub before the migration and store intermediate payload.
 	///
@@ -261,6 +268,14 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 		// This is fine, we can just ignore/accept this small amount.
 		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(checking_balance == <T as Config>::Currency::minimum_balance());
+
+		let mut ah_pre_payload = BTreeMap::new();
+		for (account, _) in frame_system::Account::<T>::iter() {
+			let free = <T as Config>::Currency::balance(&account);
+			let reserved = <T as Config>::Currency::reserved_balance(&account);
+			ah_pre_payload.insert(account, (reserved, free));
+		}
+		ah_pre_payload
 	}
 
 	/// Run some checks after the migration and use the intermediate payload.
@@ -269,11 +284,93 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrator<T> {
 	/// the check that data has been correctly migrated to asset hub. It should also contain the
 	/// data previously stored in asset hub, allowing for more complex logical checks on the
 	/// migration outcome.
-	fn post_check(_rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
 		// Check that no failed accounts remain in storage
 		assert!(
 			RcAccounts::<T>::iter().next().is_none(),
 			"Failed accounts should not remain in storage after migration"
 		);
+		let (account_summaries, _) = rc_pre_payload;
+		for (who, summary) in account_summaries {
+			// assert_eq!(summary.migrated_free, <T as Config>::Currency::balance(&who));
+			// assert_eq!(summary.migrated_reserved, <T as
+			// Config>::Currency::reserved_balance(&who));
+			let ah_free_post = <T as Config>::Currency::balance(&who);
+			let ah_reserved_post = <T as Config>::Currency::reserved_balance(&who);
+			let mut ah_free_before = 0;
+			let mut ah_reserved_before = 0;
+			if let Some((ah_reserved_pre, ah_free_pre)) = ah_pre_payload.get(&who) {
+				ah_free_before = *ah_free_pre;
+				ah_reserved_before = *ah_reserved_pre;
+			}
+
+			let frozen = frame_system::Account::<T>::get(&who).data.frozen;
+			let mut holds_enc: Vec<(u8, u128)> = Vec::new();
+			for hold in pallet_balances::Holds::<T>::get(&who) {
+				holds_enc.push((
+					Self::hold_id_encoding_to_u8(hold.id.encode(), ChainType::AH),
+					hold.amount,
+				));
+			}
+			let mut freezes_enc: Vec<(u8, u128)> = Vec::new();
+			for freeze in pallet_balances::Freezes::<T>::get(&who) {
+				freezes_enc.push((
+					Self::freeze_id_encoding_to_u8(freeze.id.encode(), ChainType::AH),
+					freeze.amount,
+				));
+			}
+			let mut locks_enc: Vec<(u8, u128, u8)> = Vec::new();
+			for lock in pallet_balances::Locks::<T>::get(&who) {
+				locks_enc.push((
+					Self::lock_id_to_u8(lock.id, ChainType::AH),
+					lock.amount,
+					lock.reasons as u8,
+				));
+			}
+
+			let rc_migrated_balance =
+				summary.migrated_free.saturating_add(summary.migrated_reserved);
+			let ah_migrated_balance = ah_free_post
+				.saturating_sub(ah_free_before)
+				.saturating_add(ah_reserved_post.saturating_sub(ah_reserved_before));
+			let ah_ed = <T as Config>::Currency::minimum_balance();
+			// In case the balance migrated to AH is less than the existential deposit, minting the
+			// balance may fail.
+			assert!(rc_migrated_balance.saturating_sub(ah_migrated_balance) <= ah_ed,
+				"Total balance mismatch for account {:?} between RC pre-migration and AH post-migration",
+				who.to_ss58check()
+			);
+			assert!(ah_reserved_post.saturating_sub(ah_reserved_before) <= summary.migrated_reserved, "Change in reserved balance on AH after migration for account {:?} is greater than the migrated reserved balance from RC", who.to_ss58check());
+			assert_eq!(summary.frozen, frozen, "Frozen balance mismatch for account {:?} between RC pre-migration and AH post-migration", who.to_ss58check());
+
+			for (hold_id, hold_amount) in holds_enc {
+				let mut rc_hold_amount_for_id: u128 = 0;
+				for (id, amount) in summary.holds.clone() {
+					if id == hold_id {
+						rc_hold_amount_for_id = rc_hold_amount_for_id.saturating_add(amount);
+					}
+				}
+				assert_eq!(
+					rc_hold_amount_for_id,
+					hold_amount,
+					"Hold amount mismatch for account {:?} and hold id {:?} between RC pre-migration and AH post-migration",
+					who.to_ss58check(),
+					hold_id
+				);
+			}
+
+			assert_eq!(
+				summary.locks,
+				locks_enc,
+				"Locks mismatch for account {:?} between RC pre-migration and AH post-migration",
+				who.to_ss58check()
+			);
+			assert_eq!(
+				summary.freezes,
+				freezes_enc,
+				"Freezes mismatch for account {:?} between RC pre-migration and AH post-migration",
+				who.to_ss58check()
+			);
+		}
 	}
 }

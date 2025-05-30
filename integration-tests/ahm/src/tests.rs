@@ -75,7 +75,7 @@ use xcm_emulator::{assert_ok, ConvertLocation, WeightMeter};
 
 type RcChecks = (
 	SanityChecks,
-	pallet_rc_migrator::accounts::AccountsMigrator<Polkadot>,
+	pallet_rc_migrator::accounts::AccountsMigrationChecker<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<Polkadot>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<Polkadot>,
@@ -111,7 +111,7 @@ pub type RcPolkadotChecks = ();
 
 type AhChecks = (
 	SanityChecks,
-	pallet_rc_migrator::accounts::AccountsMigrator<AssetHub>,
+	pallet_rc_migrator::accounts::AccountsMigrationChecker<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageChunkMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageRequestStatusMigrator<AssetHub>,
 	pallet_rc_migrator::preimage::PreimageLegacyRequestStatusMigrator<AssetHub>,

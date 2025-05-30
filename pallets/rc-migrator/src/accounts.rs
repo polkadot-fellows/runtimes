@@ -49,6 +49,8 @@ use frame_system::Account as SystemAccount;
 use pallet_balances::{AccountData, BalanceLock};
 use sp_core::ByteArray;
 use sp_runtime::{traits::Zero, BoundedVec};
+#[cfg(feature = "std")]
+use std::collections::BTreeMap;
 
 /// Account type meant to transfer data between RC and AH.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -665,7 +667,10 @@ impl<T: Config> AccountsMigrator<T> {
 			if deposit == 0 {
 				return;
 			}
-			reserves.entry(id).and_modify(|e| *e += deposit).or_insert(deposit);
+			reserves
+				.entry(id)
+				.and_modify(|e: &mut u128| *e = e.saturating_add(deposit))
+				.or_insert(deposit);
 		};
 
 		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
@@ -801,18 +806,253 @@ impl<T: Config> AccountsMigrator<T> {
 	}
 }
 
+#[derive(Default, Clone, PartialEq, Eq, Debug)]
+pub struct BalanceSummary {
+	// Balance that can be still reserved
+	pub migrated_free: u128,
+	// Holds + Named Reserves (should be 0) + Unnamed Reserves
+	pub migrated_reserved: u128,
+	// Locks + Freezes
+	pub frozen: u128,
+	// Each hold: (lock id enum as u8, amount)
+	pub holds: Vec<(u8, u128)>,
+	// Each freeze: (freeze id enum as u8, amount).
+	pub freezes: Vec<(u8, u128)>,
+	// Each lock: (lock id enum as u8, amount, reasons as u8)
+	pub locks: Vec<(u8, u128, u8)>,
+}
+
+pub struct AccountsMigrationChecker<T>(sp_std::marker::PhantomData<T>);
+
+pub enum ChainType {
+	RC,
+	AH,
+}
+
+// For each account that is fully or partially kept on the relay chain, this structure contains
+// rc_kept_reserved_balance, rc_kept_free_balance, i.e., the balance that is kept on the relay
+// chain for the given account, split between reserved and free in separate maps. In general,
+// the free balance is equal to the existential deposit, but there may be some edge cases (e.g.,
+// on-demand pallet account or accounts with inconsistent state).
 #[cfg(feature = "std")]
-impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
-	// Total issuance on the relay chain before migration
-	type RcPrePayload = BalanceOf<T>;
+pub struct RcKeptBalance<T: Config> {
+	pub rc_reserved_kept: BTreeMap<T::AccountId, u128>,
+	pub rc_free_kept: BTreeMap<T::AccountId, u128>,
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> RcKeptBalance<T> {
+	pub fn new() -> Self {
+		let mut rc_reserved_kept = BTreeMap::new();
+		let mut rc_free_kept = BTreeMap::new();
+		let mut rc_reserves = BTreeMap::new();
+
+		// On-demand pallet account is not migrated to Asset Hub
+		let on_demand_pallet_account = T::OnDemandPalletId::get().into_account_truncating();
+		let total_reserved = <T as Config>::Currency::reserved_balance(&on_demand_pallet_account);
+		let free = <T as Config>::Currency::balance(&on_demand_pallet_account);
+		rc_reserved_kept.insert(on_demand_pallet_account.clone(), total_reserved);
+		rc_free_kept.insert(on_demand_pallet_account.clone(), free);
+
+		for (channel_id, info) in hrmp::HrmpChannels::<T>::iter() {
+			let sender: T::AccountId = channel_id.sender.into_account_truncating();
+			let sender_deposit = info.sender_deposit;
+			if sender_deposit > 0 {
+				rc_reserves
+					.entry(sender.clone())
+					.and_modify(|r: &mut u128| *r = r.saturating_add(sender_deposit))
+					.or_insert(sender_deposit);
+			}
+			let recipient: T::AccountId = channel_id.recipient.into_account_truncating();
+			let recipient_deposit = info.recipient_deposit;
+			if recipient_deposit > 0 {
+				rc_reserves
+					.entry(recipient.clone())
+					.and_modify(|r: &mut u128| *r = r.saturating_add(recipient_deposit))
+					.or_insert(recipient_deposit);
+			}
+		}
+
+		for (channel_id, info) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			let sender: T::AccountId = channel_id.sender.into_account_truncating();
+			let sender_deposit = info.sender_deposit;
+			if sender_deposit > 0 {
+				rc_reserves
+					.entry(sender.clone())
+					.and_modify(|r: &mut u128| *r = r.saturating_add(sender_deposit))
+					.or_insert(sender_deposit);
+			}
+		}
+
+		for (_, info) in Paras::<T>::iter() {
+			let manager = info.manager;
+			let manager_deposit = info.deposit;
+			if manager_deposit > 0 {
+				rc_reserves
+					.entry(manager.clone())
+					.and_modify(|r: &mut u128| *r = r.saturating_add(manager_deposit))
+					.or_insert(manager_deposit);
+			}
+		}
+
+		for (who, mut reserved_kept) in rc_reserves {
+			// Holds migration is prioritized over keeping unnamed reserves on the relay chain
+			let total_reserved = <T as Config>::Currency::reserved_balance(&who);
+			let total_hold = pallet_balances::Holds::<T>::get(&who)
+				.into_iter()
+				.map(|h| h.amount)
+				.sum::<T::Balance>();
+			reserved_kept = reserved_kept.min(total_reserved.saturating_sub(total_hold));
+			if reserved_kept == 0 {
+				continue;
+			}
+
+			// We need to keep some reserved balance (reserved_kept) on the relay chain, together
+			// with the Relay Chain existential deposit. Notice that this cannot be greater than
+			// the total balance of the account.
+			let ed = <T as Config>::Currency::minimum_balance();
+			let total_balance = <T as Config>::Currency::total_balance(&who);
+			let free_kept = ed.min(total_balance.saturating_sub(reserved_kept));
+			rc_reserved_kept.insert(who.clone(), reserved_kept);
+			rc_free_kept.insert(who.clone(), free_kept);
+		}
+		Self { rc_reserved_kept, rc_free_kept }
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T> AccountsMigrationChecker<T> {
+	pub fn lock_id_to_u8(lock_id: [u8; 8], _chain_type: ChainType) -> u8 {
+		match lock_id.as_slice() {
+			b"staking " => 0,
+			b"vesting " => 1,
+			b"pyconvot" => 2,
+			_ => {
+				log::error!(
+					target: LOG_TARGET,
+					"Unknown lock id: {:?}",
+					lock_id
+				);
+				3
+			},
+		}
+	}
+
+	pub fn freeze_id_encoding_to_u8(freeze_id: Vec<u8>, chain_type: ChainType) -> u8 {
+		let nomination_pools_encoding = match chain_type {
+			ChainType::RC => [39, 0],
+			ChainType::AH => [80, 0],
+		};
+		if freeze_id.as_slice() == nomination_pools_encoding {
+			0
+		} else {
+			log::error!(target: LOG_TARGET, "Unknown freeze id: {:?}", freeze_id);
+			1
+		}
+	}
+
+	pub fn hold_id_encoding_to_u8(hold_id: Vec<u8>, chain_type: ChainType) -> u8 {
+		let preimage_encoding: [u8; 2] = match chain_type {
+			ChainType::RC => [10, 0],
+			ChainType::AH => [5, 0],
+		};
+		let staking_encoding: [u8; 2] = match chain_type {
+			ChainType::RC => [41, 0],
+			// TODO: change to the correct encoding when Staking holds are correctly re-created on
+			// Asset Hub in pallet-staking-async
+			ChainType::AH => [5, 0],
+		};
+		if hold_id.as_slice() == preimage_encoding {
+			0
+		} else if hold_id.as_slice() == staking_encoding {
+			// TODO: change to the correct encoding when Staking holds are correctly re-created on
+			// Asset Hub in pallet-staking-async
+			0
+		} else {
+			log::error!(target: LOG_TARGET, "Unknown hold id: {:?}", hold_id);
+			2
+		}
+	}
+
+	// Get the AH expected hold amount for a RC migrated hold.
+	// This is used to check that the hold amount is correct after migration.
+	pub fn ah_hold_amount_from_rc(hold_id: Vec<u8>, hold_amount: u128) -> u128 {
+		match hold_id.as_slice() {
+			// Preimage deposits are divided by 100 when migrated to Asset Hub.
+			[10, 0] => hold_amount.saturating_div(100),
+			_ => hold_amount,
+		}
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrationChecker<T> {
+	// The first item is a mapping from account to a summary of their balances, including holds,
+	// reserves, locks, and freezes. The second item is the total issuance on the relay chain
+	// before migration
+	type RcPrePayload = (BTreeMap<T::AccountId, BalanceSummary>, u128);
 
 	fn pre_check() -> Self::RcPrePayload {
+		let mut account_summaries = BTreeMap::new();
 		let total_issuance = <T as Config>::Currency::total_issuance();
-		total_issuance
+		let RcKeptBalance { rc_reserved_kept, rc_free_kept } = RcKeptBalance::<T>::new();
+		for (who, account_info) in SystemAccount::<T>::iter() {
+			// Checking account balance migration is tested separately.
+			if who == T::CheckingAccount::get() {
+				continue;
+			}
+			let rc_kept_reserved_balance = rc_reserved_kept.get(&who).unwrap_or(&0);
+			let rc_kept_free_balance = rc_free_kept.get(&who).unwrap_or(&0);
+			let total_balance = <T as Config>::Currency::total_balance(&who);
+			if total_balance == rc_kept_free_balance.saturating_add(*rc_kept_reserved_balance) {
+				// Account is fully kept on the relay chain
+				continue;
+			}
+			let total_reserved = <T as Config>::Currency::reserved_balance(&who);
+			let migrated_reserved = total_reserved.saturating_sub(*rc_kept_reserved_balance);
+			let free = <T as Config>::Currency::balance(&who);
+			let migrated_free = free.saturating_sub(*rc_kept_free_balance);
+			let frozen = account_info.data.frozen;
+
+			let mut locks_enc = Vec::new();
+			for lock in pallet_balances::Locks::<T>::get(&who) {
+				locks_enc.push((
+					Self::lock_id_to_u8(lock.id, ChainType::RC),
+					lock.amount,
+					lock.reasons as u8,
+				));
+			}
+			let mut freezes_enc = Vec::new();
+			for freeze in pallet_balances::Freezes::<T>::get(&who) {
+				freezes_enc.push((
+					Self::freeze_id_encoding_to_u8(freeze.id.encode(), ChainType::RC),
+					freeze.amount,
+				));
+			}
+			let mut holds_enc = Vec::new();
+			for hold in pallet_balances::Holds::<T>::get(&who) {
+				holds_enc.push((
+					Self::hold_id_encoding_to_u8(hold.id.encode(), ChainType::RC),
+					Self::ah_hold_amount_from_rc(hold.id.encode(), hold.amount),
+				));
+			}
+
+			let balance_summary = BalanceSummary {
+				migrated_free,
+				migrated_reserved,
+				frozen,
+				holds: holds_enc,
+				locks: locks_enc,
+				freezes: freezes_enc,
+			};
+
+			account_summaries.insert(who.clone(), balance_summary);
+		}
+		(account_summaries, total_issuance)
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload) {
-		let rc_total_issuance_before = rc_pre_payload;
+		let (_, rc_total_issuance_before) = rc_pre_payload;
 
 		let mut acc_state_maybe: Option<AccountStateFor<T>>;
 		// Check that all accounts have been processed correctly
@@ -835,7 +1075,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 
 					// Assert storage "Balances::Account::rc_post::empty"
 					assert_eq!(
-						total_balance, reserved + <T as Config>::Currency::minimum_balance(),
+						total_balance, reserved.saturating_add(<T as Config>::Currency::minimum_balance()),
 						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
 						who.to_ss58check()
 					);
@@ -902,7 +1142,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 							Preservation::Expendable,
 							Fortitude::Polite,
 						);
-						assert!(free_balance < <T as Config>::Currency::minimum_balance() + T::AhExistentialDeposit::get(), "Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", who.to_ss58check());
+						assert!(free_balance < <T as Config>::Currency::minimum_balance().saturating_add(T::AhExistentialDeposit::get()), "Preserved account {:?} should have not enough free balance on the relay chain after migration to be migrated to Asset Hub", who.to_ss58check());
 					}
 				},
 				// This corresponds to AccountState::Migrate: the account should be fully migrated
@@ -956,7 +1196,7 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrator<T> {
 		let total_issuance = <T as Config>::Currency::total_issuance();
 		let tracker = RcMigratedBalance::<T>::get();
 		// verify total issuance hasn't changed for any other reason than the migrated funds
-		assert_eq!(total_issuance, rc_total_issuance_before - tracker.migrated);
+		assert_eq!(total_issuance, rc_total_issuance_before.saturating_sub(tracker.migrated));
 		assert_eq!(total_issuance, tracker.kept);
 	}
 }
