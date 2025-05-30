@@ -71,9 +71,9 @@ use sp_runtime::RuntimeDebug;
 use frame_support::{
 	defensive,
 	dispatch::DispatchResultWithPostInfo,
-	ensure, impl_ensure_origin_with_arg_ignoring_arg,
+	ensure,
 	traits::{
-		tokens::Balance as BalanceTrait, EnsureOrigin, EnsureOriginWithArg, Get, RankedMembers,
+		tokens::Balance as BalanceTrait, Get, RankedMembers,
 		RankedMembersSwapHandler, Currency, ReservableCurrency,
 	},
 	BoundedVec, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,

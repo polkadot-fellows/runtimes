@@ -113,7 +113,7 @@ impl Convert<Rank, Votes> for VoteWeight {
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;
 
 impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_ranked_collective_ambassador_collective::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	// Promotions must be done through the [`crate::AmbassadorCore`] pallet instance.
 	#[cfg(not(feature = "runtime-benchmarks"))]
@@ -193,7 +193,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 pub type AmbassadorCoreInstance = pallet_core_fellowship_ambassador::Instance2;
 
 impl pallet_core_fellowship_ambassador::Config<AmbassadorCoreInstance> for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members =
 		pallet_ranked_collective_ambassador::Pallet<Runtime, AmbassadorCollectiveInstance>;
