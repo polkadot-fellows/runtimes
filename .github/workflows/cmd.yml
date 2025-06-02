@@ -22,6 +22,7 @@ jobs:
       - name: Load fellows
         id: load-fellows
         uses: paritytech/get-fellows-action@v1.3.1
+        timeout-minutes: 5
 
   reject-non-fellows:
     needs: fellows
