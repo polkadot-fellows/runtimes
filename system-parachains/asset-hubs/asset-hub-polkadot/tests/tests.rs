@@ -46,7 +46,7 @@ use sp_runtime::traits::MaybeEquivalence;
 use system_parachains_constants::{
 	kusama::consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, polkadot::fee::WeightToFee,
 };
-use xcm::latest::prelude::{Assets as XcmAssets, *};
+use xcm::v5::prelude::{Assets as XcmAssets, *};
 use xcm_builder::WithLatestLocationConverter;
 use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
@@ -81,7 +81,7 @@ fn slot_durations() -> SlotDurations {
 fn setup_pool_for_paying_fees_with_foreign_assets(
 	(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 		AccountId,
-		xcm::v4::Location,
+		Location,
 		Balance,
 	),
 ) {
@@ -89,7 +89,7 @@ fn setup_pool_for_paying_fees_with_foreign_assets(
 
 	// setup a pool to pay fees with `foreign_asset_id_location` tokens
 	let pool_owner: AccountId = [14u8; 32].into();
-	let native_asset = xcm::v4::Location::parent();
+	let native_asset = xcm::v5::Location::parent();
 	let pool_liquidity: Balance =
 		existential_deposit.max(foreign_asset_id_minimum_balance).mul(100_000);
 
@@ -155,9 +155,9 @@ fn test_assets_balances_api_works() {
 		.build()
 		.execute_with(|| {
 			let local_asset_id = 1;
-			let foreign_asset_id_location = xcm::v4::Location::new(
+			let foreign_asset_id_location = xcm::v5::Location::new(
 				1,
-				[xcm::v4::Junction::Parachain(1234), xcm::v4::Junction::GeneralIndex(12345)],
+				[xcm::v5::Junction::Parachain(1234), xcm::v5::Junction::GeneralIndex(12345)],
 			);
 
 			// check before
@@ -336,13 +336,13 @@ asset_test_utils::include_asset_transactor_transfer_with_pallet_assets_instance_
 	Runtime,
 	XcmConfig,
 	ForeignAssetsInstance,
-	xcm::v4::Location,
-	WithLatestLocationConverter<xcm::v4::Location>,
+	xcm::v5::Location,
+	WithLatestLocationConverter<xcm::v5::Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
-	xcm::v4::Location::new(
+	xcm::v5::Location::new(
 		1,
-		[xcm::v4::Junction::Parachain(1313), xcm::v4::Junction::GeneralIndex(12345)]
+		[xcm::v5::Junction::Parachain(1313), xcm::v5::Junction::GeneralIndex(12345)]
 	),
 	Box::new(|| {
 		assert!(Assets::asset_ids().collect::<Vec<_>>().is_empty());
@@ -358,8 +358,8 @@ include_create_and_manage_foreign_assets_for_local_consensus_parachain_assets_wo
 	WeightToFee,
 	ForeignCreatorsSovereignAccountOf,
 	ForeignAssetsInstance,
-	xcm::v4::Location,
-	WithLatestLocationConverter<xcm::v4::Location>,
+	xcm::v5::Location,
+	WithLatestLocationConverter<xcm::v5::Location>,
 	collator_session_keys(),
 	ExistentialDeposit::get(),
 	AssetDeposit::get(),
@@ -436,14 +436,14 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
 	let block_author_account = AccountId::from(BLOCK_AUTHOR_ACCOUNT);
 	let staking_pot = StakingPot::get();
 
-	let foreign_asset_id_location_v4 =
-		xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Kusama)]);
+	let foreign_asset_id_location_v5 =
+		xcm::v5::Location::new(2, [xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Kusama)]);
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
 	let foreign_asset_create_params = (
 		foreign_asset_owner,
-		foreign_asset_id_location_v4.clone(),
+		foreign_asset_id_location_v5.clone(),
 		foreign_asset_id_minimum_balance,
 	);
 
@@ -479,7 +479,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // check now foreign asset for staking pot
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location_v4.clone(),
+                        foreign_asset_id_location_v5.clone(),
                         &staking_pot
                     ),
                     0
@@ -493,7 +493,7 @@ fn receive_reserve_asset_deposited_ksm_from_asset_hub_kusama_fees_paid_by_pool_s
                 // staking pot receives no foreign assets
                 assert_eq!(
                     ForeignAssets::balance(
-                        foreign_asset_id_location_v4.clone(),
+                        foreign_asset_id_location_v5.clone(),
                         &staking_pot
                     ),
                     0
@@ -786,9 +786,9 @@ pub mod remove_when_updated_to_stable2409 {
 		<WeightToFee as frame_support::weights::WeightToFee>::Balance: From<u128> + Into<u128>,
 		SovereignAccountOf: ConvertLocation<AccountIdOf<Runtime>>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128>,
 		<Runtime as frame_system::Config>::AccountId:
@@ -800,11 +800,11 @@ pub mod remove_when_updated_to_stable2409 {
 	{
 		// foreign parachain with the same consensus currency as asset
 		let foreign_para_id = 2222;
-		let foreign_asset_id_location = xcm::v4::Location {
+		let foreign_asset_id_location = xcm::v5::Location {
 			parents: 1,
 			interior: [
-				xcm::v4::Junction::Parachain(foreign_para_id),
-				xcm::v4::Junction::GeneralIndex(1234567),
+				xcm::v5::Junction::Parachain(foreign_para_id),
+				xcm::v5::Junction::GeneralIndex(1234567),
 			]
 			.into(),
 		};
@@ -812,9 +812,9 @@ pub mod remove_when_updated_to_stable2409 {
 			Location::new(1, [Parachain(foreign_para_id), GeneralIndex(1234567)]);
 
 		// foreign creator, which can be sibling parachain to match ForeignCreators
-		let foreign_creator = xcm::v4::Location {
+		let foreign_creator = xcm::v5::Location {
 			parents: 1,
-			interior: [xcm::v4::Junction::Parachain(foreign_para_id)].into(),
+			interior: [xcm::v5::Junction::Parachain(foreign_para_id)].into(),
 		};
 		let foreign_creator_latest: Location = foreign_creator.try_into().unwrap();
 		let foreign_creator_as_account_id =
@@ -1118,7 +1118,7 @@ pub mod remove_when_updated_to_stable2409 {
 		block_author_account: AccountIdOf<Runtime>,
 		(foreign_asset_owner, foreign_asset_id_location, foreign_asset_id_minimum_balance): (
 			AccountIdOf<Runtime>,
-			xcm::v4::Location,
+			Location,
 			u128,
 		),
 		foreign_asset_id_amount_to_transfer: u128,
@@ -1144,9 +1144,9 @@ pub mod remove_when_updated_to_stable2409 {
 		BalanceOf<Runtime>: From<Balance> + Into<Balance>,
 		XcmConfig: xcm_executor::Config,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetId:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::AssetIdParameter:
-			From<xcm::v4::Location> + Into<xcm::v4::Location>,
+			From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		<Runtime as pallet_assets::Config<ForeignAssetsPalletInstance>>::Balance:
 			From<Balance> + Into<u128> + From<u128>,
 		<Runtime as frame_system::Config>::AccountId: Into<<<Runtime as frame_system::Config>::RuntimeOrigin as OriginTrait>::AccountId>
@@ -1473,14 +1473,14 @@ pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
 			From<<Runtime as frame_system::Config>::AccountId>,
 		ForeignAssetsPalletInstance: 'static,
 		AssetId: Clone,
-		AssetIdConverter: MaybeEquivalence<xcm::v4::Location, AssetId>,
+		AssetIdConverter: MaybeEquivalence<xcm::v5::Location, AssetId>,
 		<Runtime as frame_system::Config>::AccountId: Into<sp_runtime::AccountId32>,
 		<Runtime as frame_system::Config>::RuntimeOrigin: From<RuntimeOrigin>,
 	{
 		// foreign parachain with the same consensus currency as asset
-		let foreign_asset_id_location = xcm::v4::Location::new(
+		let foreign_asset_id_location = xcm::v5::Location::new(
 			1,
-			[xcm::v4::Junction::Parachain(2222), xcm::v4::Junction::GeneralIndex(1234567)],
+			[xcm::v5::Junction::Parachain(2222), xcm::v5::Junction::GeneralIndex(1234567)],
 		);
 		let asset_id = AssetIdConverter::convert(&foreign_asset_id_location).unwrap();
 
@@ -1673,11 +1673,11 @@ pub mod remove_when_asset_test_utils_doesnt_use_latest_xcm_location {
 
 				// lets try create asset for different parachain(3333) (foreign_creator(2222) can
 				// create just his assets)
-				let foreign_asset_id_location = xcm::v4::Location {
+				let foreign_asset_id_location = xcm::v5::Location {
 					parents: 1,
 					interior: [
-						xcm::v4::Junction::Parachain(3333),
-						xcm::v4::Junction::GeneralIndex(1234567),
+						xcm::v5::Junction::Parachain(3333),
+						xcm::v5::Junction::GeneralIndex(1234567),
 					]
 					.into(),
 				};
