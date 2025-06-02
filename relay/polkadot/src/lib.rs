@@ -719,7 +719,7 @@ impl pallet_staking::Config for Runtime {
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
+	type Filter = ();
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1466,7 +1466,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	type Filter = pallet_staking::AllStakers<Runtime>;
+	type Filter = ();
 	type BlockNumberProvider = System;
 }
 
@@ -3159,55 +3159,6 @@ mod multiplier_tests {
 		}
 	}
 }
-
-#[cfg(test)]
-mod staking_tests {
-	use super::*;
-	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
-	#[test]
-	fn accounts_cannot_dual_stake() {
-		let mut ext = sp_io::TestExternalities::new_empty();
-		ext.execute_with(|| {
-			let stake = ExistentialDeposit::get() * 10;
-			// Given a solo staker
-			let solo_staker = AccountId::from([1u8; 32]);
-			Balances::set_balance(&solo_staker, 3 * stake);
-			assert_ok!(Staking::bond(
-				RuntimeOrigin::signed(solo_staker.clone()),
-				stake,
-				pallet_staking::RewardDestination::Stash
-			));
-
-			// And a pooled staker
-			let pooled_staker = AccountId::from([2u8; 32]);
-			Balances::set_balance(&pooled_staker, 3 * stake);
-			assert_ok!(NominationPools::create(
-				RuntimeOrigin::signed(pooled_staker.clone()),
-				stake,
-				pooled_staker.clone().into(),
-				pooled_staker.clone().into(),
-				pooled_staker.clone().into()
-			));
-
-			// Then the solo staker cannot join a pool.
-			assert_noop!(
-				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
-				pallet_nomination_pools::Error::<Runtime>::Restricted
-			);
-
-			// And the pooled staker cannot solo-stake.
-			assert_noop!(
-				pallet_staking::Pallet::<Runtime>::bond(
-					RuntimeOrigin::signed(pooled_staker),
-					stake,
-					pallet_staking::RewardDestination::Stash,
-				),
-				pallet_staking::Error::<Runtime>::Restricted
-			);
-		});
-	}
-}
-
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests {
 	use super::*;
