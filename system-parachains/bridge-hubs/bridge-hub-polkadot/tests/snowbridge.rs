@@ -48,7 +48,7 @@ use xcm::latest::prelude::*;
 use xcm_builder::HandleFee;
 use xcm_executor::traits::{FeeManager, FeeReason};
 parameter_types! {
-		pub const DefaultBridgeHubEthereumBaseFee: Balance = 2_750_872_500_000;
+	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
 }
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;

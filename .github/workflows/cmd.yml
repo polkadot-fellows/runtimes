@@ -117,7 +117,7 @@ jobs:
         id: get-pr-comment
         with:
           text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )([\s\w-]+)$'
+          regex: '^(\/cmd )([\s\w-:]+)$'
 
       - name: Save output of help
         id: help
@@ -215,6 +215,7 @@ jobs:
 
   cmd:
     needs: [get-pr-branch, fellows]
+    timeout-minutes: 1440 # 24 hours per runtime
     env:
       JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
@@ -225,7 +226,7 @@ jobs:
         id: get-pr-comment
         with:
           text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )([\s\w-]+)$'
+          regex: '^(\/cmd )([\s\w-:]+)$'
 
       - name: Build workflow link
         if:  ${{ !contains(github.event.comment.body, '--quiet') }}

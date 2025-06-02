@@ -73,7 +73,7 @@ pub(crate) fn weth_at_asset_hubs() -> xcm::v4::Location {
 			xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Ethereum {
 				chain_id: snowbridge::CHAIN_ID,
 			}),
-			xcm::v4::Junction::AccountKey20 { network: None, key: snowbridge::WETH },
+			xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
 		],
 	)
 }
