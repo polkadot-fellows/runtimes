@@ -9593,10 +9593,8 @@ dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
- "kusama-emulated-chain",
  "parachains-common",
  "penpal-runtime",
- "polkadot-emulated-chain",
  "sp-core 34.0.0",
  "staging-xcm",
 ]
