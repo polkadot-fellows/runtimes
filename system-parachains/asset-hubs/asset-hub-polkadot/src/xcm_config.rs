@@ -71,7 +71,7 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub TrustBackedAssetsPalletIndex: u8 = <Assets as PalletInfoAccess>::index() as u8;
-	pub TrustBackedAssetsPalletLocation: Location =
+	pub TrustBackedAssetsPalletLocationV5: Location =
 		PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub TrustBackedAssetsPalletLocationV4: xcm::v5::Location =
 		xcm::v5::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
@@ -80,8 +80,8 @@ parameter_types! {
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	pub PoolAssetsPalletLocation: Location =
-		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
+	pub PoolAssetsPalletLocationV5: xcm::v5::Location =
+		xcm::v5::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub PoolAssetsPalletLocationV4: xcm::v5::Location =
 		xcm::v5::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
@@ -129,7 +129,7 @@ pub type FungibleTransactor = FungibleAdapter<
 
 /// `AssetId`/`Balance` converter for `TrustBackedAssets`.
 pub type TrustBackedAssetsConvertedConcreteId =
-	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocation, Balance>;
+	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocationV5, Balance>;
 
 /// Means for transacting assets besides the native currency on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
@@ -152,7 +152,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConvertedConcreteId<
 	(
 		// Ignore `TrustBackedAssets` explicitly
-		StartsWith<TrustBackedAssetsPalletLocation>,
+		StartsWith<TrustBackedAssetsPalletLocationV5>,
 		// Ignore assets that start explicitly with our `GlobalConsensus(NetworkId)`, means:
 		// - foreign assets from our consensus should be: `Location {parents: 1, X*(Parachain(xyz),
 		//   ..)}`
@@ -182,7 +182,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 
 /// `AssetId`/`Balance` converter for `PoolAssets`.
 pub type PoolAssetsConvertedConcreteId =
-	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
+	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocationV5, Balance>;
 
 /// Means for transacting asset conversion pool assets on this chain.
 pub type PoolFungiblesTransactor = FungiblesAdapter<
@@ -213,7 +213,7 @@ pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
 	AssetConversion,
 	NativeAndAssets,
 	(
-		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, xcm::v5::Location>,
+		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocationV5, Balance, xcm::v5::Location>,
 		ForeignAssetsConvertedConcreteId,
 		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it
 		// explicitly here.
@@ -419,7 +419,7 @@ impl xcm_executor::Config for XcmConfig {
 			NativeAndAssets,
 			(
 				TrustBackedAssetsAsLocation<
-					TrustBackedAssetsPalletLocation,
+					TrustBackedAssetsPalletLocationV5,
 					Balance,
 					xcm::v5::Location,
 				>,

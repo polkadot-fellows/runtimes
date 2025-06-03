@@ -19,7 +19,7 @@ use crate::{
 	tests::teleport::do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using_xt,
 	*,
 };
-use asset_hub_kusama_runtime::xcm_config::KsmLocation;
+use asset_hub_kusama_runtime::xcm_config::KsmLocationV5;
 use emulated_integration_tests_common::USDT_ID;
 use kusama_system_emulated_network::kusama_emulated_chain::kusama_runtime::Dmp;
 
@@ -161,14 +161,14 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	let destination = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sender = AssetHubKusamaSender::get();
 	let native_amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 10000;
-	let native_asset_location = KsmLocation::get();
+	let native_asset_location = KsmLocationV5::get();
 	let receiver = PenpalAReceiver::get();
 	let assets_owner = PenpalAssetOwner::get();
 	// Foreign asset used: bridged DOT
 	let foreign_amount_to_send = ASSET_HUB_KUSAMA_ED * 10_000_000;
-	let dot_at_kusama_parachains = xcm::v4::Location::new(
+	let dot_at_kusama_parachains = xcm::v5::Location::new(
 		2,
-		[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
+		[xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot)],
 	);
 
 	// Configure destination chain to trust AH as reserve of DOT
@@ -295,14 +295,14 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	let destination = PenpalA::sibling_location_of(AssetHubKusama::para_id());
 	let sender = PenpalASender::get();
 	let native_amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 10000;
-	let native_asset_location = KsmLocation::get();
+	let native_asset_location = KsmLocationV5::get();
 	let assets_owner = PenpalAssetOwner::get();
 
 	// Foreign asset used: bridged DOT
 	let foreign_amount_to_send = ASSET_HUB_KUSAMA_ED * 10_000_000;
-	let dot_at_kusama_parachains = xcm::v4::Location::new(
+	let dot_at_kusama_parachains = xcm::v5::Location::new(
 		2,
-		[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
+		[xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot)],
 	);
 
 	// Configure destination chain to trust AH as reserve of DOT
@@ -445,7 +445,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	let sender = PenpalASender::get();
 	let ksm_to_send: Balance = KUSAMA_ED * 10000;
 	let assets_owner = PenpalAssetOwner::get();
-	let ksm_location = KsmLocation::get();
+	let ksm_location = KsmLocationV5::get();
 	let sender_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalA::para_id());
 	let sov_of_sender_on_ah = AssetHubKusama::sovereign_account_id_of(sender_as_seen_by_ah);
 	let receiver_as_seen_by_ah = AssetHubKusama::sibling_location_of(PenpalB::para_id());
@@ -473,9 +473,9 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	});
 
 	// Register DOT as foreign asset and transfer it around the Kusama ecosystem
-	let dot_at_kusama_parachains = xcm::v4::Location::new(
+	let dot_at_kusama_parachains = xcm::v5::Location::new(
 		2,
-		[xcm::v4::Junction::GlobalConsensus(xcm::v4::NetworkId::Polkadot)],
+		[xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot)],
 	);
 	AssetHubKusama::force_create_foreign_asset(
 		dot_at_kusama_parachains.clone(),
@@ -665,7 +665,7 @@ fn transfer_native_asset_from_relay_to_para_through_asset_hub() {
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
 
 	// Init values for Parachain
-	let relay_native_asset_location = KsmLocation::get();
+	let relay_native_asset_location = KsmLocationV5::get();
 	let receiver = PenpalAReceiver::get();
 
 	// Init Test
@@ -830,15 +830,15 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 	let sov_penpal_on_ah = AssetHubKusama::sovereign_account_id_of(penpal_a_as_seen_by_ah);
 	let receiver = PenpalBReceiver::get();
 	let fee_asset_item = 0;
-	let usdt_location: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Junction::Parachain(1000),
-		xcm::v4::Junction::PalletInstance(50),
-		xcm::v4::Junction::GeneralIndex(1984),
+	let usdt_location: xcm::v5::Location = (
+		xcm::v5::Parent,
+		xcm::v5::Junction::Parachain(1000),
+		xcm::v5::Junction::PalletInstance(50),
+		xcm::v5::Junction::GeneralIndex(1984),
 	)
 		.into();
-	let usdt_location_ah: xcm::v4::Location =
-		(xcm::v4::Junction::PalletInstance(50), xcm::v4::Junction::GeneralIndex(1984)).into();
+	let usdt_location_ah: xcm::v5::Location =
+		(xcm::v5::Junction::PalletInstance(50), xcm::v5::Junction::GeneralIndex(1984)).into();
 	let ksm_location = Location::parent();
 	let usdt_location_latest: Location = usdt_location.clone().try_into().unwrap();
 	let assets: Vec<Asset> = vec![(usdt_location_latest.clone(), amount_to_send).into()];

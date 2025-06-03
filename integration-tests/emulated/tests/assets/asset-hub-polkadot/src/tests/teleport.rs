@@ -330,10 +330,10 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	)]);
 
 	// Init values for System Parachain
-	let asset_location_on_penpal_v4: xcm::v4::Location =
+	let asset_location_on_penpal_v4: xcm::v5::Location =
 		asset_location_on_penpal.clone().try_into().unwrap();
 	let foreign_asset_at_asset_hub_polkadot =
-		xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(PenpalB::para_id().into())])
+		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalB::para_id().into())])
 			.appended_with(asset_location_on_penpal_v4)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubPolkadotReceiver::get();

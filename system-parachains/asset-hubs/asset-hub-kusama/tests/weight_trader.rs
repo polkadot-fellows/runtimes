@@ -17,7 +17,7 @@
 
 use asset_hub_kusama_runtime::{
 	xcm_config::{
-		KsmLocation, KsmLocationV4, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
+		KsmLocationV5, StakingPot, TrustBackedAssetsPalletLocationV5, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
 	SessionKeys,
@@ -35,7 +35,7 @@ use frame_support::{
 use parachains_common::{AccountId, AuraId};
 use sp_runtime::traits::MaybeEquivalence;
 use system_parachains_constants::kusama::{currency::*, fee::WeightToFee};
-use xcm::latest::prelude::*;
+use xcm::v5::prelude::*;
 use xcm_executor::traits::WeightTrader;
 
 const ALICE: [u8; 32] = [1u8; 32];
@@ -56,7 +56,7 @@ fn test_buy_and_refund_weight_with_native() {
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
-			let native_location = KsmLocation::get();
+			let native_location = KsmLocationV5::get();
 			let initial_balance = 200 * UNITS;
 
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
@@ -115,13 +115,13 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
 			let asset_1: u32 = 1;
-			let native_location = KsmLocationV4::get();
+			let native_location = KsmLocationV5::get();
 			let asset_1_location_latest = AssetIdForTrustBackedAssetsConvert::<
-				TrustBackedAssetsPalletLocation,
+				TrustBackedAssetsPalletLocationV5,
 				Location,
 			>::convert_back(&asset_1)
 			.unwrap();
-			let asset_1_location: xcm::v4::Location = asset_1_location_latest.try_into().unwrap();
+			let asset_1_location: xcm::v5::Location = asset_1_location_latest.try_into().unwrap();
 
 			// bob's initial balance for native and `asset1` assets.
 			let initial_balance = 200 * UNITS;
@@ -218,10 +218,10 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
-			let native_location = KsmLocationV4::get();
-			let foreign_location = xcm::v4::Location::new(
+			let native_location = KsmLocationV5::get();
+			let foreign_location = xcm::v5::Location::new(
 				1,
-				[xcm::v4::Junction::Parachain(1234), xcm::v4::Junction::GeneralIndex(12345)],
+				[xcm::v5::Junction::Parachain(1234), xcm::v5::Junction::GeneralIndex(12345)],
 			);
 			// bob's initial balance for native and `asset1` assets.
 			let initial_balance = 200 * UNITS;
@@ -294,8 +294,8 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let v4_asset: xcm::v4::Asset = (foreign_location.clone(), asset_refund).into();
-			assert_eq!(actual_refund, v4_asset.try_into().unwrap());
+			let v5_asset: xcm::v5::Asset = (foreign_location.clone(), asset_refund).into();
+			assert_eq!(actual_refund, v5_asset.try_into().unwrap());
 
 			// assert.
 			assert_eq!(Balances::balance(&staking_pot), initial_balance);
