@@ -95,6 +95,7 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					};
 					match iter.next() {
 						Some((account_id, class, voting)) => {
+							alias::VotingFor::<T>::remove(&account_id, &class);
 							messages.push(RcConvictionVotingMessage::VotingFor(
 								account_id.clone(),
 								class.clone(),
