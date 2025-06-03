@@ -194,8 +194,9 @@ jobs:
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
 
-# TODO: remove if not needed. or reuse for Paseo
+  # TODO: remove if not needed. or reuse for Paseo
   ahm-test-westend:
+    if: false
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous runs
