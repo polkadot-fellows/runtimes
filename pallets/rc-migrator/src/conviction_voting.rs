@@ -95,21 +95,11 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					};
 					match iter.next() {
 						Some((account_id, class, voting)) => {
-							alias::VotingFor::<T>::remove(&account_id, &class);
-							if Pallet::<T>::is_empty_conviction_vote(&voting) {
-								// from the Polkadot 17.01.2025 snapshot 20575 records
-								// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-								log::debug!(target: LOG_TARGET,
-									"VotingFor {:?} is ignored since it has zero voting capital",
-									(&account_id, &class)
-								);
-							} else {
-								messages.push(RcConvictionVotingMessage::VotingFor(
-									account_id.clone(),
-									class.clone(),
-									voting,
-								));
-							}
+							messages.push(RcConvictionVotingMessage::VotingFor(
+								account_id.clone(),
+								class.clone(),
+								voting,
+							));
 							ConvictionVotingStage::VotingFor(Some((account_id, class)))
 						},
 						None => ConvictionVotingStage::ClassLocksFor(None),
@@ -124,24 +114,10 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					match iter.next() {
 						Some((account_id, balance_per_class)) => {
 							ClassLocksFor::<T>::remove(&account_id);
-							let mut balance_per_class = balance_per_class.into_inner();
-							balance_per_class.retain(|(class, balance)| {
-								if balance.is_zero() {
-									// from the Polkadot 17.01.2025 snapshot 8522 records
-									// issue: https://github.com/paritytech/polkadot-sdk/issues/7458
-									log::debug!(target: LOG_TARGET,
-										"ClassLocksFor {:?} is ignored since it has a zero balance",
-										(&account_id, &class)
-									);
-									false
-								} else {
-									true
-								}
-							});
 							if balance_per_class.len() > 0 {
 								messages.push(RcConvictionVotingMessage::ClassLocksFor(
 									account_id.clone(),
-									balance_per_class,
+									balance_per_class.into_inner(),
 								));
 							}
 							ConvictionVotingStage::ClassLocksFor(Some(account_id))
@@ -167,19 +143,6 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 			Ok(None)
 		} else {
 			Ok(Some(last_key))
-		}
-	}
-}
-
-impl<T: Config> Pallet<T> {
-	fn is_empty_conviction_vote(voting: &alias::VotingOf<T>) -> bool {
-		if !voting.locked_balance().is_zero() {
-			return false;
-		}
-		match voting {
-			Voting::Casting(casting) if casting.delegations.capital.is_zero() => true,
-			Voting::Delegating(delegating) if delegating.delegations.capital.is_zero() => true,
-			_ => false,
 		}
 	}
 }
@@ -273,9 +236,7 @@ impl<T: Config> crate::types::RcMigrationCheck for ConvictionVotingMigrator<T> {
 
 		// Collect VotingFor
 		for (account_id, class, voting) in alias::VotingFor::<T>::iter() {
-			if !Pallet::<T>::is_empty_conviction_vote(&voting) {
-				messages.push(RcConvictionVotingMessage::VotingFor(account_id, class, voting));
-			}
+			messages.push(RcConvictionVotingMessage::VotingFor(account_id, class, voting));
 		}
 
 		// Collect ClassLocksFor
