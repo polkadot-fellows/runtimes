@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Update to SDK version `2503-2` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
+- Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
 
 ## [1.5.1] 22.05.2025
 

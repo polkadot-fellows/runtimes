@@ -833,7 +833,6 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
-		// TODO @bkontur: Check this out, please.
 		fn bench_reward() -> Self::Reward {
 			bp_relayers::RewardsAccountParams::new(
 				bp_messages::LegacyLaneId::default(),
