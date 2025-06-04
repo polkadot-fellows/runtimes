@@ -37,6 +37,7 @@ fn coretime_kusama_genesis(
 				.cloned()
 				.map(|k| (k, CORETIME_KUSAMA_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,
