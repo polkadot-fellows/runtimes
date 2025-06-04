@@ -66,6 +66,7 @@ pub mod genesis_config_presets;
 mod impls;
 mod weights;
 pub mod xcm_config;
+pub mod verify_xcm_upgrade_migration;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
@@ -1061,6 +1062,8 @@ pub type Migrations = (
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
 	>,
 	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	// Test XCM V4 to V5 compatibility for ForeignAssets and AssetConversion storage
+	verify_xcm_upgrade_migration::migration::TestXcmV4ToV5Compatibility<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
