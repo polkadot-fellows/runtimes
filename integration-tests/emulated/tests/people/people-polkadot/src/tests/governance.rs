@@ -15,12 +15,11 @@
 
 use crate::*;
 use emulated_integration_tests_common::accounts::{ALICE, BOB};
-
 use frame_support::sp_runtime::traits::Dispatchable;
+use pallet_identity::Data;
 use people_polkadot_runtime::people::IdentityInfo;
 use polkadot_runtime::governance::pallet_custom_origins::Origin::GeneralAdmin as GeneralAdminOrigin;
-
-use pallet_identity::Data;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 
 #[test]
 fn relay_commands_add_registrar() {
@@ -37,6 +36,7 @@ fn relay_commands_add_registrar() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+			Dmp::make_parachain_reachable(1004);
 			let add_registrar_call =
 				PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 					account: registrar.into(),
@@ -95,6 +95,7 @@ fn relay_commands_add_registrar_wrong_origin() {
 		type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let add_registrar_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_registrar {
 				account: registrar.into(),
@@ -173,6 +174,7 @@ fn relay_commands_kill_identity() {
 		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
@@ -234,6 +236,7 @@ fn relay_commands_kill_identity_wrong_origin() {
 		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let kill_identity_call =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::kill_identity {
 				target: people_polkadot_runtime::MultiAddress::Id(PeoplePolkadot::account_id_of(
@@ -293,6 +296,7 @@ fn relay_commands_add_remove_username_authority() {
 			type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 			type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+			Dmp::make_parachain_reachable(1004);
 			let add_username_authority = PeopleCall::Identity(pallet_identity::Call::<
 				PeopleRuntime,
 			>::add_username_authority {
@@ -443,6 +447,7 @@ fn relay_commands_add_remove_username_authority_wrong_origin() {
 		type PeopleCall = <PeoplePolkadot as Chain>::RuntimeCall;
 		type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
 
+		Dmp::make_parachain_reachable(1004);
 		let add_username_authority =
 			PeopleCall::Identity(pallet_identity::Call::<PeopleRuntime>::add_username_authority {
 				authority: people_polkadot_runtime::MultiAddress::Id(people_polkadot_alice.clone()),
