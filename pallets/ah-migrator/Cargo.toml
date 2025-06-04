@@ -50,6 +50,7 @@ sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
+sp-staking = { workspace = true }
 hex-literal = { workspace = true }
 hex = { workspace = true }
 xcm = { workspace = true }
@@ -106,6 +107,7 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
+	"sp-staking/std",
 	"sp-std/std",
 	"xcm-builder/std",
 	"xcm-builder/std",
@@ -148,6 +150,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	# "asset-hub-polkadot-runtime/runtime-benchmarks"
