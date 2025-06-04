@@ -143,10 +143,11 @@ impl<T: Config> RcMigrationCheck for PreimageRequestStatusMigrator<T> {
 	}
 
 	fn post_check(_rc_pre_payload: Self::RcPrePayload) {
+		// "Assert storage 'Preimage::RequestStatusFor::rc_post::empty'"
 		assert_eq!(
 			alias::RequestStatusFor::<T>::iter().count(),
 			0,
-			"Preimage::RequestStatusFor is not empty on relay chain after migration"
+			"Preimage::RequestStatusFor must be empty on the relay chain after migration"
 		);
 	}
 }

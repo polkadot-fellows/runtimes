@@ -98,14 +98,14 @@ impl Convert<RcFreezeReason, RuntimeFreezeReason> for RcToAhFreezeReason {
 	}
 }
 
-pub type RcProxyType = <polkadot_runtime::Runtime as pallet_proxy::Config>::ProxyType;
+pub type RcProxyType = polkadot_runtime_constants::proxy::ProxyType;
 
 pub struct RcToProxyType;
 impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 	fn try_convert(p: RcProxyType) -> Result<ProxyType, RcProxyType> {
 		use polkadot_runtime_constants::proxy::ProxyType::*;
 
-		match p.0 {
+		match p {
 			Any => Ok(ProxyType::Any),
 			NonTransfer => Ok(ProxyType::NonTransfer),
 			Governance => Ok(ProxyType::Governance),

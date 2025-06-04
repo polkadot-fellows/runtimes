@@ -94,7 +94,7 @@ use pallet_rc_migrator::{
 	types::MigrationFinishedData,
 	vesting::RcVestingSchedule,
 };
-use pallet_referenda::{ReferendumInfo, TrackIdOf};
+use pallet_referenda::TrackIdOf;
 use polkadot_runtime_common::{claims as pallet_claims, impls::VersionedLocatableAsset};
 use referenda::RcReferendumInfoOf;
 use scheduler::RcSchedulerMessageOf;
