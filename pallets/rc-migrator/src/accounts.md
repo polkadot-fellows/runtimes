@@ -203,3 +203,5 @@ After all accounts (including checking account) are migrated from RC to AH:
 ```
 
 At which point, `ah_total_issuance_after` should equal `rc_total_issuance_before`.
+
+<img width="836" alt="checking-account" src="https://github.com/user-attachments/assets/376c791b-a9ed-400e-beab-c14d92a72686" />
