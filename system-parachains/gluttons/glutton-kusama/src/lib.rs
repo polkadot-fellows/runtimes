@@ -320,7 +320,7 @@ mod benches {
 		}
 	}
 
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
