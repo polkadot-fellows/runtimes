@@ -1042,9 +1042,9 @@ pub mod remove_when_updated_to_stable2409 {
 						);
 					let asset_to_teleport_away = asset_minimum_asset_balance * 3;
 					assert!(
-						asset_to_teleport_away
-							< (target_account_balance_before_teleport
-								- asset_minimum_asset_balance.into())
+						asset_to_teleport_away <
+							(target_account_balance_before_teleport -
+								asset_minimum_asset_balance.into())
 							.into()
 					);
 
@@ -1147,9 +1147,8 @@ pub mod remove_when_updated_to_stable2409 {
 			})
 			.expect("expected instruction BuyExecution")
 			.match_next_inst(|instr| match instr {
-				DepositAsset { assets: _, beneficiary } if beneficiary == expected_beneficiary => {
-					Ok(())
-				},
+				DepositAsset { assets: _, beneficiary } if beneficiary == expected_beneficiary =>
+					Ok(()),
 				_ => Err(ProcessMessageError::BadFormat),
 			})
 			.expect("expected instruction DepositAsset");
