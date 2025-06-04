@@ -18,6 +18,7 @@
 //! Account balance migration.
 
 use crate::*;
+use frame_support::traits::DefensiveSaturating;
 use pallet_rc_migrator::accounts::{AccountsMigrationChecker, BalanceSummary, ChainType};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
@@ -87,17 +88,7 @@ impl<T: Config> Pallet<T> {
 		debug_assert!(minted == total_balance);
 
 		AhMigratedBalance::<T>::mutate(|balance| {
-			*balance = match (*balance).checked_add(total_balance) {
-				Some(new_balance) => new_balance,
-				None => {
-					log::error!(
-						target: LOG_TARGET,
-						"Balance overflow when adding balance of {}, balance {:?}, to total migrated {:?}",
-						who.to_ss58check(), total_balance, balance,
-					);
-					*balance
-				},
-			};
+			*balance = (*balance).defensive_saturating_add(total_balance);
 		});
 
 		for hold in account.holds {
@@ -306,24 +297,22 @@ impl<T: Config> crate::types::AhMigrationCheck for AccountsMigrationChecker<T> {
 			}
 
 			let frozen = frame_system::Account::<T>::get(&who).data.frozen;
-			let mut holds_enc: Vec<(u8, u128)> = Vec::new();
+			let mut holds_enc = Vec::new();
 			for hold in pallet_balances::Holds::<T>::get(&who) {
-				holds_enc.push((
-					Self::hold_id_encoding_to_u8(hold.id.encode(), ChainType::AH),
-					hold.amount,
-				));
+				holds_enc
+					.push((Self::hold_id_encoding(hold.id.encode(), ChainType::AH), hold.amount));
 			}
-			let mut freezes_enc: Vec<(u8, u128)> = Vec::new();
+			let mut freezes_enc = Vec::new();
 			for freeze in pallet_balances::Freezes::<T>::get(&who) {
 				freezes_enc.push((
-					Self::freeze_id_encoding_to_u8(freeze.id.encode(), ChainType::AH),
+					Self::freeze_id_encoding(freeze.id.encode(), ChainType::AH),
 					freeze.amount,
 				));
 			}
-			let mut locks_enc: Vec<(u8, u128, u8)> = Vec::new();
+			let mut locks_enc = Vec::new();
 			for lock in pallet_balances::Locks::<T>::get(&who) {
 				locks_enc.push((
-					Self::lock_id_to_u8(lock.id, ChainType::AH),
+					Self::lock_id_encoding(lock.id, ChainType::AH),
 					lock.amount,
 					lock.reasons as u8,
 				));
