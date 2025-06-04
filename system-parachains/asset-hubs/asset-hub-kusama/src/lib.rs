@@ -29,6 +29,7 @@ extern crate alloc;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 mod impls;
+pub mod verify_xcm_upgrade_migration;
 mod weights;
 pub mod xcm_config;
 

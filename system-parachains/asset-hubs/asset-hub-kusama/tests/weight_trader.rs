@@ -16,9 +16,7 @@
 //! Tests for `WeighTrader` type of XCM Executor.
 
 use asset_hub_kusama_runtime::{
-	xcm_config::{
-		KsmLocationV5, StakingPot, TrustBackedAssetsPalletLocationV5, XcmConfig,
-	},
+	xcm_config::{KsmLocationV5, StakingPot, TrustBackedAssetsPalletLocationV5, XcmConfig},
 	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
 	SessionKeys,
 };

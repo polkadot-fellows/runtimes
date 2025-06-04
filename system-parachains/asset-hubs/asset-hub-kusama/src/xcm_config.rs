@@ -353,11 +353,7 @@ impl xcm_executor::Config for XcmConfig {
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<
-					TrustBackedAssetsPalletLocationV5,
-					Balance,
-					Location,
-				>,
+				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocationV5, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,
