@@ -174,6 +174,7 @@ pub mod proxy {
 		PartialOrd,
 		codec::Encode,
 		codec::Decode,
+		codec::DecodeWithMemTracking,
 		core::fmt::Debug,
 		codec::MaxEncodedLen,
 		scale_info::TypeInfo,
@@ -280,7 +281,7 @@ mod tests {
 		proxy::ProxyType,
 	};
 	use crate::weights::ExtrinsicBaseWeight;
-	use codec::{Decode, Encode};
+	use codec::{Decode, DecodeWithMemTracking, Encode};
 	use frame_support::weights::WeightToFee as WeightToFeeT;
 	use polkadot_runtime_common::MAXIMUM_BLOCK_WEIGHT;
 
@@ -304,7 +305,16 @@ mod tests {
 	}
 
 	#[derive(
-		Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, sp_runtime::RuntimeDebug,
+		Copy,
+		Clone,
+		Eq,
+		PartialEq,
+		Ord,
+		PartialOrd,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		sp_runtime::RuntimeDebug,
 	)]
 	pub enum OldProxyType {
 		Any,
