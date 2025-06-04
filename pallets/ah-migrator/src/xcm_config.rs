@@ -125,9 +125,16 @@ mod before {
 		*,
 	};
 
+	#[cfg(feature = "ahm-kusama")]
+	use kusama_runtime_constants::TREASURY_PALLET_ID;
+	#[cfg(feature = "ahm-polkadot")]
+	use polkadot_runtime_constants::TREASURY_PALLET_ID;
+	#[cfg(feature = "ahm-westend")]
+	use westend_runtime_constants::TREASURY_PALLET_ID;
+
 	parameter_types! {
 		pub RelayTreasuryLocation: Location =
-			(Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
+			(Parent, PalletInstance(TREASURY_PALLET_ID)).into();
 	}
 
 	pub struct ParentOrParentsPlurality;
@@ -246,10 +253,10 @@ pub struct WaivedLocations<Stage>(PhantomData<Stage>);
 impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
 	fn contains(location: &Location) -> bool {
 		if Stage::is_finished() {
-			log::trace!(target: "xcm::WaivedLocations::contains", "migration finished");
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration finished)");
 			after::WaivedLocationsAfter::contains(location)
 		} else {
-			log::trace!(target: "xcm::WaivedLocations::contains", "migration not finished");
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration not finished)");
 			before::WaivedLocationsBeforeDuring::contains(location)
 		}
 	}

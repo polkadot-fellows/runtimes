@@ -185,6 +185,7 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
+ahm-kusama = []
 ahm-polkadot = [
 	"pallet-ah-ops/ahm-polkadot",
 	"pallet-rc-migrator/ahm-polkadot",

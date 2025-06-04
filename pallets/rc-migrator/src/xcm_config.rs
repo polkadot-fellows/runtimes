@@ -96,10 +96,10 @@ pub struct WaivedLocations<Stage>(PhantomData<Stage>);
 impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
 	fn contains(location: &Location) -> bool {
 		if Stage::is_finished() {
-			log::trace!(target: "xcm::WaivedLocations::contains", "migration finished");
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration finished)");
 			after::WaivedLocationsAfter::contains(location)
 		} else {
-			log::trace!(target: "xcm::WaivedLocations::contains", "migration not finished");
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration not finished)");
 			before::WaivedLocationsBeforeDuring::contains(location)
 		}
 	}
