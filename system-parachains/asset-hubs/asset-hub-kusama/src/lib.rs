@@ -1178,7 +1178,7 @@ impl
 			u64::MAX.into()
 		));
 
-		let token_native = Box::new(KsmLocationV4::get());
+		let token_native = Box::new(KsmLocationV5::get());
 		let token_second = Box::new(asset_id);
 
 		assert_ok!(AssetConversion::create_pool(
@@ -1262,11 +1262,11 @@ mod benches {
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
 	use pallet_xcm_benchmarks::asset_instance_from;
-	use xcm_config::{KsmLocation, MaxAssetsIntoHolding};
+	use xcm_config::{KsmLocationV5, MaxAssetsIntoHolding};
 
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
-			KsmLocation::get(),
+			KsmLocationV5::get(),
 			ExistentialDeposit::get()
 		).into());
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
@@ -1369,7 +1369,7 @@ mod benches {
 			PriceForParentDelivery,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(KsmLocationV5::get())
 		}
 		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
 			// A mix of fungible, non-fungible, and concrete assets.
@@ -1388,7 +1388,7 @@ mod benches {
 					fun: Fungible(u128::MAX),
 				}))
 				.chain(core::iter::once(Asset {
-					id: AssetId(KsmLocation::get()),
+					id: AssetId(KsmLocationV5::get()),
 					fun: Fungible(1_000_000 * UNITS),
 				}))
 				.chain((0..holding_non_fungibles).map(|i| Asset {
@@ -1402,8 +1402,8 @@ mod benches {
 
 	parameter_types! {
 		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-			KsmLocation::get(),
-			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocation::get()) },
+			KsmLocationV5::get(),
+			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocationV5::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubKusama trusts AssetHubPolkadot as reserve for DOTs
@@ -1426,7 +1426,7 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(KsmLocation::get()), fun: Fungible(UNITS) }
+			Asset { id: AssetId(KsmLocationV5::get()), fun: Fungible(UNITS) }
 		}
 	}
 
@@ -1500,24 +1500,24 @@ mod benches {
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 			Ok((
-				KsmLocation::get(),
+				KsmLocationV5::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
 			))
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(KsmLocationV5::get())
 		}
 
 		fn claimable_asset() -> Result<(Location, Location, XcmAssets), BenchmarkError> {
-			let origin = KsmLocation::get();
-			let assets: XcmAssets = (AssetId(KsmLocation::get()), 1_000 * UNITS).into();
+			let origin = KsmLocationV5::get();
+			let assets: XcmAssets = (AssetId(KsmLocationV5::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
 		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+			Ok(Asset { id: AssetId(KsmLocationV5::get()), fun: Fungible(1_000_000 * UNITS) })
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
