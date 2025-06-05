@@ -47,7 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub
+- All XCM benchmarks use sibling parachain as destination instead of Relay chain to properly adapt weights in context of incoming migration from Relay to Asset Hub ([polkadot-fellows/runtimes#709](https://github.com/polkadot-fellows/runtimes/pull/709))
 
 ## [1.5.0] 22.04.2025
 
