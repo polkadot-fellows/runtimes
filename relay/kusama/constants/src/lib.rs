@@ -157,6 +157,7 @@ pub mod proxy {
 		PartialOrd,
 		codec::Encode,
 		codec::Decode,
+		codec::DecodeWithMemTracking,
 		codec::MaxEncodedLen,
 		core::fmt::Debug,
 		scale_info::TypeInfo,

@@ -23,6 +23,7 @@ use frame_support::{
 use polkadot_runtime::OriginCaller;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use polkadot_runtime_constants::currency::UNITS;
+use polkadot_system_emulated_network::polkadot_emulated_chain::polkadot_runtime::Dmp;
 use xcm_executor::traits::ConvertLocation;
 
 // Fund Fellowship Treasury from Polkadot Treasury and spend from Fellowship Treasury.
@@ -59,6 +60,7 @@ fn fellowship_treasury_spend() {
 			treasury_account.clone().into(),
 			treasury_balance * 2,
 		));
+		Dmp::make_parachain_reachable(1000);
 
 		let native_asset = Location::here();
 		let asset_hub_location: Location = [Parachain(1000)].into();
