@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove a lease ([SDK stable2503 #7026](https://github.com/paritytech/polkadot-sdk/pull/7026)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to remove an assignment ([SDK stable2503 #7080](https://github.com/paritytech/polkadot-sdk/pull/7080)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Pallet-broker: add extrinsic to reserve a system core without having to wait two sale boundaries ([SDK stable2503 #4273](https://github.com/paritytech/polkadot-sdk/pull/4273)).
+  - [[#754](https://github.com/polkadot-fellows/runtimes/pull/754) Change to minimum price controller and configure minimum price of 10 DOT and 1 KSM for Coretime sales. Existing renewals will also be adjusted accordingly and are now no longer completely decoupled from the market. For details on this, please checkout [RFC-149](https://polkadot-fellows.github.io/RFCs/new/0149-rfc-1-renewal-adjustment.html).
 
 ### Changed
 
