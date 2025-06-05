@@ -43,8 +43,9 @@ use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use kusama_runtime_constants::time::MINUTES as RC_MINUTES;
 use pallet_proxy::ProxyDefinition;
+use pallet_revive::{evm::runtime::EthExtra, AddressMapper};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160, U256};
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
@@ -62,13 +63,13 @@ use sp_version::RuntimeVersion;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
-	dispatch::DispatchClass,
+	dispatch::{DispatchClass, DispatchInfo},
 	genesis_builder_helper::{build_state, get_preset},
 	ord_parameter_types, parameter_types,
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
 		ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, Equals, EverythingBut,
-		InstanceFilter, TransformOrigin, WithdrawReasons,
+		InstanceFilter, Nothing, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	BoundedVec, PalletId,
@@ -82,7 +83,7 @@ use parachains_common::{
 	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
 	Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::TransactionExtension, RuntimeDebug};
 pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
@@ -1029,6 +1030,38 @@ impl pallet_remote_proxy::Config for Runtime {
 	type WeightInfo = weights::pallet_remote_proxy::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub const DepositPerItem: Balance = system_para_deposit(1, 0);
+	pub const DepositPerByte: Balance = system_para_deposit(0, 1);
+	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
+}
+
+impl pallet_revive::Config for Runtime {
+	type Time = Timestamp;
+	type Currency = Balances;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type CallFilter = Nothing;
+	type DepositPerItem = DepositPerItem;
+	type DepositPerByte = DepositPerByte;
+	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
+	type ChainExtension = ();
+	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
+	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
+	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type UploadOrigin = EnsureSigned<Self::AccountId>;
+	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type Xcm = pallet_xcm::Pallet<Self>;
+	type ChainId = ConstU64<420_420_421>;
+	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
+	type EthGasEncoder = ();
+	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -1077,6 +1110,8 @@ construct_runtime!(
 		PoolAssets: pallet_assets::<Instance3> = 55,
 		AssetConversion: pallet_asset_conversion = 56,
 
+		Revive: pallet_revive = 60,
+
 		// State trie migration pallet, only temporary.
 		StateTrieMigration: pallet_state_trie_migration = 70,
 	}
@@ -1102,9 +1137,45 @@ pub type TxExtension = (
 	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
+
+/// Default extensions applied to Ethereum transactions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EthExtraImpl;
+
+impl EthExtra for EthExtraImpl {
+	type Config = Runtime;
+	type Extension = TxExtension;
+
+	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
+		(
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckMortality::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(nonce),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(tip, None),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+		)
+			.into()
+	}
+}
+
+impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
+	type Error = ();
+
+	fn try_from(value: RuntimeCall) -> Result<Self, Self::Error> {
+		match value {
+			RuntimeCall::Revive(call) => Ok(call),
+			_ => Err(()),
+		}
+	}
+}
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
+	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
 
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
@@ -1221,6 +1292,7 @@ mod benches {
 		[pallet_nfts, Nfts]
 		[pallet_proxy, Proxy]
 		[pallet_remote_proxy, RemoteProxyRelayChain]
+		[pallet_revive, Revive],
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
@@ -1886,6 +1958,173 @@ impl_runtime_apis! {
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
 			genesis_config_presets::preset_names()
+		}
+	}
+
+	impl pallet_revive::ReviveApi<Block, AccountId, Balance, Nonce, BlockNumber> for Runtime
+	{
+		fn balance(address: H160) -> U256 {
+			Revive::evm_balance(&address)
+		}
+
+		fn block_gas_limit() -> U256 {
+			Revive::evm_block_gas_limit()
+		}
+
+		fn gas_price() -> U256 {
+			Revive::evm_gas_price()
+		}
+
+		fn nonce(address: H160) -> Nonce {
+			let account = <Runtime as pallet_revive::Config>::AddressMapper::to_account_id(&address);
+			System::account_nonce(account)
+		}
+
+		fn eth_transact(tx: pallet_revive::evm::GenericTransaction) -> Result<pallet_revive::EthTransactInfo<Balance>, pallet_revive::EthTransactError>
+		{
+			let blockweights: BlockWeights = <Runtime as frame_system::Config>::BlockWeights::get();
+			let tx_fee = |pallet_call, mut dispatch_info: DispatchInfo| {
+				let call = RuntimeCall::Revive(pallet_call);
+				dispatch_info.extension_weight = EthExtraImpl::get_eth_extension(0, 0u32.into()).weight(&call);
+				let uxt: UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic::new_bare(call).into();
+
+				pallet_transaction_payment::Pallet::<Runtime>::compute_fee(
+					uxt.encoded_size() as u32,
+					&dispatch_info,
+					0u32.into(),
+				)
+			};
+
+			Revive::bare_eth_transact(tx, blockweights.max_block, tx_fee)
+		}
+
+		fn call(
+			origin: AccountId,
+			dest: H160,
+			value: Balance,
+			gas_limit: Option<Weight>,
+			storage_deposit_limit: Option<Balance>,
+			input_data: Vec<u8>,
+		) -> pallet_revive::ContractResult<pallet_revive::ExecReturnValue, Balance> {
+			let blockweights= <Runtime as frame_system::Config>::BlockWeights::get();
+			Revive::bare_call(
+				RuntimeOrigin::signed(origin),
+				dest,
+				value,
+				gas_limit.unwrap_or(blockweights.max_block),
+				pallet_revive::DepositLimit::Balance(storage_deposit_limit.unwrap_or(u128::MAX)),
+				input_data,
+			)
+		}
+
+		fn instantiate(
+			origin: AccountId,
+			value: Balance,
+			gas_limit: Option<Weight>,
+			storage_deposit_limit: Option<Balance>,
+			code: pallet_revive::Code,
+			data: Vec<u8>,
+			salt: Option<[u8; 32]>,
+		) -> pallet_revive::ContractResult<pallet_revive::InstantiateReturnValue, Balance>
+		{
+			let blockweights= <Runtime as frame_system::Config>::BlockWeights::get();
+			Revive::bare_instantiate(
+				RuntimeOrigin::signed(origin),
+				value,
+				gas_limit.unwrap_or(blockweights.max_block),
+				pallet_revive::DepositLimit::Balance(storage_deposit_limit.unwrap_or(u128::MAX)),
+				code,
+				data,
+				salt,
+			)
+		}
+
+		fn upload_code(
+			origin: AccountId,
+			code: Vec<u8>,
+			storage_deposit_limit: Option<Balance>,
+		) -> pallet_revive::CodeUploadResult<Balance>
+		{
+			Revive::bare_upload_code(
+				RuntimeOrigin::signed(origin),
+				code,
+				storage_deposit_limit.unwrap_or(u128::MAX),
+			)
+		}
+
+		fn get_storage(
+			address: H160,
+			key: [u8; 32],
+		) -> pallet_revive::GetStorageResult {
+			Revive::get_storage(
+				address,
+				key
+			)
+		}
+
+		fn trace_block(
+			block: Block,
+			tracer_type: pallet_revive::evm::TracerType,
+		) -> Vec<(u32, pallet_revive::evm::Trace)> {
+			use pallet_revive::tracing::trace;
+			let mut tracer = Revive::evm_tracer(tracer_type);
+			let mut traces = vec![];
+			let (header, extrinsics) = block.deconstruct();
+			Executive::initialize_block(&header);
+			for (index, ext) in extrinsics.into_iter().enumerate() {
+				trace(tracer.as_tracing(), || {
+					let _ = Executive::apply_extrinsic(ext);
+				});
+
+				if let Some(tx_trace) = tracer.collect_trace() {
+					traces.push((index as u32, tx_trace));
+				}
+			}
+
+			traces
+		}
+
+		fn trace_tx(
+			block: Block,
+			tx_index: u32,
+			tracer_type: pallet_revive::evm::TracerType,
+		) -> Option<pallet_revive::evm::Trace> {
+			use pallet_revive::tracing::trace;
+			let mut tracer = Revive::evm_tracer(tracer_type);
+			let (header, extrinsics) = block.deconstruct();
+
+			Executive::initialize_block(&header);
+			for (index, ext) in extrinsics.into_iter().enumerate() {
+				if index as u32 == tx_index {
+				trace(tracer.as_tracing(), || {
+						let _ = Executive::apply_extrinsic(ext);
+					});
+					break;
+				} else {
+					let _ = Executive::apply_extrinsic(ext);
+				}
+			}
+
+			tracer.collect_trace()
+		}
+
+		fn trace_call(
+			tx: pallet_revive::evm::GenericTransaction,
+			tracer_type: pallet_revive::evm::TracerType,
+			)
+			-> Result<pallet_revive::evm::Trace, pallet_revive::EthTransactError>
+		{
+			use pallet_revive::tracing::trace;
+			let mut tracer = Revive::evm_tracer(tracer_type);
+			let result = trace(tracer.as_tracing(), || Self::eth_transact(tx));
+
+			if let Some(trace) = tracer.collect_trace() {
+				Ok(trace)
+			} else if let Err(err) = result {
+				Err(err)
+			} else {
+				Ok(tracer.empty_trace())
+			}
 		}
 	}
 
