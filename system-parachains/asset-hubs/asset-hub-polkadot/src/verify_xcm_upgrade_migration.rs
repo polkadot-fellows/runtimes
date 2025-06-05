@@ -17,9 +17,7 @@ pub mod migration {
 	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
 	use codec::Encode;
-	use frame_support::{
-		traits::OnRuntimeUpgrade, weights::Weight,
-	};
+	use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 	use sp_core::Get;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
@@ -104,7 +102,9 @@ pub mod migration {
 			let mut tested_assets = 0u32;
 
 			// Test Asset storage items
-			for (asset_id, _asset_details) in pallet_assets::Asset::<T, crate::ForeignAssetsInstance>::iter() {
+			for (asset_id, _asset_details) in
+				pallet_assets::Asset::<T, crate::ForeignAssetsInstance>::iter()
+			{
 				let v5_location: xcm::v5::Location = asset_id.clone().into();
 				let v4_location: xcm::v4::Location =
 					xcm::v4::Location::try_from(v5_location.clone()).unwrap();

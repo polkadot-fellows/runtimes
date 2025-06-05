@@ -816,7 +816,7 @@ pub mod remove_when_updated_to_stable2409 {
 			parents: 1,
 			interior: [xcm::v5::Junction::Parachain(foreign_para_id)].into(),
 		};
-		let foreign_creator_latest: Location = foreign_creator.try_into().unwrap();
+		let foreign_creator_latest: Location = foreign_creator;
 		let foreign_creator_as_account_id =
 			SovereignAccountOf::convert_location(&foreign_creator_latest).expect("");
 
@@ -1206,7 +1206,7 @@ pub mod remove_when_updated_to_stable2409 {
 				additional_checks_before();
 
 				let expected_assets = Assets::from(vec![Asset {
-					id: AssetId(foreign_asset_id_location.clone().try_into().unwrap()),
+					id: AssetId(foreign_asset_id_location.clone()),
 					fun: Fungible(foreign_asset_id_amount_to_transfer),
 				}]);
 				let expected_beneficiary = Location::new(
@@ -1223,7 +1223,7 @@ pub mod remove_when_updated_to_stable2409 {
 					ClearOrigin,
 					BuyExecution {
 						fees: Asset {
-							id: AssetId(foreign_asset_id_location.clone().try_into().unwrap()),
+							id: AssetId(foreign_asset_id_location.clone()),
 							fun: Fungible(foreign_asset_id_amount_to_transfer),
 						},
 						weight_limit: Unlimited,

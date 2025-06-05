@@ -117,7 +117,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	use frame_support::traits::fungible::Mutate;
 
 	let asset_native: xcm::v5::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocation::get().try_into().unwrap();
+		asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
 	let asset_one = xcm::v5::Location {
 		parents: 0,
 		interior: [

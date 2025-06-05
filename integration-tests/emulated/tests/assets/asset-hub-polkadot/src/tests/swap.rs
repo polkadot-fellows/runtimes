@@ -126,8 +126,7 @@ fn swap_locally_on_chain_using_local_assets() {
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
 	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get());
-	let asset_location_on_penpal: xcm::v5::Location =
-		PenpalLocalTeleportableToAssetHub::get().try_into().unwrap();
+	let asset_location_on_penpal: xcm::v5::Location = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_polkadot =
 		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)

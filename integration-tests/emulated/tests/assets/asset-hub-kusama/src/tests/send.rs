@@ -115,7 +115,7 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 #[test]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
 	let asset_native: xcm::v5::Location =
-		asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get().try_into().unwrap();
+		asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get();
 	let asset_one = xcm::v5::Location {
 		parents: 0,
 		interior: [

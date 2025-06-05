@@ -148,7 +148,7 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// The Weth asset location, identified by the contract address on Ethereum
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get().into();
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
 	let weth_asset_location: xcm::v5::Location = (
 		xcm::v5::Parent,
 		xcm::v5::Parent,
@@ -156,7 +156,7 @@ fn send_token_from_ethereum_to_penpal() {
 		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
 	)
 		.into();
-	let weth_asset_location_latest: Location = weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_location_latest: Location = weth_asset_location.clone();
 	// Converts the Weth asset location into an asset ID
 
 	// Fund ethereum sovereign on AssetHub
@@ -338,7 +338,7 @@ fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	amount: u128,
 	asset_location: xcm::v5::Location,
 ) {
-	let asset_location_latest: Location = asset_location.clone().try_into().unwrap();
+	let asset_location_latest: Location = asset_location.clone();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
@@ -522,7 +522,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get().into();
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
 	let ether_location: xcm::v5::Location =
 		(xcm::v5::Parent, xcm::v5::Parent, v4_ethereum_network).into();
 
@@ -540,7 +540,7 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get().into();
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
 	let weth_location: xcm::v5::Location = (
 		xcm::v5::Parent,
 		xcm::v5::Parent,
@@ -1323,7 +1323,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get().into();
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
 	let weth_location_v5: xcm::v5::Location = (
 		xcm::v5::Parent,
 		xcm::v5::Parent,
@@ -1333,8 +1333,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		.into();
 
 	let fee = dot_at_ah_polkadot();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
@@ -1344,7 +1343,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE * 3).into()]
 			.into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
@@ -1409,13 +1408,12 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		[AccountId32 { network: None, id: AssetHubPolkadotReceiver::get().into() }],
 	);
 	let fee = bridged_dot_at_asset_hub_kusama_for_later.clone();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE).into()]
 			.into();
 
 	// Transfer the token back to Polkadot.

@@ -161,7 +161,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 				AssetConversion::get_amount_in(&fee, &pool_liquidity, &pool_liquidity).unwrap();
 			let extra_amount = 100;
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
-			let asset_1_location_latest: Location = asset_1_location.clone().try_into().unwrap();
+			let asset_1_location_latest: Location = asset_1_location.clone();
 			let payment: Asset = (asset_1_location_latest.clone(), asset_fee + extra_amount).into();
 
 			// init trader and buy weight.
@@ -270,7 +270,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 				AssetConversion::get_amount_in(&fee, &pool_liquidity, &pool_liquidity).unwrap();
 			let extra_amount = 100;
 			let ctx = XcmContext { origin: None, message_id: XcmHash::default(), topic: None };
-			let v5_location: Location = foreign_location.clone().try_into().unwrap();
+			let v5_location: Location = foreign_location.clone();
 			let payment: Asset = (v5_location.clone(), asset_fee + extra_amount).into();
 
 			// init trader and buy weight.
@@ -297,7 +297,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
 			let v5_asset: xcm::v5::Asset = (foreign_location.clone(), asset_refund).into();
-			assert_eq!(actual_refund, v5_asset.try_into().unwrap());
+			assert_eq!(actual_refund, v5_asset);
 
 			// assert.
 			assert_eq!(Balances::balance(&staking_pot), initial_balance);

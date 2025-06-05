@@ -182,7 +182,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		));
 	});
 	PenpalA::force_create_foreign_asset(
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -202,8 +202,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 		foreign_amount_to_send * 2,
 	);
 
-	let dot_at_kusama_parachains_latest: Location =
-		dot_at_kusama_parachains.clone().try_into().unwrap();
+	let dot_at_kusama_parachains_latest: Location = dot_at_kusama_parachains.clone();
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(Parent, native_amount_to_send).into(),
@@ -239,10 +238,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	});
 	let receiver_dots_before = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			dot_at_kusama_parachains.clone().try_into().unwrap(),
-			&receiver,
-		)
+		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &receiver)
 	});
 
 	// Set assertions and dispatchables
@@ -263,10 +259,7 @@ fn transfer_foreign_assets_from_asset_hub_to_para() {
 	});
 	let receiver_dots_after = PenpalA::execute_with(|| {
 		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			dot_at_kusama_parachains.try_into().unwrap(),
-			&receiver,
-		)
+		<ForeignAssets as Inspect<_>>::balance(dot_at_kusama_parachains, &receiver)
 	});
 
 	// Sender's balance is reduced by amount sent plus delivery fees
@@ -316,7 +309,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 		));
 	});
 	PenpalA::force_create_foreign_asset(
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -339,7 +332,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 	);
 	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(assets_owner.clone()),
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		sender.clone(),
 		foreign_amount_to_send * 2,
 	);
@@ -358,8 +351,7 @@ fn transfer_foreign_assets_from_para_to_asset_hub() {
 		foreign_amount_to_send * 2,
 	);
 
-	let dot_at_kusama_parachains_latest: Location =
-		dot_at_kusama_parachains.clone().try_into().unwrap();
+	let dot_at_kusama_parachains_latest: Location = dot_at_kusama_parachains.clone();
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(Parent, native_amount_to_send).into(),
@@ -485,14 +477,14 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 		vec![],
 	);
 	PenpalA::force_create_foreign_asset(
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
 		vec![],
 	);
 	PenpalB::force_create_foreign_asset(
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		assets_owner.clone(),
 		false,
 		ASSET_MIN_BALANCE,
@@ -508,7 +500,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	);
 	PenpalA::mint_foreign_asset(
 		<PenpalA as Chain>::RuntimeOrigin::signed(assets_owner.clone()),
-		dot_at_kusama_parachains.clone().try_into().unwrap(),
+		dot_at_kusama_parachains.clone(),
 		sender.clone(),
 		dot_to_send * 2,
 	);
@@ -524,8 +516,7 @@ fn transfer_foreign_assets_from_para_to_para_through_asset_hub() {
 	// Init values for Parachain Destination
 	let receiver = PenpalBReceiver::get();
 
-	let dot_at_kusama_parachains_latest: Location =
-		dot_at_kusama_parachains.clone().try_into().unwrap();
+	let dot_at_kusama_parachains_latest: Location = dot_at_kusama_parachains.clone();
 	// Assets to send
 	let assets: Vec<Asset> = vec![
 		(ksm_location.clone(), ksm_to_send).into(),
@@ -840,7 +831,7 @@ fn usdt_only_transfer_from_para_to_para_through_asset_hub() {
 	let usdt_location_ah: xcm::v5::Location =
 		(xcm::v5::Junction::PalletInstance(50), xcm::v5::Junction::GeneralIndex(1984)).into();
 	let ksm_location = Location::parent();
-	let usdt_location_latest: Location = usdt_location.clone().try_into().unwrap();
+	let usdt_location_latest: Location = usdt_location.clone();
 	let assets: Vec<Asset> = vec![(usdt_location_latest.clone(), amount_to_send).into()];
 
 	// Sender needs some ksm to pay for delivery fees.

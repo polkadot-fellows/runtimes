@@ -330,8 +330,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	)]);
 
 	// Init values for System Parachain
-	let asset_location_on_penpal_v4: xcm::v5::Location =
-		asset_location_on_penpal.clone().try_into().unwrap();
+	let asset_location_on_penpal_v4: xcm::v5::Location = asset_location_on_penpal.clone();
 	let foreign_asset_at_asset_hub_polkadot =
 		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalB::para_id().into())])
 			.appended_with(asset_location_on_penpal_v4)
@@ -433,7 +432,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let ah_to_penpal_beneficiary_id = PenpalBReceiver::get();
 	let penpal_as_seen_by_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let foreign_asset_at_asset_hub_polkadot_latest: Location =
-		foreign_asset_at_asset_hub_polkadot.clone().try_into().unwrap();
+		foreign_asset_at_asset_hub_polkadot.clone();
 	let ah_assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(foreign_asset_at_asset_hub_polkadot_latest.clone(), asset_amount_to_send).into(),
