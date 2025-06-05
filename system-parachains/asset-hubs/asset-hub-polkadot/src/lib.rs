@@ -1237,8 +1237,6 @@ mod benches {
 		);
 
 		fn reachable_dest() -> Option<Location> {
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(PeopleParaId::get());
 			Some(PeopleLocation::get())
 		}
 
@@ -1260,8 +1258,6 @@ mod benches {
 
 		fn set_up_complex_asset_transfer() -> Option<(XcmAssets, u32, Location, Box<dyn FnOnce()>)>
 		{
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(PeopleParaId::get());
 			// Transfer to People some local AH asset (local-reserve-transfer) while paying
 			// fees using teleported native token.
 			// (We don't care that Relay doesn't accept incoming unknown AH local asset)
@@ -1323,8 +1319,6 @@ mod benches {
 			ParachainSystem,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(PeopleParaId::get());
 			Ok(PeopleLocation::get())
 		}
 		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
@@ -1455,8 +1449,6 @@ mod benches {
 		}
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(PeopleParaId::get());
 			Ok((
 				PeopleLocation::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
@@ -1464,8 +1456,6 @@ mod benches {
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			// TODO: Remove below line once we update to polkadot-sdk stable2503
-			ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(PeopleParaId::get());
 			Ok(PeopleLocation::get())
 		}
 
