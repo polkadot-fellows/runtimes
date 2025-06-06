@@ -120,7 +120,7 @@ Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0
 
 The Relay Chain is currently the "native location" of DOT/KSM, and it is responsible for keeping
 track of the token's **total issuance** (across the entire ecosystem).  
-The Relay Chain uses a special "checking" account to track oubound and inbound teleports of the
+The Relay Chain uses a special "checking" account to track outbound and inbound teleports of the
 native token (DOT/KSM), and through this account balance, track all "exported" DOT/KSM. Summing
 that with the total balance of all other local accounts provides the token's *total issuance*.  
 On top of that, the checking account is also used to enforce that the amount of DOT/KSM teleported
