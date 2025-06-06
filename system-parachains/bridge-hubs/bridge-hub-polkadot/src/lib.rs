@@ -24,6 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+pub mod bridge_common_config;
 pub mod bridge_to_ethereum_config;
 pub mod bridge_to_kusama_config;
 // Genesis preset configurations.
@@ -38,10 +39,8 @@ use bridge_hub_common::message_queue::{
 use bridge_to_kusama_config::bp_kusama;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::ParaId;
-use snowbridge_core::{
-	outbound::{Command, Fee},
-	AgentId, PricingParameters,
-};
+use snowbridge_core::{AgentId, PricingParameters};
+use snowbridge_outbound_queue_primitives::v1::{Command, Fee};
 
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -62,8 +61,8 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, Contains,
-		EitherOfDiverse, TransformOrigin,
+		tokens::imbalance::ResolveTo, ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse,
+		Everything, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -155,8 +154,17 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
-	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
 	bridge_to_ethereum_config::migration::MigrateLocationsToXcmV5<Runtime>,
+	pallet_session::migrations::v1::MigrateV0ToV1<
+		Runtime,
+		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
+	>,
+	cumulus_pallet_aura_ext::migration::MigrateV0ToV1<Runtime>,
+	pallet_bridge_relayers::migration::v2::MigrationToV2<
+		Runtime,
+		bridge_common_config::BridgeRelayersInstance,
+		bp_messages::LegacyLaneId,
+	>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -220,24 +228,6 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
-/// Disables extrinsics matching the specified calls.
-pub struct BaseFilter;
-impl Contains<RuntimeCall> for BaseFilter {
-	fn contains(call: &RuntimeCall) -> bool {
-		// Disallow these Snowbridge system calls.
-		if matches!(
-			call,
-			RuntimeCall::EthereumSystem(snowbridge_pallet_system::Call::create_agent { .. }) |
-				RuntimeCall::EthereumSystem(
-					snowbridge_pallet_system::Call::create_channel { .. }
-				)
-		) {
-			return false;
-		}
-		true
-	}
-}
-
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
@@ -275,7 +265,7 @@ impl frame_system::Config for Runtime {
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = RocksDbWeight;
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Everything;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
 	/// Weight information for the extensions from this pallet.
@@ -486,6 +476,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -540,6 +531,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = ConstU32<100>;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -859,18 +851,40 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
+		fn bench_reward() -> Self::Reward {
+			bp_relayers::RewardsAccountParams::new(
+				bp_messages::LegacyLaneId::default(),
+				*b"test",
+				bp_relayers::RewardsAccountOwner::ThisChain,
+			)
+			.into()
+		}
+
 		fn prepare_rewards_account(
-			account_params: bp_relayers::RewardsAccountParams<
-				LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>,
-			>,
+			reward_kind: Self::Reward,
 			reward: Balance,
-		) {
+		) -> Option<
+			pallet_bridge_relayers::BeneficiaryOf<
+				Runtime,
+				bridge_common_config::BridgeRelayersInstance,
+			>,
+		> {
+			let bridge_common_config::BridgeReward::PolkadotKusamaBridge(reward_kind) = reward_kind
+			else {
+				panic!(
+					"Unexpected reward_kind: {:?} - not compatible with `bench_reward`!",
+					reward_kind
+				);
+			};
 			let rewards_account = bp_relayers::PayRewardFromAccount::<
 				Balances,
 				AccountId,
-				LaneIdOf<Runtime, bridge_to_kusama_config::WithBridgeHubKusamaMessagesInstance>,
-			>::rewards_account(account_params);
+				bp_messages::LegacyLaneId,
+				Balance,
+			>::rewards_account(reward_kind);
 			Self::deposit_account(rewards_account, reward);
+
+			None
 		}
 
 		fn deposit_account(account: AccountId, balance: Balance) {
@@ -929,14 +943,16 @@ mod benches {
 			>>::BridgedChain::ID;
 			pallet_bridge_relayers::Pallet::<
 				Runtime,
-				bridge_to_kusama_config::RelayersForLegacyLaneIdsMessagesInstance,
+				bridge_common_config::BridgeRelayersInstance,
 			>::relayer_reward(
 				relayer,
-				bp_relayers::RewardsAccountParams::new(
-					bench_lane_id,
-					bridged_chain_id,
-					bp_relayers::RewardsAccountOwner::BridgedChain,
-				),
+				bridge_common_config::BridgeReward::PolkadotKusamaBridge(
+					bp_relayers::RewardsAccountParams::new(
+						bench_lane_id,
+						bridged_chain_id,
+						bp_relayers::RewardsAccountOwner::BridgedChain,
+					)
+				)
 			)
 			.is_some()
 		}
@@ -1008,7 +1024,7 @@ mod benches {
 	}
 
 	pub use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::StorageInfoTrait;
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
@@ -1311,7 +1327,7 @@ impl_runtime_apis! {
 	}
 
 	impl snowbridge_outbound_queue_runtime_api::OutboundQueueApi<Block, Balance> for Runtime {
-		fn prove_message(leaf_index: u64) -> Option<snowbridge_pallet_outbound_queue::MerkleProof> {
+		fn prove_message(leaf_index: u64) -> Option<snowbridge_merkle_tree::MerkleProof> {
 			snowbridge_pallet_outbound_queue::api::prove_message::<Runtime>(leaf_index)
 		}
 

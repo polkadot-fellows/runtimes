@@ -60,6 +60,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.cloned()
 				.map(|k| (k, ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		parachain_info: asset_hub_kusama_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),

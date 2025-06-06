@@ -57,7 +57,7 @@ pub use kusama_polkadot_system_emulated_network::{
 	},
 	kusama_emulated_chain::{
 		genesis::ED as KUSAMA_ED,
-		kusama_runtime::xcm_config::UniversalLocation as KusamaRelayUniversalLocation,
+		kusama_runtime::{xcm_config::UniversalLocation as KusamaRelayUniversalLocation, Dmp},
 		KusamaRelayPallet as KusamaPallet,
 	},
 	penpal_emulated_chain::{
