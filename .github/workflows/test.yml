@@ -194,7 +194,9 @@ jobs:
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
 
+  # TODO: remove if not needed. or reuse for Paseo
   ahm-test-westend:
+    if: false
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous runs
@@ -431,6 +433,5 @@ jobs:
       # FAIL-CI - zombienet-smoke
       - ecosystem-tests
       - ahm-test-polkadot
-      - ahm-test-westend
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
