@@ -56,4 +56,5 @@ runtime-benchmarks = [
 	"snowbridge-core/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]

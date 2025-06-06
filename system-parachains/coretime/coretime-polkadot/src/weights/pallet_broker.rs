@@ -589,4 +589,46 @@ impl<T: frame_system::Config> pallet_broker::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 3593))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+	/// Storage: `Broker::Leases` (r:1 w:1)
+	/// Proof: `Broker::Leases` (`max_values`: Some(1), `max_size`: Some(81), added: 576, mode: `MaxEncodedLen`)
+	fn remove_lease() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `150`
+		//  Estimated: `1566`
+		// Minimum execution time: 10_319_000 picoseconds.
+		Weight::from_parts(10_718_000, 0)
+			.saturating_add(Weight::from_parts(0, 1566))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// Storage: `Broker::SaleInfo` (r:1 w:0)
+	/// Proof: `Broker::SaleInfo` (`max_values`: Some(1), `max_size`: Some(57), added: 552, mode: `MaxEncodedLen`)
+	/// Storage: `Broker::Reservations` (r:1 w:1)
+	/// Proof: `Broker::Reservations` (`max_values`: Some(1), `max_size`: Some(12021), added: 12516, mode: `MaxEncodedLen`)
+	/// Storage: `Broker::Status` (r:1 w:0)
+	/// Proof: `Broker::Status` (`max_values`: Some(1), `max_size`: Some(18), added: 513, mode: `MaxEncodedLen`)
+	/// Storage: `Broker::Workplan` (r:0 w:2)
+	/// Proof: `Broker::Workplan` (`max_values`: None, `max_size`: Some(1216), added: 3691, mode: `MaxEncodedLen`)
+	fn force_reserve() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `11141`
+		//  Estimated: `13506`
+		// Minimum execution time: 41_171_000 picoseconds.
+		Weight::from_parts(42_826_000, 0)
+			.saturating_add(Weight::from_parts(0, 13506))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	/// Storage: `Broker::Workplan` (r:1 w:1)
+	/// Proof: `Broker::Workplan` (`max_values`: None, `max_size`: Some(1216), added: 3691, mode: `MaxEncodedLen`)
+	fn remove_assignment() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `602`
+		//  Estimated: `4681`
+		// Minimum execution time: 21_397_000 picoseconds.
+		Weight::from_parts(21_865_000, 0)
+			.saturating_add(Weight::from_parts(0, 4681))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

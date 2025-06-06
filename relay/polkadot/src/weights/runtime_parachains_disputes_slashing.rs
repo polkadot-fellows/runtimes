@@ -80,7 +80,7 @@ impl<T: frame_system::Config> runtime_parachains::disputes::slashing::WeightInfo
 	/// Storage: `Staking::UnappliedSlashes` (r:1 w:1)
 	/// Proof: `Staking::UnappliedSlashes` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[4, 1000]`.
-	fn report_dispute_lost(n: u32, ) -> Weight {
+	fn report_dispute_lost_unsigned(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `1492 + n * (32 ±0)`
 		//  Estimated: `4957 + n * (32 ±0)`

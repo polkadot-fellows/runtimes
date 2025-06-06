@@ -100,7 +100,7 @@ assets-common = { workspace = true }
 
 # Bridges
 pallet-xcm-bridge-hub-router = { workspace = true }
-snowbridge-router-primitives = { workspace = true }
+snowbridge-inbound-queue-primitives = { workspace = true }
 
 [dev-dependencies]
 asset-test-utils = { workspace = true }
@@ -151,12 +151,13 @@ runtime-benchmarks = [
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"snowbridge-router-primitives/runtime-benchmarks",
+	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
 	"cumulus-pallet-aura-ext/try-runtime",
@@ -251,7 +252,7 @@ std = [
 	"primitive-types/std",
 	"scale-info/std",
 	"serde_json/std",
-	"snowbridge-router-primitives/std",
+	"snowbridge-inbound-queue-primitives/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",

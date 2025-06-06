@@ -47,6 +47,17 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_beefy_mmr`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
+	/// The range of component `n` is `[2, 512]`.
+	fn n_leafs_proof_is_optimal(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 629_000 picoseconds.
+		Weight::from_parts(1_215_800, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+			// Standard Error: 67
+			.saturating_add(Weight::from_parts(1_275, 0).saturating_mul(n.into()))
+	}
 	/// Storage: `System::BlockHash` (r:1 w:0)
 	/// Proof: `System::BlockHash` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	fn extract_validation_context() -> Weight {

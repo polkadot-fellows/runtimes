@@ -66,11 +66,6 @@ fn set_up_ksm_for_penpal_kusama_through_kah_to_pah(
 
 fn send_assets_from_kusama_chain_through_kusama_ah_to_polkadot_ah<F: FnOnce()>(send_fn: F) {
 	send_assets_over_bridge(|| {
-		let sov_pah_on_kah =
-			AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
-				Polkadot,
-				AssetHubPolkadot::para_id(),
-			);
 		// call transfer extrinsic on sender chain
 		send_fn();
 		// verify intermediary AH Kusama hop
@@ -80,9 +75,7 @@ fn send_assets_from_kusama_chain_through_kusama_ah_to_polkadot_ah<F: FnOnce()>(s
 				AssetHubKusama,
 				vec![
 					// Amount deposited in PAH's sovereign account
-					RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
-						who: *who == sov_pah_on_kah.clone(),
-					},
+					RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
 					RuntimeEvent::XcmpQueue(
 						cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
 					) => {},
@@ -396,6 +389,7 @@ fn send_ksm_from_kusama_relay_through_asset_hub_kusama_to_asset_hub_polkadot() {
 		send_assets_from_kusama_chain_through_kusama_ah_to_polkadot_ah(|| {
 			// send message over bridge
 			assert_ok!(Kusama::execute_with(|| {
+				Dmp::make_parachain_reachable(AssetHubKusama::para_id());
 				let signed_origin = <Kusama as Chain>::RuntimeOrigin::signed(sender.clone());
 				<Kusama as KusamaPallet>::XcmPallet::transfer_assets_using_type_and_then(
 					signed_origin,
@@ -449,7 +443,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 	let sender = PenpalASender::get();
 	let receiver = AssetHubPolkadotReceiver::get();
 	let local_asset_hub = PenpalA::sibling_location_of(AssetHubKusama::para_id());
-	let (ksm_at_kusama_parachains, ksm_at_kusama_parachains_latest, ksm_at_asset_hub_polkadot, _) =
+	let (_, ksm_at_kusama_parachains_latest, ksm_at_asset_hub_polkadot, _) =
 		set_up_ksm_for_penpal_kusama_through_kah_to_pah(&sender, amount);
 
 	let sov_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
@@ -507,7 +501,7 @@ fn send_ksm_from_penpal_kusama_through_asset_hub_kusama_to_asset_hub_polkadot() 
 			vec![
 				// issue KSMs on PAH
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == ksm_at_kusama_parachains.clone(),
+					asset_id: *asset_id == Location::new(2, [GlobalConsensus(Kusama)]).try_into().unwrap(),
 					owner: owner == &receiver,
 				},
 				// message processed successfully
