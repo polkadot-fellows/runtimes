@@ -19,6 +19,8 @@
 extern crate alloc;
 
 use crate::*;
+#[cfg(not(feature = "std"))]
+use alloc::format;
 use babe_primitives::AuthorityId as BabeId;
 use pallet_staking::{Forcing, StakerStatus};
 use polkadot_primitives::{AccountPublic, AssignmentId, AsyncBackingParams};
@@ -27,8 +29,6 @@ use runtime_parachains::configuration::HostConfiguration;
 use sp_core::{sr25519, Pair, Public};
 use sp_genesis_builder::PresetId;
 use sp_runtime::{traits::IdentifyAccount, Perbill};
-#[cfg(not(feature = "std"))]
-use alloc::format;
 
 /// Helper function to generate a crypto pair from seed
 fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
