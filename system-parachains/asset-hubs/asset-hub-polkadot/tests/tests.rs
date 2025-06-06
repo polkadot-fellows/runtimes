@@ -21,8 +21,8 @@ use asset_hub_polkadot_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
 		CheckingAccount, DotLocation, ForeignCreatorsSovereignAccountOf, LocationToAccountId,
-		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		PreMigrationRelayTreasuryPalletAccount as RelayTreasuryPalletAccount,
+		RelayTreasuryLocation, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,

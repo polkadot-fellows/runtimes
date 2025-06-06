@@ -16,7 +16,11 @@
 
 //! XCM configurations for the Relay Chain for the AHM migration.
 
-use frame_support::parameter_types;
+use crate::{types::MigrationStatus, PhantomData};
+use frame_support::{
+	parameter_types,
+	traits::{Contains, ContainsPair, Equals},
+};
 use xcm::latest::prelude::*;
 use xcm_builder::Case;
 
@@ -26,6 +30,7 @@ use polkadot_runtime_constants::system_parachain::*;
 use westend_runtime_constants::system_parachain::*;
 
 parameter_types! {
+	pub const RootLocation: Location = Here.into_location();
 	pub const Dot: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(Here.into_location()) });
 	pub AssetHubLocation: Location = Parachain(ASSET_HUB_ID).into_location();
 	pub DotForAssetHub: (AssetFilter, Location) = (Dot::get(), AssetHubLocation::get());
@@ -47,3 +52,55 @@ pub type TrustedTeleportersBeforeAndAfter = (
 	Case<DotForCoretime>,
 	Case<DotForPeople>,
 );
+
+/// To be used for `IsTeleport` filter. Disallows DOT teleports during the migration.
+pub struct TrustedTeleporters<Stage>(PhantomData<Stage>);
+impl<Stage: MigrationStatus> ContainsPair<Asset, Location> for TrustedTeleporters<Stage> {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		let migration_ongoing = Stage::is_ongoing();
+		log::trace!(target: "xcm::IsTeleport::contains", "migration ongoing: {:?}", migration_ongoing);
+		let result = if migration_ongoing {
+			// during migration, no teleports (in or out) allowed
+			false
+		} else {
+			// before and after migration use normal filter
+			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
+		};
+		log::trace!(
+			target: "xcm::IsTeleport::contains",
+			"asset: {:?} origin {:?} result {:?}",
+			asset, origin, result
+		);
+		result
+	}
+}
+
+mod before {
+	use super::*;
+	pub struct LocalPlurality;
+	impl Contains<Location> for LocalPlurality {
+		fn contains(loc: &Location) -> bool {
+			matches!(loc.unpack(), (0, [Plurality { .. }]))
+		}
+	}
+	pub type WaivedLocationsBeforeDuring = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+}
+mod after {
+	use super::*;
+	pub type WaivedLocationsAfter = (SystemParachains, Equals<RootLocation>);
+}
+
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery.
+/// We only waive fees for system functions, which these locations represent.
+pub struct WaivedLocations<Stage>(PhantomData<Stage>);
+impl<Stage: MigrationStatus> Contains<Location> for WaivedLocations<Stage> {
+	fn contains(location: &Location) -> bool {
+		if Stage::is_finished() {
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration finished)");
+			after::WaivedLocationsAfter::contains(location)
+		} else {
+			log::trace!(target: "xcm::WaivedLocations::contains", "{location:?} (migration not finished)");
+			before::WaivedLocationsBeforeDuring::contains(location)
+		}
+	}
+}
