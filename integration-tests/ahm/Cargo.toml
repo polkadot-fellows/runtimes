@@ -30,7 +30,7 @@ parachains-common = { workspace = true, default-features = true }
 pallet-multisig = { workspace = true, default-features = true }
 polkadot-parachain-primitives = { workspace = true, default-features = true }
 polkadot-primitives = { workspace = true, default-features = true }
-polkadot-runtime = { workspace = true, default-features = true }
+polkadot-runtime = { workspace = true }
 polkadot-runtime-common = { workspace = true, default-features = true }
 polkadot-runtime-constants = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }

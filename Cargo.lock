@@ -9594,10 +9594,8 @@ dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
- "kusama-emulated-chain",
  "parachains-common",
  "penpal-runtime",
- "polkadot-emulated-chain",
  "sp-core 34.0.0",
  "staging-xcm",
 ]
@@ -10164,7 +10162,6 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
- "pallet-ah-migrator",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
