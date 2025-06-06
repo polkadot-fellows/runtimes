@@ -191,7 +191,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_005_000,
+	spec_version: 1_005_001,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -833,7 +833,6 @@ mod benches {
 	use pallet_bridge_relayers::benchmarking::Config as BridgeRelayersConfig;
 
 	impl BridgeRelayersConfig for Runtime {
-		// TODO @bkontur: Check this out, please.
 		fn bench_reward() -> Self::Reward {
 			bp_relayers::RewardsAccountParams::new(
 				bp_messages::LegacyLaneId::default(),
