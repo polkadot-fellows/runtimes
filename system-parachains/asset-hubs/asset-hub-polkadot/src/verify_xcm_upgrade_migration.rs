@@ -16,6 +16,8 @@
 pub mod migration {
 	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
+	#[cfg(feature = "try-runtime")]
+	use codec::Decode;
 	use codec::Encode;
 	use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 	use sp_core::Get;

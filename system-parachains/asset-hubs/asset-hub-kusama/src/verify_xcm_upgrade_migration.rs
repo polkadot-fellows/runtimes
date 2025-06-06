@@ -16,6 +16,8 @@
 pub mod migration {
 	#[cfg(feature = "try-runtime")]
 	use crate::{vec, Vec};
+	#[cfg(feature = "try-runtime")]
+	use codec::Decode;
 	use codec::Encode;
 	use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
 	use sp_core::Get;
@@ -52,7 +54,6 @@ pub mod migration {
 			// Test ForeignAssets storage items
 			weight.saturating_accrue(Self::test_foreign_assets_compatibility());
 
-			// Test AssetConversion storage items
 			weight.saturating_accrue(Self::test_asset_conversion_compatibility());
 
 			log::info!("XCM V4 to V5 compatibility test migration completed successfully");
