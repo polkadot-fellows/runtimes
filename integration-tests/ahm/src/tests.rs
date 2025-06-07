@@ -37,6 +37,7 @@ use super::{
 	checks::SanityChecks,
 	mock::*,
 	multisig_still_work::MultisigStillWork,
+	multisig_test::MultisigsAccountIdStaysTheSame,
 	proxy::{ProxyBasicWorks, ProxyWhaleWatching},
 };
 use asset_hub_polkadot_runtime::Runtime as AssetHub;
@@ -98,6 +99,8 @@ type RcChecks = (
 // Checks that are specific to Polkadot, and not available on other chains (like Westend).
 #[cfg(feature = "ahm-polkadot")]
 pub type RcPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<Polkadot>,
 	pallet_rc_migrator::bounties::BountiesMigrator<Polkadot>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<Polkadot>,
 	pallet_rc_migrator::claims::ClaimsMigrator<Polkadot>,
@@ -145,6 +148,8 @@ type AhChecks = (
 // (like AH Westend).
 #[cfg(feature = "ahm-polkadot")]
 pub type AhPolkadotChecks = (
+	MultisigsAccountIdStaysTheSame,
+	pallet_rc_migrator::multisig::MultisigMigrationChecker<AssetHub>,
 	pallet_rc_migrator::bounties::BountiesMigrator<AssetHub>,
 	pallet_rc_migrator::treasury::TreasuryMigrator<AssetHub>,
 	pallet_rc_migrator::claims::ClaimsMigrator<AssetHub>,

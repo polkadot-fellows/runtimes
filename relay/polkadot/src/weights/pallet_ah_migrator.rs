@@ -47,7 +47,7 @@ use core::marker::PhantomData;
 
 /// Weight functions for `pallet_ah_migrator`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: crate::ah_migration::weights::DbConfig> pallet_ah_migrator::WeightInfo for WeightInfo<T> {
+impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::WeightInfo for WeightInfo<T> {
 	/// Storage: `AhMigrator::DmpDataMessageCounts` (r:1 w:0)
 	/// Proof: `AhMigrator::DmpDataMessageCounts` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::UpwardDeliveryFeeFactor` (r:1 w:0)
