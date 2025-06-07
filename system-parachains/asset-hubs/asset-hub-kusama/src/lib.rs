@@ -29,6 +29,7 @@ extern crate alloc;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 mod impls;
+pub mod verify_xcm_upgrade_migration;
 mod weights;
 pub mod xcm_config;
 
@@ -103,8 +104,8 @@ use xcm::{
 };
 use xcm_config::{
 	FellowshipLocation, ForeignAssetsConvertedConcreteId, ForeignCreatorsSovereignAccountOf,
-	GovernanceLocation, KsmLocation, KsmLocationV4, PoolAssetsConvertedConcreteId,
-	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV4,
+	GovernanceLocation, KsmLocationV5, PoolAssetsConvertedConcreteId,
+	TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV5,
 };
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
@@ -281,7 +282,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
 		NativeAndAssets,
-		KsmLocationV4,
+		KsmLocationV5,
 		ResolveAssetTo<StakingPot, NativeAndAssets>,
 	>;
 	type WeightToFee = WeightToFee;
@@ -378,11 +379,11 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 	Assets,
 	ForeignAssets,
 	LocalFromLeft<
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV4, xcm::v4::Location>,
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV5, xcm::v5::Location>,
 		AssetIdForTrustBackedAssets,
-		xcm::v4::Location,
+		xcm::v5::Location,
 	>,
-	xcm::v4::Location,
+	xcm::v5::Location,
 	AccountId,
 >;
 
@@ -390,23 +391,23 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 pub type NativeAndAssets = fungible::UnionOf<
 	Balances,
 	LocalAndForeignAssets,
-	TargetFromLeft<KsmLocationV4, xcm::v4::Location>,
-	xcm::v4::Location,
+	TargetFromLeft<KsmLocationV5, xcm::v5::Location>,
+	xcm::v5::Location,
 	AccountId,
 >;
 
 pub type PoolIdToAccountId =
-	pallet_asset_conversion::AccountIdConverterNoSeed<(xcm::v4::Location, xcm::v4::Location)>;
+	pallet_asset_conversion::AccountIdConverterNoSeed<(xcm::v5::Location, xcm::v5::Location)>;
 
 impl pallet_asset_conversion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type HigherPrecisionBalance = sp_core::U256;
-	type AssetKind = xcm::v4::Location;
+	type AssetKind = xcm::v5::Location;
 	type Assets = NativeAndAssets;
 	type PoolId = (Self::AssetKind, Self::AssetKind);
 	type PoolLocator = pallet_asset_conversion::WithFirstAsset<
-		KsmLocationV4,
+		KsmLocationV5,
 		AccountId,
 		Self::AssetKind,
 		PoolIdToAccountId,
@@ -414,7 +415,7 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolAssetId = u32;
 	type PoolAssets = PoolAssets;
 	type PoolSetupFee = PoolSetupFee;
-	type PoolSetupFeeAsset = KsmLocationV4;
+	type PoolSetupFeeAsset = KsmLocationV5;
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::RelayTreasuryPalletAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = ConstU32<3>;
@@ -424,10 +425,10 @@ impl pallet_asset_conversion::Config for Runtime {
 	type WeightInfo = weights::pallet_asset_conversion::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = assets_common::benchmarks::AssetPairFactory<
-		KsmLocationV4,
+		KsmLocationV5,
 		parachain_info::Pallet<Runtime>,
 		xcm_config::TrustBackedAssetsPalletIndex,
-		xcm::v4::Location,
+		xcm::v5::Location,
 	>;
 }
 
@@ -450,17 +451,17 @@ pub type ForeignAssetsInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type AssetId = xcm::v4::Location;
-	type AssetIdParameter = xcm::v4::Location;
+	type AssetId = xcm::v5::Location;
+	type AssetIdParameter = xcm::v5::Location;
 	type Currency = Balances;
 	type CreateOrigin = ForeignCreators<
 		(
-			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v4::Location>,
+			FromSiblingParachain<parachain_info::Pallet<Runtime>, xcm::v5::Location>,
 			xcm_config::bridging::to_polkadot::PolkadotOrEthereumAssetFromAssetHubPolkadot,
 		),
 		ForeignCreatorsSovereignAccountOf,
 		AccountId,
-		xcm::v4::Location,
+		xcm::v5::Location,
 	>;
 	type ForceOrigin = AssetsForceOrigin;
 	type AssetDeposit = ForeignAssetsAssetDeposit;
@@ -748,7 +749,7 @@ parameter_types! {
 	// Fellows pluralistic body.
 	pub const FellowsBodyId: BodyId = BodyId::Technical;
 	/// The asset ID for the asset that we use to pay for message delivery fees.
-	pub FeeAssetId: AssetId = AssetId(xcm_config::KsmLocation::get());
+	pub FeeAssetId: AssetId = AssetId(xcm_config::KsmLocationV5::get());
 	/// The base fee for the message delivery fees.
 	pub const ToSiblingBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
 	pub const ToParentBaseDeliveryFee: u128 = CENTS.saturating_mul(3);
@@ -851,9 +852,9 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type AssetId = xcm::v4::Location;
+	type AssetId = xcm::v5::Location;
 	type OnChargeAssetTransaction = pallet_asset_conversion_tx_payment::SwapAssetAdapter<
-		KsmLocationV4,
+		KsmLocationV5,
 		NativeAndAssets,
 		AssetConversion,
 		ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -1145,12 +1146,12 @@ impl
 		seed: u32,
 	) -> (AssetConversionAssetIdFor<Runtime>, AssetConversionAssetIdFor<Runtime>) {
 		// Use a different parachain' foreign assets pallet so that the asset is indeed foreign.
-		let asset_id = xcm::v4::Location::new(
+		let asset_id = xcm::v5::Location::new(
 			1,
 			[
-				xcm::v4::Junction::Parachain(3000),
-				xcm::v4::Junction::PalletInstance(53),
-				xcm::v4::Junction::GeneralIndex(seed.into()),
+				xcm::v5::Junction::Parachain(3000),
+				xcm::v5::Junction::PalletInstance(53),
+				xcm::v5::Junction::GeneralIndex(seed.into()),
 			],
 		);
 		(asset_id.clone(), asset_id)
@@ -1177,7 +1178,7 @@ impl
 			u64::MAX.into()
 		));
 
-		let token_native = Box::new(KsmLocationV4::get());
+		let token_native = Box::new(KsmLocationV5::get());
 		let token_second = Box::new(asset_id);
 
 		assert_ok!(AssetConversion::create_pool(
@@ -1261,11 +1262,11 @@ mod benches {
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
 
 	use pallet_xcm_benchmarks::asset_instance_from;
-	use xcm_config::{KsmLocation, MaxAssetsIntoHolding};
+	use xcm_config::{KsmLocationV5, MaxAssetsIntoHolding};
 
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
-			KsmLocation::get(),
+			KsmLocationV5::get(),
 			ExistentialDeposit::get()
 		).into());
 		pub const RandomParaId: ParaId = ParaId::new(43211234);
@@ -1368,7 +1369,7 @@ mod benches {
 			PriceForParentDelivery,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(KsmLocationV5::get())
 		}
 		fn worst_case_holding(depositable_count: u32) -> XcmAssets {
 			// A mix of fungible, non-fungible, and concrete assets.
@@ -1387,7 +1388,7 @@ mod benches {
 					fun: Fungible(u128::MAX),
 				}))
 				.chain(core::iter::once(Asset {
-					id: AssetId(KsmLocation::get()),
+					id: AssetId(KsmLocationV5::get()),
 					fun: Fungible(1_000_000 * UNITS),
 				}))
 				.chain((0..holding_non_fungibles).map(|i| Asset {
@@ -1401,8 +1402,8 @@ mod benches {
 
 	parameter_types! {
 		pub const TrustedTeleporter: Option<(Location, Asset)> = Some((
-			KsmLocation::get(),
-			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocation::get()) },
+			KsmLocationV5::get(),
+			Asset { fun: Fungible(UNITS), id: AssetId(KsmLocationV5::get()) },
 		));
 		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 		// AssetHubKusama trusts AssetHubPolkadot as reserve for DOTs
@@ -1425,7 +1426,7 @@ mod benches {
 		type TrustedReserve = TrustedReserve;
 
 		fn get_asset() -> Asset {
-			Asset { id: AssetId(KsmLocation::get()), fun: Fungible(UNITS) }
+			Asset { id: AssetId(KsmLocationV5::get()), fun: Fungible(UNITS) }
 		}
 	}
 
@@ -1438,12 +1439,12 @@ mod benches {
 		}
 
 		fn worst_case_asset_exchange() -> Result<(XcmAssets, XcmAssets), BenchmarkError> {
-			let native_asset_location = xcm::v4::Location::parent();
-			let native_asset_id = xcm::v4::AssetId(native_asset_location.clone());
+			let native_asset_location = xcm::v5::Location::parent();
+			let native_asset_id = xcm::v5::AssetId(native_asset_location.clone());
 			let (account, _) = pallet_xcm_benchmarks::account_and_location::<Runtime>(1);
 			let origin = RuntimeOrigin::signed(account.clone());
-			let asset_location = xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(2001)]);
-			let asset_id = xcm::v4::AssetId(asset_location.clone());
+			let asset_location = xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(2001)]);
+			let asset_id = xcm::v5::AssetId(asset_location.clone());
 
 			// We set everything up, initial amounts, liquidity pools, liquidity...
 			assert_ok!(<Balances as fungible::Mutate<_>>::mint_into(
@@ -1499,24 +1500,24 @@ mod benches {
 
 		fn transact_origin_and_runtime_call() -> Result<(Location, RuntimeCall), BenchmarkError> {
 			Ok((
-				KsmLocation::get(),
+				KsmLocationV5::get(),
 				frame_system::Call::remark_with_event { remark: vec![] }.into(),
 			))
 		}
 
 		fn subscribe_origin() -> Result<Location, BenchmarkError> {
-			Ok(KsmLocation::get())
+			Ok(KsmLocationV5::get())
 		}
 
 		fn claimable_asset() -> Result<(Location, Location, XcmAssets), BenchmarkError> {
-			let origin = KsmLocation::get();
-			let assets: XcmAssets = (AssetId(KsmLocation::get()), 1_000 * UNITS).into();
+			let origin = KsmLocationV5::get();
+			let assets: XcmAssets = (AssetId(KsmLocationV5::get()), 1_000 * UNITS).into();
 			let ticket = Location { parents: 0, interior: Here };
 			Ok((origin, ticket, assets))
 		}
 
 		fn fee_asset() -> Result<Asset, BenchmarkError> {
-			Ok(Asset { id: AssetId(KsmLocation::get()), fun: Fungible(1_000_000 * UNITS) })
+			Ok(Asset { id: AssetId(KsmLocationV5::get()), fun: Fungible(1_000_000 * UNITS) })
 		}
 
 		fn unlockable_asset() -> Result<(Location, Location, Asset), BenchmarkError> {
@@ -1695,18 +1696,18 @@ impl_runtime_apis! {
 	impl pallet_asset_conversion::AssetConversionApi<
 		Block,
 		Balance,
-		xcm::v4::Location,
+		xcm::v5::Location,
 	> for Runtime
 	{
-		fn quote_price_exact_tokens_for_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_exact_tokens_for_tokens(asset1: xcm::v5::Location, asset2: xcm::v5::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_exact_tokens_for_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn quote_price_tokens_for_exact_tokens(asset1: xcm::v4::Location, asset2: xcm::v4::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
+		fn quote_price_tokens_for_exact_tokens(asset1: xcm::v5::Location, asset2: xcm::v5::Location, amount: Balance, include_fee: bool) -> Option<Balance> {
 			AssetConversion::quote_price_tokens_for_exact_tokens(asset1, asset2, amount, include_fee)
 		}
 
-		fn get_reserves(asset1: xcm::v4::Location, asset2: xcm::v4::Location) -> Option<(Balance, Balance)> {
+		fn get_reserves(asset1: xcm::v5::Location, asset2: xcm::v5::Location) -> Option<(Balance, Balance)> {
 			AssetConversion::get_reserves(asset1, asset2).ok()
 		}
 	}
@@ -1757,7 +1758,7 @@ impl_runtime_apis! {
 
 	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
-			let native_asset = xcm_config::KsmLocation::get();
+			let native_asset = xcm_config::KsmLocationV5::get();
 			// We accept the native asset to pay fees.
 			let mut acceptable_assets = vec![AssetId(native_asset.clone())];
 			// We also accept all assets in a pool with the native token.
@@ -1769,7 +1770,7 @@ impl_runtime_apis! {
 		}
 
 		fn query_weight_to_asset_fee(weight: Weight, asset: VersionedAssetId) -> Result<u128, XcmPaymentApiError> {
-			let native_asset = xcm_config::KsmLocation::get();
+			let native_asset = xcm_config::KsmLocationV5::get();
 			let fee_in_native = WeightToFee::weight_to_fee(&weight);
 			let latest_asset_id: Result<AssetId, ()> = asset.clone().try_into();
 			match latest_asset_id {
@@ -1841,7 +1842,7 @@ impl_runtime_apis! {
 				{
 					let balance = Balances::free_balance(account.clone());
 					if balance > 0 {
-						vec![convert_balance::<KsmLocation, Balance>(balance)?]
+						vec![convert_balance::<KsmLocationV5, Balance>(balance)?]
 					} else {
 						vec![]
 					}

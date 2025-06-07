@@ -148,15 +148,15 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// The Weth asset location, identified by the contract address on Ethereum
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_asset_location: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
+	let weth_asset_location: xcm::v5::Location = (
+		xcm::v5::Parent,
+		xcm::v5::Parent,
 		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
 	)
 		.into();
-	let weth_asset_location_latest: Location = weth_asset_location.clone().try_into().unwrap();
+	let weth_asset_location_latest: Location = weth_asset_location.clone();
 	// Converts the Weth asset location into an asset ID
 
 	// Fund ethereum sovereign on AssetHub
@@ -336,9 +336,9 @@ fn send_weth_from_ethereum_to_asset_hub() {
 fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	token_address: H160,
 	amount: u128,
-	asset_location: xcm::v4::Location,
+	asset_location: xcm::v5::Location,
 ) {
-	let asset_location_latest: Location = asset_location.clone().try_into().unwrap();
+	let asset_location_latest: Location = asset_location.clone();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
 		BridgeHubPolkadot::sibling_location_of(AssetHubPolkadot::para_id()),
 	);
@@ -522,9 +522,9 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let ether_location: xcm::v4::Location =
-		(xcm::v4::Parent, xcm::v4::Parent, v4_ethereum_network).into();
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
+	let ether_location: xcm::v5::Location =
+		(xcm::v5::Parent, xcm::v5::Parent, v4_ethereum_network).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
@@ -540,12 +540,12 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_location: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
+	let weth_location: xcm::v5::Location = (
+		xcm::v5::Parent,
+		xcm::v5::Parent,
 		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
 	)
 		.into();
 	// Perform a roundtrip transfer of WETH
@@ -623,7 +623,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			<AssetHubPolkadot as Chain>::Runtime,
 			pallet_assets::Instance2,
 		>::create {
-			id: xcm::v4::Location::default(),
+			id: xcm::v5::Location::default(),
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
@@ -1207,7 +1207,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
 
 		// Native KSM asset (Parent)
-		let native_asset: xcm::v4::Location = xcm::v4::Parent.into();
+		let native_asset: xcm::v5::Location = xcm::v5::Parent.into();
 
 		// Mint foreign asset
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
@@ -1323,18 +1323,17 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: xcm::v4::NetworkId = EthereumNetwork::get().into();
-	let weth_location_v4: xcm::v4::Location = (
-		xcm::v4::Parent,
-		xcm::v4::Parent,
+	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
+	let weth_location_v5: xcm::v5::Location = (
+		xcm::v5::Parent,
+		xcm::v5::Parent,
 		v4_ethereum_network,
-		xcm::v4::Junction::AccountKey20 { network: None, key: WETH },
+		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
 	)
 		.into();
 
 	let fee = dot_at_ah_polkadot();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
@@ -1344,7 +1343,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 	]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE * 3).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE * 3).into()]
 			.into();
 
 	assert_ok!(AssetHubPolkadot::execute_with(|| {
@@ -1387,7 +1386,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v4,
+					asset_id: *asset_id == weth_location_v5,
 					owner: *owner == AssetHubKusamaReceiver::get(),
 				},
 			]
@@ -1409,13 +1408,12 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		[AccountId32 { network: None, id: AssetHubPolkadotReceiver::get().into() }],
 	);
 	let fee = bridged_dot_at_asset_hub_kusama_for_later.clone();
-	let fee_latest: Location = fee.clone().try_into().unwrap();
-	let fees_asset: AssetId = fee_latest.clone().into();
+	let fees_asset: AssetId = fee.clone().into();
 	let custom_xcm_on_dest =
 		Xcm::<()>(vec![DepositAsset { assets: Wild(AllCounted(2)), beneficiary }]);
 
 	let assets: Assets =
-		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee_latest, XCM_FEE).into()]
+		vec![(weth_location.clone(), MIN_ETHER_BALANCE).into(), (fee.clone(), XCM_FEE).into()]
 			.into();
 
 	// Transfer the token back to Polkadot.
@@ -1473,7 +1471,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 			vec![
 				// Token was issued to beneficiary
 				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-					asset_id: *asset_id == weth_location_v4,
+					asset_id: *asset_id == weth_location_v5,
 					owner: *owner == AssetHubPolkadotReceiver::get(),
 				},
 			]

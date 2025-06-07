@@ -24,8 +24,8 @@ pub mod snowbridge {
 	pub const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
 
 	parameter_types! {
-		pub EthereumNetworkXcmV4: xcm::v4::NetworkId = xcm::v4::NetworkId::Ethereum { chain_id: 1 };
-		pub WethLocationXcmV4: xcm::v4::Location =  xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get()), xcm::v4::Junction::AccountKey20 { network: None, key: WETH }]);
-		pub EthLocationXcmV4: xcm::v4::Location =  xcm::v4::Location::new(2, [xcm::v4::Junction::GlobalConsensus(EthereumNetworkXcmV4::get())]);
+		pub EthereumNetworkXcmV5: xcm::v5::NetworkId = xcm::v5::NetworkId::Ethereum { chain_id: 1 };
+		pub WethLocationXcmV5: xcm::v5::Location =  xcm::v5::Location::new(2, [xcm::v5::Junction::GlobalConsensus(EthereumNetworkXcmV5::get()), xcm::v5::Junction::AccountKey20 { network: None, key: WETH }]);
+		pub EthLocationXcmV5: xcm::v5::Location =  xcm::v5::Location::new(2, [xcm::v5::Junction::GlobalConsensus(EthereumNetworkXcmV5::get())]);
 	}
 }

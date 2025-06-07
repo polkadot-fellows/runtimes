@@ -23,7 +23,7 @@ use emulated_integration_tests_common::{
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{
-	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+	EthLocationXcmV5, WethLocationXcmV5, MIN_ETHER_BALANCE,
 };
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
@@ -36,11 +36,11 @@ pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
 	pub AssetHubKusamaAssetOwner: AccountId = Keyring::Alice.to_account_id();
-	pub PenpalATeleportableAssetLocation: xcm::v4::Location
-		= xcm::v4::Location::new(1, [
-				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub PenpalATeleportableAssetLocation: xcm::v5::Location
+		= xcm::v5::Location::new(1, [
+				xcm::v5::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v5::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v5::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Kusama), Parachain(PARA_ID)].into();
@@ -106,14 +106,14 @@ pub fn genesis() -> sp_core::storage::Storage {
 				),
 				// Ether
 				(
-					EthLocationXcmV4::get(),
+					EthLocationXcmV5::get(),
 					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,
 				),
 				// Weth
 				(
-					WethLocationXcmV4::get(),
+					WethLocationXcmV5::get(),
 					AssetHubPolkadotSovereignAccount::get(),
 					true,
 					MIN_ETHER_BALANCE,

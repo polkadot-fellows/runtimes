@@ -23,7 +23,7 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::{
 	SiblingBridgeHub, XcmBridgeHubRouterFeeAssetId,
 };
 use sp_core::H160;
-use xcm::prelude::*;
+use xcm::v5::prelude::*;
 use xcm_builder::{ExporterFor, NetworkExportTable};
 
 #[test]
