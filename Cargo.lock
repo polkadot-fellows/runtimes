@@ -895,6 +895,7 @@ dependencies = [
  "pallet-nfts-runtime-api",
  "pallet-proxy",
  "pallet-remote-proxy",
+ "pallet-revive",
  "pallet-session",
  "pallet-state-trie-migration",
  "pallet-timestamp",
