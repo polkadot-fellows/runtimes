@@ -16,6 +16,7 @@
 use crate::*;
 use frame_support::traits::OnInitialize;
 use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
+use polkadot_runtime::Dmp;
 use polkadot_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use sp_runtime::Perbill;
 
@@ -33,6 +34,10 @@ fn transact_hardcoded_weights_are_sane() {
 	// <https://github.com/rust-lang/rust/issues/86935>
 	type CoretimeEvent = <CoretimePolkadot as Chain>::RuntimeEvent;
 	type RelayEvent = <Polkadot as Chain>::RuntimeEvent;
+
+	Polkadot::execute_with(|| {
+		Dmp::make_parachain_reachable(CoretimePolkadot::para_id());
+	});
 
 	// Reserve a workload, configure broker and start sales.
 	CoretimePolkadot::execute_with(|| {
