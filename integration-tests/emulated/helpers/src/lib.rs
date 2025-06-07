@@ -26,6 +26,7 @@ pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 // Cumulus
 pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
+pub use emulated_integration_tests_common::macros::Dmp;
 pub use xcm_emulator::Chain;
 
 pub mod common;
@@ -54,6 +55,10 @@ macro_rules! test_relay_is_trusted_teleporter {
 						<$sender_relay>::child_location_of(<$receiver_para>::para_id());
 					let beneficiary: Location =
 						$crate::AccountId32 { network: None, id: receiver.clone().into() }.into();
+
+					<$sender_relay>::execute_with(|| {
+						$crate::Dmp::<<$sender_relay as $crate::Chain>::Runtime>::make_parachain_reachable(<$receiver_para>::para_id());
+					});
 
 					// Dry-run first.
 					let call = <$sender_relay as Chain>::RuntimeCall::XcmPallet(pallet_xcm::Call::$xcm_call {
@@ -102,6 +107,8 @@ macro_rules! test_relay_is_trusted_teleporter {
 
 					// Send XCM message from Relay.
 					<$sender_relay>::execute_with(|| {
+						$crate::Dmp::<<$sender_relay as $crate::Chain>::Runtime>::make_parachain_reachable(<$receiver_para>::para_id());
+
 						let origin = <$sender_relay as Chain>::RuntimeOrigin::signed(sender.clone());
 						assert_ok!(call.dispatch(origin));
 

@@ -203,4 +203,20 @@ impl<T: frame_system::Config> pallet_migrations::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2740).saturating_mul(n.into()))
 	}
+	/// Storage: `Skipped::Metadata` (r:0 w:0)
+	/// Proof: `Skipped::Metadata` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// The range of component `n` is `[0, 2048]`.
+	fn reset_pallet_migration(n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1642 + n * (38 ±0)`
+		//  Estimated: `720 + n * (39 ±0)`
+		// Minimum execution time: 1_919_000 picoseconds.
+		Weight::from_parts(5_740_246, 0)
+			.saturating_add(Weight::from_parts(0, 720))
+			// Standard Error: 1_463
+			.saturating_add(Weight::from_parts(836_551, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
+			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
+			.saturating_add(Weight::from_parts(0, 39).saturating_mul(n.into()))
+	}
 }

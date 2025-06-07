@@ -102,4 +102,16 @@ impl<T: frame_system::Config> runtime_parachains::coretime::WeightInfo for Weigh
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// Storage: `OnDemandAssignmentProvider::Credits` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::Credits` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn credit_account() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `3607`
+		// Minimum execution time: 10_043_000 picoseconds.
+		Weight::from_parts(10_441_000, 0)
+			.saturating_add(Weight::from_parts(0, 3607))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
