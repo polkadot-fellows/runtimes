@@ -64,17 +64,13 @@ pub mod migration {
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			use frame_support::storage::StorageMap;
-
 			log::info!("Pre-upgrade: Collecting storage info for XCM compatibility test");
 
 			Ok(Vec::new())
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), TryRuntimeError> {
-			use frame_support::storage::StorageMap;
-
+		fn post_upgrade(_state: Vec<u8>) -> Result<(), TryRuntimeError> {
 			// Test a few sample conversions to ensure compatibility
 			Self::test_sample_location_conversions()?;
 
