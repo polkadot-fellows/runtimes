@@ -29,8 +29,7 @@ pub mod migration {
 	/// Test migration to verify XCM V4 to V5 compatibility for ForeignAssets and AssetConversion
 	/// storage. This migration doesn't actually alter storage, it only verifies that:
 	/// 1. XCM V4 encoded locations can be decoded as V5
-	/// 2. Storage keys remain the same between V4 and V5
-	/// 3. Re-encoding as V5 produces valid data
+	/// 2. Location encoding remains the same between V4 and V5
 	pub struct TestXcmV4ToV5Compatibility<T>(core::marker::PhantomData<T>);
 
 	impl<T> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T>
