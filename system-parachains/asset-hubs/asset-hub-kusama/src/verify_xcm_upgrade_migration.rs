@@ -24,6 +24,8 @@ pub mod migration {
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
 
+	const LOG_TARGET: &str = "runtime::verify_xcm_upgrade_migration";
+
 	/// Test migration to verify XCM V4 to V5 compatibility for ForeignAssets and AssetConversion
 	/// storage. This migration doesn't actually alter storage, it only verifies that:
 	/// 1. XCM V4 encoded locations can be decoded as V5
@@ -49,21 +51,20 @@ pub mod migration {
 		fn on_runtime_upgrade() -> Weight {
 			let mut weight = T::DbWeight::get().reads(1);
 
-			log::info!("Starting XCM V4 to V5 compatibility test migration");
+			log::info!(target: LOG_TARGET, "Starting XCM V4 to V5 compatibility test migration");
 
-			// Test ForeignAssets storage items
 			weight.saturating_accrue(Self::test_foreign_assets_compatibility());
 
 			weight.saturating_accrue(Self::test_asset_conversion_compatibility());
 
-			log::info!("XCM V4 to V5 compatibility test migration completed successfully");
+			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration completed successfully");
 
 			weight
 		}
 
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
-			log::info!("Pre-upgrade: Collecting storage info for XCM compatibility test");
+			log::info!(target: LOG_TARGET, "XCM V4 to V5 upgrade compatibility test starting");
 
 			Ok(Vec::new())
 		}
@@ -73,7 +74,7 @@ pub mod migration {
 			// Test a few sample conversions to ensure compatibility
 			Self::test_sample_location_conversions()?;
 
-			log::info!("XCM V4 to V5 compatibility test migration validated successfully");
+			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration validated successfully");
 			Ok(())
 		}
 	}
@@ -121,7 +122,7 @@ pub mod migration {
 				}
 			}
 
-			log::info!("Tested {} ForeignAssets for XCM compatibility", tested_assets);
+			log::info!(target: LOG_TARGET, "Tested {} ForeignAssets for XCM compatibility", tested_assets);
 			weight
 		}
 
@@ -160,7 +161,7 @@ pub mod migration {
 				}
 			}
 
-			log::info!("Tested {} AssetConversion pools for XCM compatibility", tested_pools);
+			log::info!(target: LOG_TARGET, "Tested {} AssetConversion pools for XCM compatibility", tested_pools);
 			weight
 		}
 
@@ -203,7 +204,7 @@ pub mod migration {
 					"V5 location encode/decode round-trip failed"
 				);
 
-				log::info!("Successfully tested V4 -> V5 conversion for: {:?}", v4_location);
+				log::info!(target: LOG_TARGET, "Successfully tested V4 -> V5 conversion for: {:?}", v4_location);
 			}
 
 			Ok(())
