@@ -21,7 +21,7 @@ use kusama_system_emulated_network::{
 	KusamaRelay as Kusama,
 };
 use sp_runtime::DispatchError;
-use integration_tests_helpers::{dispatch_note_preimage_call, dispatch_whitelisted_call_with_preimage, build_xcm_send_authorize_upgrade_call};
+use integration_tests_helpers::{call_hash_of, dispatch_whitelisted_call_with_preimage, build_xcm_send_authorize_upgrade_call};
 
 
 #[test]
@@ -44,7 +44,7 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubKusama>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -115,7 +115,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubKusama>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -190,7 +190,7 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubKusama>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(

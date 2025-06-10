@@ -18,7 +18,7 @@ use codec::Encode;
 use emulated_integration_tests_common::xcm_emulator::{Chain, Parachain, TestExt};
 use frame_support::assert_err;
 use integration_tests_helpers::{
-	build_xcm_send_authorize_upgrade_call, dispatch_note_preimage_call,
+	build_xcm_send_authorize_upgrade_call, call_hash_of,
 	dispatch_whitelisted_call_with_preimage,
 };
 use polkadot_system_emulated_network::{
@@ -48,7 +48,7 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -119,7 +119,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -197,7 +197,7 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
