@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Only allow apply slash to be executed if the slash amount is atleast ED ([SDK stable2503 #6540](https://github.com/paritytech/polkadot-sdk/pull/6540)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Paras-registrar: Improve error reporting ([SDK stable2503 #6989](https://github.com/paritytech/polkadot-sdk/pull/6989)).
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Xcm: convert properly assets in xcmpayment apis ([SDK stable2503 #7134](https://github.com/paritytech/polkadot-sdk/pull/7134)).
+- PolkadotAssetHub: Enable Async Backing ([polkadot-fellows/runtimes/pull/763](https://github.com/polkadot-fellows/runtimes/pull/763))
 
 ### Fixed
 
