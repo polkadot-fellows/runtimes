@@ -27,4 +27,4 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 polkadot-runtime-constants = { workspace = true, default-features = true }
-polkadot-runtime = { workspace = true, default-features = true }
+polkadot-runtime = { workspace = true }
