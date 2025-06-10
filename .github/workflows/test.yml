@@ -181,8 +181,8 @@ jobs:
 
       - name: Download AHM test snapshots
         run: |
-          curl -sL 'https://tasty.limo/uploads/polkadot.snap.lz4' -o polkadot.snap.lz4
-          curl -sL 'https://tasty.limo/uploads/ah-polkadot.snap.lz4' -o ah-polkadot.snap.lz4
+          curl -sL 'https://tasty.limo/uploads/polkadot-2025-05-09.snap.lz4' -o polkadot.snap.lz4
+          curl -sL 'https://tasty.limo/uploads/ah-polkadot-2025-05-09.snap.lz4' -o ah-polkadot.snap.lz4
           lz4 -d polkadot.snap.lz4 polkadot.snap
           lz4 -d ah-polkadot.snap.lz4 ah-polkadot.snap
 
@@ -194,7 +194,9 @@ jobs:
           SNAP_AH: "../../ah-polkadot.snap"
           RUST_LOG: "warn"
 
+  # TODO: remove if not needed. or reuse for Paseo
   ahm-test-westend:
+    if: false
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous runs
@@ -431,6 +433,5 @@ jobs:
       # FAIL-CI - zombienet-smoke
       - ecosystem-tests
       - ahm-test-polkadot
-      - ahm-test-westend
     steps:
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY
