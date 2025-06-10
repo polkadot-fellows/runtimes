@@ -72,7 +72,14 @@ pub fn asset_hub_kusama_local_testnet_genesis(para_id: ParaId) -> serde_json::Va
 }
 
 fn asset_hub_kusama_development_genesis(para_id: ParaId) -> serde_json::Value {
-	asset_hub_kusama_local_testnet_genesis(para_id)
+	asset_hub_kusama_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.
