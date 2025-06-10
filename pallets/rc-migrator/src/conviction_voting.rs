@@ -243,12 +243,10 @@ impl<T: Config> crate::types::RcMigrationCheck for ConvictionVotingMigrator<T> {
 		// Collect ClassLocksFor
 		for (account_id, balance_per_class) in pallet_conviction_voting::ClassLocksFor::<T>::iter()
 		{
-			let mut balance_per_class = balance_per_class.into_inner();
-			balance_per_class.retain(|(_, balance)| !balance.is_zero());
-			if !balance_per_class.is_empty() {
-				messages
-					.push(RcConvictionVotingMessage::ClassLocksFor(account_id, balance_per_class));
-			}
+			messages.push(RcConvictionVotingMessage::ClassLocksFor(
+				account_id,
+				balance_per_class.into_inner(),
+			));
 		}
 
 		messages
