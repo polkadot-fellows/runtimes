@@ -29,10 +29,7 @@ pub use cumulus_pallet_xcmp_queue;
 pub use xcm_emulator::Chain;
 
 use emulated_integration_tests_common::impls::{bx, Encode};
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
-};
+use frame_support::dispatch::{DispatchResultWithPostInfo, PostDispatchInfo};
 use sp_core::H256;
 use sp_runtime::traits::{Dispatchable, Hash};
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
@@ -441,11 +438,10 @@ pub fn call_hash_of<T>(call: &T::RuntimeCall) -> H256
 where
 	T: Chain,
 	T::Runtime: frame_system::Config<Hash = H256>,
-	T::RuntimeCall: Encode
+	T::RuntimeCall: Encode,
 {
 	T::execute_with(|| {
-		let call_bytes = call.encode();
-		let call_hash = <T::Runtime as frame_system::Config>::Hashing::hash_of(&call_bytes);
+		let call_hash = <T::Runtime as frame_system::Config>::Hashing::hash_of(&call);
 		call_hash
 	})
 }
