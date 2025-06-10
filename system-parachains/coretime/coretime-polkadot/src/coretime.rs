@@ -319,7 +319,7 @@ impl CoretimeInterface for CoretimeAllocator {
 parameter_types! {
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
 	pub const MinimumCreditPurchase: Balance = UNITS / 10;
-	pub const MinimumEndPrice: Balance = 10 * UNITS;
+	pub const MinimumEndPrice: Balance = UNITS / 10_000;
 }
 
 pub struct SovereignAccountOf;
