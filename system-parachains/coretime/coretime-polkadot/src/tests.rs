@@ -103,7 +103,10 @@ fn bulk_revenue_is_burnt() {
 			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
-			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 100_000 * ed));
+			assert_ok!(Broker::purchase(
+				RuntimeOrigin::signed(AccountId::from(ALICE)),
+				100_000 * ed
+			));
 
 			// Alice decreases.
 			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
