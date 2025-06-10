@@ -1161,6 +1161,7 @@ impl EthExtra for EthExtraImpl {
 	}
 }
 
+// This impl is no longer necessary post stable-2506.
 impl TryFrom<RuntimeCall> for pallet_revive::Call<Runtime> {
 	type Error = ();
 
