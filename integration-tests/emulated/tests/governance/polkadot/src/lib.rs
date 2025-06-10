@@ -19,7 +19,9 @@ use emulated_integration_tests_common::{
 	xcm_emulator::Chain,
 };
 use frame_support::assert_ok;
-use polkadot_system_emulated_network::CollectivesPolkadotPara as CollectivesPolkadot;
+use polkadot_system_emulated_network::{
+	CollectivesPolkadotPara as CollectivesPolkadot, PolkadotRelay as Polkadot,
+};
 use sp_runtime::traits::Dispatchable;
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
@@ -44,7 +46,6 @@ pub fn collectives_send_whitelist(
 			dest: bx!(VersionedLocation::from(dest)),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-				TODO: (Karol)(check the TODO: bellow first) - missing DecentOrigin for Fellows - to match `EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,`
 				Transact {
 					origin_kind: OriginKind::Xcm,
 					require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
@@ -64,5 +65,13 @@ pub fn collectives_send_whitelist(
 		);
 	});
 
-	TODO: (Karol)(start with this) - add here the relaychain assert for  CallWhitelisted event
+	Polkadot::execute_with(|| {
+		type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			Polkadot,
+			vec![
+				RuntimeEvent::Whitelist(pallet_whitelist::Event::CallWhitelisted { .. }) => {},
+			]
+		);
+	});
 }
