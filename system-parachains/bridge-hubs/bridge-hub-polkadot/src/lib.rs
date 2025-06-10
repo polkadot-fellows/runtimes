@@ -154,7 +154,7 @@ pub type Migrations = (
 		Runtime,
 		bridge_to_kusama_config::XcmOverBridgeHubKusamaInstance,
 	>,
-	snowbridge_pallet_system::migration::FeePerGasMigrationV0ToV1<Runtime>,
+	bridge_to_ethereum_config::migration::MigrateLocationsToXcmV5<Runtime>,
 	pallet_session::migrations::v1::MigrateV0ToV1<
 		Runtime,
 		pallet_session::migrations::v1::InitOffenceSeverity<Runtime>,
