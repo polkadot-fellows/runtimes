@@ -44,6 +44,7 @@ pub fn collectives_send_whitelist(
 			dest: bx!(VersionedLocation::from(dest)),
 			message: bx!(VersionedXcm::from(Xcm(vec![
 				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				TODO: (Karol)(check the TODO: bellow first) - missing DecentOrigin for Fellows - to match `EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,`
 				Transact {
 					origin_kind: OriginKind::Xcm,
 					require_weight_at_most: Weight::from_parts(5_000_000_000, 500_000),
@@ -62,4 +63,6 @@ pub fn collectives_send_whitelist(
 			]
 		);
 	});
+
+	TODO: (Karol)(start with this) - add here the relaychain assert for  CallWhitelisted event
 }
