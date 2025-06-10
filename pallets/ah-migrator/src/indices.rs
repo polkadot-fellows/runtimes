@@ -66,7 +66,6 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 		use std::collections::BTreeMap;
 		let all_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
-			.chain(ah_pre_payload.into_iter())
 			.map(|RcIndicesIndex { index, who, deposit, frozen }| (index, (who, deposit, frozen)))
 			.collect();
 		let all_post: BTreeMap<_, _> = pallet_indices::Accounts::<T>::iter().collect();
