@@ -13,12 +13,20 @@ paste = { workspace = true }
 # Substrate
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
+pallet-preimage = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+pallet-whitelist = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 
+
 # Cumulus
 xcm-emulator = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = true }
 asset-test-utils = { workspace = true }
+emulated-integration-tests-common = { workspace = true }

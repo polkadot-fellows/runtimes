@@ -1,10 +1,10 @@
 [package]
-name = "governance-polkadot-integration-tests"
+name = "governance-kusama-integration-tests"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license = "Apache-2.0"
-description = "Polkadot governance integration tests with xcm-emulator"
+description = "Kusama governance integration tests with xcm-emulator"
 publish = false
 
 [dependencies]
@@ -17,16 +17,12 @@ frame-system = { workspace = true, default-features = true }
 pallet-whitelist = { workspace = true, default-features = true }
 pallet-utility = { workspace = true, default-features = true }
 
-# Polkadot
-pallet-xcm = { workspace = true, default-features = true }
-xcm = { workspace = true, default-features = true }
-
 # Cumulus
 emulated-integration-tests-common = { workspace = true }
 
 # Local
-asset-hub-polkadot-runtime = { workspace = true }
-collectives-polkadot-runtime = { workspace = true }
+asset-hub-kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
-polkadot-runtime = { workspace = true }
-polkadot-system-emulated-network = { workspace = true }
+people-kusama-runtime = { workspace = true }
+kusama-runtime = { workspace = true }
+kusama-system-emulated-network = { workspace = true }

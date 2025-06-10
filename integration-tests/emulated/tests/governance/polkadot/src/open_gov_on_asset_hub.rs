@@ -17,6 +17,10 @@ use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin;
 use codec::Encode;
 use emulated_integration_tests_common::xcm_emulator::{Chain, Parachain, TestExt};
 use frame_support::assert_err;
+use integration_tests_helpers::{
+	build_xcm_send_authorize_upgrade_call, dispatch_note_preimage_call,
+	dispatch_whitelisted_call_with_preimage,
+};
 use polkadot_system_emulated_network::{
 	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
 	CoretimePolkadotPara as CoretimePolkadot, PeoplePolkadotPara as PeoplePolkadot,

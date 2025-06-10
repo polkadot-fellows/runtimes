@@ -4957,6 +4957,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-kusama-integration-tests"
+version = "1.0.0"
+dependencies = [
+ "asset-hub-kusama-runtime",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
+ "integration-tests-helpers",
+ "kusama-system-emulated-network",
+ "pallet-utility",
+ "pallet-whitelist",
+ "parity-scale-codec",
+ "people-kusama-runtime",
+ "sp-runtime 39.0.5",
+ "staging-kusama-runtime",
+]
+
+[[package]]
 name = "governance-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
@@ -4966,15 +4984,12 @@ dependencies = [
  "frame-support",
  "frame-system",
  "integration-tests-helpers",
- "pallet-preimage",
  "pallet-utility",
  "pallet-whitelist",
  "pallet-xcm",
  "parity-scale-codec",
- "people-polkadot-runtime",
  "polkadot-runtime",
  "polkadot-system-emulated-network",
- "sp-core 34.0.0",
  "sp-runtime 39.0.5",
  "staging-xcm",
 ]
@@ -5629,10 +5644,17 @@ version = "1.0.0"
 dependencies = [
  "asset-test-utils 20.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cumulus-pallet-xcmp-queue",
+ "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
  "pallet-balances",
  "pallet-message-queue",
+ "pallet-preimage",
+ "pallet-whitelist",
  "pallet-xcm",
  "paste",
+ "sp-core 34.0.0",
+ "sp-runtime 39.0.5",
  "staging-xcm",
  "xcm-emulator",
 ]
