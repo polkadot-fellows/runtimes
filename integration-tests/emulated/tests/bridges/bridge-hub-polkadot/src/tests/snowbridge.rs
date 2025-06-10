@@ -15,7 +15,7 @@
 use crate::*;
 use asset_hub_polkadot_runtime::xcm_config::{
 	bridging::to_ethereum::{BridgeHubEthereumBaseFee, EthereumNetwork},
-	RelayTreasuryPalletAccount,
+	PreMigrationRelayTreasuryPalletAccount as RelayTreasuryPalletAccount,
 };
 use bp_bridge_hub_polkadot::snowbridge::CreateAssetCall;
 use bridge_hub_polkadot_runtime::{

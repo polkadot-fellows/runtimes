@@ -192,7 +192,7 @@ polkadot-core-primitives = { version = "15.0.0", default-features = false }
 polkadot-emulated-chain = { path = "integration-tests/emulated/chains/relays/polkadot" }
 polkadot-parachain-primitives = { version = "14.0.0", default-features = false }
 polkadot-primitives = { version = "16.0.0", default-features = false }
-polkadot-runtime = { path = "relay/polkadot", default-features = false }
+polkadot-runtime = { path = "relay/polkadot" }
 polkadot-runtime-common = { version = "17.0.0", default-features = false }
 polkadot-runtime-constants = { path = "relay/polkadot/constants", default-features = false }
 polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/polkadot-system" }
