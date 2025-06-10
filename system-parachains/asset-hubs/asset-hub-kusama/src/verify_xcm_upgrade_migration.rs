@@ -23,8 +23,44 @@ pub mod migration {
 	use sp_core::Get;
 	#[cfg(feature = "try-runtime")]
 	use sp_runtime::TryRuntimeError;
+	use crate::ForeignAssetsInstance;
 
 	const LOG_TARGET: &str = "runtime::verify_xcm_upgrade_migration";
+
+	mod asset_as_v4 {
+		use frame_support::{storage_alias, Blake2_128Concat};
+		use crate::ForeignAssetsInstance;
+
+		#[storage_alias]
+		pub type Asset<T: frame_system::Config + pallet_assets::Config<ForeignAssetsInstance>> = StorageMap<
+			pallet_assets::Pallet<T, ForeignAssetsInstance>,
+			Blake2_128Concat,
+			xcm::v4::Location,
+			pallet_assets::AssetDetails<
+				<T as pallet_assets::Config<ForeignAssetsInstance>>::Balance,
+				<T as frame_system::Config>::AccountId,
+				pallet_assets::DepositBalanceOf<T, ForeignAssetsInstance>
+			>,
+		>;
+	}
+
+	mod asset_as_v5 {
+		use frame_support::{storage_alias, Blake2_128Concat};
+		use crate::ForeignAssetsInstance;
+
+		#[storage_alias]
+		pub type Asset<T: frame_system::Config + pallet_assets::Config<ForeignAssetsInstance>> = StorageMap<
+			pallet_assets::Pallet<T, ForeignAssetsInstance>,
+			Blake2_128Concat,
+			xcm::v4::Location,
+			pallet_assets::AssetDetails<
+				<T as pallet_assets::Config<ForeignAssetsInstance>>::Balance,
+				<T as frame_system::Config>::AccountId,
+				pallet_assets::DepositBalanceOf<T, ForeignAssetsInstance>
+			>,
+		>;
+	}
+
 
 	/// Test migration to verify XCM V4 to V5 compatibility for ForeignAssets and AssetConversion
 	/// storage. This migration doesn't actually alter storage, it only verifies that:
@@ -35,7 +71,7 @@ pub mod migration {
 	impl<T> OnRuntimeUpgrade for TestXcmV4ToV5Compatibility<T>
 	where
 		T: frame_system::Config
-			+ pallet_assets::Config<crate::ForeignAssetsInstance>
+			+ pallet_assets::Config<ForeignAssetsInstance>
 			+ pallet_asset_conversion::Config<
 				PoolId = (
 					<T as pallet_asset_conversion::Config>::AssetKind,
@@ -44,26 +80,22 @@ pub mod migration {
 			>,
 		T::AssetKind: From<xcm::v5::Location> + Into<xcm::v5::Location>,
 		T::PoolId: Into<(T::AssetKind, T::AssetKind)>,
-		<T as pallet_assets::Config<crate::ForeignAssetsInstance>>::AssetId:
-			From<xcm::v5::Location> + Into<xcm::v5::Location>,
+		<T as pallet_assets::Config<ForeignAssetsInstance>>::AssetId:
+		From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
-		fn on_runtime_upgrade() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
-
-			log::info!(target: LOG_TARGET, "Starting XCM V4 to V5 compatibility test migration");
-
-			weight.saturating_accrue(Self::test_foreign_assets_compatibility());
-
-			weight.saturating_accrue(Self::test_asset_conversion_compatibility());
-
-			log::info!(target: LOG_TARGET, "XCM V4 to V5 compatibility test migration completed successfully");
-
-			weight
-		}
-
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, TryRuntimeError> {
 			log::info!(target: LOG_TARGET, "XCM V4 to V5 upgrade compatibility test starting");
+
+			log::info!("Starting XCM V4 to V5 compatibility test migration");
+
+			// Test ForeignAssets storage items
+			Self::test_foreign_assets_compatibility();
+
+			// Test AssetConversion storage items
+			Self::test_asset_conversion_compatibility();
+
+			log::info!("XCM V4 to V5 compatibility test migration completed successfully");
 
 			Ok(Vec::new())
 		}
@@ -81,7 +113,7 @@ pub mod migration {
 	impl<T> TestXcmV4ToV5Compatibility<T>
 	where
 		T: frame_system::Config
-			+ pallet_assets::Config<crate::ForeignAssetsInstance>
+			+ pallet_assets::Config<ForeignAssetsInstance>
 			+ pallet_asset_conversion::Config
 			+ pallet_asset_conversion::Config<
 				PoolId = (
@@ -95,31 +127,15 @@ pub mod migration {
 			From<xcm::v5::Location> + Into<xcm::v5::Location>,
 	{
 		fn test_foreign_assets_compatibility() -> Weight {
-			let mut weight = T::DbWeight::get().reads(1);
-			let mut tested_assets = 0u32;
+			let weight = T::DbWeight::get().reads(1);
+			let tested_assets = 0u32;
 
-			// Test Asset storage items
-			for (asset_id, _asset_details) in
-				pallet_assets::Asset::<T, crate::ForeignAssetsInstance>::iter()
-			{
-				let v5_location: xcm::v5::Location = asset_id.clone().into();
-				let v4_location: xcm::v4::Location =
-					xcm::v4::Location::try_from(v5_location.clone()).unwrap();
+			log::info!(target: LOG_TARGET, "Found XCM V4 asset keys: {}", asset_as_v4::Asset::<T>::iter_keys().count());
+			log::info!(target: LOG_TARGET, "Found XCM V5 asset keys: {}", asset_as_v5::Asset::<T>::iter_keys().count());
 
-				assert_eq!(
-					v4_location.encode(),
-					v5_location.encode(),
-					"Asset ID conversion not stable for {:?}",
-					asset_id
-				);
-
-				tested_assets += 1;
-				weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 0));
-
-				if tested_assets >= 100 {
-					break; // Limit test to avoid excessive weight
-				}
-			}
+			assert!(
+				asset_as_v4::Asset::<T>::iter_keys().eq(asset_as_v5::Asset::<T>::iter_keys())
+			);
 
 			log::info!(target: LOG_TARGET, "Tested {} ForeignAssets for XCM compatibility", tested_assets);
 			weight
