@@ -115,12 +115,10 @@ impl<T: Config> PalletMigration for ConvictionVotingMigrator<T> {
 					match iter.next() {
 						Some((account_id, balance_per_class)) => {
 							ClassLocksFor::<T>::remove(&account_id);
-							if balance_per_class.len() > 0 {
-								messages.push(RcConvictionVotingMessage::ClassLocksFor(
-									account_id.clone(),
-									balance_per_class.into_inner(),
-								));
-							}
+							messages.push(RcConvictionVotingMessage::ClassLocksFor(
+								account_id.clone(),
+								balance_per_class.into_inner(),
+							));
 							ConvictionVotingStage::ClassLocksFor(Some(account_id))
 						},
 						None => ConvictionVotingStage::Finished,
