@@ -284,7 +284,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	let fee_amount_to_send: Balance = ASSET_HUB_POLKADOT_ED * 10000;
 	let asset_location_on_penpal = PenpalLocalTeleportableToAssetHub::get();
 	let asset_id_on_penpal = match asset_location_on_penpal.last() {
-		Some(Junction::GeneralIndex(id)) => *id as u32,
+		Some(GeneralIndex(id)) => *id as u32,
 		_ => unreachable!(),
 	};
 	let asset_amount_to_send = ASSET_HUB_POLKADOT_ED * 1000;
@@ -330,9 +330,9 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	)]);
 
 	// Init values for System Parachain
-	let asset_location_on_penpal_v4: xcm::v5::Location = asset_location_on_penpal.clone();
+	let asset_location_on_penpal_v4: Location = asset_location_on_penpal.clone();
 	let foreign_asset_at_asset_hub_polkadot =
-		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalB::para_id().into())])
+		Location::new(1, [Parachain(PenpalB::para_id().into())])
 			.appended_with(asset_location_on_penpal_v4)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubPolkadotReceiver::get();

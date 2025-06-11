@@ -36,17 +36,11 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 	let para_sovereign_account = AssetHubKusama::sovereign_account_id_of(
 		AssetHubKusama::sibling_location_of(PenpalA::para_id()),
 	);
-	let asset_location_on_penpal = xcm::v5::Location::new(
-		0,
-		[
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		],
-	);
-	let foreign_asset_at_asset_hub =
-		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalA::para_id().into())])
-			.appended_with(asset_location_on_penpal)
-			.unwrap();
+	let asset_location_on_penpal =
+		Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())]);
+	let foreign_asset_at_asset_hub = Location::new(1, [Parachain(PenpalA::para_id().into())])
+		.appended_with(asset_location_on_penpal)
+		.unwrap();
 
 	// Encoded `create_asset` call to be executed in AssetHub
 	let call = AssetHubKusama::create_foreign_asset_call(
@@ -114,15 +108,10 @@ fn send_xcm_from_para_to_asset_hub_paying_fee_with_system_asset() {
 /// - Parachain should be able to create a new Asset at Asset Hub
 #[test]
 fn send_xcm_from_para_to_asset_hub_paying_fee_from_pool() {
-	let asset_native: xcm::v5::Location =
-		asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get();
-	let asset_one = xcm::v5::Location {
+	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
+	let asset_one = Location {
 		parents: 0,
-		interior: [
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		]
-		.into(),
+		interior: [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())].into(),
 	};
 	let penpal = AssetHubKusama::sovereign_account_id_of(AssetHubKusama::sibling_location_of(
 		PenpalA::para_id(),

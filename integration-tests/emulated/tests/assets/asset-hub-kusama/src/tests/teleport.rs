@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::{KsmLocationV5, XcmConfig as AssetHubKusamaXcmConfig};
+use asset_hub_kusama_runtime::xcm_config::{KsmLocation, XcmConfig as AssetHubKusamaXcmConfig};
 use emulated_integration_tests_common::xcm_helpers::{fee_asset, non_fee_asset};
 use frame_support::{
 	dispatch::{GetDispatchInfo, RawOrigin},
@@ -51,7 +51,7 @@ fn para_origin_assertions(t: SystemParaToRelayTest) {
 
 fn penpal_to_ah_foreign_assets_sender_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let expected_asset_id = t.args.asset_id.unwrap();
 	let (_, expected_asset_amount) =
 		non_fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
@@ -287,7 +287,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 	};
 	let asset_amount_to_send = ASSET_HUB_KUSAMA_ED * 1000;
 	let asset_owner = PenpalAssetOwner::get();
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let sender = PenpalASender::get();
 	let penpal_check_account = <PenpalA as PenpalAPallet>::PolkadotXcm::check_account();
 	let ah_as_seen_by_penpal = PenpalA::sibling_location_of(AssetHubKusama::para_id());
@@ -329,7 +329,7 @@ pub fn do_bidirectional_teleport_foreign_assets_between_para_and_asset_hub_using
 
 	// Init values for System Parachain
 	let foreign_asset_at_asset_hub_kusama =
-		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalA::para_id().into())])
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 	let penpal_to_ah_beneficiary_id = AssetHubKusamaReceiver::get();

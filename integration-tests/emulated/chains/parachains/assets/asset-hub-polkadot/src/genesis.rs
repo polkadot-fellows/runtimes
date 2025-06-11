@@ -23,9 +23,7 @@ use emulated_integration_tests_common::{
 	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use integration_tests_helpers::common::snowbridge::{
-	EthLocationXcmV5, WethLocationXcmV5, MIN_ETHER_BALANCE,
-};
+use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
@@ -37,18 +35,18 @@ pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
-	pub PenpalATeleportableAssetLocation: xcm::v5::Location
-		= xcm::v5::Location::new(1, [
-				xcm::v5::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				xcm::v5::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				xcm::v5::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub PenpalATeleportableAssetLocation: Location
+		= Location::new(1, [
+				Parachain(penpal_emulated_chain::PARA_ID_A),
+				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
-	pub PenpalBTeleportableAssetLocation: xcm::v5::Location
-		= xcm::v5::Location::new(1, [
-				xcm::v5::Junction::Parachain(penpal_emulated_chain::PARA_ID_B),
-				xcm::v5::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				xcm::v5::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub PenpalBTeleportableAssetLocation: Location
+		= Location::new(1, [
+				Parachain(penpal_emulated_chain::PARA_ID_B),
+				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
@@ -135,14 +133,9 @@ pub fn genesis() -> sp_core::storage::Storage {
 					ED,
 				),
 				// Ether
-				(EthLocationXcmV5::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
+				(EthLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 				// Weth
-				(
-					WethLocationXcmV5::get(),
-					EthereumSovereignAccount::get(),
-					true,
-					MIN_ETHER_BALANCE,
-				),
+				(WethLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 			],
 			..Default::default()
 		},

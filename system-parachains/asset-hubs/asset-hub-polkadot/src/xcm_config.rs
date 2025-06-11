@@ -64,26 +64,21 @@ use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
 	pub const DotLocation: Location = Location::parent();
-	pub const DotLocationV4: xcm::v5::Location = xcm::v5::Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Polkadot);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
 	pub TrustBackedAssetsPalletIndex: u8 = <Assets as PalletInfoAccess>::index() as u8;
-	pub TrustBackedAssetsPalletLocationV5: Location =
+	pub TrustBackedAssetsPalletLocation: Location =
 		PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
-	pub TrustBackedAssetsPalletLocationV4: xcm::v5::Location =
-		xcm::v5::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub const GovernanceLocation: Location = Location::parent();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	pub PoolAssetsPalletLocationV5: xcm::v5::Location =
-		xcm::v5::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
-	pub PoolAssetsPalletLocationV4: xcm::v5::Location =
-		xcm::v5::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
+	pub PoolAssetsPalletLocation: Location =
+		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
@@ -129,7 +124,7 @@ pub type FungibleTransactor = FungibleAdapter<
 
 /// `AssetId`/`Balance` converter for `TrustBackedAssets`.
 pub type TrustBackedAssetsConvertedConcreteId =
-	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocationV5, Balance>;
+	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocation, Balance>;
 
 /// Means for transacting assets besides the native currency on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
@@ -152,7 +147,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConvertedConcreteId<
 	(
 		// Ignore `TrustBackedAssets` explicitly
-		StartsWith<TrustBackedAssetsPalletLocationV5>,
+		StartsWith<TrustBackedAssetsPalletLocation>,
 		// Ignore assets that start explicitly with our `GlobalConsensus(NetworkId)`, means:
 		// - foreign assets from our consensus should be: `Location {parents: 1, X*(Parachain(xyz),
 		//   ..)}`
@@ -161,7 +156,7 @@ pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConverte
 		StartsWithExplicitGlobalConsensus<UniversalLocationNetworkId>,
 	),
 	Balance,
-	xcm::v5::Location,
+	Location,
 >;
 
 /// Means for transacting foreign assets from different global consensus.
@@ -182,7 +177,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 
 /// `AssetId`/`Balance` converter for `PoolAssets`.
 pub type PoolAssetsConvertedConcreteId =
-	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocationV5, Balance>;
+	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
 
 /// Means for transacting asset conversion pool assets on this chain.
 pub type PoolFungiblesTransactor = FungiblesAdapter<
@@ -213,15 +208,15 @@ pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
 	AssetConversion,
 	NativeAndAssets,
 	(
-		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocationV5, Balance, xcm::v5::Location>,
+		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 		ForeignAssetsConvertedConcreteId,
 		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it
 		// explicitly here.
 		MatchedConvertedConcreteId<
-			xcm::v5::Location,
+			Location,
 			Balance,
 			Equals<ParentLocation>,
-			WithLatestLocationConverter<xcm::v5::Location>,
+			WithLatestLocationConverter<Location>,
 			TryConvertInto,
 		>,
 	),
@@ -439,16 +434,12 @@ impl xcm_executor::Config for XcmConfig {
 		// This trader allows to pay with any assets exchangeable to DOT with
 		// [`AssetConversion`].
 		cumulus_primitives_utility::SwapFirstAssetTrader<
-			DotLocationV4,
+			DotLocation,
 			AssetConversion,
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<
-					TrustBackedAssetsPalletLocationV5,
-					Balance,
-					xcm::v5::Location,
-				>,
+				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -559,9 +550,9 @@ pub type ForeignCreatorsSovereignAccountOf = (
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<xcm::v5::Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> xcm::v5::Location {
-		xcm::v5::Location::new(1, xcm::v5::Junction::Parachain(id))
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location::new(1, Parachain(id))
 	}
 }
 

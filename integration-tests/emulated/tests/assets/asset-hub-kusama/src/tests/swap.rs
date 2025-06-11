@@ -20,13 +20,10 @@ use system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOS
 
 #[test]
 fn swap_locally_on_chain_using_local_assets() {
-	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get());
-	let asset_one = Box::new(xcm::v5::Location::new(
+	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
+	let asset_one = Box::new(Location::new(
 		0,
-		[
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		],
+		[PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())],
 	));
 
 	AssetHubKusama::execute_with(|| {
@@ -116,10 +113,10 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get());
-	let asset_location_on_penpal: xcm::v5::Location = PenpalLocalTeleportableToAssetHub::get();
+	let asset_native = Box::new(asset_hub_kusama_runtime::xcm_config::KsmLocation::get());
+	let asset_location_on_penpal: Location = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_kusama =
-		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalA::para_id().into())])
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -230,9 +227,9 @@ fn swap_locally_on_chain_using_foreign_assets() {
 
 #[test]
 fn cannot_create_pool_from_pool_assets() {
-	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get();
-	let asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocationV5::get()
-		.appended_with(xcm::v5::Junction::GeneralIndex(ASSET_ID.into()))
+	let asset_native = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
+	let asset_one = asset_hub_kusama_runtime::xcm_config::PoolAssetsPalletLocation::get()
+		.appended_with(GeneralIndex(ASSET_ID.into()))
 		.expect("valid location");
 
 	AssetHubKusama::execute_with(|| {
@@ -266,15 +263,10 @@ fn cannot_create_pool_from_pool_assets() {
 
 #[test]
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
-	let asset_native: xcm::v5::Location =
-		asset_hub_kusama_runtime::xcm_config::KsmLocationV5::get();
-	let asset_one = xcm::v5::Location {
+	let asset_native: Location = asset_hub_kusama_runtime::xcm_config::KsmLocation::get();
+	let asset_one = Location {
 		parents: 0,
-		interior: [
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		]
-		.into(),
+		interior: [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())].into(),
 	};
 	let penpal = AssetHubKusama::sovereign_account_id_of(AssetHubKusama::sibling_location_of(
 		PenpalA::para_id(),

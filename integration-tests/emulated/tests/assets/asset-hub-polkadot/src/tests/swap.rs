@@ -21,14 +21,9 @@ use system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEP
 fn swap_locally_on_chain_using_local_assets() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
-	let asset_one = xcm::v5::Location::new(
-		0,
-		[
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		],
-	);
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one =
+		Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())]);
 
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
@@ -125,10 +120,10 @@ fn swap_locally_on_chain_using_local_assets() {
 
 #[test]
 fn swap_locally_on_chain_using_foreign_assets() {
-	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get());
-	let asset_location_on_penpal: xcm::v5::Location = PenpalLocalTeleportableToAssetHub::get();
+	let asset_native = Box::new(asset_hub_polkadot_runtime::xcm_config::DotLocation::get());
+	let asset_location_on_penpal: Location = PenpalLocalTeleportableToAssetHub::get();
 	let foreign_asset_at_asset_hub_polkadot =
-		xcm::v5::Location::new(1, [xcm::v5::Junction::Parachain(PenpalA::para_id().into())])
+		Location::new(1, [Parachain(PenpalA::para_id().into())])
 			.appended_with(asset_location_on_penpal)
 			.unwrap();
 
@@ -244,9 +239,9 @@ fn swap_locally_on_chain_using_foreign_assets() {
 fn cannot_create_pool_from_pool_assets() {
 	use frame_support::traits::fungibles::{Create, Mutate};
 
-	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
-	let asset_one = asset_hub_polkadot_runtime::xcm_config::PoolAssetsPalletLocationV4::get()
-		.appended_with(xcm::v5::Junction::GeneralIndex(ASSET_ID.into()))
+	let asset_native = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = asset_hub_polkadot_runtime::xcm_config::PoolAssetsPalletLocation::get()
+		.appended_with(GeneralIndex(ASSET_ID.into()))
 		.expect("valid location");
 
 	AssetHubPolkadot::execute_with(|| {
@@ -281,15 +276,10 @@ fn cannot_create_pool_from_pool_assets() {
 fn pay_xcm_fee_with_some_asset_swapped_for_native() {
 	use frame_support::traits::fungible::Mutate;
 
-	let asset_native: xcm::v5::Location =
-		asset_hub_polkadot_runtime::xcm_config::DotLocationV4::get();
-	let asset_one = xcm::v5::Location {
+	let asset_native: Location = asset_hub_polkadot_runtime::xcm_config::DotLocation::get();
+	let asset_one = Location {
 		parents: 0,
-		interior: [
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
-		]
-		.into(),
+		interior: [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(ASSET_ID.into())].into(),
 	};
 	let penpal = AssetHubPolkadot::sovereign_account_id_of(AssetHubPolkadot::sibling_location_of(
 		PenpalB::para_id(),

@@ -36,7 +36,7 @@ fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
 fn set_up_ksm_for_penpal_kusama_through_kah_to_pah(
 	sender: &AccountId,
 	amount: u128,
-) -> (xcm::v5::Location, xcm::v5::Location, xcm::v5::Location, xcm::v5::Location) {
+) -> (Location, Location, Location, Location) {
 	let ksm_at_kusama_parachains = ksm_at_ah_kusama();
 	let ksm_at_kusama_parachains_latest: Location = ksm_at_kusama_parachains.clone();
 	let ksm_at_asset_hub_polkadot = bridged_ksm_at_ah_polkadot();

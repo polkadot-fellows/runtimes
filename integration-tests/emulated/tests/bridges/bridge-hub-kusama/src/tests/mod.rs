@@ -35,55 +35,55 @@ pub(crate) fn bridge_hub_polkadot_location() -> Location {
 }
 
 // KSM and wKSM
-pub(crate) fn ksm_at_ah_kusama() -> xcm::v5::Location {
-	xcm::v5::Parent.into()
+pub(crate) fn ksm_at_ah_kusama() -> Location {
+	Parent.into()
 }
-pub(crate) fn bridged_ksm_at_ah_polkadot() -> xcm::v5::Location {
-	xcm::v5::Location::new(2, [xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Kusama)])
+pub(crate) fn bridged_ksm_at_ah_polkadot() -> Location {
+	Location::new(2, [GlobalConsensus(NetworkId::Kusama)])
 }
 
 // wDOT
-pub(crate) fn bridged_dot_at_ah_kusama() -> xcm::v5::Location {
-	xcm::v5::Location::new(2, [xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot)])
+pub(crate) fn bridged_dot_at_ah_kusama() -> Location {
+	Location::new(2, [GlobalConsensus(Polkadot)])
 }
 
 // USDT and wUSDT
-pub(crate) fn usdt_at_ah_polkadot() -> xcm::v5::Location {
-	xcm::v5::Location::new(
+pub(crate) fn usdt_at_ah_polkadot() -> Location {
+	Location::new(
 		0,
 		[
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(USDT_ID.into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(USDT_ID.into()),
 		],
 	)
 }
-pub(crate) fn bridged_usdt_at_ah_kusama() -> xcm::v5::Location {
-	xcm::v5::Location::new(
+pub(crate) fn bridged_usdt_at_ah_kusama() -> Location {
+	Location::new(
 		2,
 		[
-			xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot),
-			xcm::v5::Junction::Parachain(AssetHubPolkadot::para_id().into()),
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(USDT_ID.into()),
+			GlobalConsensus(NetworkId::Polkadot),
+			Parachain(AssetHubPolkadot::para_id().into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(USDT_ID.into()),
 		],
 	)
 }
 
 // wETH has same relative location on both Kusama and Polkadot AssetHubs
-pub(crate) fn weth_at_asset_hubs() -> xcm::v5::Location {
-	xcm::v5::Location::new(
+pub(crate) fn weth_at_asset_hubs() -> Location {
+	Location::new(
 		2,
 		[
-			xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Ethereum {
+			GlobalConsensus(Ethereum {
 				chain_id: snowbridge::CHAIN_ID,
 			}),
-			xcm::v5::Junction::AccountKey20 { network: None, key: snowbridge::WETH },
+			AccountKey20 { network: None, key: snowbridge::WETH },
 		],
 	)
 }
 
 pub(crate) fn create_foreign_on_ah_kusama(
-	id: xcm::v5::Location,
+	id: Location,
 	sufficient: bool,
 	prefund_accounts: Vec<(AccountId, u128)>,
 ) {
@@ -92,18 +92,18 @@ pub(crate) fn create_foreign_on_ah_kusama(
 	AssetHubKusama::force_create_foreign_asset(id, owner, sufficient, min, prefund_accounts);
 }
 
-pub(crate) fn create_foreign_on_ah_polkadot(id: xcm::v5::Location, sufficient: bool) {
+pub(crate) fn create_foreign_on_ah_polkadot(id: Location, sufficient: bool) {
 	let owner = AssetHubPolkadot::account_id_of(ALICE);
 	AssetHubPolkadot::force_create_foreign_asset(id, owner, sufficient, ASSET_MIN_BALANCE, vec![]);
 }
 
-pub(crate) fn foreign_balance_on_ah_kusama(id: xcm::v5::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_kusama(id: Location, who: &AccountId) -> u128 {
 	AssetHubKusama::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
 	})
 }
-pub(crate) fn foreign_balance_on_ah_polkadot(id: xcm::v5::Location, who: &AccountId) -> u128 {
+pub(crate) fn foreign_balance_on_ah_polkadot(id: Location, who: &AccountId) -> u128 {
 	AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::ForeignAssets;
 		<Assets as Inspect<_>>::balance(id, who)
@@ -111,8 +111,8 @@ pub(crate) fn foreign_balance_on_ah_polkadot(id: xcm::v5::Location, who: &Accoun
 }
 
 // set up pool
-pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: xcm::v5::Location, is_foreign: bool) {
-	let dot: xcm::v5::Location = xcm::v5::Parent.into();
+pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: Location, is_foreign: bool) {
+	let dot: Location = Parent.into();
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 		let owner = AssetHubPolkadotSender::get();
@@ -127,7 +127,7 @@ pub(crate) fn set_up_pool_with_dot_on_ah_polkadot(asset: xcm::v5::Location, is_f
 			));
 		} else {
 			let asset_id = match asset.interior.last() {
-				Some(xcm::v5::Junction::GeneralIndex(id)) => *id as u32,
+				Some(Junction::GeneralIndex(id)) => *id as u32,
 				_ => unreachable!(),
 			};
 			assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::Assets::mint(

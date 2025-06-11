@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_kusama_runtime::xcm_config::KsmLocationV5;
+use asset_hub_kusama_runtime::xcm_config::KsmLocation;
 use kusama_system_emulated_network::{
 	kusama_emulated_chain::kusama_runtime::Dmp,
 	penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
@@ -51,7 +51,7 @@ fn para_to_relay_sender_assertions(t: ParaToRelayTest) {
 			RuntimeEvent::ForeignAssets(
 				pallet_assets::Event::Burned { asset_id, owner, balance, .. }
 			) => {
-				asset_id: *asset_id == KsmLocationV5::get(),
+				asset_id: *asset_id == KsmLocation::get(),
 				owner: *owner == t.sender.account_id,
 				balance: *balance == t.args.amount,
 			},
@@ -112,7 +112,7 @@ fn relay_to_para_assets_receiver_assertions(t: RelayToParaTest) {
 		PenpalA,
 		vec![
 			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-				asset_id: *asset_id == KsmLocationV5::get(),
+				asset_id: *asset_id == KsmLocation::get(),
 				owner: *owner == t.receiver.account_id,
 			},
 			RuntimeEvent::MessageQueue(
@@ -215,7 +215,7 @@ fn system_para_to_para_assets_sender_assertions(t: SystemParaToParaTest) {
 
 fn para_to_system_para_assets_sender_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let reservable_asset_location = PenpalLocalReservableFromAssetHub::get();
 	PenpalA::assert_xcm_pallet_attempted_complete(None);
 	assert_expected_events!(
@@ -253,7 +253,7 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 		PenpalA,
 		vec![
 			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
-				asset_id: *asset_id == KsmLocationV5::get(),
+				asset_id: *asset_id == KsmLocation::get(),
 				owner: *owner == t.receiver.account_id,
 			},
 			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
@@ -515,7 +515,7 @@ fn reserve_transfer_ksm_from_relay_to_para() {
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
 
 	// Init values for Parachain
-	let relay_native_asset_location = KsmLocationV5::get();
+	let relay_native_asset_location = KsmLocation::get();
 	let receiver = PenpalAReceiver::get();
 
 	// Init Test
@@ -565,7 +565,7 @@ fn reserve_transfer_ksm_from_para_to_relay() {
 	let amount_to_send: Balance = KUSAMA_ED * 1000;
 	let assets: Assets = (Parent, amount_to_send).into();
 	let asset_owner = PenpalAssetOwner::get();
-	let relay_native_asset_location = KsmLocationV5::get();
+	let relay_native_asset_location = KsmLocation::get();
 
 	// fund Parachain's sender account
 	PenpalA::mint_foreign_asset(
@@ -638,7 +638,7 @@ fn reserve_transfer_ksm_from_asset_hub_to_para() {
 	let assets: Assets = (Parent, amount_to_send).into();
 
 	// Init values for Parachain
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let receiver = PenpalAReceiver::get();
 
 	// Init Test
@@ -694,7 +694,7 @@ fn reserve_transfer_ksm_from_para_to_asset_hub() {
 	let sender = PenpalASender::get();
 	let amount_to_send: Balance = ASSET_HUB_KUSAMA_ED * 10000;
 	let assets: Assets = (Parent, amount_to_send).into();
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let asset_owner = PenpalAssetOwner::get();
 
 	// fund Parachain's sender account
@@ -795,7 +795,7 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 
 	// Init values for Parachain
 	let receiver = PenpalAReceiver::get();
-	let system_para_native_asset_location = KsmLocationV5::get();
+	let system_para_native_asset_location = KsmLocation::get();
 	let system_para_foreign_asset_location = PenpalLocalReservableFromAssetHub::get();
 
 	// Init Test
@@ -883,7 +883,7 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 	let penpal_asset_owner = PenpalAssetOwner::get();
 	let penpal_asset_owner_signer = <PenpalA as Chain>::RuntimeOrigin::signed(penpal_asset_owner);
 	let asset_location_on_penpal = PenpalLocalReservableFromAssetHub::get();
-	let system_asset_location_on_penpal = KsmLocationV5::get();
+	let system_asset_location_on_penpal = KsmLocation::get();
 	let assets: Assets = vec![
 		(Parent, fee_amount_to_send).into(),
 		(asset_location_on_penpal.clone(), asset_amount_to_send).into(),
@@ -1003,7 +1003,7 @@ fn reserve_transfer_ksm_from_para_to_para_through_relay() {
 	let amount_to_send: Balance = KUSAMA_ED * 10000;
 	let asset_owner = PenpalAssetOwner::get();
 	let assets = (Parent, amount_to_send).into();
-	let relay_native_asset_location = KsmLocationV5::get();
+	let relay_native_asset_location = KsmLocation::get();
 	let sender_as_seen_by_relay = Kusama::child_location_of(PenpalA::para_id());
 	let sov_of_sender_on_relay = Kusama::sovereign_account_id_of(sender_as_seen_by_relay);
 
@@ -1070,7 +1070,7 @@ fn reserve_withdraw_from_untrusted_reserve_fails() {
 	let signed_origin =
 		<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get());
 	let ksm_to_send: Balance = KUSAMA_ED * 10000;
-	let ksm_location = KsmLocationV5::get();
+	let ksm_location = KsmLocation::get();
 
 	// Assets to send
 	let assets: Vec<Asset> = vec![(ksm_location.clone(), ksm_to_send).into()];
@@ -1110,7 +1110,7 @@ fn reserve_withdraw_from_untrusted_reserve_fails() {
 		]);
 		let result = <AssetHubKusama as AssetHubKusamaPallet>::PolkadotXcm::execute(
 			signed_origin,
-			bx!(xcm::VersionedXcm::V5(xcm)),
+			bx!(VersionedXcm::V5(xcm)),
 			Weight::MAX,
 		);
 		assert!(result.is_err());

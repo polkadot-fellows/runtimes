@@ -39,7 +39,7 @@ fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
 fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 	sender: &AccountId,
 	amount: u128,
-) -> (xcm::v5::Location, xcm::v5::Location, xcm::v5::Location, xcm::v5::Location) {
+) -> (Location, Location, Location, Location) {
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
 	let dot_at_polkadot_parachains_latest: Location = dot_at_polkadot_parachains.clone();
 	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();

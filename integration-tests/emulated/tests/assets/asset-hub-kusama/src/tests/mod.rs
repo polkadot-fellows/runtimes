@@ -43,8 +43,7 @@ macro_rules! create_pool_with_ksm_on {
 				type RuntimeEvent = <$chain as Chain>::RuntimeEvent;
 				let owner = $asset_owner;
 				let signed_owner = <$chain as Chain>::RuntimeOrigin::signed(owner.clone());
-				// AssetHubKusama has v4 asset ids but penpal has v5 asset ids.
-				let ksm_location: xcm::v5::Location = xcm::v5::Parent.into();
+				let ksm_location: xcm::latest::Location = Parent.into();
 				if $is_foreign {
 					assert_ok!(<$chain as [<$chain Pallet>]>::ForeignAssets::mint(
 						signed_owner.clone(),
@@ -54,7 +53,7 @@ macro_rules! create_pool_with_ksm_on {
 					));
 				} else {
 					let asset_id = match $asset_id.interior.last() {
-						Some(xcm::v5::Junction::GeneralIndex(id)) => *id as u32,
+						Some(Junction::GeneralIndex(id)) => *id as u32,
 						_ => unreachable!(),
 					};
 					assert_ok!(<$chain as [<$chain Pallet>]>::Assets::mint(
@@ -67,7 +66,7 @@ macro_rules! create_pool_with_ksm_on {
 
 				assert_ok!(<$chain as [<$chain Pallet>]>::AssetConversion::create_pool(
 					signed_owner.clone(),
-					Box::new(ksm_location.clone().try_into().unwrap()),
+					Box::new(ksm_location.clone()),
 					Box::new($asset_id.clone().try_into().unwrap()),
 				));
 

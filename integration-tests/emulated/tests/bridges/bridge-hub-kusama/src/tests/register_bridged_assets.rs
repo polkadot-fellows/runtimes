@@ -27,13 +27,13 @@ fn register_kusama_asset_on_pah_from_kah() {
 		);
 
 	// Kusama Asset Hub asset when bridged to Polkadot Asset Hub.
-	let bridged_asset_at_pah = xcm::v5::Location::new(
+	let bridged_asset_at_pah = Location::new(
 		2,
 		[
-			xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Kusama),
-			xcm::v5::Junction::Parachain(AssetHubKusama::para_id().into()),
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
+			GlobalConsensus(NetworkId::Kusama),
+			Parachain(AssetHubKusama::para_id().into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(ASSET_ID.into()),
 		],
 	);
 

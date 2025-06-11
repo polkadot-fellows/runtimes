@@ -148,12 +148,12 @@ fn send_token_from_ethereum_to_penpal() {
 	));
 
 	// The Weth asset location, identified by the contract address on Ethereum
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
-	let weth_asset_location: xcm::v5::Location = (
-		xcm::v5::Parent,
-		xcm::v5::Parent,
+	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
+	let weth_asset_location: Location = (
+		Parent,
+		Parent,
 		v4_ethereum_network,
-		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
+		AccountKey20 { network: None, key: WETH },
 	)
 		.into();
 	let weth_asset_location_latest: Location = weth_asset_location.clone();
@@ -336,7 +336,7 @@ fn send_weth_from_ethereum_to_asset_hub() {
 fn send_token_from_ethereum_to_asset_hub_and_back_works(
 	token_address: H160,
 	amount: u128,
-	asset_location: xcm::v5::Location,
+	asset_location: Location,
 ) {
 	let asset_location_latest: Location = asset_location.clone();
 	let assethub_sovereign = BridgeHubPolkadot::sovereign_account_id_of(
@@ -522,9 +522,9 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 /// Tests sending Ether from Ethereum to Asset Hub and back to Ethereum
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
-	let ether_location: xcm::v5::Location =
-		(xcm::v5::Parent, xcm::v5::Parent, v4_ethereum_network).into();
+	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
+	let ether_location: Location =
+		(Parent, Parent, v4_ethereum_network).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
@@ -540,12 +540,12 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 /// - returning the token to Ethereum
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
-	let weth_location: xcm::v5::Location = (
-		xcm::v5::Parent,
-		xcm::v5::Parent,
+	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
+	let weth_location: Location = (
+		Parent,
+		Parent,
 		v4_ethereum_network,
-		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
+		AccountKey20 { network: None, key: WETH },
 	)
 		.into();
 	// Perform a roundtrip transfer of WETH
@@ -623,7 +623,7 @@ fn asset_hub_foreign_assets_pallet_is_configured_correctly_in_bridge_hub() {
 			<AssetHubPolkadot as Chain>::Runtime,
 			pallet_assets::Instance2,
 		>::create {
-			id: xcm::v5::Location::default(),
+			id: Location::default(),
 			min_balance: ASSET_MIN_BALANCE,
 			admin: assethub_sovereign.into(),
 		})
@@ -1207,7 +1207,7 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		let signed_owner = <AssetHubKusama as Chain>::RuntimeOrigin::signed(owner.clone());
 
 		// Native KSM asset (Parent)
-		let native_asset: xcm::v5::Location = xcm::v5::Parent.into();
+		let native_asset: Location = Parent.into();
 
 		// Mint foreign asset
 		assert_ok!(<AssetHubKusama as AssetHubKusamaPallet>::ForeignAssets::mint(
@@ -1323,12 +1323,12 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		2,
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
-	let v4_ethereum_network: xcm::v5::NetworkId = EthereumNetwork::get();
-	let weth_location_v5: xcm::v5::Location = (
-		xcm::v5::Parent,
-		xcm::v5::Parent,
+	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
+	let weth_location_v5: Location = (
+		Parent,
+		Parent,
 		v4_ethereum_network,
-		xcm::v5::Junction::AccountKey20 { network: None, key: WETH },
+		AccountKey20 { network: None, key: WETH },
 	)
 		.into();
 

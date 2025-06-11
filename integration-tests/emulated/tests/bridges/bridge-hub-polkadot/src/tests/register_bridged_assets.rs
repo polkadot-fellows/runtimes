@@ -22,13 +22,13 @@ const XCM_FEE: u128 = 40_000_000_000;
 #[test]
 fn register_polkadot_asset_on_kah_from_pah() {
 	// Polkadot Asset Hub asset when bridged to Kusama Asset Hub.
-	let bridged_asset_at_kah = xcm::v5::Location::new(
+	let bridged_asset_at_kah = Location::new(
 		2,
 		[
-			xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Polkadot),
-			xcm::v5::Junction::Parachain(AssetHubPolkadot::para_id().into()),
-			xcm::v5::Junction::PalletInstance(ASSETS_PALLET_ID),
-			xcm::v5::Junction::GeneralIndex(ASSET_ID.into()),
+			GlobalConsensus(NetworkId::Polkadot),
+			Parachain(AssetHubPolkadot::para_id().into()),
+			PalletInstance(ASSETS_PALLET_ID),
+			GeneralIndex(ASSET_ID.into()),
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
@@ -40,18 +40,18 @@ fn register_polkadot_asset_on_kah_from_pah() {
 fn register_ethereum_asset_on_kah_from_pah() {
 	// Ethereum asset when bridged to Kusama Asset Hub.
 	let token_id = H160::random();
-	let bridged_asset_at_kah = xcm::v5::Location::new(
+	let bridged_asset_at_kah = Location::new(
 		2,
 		[
-			xcm::v5::Junction::GlobalConsensus(xcm::v5::NetworkId::Ethereum { chain_id: CHAIN_ID }),
-			xcm::v5::Junction::AccountKey20 { network: None, key: token_id.into() },
+			GlobalConsensus(NetworkId::Ethereum { chain_id: CHAIN_ID }),
+			AccountKey20 { network: None, key: token_id.into() },
 		],
 	);
 	// Register above asset on Kusama AH from Polkadot AH.
 	register_asset_on_kah_from_pah(bridged_asset_at_kah);
 }
 
-fn register_asset_on_kah_from_pah(bridged_asset_at_kah: xcm::v5::Location) {
+fn register_asset_on_kah_from_pah(bridged_asset_at_kah: Location) {
 	let sa_of_pah_on_kah = AssetHubKusama::sovereign_account_of_parachain_on_other_global_consensus(
 		Polkadot,
 		AssetHubPolkadot::para_id(),

@@ -16,9 +16,7 @@
 //! Tests for `WeighTrader` type of XCM Executor.
 
 use asset_hub_polkadot_runtime::{
-	xcm_config::{
-		DotLocation, DotLocationV4, StakingPot, TrustBackedAssetsPalletLocationV4, XcmConfig,
-	},
+	xcm_config::{DotLocation, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig},
 	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
 	SessionKeys,
 };
@@ -35,7 +33,7 @@ use frame_support::{
 use parachains_common::{AccountId, AssetHubPolkadotAuraId as AuraId};
 use sp_runtime::traits::MaybeEquivalence;
 use system_parachains_constants::polkadot::{currency::*, fee::WeightToFee};
-use xcm::v5::prelude::*;
+use xcm::latest::prelude::*;
 use xcm_executor::traits::WeightTrader;
 
 const ALICE: [u8; 32] = [1u8; 32];
@@ -115,10 +113,10 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
 			let asset_1: u32 = 1;
-			let native_location = DotLocationV4::get();
+			let native_location = DotLocation::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
-				TrustBackedAssetsPalletLocationV4,
-				xcm::v5::Location,
+				TrustBackedAssetsPalletLocation,
+				Location,
 			>::convert_back(&asset_1)
 			.unwrap();
 			// bob's initial balance for native and `asset1` assets.
@@ -216,15 +214,9 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
 			let staking_pot = StakingPot::get();
-			let native_location = DotLocationV4::get();
-			let foreign_location = xcm::v5::Location {
-				parents: 1,
-				interior: (
-					xcm::v5::Junction::Parachain(1234),
-					xcm::v5::Junction::GeneralIndex(12345),
-				)
-					.into(),
-			};
+			let native_location = DotLocation::get();
+			let foreign_location =
+				Location { parents: 1, interior: (Parachain(1234), GeneralIndex(12345)).into() };
 			// bob's initial balance for native and `asset1` assets.
 			let initial_balance = 200 * UNITS;
 			// liquidity for both arms of (native, asset1) pool.
@@ -296,7 +288,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let v5_asset: xcm::v5::Asset = (foreign_location.clone(), asset_refund).into();
+			let v5_asset: Asset = (foreign_location.clone(), asset_refund).into();
 			assert_eq!(actual_refund, v5_asset);
 
 			// assert.

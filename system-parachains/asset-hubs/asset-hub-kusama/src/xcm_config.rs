@@ -62,24 +62,18 @@ use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 parameter_types! {
 	pub const RootLocation: Location = Location::here();
-	pub const KsmLocationV5: Location = Location::parent();
-	pub const KsmLocationV4: xcm::v4::Location = xcm::v4::Location::parent();
+	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: Option<NetworkId> = Some(NetworkId::Kusama);
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub UniversalLocationNetworkId: NetworkId = UniversalLocation::get().global_consensus().unwrap();
-
 	pub TrustBackedAssetsPalletIndex: u8 = <Assets as PalletInfoAccess>::index() as u8;
-	pub TrustBackedAssetsPalletLocationV5: Location = xcm::v5::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
-	pub TrustBackedAssetsPalletLocationV4: xcm::v4::Location = xcm::v4::Junction::PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
-
+	pub TrustBackedAssetsPalletLocation: Location = PalletInstance(TrustBackedAssetsPalletIndex::get()).into();
 	pub ForeignAssetsPalletLocation: Location =
 		PalletInstance(<ForeignAssets as PalletInfoAccess>::index() as u8).into();
-	pub PoolAssetsPalletLocationV5: xcm::v5::Location =
-		xcm::v5::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
-	pub PoolAssetsPalletLocationV4: xcm::v4::Location =
-		xcm::v4::Junction::PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
+	pub PoolAssetsPalletLocation: Location =
+		PalletInstance(<PoolAssets as PalletInfoAccess>::index() as u8).into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub const GovernanceLocation: Location = Location::parent();
 	pub const FellowshipLocation: Location = Location::parent();
@@ -119,7 +113,7 @@ pub type FungibleTransactor = FungibleAdapter<
 	// Use this currency:
 	Balances,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<KsmLocationV5>,
+	IsConcrete<KsmLocation>,
 	// Convert an XCM `Location` into a local account ID:
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -130,7 +124,7 @@ pub type FungibleTransactor = FungibleAdapter<
 
 /// `AssetId`/`Balance` converter for `TrustBackedAssets`.
 pub type TrustBackedAssetsConvertedConcreteId =
-	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocationV5, Balance>;
+	assets_common::TrustBackedAssetsConvertedConcreteId<TrustBackedAssetsPalletLocation, Balance>;
 
 /// Means for transacting assets besides the native currency on this chain.
 pub type FungiblesTransactor = FungiblesAdapter<
@@ -153,7 +147,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
 pub type ForeignAssetsConvertedConcreteId = assets_common::ForeignAssetsConvertedConcreteId<
 	(
 		// Ignore `TrustBackedAssets` explicitly
-		StartsWith<TrustBackedAssetsPalletLocationV5>,
+		StartsWith<TrustBackedAssetsPalletLocation>,
 		// Ignore assets that start explicitly with our `GlobalConsensus(NetworkId)`, means:
 		// - foreign assets from our consensus should be: `Location {parents: 1, X*(Parachain(xyz),
 		//   ..)}`
@@ -183,7 +177,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
 
 /// `AssetId`/`Balance` converter for `PoolAssets`.
 pub type PoolAssetsConvertedConcreteId =
-	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocationV5, Balance>;
+	assets_common::PoolAssetsConvertedConcreteId<PoolAssetsPalletLocation, Balance>;
 
 /// Means for transacting asset conversion pool assets on this chain.
 pub type PoolFungiblesTransactor = FungiblesAdapter<
@@ -214,7 +208,7 @@ pub type PoolAssetsExchanger = SingleAssetExchangeAdapter<
 	AssetConversion,
 	NativeAndAssets,
 	(
-		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocationV5, Balance, Location>,
+		TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 		ForeignAssetsConvertedConcreteId,
 		// `ForeignAssetsConvertedConcreteId` doesn't include Relay token, so we handle it
 		// explicitly here.
@@ -310,7 +304,7 @@ pub type WaivedLocations = (
 /// - KSM with the parent Relay Chain and sibling system parachains; and
 /// - Sibling parachains' assets from where they originate (as `ForeignCreators`).
 pub type TrustedTeleporters = (
-	ConcreteAssetFromSystem<KsmLocationV5>,
+	ConcreteAssetFromSystem<KsmLocation>,
 	IsForeignConcreteAsset<FromSiblingParachain<parachain_info::Pallet<Runtime>>>,
 );
 
@@ -340,7 +334,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Trader = (
 		UsingComponents<
 			WeightToFee,
-			KsmLocationV5,
+			KsmLocation,
 			AccountId,
 			Balances,
 			ResolveTo<StakingPot, Balances>,
@@ -348,12 +342,12 @@ impl xcm_executor::Config for XcmConfig {
 		// This trader allows to pay with any assets exchangeable to KSM with
 		// [`AssetConversion`].
 		cumulus_primitives_utility::SwapFirstAssetTrader<
-			KsmLocationV5,
+			KsmLocation,
 			AssetConversion,
 			WeightToFee,
 			NativeAndAssets,
 			(
-				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocationV5, Balance, Location>,
+				TrustBackedAssetsAsLocation<TrustBackedAssetsPalletLocation, Balance, Location>,
 				ForeignAssetsConvertedConcreteId,
 			),
 			ResolveAssetTo<StakingPot, NativeAndAssets>,
@@ -456,9 +450,9 @@ pub type ForeignCreatorsSovereignAccountOf = (
 /// Simple conversion of `u32` into an `AssetId` for use in benchmarking.
 pub struct XcmBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_assets::BenchmarkHelper<xcm::v5::Location> for XcmBenchmarkHelper {
-	fn create_asset_id_parameter(id: u32) -> xcm::v5::Location {
-		xcm::v5::Location::new(1, xcm::v5::Junction::Parachain(id))
+impl pallet_assets::BenchmarkHelper<Location> for XcmBenchmarkHelper {
+	fn create_asset_id_parameter(id: u32) -> Location {
+		Location::new(1, Parachain(id))
 	}
 }
 
@@ -482,7 +476,7 @@ pub mod bridging {
 		pub SiblingBridgeHub: Location = Location::new(1, Parachain(SiblingBridgeHubParaId::get()));
 		/// Router expects payment with this `AssetId`.
 		/// (`AssetId` has to be aligned with `BridgeTable`)
-		pub XcmBridgeHubRouterFeeAssetId: AssetId = KsmLocationV5::get().into();
+		pub XcmBridgeHubRouterFeeAssetId: AssetId = KsmLocation::get().into();
 
 		pub BridgeTable: Vec<NetworkExportTableItem> =
 			Vec::new().into_iter()

@@ -23,9 +23,9 @@ use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
 		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, ForeignCreatorsSovereignAccountOf, GovernanceLocation, KsmLocationV5,
+		CheckingAccount, ForeignCreatorsSovereignAccountOf, GovernanceLocation, KsmLocation,
 		LocationToAccountId, RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocationV5, XcmConfig,
+		TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetConversion, AssetDeposit, Assets, Balances, Block,
 	ExistentialDeposit, ForeignAssets, ForeignAssetsInstance, MetadataDepositBase,
@@ -56,7 +56,7 @@ const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 type AssetIdForTrustBackedAssetsConvertLatest =
-	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV5>;
+	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
@@ -234,7 +234,7 @@ fn test_assets_balances_api_works() {
 
 			// check currency
 			assert!(result.inner().iter().any(|asset| asset.eq(
-				&assets_common::fungible_conversion::convert_balance::<KsmLocationV5, Balance>(
+				&assets_common::fungible_conversion::convert_balance::<KsmLocation, Balance>(
 					some_currency
 				)
 				.unwrap()
