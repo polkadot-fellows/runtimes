@@ -95,21 +95,6 @@ pub type OpenGovOrGlobalHeadAmbassador = EitherOfDiverse<
 	>,
 >;
 
-/// Ambassadors' vote weights for referendums.
-/// - Rank 0 (Advocate): 1 votes (excluded in the voting system)
-/// - Rank I (Associate): 1 vote
-/// - Rank II (Lead): 3 votes (1+2)
-/// - Rank III (Senior): 6 votes (1+2+3)
-/// - Rank IV (Principal): 10 votes (1+2+3+4)
-/// - Rank V (Global): 15 votes (1+2+3+4+5)
-/// - Rank VI (Global Head): 21 votes (1+2+3+4+5+6)
-pub struct VoteWeight;
-impl Convert<Rank, Votes> for VoteWeight {
-	fn convert(absolute_rank: Rank) -> Votes {
-		(absolute_rank * (absolute_rank + 1) / 2).into()
-	}
-}
-
 pub type AmbassadorCollectiveInstance = pallet_ranked_collective_ambassador::Instance2;
 
 impl pallet_ranked_collective_ambassador::Config<AmbassadorCollectiveInstance> for Runtime {
