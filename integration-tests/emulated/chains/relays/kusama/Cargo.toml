@@ -25,4 +25,4 @@ emulated-integration-tests-common = { workspace = true }
 
 # Runtimes
 kusama-runtime-constants = { workspace = true, default-features = true }
-kusama-runtime = { workspace = true, default-features = true }
+kusama-runtime = { workspace = true }
