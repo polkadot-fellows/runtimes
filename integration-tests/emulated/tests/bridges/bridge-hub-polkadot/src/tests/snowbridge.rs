@@ -149,13 +149,8 @@ fn send_token_from_ethereum_to_penpal() {
 
 	// The Weth asset location, identified by the contract address on Ethereum
 	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let weth_asset_location: Location = (
-		Parent,
-		Parent,
-		v4_ethereum_network,
-		AccountKey20 { network: None, key: WETH },
-	)
-		.into();
+	let weth_asset_location: Location =
+		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
 	let weth_asset_location_latest: Location = weth_asset_location.clone();
 	// Converts the Weth asset location into an asset ID
 
@@ -523,8 +518,7 @@ fn send_token_back_to_ethereum(asset_location: Location, amount: u128) {
 #[test]
 fn send_eth_asset_from_asset_hub_to_ethereum() {
 	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let ether_location: Location =
-		(Parent, Parent, v4_ethereum_network).into();
+	let ether_location: Location = (Parent, Parent, v4_ethereum_network).into();
 
 	// Perform a roundtrip transfer of Ether
 	send_token_from_ethereum_to_asset_hub_and_back_works(
@@ -541,13 +535,8 @@ fn send_eth_asset_from_asset_hub_to_ethereum() {
 #[test]
 fn send_weth_asset_from_asset_hub_to_ethereum() {
 	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let weth_location: Location = (
-		Parent,
-		Parent,
-		v4_ethereum_network,
-		AccountKey20 { network: None, key: WETH },
-	)
-		.into();
+	let weth_location: Location =
+		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
 	// Perform a roundtrip transfer of WETH
 	send_token_from_ethereum_to_asset_hub_and_back_works(WETH.into(), TOKEN_AMOUNT, weth_location);
 }
@@ -1324,13 +1313,8 @@ fn send_weth_from_ethereum_to_ahp_to_ahk_and_back() {
 		[GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }],
 	);
 	let v4_ethereum_network: NetworkId = EthereumNetwork::get();
-	let weth_location_v5: Location = (
-		Parent,
-		Parent,
-		v4_ethereum_network,
-		AccountKey20 { network: None, key: WETH },
-	)
-		.into();
+	let weth_location_v5: Location =
+		(Parent, Parent, v4_ethereum_network, AccountKey20 { network: None, key: WETH }).into();
 
 	let fee = dot_at_ah_polkadot();
 	let fees_asset: AssetId = fee.clone().into();

@@ -49,13 +49,7 @@ pub(crate) fn bridged_dot_at_ah_kusama() -> Location {
 
 // USDT and wUSDT
 pub(crate) fn usdt_at_ah_polkadot() -> Location {
-	Location::new(
-		0,
-		[
-			PalletInstance(ASSETS_PALLET_ID),
-			GeneralIndex(USDT_ID.into()),
-		],
-	)
+	Location::new(0, [PalletInstance(ASSETS_PALLET_ID), GeneralIndex(USDT_ID.into())])
 }
 pub(crate) fn bridged_usdt_at_ah_kusama() -> Location {
 	Location::new(
@@ -74,9 +68,7 @@ pub(crate) fn weth_at_asset_hubs() -> Location {
 	Location::new(
 		2,
 		[
-			GlobalConsensus(Ethereum {
-				chain_id: snowbridge::CHAIN_ID,
-			}),
+			GlobalConsensus(Ethereum { chain_id: snowbridge::CHAIN_ID }),
 			AccountKey20 { network: None, key: snowbridge::WETH },
 		],
 	)
