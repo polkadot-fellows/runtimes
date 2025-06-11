@@ -15,8 +15,8 @@
 
 pub mod snowbridge {
 	use hex_literal::hex;
-	use xcm_emulator::parameter_types;
 	use xcm::latest::prelude::*;
+	use xcm_emulator::parameter_types;
 
 	// Weth (Wrapped Ether) contract address on Ethereum mainnet.
 	pub const WETH: [u8; 20] = hex!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
