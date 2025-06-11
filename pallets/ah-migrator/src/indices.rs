@@ -50,7 +50,7 @@ impl<T: Config> Pallet<T> {
 #[cfg(feature = "std")]
 impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 	type RcPrePayload = Vec<RcIndicesIndexOf<T>>;
-	type AhPrePayload = Vec<RcIndicesIndexOf<T>>;
+	type AhPrePayload = ();
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let indices = pallet_indices::Accounts::<T>::iter()
@@ -58,11 +58,9 @@ impl<T: Config> crate::types::AhMigrationCheck for IndicesMigrator<T> {
 			.collect::<Vec<_>>();
 
 		assert!(indices.is_empty(), "Assert storage 'Indices::Accounts::ah_pre::empty'");
-
-		indices
 	}
 
-	fn post_check(rc_pre_payload: Self::RcPrePayload, ah_pre_payload: Self::AhPrePayload) {
+	fn post_check(rc_pre_payload: Self::RcPrePayload, _ah_pre_payload: Self::AhPrePayload) {
 		use std::collections::BTreeMap;
 		let all_pre: BTreeMap<_, _> = rc_pre_payload
 			.into_iter()
