@@ -680,7 +680,7 @@ impl pallet_parameters::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeParameters = RuntimeParameters;
 	type AdminOrigin = DynamicParametersOrigins;
-	type WeightInfo = (); //weights::pallet_parameters::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 parameter_types! {
