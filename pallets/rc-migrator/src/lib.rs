@@ -1512,7 +1512,7 @@ pub mod pallet {
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
-		pub fn send_chunked_xcm<E: Encode>(
+		fn send_chunked_xcm<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
