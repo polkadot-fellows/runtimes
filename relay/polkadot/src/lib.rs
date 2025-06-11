@@ -1827,6 +1827,7 @@ mod benches {
 		[pallet_multisig, Multisig]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_offences, OffencesBench::<Runtime>]
+		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
