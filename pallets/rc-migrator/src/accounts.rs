@@ -1092,26 +1092,29 @@ impl<T: Config> crate::types::RcMigrationCheck for AccountsMigrationChecker<T> {
 		// Check that all accounts have been processed correctly
 		for (who, _) in SystemAccount::<T>::iter() {
 			acc_state_maybe = RcAccounts::<T>::get(who.clone());
+			if acc_state_maybe.is_none() {
+				let ed = <T as Config>::Currency::minimum_balance();
+				let total_balance = <T as Config>::Currency::total_balance(&who);
+				if total_balance < ed {
+					acc_state_maybe = Some(AccountState::Preserve);
+				}
+			}
 			match acc_state_maybe {
-				Some(AccountState::Part { reserved }) => {
-					// Account should have only the reserved amount
-					let total_balance = <T as Config>::Currency::total_balance(&who);
-					let free_balance = <T as Config>::Currency::reducible_balance(
-						&who,
-						Preservation::Expendable,
-						Fortitude::Polite,
+				Some(AccountState::Part { free, reserved, consumers }) => {
+					assert_eq!(
+						<T as Config>::Currency::reserved_balance(&who), reserved,
+						"Incorrect reserve balance on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), reserved
 					);
 					assert_eq!(
-						free_balance, 0,
-						"Account {:?} should have no free balance on the relay chain after migration",
-						who.to_ss58check()
+						<T as Config>::Currency::balance(&who), free,
+						"Incorrect free balance on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), free
 					);
-
-					// Assert storage "Balances::Account::rc_post::empty"
 					assert_eq!(
-						total_balance, reserved.saturating_add(<T as Config>::Currency::minimum_balance()),
-						"Account {:?} should have only reserved balance + min existential deposit on the relay chain after migration",
-						who.to_ss58check()
+						frame_system::Pallet::<T>::consumers(&who), consumers,
+						"Incorrect consumer count on the Relay Chain after the migration for account: {:?}, {:?}",
+						who.to_ss58check(), consumers
 					);
 
 					// Assert storage "Balances::Locks::rc_post::empty"
