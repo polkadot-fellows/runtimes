@@ -1056,7 +1056,7 @@ impl pallet_revive::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
 	type Xcm = pallet_xcm::Pallet<Self>;
-	type ChainId = ConstU64<420_420_421>;
+	type ChainId = ConstU64<420_420_418>;
 	type NativeToEthRatio = ConstU32<1_000_000>; // 10^(18 - 12) Eth is 10^18, Native is 10^12.
 	type EthGasEncoder = ();
 	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
