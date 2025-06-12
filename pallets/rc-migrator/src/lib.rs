@@ -63,7 +63,6 @@ pub use weights::*;
 use crate::{
 	accounts::MigratedBalances,
 	types::{MigrationFinishedData, XcmBatch, XcmBatchAndMeter},
-	xcm_config::TrustedTeleportersBeforeAndAfter,
 };
 use accounts::AccountsMigrator;
 #[cfg(not(feature = "ahm-westend"))]
@@ -76,8 +75,8 @@ use frame_support::{
 		fungible::{Inspect, InspectFreeze, Mutate, MutateFreeze, MutateHold},
 		schedule::DispatchTime,
 		tokens::{Fortitude, Pay, Precision, Preservation},
-		Contains, ContainsPair, Defensive, DefensiveTruncateFrom, LockableCurrency,
-		ReservableCurrency, VariantCount,
+		Contains, Defensive, DefensiveTruncateFrom, LockableCurrency, ReservableCurrency,
+		VariantCount,
 	},
 	weights::{Weight, WeightMeter},
 	PalletId,
@@ -1513,7 +1512,7 @@ pub mod pallet {
 		///
 		/// Will modify storage in the error path.
 		/// This is done to avoid exceeding the XCM message size limit.
-		pub fn send_chunked_xcm<E: Encode>(
+		fn send_chunked_xcm<E: Encode>(
 			items: impl Into<XcmBatch<E>>,
 			create_call: impl Fn(Vec<E>) -> types::AhMigratorCall<T>,
 			weight_at_most: impl Fn(u32) -> Weight,
@@ -1705,26 +1704,5 @@ impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
 		// Otherwise, allow the call.
 		// This also implicitly allows _any_ call if the migration has not yet started.
 		ALLOWED
-	}
-}
-
-// To be used for `IsTeleport` filter. Disallows teleports during the migration.
-impl<T: Config> ContainsPair<Asset, Location> for Pallet<T> {
-	fn contains(asset: &Asset, origin: &Location) -> bool {
-		let stage = RcMigrationStage::<T>::get();
-		log::trace!(target: "xcm::IsTeleport::contains", "migration stage: {:?}", stage);
-		let result = if stage.is_ongoing() {
-			// during migration, no teleports (in or out) allowed
-			false
-		} else {
-			// before and after migration use normal filter
-			TrustedTeleportersBeforeAndAfter::contains(asset, origin)
-		};
-		log::trace!(
-			target: "xcm::IsTeleport::contains",
-			"asset: {:?} origin {:?} result {:?}",
-			asset, origin, result
-		);
-		result
 	}
 }

@@ -7651,6 +7651,7 @@ name = "pallet-ah-migrator"
 version = "0.1.0"
 dependencies = [
  "assets-common",
+ "collectives-polkadot-runtime-constants",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
@@ -9593,10 +9594,8 @@ dependencies = [
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
- "kusama-emulated-chain",
  "parachains-common",
  "penpal-runtime",
- "polkadot-emulated-chain",
  "sp-core 34.0.0",
  "staging-xcm",
 ]
@@ -10071,6 +10070,7 @@ dependencies = [
  "pallet-bounties",
  "pallet-indices",
  "pallet-message-queue",
+ "pallet-multisig",
  "pallet-proxy",
  "pallet-rc-migrator",
  "pallet-timestamp",
@@ -10162,7 +10162,6 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
- "pallet-ah-migrator",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",

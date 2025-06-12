@@ -40,6 +40,27 @@ Example for Bifrost: this is the [relay sovereign account](https://polkadot.subs
 The migration happens over XCM. There will be events emitted for the balance being removed from the
 Relay Chain and events emitted for the balance being deposited into Asset Hub.
 
+Regular XCM teleport operation, when the Relay Chain acts as the mint authority, follows this
+sequence:
+
+(1) Relay Chain: burn_from(source, amount) // emits Balances::Burned event
+(2) Relay Chain: mint_into(checking_account, amount) // emits Balances::Minted event
+(3) Relay Chain: total issuance remains unchanged
+(4) Relay Chain: sends XCM teleport message
+(5) Asset Hub: mint_into(dest, amount) // emits Balances::Minted event
+(6) Asset Hub: total issuance increases by `amount`
+
+During account migration, the process will emit `Balances::Burned` events on the Relay Chain and
+`Balances::Minted` events on the Asset Hub. However, unlike regular teleports, it will not mint into
+the `checking_account`, which means the total issuance on the Relay Chain will be updated be the
+migrating amount.
+For more details about the checking account migration and mint authority changes, please refer to
+the sections below.
+
+TODO: Consider a dedicated migration stage for updating the teleport/reserve location, adjusting
+total issuance and checking account balances. This approach prevents XCM teleport locking during the
+entire migration and requires only a two-block lock for the switch.
+
 ### Provider and Consumer References
 
 After inspecting the state, it’s clear that fully correcting all reference counts is nearly
@@ -101,16 +122,100 @@ accounts, and a decrease without a prior increase will not cause any issues.
 See test: `polkadot_integration_tests_ahm::tests::test_account_references`
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/recovery/src/lib.rs#L610
 
-- session (P/K/W): Validator accounts may be removed from RC during migration (unless they maintain
-HRMP channels or register a parachain). Validators who later wish to interact with the session
-pallet (e.g., set/remove keys) will need to teleport funds to RC and reinitialize their account. The
-only possible inconsistency is if a validator removes already existing keys, causing the consumer
-count to decrement from 0 (if no holds/freezes) or from 1 otherwise. Case 1: From 0 — no issue.
-Case 2: From 1 — results in a temporarily incorrect consumer count, which will self-correct on any
-account update.
-See test: `polkadot_integration_tests_ahm::tests::test_account_references`
+- session (P/K/W): TODO session set keys moving to AH
 Source: https://github.com/paritytech/polkadot-sdk/blob/ace62f120fbc9ec617d6bab0a5180f0be4441537/substrate/frame/session/src/lib.rs#L812
 
 - staking (P/K/W): No references are migrated in the new staking pallet version; legacy references are not relevant. TODO: confirm with @Ank4n
 
 - assets, contracts, nfts, uniques, revive (//): Not relevant for RC and AH runtimes.
+
+
+### XCM "Checking Account" and DOT/KSM Total Issuance Tracking
+
+The Relay Chain is currently the "native location" of DOT/KSM, and it is responsible for keeping
+track of the token's **total issuance** (across the entire ecosystem).  
+The Relay Chain uses a special "checking" account to track outbound and inbound teleports of the
+native token (DOT/KSM), and through this account balance, track all "exported" DOT/KSM. Summing
+that with the total balance of all other local accounts provides the token's *total issuance*.  
+On top of that, the checking account is also used to enforce that the amount of DOT/KSM teleported
+"back in" cannot surpass the amount teleported "out".
+
+During AHM, we move all of the above responsibilities from the Relay Chain to Asset Hub. AH will be
+the source of truth for DOT/KSM *total issuance*.
+
+#### Migration Design Assumptions
+
+1. AHM has no implications for the other System Chains' checking accounts - only Relay and AH.
+2. Migration of checking account balance falls under base case of generic account migration: no
+   special handling when "moving funds" of this account: balance of checking account on Relay will
+   simply be migrated over to the same checking account on Asset Hub using same logic and part of
+   the same process as all other accounts.
+3. Not **all** DOT/KSM will be moved from Relay Chain to AH. Some of it will stay put for various
+   reasons covered throughout this doc.
+4. The new balance of checking account on AH will be adjusted in a dedicated migration step to
+   properly account for the "exported" tokens. The logic for this calculation is described further
+   down.
+5. To avoid having to coordinate/track DOT/KSM teleports across all System Chains during AHM,
+   DOT/KSM teleports shall be disabled for Relay Chain and Asset Hub during accounts migration.
+
+| DOT Teleports (in or out) | **Relay** | **AH** |
+|----------|-----|--------|
+| _Before_ | Yes | Yes |
+| _During_ | No  | No  |
+| _After_  | Yes | Yes |
+
+
+The runtime configurations of Relay and AH need to change in terms of how they use the checking
+account before, during and after the migration.
+
+|     DOT Teleports tracking in Checking Account    | **Relay** | **AH** |
+|----------|-----------|--------|
+| _Before_ |     Yes, MintLocal       |   No Checking     |
+| _During_ |     No Checking       |   No Checking     |
+| _After_  |     No Checking      |   Yes, MintLocal     |
+
+#### Tracking Total Issuance Post-Migration
+
+Pre-migration RC checking account tracks total DOT/KSM that "left" RC and is currently on some other
+system chain. The DOT/KSM in various accounts on AH is also tracked in this same RC checking account.
+
+Post-migration, we want the tracking to move to AH. So AH checking account will track total DOT/KSM
+currrently living on RC or other system chains.
+
+The **important invariant** here is that the DOT/KSM **total issuance** reported by RC pre-migration
+matches the total issuance reported by AH post-migration.
+
+To achieve this, we implement the following arithmetic algorithm:
+
+After all accounts (including checking account) are migrated from RC to AH:
+
+```
+	ah_checking_intermediate = ah_check_before + rc_check_before
+	(0) rc_check_before = ah_checking_intermediate - ah_check_before
+
+	Invariants:
+	(1) rc_check_before = sum_total_before(ah, bh, collectives, coretime, people)
+	(2) rc_check_before = sum_total_before(bh, collectives, coretime, people) + ah_total_before
+
+	Because teleports are disabled for RC and AH during migration, we can say:
+	(3) sum_total_before(bh, collectives, coretime, people) = sum_total_after(bh, collectives, coretime, people)
+
+	Ergo use (3) in (2):
+	(4) rc_check_before = sum_total_after(bh, collectives, coretime, people) + ah_total_before
+
+	We want:
+		ah_check_after = sum_total_after(rc, bh, collectives, coretime, people)
+		ah_check_after = sum_total_after(bh, collectives, coretime, people) + rc_balance_kept
+	Use (3):
+		ah_check_after = sum_total_before(bh, collectives, coretime, people) + rc_balance_kept
+		ah_check_after = sum_total_before(ah, bh, collectives, coretime, people) - ah_total_before + rc_balance_kept
+	Use (1):
+		ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
+
+	Finally use (0):
+		ah_check_after = ah_checking_intermediate - ah_check_before - ah_total_before + rc_balance_kept
+```
+
+At which point, `ah_total_issuance_after` should equal `rc_total_issuance_before`.
+
+<img width="836" alt="checking-account" src="https://github.com/user-attachments/assets/376c791b-a9ed-400e-beab-c14d92a72686" />

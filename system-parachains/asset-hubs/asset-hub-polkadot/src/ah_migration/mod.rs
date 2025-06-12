@@ -33,7 +33,7 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 	fn get() -> (AccountId, Vec<Location>) {
 		let assets_id = <crate::Assets as PalletInfoAccess>::index() as u8;
 		(
-			xcm_config::RelayTreasuryPalletAccount::get(),
+			xcm_config::PreMigrationRelayTreasuryPalletAccount::get(),
 			vec![
 				// USDT
 				Location::new(0, [PalletInstance(assets_id), GeneralIndex(1984)]),
@@ -53,6 +53,9 @@ impl Get<(AccountId, Vec<Location>)> for TreasuryAccounts {
 pub enum RcHoldReason {
 	#[codec(index = 10)]
 	Preimage(pallet_preimage::HoldReason),
+	// TODO: integrate with the related sdk upgrade and remove two last variants.
+	// DelegatedStaking,
+	// Staking,
 	#[codec(index = 98)]
 	StateTrieMigration(pallet_state_trie_migration::HoldReason),
 	#[codec(index = 41)]
@@ -80,8 +83,15 @@ impl Default for RcFreezeReason {
 
 pub struct RcToAhHoldReason;
 impl Convert<RcHoldReason, RuntimeHoldReason> for RcToAhHoldReason {
-	fn convert(_: RcHoldReason) -> RuntimeHoldReason {
-		PreimageHoldReason::get()
+	fn convert(rc_reason: RcHoldReason) -> RuntimeHoldReason {
+		match rc_reason {
+			RcHoldReason::Preimage(inner) => RuntimeHoldReason::Preimage(inner),
+			// TODO: uncomment with the sdk upgrade
+			// RcHoldReason::DelegatedStaking(inner) => RuntimeHoldReason::DelegatedStaking(inner),
+			// RcHoldReason::Staking(_) =>
+			// RuntimeHoldReason::Staking(pallet_staking_async::HoldReason::Staking),
+			_ => RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage),
+		}
 	}
 }
 
@@ -120,6 +130,7 @@ impl TryConvert<RcProxyType, ProxyType> for RcToProxyType {
 
 /// Convert a Relay Chain Proxy Delay to a local AH one.
 // NOTE we assume Relay Chain and AH to have the same block type
+// TODO: remove before migration, we will use Relay Chain block number provider.
 pub struct RcToAhDelay;
 impl Convert<BlockNumberFor<Runtime>, BlockNumberFor<Runtime>> for RcToAhDelay {
 	fn convert(rc: BlockNumberFor<Runtime>) -> BlockNumberFor<Runtime> {
