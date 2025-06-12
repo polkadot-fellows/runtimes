@@ -18,7 +18,7 @@ use codec::Encode;
 use emulated_integration_tests_common::xcm_emulator::{Chain, Parachain, TestExt};
 use frame_support::assert_err;
 use integration_tests_helpers::{
-	build_xcm_send_authorize_upgrade_call, call_hash_of,
+	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
 	dispatch_whitelisted_call_with_preimage,
 };
 use polkadot_system_emulated_network::{
@@ -47,7 +47,6 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -73,6 +72,9 @@ fn assethub_can_authorize_upgrade_for_itself() {
 			.encode()
 		},
 	);
+	AssetHubPolkadot::execute_with(|| {
+		assert_whitelisted!(AssetHubPolkadot, call_hash);
+	});
 
 	// Err - when dispatch wrong origin
 	assert_err!(
@@ -118,7 +120,6 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -144,6 +145,9 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 			.encode()
 		},
 	);
+	AssetHubPolkadot::execute_with(|| {
+		assert_whitelisted!(AssetHubPolkadot, call_hash);
+	});
 
 	// Err - when dispatch wrong origin
 	assert_err!(
@@ -196,7 +200,6 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -222,6 +225,9 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 			.encode()
 		},
 	);
+	AssetHubPolkadot::execute_with(|| {
+		assert_whitelisted!(AssetHubPolkadot, call_hash);
+	});
 
 	// Err - when dispatch wrong origin
 	assert_err!(

@@ -18,7 +18,7 @@ use emulated_integration_tests_common::{
 };
 use frame_support::{assert_err, assert_ok};
 use integration_tests_helpers::{
-	build_xcm_send_authorize_upgrade_call, call_hash_of,
+	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
 	dispatch_whitelisted_call_with_preimage,
 };
 use kusama_runtime::governance::pallet_custom_origins::Origin;
@@ -48,7 +48,6 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	// ok origin
 	let ok_origin: KusamaRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -73,6 +72,7 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 		use kusama_runtime::governance::pallet_custom_origins::Origin::Fellows as FellowsOrigin;
 		let fellows_origin: KusamaRuntimeOrigin = FellowsOrigin.into();
 		assert_ok!(whitelist_call.dispatch(fellows_origin));
+		assert_whitelisted!(Kusama, call_hash);
 	});
 
 	// Err - when dispatch wrong origin
@@ -123,7 +123,6 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	// ok origin
 	let ok_origin: KusamaRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted

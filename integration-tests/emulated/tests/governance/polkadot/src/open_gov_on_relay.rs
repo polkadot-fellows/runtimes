@@ -20,7 +20,7 @@ use emulated_integration_tests_common::{
 };
 use frame_support::assert_err;
 use integration_tests_helpers::{
-	build_xcm_send_authorize_upgrade_call, call_hash_of,
+	assert_whitelisted, build_xcm_send_authorize_upgrade_call, call_hash_of,
 	dispatch_whitelisted_call_with_preimage,
 };
 use polkadot_runtime::governance::pallet_custom_origins::Origin;
@@ -51,7 +51,6 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	// ok origin
 	let ok_origin: PolkadotRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Polkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -73,6 +72,9 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 			call_hash,
 		})
 		.encode()
+	});
+	Polkadot::execute_with(|| {
+		assert_whitelisted!(Polkadot, call_hash);
 	});
 
 	// Err - when dispatch wrong origin
@@ -126,7 +128,6 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	// ok origin
 	let ok_origin: PolkadotRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Polkadot>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -148,6 +149,9 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 			call_hash,
 		})
 		.encode()
+	});
+	Polkadot::execute_with(|| {
+		assert_whitelisted!(Polkadot, call_hash);
 	});
 
 	// Err - when dispatch wrong origin

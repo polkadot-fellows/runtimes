@@ -43,7 +43,6 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -114,7 +113,6 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -139,6 +137,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 		use kusama_runtime::governance::pallet_custom_origins::Origin::Fellows as FellowsOrigin;
 		let fellows_origin: AssetHubRuntimeOrigin = FellowsOrigin.into();
 		assert_ok!(whitelist_call.dispatch(fellows_origin));
+		assert_whitelisted!(AssetHubKusama, call_hash);
 	});
 
 	// Err - when dispatch wrong origin
@@ -189,7 +188,6 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	// ok origin
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<AssetHubKusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted

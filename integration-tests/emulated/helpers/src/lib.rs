@@ -20,13 +20,14 @@ pub use pallet_balances;
 pub use pallet_message_queue;
 
 // Polkadot
+pub use pallet_whitelist;
 pub use pallet_xcm;
 pub use xcm::prelude::{AccountId32, VersionedAssets, Weight, WeightLimit};
 
 // Cumulus
 pub use asset_test_utils;
 pub use cumulus_pallet_xcmp_queue;
-pub use xcm_emulator::Chain;
+pub use xcm_emulator::{assert_expected_events, Chain};
 
 use emulated_integration_tests_common::impls::{bx, Encode};
 use frame_support::dispatch::{DispatchResultWithPostInfo, PostDispatchInfo};
@@ -433,7 +434,22 @@ where
 	})
 }
 
-/// Encodes a runtime call, stores it as a preimage, and returns its H256 hash
+#[macro_export]
+macro_rules! assert_whitelisted {
+    ($chain:ident, $expected_call_hash:expr) => {
+		type RuntimeEvent = <$chain as $crate::Chain>::RuntimeEvent;
+		$crate::assert_expected_events!(
+			$chain,
+			vec![
+				RuntimeEvent::Whitelist($crate::pallet_whitelist::Event::CallWhitelisted { call_hash }) => {
+						call_hash: *call_hash == $expected_call_hash,
+				},
+			]
+		);
+    };
+}
+
+/// Encodes a runtime call and returns its H256 hash
 pub fn call_hash_of<T>(call: &T::RuntimeCall) -> H256
 where
 	T: Chain,

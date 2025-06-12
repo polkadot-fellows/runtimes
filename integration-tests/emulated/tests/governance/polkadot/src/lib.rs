@@ -19,10 +19,7 @@ use emulated_integration_tests_common::{
 	xcm_emulator::Chain,
 };
 use frame_support::assert_ok;
-use polkadot_system_emulated_network::{
-	CollectivesPolkadotPara as CollectivesPolkadot,
-	/*PolkadotRelay as Polkadot,*/
-};
+use polkadot_system_emulated_network::CollectivesPolkadotPara as CollectivesPolkadot;
 use sp_runtime::traits::Dispatchable;
 use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
@@ -65,15 +62,4 @@ pub fn collectives_send_whitelist(
 			]
 		);
 	});
-
-	// TODO: find a way how to set Polkadot or AssetHubPolkadot chain
-	// Polkadot::execute_with(|| {
-	// 	type RuntimeEvent = <Polkadot as Chain>::RuntimeEvent;
-	// 	assert_expected_events!(
-	// 		Polkadot,
-	// 		vec![
-	// 			RuntimeEvent::Whitelist(pallet_whitelist::Event::CallWhitelisted { .. }) => {},
-	// 		]
-	// 	);
-	// });
 }
