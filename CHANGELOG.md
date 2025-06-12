@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Bump ParachainHost runtime API version to 13 for polkadot and kusama ([polkadot-fellows/runtimes/pull/768](https://github.com/polkadot-fellows/runtimes/pull/768))
 - Update to SDK version `stable2503-6` ([polkadot-fellows/runtimes/pull/762](https://github.com/polkadot-fellows/runtimes/pull/762))
 - Update to SDK version `stable2503-5` ([polkadot-fellows/runtimes/pull/711](https://github.com/polkadot-fellows/runtimes/pull/711))
   - [[#711](https://github.com/polkadot-fellows/runtimes/pull/711)] Add missing events to nomination pool extrinsics ([SDK stable2503 #7377](https://github.com/paritytech/polkadot-sdk/pull/7377)).
