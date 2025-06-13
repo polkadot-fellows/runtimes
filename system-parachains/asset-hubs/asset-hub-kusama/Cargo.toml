@@ -44,6 +44,7 @@ pallet-nft-fractionalization = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-revive = { workspace = true }
 pallet-session = { workspace = true }
 pallet-state-trie-migration = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -139,6 +140,7 @@ runtime-benchmarks = [
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-remote-proxy/runtime-benchmarks",
+	"pallet-revive/runtime-benchmarks",
 	"pallet-state-trie-migration/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -181,6 +183,7 @@ try-runtime = [
 	"pallet-nfts/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-remote-proxy/try-runtime",
+	"pallet-revive/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-state-trie-migration/try-runtime",
 	"pallet-timestamp/try-runtime",
@@ -233,6 +236,7 @@ std = [
 	"pallet-nfts/std",
 	"pallet-proxy/std",
 	"pallet-remote-proxy/std",
+	"pallet-revive/std",
 	"pallet-session/std",
 	"pallet-state-trie-migration/std",
 	"pallet-timestamp/std",

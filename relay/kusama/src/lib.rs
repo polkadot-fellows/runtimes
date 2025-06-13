@@ -39,7 +39,10 @@ use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIM
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing,
-	vstaging::{CandidateEvent, CommittedCandidateReceiptV2, CoreState, ScrapedOnChainVotes},
+	vstaging::{
+		async_backing::Constraints, CandidateEvent, CommittedCandidateReceiptV2, CoreState,
+		ScrapedOnChainVotes,
+	},
 	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
 	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
 	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
@@ -2353,7 +2356,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(12)]
+	#[api_version(13)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2522,6 +2525,14 @@ sp_api::impl_runtime_apis! {
 
 		fn validation_code_bomb_limit() -> u32 {
 			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+		}
+
+		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
+			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+		}
+
+		fn scheduling_lookahead() -> u32 {
+			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
 		}
 	}
 
