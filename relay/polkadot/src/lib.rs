@@ -168,10 +168,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 1_005_001,
+	spec_version: 1_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 26,
+	transaction_version: 27,
 	system_version: 1,
 };
 

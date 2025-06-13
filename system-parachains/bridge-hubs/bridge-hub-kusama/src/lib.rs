@@ -191,10 +191,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 1_005_001,
+	spec_version: 1_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 5,
+	transaction_version: 6,
 	system_version: 1,
 };
 
