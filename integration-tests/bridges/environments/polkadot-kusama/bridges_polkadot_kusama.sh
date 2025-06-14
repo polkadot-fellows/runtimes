@@ -213,7 +213,7 @@ function run_parachains_relay() {
     local relayer_path=$(ensure_relayer)
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
-        $relayer_path relay-parachains polkadot-to-bridge-hub-kusama \
+        $relayer_path relay-parachains bridge-hub-polkadot-to-bridge-hub-kusama \
         --only-free-headers \
         --source-uri ws://localhost:9942 \
         --source-version-mode Auto \
@@ -223,7 +223,7 @@ function run_parachains_relay() {
         --target-transactions-mortality 4&
 
     RUST_LOG=runtime=trace,rpc=trace,bridge=trace \
-        $relayer_path relay-parachains kusama-to-bridge-hub-polkadot \
+        $relayer_path relay-parachains bridge-hub-kusama-to-bridge-hub-polkadot \
         --only-free-headers \
         --source-uri ws://localhost:9945 \
         --source-version-mode Auto \
