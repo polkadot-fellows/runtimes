@@ -320,3 +320,21 @@ opt-level = 3
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+encointer-balances-tx-payment = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+encointer-balances-tx-payment-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+encointer-primitives = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-balances = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-bazaar = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-ceremonies = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-ceremonies-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-communities = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-communities-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-democracy = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-faucet = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-reputation-commitments = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-scheduler = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-treasuries = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
+pallet-encointer-treasuries-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "cl/flexible-treasury-payout" }
