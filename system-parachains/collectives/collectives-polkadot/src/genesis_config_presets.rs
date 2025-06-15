@@ -34,6 +34,7 @@ fn collectives_polkadot_genesis(
 				.cloned()
 				.map(|k| (k, COLLECTIVES_POLKADOT_ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
 			parachain_id: id,

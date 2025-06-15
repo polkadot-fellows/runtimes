@@ -63,7 +63,7 @@ use beefy_primitives::{
 	mmr::{BeefyDataProvider, MmrLeafVersion},
 	OpaqueKeyOwnershipProof,
 };
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
 use frame_election_provider_support::{
 	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, SequentialPhragmen,
@@ -75,7 +75,7 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, Contains, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
+		ConstU32, ConstU8, EitherOf, EitherOfDiverse, Everything, FromContains, Get,
 		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
 		ProcessMessageError, WithdrawReasons,
 	},
@@ -92,8 +92,8 @@ use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use polkadot_primitives::{
 	slashing,
 	vstaging::{
-		CandidateEvent, CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState,
-		ScrapedOnChainVotes,
+		async_backing::Constraints, CandidateEvent,
+		CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState, ScrapedOnChainVotes,
 	},
 	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
 	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
@@ -265,6 +265,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -488,6 +489,7 @@ impl pallet_session::Config for Runtime {
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
+	type DisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy;
 }
 
 impl pallet_session::historical::Config for Runtime {
@@ -684,16 +686,19 @@ parameter_types! {
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	// 16
 	pub const MaxNominations: u32 = <NposCompactSolution16 as frame_election_provider_support::NposSolution>::LIMIT as u32;
+	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 impl pallet_staking::Config for Runtime {
+	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = Treasury;
+	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = Treasury;
+	type Slash = ResolveTo<TreasuryAccount, Balances>;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -713,13 +718,8 @@ impl pallet_staking::Config for Runtime {
 	type MaxControllersInDeprecationBatch = ConstU32<5314>;
 	type BenchmarkingConfig = polkadot_runtime_common::StakingBenchmarkingConfig;
 	type EventListeners = (NominationPools, DelegatedStaking);
-	type DisablingStrategy = pallet_staking::UpToLimitDisablingStrategy;
 	type WeightInfo = weights::pallet_staking::WeightInfo<Runtime>;
-	// TODO: this will come back later (stable25XY)
-	// type Filter = pallet_nomination_pools::AllPoolMembers<Runtime>;
-	fn filter(who: &AccountId) -> bool {
-		pallet_nomination_pools::AllPoolMembers::<Runtime>::contains(who)
-	}
+	type Filter = ();
 }
 
 impl pallet_fast_unstake::Config for Runtime {
@@ -1006,6 +1006,7 @@ impl pallet_multisig::Config for Runtime {
 	type DepositFactor = DepositFactor;
 	type MaxSignatories = MaxSignatories;
 	type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1032,6 +1033,7 @@ parameter_types! {
 	PartialOrd,
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	RuntimeDebug,
 	MaxEncodedLen,
 	Default,
@@ -1113,7 +1115,12 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
 			ProxyType::CancelProxy => {
-				matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }))
+				matches!(
+					c,
+					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+						RuntimeCall::Utility { .. } |
+						RuntimeCall::Multisig { .. }
+				)
 			},
 			ProxyType::Auction => matches!(
 				c,
@@ -1158,6 +1165,7 @@ impl pallet_proxy::Config for Runtime {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
 }
 
 impl parachains_origin::Config for Runtime {}
@@ -1299,7 +1307,6 @@ impl Get<InteriorLocation> for BrokerPot {
 impl coretime::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type BrokerId = BrokerId;
 	type WeightInfo = weights::runtime_parachains_coretime::WeightInfo<Runtime>;
 	type SendXcm = crate::xcm_config::XcmRouter;
@@ -1464,8 +1471,8 @@ impl pallet_nomination_pools::Config for Runtime {
 	type MaxPointsToBalance = MaxPointsToBalance;
 	type WeightInfo = weights::pallet_nomination_pools::WeightInfo<Self>;
 	type AdminOrigin = EitherOf<EnsureRoot<AccountId>, StakingAdmin>;
-	// TODO: this will come back later (stable25XY)
-	// type Filter = pallet_staking::AllStakers<Runtime>;
+	type Filter = ();
+	type BlockNumberProvider = System;
 }
 
 parameter_types! {
@@ -1700,6 +1707,11 @@ pub mod migrations {
 		parachains_shared::migration::MigrateToV1<Runtime>,
 		parachains_scheduler::migration::MigrateV2ToV3<Runtime>,
 		pallet_child_bounties::migration::MigrateV0ToV1<Runtime, BalanceTransferAllowDeath>,
+		pallet_staking::migrations::v16::MigrateV15ToV16<Runtime>,
+		pallet_session::migrations::v1::MigrateV0ToV1<
+			Runtime,
+			pallet_staking::migrations::v17::MigrateDisabledToSession<Runtime>,
+		>,
 	);
 
 	/// Migrations/checks that do not need to be versioned and can run on every update.
@@ -1780,7 +1792,7 @@ mod benches {
 		[pallet_xcm_benchmarks::generic, pallet_xcm_benchmarks::generic::Pallet::<Runtime>]
 	);
 
-	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList, Benchmarking};
+	pub use frame_benchmarking::{BenchmarkBatch, BenchmarkError, BenchmarkList};
 	pub use frame_support::traits::{StorageInfoTrait, WhitelistedStorageKeys};
 	pub use sp_storage::TrackedStorageKey;
 	// Trying to add benchmarks directly to some pallets caused cyclic dependency issues.
@@ -1823,14 +1835,14 @@ mod benches {
 				ExistentialDepositAsset,
 				xcm_config::PriceForChildParachainDelivery,
 				AssetHubParaId,
-				(),
+				Dmp,
 			>,
 			polkadot_runtime_common::xcm_sender::ToParachainDeliveryHelper<
 				XcmConfig,
 				ExistentialDepositAsset,
 				xcm_config::PriceForChildParachainDelivery,
 				RandomParaId,
-				(),
+				Dmp,
 			>,
 		);
 
@@ -1881,7 +1893,7 @@ mod benches {
 			ExistentialDepositAsset,
 			xcm_config::PriceForChildParachainDelivery,
 			AssetHubParaId,
-			(),
+			Dmp,
 		>;
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
@@ -2140,7 +2152,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(12)]
+	#[api_version(13)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2278,10 +2290,12 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
 
 		fn async_backing_params() -> polkadot_primitives::AsyncBackingParams {
+			#[allow(deprecated)]
 			parachains_runtime_api_impl::async_backing_params::<Runtime>()
 		}
 
@@ -2307,6 +2321,14 @@ sp_api::impl_runtime_apis! {
 
 		fn validation_code_bomb_limit() -> u32 {
 			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+		}
+
+		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
+			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+		}
+
+		fn scheduling_lookahead() -> u32 {
+			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
 		}
 	}
 
@@ -3150,59 +3172,6 @@ mod multiplier_tests {
 		}
 	}
 }
-
-#[cfg(test)]
-mod staking_tests {
-	use super::*;
-	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
-	#[test]
-	fn accounts_cannot_dual_stake() {
-		let mut ext = sp_io::TestExternalities::new_empty();
-		ext.execute_with(|| {
-			let stake = ExistentialDeposit::get() * 10;
-			// Given a solo staker
-			let solo_staker = AccountId::from([1u8; 32]);
-			Balances::set_balance(&solo_staker, 3 * stake);
-			assert_ok!(Staking::bond(
-				RuntimeOrigin::signed(solo_staker.clone()),
-				stake,
-				pallet_staking::RewardDestination::Stash
-			));
-
-			// And a pooled staker
-			let pooled_staker = AccountId::from([2u8; 32]);
-			Balances::set_balance(&pooled_staker, 3 * stake);
-			assert_ok!(NominationPools::create(
-				RuntimeOrigin::signed(pooled_staker.clone()),
-				stake,
-				pooled_staker.clone().into(),
-				pooled_staker.clone().into(),
-				pooled_staker.clone().into()
-			));
-
-			// Then the solo staker cannot join a pool.
-			assert_noop!(
-				NominationPools::join(RuntimeOrigin::signed(solo_staker), stake, 1),
-				// Note: with sdk stable2503 onwards, this error would be
-				// `pallet_nomination_pools::Error::<Runtime>::Restricted`
-				pallet_delegated_staking::Error::<Runtime>::AlreadyStaking
-			);
-
-			// And the pooled staker cannot solo-stake.
-			assert_noop!(
-				pallet_staking::Pallet::<Runtime>::bond(
-					RuntimeOrigin::signed(pooled_staker),
-					stake,
-					pallet_staking::RewardDestination::Stash,
-				),
-				// Note: with sdk stable2503 onwards, this error would be
-				// `pallet_staking::Error::<Runtime>::Restricted`.
-				pallet_staking::Error::<Runtime>::BoundNotMet
-			);
-		});
-	}
-}
-
 #[cfg(all(test, feature = "try-runtime"))]
 mod remote_tests {
 	use super::*;

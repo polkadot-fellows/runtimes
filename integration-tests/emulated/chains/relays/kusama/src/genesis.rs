@@ -55,6 +55,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		system: kusama_runtime::SystemConfig::default(),
 		balances: kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().map(|k| (k.clone(), ENDOWMENT)).collect(),
+			dev_accounts: None,
 		},
 		session: kusama_runtime::SessionConfig {
 			keys: validators::initial_authorities()
