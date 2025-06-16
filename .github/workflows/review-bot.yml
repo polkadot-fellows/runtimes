@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   review-approvals:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Extract content of artifact
         id: number
