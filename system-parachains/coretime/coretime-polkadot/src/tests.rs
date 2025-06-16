@@ -85,9 +85,8 @@ fn bulk_revenue_is_burnt() {
 				renewal_bump: Perbill::from_percent(3),
 				contribution_timeout: 1,
 			};
-			let ed = ExistentialDeposit::get();
 			assert_ok!(Broker::configure(RuntimeOrigin::root(), config.clone()));
-			assert_ok!(Broker::start_sales(RuntimeOrigin::root(), ed, 1));
+			assert_ok!(Broker::start_sales(RuntimeOrigin::root(), UNITS, 1));
 
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
@@ -96,14 +95,17 @@ fn bulk_revenue_is_burnt() {
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
-			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * ed));
+			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
 			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
-			assert_ok!(Broker::purchase(RuntimeOrigin::signed(AccountId::from(ALICE)), 100 * ed));
+			assert_ok!(Broker::purchase(
+				RuntimeOrigin::signed(AccountId::from(ALICE)),
+				100 * UNITS
+			));
 
 			// Alice decreases.
 			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
