@@ -119,7 +119,7 @@ use parachains_common::{
 };
 
 use sp_runtime::RuntimeDebug;
-pub use system_parachains_constants::SLOT_DURATION;
+pub use system_parachains_constants::async_backing::SLOT_DURATION;
 use system_parachains_constants::{
 	async_backing::{
 		AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
