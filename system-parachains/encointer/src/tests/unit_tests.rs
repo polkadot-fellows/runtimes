@@ -19,11 +19,10 @@
 
 use super::{mock::*, xcm_mock::*, *};
 use crate::{
-	treasuries_xcm_payout::{fee_asset, TransferOverXcm},
+	treasuries_xcm_payout::{fee_asset, TransferOverXcm, BASE_FEE},
 	xcm_config::KsmLocation,
 };
 use codec::{Decode, Encode};
-use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::{
 	assert_ok, parameter_types,
 	traits::{fungible::Mutate, fungibles::Mutate as FungiblesMutate},
@@ -80,7 +79,7 @@ fn transfer_over_xcm_works() {
 		destination: (Parent, Parachain(1000)).into(),
 		asset_id: KsmLocation::get().into(),
 	};
-	let amount = INITIAL_BALANCE / 10;
+	let transfer_amount = INITIAL_BALANCE / 10;
 
 	new_test_ext().execute_with(|| {
 		// The parachain's native token
@@ -101,9 +100,9 @@ fn transfer_over_xcm_works() {
 			AssetKind,
 			LocatableAssetKindConverter,
 			AliasesIntoAccountId32<AnyNetwork, AccountId>,
-		>::transfer(&sender, &recipient, asset_kind.clone(), amount));
+		>::transfer(&sender, &recipient, asset_kind.clone(), transfer_amount));
 
-		let fee_amount = 4 * ONE_KSM / 10;
+		let fee_amount = BASE_FEE;
 		let fee_asset = fee_asset(fee_amount);
 
 		let expected_message = Xcm(vec![
@@ -112,7 +111,7 @@ fn transfer_over_xcm_works() {
 			// Assume that we always pay in native for now
 			WithdrawAsset(fee_asset.clone().into()),
 			PayFees { asset: fee_asset },
-			WithdrawAsset((asset_kind.asset_id.clone(), amount).into()),
+			WithdrawAsset((asset_kind.asset_id.clone(), transfer_amount).into()),
 			SetAppendix(Xcm(vec![
 				ReportError(QueryResponseInfo {
 					destination: (Parent, Parachain(42)).into(),
@@ -127,7 +126,7 @@ fn transfer_over_xcm_works() {
 			])),
 			TransferAsset {
 				beneficiary: AccountId32 { network: None, id: recipient.clone().into() }.into(),
-				assets: (asset_kind.asset_id, amount).into(),
+				assets: (asset_kind.asset_id, transfer_amount).into(),
 			},
 		]);
 		let expected_hash = fake_message_hash(&expected_message);
@@ -151,13 +150,18 @@ fn transfer_over_xcm_works() {
 			Weight::zero(),
 		);
 
-		assert_eq!(mock::Assets::balance(1, &recipient), amount);
+		assert_eq!(mock::Assets::balance(1, &recipient), transfer_amount);
 
-		let expected_lower_bound = INITIAL_BALANCE - amount - fee_amount;
+		let expected_lower_bound = INITIAL_BALANCE - transfer_amount - fee_amount;
 
 		// Fixme: Why is the lower bound == actual, even when changing the fee amount
-		println!("Lower Bound	{:?}", expected_lower_bound);
-		println!("Actual 		{:?}", mock::Assets::balance(1, &sender_account_on_target));
+		println!("Initial Balance: {:?}", INITIAL_BALANCE);
+		println!("TransferAmount: {:?}", transfer_amount);
+		println!("PayFeesAmount: {:?}", fee_amount);
+
+		println!("Balance After Transfer");
+		println!("Expected (Initial - TransferAmount - PayFeesAmount):{:?}", expected_lower_bound);
+		println!("Actual {:?}", mock::Assets::balance(1, &sender_account_on_target));
 
 		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
 	});

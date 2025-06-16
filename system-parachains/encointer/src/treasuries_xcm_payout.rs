@@ -27,6 +27,8 @@ use xcm::{opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
+pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
+
 /// Transfer an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
@@ -113,7 +115,7 @@ impl<
 			from_location.interior.clone(),
 		);
 
-		let fee_asset = fee_asset(4 * ONE_KSM / 10);
+		let fee_asset = fee_asset(BASE_FEE);
 
 		let message = Xcm(vec![
 			// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
