@@ -767,6 +767,7 @@ impl Config for TestConfig {
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmRecorder = ();
+	type XcmEventEmitter = ();
 }
 
 pub fn fungible_multi_asset(location: Location, amount: u128) -> Asset {

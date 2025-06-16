@@ -18,7 +18,7 @@ use crate::tests::xcm_mock::TestMessageSender;
 use codec::Encode;
 use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU32, Everything, IsInVec, Nothing},
+	traits::{AsEnsureOriginWithArg, ConstU32, Disabled, Everything, IsInVec, Nothing},
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
@@ -124,6 +124,7 @@ impl pallet_assets::Config for Test {
 	type RemoveItemsLimit = RemoveItemsLimit;
 	type AssetIdParameter = AssetIdForAssets;
 	type CallbackHandle = ();
+	type Holder = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
 }
@@ -269,6 +270,7 @@ impl xcm_executor::Config for XcmConfig {
 	type HrmpChannelAcceptedHandler = ();
 	type HrmpChannelClosingHandler = ();
 	type XcmRecorder = XcmPallet;
+	type XcmEventEmitter = XcmPallet;
 }
 
 parameter_types! {
@@ -316,6 +318,7 @@ impl pallet_xcm::Config for Test {
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = pallet_xcm::TestWeightInfo;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type AuthorizedAliasConsideration = Disabled;
 }
 
 pub const UNITS: Balance = 1_000_000_000_000;
