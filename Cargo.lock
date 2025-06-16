@@ -4144,7 +4144,7 @@ dependencies = [
 [[package]]
 name = "encointer-balances-tx-payment"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -4160,7 +4160,7 @@ dependencies = [
 [[package]]
 name = "encointer-balances-tx-payment-rpc-runtime-api"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -4173,7 +4173,7 @@ dependencies = [
 [[package]]
 name = "encointer-ceremonies-assignment"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "sp-runtime",
@@ -4272,7 +4272,7 @@ dependencies = [
 [[package]]
 name = "encointer-meetup-validation"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "parity-scale-codec",
@@ -4285,7 +4285,7 @@ dependencies = [
 [[package]]
 name = "encointer-primitives"
 version = "16.4.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "bs58",
  "crc",
@@ -4387,7 +4387,7 @@ checksum = "e48c92028aaa870e83d51c64e5d4e0b6981b360c522198c23959f219a4e1b15b"
 [[package]]
 name = "ep-core"
 version = "16.0.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "array-bytes",
  "impl-serde",
@@ -4414,7 +4414,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cea14ef9355e3beab063703aa9dab15afd25f0667c341310c1e5274bb1d0da18"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6213,7 +6213,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.1",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8664,7 +8664,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-balances"
 version = "16.2.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -8683,7 +8683,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-bazaar"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -8700,7 +8700,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-bazaar-rpc-runtime-api"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -8712,7 +8712,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-ceremonies"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-ceremonies-assignment",
  "encointer-meetup-validation",
@@ -8737,7 +8737,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-ceremonies-rpc-runtime-api"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -8749,7 +8749,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-communities"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -8768,7 +8768,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-communities-rpc-runtime-api"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "parity-scale-codec",
@@ -8779,7 +8779,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-democracy"
 version = "16.4.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -8804,7 +8804,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-faucet"
 version = "16.2.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -8824,7 +8824,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-reputation-commitments"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -8846,7 +8846,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-scheduler"
 version = "16.1.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-benchmarking",
@@ -8864,7 +8864,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-treasuries"
 version = "16.4.1"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "approx",
  "encointer-primitives",
@@ -8886,7 +8886,7 @@ dependencies = [
 [[package]]
 name = "pallet-encointer-treasuries-rpc-runtime-api"
 version = "16.3.0"
-source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#d57f5ac04b91f3d28c6acc84b271dba43cdf8215"
+source = "git+https://github.com/encointer/pallets?branch=cl%2Fflexible-treasury-payout#8d98662e34838cc993ab8fba9edb1ec14572f254"
 dependencies = [
  "encointer-primitives",
  "frame-support",
@@ -11477,7 +11477,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12027,7 +12027,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12040,7 +12040,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12140,7 +12140,7 @@ dependencies = [
  "security-framework 3.2.0",
  "security-framework-sys",
  "webpki-root-certs 0.26.11",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -15485,7 +15485,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -16819,7 +16819,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
