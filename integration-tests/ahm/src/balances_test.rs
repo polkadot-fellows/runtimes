@@ -36,8 +36,6 @@ pub struct BalancesCrossChecker;
 
 // Used to store the balance kept on the relay chain after migration.
 static RC_KEPT_AFTER: Mutex<Option<u128>> = Mutex::new(None);
-// Used to store the balance migrated out of the relay chain.
-static RC_MIGRATED_BALANCE: Mutex<Option<u128>> = Mutex::new(None);
 
 // Min tolerance for some balance checks in the tests, currently 0.1 DOT.
 const MIN_DOT_ERROR: u128 = 1000000000;
@@ -65,10 +63,6 @@ impl RcMigrationCheck for BalancesCrossChecker {
 
 		let rc_kept_after = pallet_balances::Pallet::<RcRuntime>::total_issuance();
 		*RC_KEPT_AFTER.lock().unwrap() = Some(rc_kept_after);
-
-		let rc_migrated_balance =
-			pallet_rc_migrator::RcMigratedBalance::<RcRuntime>::get().migrated;
-		*RC_MIGRATED_BALANCE.lock().unwrap() = Some(rc_migrated_balance);
 	}
 }
 
@@ -87,7 +81,6 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		// AH checking account has incorrect 0.01 DOT balance because of the DED airdrop which
 		// added DOT ED to all existing AH accounts.
 		// This is fine, we can just ignore/accept this small amount.
-		#[cfg(not(feature = "ahm-westend"))]
 		defensive_assert!(
 			ah_checking_balance_before == pallet_balances::Pallet::<AhRuntime>::minimum_balance()
 		);
@@ -110,11 +103,6 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		// `checking_balance` = ah_check_before + rc_check_before
 		let checking_balance = rc_checking_balance_before + ah_checking_balance_before;
 
-		// (0) rc_check_before = `checking_balance` - ah_check_before
-		defensive_assert!(
-			checking_balance - ah_checking_balance_before == rc_checking_balance_before
-		);
-
 		// ah_check_after = rc_check_before - ah_total_before + rc_balance_kept
 		assert_eq!(
 			ah_checking_balance_after,
@@ -123,23 +111,13 @@ impl AhMigrationCheck for BalancesCrossChecker {
 		);
 
 		// ah_check_after = `checking_balance` + rc_balance_kept - ah_total_before - ah_check_before
-		// explanation here: [pallets/ah-migrator/src/account.rs#finish_accounts_migration()](https://github.com/polkadot-fellows/runtimes/blob/f09750296a8ad40d64e295ff6568acac36c978f7/pallets/ah-migrator/src/account.rs#L177)
+		// explanation [here](https://github.com/polkadot-fellows/runtimes/blob/dev-asset-hub-migration/pallets/rc-migrator/src/accounts.md#tracking-total-issuance-post-migration)
 		assert_eq!(
 			ah_checking_balance_after,
 			checking_balance + rc_kept_after -
 				ah_total_issuance_before -
 				ah_checking_balance_before,
 			"Checking balance on asset hub after migration is incorrect"
-		);
-
-		let rc_migrated_balance = RC_MIGRATED_BALANCE
-			.lock()
-			.unwrap()
-			.expect("rc_migrated_balance should be set by RcMigrationCheck::post_check");
-		let ah_migrated_balance = pallet_ah_migrator::AhMigratedBalance::<AhRuntime>::get();
-		assert_eq!(
-			ah_migrated_balance, rc_migrated_balance,
-			"Balance migrated out of the relay chain should be equal to the balance migrated into Asset Hub"
 		);
 
 		let ah_total_issuance_after = pallet_balances::Pallet::<AhRuntime>::total_issuance();

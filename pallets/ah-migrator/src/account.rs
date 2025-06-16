@@ -19,7 +19,10 @@
 
 use crate::*;
 use frame_support::traits::DefensiveSaturating;
-use pallet_rc_migrator::accounts::{AccountsMigrationChecker, BalanceSummary, ChainType};
+use pallet_rc_migrator::accounts::{
+	tests::{BalanceSummary, ChainType},
+	AccountsMigrationChecker,
+};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
@@ -86,10 +89,6 @@ impl<T: Config> Pallet<T> {
 			},
 		};
 		debug_assert!(minted == total_balance);
-
-		AhMigratedBalance::<T>::mutate(|balance| {
-			*balance = (*balance).defensive_saturating_add(total_balance);
-		});
 
 		for hold in account.holds {
 			if let Err(e) = <T as pallet::Config>::Currency::hold(
