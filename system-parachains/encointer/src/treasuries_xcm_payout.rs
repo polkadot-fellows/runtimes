@@ -29,6 +29,12 @@ use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
 pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
 
+// pub trait GetRemoteFee {
+//     type RemoteFees;
+//
+//     fn get_remote_fee<Call>(&self, xcm: ) -> Self::RemoteFees;
+// }
+
 /// Transfer an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
@@ -83,41 +89,28 @@ impl<
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
-		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind)
-			.map_err(|e| {
-				log::error!("Could not convert asset kind to locatable asset: {:?}", e);
-				xcm::latest::Error::InvalidLocation
-			})?;
+		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
+			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
+			xcm::latest::Error::InvalidLocation
+		})?;
 
 		let LocatableAssetId { asset_id, location: asset_location } = locatable;
 		let destination = Querier::UniversalLocation::get()
 			.invert_target(&asset_location)
 			.map_err(|()| Self::Error::LocationNotInvertible)?;
-
 		log::info!("Destination: {:?}", destination);
 
-		let from_location = TransactorRefToLocation::try_convert(from)
-			.map_err(|e| {
-				log::error!("Could not convert `from` into Location: {:?}", e);
-				xcm::latest::Error::InvalidLocation
-			})?;
-
+		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
+			log::error!("Could not convert `from` into Location: {:?}", e);
+			xcm::latest::Error::InvalidLocation
+		})?;
 		log::info!("From Location: {:?}", from_location);
 
-		// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
-		// We need this one for the refunds.
-		let from_at_target = destination
-			.clone()
-			.appended_with(from_location.clone())
-			.map_err(|_| Self::Error::LocationFull)?;
 
-		log::info!("From at target: {:?}", from_location);
-
-		let beneficiary = TransactorRefToLocation::try_convert(to)
-			.map_err(|e| {
-				log::error!("Could not convert `beneficiary` into Location: {:?}", e);
-				xcm::latest::Error::InvalidLocation
-			})?;
+		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
+			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
+			xcm::latest::Error::InvalidLocation
+		})?;
 
 		let query_id = Querier::new_query(
 			asset_location.clone(),
@@ -127,27 +120,15 @@ impl<
 
 		let fee_asset = fee_asset(BASE_FEE);
 
-		let message = Xcm(vec![
-			// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
-			DescendOrigin(from_location.interior.clone()),
-			// For simplicity, we assume now that the treasury has KSM and pays fees with KSM.
-			WithdrawAsset(vec![fee_asset.clone()].into()),
-			PayFees { asset: fee_asset },
-			WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
-			SetAppendix(Xcm(vec![
-				ReportError(QueryResponseInfo {
-					destination: destination.clone(),
-					query_id,
-					max_weight: Weight::zero(),
-				}),
-				RefundSurplus,
-				DepositAsset {
-					assets: AssetFilter::Wild(WildAsset::All),
-					beneficiary: from_at_target,
-				},
-			])),
-			TransferAsset { beneficiary, assets: (asset_id, amount).into() },
-		]);
+		let message = remote_transfer_xcm(
+			from_location,
+			destination.clone(),
+			beneficiary,
+			asset_id,
+			amount,
+			fee_asset,
+			query_id,
+		)?;
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
 		Router::deliver(ticket)?;
@@ -185,6 +166,45 @@ impl<
 	}
 }
 
+pub fn remote_transfer_xcm(
+	from_location: Location,
+	destination: Location,
+	beneficiary: Location,
+	asset_id: AssetId,
+	amount: u128,
+	remote_fee: Asset,
+	query_id: QueryId
+) -> Result<Xcm<()>, xcm::latest::Error> {
+	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
+	// We need this one for the refunds.
+	let from_at_target = destination
+		.clone()
+		.appended_with(from_location.clone())
+		.map_err(|_| xcm::latest::Error::LocationFull)?;
+
+	log::info!("From at target: {:?}", from_location);
+
+	let xcm = Xcm(vec![
+		// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])
+		DescendOrigin(from_location.interior.clone()),
+		// For simplicity, we assume now that the treasury has KSM and pays fees with KSM.
+		WithdrawAsset(vec![remote_fee.clone()].into()),
+		PayFees { asset: remote_fee },
+		WithdrawAsset(vec![Asset { id: asset_id.clone(), fun: Fungible(amount) }].into()),
+		SetAppendix(Xcm(vec![
+			ReportError(QueryResponseInfo {
+				destination: destination.clone(),
+				query_id,
+				max_weight: Weight::zero(),
+			}),
+			RefundSurplus,
+			DepositAsset { assets: AssetFilter::Wild(WildAsset::All), beneficiary: from_at_target },
+		])),
+		TransferAsset { beneficiary, assets: (asset_id, amount).into() },
+	]);
+
+	Ok(xcm)
+}
 // Todo: this is going to be replaced, as we will have a proper fee mechanism
 pub fn fee_asset(amount: u128) -> Asset {
 	(KsmLocation::get(), amount).into()
