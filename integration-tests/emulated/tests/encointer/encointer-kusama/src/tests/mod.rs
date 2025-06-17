@@ -1,0 +1,52 @@
+use crate::{Junctions::X2, *};
+use encointer_kusama_runtime::{
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer},
+	AccountId,
+};
+use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use xcm_runtime_apis::{
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
+	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
+};
+
+#[test]
+fn constant_remote_execution_fees_are_correct() {
+	let sender = AccountId::new([1u8; 32]);
+	let recipient = AccountId::new([5u8; 32]);
+
+	// Transact the parents native asset on parachain 1000.
+	let asset_kind = VersionedLocatableAsset::V5 {
+		location: (Parent, Parachain(1000)).into(),
+		asset_id: v5::AssetId(Location::parent().into()),
+	};
+
+	let transfer_amount = 1_000_000_000_000;
+
+	// Todo: need to setup an emulated encointer to get externalities.
+	let (remote_message, _, _) =
+		encointer_kusama_runtime::TransferOverXcm::get_remote_transfer_xcm(
+			&sender,
+			&recipient,
+			asset_kind.clone(),
+			transfer_amount,
+		)
+		.unwrap();
+
+	let mut execution_fees;
+
+	<AssetHubKusama as TestExt>::execute_with(|| {
+		type Runtime = <AssetHubKusama as Chain>::Runtime;
+
+		let weight = Runtime::query_xcm_weight(VersionedXcm::V5(remote_message.clone())).unwrap();
+		execution_fees = Runtime::query_weight_to_asset_fee(
+			weight,
+			VersionedAssetId::from(AssetId(Location::parent())),
+		)
+		.unwrap();
+	});
+
+	assert_eq!(
+		ConstantKsmFee::get_remote_fee(Xcm::new(), None),
+		(Location::parent(), execution_fees).into()
+	);
+}
