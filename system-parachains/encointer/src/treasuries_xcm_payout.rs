@@ -26,6 +26,7 @@ use sp_runtime::traits::TryConvert;
 use xcm::{opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
+use xcm::latest::Error;
 
 pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
 
@@ -81,7 +82,7 @@ impl<
 	type Beneficiary = Transactor;
 	type AssetKind = AssetKind;
 	type Id = QueryId;
-	type Error = xcm::latest::Error;
+	type Error = Error;
 
 	fn transfer(
 		from: &Self::Payer,
@@ -91,25 +92,25 @@ impl<
 	) -> Result<Self::Id, Self::Error> {
 		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
 			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
-			xcm::latest::Error::InvalidLocation
+			Error::InvalidLocation
 		})?;
 
 		let LocatableAssetId { asset_id, location: asset_location } = locatable;
 		let destination = Querier::UniversalLocation::get()
 			.invert_target(&asset_location)
 			.map_err(|()| Self::Error::LocationNotInvertible)?;
-		log::info!("Destination: {:?}", destination);
+		log::trace!("Destination: {:?}", destination);
 
 		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
 			log::error!("Could not convert `from` into Location: {:?}", e);
-			xcm::latest::Error::InvalidLocation
+			Error::InvalidLocation
 		})?;
-		log::info!("From Location: {:?}", from_location);
+		log::trace!("From Location: {:?}", from_location);
 
 
 		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
 			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
-			xcm::latest::Error::InvalidLocation
+			Error::InvalidLocation
 		})?;
 
 		let query_id = Querier::new_query(
