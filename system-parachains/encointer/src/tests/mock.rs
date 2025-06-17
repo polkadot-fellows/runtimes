@@ -14,23 +14,33 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::tests::xcm_mock::TestMessageSender;
+use crate::{tests::xcm_mock::TestMessageSender, xcm_config::KsmLocation};
 use codec::Encode;
 use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
-	traits::{AsEnsureOriginWithArg, ConstU32, Disabled, Everything, IsInVec, Nothing},
+	traits::{
+		tokens::imbalance::ResolveTo, AsEnsureOriginWithArg, ConstU32, Disabled, Everything,
+		IsInVec, Nothing,
+	},
+	weights::WeightToFee,
 };
-use frame_support::traits::tokens::imbalance::ResolveTo;
-use frame_support::weights::WeightToFee;
 use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
 use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
-use xcm::prelude::*;
-use xcm_builder::{AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete, NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, UsingComponents, WithComputedOrigin};
-use xcm_executor::{traits::{ConvertLocation, JustTry, WeightTrader}, AssetsInHolding, XcmExecutor};
 use system_parachains_constants::kusama::fee::WeightToFee as KusamaWeightToFee;
-use crate::xcm_config::KsmLocation;
+use xcm::prelude::*;
+use xcm_builder::{
+	AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily,
+	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete,
+	NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, UsingComponents,
+	WithComputedOrigin,
+};
+use xcm_executor::{
+	traits::{ConvertLocation, JustTry, WeightTrader},
+	AssetsInHolding, XcmExecutor,
+};
 
 pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Test>,
