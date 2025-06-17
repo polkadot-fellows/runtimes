@@ -51,6 +51,7 @@ pub fn fee_asset(amount: u128) -> Asset {
 /// Transfer an asset at asset hub.
 ///
 /// The idea is to only support stable coins for now.
+#[allow(clippy::type_complexity)]
 pub struct TransferOverXcm<
 	Router,
 	Querier,

@@ -104,11 +104,10 @@ fn transfer_over_xcm_works() {
 		>::transfer(&sender, &recipient, asset_kind.clone(), transfer_amount));
 
 		let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
-		let fee_amount = match fee_asset {
-			Asset { id: _, ref fun } => match fun {
-				Fungible(fee) => *fee,
-				NonFungible(_) => panic!("Invalid fee"),
-			},
+		let Asset { id: _, ref fun } = fee_asset;
+		let fee_amount = match fun {
+			Fungible(fee) => *fee,
+			NonFungible(_) => panic!("Invalid fee"),
 		};
 
 		let expected_message = Xcm(vec![
