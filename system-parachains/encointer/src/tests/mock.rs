@@ -20,22 +20,17 @@ use frame_support::{
 	construct_runtime, derive_impl, parameter_types,
 	traits::{AsEnsureOriginWithArg, ConstU32, Disabled, Everything, IsInVec, Nothing},
 };
+use frame_support::traits::tokens::imbalance::ResolveTo;
+use frame_support::weights::WeightToFee;
 use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
 use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
 use xcm::prelude::*;
-use xcm_builder::{
-	AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily,
-	EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete,
-	NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit,
-	WithComputedOrigin,
-};
-use xcm_executor::{
-	traits::{ConvertLocation, JustTry, WeightTrader},
-	XcmExecutor,
-};
+use xcm_builder::{AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteId, DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, HashedDescription, IsConcrete, NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, UsingComponents, WithComputedOrigin};
+use xcm_executor::{traits::{ConvertLocation, JustTry, WeightTrader}, AssetsInHolding, XcmExecutor};
+use system_parachains_constants::kusama::fee::WeightToFee as KusamaWeightToFee;
+use crate::xcm_config::KsmLocation;
 
 pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Test>,
@@ -223,20 +218,41 @@ pub type Barrier = (
 );
 
 #[derive(Clone)]
-pub struct DummyWeightTrader;
-impl WeightTrader for DummyWeightTrader {
+pub struct TestTrader {
+	weight_bought_so_far: Weight,
+}
+impl WeightTrader for TestTrader {
 	fn new() -> Self {
-		DummyWeightTrader
+		Self { weight_bought_so_far: Weight::zero() }
 	}
 
 	fn buy_weight(
 		&mut self,
-		_weight: Weight,
-		_payment: xcm_executor::AssetsInHolding,
+		weight: Weight,
+		payment: AssetsInHolding,
 		_context: &XcmContext,
-	) -> Result<xcm_executor::AssetsInHolding, XcmError> {
-		Ok(xcm_executor::AssetsInHolding::default())
+	) -> Result<AssetsInHolding, XcmError> {
+		let amount = KusamaWeightToFee::weight_to_fee(&weight);
+		let required: Asset = (Here, amount).into();
+		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
+		self.weight_bought_so_far.saturating_add(weight);
+		Ok(unused)
 	}
+
+	fn refund_weight(&mut self, weight: Weight, _context: &XcmContext) -> Option<Asset> {
+		let weight = weight.min(self.weight_bought_so_far);
+		let amount = KusamaWeightToFee::weight_to_fee(&weight);
+		self.weight_bought_so_far -= weight;
+		if amount > 0 {
+			Some((Here, amount).into())
+		} else {
+			None
+		}
+	}
+}
+
+parameter_types! {
+	pub XcmFeePot: AccountId = AccountId32::new([0u8; 32]);
 }
 
 pub struct XcmConfig;
@@ -250,7 +266,13 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
-	type Trader = DummyWeightTrader;
+	type Trader = UsingComponents<
+		system_parachains_constants::kusama::fee::WeightToFee,
+		KsmLocation,
+		AccountId,
+		Balances,
+		ResolveTo<XcmFeePot, Balances>,
+	>;
 	type ResponseHandler = XcmPallet;
 	type AssetTrap = XcmPallet;
 	type AssetLocker = ();
