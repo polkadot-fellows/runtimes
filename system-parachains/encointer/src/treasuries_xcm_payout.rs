@@ -84,7 +84,11 @@ impl<
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
 		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind)
-			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+			.map_err(|e| {
+				log::error!("Could not convert asset kind to locatable asset: {:?}", e);
+				xcm::latest::Error::InvalidLocation
+			})?;
+
 		let LocatableAssetId { asset_id, location: asset_location } = locatable;
 		let destination = Querier::UniversalLocation::get()
 			.invert_target(&asset_location)
@@ -93,7 +97,10 @@ impl<
 		log::info!("Destination: {:?}", destination);
 
 		let from_location = TransactorRefToLocation::try_convert(from)
-			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+			.map_err(|e| {
+				log::error!("Could not convert `from` into Location: {:?}", e);
+				xcm::latest::Error::InvalidLocation
+			})?;
 
 		log::info!("From Location: {:?}", from_location);
 
@@ -107,7 +114,10 @@ impl<
 		log::info!("From at target: {:?}", from_location);
 
 		let beneficiary = TransactorRefToLocation::try_convert(to)
-			.map_err(|_| xcm::latest::Error::InvalidLocation)?;
+			.map_err(|e| {
+				log::error!("Could not convert `beneficiary` into Location: {:?}", e);
+				xcm::latest::Error::InvalidLocation
+			})?;
 
 		let query_id = Querier::new_query(
 			asset_location.clone(),
