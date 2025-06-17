@@ -1,13 +1,10 @@
-use crate::{Junctions::X2, *};
+use crate::*;
 use encointer_kusama_runtime::{
-	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer},
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee},
 	AccountId,
 };
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
-};
+use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
 
 #[test]
 fn constant_remote_execution_fees_are_correct() {
@@ -20,7 +17,7 @@ fn constant_remote_execution_fees_are_correct() {
 		asset_id: v5::AssetId(Location::parent().into()),
 	};
 
-	let transfer_amount = 1_000_000_000_000;
+	let transfer_amount = 1_000_000_000_000u128;
 
 	// Todo: need to setup an emulated encointer to get externalities.
 	let (remote_message, _, _) =
@@ -32,7 +29,7 @@ fn constant_remote_execution_fees_are_correct() {
 		)
 		.unwrap();
 
-	let mut execution_fees;
+	let mut execution_fees = 0;
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Runtime = <AssetHubKusama as Chain>::Runtime;
