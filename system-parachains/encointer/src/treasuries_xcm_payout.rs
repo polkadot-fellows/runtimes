@@ -107,44 +107,8 @@ impl<
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
-		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
-			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
-			Error::InvalidLocation
-		})?;
-
-		let LocatableAssetId { asset_id, location: asset_location } = locatable;
-		let destination = Querier::UniversalLocation::get()
-			.invert_target(&asset_location)
-			.map_err(|()| Self::Error::LocationNotInvertible)?;
-		log::trace!("Destination: {:?}", destination);
-
-		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
-			log::error!("Could not convert `from` into Location: {:?}", e);
-			Error::InvalidLocation
-		})?;
-		log::trace!("From Location: {:?}", from_location);
-
-		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
-			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
-			Error::InvalidLocation
-		})?;
-
-		let query_id = Querier::new_query(
-			asset_location.clone(),
-			Timeout::get(),
-			from_location.interior.clone(),
-		);
-
-		let fee_asset = RemoteFee::get_remote_fee(Xcm::new(), None);
-
-		let message = remote_transfer_xcm(
-			from_location,
-			destination.clone(),
-			beneficiary,
-			asset_id,
-			amount,
-			fee_asset,
-			query_id,
+		let (message, destination, query_id) = Self::get_remote_transfer_xcm(
+			from, to, asset_kind, amount
 		)?;
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
@@ -183,6 +147,75 @@ impl<
 	}
 }
 
+impl<
+	Router: SendXcm,
+	Querier: QueryHandler,
+	Timeout: Get<Querier::BlockNumber>,
+	Transactor: Clone + core::fmt::Debug,
+	AssetKind: Clone + core::fmt::Debug,
+	AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
+	TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
+	RemoteFee: GetRemoteFee,
+> TransferOverXcm<
+	Router,
+	Querier,
+	Timeout,
+	Transactor,
+	AssetKind,
+	AssetKindToLocatableAsset,
+	TransactorRefToLocation,
+	RemoteFee,
+> {
+	pub fn get_remote_transfer_xcm(
+		from: &<Self as Transfer>::Payer,
+		to: &<Self as Transfer>::Beneficiary,
+		asset_kind: <Self as Transfer>::AssetKind,
+		amount: <Self as Transfer>::Balance,
+	) -> Result<(Xcm<()>, Location, QueryId), Error> {
+		let locatable = AssetKindToLocatableAsset::try_convert(asset_kind).map_err(|e| {
+			log::error!("Could not convert asset kind to locatable asset: {:?}", e);
+			Error::InvalidLocation
+		})?;
+
+		let LocatableAssetId { asset_id, location: asset_location } = locatable;
+		let destination = Querier::UniversalLocation::get()
+			.invert_target(&asset_location)
+			.map_err(|()| Error::LocationNotInvertible)?;
+		log::trace!("Destination: {:?}", destination);
+
+		let from_location = TransactorRefToLocation::try_convert(from).map_err(|e| {
+			log::error!("Could not convert `from` into Location: {:?}", e);
+			Error::InvalidLocation
+		})?;
+		log::trace!("From Location: {:?}", from_location);
+
+		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
+			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
+			Error::InvalidLocation
+		})?;
+
+		let query_id = Querier::new_query(
+			asset_location.clone(),
+			Timeout::get(),
+			from_location.interior.clone(),
+		);
+
+		let fee_asset = RemoteFee::get_remote_fee(Xcm::new(), None);
+
+		let message = remote_transfer_xcm(
+			from_location,
+			destination.clone(),
+			beneficiary,
+			asset_id,
+			amount,
+			fee_asset,
+			query_id,
+		)?;
+
+		Ok((message, destination, query_id))
+	}
+}
+
 pub fn remote_transfer_xcm(
 	from_location: Location,
 	destination: Location,
@@ -191,13 +224,13 @@ pub fn remote_transfer_xcm(
 	amount: u128,
 	remote_fee: Asset,
 	query_id: QueryId,
-) -> Result<Xcm<()>, xcm::latest::Error> {
+) -> Result<Xcm<()>, Error> {
 	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
 	// We need this one for the refunds.
 	let from_at_target = destination
 		.clone()
 		.appended_with(from_location.clone())
-		.map_err(|_| xcm::latest::Error::LocationFull)?;
+		.map_err(|_| Error::LocationFull)?;
 
 	log::info!("From at target: {:?}", from_location);
 
