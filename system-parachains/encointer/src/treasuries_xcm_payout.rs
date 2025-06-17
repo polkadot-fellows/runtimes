@@ -23,18 +23,23 @@ use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::traits::{tokens::PaymentStatus, Get};
 use pallet_encointer_treasuries::Transfer;
 use sp_runtime::traits::TryConvert;
-use xcm::{opaque::lts::Weight, prelude::*};
+use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
-use xcm::latest::Error;
 
 pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
 
-// pub trait GetRemoteFee {
-//     type RemoteFees;
-//
-//     fn get_remote_fee<Call>(&self, xcm: ) -> Self::RemoteFees;
-// }
+pub trait GetRemoteFee {
+	fn get_remote_fee(xcm: Xcm<()>, asset_id: Option<AssetId>) -> Asset;
+}
+
+pub struct ConstantKsmFee;
+
+impl GetRemoteFee for ConstantKsmFee {
+	fn get_remote_fee(_xcm: Xcm<()>, _asset_id: Option<AssetId>) -> Asset {
+		fee_asset(BASE_FEE)
+	}
+}
 
 /// Transfer an asset at asset hub.
 ///
@@ -47,6 +52,7 @@ pub struct TransferOverXcm<
 	AssetKind,
 	AssetKindToLocatableAsset,
 	TransactorRefToLocation,
+	RemoteFee,
 >(
 	PhantomData<(
 		Router,
@@ -56,6 +62,7 @@ pub struct TransferOverXcm<
 		AssetKind,
 		AssetKindToLocatableAsset,
 		TransactorRefToLocation,
+		RemoteFee,
 	)>,
 );
 impl<
@@ -66,6 +73,7 @@ impl<
 		AssetKind: Clone + core::fmt::Debug,
 		AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
 		TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
+		RemoteFee: GetRemoteFee,
 	> Transfer
 	for TransferOverXcm<
 		Router,
@@ -75,6 +83,7 @@ impl<
 		AssetKind,
 		AssetKindToLocatableAsset,
 		TransactorRefToLocation,
+		RemoteFee,
 	>
 {
 	type Balance = u128;
@@ -107,7 +116,6 @@ impl<
 		})?;
 		log::trace!("From Location: {:?}", from_location);
 
-
 		let beneficiary = TransactorRefToLocation::try_convert(to).map_err(|e| {
 			log::error!("Could not convert `beneficiary` into Location: {:?}", e);
 			Error::InvalidLocation
@@ -119,7 +127,7 @@ impl<
 			from_location.interior.clone(),
 		);
 
-		let fee_asset = fee_asset(BASE_FEE);
+		let fee_asset = RemoteFee::get_remote_fee(Xcm::new(), None);
 
 		let message = remote_transfer_xcm(
 			from_location,
@@ -174,7 +182,7 @@ pub fn remote_transfer_xcm(
 	asset_id: AssetId,
 	amount: u128,
 	remote_fee: Asset,
-	query_id: QueryId
+	query_id: QueryId,
 ) -> Result<Xcm<()>, xcm::latest::Error> {
 	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
 	// We need this one for the refunds.

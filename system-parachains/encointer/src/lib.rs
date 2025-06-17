@@ -595,6 +595,7 @@ impl pallet_encointer_treasuries::Config for Runtime {
 		Self::AssetKind,
 		LocatableAssetConverter,
 		AliasesIntoAccountId32<AnyNetwork, AccountId>,
+		ConstantKsmFee,
 	>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmarks_helper::TreasuryArguments;
@@ -1151,6 +1152,7 @@ mod benches {
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
 }
 
+use crate::treasuries_xcm_payout::ConstantKsmFee;
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
