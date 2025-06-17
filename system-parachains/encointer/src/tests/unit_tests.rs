@@ -19,7 +19,7 @@
 
 use super::{mock::*, xcm_mock::*, *};
 use crate::{
-	treasuries_xcm_payout::{TransferOverXcm},
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, TransferOverXcm},
 	xcm_config::KsmLocation,
 };
 use codec::{Decode, Encode};
@@ -35,7 +35,6 @@ use xcm::{
 };
 use xcm_builder::{AliasesIntoAccountId32, LocatableAssetId};
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
-use crate::treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee};
 
 /// Type representing both a location and an asset that is held at that location.
 /// The id of the held asset is relative to the location where it is being held.
@@ -108,8 +107,8 @@ fn transfer_over_xcm_works() {
 		let fee_amount = match fee_asset {
 			Asset { id: _, ref fun } => match fun {
 				Fungible(fee) => *fee,
-				NonFungible(_) => panic!("Invalid fee")
-			}
+				NonFungible(_) => panic!("Invalid fee"),
+			},
 		};
 
 		let expected_message = Xcm(vec![

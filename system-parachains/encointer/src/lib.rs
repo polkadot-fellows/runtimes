@@ -42,6 +42,7 @@ pub mod xcm_config;
 #[cfg(test)]
 pub mod tests;
 
+use crate::treasuries_xcm_payout::ConstantKsmFee;
 use alloc::{borrow::Cow, vec, vec::Vec};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -1152,7 +1153,6 @@ mod benches {
 	pub type XcmGeneric = pallet_xcm_benchmarks::generic::Pallet<Runtime>;
 }
 
-use crate::treasuries_xcm_payout::ConstantKsmFee;
 #[cfg(feature = "runtime-benchmarks")]
 use benches::*;
 
