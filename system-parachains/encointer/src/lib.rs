@@ -35,7 +35,7 @@ extern crate alloc;
 
 // Genesis preset configurations.
 pub mod genesis_config_presets;
-mod treasuries_xcm_payout;
+pub mod treasuries_xcm_payout;
 mod weights;
 pub mod xcm_config;
 
@@ -582,22 +582,26 @@ parameter_types! {
 
 	pub const AnyNetwork: Option<NetworkId> = None;
 }
+
+pub type TransferOverXcm = crate::treasuries_xcm_payout::TransferOverXcm<
+		crate::xcm_config::XcmRouter,
+		crate::PolkadotXcm,
+		ConstU32<{ 6 * HOURS }>,
+		AccountId,
+		// Needs to match AssetKind of the encointer_treasuries::Config
+		VersionedLocatableAsset,
+		LocatableAssetConverter,
+		AliasesIntoAccountId32<AnyNetwork, AccountId>,
+		ConstantKsmFee,
+>;
+
 impl pallet_encointer_treasuries::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = pallet_balances::Pallet<Runtime>;
 	type PalletId = TreasuriesPalletId;
 	type WeightInfo = weights::pallet_encointer_treasuries::WeightInfo<Runtime>;
 	type AssetKind = VersionedLocatableAsset;
-	type Paymaster = crate::treasuries_xcm_payout::TransferOverXcm<
-		crate::xcm_config::XcmRouter,
-		crate::PolkadotXcm,
-		ConstU32<{ 6 * HOURS }>,
-		AccountId,
-		Self::AssetKind,
-		LocatableAssetConverter,
-		AliasesIntoAccountId32<AnyNetwork, AccountId>,
-		ConstantKsmFee,
-	>;
+	type Paymaster = TransferOverXcm;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmarks_helper::TreasuryArguments;
 }

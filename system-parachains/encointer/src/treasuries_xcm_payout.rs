@@ -21,11 +21,12 @@ use alloc::vec;
 use core::marker::PhantomData;
 use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::traits::{tokens::PaymentStatus, Get};
-use pallet_encointer_treasuries::Transfer;
 use sp_runtime::traits::TryConvert;
 use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
 use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
+
+pub use pallet_encointer_treasuries::Transfer;
 
 pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
 
