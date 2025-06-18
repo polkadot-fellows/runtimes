@@ -4,7 +4,7 @@ use emulated_integration_tests_common::{
 	USDT_ID,
 };
 use encointer_kusama_runtime::{
-	treasuries_xcm_payout::{append_from_to_target, ConstantKsmFee, GetRemoteFee},
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee},
 	AccountId,
 };
 use frame_support::{
@@ -27,7 +27,6 @@ fn remote_fee() -> u128 {
 }
 
 fn treasury_account_on_ah() -> AccountId {
-	let asset_hub_location = Location::new(0, Parachain(AssetHubKusama::para_id().into()));
 	let mut maybe_treasury_account = None;
 
 	<EncointerKusama as TestExt>::execute_with(|| {
@@ -103,7 +102,8 @@ fn remote_treasury_payout_works() {
 	sp_tracing::init_for_tests();
 
 	const SPEND_AMOUNT: u128 = 10_000_000;
-	const ONE_KSM: u128 = 100_000_000_000;
+	const ONE_KSM: u128 = 1_000_000_000_000;
+	const TREASURY_INITIAL_BALANCE: u128 = ONE_KSM;
 	let recipient = AccountId::new([5u8; 32]);
 
 	let asset_hub_location = Location::new(1, Parachain(AssetHubKusama::para_id().into()));
@@ -122,10 +122,11 @@ fn remote_treasury_payout_works() {
 
 		// USDT created at genesis, mint some assets to the treasury account.
 		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account, SPEND_AMOUNT * 4));
-		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account, ONE_KSM));
+		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account, TREASURY_INITIAL_BALANCE));
 
 		// // Check starting balance
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 4);
+		assert_eq!(Balances::free_balance(&treasury_account), TREASURY_INITIAL_BALANCE);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), 0);
 	});
 
@@ -143,8 +144,8 @@ fn remote_treasury_payout_works() {
 		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
-		// Check starting balance
-		assert_eq!(Balances::free_balance(&treasury_account), ONE_KSM - remote_fee());
+		// Check ending balance
+		assert_eq!(Balances::free_balance(&treasury_account), TREASURY_INITIAL_BALANCE - remote_fee());
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
