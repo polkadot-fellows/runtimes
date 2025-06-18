@@ -932,7 +932,7 @@ pub mod benchmarks {
 		assert_last_event::<T>(
 			Event::DmpQueuePrioritySet {
 				prioritized: true,
-				cycle_block: now,
+				cycle_block: now + BlockNumberFor::<T>::from(1u32),
 				cycle_period: priority_blocks + round_robin_blocks,
 			}
 			.into(),
