@@ -21,14 +21,13 @@ fn constant_remote_execution_fees_are_correct() {
 
 	let mut remote_message = Xcm::<()>::new();
 	<EncointerKusama as TestExt>::execute_with(|| {
-		let (message, _, _) =
-			encointer_kusama_runtime::TransferOverXcm::get_remote_transfer_xcm(
-				&sender,
-				&recipient,
-				asset_kind.clone(),
-				transfer_amount,
-			)
-				.unwrap();
+		let (message, _, _) = encointer_kusama_runtime::TransferOverXcm::get_remote_transfer_xcm(
+			&sender,
+			&recipient,
+			asset_kind.clone(),
+			transfer_amount,
+		)
+		.unwrap();
 		remote_message = message;
 	});
 

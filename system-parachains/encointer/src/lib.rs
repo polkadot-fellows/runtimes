@@ -584,15 +584,15 @@ parameter_types! {
 }
 
 pub type TransferOverXcm = crate::treasuries_xcm_payout::TransferOverXcm<
-		crate::xcm_config::XcmRouter,
-		crate::PolkadotXcm,
-		ConstU32<{ 6 * HOURS }>,
-		AccountId,
-		// Needs to match AssetKind of the encointer_treasuries::Config
-		VersionedLocatableAsset,
-		LocatableAssetConverter,
-		AliasesIntoAccountId32<AnyNetwork, AccountId>,
-		ConstantKsmFee,
+	crate::xcm_config::XcmRouter,
+	crate::PolkadotXcm,
+	ConstU32<{ 6 * HOURS }>,
+	AccountId,
+	// Needs to match AssetKind of the encointer_treasuries::Config
+	VersionedLocatableAsset,
+	LocatableAssetConverter,
+	AliasesIntoAccountId32<AnyNetwork, AccountId>,
+	ConstantKsmFee,
 >;
 
 impl pallet_encointer_treasuries::Config for Runtime {

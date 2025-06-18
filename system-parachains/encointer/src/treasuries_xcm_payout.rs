@@ -110,9 +110,8 @@ impl<
 		asset_kind: Self::AssetKind,
 		amount: Self::Balance,
 	) -> Result<Self::Id, Self::Error> {
-		let (message, destination, query_id) = Self::get_remote_transfer_xcm(
-			from, to, asset_kind, amount
-		)?;
+		let (message, destination, query_id) =
+			Self::get_remote_transfer_xcm(from, to, asset_kind, amount)?;
 
 		let (ticket, _) = Router::validate(&mut Some(destination), &mut Some(message))?;
 		Router::deliver(ticket)?;
@@ -151,24 +150,26 @@ impl<
 }
 
 impl<
-	Router: SendXcm,
-	Querier: QueryHandler,
-	Timeout: Get<Querier::BlockNumber>,
-	Transactor: Clone + core::fmt::Debug,
-	AssetKind: Clone + core::fmt::Debug,
-	AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
-	TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
-	RemoteFee: GetRemoteFee,
-> TransferOverXcm<
-	Router,
-	Querier,
-	Timeout,
-	Transactor,
-	AssetKind,
-	AssetKindToLocatableAsset,
-	TransactorRefToLocation,
-	RemoteFee,
-> {
+		Router: SendXcm,
+		Querier: QueryHandler,
+		Timeout: Get<Querier::BlockNumber>,
+		Transactor: Clone + core::fmt::Debug,
+		AssetKind: Clone + core::fmt::Debug,
+		AssetKindToLocatableAsset: TryConvert<AssetKind, LocatableAssetId>,
+		TransactorRefToLocation: for<'a> TryConvert<&'a Transactor, Location>,
+		RemoteFee: GetRemoteFee,
+	>
+	TransferOverXcm<
+		Router,
+		Querier,
+		Timeout,
+		Transactor,
+		AssetKind,
+		AssetKindToLocatableAsset,
+		TransactorRefToLocation,
+		RemoteFee,
+	>
+{
 	pub fn get_remote_transfer_xcm(
 		from: &<Self as Transfer>::Payer,
 		to: &<Self as Transfer>::Beneficiary,
