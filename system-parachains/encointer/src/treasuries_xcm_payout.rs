@@ -232,8 +232,7 @@ pub fn remote_transfer_xcm(
 	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
 	// We need this one for the refunds.
 	let from_at_target = append_from_to_target(from_location.clone(), destination.clone())?;
-
-	log::info!("From at target: {:?}", from_location);
+	log::info!("From at target: {:?}", from_at_target);
 
 	let xcm = Xcm(vec![
 		// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])

@@ -38,6 +38,9 @@ integration-tests-helpers = { workspace = true }
 encointer-kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
 
+[dev-dependencies]
+sp-tracing = { workspace = true }
+
 [features]
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",

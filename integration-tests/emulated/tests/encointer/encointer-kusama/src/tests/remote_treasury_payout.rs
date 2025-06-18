@@ -1,5 +1,6 @@
 use crate::*;
 use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, USDT_ID};
+use emulated_integration_tests_common::xcm_emulator::sp_tracing;
 use encointer_kusama_runtime::{
 	treasuries_xcm_payout::{append_from_to_target, ConstantKsmFee, GetRemoteFee},
 	AccountId,
@@ -19,6 +20,30 @@ fn remote_fee() -> u128 {
 	};
 
 	fee_amount
+}
+
+fn treasury_account_on_ah() -> AccountId {
+	let asset_hub_location = Location::new(0, Parachain(AssetHubKusama::para_id().into()));
+	let mut maybe_treasury_account = None;
+
+	<EncointerKusama as TestExt>::execute_with(|| {
+		maybe_treasury_account = encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(None).into();
+	});
+
+
+	let treasury_account = maybe_treasury_account.unwrap();
+	let treasury_location =
+		Location::new(1, AccountId32 { network: None, id: treasury_account.into() });
+
+	let treasury_location_on_ah =
+		append_from_to_target(treasury_location, asset_hub_location).unwrap();
+	let treasury_account_on_ah =
+		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+			&treasury_location_on_ah,
+		)
+			.unwrap();
+
+	treasury_account_on_ah
 }
 
 #[test]
@@ -68,6 +93,8 @@ fn constant_remote_execution_fees_are_correct() {
 
 #[test]
 fn remote_treasury_payout_works() {
+	sp_tracing::init_for_tests();
+
 	const SPEND_AMOUNT: u128 = 10_000_000;
 	const ONE_KSM: u128 = 100_000_000_000;
 	let recipient = AccountId::new([5u8; 32]);
@@ -79,22 +106,8 @@ fn remote_treasury_payout_works() {
 		asset_id: AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
 	};
 
-	let mut maybe_treasury_account = None;
-	<EncointerKusama as TestExt>::execute_with(|| {
-		maybe_treasury_account = encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(None).into();
-	});
-	let treasury_account = maybe_treasury_account.unwrap();
-
-	let treasury_location =
-		Location::new(1, AccountId32 { network: None, id: treasury_account.into() });
-
-	let treasury_location_on_ah =
-		append_from_to_target(treasury_location, asset_hub_location).unwrap();
-	let treasury_account_on_ah =
-		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-			&treasury_location_on_ah,
-		)
-		.unwrap();
+	let treasury_account = treasury_account_on_ah();
+	println!("treasury_account: {:?}", treasury_account);
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
@@ -103,16 +116,16 @@ fn remote_treasury_payout_works() {
 		// USDT created at genesis, mint some assets to the treasury account.
 		assert_ok!(<Assets as Mutate<_>>::mint_into(
 			USDT_ID,
-			&treasury_account_on_ah,
+			&treasury_account,
 			SPEND_AMOUNT * 4
 		));
 		assert_ok!(<Balances as M<_>>::mint_into(
-			&treasury_account_on_ah,
+			&treasury_account,
 			ONE_KSM
 		));
 
 		// // Check starting balance
-		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 4);
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 4);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), 0);
 	});
 
@@ -131,8 +144,8 @@ fn remote_treasury_payout_works() {
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
 		// Check starting balance
-		assert_eq!(Balances::free_balance(&treasury_account_on_ah), ONE_KSM - remote_fee());
-		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 3);
+		assert_eq!(Balances::free_balance(&treasury_account), ONE_KSM - remote_fee());
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
 }

@@ -4218,6 +4218,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-runtime-common",
  "sp-runtime",
+ "sp-tracing",
  "staging-kusama-runtime",
  "staging-xcm",
  "staging-xcm-builder",
