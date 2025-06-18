@@ -19,15 +19,18 @@ fn constant_remote_execution_fees_are_correct() {
 
 	let transfer_amount = 1_000_000_000_000u128;
 
-	// Todo: need to setup an emulated encointer to get externalities.
-	let (remote_message, _, _) =
-		encointer_kusama_runtime::TransferOverXcm::get_remote_transfer_xcm(
-			&sender,
-			&recipient,
-			asset_kind.clone(),
-			transfer_amount,
-		)
-		.unwrap();
+	let mut remote_message = Xcm::<()>::new();
+	<EncointerKusama as TestExt>::execute_with(|| {
+		let (message, _, _) =
+			encointer_kusama_runtime::TransferOverXcm::get_remote_transfer_xcm(
+				&sender,
+				&recipient,
+				asset_kind.clone(),
+				transfer_amount,
+			)
+				.unwrap();
+		remote_message = message;
+	});
 
 	let mut execution_fees = 0;
 

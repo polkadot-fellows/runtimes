@@ -28,7 +28,9 @@ use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 
 pub use pallet_encointer_treasuries::Transfer;
 
-pub const BASE_FEE: u128 = 4 * ONE_KSM / 10;
+// This is the value that has been queried from the Asset Hub Kusama runtime.
+// there
+pub const REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE: u128 = 12749033321;
 
 pub trait GetRemoteFee {
 	fn get_remote_fee(xcm: Xcm<()>, asset_id: Option<AssetId>) -> Asset;
@@ -41,7 +43,7 @@ impl GetRemoteFee for ConstantKsmFee {
 		// Todo:
 		// 1. Use dry-run api to get the exact fee
 		// 2. write integration tests to see that it works with the emulated asset hub
-		fee_asset(BASE_FEE)
+		fee_asset(REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE)
 	}
 }
 
