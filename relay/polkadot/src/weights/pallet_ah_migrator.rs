@@ -621,4 +621,10 @@ impl<T: crate::ah_migration::weights::DbConfig> pallet_rc_migrator::weights_ah::
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn set_dmp_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
+	fn force_dmp_queue_priority() -> Weight {
+		Weight::from_parts(1, 1)
+	}
 }
