@@ -28,7 +28,6 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
-use pallet_collator_selection::StakingPotAccountId;
 use pallet_xcm::XcmPassthrough;
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
@@ -199,7 +198,7 @@ impl xcm_executor::Config for XcmConfig {
 		KsmRelayLocation,
 		AccountId,
 		Balances,
-		ResolveTo<StakingPotAccountId<Runtime>, Balances>,
+		ResolveTo<StakingPot, Balances>,
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
