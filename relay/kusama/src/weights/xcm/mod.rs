@@ -18,11 +18,14 @@ mod pallet_xcm_benchmarks_fungible;
 mod pallet_xcm_benchmarks_generic;
 
 use crate::Runtime;
-use sp_std::prelude::*;
-use xcm::{latest::prelude::*, DoubleEncoded};
-
+use alloc::vec::Vec;
+use frame_election_provider_support::BoundedVec;
 use pallet_xcm_benchmarks_fungible::WeightInfo as XcmBalancesWeight;
 use pallet_xcm_benchmarks_generic::WeightInfo as XcmGeneric;
+use xcm::{
+	latest::{prelude::*, AssetTransferFilter},
+	DoubleEncoded,
+};
 
 /// Types of asset supported by the Kusama runtime.
 pub enum AssetTypes {
@@ -43,14 +46,14 @@ impl From<&Asset> for AssetTypes {
 }
 
 trait WeighAssets {
-	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight;
+	fn weigh_assets(&self, balances_weight: Weight) -> Weight;
 }
 
 // Kusama only knows about one asset, the balances pallet.
 const MAX_ASSETS: u64 = 1;
 
 impl WeighAssets for AssetFilter {
-	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight {
+	fn weigh_assets(&self, balances_weight: Weight) -> Weight {
 		match self {
 			Self::Definite(assets) => assets
 				.inner()
@@ -65,14 +68,14 @@ impl WeighAssets for AssetFilter {
 			// only 1 kind of fungible asset.
 			Self::Wild(AllOf { .. } | AllOfCounted { .. }) => balances_weight,
 			Self::Wild(AllCounted(count)) =>
-				balances_weight.saturating_mul(MAX_ASSETS.min(*count as u64)),
+				balances_weight.saturating_mul(MAX_ASSETS.min((*count as u64).max(1))),
 			Self::Wild(All) => balances_weight.saturating_mul(MAX_ASSETS),
 		}
 	}
 }
 
 impl WeighAssets for Assets {
-	fn weigh_multi_assets(&self, balances_weight: Weight) -> Weight {
+	fn weigh_assets(&self, balances_weight: Weight) -> Weight {
 		self.inner()
 			.iter()
 			.map(<AssetTypes as From<&Asset>>::from)
@@ -87,13 +90,13 @@ impl WeighAssets for Assets {
 pub struct KusamaXcmWeight<RuntimeCall>(core::marker::PhantomData<RuntimeCall>);
 impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 	fn withdraw_asset(assets: &Assets) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::withdraw_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::withdraw_asset())
 	}
 	fn reserve_asset_deposited(assets: &Assets) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::reserve_asset_deposited())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::reserve_asset_deposited())
 	}
 	fn receive_teleported_asset(assets: &Assets) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::receive_teleported_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::receive_teleported_asset())
 	}
 	fn query_response(
 		_query_id: &u64,
@@ -104,14 +107,14 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 		XcmGeneric::<Runtime>::query_response()
 	}
 	fn transfer_asset(assets: &Assets, _dest: &Location) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::transfer_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::transfer_asset())
 	}
 	fn transfer_reserve_asset(assets: &Assets, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::transfer_reserve_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::transfer_reserve_asset())
 	}
 	fn transact(
 		_origin_kind: &OriginKind,
-		_require_weight_at_most: &Weight,
+		_fallback_max_weight: &Option<Weight>,
 		_call: &DoubleEncoded<RuntimeCall>,
 	) -> Weight {
 		XcmGeneric::<Runtime>::transact()
@@ -143,10 +146,10 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 	}
 
 	fn deposit_asset(assets: &AssetFilter, _dest: &Location) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::deposit_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::deposit_asset())
 	}
 	fn deposit_reserve_asset(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::deposit_reserve_asset())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::deposit_reserve_asset())
 	}
 	fn exchange_asset(_give: &AssetFilter, _receive: &Assets, _maximal: &bool) -> Weight {
 		// Kusama does not currently support exchange asset operations
@@ -157,10 +160,10 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 		_reserve: &Location,
 		_xcm: &Xcm<()>,
 	) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::initiate_reserve_withdraw())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::initiate_reserve_withdraw())
 	}
 	fn initiate_teleport(assets: &AssetFilter, _dest: &Location, _xcm: &Xcm<()>) -> Weight {
-		assets.weigh_multi_assets(XcmBalancesWeight::<Runtime>::initiate_teleport())
+		assets.weigh_assets(XcmBalancesWeight::<Runtime>::initiate_teleport())
 	}
 	fn report_holding(_response_info: &QueryResponseInfo, _assets: &AssetFilter) -> Weight {
 		XcmGeneric::<Runtime>::report_holding()
@@ -193,10 +196,10 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 		XcmGeneric::<Runtime>::unsubscribe_version()
 	}
 	fn burn_asset(assets: &Assets) -> Weight {
-		assets.weigh_multi_assets(XcmGeneric::<Runtime>::burn_asset())
+		assets.weigh_assets(XcmGeneric::<Runtime>::burn_asset())
 	}
 	fn expect_asset(assets: &Assets) -> Weight {
-		assets.weigh_multi_assets(XcmGeneric::<Runtime>::expect_asset())
+		assets.weigh_assets(XcmGeneric::<Runtime>::expect_asset())
 	}
 	fn expect_origin(_origin: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::expect_origin()
@@ -265,6 +268,48 @@ impl<RuntimeCall> XcmWeightInfo<RuntimeCall> for KusamaXcmWeight<RuntimeCall> {
 	fn unpaid_execution(_: &WeightLimit, _: &Option<Location>) -> Weight {
 		XcmGeneric::<Runtime>::unpaid_execution()
 	}
+	fn pay_fees(_asset: &Asset) -> Weight {
+		XcmGeneric::<Runtime>::pay_fees()
+	}
+	fn initiate_transfer(
+		_dest: &Location,
+		remote_fees: &Option<AssetTransferFilter>,
+		_preserve_origin: &bool,
+		assets: &BoundedVec<AssetTransferFilter, MaxAssetTransferFilters>,
+		_xcm: &Xcm<()>,
+	) -> Weight {
+		let base_weight = XcmBalancesWeight::<Runtime>::initiate_transfer();
+		let mut weight = if let Some(remote_fees) = remote_fees {
+			let fees = remote_fees.inner();
+			fees.weigh_assets(base_weight)
+		} else {
+			base_weight
+		};
+
+		for asset_filter in assets {
+			let assets = asset_filter.inner();
+			let extra = assets.weigh_assets(XcmBalancesWeight::<Runtime>::initiate_transfer());
+			weight = weight.saturating_add(extra);
+		}
+		weight
+	}
+	fn execute_with_origin(
+		_descendant_origin: &Option<InteriorLocation>,
+		_xcm: &Xcm<RuntimeCall>,
+	) -> Weight {
+		XcmGeneric::<Runtime>::execute_with_origin()
+	}
+	fn set_hints(hints: &BoundedVec<Hint, HintNumVariants>) -> Weight {
+		let mut weight = Weight::zero();
+		for hint in hints {
+			match hint {
+				AssetClaimer { .. } => {
+					weight = weight.saturating_add(XcmGeneric::<Runtime>::asset_claimer());
+				},
+			}
+		}
+		weight
+	}
 }
 
 #[test]
@@ -272,5 +317,5 @@ fn all_counted_has_a_sane_weight_upper_limit() {
 	let assets = AssetFilter::Wild(AllCounted(4294967295));
 	let weight = Weight::from_parts(1000, 1000);
 
-	assert_eq!(assets.weigh_multi_assets(weight), weight * MAX_ASSETS);
+	assert_eq!(assets.weigh_assets(weight), weight * MAX_ASSETS);
 }

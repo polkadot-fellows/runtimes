@@ -40,12 +40,17 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V3,
 };
 pub use kusama_system_emulated_network::{
+	asset_hub_kusama_emulated_chain::{
+		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
+	},
 	kusama_emulated_chain::{genesis::ED as KUSAMA_ED, KusamaRelayPallet as KusamaPallet},
 	people_kusama_emulated_chain::{
 		genesis::ED as PEOPLE_KUSAMA_ED, PeopleKusamaParaPallet as PeopleKusamaPallet,
 	},
-	KusamaRelay as Kusama, KusamaRelayReceiver as KusamaReceiver,
-	KusamaRelaySender as KusamaSender, PenpalAPara as PenpalA, PeopleKusamaPara as PeopleKusama,
+	AssetHubKusamaPara as AssetHubKusama, AssetHubKusamaParaReceiver as AssetHubKusamaReceiver,
+	AssetHubKusamaParaSender as AssetHubKusamaSender, KusamaRelay as Kusama,
+	KusamaRelayReceiver as KusamaReceiver, KusamaRelaySender as KusamaSender,
+	PenpalAPara as PenpalA, PeopleKusamaPara as PeopleKusama,
 	PeopleKusamaParaReceiver as PeopleKusamaReceiver, PeopleKusamaParaSender as PeopleKusamaSender,
 };
 pub use parachains_common::{AccountId, Balance};

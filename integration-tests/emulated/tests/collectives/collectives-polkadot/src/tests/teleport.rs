@@ -14,61 +14,107 @@
 // limitations under the License.
 
 use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
-use collectives_polkadot_runtime::xcm_config::XcmConfig as CollectivesPolkadotXcmConfig;
 use frame_support::{
-	assert_ok, dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+	assert_ok,
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
 #[test]
-fn teleport_from_and_to_relay() {
-	let amount = POLKADOT_ED * 10;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = COLLECTIVES_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
-		Polkadot,                  // Origin
-		PolkadotXcmConfig,         // XCM Configuration
-		vec![CollectivesPolkadot], // Destinations
-		(native_asset, amount)
+		Polkadot,
+		vec![CollectivesPolkadot],
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = POLKADOT_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
-		CollectivesPolkadot,          // Origin
-		CollectivesPolkadotXcmConfig, // XCM Configuration
-		Polkadot,                     // Destination
-		amount
+		CollectivesPolkadot,
+		Polkadot,
+		amount,
+		transfer_assets
 	);
 }
 
 #[test]
-fn teleport_from_collectives_to_asset_hub() {
-	let amount = ASSET_HUB_POLKADOT_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = COLLECTIVES_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
 
-	test_parachain_is_trusted_teleporter!(
-		CollectivesPolkadot,          // Origin
-		CollectivesPolkadotXcmConfig, // XCM Configuration
-		vec![AssetHubPolkadot],       // Destinations
-		(native_asset, amount)
+	test_relay_is_trusted_teleporter!(
+		Polkadot,
+		vec![CollectivesPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = POLKADOT_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		CollectivesPolkadot,
+		Polkadot,
+		amount,
+		limited_teleport_assets
 	);
 }
 
 #[test]
-fn teleport_from_asset_hub_to_collectives() {
-	let amount = COLLECTIVES_POLKADOT_ED * 100;
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
 	let native_asset: Assets = (Parent, amount).into();
 
 	test_parachain_is_trusted_teleporter!(
-		AssetHubPolkadot,          // Origin
-		AssetHubPolkadotXcmConfig, // XCM Configuration
-		vec![CollectivesPolkadot], // Destinations
-		(native_asset, amount)
+		CollectivesPolkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = COLLECTIVES_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		vec![CollectivesPolkadot],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		CollectivesPolkadot,
+		vec![AssetHubPolkadot],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = COLLECTIVES_POLKADOT_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubPolkadot,
+		vec![CollectivesPolkadot],
+		(native_asset, amount),
+		transfer_assets
 	);
 }
