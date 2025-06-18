@@ -14,7 +14,7 @@ fn constant_remote_execution_fees_are_correct() {
 	// Transact the parents native asset on parachain 1000.
 	let asset_kind = VersionedLocatableAsset::V5 {
 		location: (Parent, Parachain(1000)).into(),
-		asset_id: v5::AssetId(Location::parent().into()),
+		asset_id: v5::AssetId(Location::parent()),
 	};
 
 	let transfer_amount = 1_000_000_000_000u128;
