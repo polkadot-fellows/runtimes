@@ -231,10 +231,7 @@ pub fn remote_transfer_xcm(
 ) -> Result<Xcm<()>, Error> {
 	// Transform `from` into Location::new(1, XX([Parachain(source), ...from.interior }])
 	// We need this one for the refunds.
-	let from_at_target = destination
-		.clone()
-		.appended_with(from_location.clone())
-		.map_err(|_| Error::LocationFull)?;
+	let from_at_target = append_from_to_target(from_location.clone(), destination.clone())?;
 
 	log::info!("From at target: {:?}", from_location);
 
@@ -258,4 +255,9 @@ pub fn remote_transfer_xcm(
 	]);
 
 	Ok(xcm)
+}
+
+pub fn append_from_to_target(from: Location, target: Location) -> Result<Location, Error> {
+	let from_at_target = target.appended_with(from).map_err(|_| Error::LocationFull)?;
+	Ok(from_at_target.into())
 }
