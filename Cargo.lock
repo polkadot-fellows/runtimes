@@ -6723,6 +6723,7 @@ dependencies = [
  "bridge-hub-kusama-emulated-chain",
  "coretime-kusama-emulated-chain",
  "emulated-integration-tests-common",
+ "encointer-kusama-emulated-chain",
  "kusama-emulated-chain",
  "penpal-emulated-chain",
  "people-kusama-emulated-chain",
