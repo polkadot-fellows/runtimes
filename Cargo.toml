@@ -146,7 +146,6 @@ pallet-ranked-collective = { version = "40.1.0", default-features = false }
 pallet-recovery = { version = "40.0.0", default-features = false }
 pallet-referenda = { version = "40.1.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
-pallet-revive = { version = "0.6.1", default-features = false }
 pallet-salary = { version = "25.0.0", default-features = false }
 pallet-scheduler = { version = "41.2.0", default-features = false }
 pallet-session = { version = "40.0.1", default-features = false }
