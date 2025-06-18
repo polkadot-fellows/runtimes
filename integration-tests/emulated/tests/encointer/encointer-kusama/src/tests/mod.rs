@@ -45,6 +45,7 @@ fn constant_remote_execution_fees_are_correct() {
 	});
 
 	assert_eq!(
+		// The constant fee ignores the xcm anyhow
 		ConstantKsmFee::get_remote_fee(Xcm::new(), None),
 		(Location::parent(), execution_fees).into()
 	);
