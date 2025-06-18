@@ -23,7 +23,7 @@ use frame_support::traits::{tokens::PaymentStatus, Get};
 use sp_runtime::traits::TryConvert;
 use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
 use xcm_builder::LocatableAssetId;
-use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
+use xcm_executor::traits::{ConvertLocation, QueryHandler, QueryResponseStatus};
 
 pub use pallet_encointer_treasuries::Transfer;
 
@@ -233,6 +233,14 @@ pub fn remote_transfer_xcm(
 	// We need this one for the refunds.
 	let from_at_target = append_from_to_target(from_location.clone(), destination.clone())?;
 	log::info!("From at target: {:?}", from_at_target);
+
+	let treasury_account_on_ah =
+		crate::xcm_config::LocationToAccountId::convert_location(
+			&from_at_target,
+		)
+			.unwrap();
+
+	log::info!("From at target account: {:?}", treasury_account_on_ah);
 
 	let xcm = Xcm(vec![
 		// Transform origin into Location::new(1, X2([Parachain(42), from.interior }])

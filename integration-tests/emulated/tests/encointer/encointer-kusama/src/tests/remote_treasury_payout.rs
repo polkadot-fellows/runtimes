@@ -1,15 +1,19 @@
 use crate::*;
-use emulated_integration_tests_common::{xcm_emulator::ConvertLocation, USDT_ID};
-use emulated_integration_tests_common::xcm_emulator::sp_tracing;
+use emulated_integration_tests_common::{
+	xcm_emulator::{sp_tracing, ConvertLocation},
+	USDT_ID,
+};
 use encointer_kusama_runtime::{
 	treasuries_xcm_payout::{append_from_to_target, ConstantKsmFee, GetRemoteFee},
 	AccountId,
 };
-use frame_support::{assert_ok, traits::fungibles::Mutate, traits::fungible::Mutate as M};
+use frame_support::{
+	assert_ok,
+	traits::{fungible::Mutate as M, fungibles::Mutate},
+};
 use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKusamaParaPallet;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
-
 
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
@@ -30,18 +34,21 @@ fn treasury_account_on_ah() -> AccountId {
 		maybe_treasury_account = encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(None).into();
 	});
 
-
 	let treasury_account = maybe_treasury_account.unwrap();
-	let treasury_location =
-		Location::new(1, AccountId32 { network: None, id: treasury_account.into() });
+	let treasury_location_on_ah = Location::new(
+		1,
+		Junctions::X2(
+			[Parachain(1001), AccountId32 { network: None, id: treasury_account.into() }].into(),
+		),
+	);
 
-	let treasury_location_on_ah =
-		append_from_to_target(treasury_location, asset_hub_location).unwrap();
+	println!("treasury_location_on_ah: {:?}", treasury_location_on_ah);
 	let treasury_account_on_ah =
 		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
 			&treasury_location_on_ah,
 		)
-			.unwrap();
+		.unwrap();
+	println!("treasury_account_on_ah: {:?}", treasury_account_on_ah);
 
 	treasury_account_on_ah
 }
@@ -99,7 +106,7 @@ fn remote_treasury_payout_works() {
 	const ONE_KSM: u128 = 100_000_000_000;
 	let recipient = AccountId::new([5u8; 32]);
 
-	let asset_hub_location = Location::new(0, Parachain(AssetHubKusama::para_id().into()));
+	let asset_hub_location = Location::new(1, Parachain(AssetHubKusama::para_id().into()));
 
 	let asset_kind = VersionedLocatableAsset::V5 {
 		location: asset_hub_location.clone(),
@@ -114,15 +121,8 @@ fn remote_treasury_payout_works() {
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
 		// USDT created at genesis, mint some assets to the treasury account.
-		assert_ok!(<Assets as Mutate<_>>::mint_into(
-			USDT_ID,
-			&treasury_account,
-			SPEND_AMOUNT * 4
-		));
-		assert_ok!(<Balances as M<_>>::mint_into(
-			&treasury_account,
-			ONE_KSM
-		));
+		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account, SPEND_AMOUNT * 4));
+		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account, ONE_KSM));
 
 		// // Check starting balance
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 4);
