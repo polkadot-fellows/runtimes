@@ -404,13 +404,20 @@ impl xcm_executor::Config for XcmConfig {
 /// Forms the basis for local origins sending/executing XCMs.
 pub type LocalSignedOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
-/// For routing XCM messages which do not cross local consensus boundary.
-type LocalXcmRouter = (
+/// Use [`LocalXcmRouter`] instead.
+pub(crate) type LocalXcmRouterWithoutException = (
 	// Two routers - use UMP to communicate with the relay chain:
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, PriceForParentDelivery>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 );
+
+/// For routing XCM messages which do not cross local consensus boundary.
+type LocalXcmRouter = pallet_ah_migrator::RouteInnerWithException<
+	LocalXcmRouterWithoutException,
+	Equals<ParentLocation>,
+	crate::AhMigrator,
+>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.

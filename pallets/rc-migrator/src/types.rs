@@ -23,6 +23,7 @@ use alloc::string::String;
 use pallet_referenda::{ReferendumInfoOf, TrackIdOf};
 use sp_runtime::{traits::Zero, FixedU128};
 use sp_std::collections::vec_deque::VecDeque;
+use xcm_builder::InspectMessageQueues;
 
 pub trait ToPolkadotSs58 {
 	fn to_polkadot_ss58(&self) -> String;
@@ -212,6 +213,45 @@ impl<Status: MigrationStatus, Default: Get<Weight>> Get<Weight> for ZeroWeightOr
 		Status::is_ongoing().then(Weight::zero).unwrap_or_else(Default::get)
 	}
 }
+
+/// A wrapper around `Inner` that routes messages through `Inner` unless `Exception` is true and
+/// `MigrationState` is ongoing.
+pub struct RouteInnerWithException<Inner, Exception, MigrationState>(
+	PhantomData<(Inner, Exception, MigrationState)>,
+);
+impl<Inner: SendXcm, Exception: Contains<Location>, MigrationState: MigrationStatus> SendXcm
+	for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	type Ticket = Inner::Ticket;
+	fn validate(
+		destination: &mut Option<Location>,
+		message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if MigrationState::is_ongoing() &&
+			Exception::contains(destination.as_ref().ok_or(SendError::MissingArgument)?)
+		{
+			Err(SendError::Unroutable)
+		} else {
+			Inner::validate(destination, message)
+		}
+	}
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Inner::deliver(ticket)
+	}
+}
+
+impl<Inner: InspectMessageQueues, Exception, MigrationState> InspectMessageQueues
+	for RouteInnerWithException<Inner, Exception, MigrationState>
+{
+	fn clear_messages() {
+		Inner::clear_messages()
+	}
+
+	fn get_messages() -> Vec<(VersionedLocation, Vec<VersionedXcm<()>>)> {
+		Inner::get_messages()
+	}
+}
+
 /// A utility struct for batching XCM messages to stay within size limits.
 ///
 /// This struct manages collections of XCM messages, automatically creating

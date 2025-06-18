@@ -137,7 +137,7 @@ pub fn call_allowed_status(call: &<Runtime as frame_system::Config>::RuntimeCall
 		Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => (OFF, ON),
 		Coretime(..) => (ON, ON),
 		StateTrieMigration(..) => (OFF, OFF), // Deprecated
-		XcmPallet(..) => (OFF, ON), /* TODO allow para origins and root to call this during the migration, see https://github.com/polkadot-fellows/runtimes/pull/559#discussion_r1928789463 */
+		XcmPallet(..) => (OFF, ON),
 		MessageQueue(..) => (ON, ON), // TODO think about this
 		AssetRate(..) => (OFF, OFF),
 		Beefy(..) => (OFF, ON), /* TODO @claravanstaden @bkontur */
