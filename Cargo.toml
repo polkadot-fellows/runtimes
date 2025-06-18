@@ -267,6 +267,7 @@ members = [
 	"integration-tests/emulated/chains/parachains/collectives/collectives-polkadot",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-kusama",
 	"integration-tests/emulated/chains/parachains/coretime/coretime-polkadot",
+	"integration-tests/emulated/chains/parachains/encointer/encointer-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-kusama",
 	"integration-tests/emulated/chains/parachains/people/people-polkadot",
 	"integration-tests/emulated/chains/parachains/testing/penpal",

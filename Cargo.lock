@@ -4181,10 +4181,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "encointer-kusama-emulated-chain"
+version = "1.0.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "emulated-integration-tests-common",
+ "encointer-kusama-runtime",
+ "frame-support",
+ "integration-tests-helpers",
+ "kusama-emulated-chain",
+ "parachains-common",
+ "polkadot-parachain-primitives",
+ "sp-core 36.1.0",
+ "sp-keyring",
+ "staging-xcm",
+ "staging-xcm-builder",
+]
+
+[[package]]
 name = "encointer-kusama-integration-tests"
 version = "1.0.0"
 dependencies = [
- "asset-hub-kusama-runtime",
  "asset-test-utils",
  "cumulus-pallet-parachain-system",
  "emulated-integration-tests-common",
