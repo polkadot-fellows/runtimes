@@ -19,7 +19,6 @@
 use crate::xcm_config::KsmLocation;
 use alloc::vec;
 use core::marker::PhantomData;
-use encointer_balances_tx_payment::ONE_KSM;
 use frame_support::traits::{tokens::PaymentStatus, Get};
 use sp_runtime::traits::TryConvert;
 use xcm::{latest::Error, opaque::lts::Weight, prelude::*};
@@ -29,7 +28,8 @@ use xcm_executor::traits::{QueryHandler, QueryResponseStatus};
 pub use pallet_encointer_treasuries::Transfer;
 
 // This is the value that has been queried from the Asset Hub Kusama runtime.
-// there
+// There is an integration test in `integration-tests/emulated/tests/encointer/encointer-kusama/
+// That verifies that this fee is correct and will catch fee changes in Asset-Hub Kusama
 pub const REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE: u128 = 12749033321;
 
 pub trait GetRemoteFee {
