@@ -29,6 +29,7 @@ pub mod multisig_still_work;
 pub mod multisig_test;
 pub mod proxy;
 pub mod tests;
+pub mod xcm_route;
 
 /// Imports for the AHM tests that can be reused for other chains.
 pub mod porting_prelude {
