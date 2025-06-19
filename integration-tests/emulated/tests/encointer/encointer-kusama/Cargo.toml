@@ -44,6 +44,7 @@ sp-tracing = { workspace = true }
 
 [features]
 runtime-benchmarks = [
+	"asset-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -62,5 +63,4 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"asset-hub-kusama-runtime/runtime-benchmarks"
 ]
