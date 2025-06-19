@@ -4,7 +4,7 @@ use emulated_integration_tests_common::{
 	USDT_ID,
 };
 use encointer_kusama_runtime::{
-	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee},
+	treasuries_xcm_payout::{ConstantKsmFee, GetRemoteFee, Transfer},
 	AccountId,
 };
 use frame_support::{
@@ -15,7 +15,6 @@ use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKus
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm::latest::Junctions::X2;
 use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
-use encointer_kusama_runtime::treasuries_xcm_payout::Transfer;
 
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
@@ -168,8 +167,15 @@ fn remote_treasury_payout_works() {
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
 		// USDT created at genesis, mint some assets to the treasury account.
-		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account_on_ah, SPEND_AMOUNT * 4));
-		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account_on_ah, TREASURY_INITIAL_BALANCE));
+		assert_ok!(<Assets as Mutate<_>>::mint_into(
+			USDT_ID,
+			&treasury_account_on_ah,
+			SPEND_AMOUNT * 4
+		));
+		assert_ok!(<Balances as M<_>>::mint_into(
+			&treasury_account_on_ah,
+			TREASURY_INITIAL_BALANCE
+		));
 
 		// // Check starting balance
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 4);
@@ -188,7 +194,10 @@ fn remote_treasury_payout_works() {
 		// 	.unwrap();
 		//
 		let _ = encointer_kusama_runtime::TransferOverXcm::transfer(
-			&treasury_account_local, &recipient, asset_kind, SPEND_AMOUNT
+			&treasury_account_local,
+			&recipient,
+			asset_kind,
+			SPEND_AMOUNT,
 		)
 		.unwrap();
 	});
@@ -241,10 +250,7 @@ fn account_from_log_matches() {
 	assert_eq!(treasury_location_on_ah(), loc);
 
 	let account_on_asset_hub =
-		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-			&loc,
-		)
-			.unwrap();
+		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(&loc).unwrap();
 
 	assert_eq!(account_on_asset_hub, treasury_account_on_ah());
 }

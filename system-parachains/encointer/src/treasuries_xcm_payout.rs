@@ -256,10 +256,7 @@ pub fn remote_transfer_xcm(
 	log::info!("From at target: {:?}", from_at_target);
 
 	let treasury_account_on_ah =
-		crate::xcm_config::LocationToAccountId::convert_location(
-			&from_at_target,
-		)
-			.unwrap();
+		crate::xcm_config::LocationToAccountId::convert_location(&from_at_target).unwrap();
 
 	log::info!("From at target account: {:?}", treasury_account_on_ah);
 
