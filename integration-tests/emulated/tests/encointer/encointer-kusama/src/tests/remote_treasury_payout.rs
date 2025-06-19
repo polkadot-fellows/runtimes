@@ -207,9 +207,10 @@ fn remote_treasury_payout_works() {
 	});
 }
 
+// Fixme: Why do we get this log in the above test.
+// We seem to fund the correct account in the setup of the account balance
 #[test]
 fn account_from_log_matches() {
-	// Fixme: Why do we get this in the above test. We fund the correct account:
 	// withdraw_asset what=Asset { id: AssetId(Location { parents: 1, interior: Here }), fun:
 	// Fungible(12749033321) } who=Location  { parents: 1, interior: X2([Parachain(1001),
 	// AccountId32 { network: None, id: [150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33,
@@ -237,5 +238,13 @@ fn account_from_log_matches() {
 		.into()),
 	};
 
-	assert_eq!(treasury_location_on_ah(), loc)
+	assert_eq!(treasury_location_on_ah(), loc);
+
+	let account_on_asset_hub =
+		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+			&loc,
+		)
+			.unwrap();
+
+	assert_eq!(account_on_asset_hub, treasury_account_on_ah());
 }
