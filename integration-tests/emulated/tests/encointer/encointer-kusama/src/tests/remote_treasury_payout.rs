@@ -19,12 +19,11 @@ use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
 	let Asset { id: _, ref fun } = fee_asset;
-	let fee_amount = match fun {
+
+	match fun {
 		Fungible(fee) => *fee,
 		NonFungible(_) => panic!("Invalid fee"),
-	};
-
-	fee_amount
+	}
 }
 
 fn treasury_account() -> AccountId {
@@ -45,13 +44,11 @@ fn treasury_location_on_ah() -> Location {
 	let treasury_account = treasury_account();
 
 	<EncointerKusama as TestExt>::execute_with(|| {
-		let treasury_location_on_ah = encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
+		encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
 			&treasury_account,
 			asset_kind.clone(),
 		)
-		.unwrap();
-
-		treasury_location_on_ah
+		.unwrap()
 	})
 }
 
