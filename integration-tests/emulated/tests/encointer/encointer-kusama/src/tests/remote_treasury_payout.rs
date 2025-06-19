@@ -13,6 +13,7 @@ use frame_support::{
 };
 use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKusamaParaPallet;
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
+use xcm::latest::Junctions::X2;
 use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
 
 fn remote_fee() -> u128 {
@@ -26,21 +27,36 @@ fn remote_fee() -> u128 {
 	fee_amount
 }
 
-fn treasury_account_on_ah() -> AccountId {
-	let mut maybe_treasury_account = None;
+fn treasury_account() -> AccountId {
+	<EncointerKusama as TestExt>::execute_with(|| {
+		encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(
+			None,
+		)
+	})
+}
+
+fn treasury_location_on_ah() -> Location {
+	// Transact the parents native asset on parachain 1000.
+	let asset_kind = VersionedLocatableAsset::V5 {
+		location: (Parent, Parachain(1000)).into(),
+		asset_id: v5::AssetId(Location::parent()),
+	};
+
+	let treasury_account = treasury_account();
 
 	<EncointerKusama as TestExt>::execute_with(|| {
-		maybe_treasury_account = encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(None).into();
-	});
+		let treasury_location_on_ah = encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
+			&treasury_account,
+			asset_kind.clone(),
+		)
+		.unwrap();
 
-	let treasury_account = maybe_treasury_account.unwrap();
-	let treasury_location_on_ah = Location::new(
-		1,
-		Junctions::X2(
-			[Parachain(1001), AccountId32 { network: None, id: treasury_account.into() }].into(),
-		),
-	);
+		treasury_location_on_ah
+	})
+}
 
+fn treasury_account_on_ah() -> AccountId {
+	let treasury_location_on_ah = treasury_location_on_ah();
 	println!("treasury_location_on_ah: {:?}", treasury_location_on_ah);
 	let treasury_account_on_ah =
 		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
@@ -54,47 +70,33 @@ fn treasury_account_on_ah() -> AccountId {
 
 #[test]
 fn treasury_account_on_ah_works() {
-	// Transact the parents native asset on parachain 1000.
-	let asset_kind = VersionedLocatableAsset::V5 {
-		location: (Parent, Parachain(1000)).into(),
-		asset_id: v5::AssetId(Location::parent()),
-	};
+	let treasury = treasury_account();
+	assert_eq!(
+		treasury_location_on_ah(),
+		Location::new(
+			1,
+			X2([Parachain(1001), AccountId32 { network: None, id: treasury.into() }].into(),),
+		)
+	);
+}
 
-	<EncointerKusama as TestExt>::execute_with(|| {
-		let treasury_account =
-			encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(
-				None,
-			);
-		let treasury_location = encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
-			&treasury_account,
-			asset_kind.clone(),
+#[test]
+fn treasury_location_to_account_id_works() {
+	let treasury_location_on_ah = treasury_location_on_ah();
+
+	let treasury_account_on_assethub_encointer =
+		encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+			&treasury_location_on_ah,
 		)
 		.unwrap();
 
-		let treasury_location_on_ah = Location::new(
-			1,
-			Junctions::X2(
-				[Parachain(1001), AccountId32 { network: None, id: treasury_account.into() }]
-					.into(),
-			),
-		);
+	let treasury_account_on_assethub_ah =
+		asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+			&treasury_location_on_ah,
+		)
+		.unwrap();
 
-		assert_eq!(treasury_location_on_ah, treasury_location);
-
-		let treasury_account_on_assethub_encointer =
-			encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-				&treasury_location_on_ah,
-			)
-			.unwrap();
-
-		let treasury_account_on_assethub_ah =
-			asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
-				&treasury_location_on_ah,
-			)
-			.unwrap();
-
-		assert_eq!(treasury_account_on_assethub_ah, treasury_account_on_assethub_encointer,)
-	});
+	assert_eq!(treasury_account_on_assethub_ah, treasury_account_on_assethub_encointer);
 }
 
 #[test]
