@@ -86,7 +86,6 @@ use sp_runtime::{
 	ApplyExtrinsicResult, Perbill, Permill,
 };
 use xcm::latest::prelude::*;
-use xcm_config::TrustBackedAssetsPalletLocation;
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -133,7 +132,7 @@ use xcm::{
 use xcm_config::{
 	DotLocation, FellowshipLocation, ForeignAssetsConvertedConcreteId,
 	ForeignCreatorsSovereignAccountOf, GovernanceLocation, PoolAssetsConvertedConcreteId,
-	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocationV4,
+	StakingPot, TrustBackedAssetsConvertedConcreteId, TrustBackedAssetsPalletLocation,
 	XcmOriginToTransactDispatchOrigin,
 };
 
