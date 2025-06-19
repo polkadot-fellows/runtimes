@@ -617,6 +617,9 @@ async fn some_account_migration_works() {
 		"5GTtcseuBoAVLbxQ32XRnqkBmxxDaHqdpPs8ktUnH1zE4Cg3".parse().unwrap(),
 		// 18.03.2025 - account with free balance below ED, and reserve above ED
 		"5HMehBKuxRq7AqdxwQcaM7ff5e8Snchse9cNNGT9wsr4CqBK".parse().unwrap(),
+		// 19.06.2025 - account with free balance below ED, some reserved balance to keep on the
+		// RC, and a staking hold to migrate to AH.
+		"5CfWkGnSnG89mGm3HjSUYHfJrNKmeyWgix5NKAMqePu4csgP".parse().unwrap(),
 	];
 
 	for account_id in accounts {
