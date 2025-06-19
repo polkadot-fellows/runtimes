@@ -46,4 +46,15 @@ impl<T: frame_system::Config> pallet_encointer_treasuries::WeightInfo for Weight
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
+
+	fn swap_asset() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `733`
+		//  Estimated: `6196`
+		// Minimum execution time: 70_344_000 picoseconds.
+		Weight::from_parts(72_445_000, 0)
+			.saturating_add(Weight::from_parts(0, 6196))
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(5))
+	}
 }
