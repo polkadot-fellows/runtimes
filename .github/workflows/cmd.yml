@@ -21,7 +21,8 @@ jobs:
 
       - name: Load fellows
         id: load-fellows
-        uses: paritytech/get-fellows-action@v1.2.0
+        uses: paritytech/get-fellows-action@v1.3.1
+        timeout-minutes: 5
 
   reject-non-fellows:
     needs: fellows
@@ -117,7 +118,7 @@ jobs:
         id: get-pr-comment
         with:
           text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )([\s\w-]+)$'
+          regex: '^(\/cmd )([\s\w-:]+)$'
 
       - name: Save output of help
         id: help
@@ -215,6 +216,7 @@ jobs:
 
   cmd:
     needs: [get-pr-branch, fellows]
+    timeout-minutes: 1440 # 24 hours per runtime
     env:
       JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') && contains(needs.fellows.outputs.github-handles, github.event.sender.login) }}
@@ -225,7 +227,7 @@ jobs:
         id: get-pr-comment
         with:
           text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )([\s\w-]+)$'
+          regex: '^(\/cmd )([\s\w-:]+)$'
 
       - name: Build workflow link
         if:  ${{ !contains(github.event.comment.body, '--quiet') }}
@@ -270,7 +272,7 @@ jobs:
           ref: ${{ needs.get-pr-branch.outputs.pr-branch }}
 
       - name: Install updates and dependencies
-        if: startsWith(github.event.comment.body, '/cmd bench')
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: .github/install-deps.sh
 
       - name: Set rust version via common env file
@@ -278,11 +280,19 @@ jobs:
 
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@master
-        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt') || startsWith(steps.get-pr-comment.outputs.group2, 'bench')
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
         with:
           targets: "wasm32-unknown-unknown"
           components: "rust-src, rustfmt"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src, rustfmt"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
@@ -294,9 +304,10 @@ jobs:
 
       - name: Setup Cache
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          shared-key: "fellowship-cmd"
+          shared-key: "fellowship-cache-cmd"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run cmd
         id: cmd

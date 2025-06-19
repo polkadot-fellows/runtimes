@@ -24,10 +24,18 @@ use xcm::prelude::*;
 #[test]
 fn native_asset_rate_works() {
 	sp_io::TestExternalities::default().execute_with(|| {
-		// success: native asset on Asset Hub as xcm v4 location
-		let native = VersionedLocatableAsset::V4 {
+		// success: native asset on Asset Hub as xcm v5 location
+		let native = VersionedLocatableAsset::V5 {
 			location: Location::new(0, [Parachain(1000)]),
 			asset_id: Location::parent().into(),
+		};
+		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
+		assert_eq!(actual, 100);
+
+		// success: native asset on Asset Hub as xcm v4 location
+		let native = VersionedLocatableAsset::V4 {
+			location: xcm::v4::Location::new(0, [xcm::v4::Junction::Parachain(1000)]),
+			asset_id: xcm::v4::Location::parent().into(),
 		};
 		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
 		assert_eq!(actual, 100);
@@ -43,10 +51,18 @@ fn native_asset_rate_works() {
 		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
 		assert_eq!(actual, 100);
 
-		// success: native asset on People as xcm v4 location
-		let native = VersionedLocatableAsset::V4 {
+		// success: native asset on People as xcm v5 location
+		let native = VersionedLocatableAsset::V5 {
 			location: Location::new(0, [Parachain(1004)]),
 			asset_id: Location::parent().into(),
+		};
+		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
+		assert_eq!(actual, 100);
+
+		// success: native asset on People as xcm v4 location
+		let native = VersionedLocatableAsset::V4 {
+			location: xcm::v4::Location::new(0, [xcm::v4::Junction::Parachain(1004)]),
+			asset_id: xcm::v4::Location::parent().into(),
 		};
 		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
 		assert_eq!(actual, 100);
@@ -62,10 +78,17 @@ fn native_asset_rate_works() {
 		let actual = AssetRateWithNative::from_asset_balance(100, native).unwrap();
 		assert_eq!(actual, 100);
 
-		// failure: native asset on non system chain as xcm v4 location
-		let native_non_system = VersionedLocatableAsset::V4 {
+		// failure: native asset on non system chain as xcm v5 location
+		let native_non_system = VersionedLocatableAsset::V5 {
 			location: Location::new(0, [Parachain(2000)]),
 			asset_id: Location::parent().into(),
+		};
+		assert!(AssetRateWithNative::from_asset_balance(100, native_non_system).is_err());
+
+		// failure: native asset on non system chain as xcm v4 location
+		let native_non_system = VersionedLocatableAsset::V4 {
+			location: xcm::v4::Location::new(0, [xcm::v4::Junction::Parachain(2000)]),
+			asset_id: xcm::v4::Location::parent().into(),
 		};
 		assert!(AssetRateWithNative::from_asset_balance(100, native_non_system).is_err());
 
@@ -79,17 +102,35 @@ fn native_asset_rate_works() {
 		};
 		assert!(AssetRateWithNative::from_asset_balance(100, native_non_system).is_err());
 
-		// failure: some asset on Asset Hub as xcm v4 location
-		let non_native = VersionedLocatableAsset::V4 {
+		// failure: some asset on Asset Hub as xcm v5 location
+		let non_native = VersionedLocatableAsset::V5 {
 			location: Location::new(0, [Parachain(2000)]),
 			asset_id: Location::new(0, [PalletInstance(50), GeneralIndex(1984)]).into(),
 		};
 		assert!(AssetRateWithNative::from_asset_balance(100, non_native).is_err());
 
-		// failure: native asset with invalid system chain location as xcm v4 location
-		let native_non_system = VersionedLocatableAsset::V4 {
+		// failure: some asset on Asset Hub as xcm v4 location
+		let non_native = VersionedLocatableAsset::V4 {
+			location: xcm::v4::Location::new(0, [xcm::v4::Junction::Parachain(2000)]),
+			asset_id: xcm::v4::Location::new(
+				0,
+				[xcm::v4::Junction::PalletInstance(50), xcm::v4::Junction::GeneralIndex(1984)],
+			)
+			.into(),
+		};
+		assert!(AssetRateWithNative::from_asset_balance(100, non_native).is_err());
+
+		// failure: native asset with invalid system chain location as xcm v5 location
+		let native_non_system = VersionedLocatableAsset::V5 {
 			location: Location::new(1, [Parachain(1000)]),
 			asset_id: Location::parent().into(),
+		};
+		assert!(AssetRateWithNative::from_asset_balance(100, native_non_system).is_err());
+
+		// failure: native asset with invalid system chain location as xcm v4 location
+		let native_non_system = VersionedLocatableAsset::V4 {
+			location: xcm::v4::Location::new(1, [xcm::v4::Junction::Parachain(1000)]),
+			asset_id: xcm::v4::Location::parent().into(),
 		};
 		assert!(AssetRateWithNative::from_asset_balance(100, native_non_system).is_err());
 	});

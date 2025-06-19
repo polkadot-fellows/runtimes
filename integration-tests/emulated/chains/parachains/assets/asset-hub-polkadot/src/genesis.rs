@@ -14,17 +14,21 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::storage::Storage;
+use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 
 // Cumulus
+use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, get_account_id_from_seed, get_from_seed, RESERVABLE_ASSET_ID,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use parachains_common::{AccountId, AssetHubPolkadotAuraId, Balance};
+use integration_tests_helpers::common::snowbridge::{
+	EthLocationXcmV4, WethLocationXcmV4, MIN_ETHER_BALANCE,
+};
+use parachains_common::{AccountId, Balance};
 use polkadot_parachain_primitives::primitives::Sibling;
-use sp_core::sr25519;
+use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm::prelude::*;
 
 pub const PARA_ID: u32 = 1000;
@@ -32,39 +36,46 @@ pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
 
 frame_support::parameter_types! {
-	pub AssetHubPolkadotAssetOwner: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
-				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
+	pub PenpalATeleportableAssetLocation: xcm::v4::Location
+		= xcm::v4::Location::new(1, [
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_A),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
-	pub PenpalBTeleportableAssetLocation: Location
-		= Location::new(1, [
-				Junction::Parachain(penpal_emulated_chain::PARA_ID_B),
-				Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
+	pub PenpalBTeleportableAssetLocation: xcm::v4::Location
+		= xcm::v4::Location::new(1, [
+				xcm::v4::Junction::Parachain(penpal_emulated_chain::PARA_ID_B),
+				xcm::v4::Junction::PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
+				xcm::v4::Junction::GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
 			]
 		);
 	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
 	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
+	pub EthereumSovereignAccount: AccountId = EthereumLocationsConverterFor::<AccountId>::convert_location(
+		&Location::new(
+			2,
+			[GlobalConsensus(EthereumNetwork::get())],
+		),
+	).unwrap();
 }
 
-fn invulnerables_asset_hub_polkadot() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
-	vec![
-		(
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-			get_from_seed::<AssetHubPolkadotAuraId>("Alice"),
-		),
-		(
-			get_account_id_from_seed::<sr25519::Public>("Bob"),
-			get_from_seed::<AssetHubPolkadotAuraId>("Bob"),
-		),
-	]
+pub mod collators {
+	use super::*;
+
+	pub use emulated_integration_tests_common::collators::invulnerables;
+	use parachains_common::AssetHubPolkadotAuraId;
+
+	pub fn session_keys() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
+		vec![
+			(Sr25519Keyring::Alice.to_account_id(), Ed25519Keyring::Alice.public().into()),
+			(Sr25519Keyring::Bob.to_account_id(), Ed25519Keyring::Bob.public().into()),
+		]
+	}
 }
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = asset_hub_polkadot_runtime::RuntimeGenesisConfig {
 		system: asset_hub_polkadot_runtime::SystemConfig::default(),
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
@@ -73,22 +84,19 @@ pub fn genesis() -> Storage {
 				.cloned()
 				.map(|k| (k, ED * 4096 * 4096))
 				.collect(),
+			dev_accounts: None,
 		},
 		parachain_info: asset_hub_polkadot_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
 			..Default::default()
 		},
 		collator_selection: asset_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables_asset_hub_polkadot()
-				.iter()
-				.cloned()
-				.map(|(acc, _)| acc)
-				.collect(),
+			invulnerables: collators::invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: ED * 16,
 			..Default::default()
 		},
 		session: asset_hub_polkadot_runtime::SessionConfig {
-			keys: invulnerables_asset_hub_polkadot()
+			keys: collators::session_keys()
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
@@ -125,6 +133,15 @@ pub fn genesis() -> Storage {
 					PenpalBSiblingSovereignAccount::get(),
 					false,
 					ED,
+				),
+				// Ether
+				(EthLocationXcmV4::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
+				// Weth
+				(
+					WethLocationXcmV4::get(),
+					EthereumSovereignAccount::get(),
+					true,
+					MIN_ETHER_BALANCE,
 				),
 			],
 			..Default::default()

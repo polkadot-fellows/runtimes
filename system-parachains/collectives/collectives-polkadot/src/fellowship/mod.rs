@@ -109,6 +109,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	type AlarmInterval = ConstU32<1>;
 	type Tracks = tracks::TracksInfo;
 	type Preimages = Preimage;
+	type BlockNumberProvider = crate::System;
 }
 
 pub type FellowshipCollectiveInstance = pallet_ranked_collective::Instance1;
@@ -325,12 +326,13 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Paymaster = PayWithEnsure<FellowshipTreasuryPaymaster, OpenHrmpChannel<ConstU32<1000>>>;
 	type BalanceConverter = AssetRateWithNative;
-	type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+	type PayoutPeriod = ConstU32<{ 90 * DAYS }>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::TreasuryArguments<
 		sp_core::ConstU8<1>,
 		ConstU32<1000>,
 	>;
+	type BlockNumberProvider = crate::System;
 }
 
 #[cfg(test)]

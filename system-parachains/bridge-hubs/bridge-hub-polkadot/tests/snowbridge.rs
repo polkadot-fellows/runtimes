@@ -20,11 +20,12 @@ use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
 	bridge_to_ethereum_config::{EthereumGatewayAddress, EthereumNetwork},
 	bridge_to_kusama_config::OnBridgeHubPolkadotRefundBridgeHubKusamaMessages,
-	xcm_config::{XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
+	xcm_config::{GovernanceLocation, XcmConfig, XcmFeeManagerFromComponentsBridgeHub},
 	AllPalletsWithoutSystem, BridgeRejectObsoleteHeadersAndMessages, Executive,
-	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, SignedExtra,
+	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, SessionKeys, TxExtension,
 	UncheckedExtrinsic,
 };
+use bridge_hub_test_utils::GovernanceOrigin;
 use codec::{Decode, Encode};
 use cumulus_primitives_core::XcmError::{FailedToTransactAsset, TooExpensive};
 use frame_support::{
@@ -39,7 +40,7 @@ use parachains_runtimes_test_utils::{
 use snowbridge_pallet_ethereum_client::WeightInfo;
 use snowbridge_pallet_ethereum_client_fixtures::*;
 use sp_core::{Get, H160};
-use sp_keyring::AccountKeyring::Alice;
+use sp_keyring::Sr25519Keyring::Alice;
 use sp_runtime::{
 	generic::{Era, SignedPayload},
 	AccountId32, SaturatedConversion,
@@ -48,13 +49,13 @@ use xcm::latest::prelude::*;
 use xcm_builder::HandleFee;
 use xcm_executor::traits::{FeeManager, FeeReason};
 parameter_types! {
-		pub const DefaultBridgeHubEthereumBaseFee: Balance = 2_750_872_500_000;
+	pub const DefaultBridgeHubEthereumBaseFee: Balance = 3_833_568_200_000;
 }
 type RuntimeHelper<Runtime, AllPalletsWithoutSystem = ()> =
 	parachains_runtimes_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
 
-fn collator_session_keys() -> bridge_hub_test_utils::CollatorSessionKeys<Runtime> {
-	bridge_hub_test_utils::CollatorSessionKeys::new(
+fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
+	CollatorSessionKeys::new(
 		AccountId::from(Alice),
 		AccountId::from(Alice),
 		SessionKeys { aura: AuraId::from(Alice.public()) },
@@ -128,7 +129,7 @@ fn change_ethereum_gateway_by_governance_works() {
 	change_storage_constant_by_governance_works::<Runtime, EthereumGatewayAddress, H160>(
 		collator_session_keys(),
 		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_PARACHAIN_ID,
-		Box::new(|call| RuntimeCall::System(call).encode()),
+		GovernanceOrigin::Location(GovernanceLocation::get()),
 		|| (EthereumGatewayAddress::key().to_vec(), EthereumGatewayAddress::get()),
 		|_| [1; 20].into(),
 	)
@@ -247,7 +248,7 @@ pub fn ethereum_extrinsic<Runtime>(
 	collator_session_key: CollatorSessionKeys<Runtime>,
 	runtime_para_id: u32,
 	construct_and_apply_extrinsic: fn(
-		sp_keyring::AccountKeyring,
+		sp_keyring::Sr25519Keyring,
 		<Runtime as frame_system::Config>::RuntimeCall,
 	) -> sp_runtime::DispatchOutcome,
 ) where
@@ -383,11 +384,11 @@ pub fn ethereum_extrinsic<Runtime>(
 }
 
 fn construct_extrinsic(
-	sender: sp_keyring::AccountKeyring,
+	sender: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
-	let extra: SignedExtra = (
+	let extra: TxExtension = (
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),
@@ -408,7 +409,7 @@ fn construct_extrinsic(
 }
 
 fn construct_and_apply_extrinsic(
-	origin: sp_keyring::AccountKeyring,
+	origin: sp_keyring::Sr25519Keyring,
 	call: RuntimeCall,
 ) -> sp_runtime::DispatchOutcome {
 	let xt = construct_extrinsic(origin, call);

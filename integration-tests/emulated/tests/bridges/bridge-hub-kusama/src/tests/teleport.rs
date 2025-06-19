@@ -14,47 +14,106 @@
 // limitations under the License.
 
 use crate::*;
-use bridge_hub_kusama_runtime::xcm_config::XcmConfig;
 use frame_support::{
-	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
 #[test]
-fn teleport_to_other_system_parachains_works() {
-	let amount = BRIDGE_HUB_KUSAMA_ED * 100;
-	let native_asset: Assets = (Parent, amount).into();
-
-	test_parachain_is_trusted_teleporter!(
-		BridgeHubKusama,      // Origin
-		XcmConfig,            // XCM configuration
-		vec![AssetHubKusama], // Destinations
-		(native_asset, amount)
-	);
-}
-
-#[test]
-fn teleport_from_and_to_relay() {
-	let amount = KUSAMA_ED * 1000;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = BRIDGE_HUB_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Kusama,
-		KusamaXcmConfig,
 		vec![BridgeHubKusama],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = KUSAMA_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		BridgeHubKusama,
-		BridgeHubKusamaXcmConfig,
 		Kusama,
-		amount
+		amount,
+		transfer_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = BRIDGE_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Kusama,
+		vec![BridgeHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = KUSAMA_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(
+		BridgeHubKusama,
+		Kusama,
+		amount,
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		BridgeHubKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = BRIDGE_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![BridgeHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		BridgeHubKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = BRIDGE_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![BridgeHubKusama],
+		(native_asset, amount),
+		transfer_assets
 	);
 }

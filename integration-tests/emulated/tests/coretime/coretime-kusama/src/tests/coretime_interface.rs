@@ -15,6 +15,7 @@
 
 use crate::*;
 use frame_support::traits::OnInitialize;
+use kusama_runtime::Dmp;
 use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
 use pallet_broker::{ConfigRecord, Configuration, CoreAssignment, CoreMask, ScheduleItem};
 use sp_runtime::Perbill;
@@ -33,6 +34,10 @@ fn transact_hardcoded_weights_are_sane() {
 	// <https://github.com/rust-lang/rust/issues/86935>
 	type CoretimeEvent = <CoretimeKusama as Chain>::RuntimeEvent;
 	type RelayEvent = <Kusama as Chain>::RuntimeEvent;
+
+	Kusama::execute_with(|| {
+		Dmp::make_parachain_reachable(CoretimeKusama::para_id());
+	});
 
 	// Reserve a workload, configure broker and start sales.
 	CoretimeKusama::execute_with(|| {

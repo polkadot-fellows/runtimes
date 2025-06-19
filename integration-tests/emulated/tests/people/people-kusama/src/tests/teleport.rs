@@ -15,52 +15,113 @@
 
 use crate::*;
 use frame_support::{
-	dispatch::RawOrigin, sp_runtime::traits::Dispatchable, traits::fungible::Mutate,
+	dispatch::{GetDispatchInfo, RawOrigin},
+	sp_runtime::traits::Dispatchable,
+	traits::fungible::Mutate,
 };
 use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
+	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
+	test_relay_is_trusted_teleporter,
 };
 use people_kusama_runtime::xcm_config::XcmConfig as PeopleKusamaXcmConfig;
 use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV1,
+	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
 	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
 #[test]
-fn teleport_from_and_to_relay() {
-	let amount = KUSAMA_ED * 1000;
+fn teleport_via_transfer_assets_from_and_to_relay() {
+	let amount = PEOPLE_KUSAMA_ED * 1000;
 	let native_asset: Assets = (Here, amount).into();
 
 	test_relay_is_trusted_teleporter!(
 		Kusama,
-		KusamaXcmConfig,
 		vec![PeopleKusama],
-		(native_asset, amount)
+		(native_asset, amount),
+		transfer_assets
 	);
+
+	let amount = KUSAMA_ED * 1000;
+
+	test_parachain_is_trusted_teleporter_for_relay!(PeopleKusama, Kusama, amount, transfer_assets);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_relay() {
+	let amount = PEOPLE_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Here, amount).into();
+
+	test_relay_is_trusted_teleporter!(
+		Kusama,
+		vec![PeopleKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = KUSAMA_ED * 1000;
 
 	test_parachain_is_trusted_teleporter_for_relay!(
 		PeopleKusama,
-		PeopleKusamaXcmConfig,
 		Kusama,
-		amount
+		amount,
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeopleKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+
+	let amount = PEOPLE_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![PeopleKusama],
+		(native_asset, amount),
+		limited_teleport_assets
+	);
+}
+
+#[test]
+fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
+	let amount = ASSET_HUB_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		PeopleKusama,
+		vec![AssetHubKusama],
+		(native_asset, amount),
+		transfer_assets
+	);
+
+	let amount = PEOPLE_KUSAMA_ED * 1000;
+	let native_asset: Assets = (Parent, amount).into();
+
+	test_parachain_is_trusted_teleporter!(
+		AssetHubKusama,
+		vec![PeopleKusama],
+		(native_asset, amount),
+		transfer_assets
 	);
 }
 
 fn relay_dest_assertions_fail(_t: SystemParaToRelayTest) {
-	Kusama::assert_ump_queue_processed(
-		false,
-		Some(PeopleKusama::para_id()),
-		Some(Weight::from_parts(157_718_000, 3_593)),
-	);
+	Kusama::assert_ump_queue_processed(false, Some(PeopleKusama::para_id()), None);
 }
 
 fn para_origin_assertions(t: SystemParaToRelayTest) {
 	type RuntimeEvent = <PeopleKusama as Chain>::RuntimeEvent;
 
-	PeopleKusama::assert_xcm_pallet_attempted_complete(Some(Weight::from_parts(
-		600_000_000,
-		7_000,
-	)));
+	PeopleKusama::assert_xcm_pallet_attempted_complete(None);
 
 	PeopleKusama::assert_parachain_system_ump_sent();
 

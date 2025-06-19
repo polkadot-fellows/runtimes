@@ -14,11 +14,11 @@
 // limitations under the License.
 
 // Substrate
-use sp_core::{sr25519, storage::Storage};
+use sp_keyring::Sr25519Keyring as Keyring;
 
 // Cumulus
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, collators, get_account_id_from_seed, SAFE_XCM_VERSION,
+	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
 use xcm::latest::prelude::*;
@@ -27,11 +27,12 @@ pub const ASSET_HUB_PARA_ID: u32 = 1000;
 pub const PARA_ID: u32 = 1002;
 pub const ED: Balance = bridge_hub_kusama_runtime::ExistentialDeposit::get();
 
-pub fn genesis() -> Storage {
+pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = bridge_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: bridge_hub_kusama_runtime::SystemConfig::default(),
 		balances: bridge_hub_kusama_runtime::BalancesConfig {
 			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
+			dev_accounts: None,
 		},
 		parachain_info: bridge_hub_kusama_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
@@ -60,11 +61,11 @@ pub fn genesis() -> Storage {
 			..Default::default()
 		},
 		bridge_polkadot_grandpa: bridge_hub_kusama_runtime::BridgePolkadotGrandpaConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>(accounts::BOB)),
+			owner: Some(Keyring::Bob.to_account_id()),
 			..Default::default()
 		},
 		bridge_polkadot_messages: bridge_hub_kusama_runtime::BridgePolkadotMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>(accounts::BOB)),
+			owner: Some(Keyring::Bob.to_account_id()),
 			..Default::default()
 		},
 		xcm_over_bridge_hub_polkadot: bridge_hub_kusama_runtime::XcmOverBridgeHubPolkadotConfig {
