@@ -53,6 +53,51 @@ fn treasury_account_on_ah() -> AccountId {
 }
 
 #[test]
+fn treasury_account_on_ah_works() {
+	// Transact the parents native asset on parachain 1000.
+	let asset_kind = VersionedLocatableAsset::V5 {
+		location: (Parent, Parachain(1000)).into(),
+		asset_id: v5::AssetId(Location::parent()),
+	};
+
+	<EncointerKusama as TestExt>::execute_with(|| {
+		let treasury_account =
+			encointer_kusama_runtime::EncointerTreasuries::get_community_treasury_account_unchecked(
+				None,
+			);
+		let treasury_location = encointer_kusama_runtime::TransferOverXcm::sender_on_remote(
+			&treasury_account,
+			asset_kind.clone(),
+		)
+		.unwrap();
+
+		let treasury_location_on_ah = Location::new(
+			1,
+			Junctions::X2(
+				[Parachain(1001), AccountId32 { network: None, id: treasury_account.into() }]
+					.into(),
+			),
+		);
+
+		assert_eq!(treasury_location_on_ah, treasury_location);
+
+		let treasury_account_on_assethub_encointer =
+			encointer_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+				&treasury_location_on_ah,
+			)
+			.unwrap();
+
+		let treasury_account_on_assethub_ah =
+			asset_hub_kusama_runtime::xcm_config::LocationToAccountId::convert_location(
+				&treasury_location_on_ah,
+			)
+			.unwrap();
+
+		assert_eq!(treasury_account_on_assethub_ah, treasury_account_on_assethub_encointer,)
+	});
+}
+
+#[test]
 fn constant_remote_execution_fees_are_correct() {
 	let sender = AccountId::new([1u8; 32]);
 	let recipient = AccountId::new([5u8; 32]);
@@ -145,7 +190,10 @@ fn remote_treasury_payout_works() {
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
 		// Check ending balance
-		assert_eq!(Balances::free_balance(&treasury_account), TREASURY_INITIAL_BALANCE - remote_fee());
+		assert_eq!(
+			Balances::free_balance(&treasury_account),
+			TREASURY_INITIAL_BALANCE - remote_fee()
+		);
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
