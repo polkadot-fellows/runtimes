@@ -158,16 +158,36 @@ fn transfer_over_xcm_works() {
 		assert_eq!(mock::Assets::balance(1, &recipient), transfer_amount);
 
 		let expected_lower_bound = INITIAL_BALANCE - transfer_amount - fee_amount;
-
-		// Fixme: Why is the lower bound == actual, even when changing the fee amount
-		println!("Initial Balance: {:?}", INITIAL_BALANCE);
-		println!("TransferAmount: {:?}", transfer_amount);
-		println!("PayFeesAmount: {:?}", fee_amount);
-
-		println!("Balance After Transfer");
-		println!("Expected (Initial - TransferAmount - PayFeesAmount):{:?}", expected_lower_bound);
-		println!("Actual {:?}", mock::Assets::balance(1, &sender_account_on_target));
-
 		assert!(mock::Assets::balance(1, &sender_account_on_target) > expected_lower_bound);
 	});
+}
+
+#[test]
+fn sender_on_remote_works() {
+	sp_tracing::init_for_tests();
+
+	let sender = AccountId::new([1u8; 32]);
+	let sender_location_on_target =
+		Location::new(1, X2([Parachain(42), AccountId32 { network: None, id: [1; 32] }].into()));
+
+	let asset_kind = AssetKind {
+		destination: (Parent, Parachain(1000)).into(),
+		asset_id: KsmLocation::get().into(),
+	};
+
+	let sender_on_remote = TransferOverXcm::<
+		TestMessageSender,
+		TestQueryHandler<TestConfig, BlockNumber>,
+		Timeout,
+		AccountId,
+		AssetKind,
+		LocatableAssetKindConverter,
+		AliasesIntoAccountId32<AnyNetwork, AccountId>,
+		ConstantKsmFee,
+	>::sender_on_remote(&sender, asset_kind.clone()).unwrap();
+
+	assert_eq!(
+		sender_location_on_target,
+		sender_on_remote,
+	);
 }
