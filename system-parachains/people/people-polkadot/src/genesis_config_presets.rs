@@ -71,7 +71,14 @@ pub fn people_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::Val
 }
 
 fn people_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
-	people_polkadot_local_testnet_genesis(para_id)
+	people_polkadot_genesis(
+		invulnerables(),
+		testnet_accounts_with([
+			// Make sure `StakingPot` is funded for benchmarking purposes.
+			StakingPot::get(),
+		]),
+		para_id,
+	)
 }
 
 /// Provides the names of the predefined genesis configs for this runtime.
