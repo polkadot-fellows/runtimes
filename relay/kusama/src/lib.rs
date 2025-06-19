@@ -39,7 +39,10 @@ use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIM
 use pallet_nis::WithMaximumOf;
 use polkadot_primitives::{
 	slashing,
-	vstaging::{CandidateEvent, CommittedCandidateReceiptV2, CoreState, ScrapedOnChainVotes},
+	vstaging::{
+		async_backing::Constraints, CandidateEvent, CommittedCandidateReceiptV2, CoreState,
+		ScrapedOnChainVotes,
+	},
 	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
 	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
 	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
@@ -964,7 +967,7 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	pub const BountyDepositBase: Balance = 100 * CENTS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 0;
-	pub const BountyUpdatePeriod: BlockNumber = 90 * DAYS;
+	pub const BountyUpdatePeriod: BlockNumber = 10 * 12 * 30 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
 	pub const CuratorDepositMin: Balance = 10 * CENTS;
@@ -2353,7 +2356,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(12)]
+	#[api_version(13)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2522,6 +2525,14 @@ sp_api::impl_runtime_apis! {
 
 		fn validation_code_bomb_limit() -> u32 {
 			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+		}
+
+		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
+			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+		}
+
+		fn scheduling_lookahead() -> u32 {
+			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
 		}
 	}
 
