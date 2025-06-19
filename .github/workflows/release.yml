@@ -41,6 +41,9 @@ jobs:
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    env:
+      PROD_FEATURES: "--features on-chain-release-build"
+      DEBUG_FEATURES: "--features try-runtime"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -58,7 +61,7 @@ jobs:
         id: srtool_build
         uses: chevdor/srtool-actions@v0.8.0
         env:
-          BUILD_OPTS: "--features on-chain-release-build"
+          BUILD_OPTS: ${{ env.PROD_FEATURES }}
         with:
           chain: ${{ matrix.runtime.name }}
           package: ${{ matrix.runtime.package }}
@@ -81,6 +84,23 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: |
             ${{ steps.srtool_build.outputs.wasm_compressed }}
+            
+      - name: Build ${{ matrix.runtime.name }} (debug)
+        id: srtool_debug
+        uses: chevdor/srtool-actions@v0.8.0
+        env:
+          BUILD_OPTS: ${{ env.DEBUG_FEATURES }}
+        with:
+          chain:   ${{ matrix.runtime.name }}
+          package: ${{ matrix.runtime.package }}
+          runtime_dir: ${{ matrix.runtime.path }}
+          profile: "production"
+
+      - name: Upload ${{ matrix.runtime.name }} Wasm (debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}-debug
+          path: ${{ steps.srtool_debug.outputs.wasm }}
 
   publish-release:
     runs-on: ubuntu-latest
@@ -195,3 +215,26 @@ jobs:
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
           asset_content_type: application/wasm
+
+  package-debug-wasms:
+    needs: [ build-runtimes, publish-release ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download debug artfacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-debug'
+
+      - name: Create debug-wasms.zip
+        run: |
+          zip -j debug-wasms.zip */*.wasm
+
+      - name: Upload archive to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
+          asset_path: debug-wasms.zip
+          asset_name: debug-wasms.zip
+          asset_content_type: application/zip
