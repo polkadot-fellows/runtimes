@@ -866,8 +866,15 @@ mod benches {
 		[pallet_core_fellowship, AmbassadorCore]
 		[pallet_salary, AmbassadorSalary]
 		[pallet_treasury, AmbassadorTreasury]
+    // Secretary
 		[pallet_ranked_collective, SecretaryCollective]
 		[pallet_salary, SecretarySalary]
+    // Potoc
+    [pallet_referenda, PotocReferenda]
+		[pallet_ranked_collective, PotocCollective]
+		[pallet_core_fellowship, PotocCore]
+		[pallet_salary, PotocSalary]
+		[pallet_treasury, PotocTreasury]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
