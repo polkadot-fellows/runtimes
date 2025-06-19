@@ -15,6 +15,7 @@ use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::AssetHubKus
 use polkadot_runtime_common::impls::VersionedLocatableAsset;
 use xcm::latest::Junctions::X2;
 use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
+use encointer_kusama_runtime::treasuries_xcm_payout::Transfer;
 
 fn remote_fee() -> u128 {
 	let fee_asset = ConstantKsmFee::get_remote_fee(Xcm::new(), None);
@@ -158,29 +159,36 @@ fn remote_treasury_payout_works() {
 		asset_id: AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
 	};
 
-	let treasury_account = treasury_account_on_ah();
-	println!("treasury_account: {:?}", treasury_account);
+	let treasury_account_local = treasury_account();
+	let treasury_account_on_ah = treasury_account_on_ah();
+	println!("treasury_account: {:?}", treasury_account_on_ah);
 
 	<AssetHubKusama as TestExt>::execute_with(|| {
 		type Assets = <AssetHubKusama as AssetHubKusamaParaPallet>::Assets;
 		type Balances = <AssetHubKusama as AssetHubKusamaParaPallet>::Balances;
 
 		// USDT created at genesis, mint some assets to the treasury account.
-		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account, SPEND_AMOUNT * 4));
-		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account, TREASURY_INITIAL_BALANCE));
+		assert_ok!(<Assets as Mutate<_>>::mint_into(USDT_ID, &treasury_account_on_ah, SPEND_AMOUNT * 4));
+		assert_ok!(<Balances as M<_>>::mint_into(&treasury_account_on_ah, TREASURY_INITIAL_BALANCE));
 
 		// // Check starting balance
-		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 4);
-		assert_eq!(Balances::free_balance(&treasury_account), TREASURY_INITIAL_BALANCE);
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 4);
+		assert_eq!(Balances::free_balance(&treasury_account_on_ah), TREASURY_INITIAL_BALANCE);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), 0);
 	});
 
 	<EncointerKusama as TestExt>::execute_with(|| {
-		encointer_kusama_runtime::EncointerTreasuries::do_spend_asset(
-			None,
-			&recipient,
-			asset_kind.clone(),
-			SPEND_AMOUNT,
+		// Fixme: use the transfer call below directly for easier debugging
+		// encointer_kusama_runtime::EncointerTreasuries::do_spend_asset(
+		// 	None,
+		// 	&recipient,
+		// 	asset_kind.clone(),
+		// 	SPEND_AMOUNT,
+		// )
+		// 	.unwrap();
+		//
+		let _ = encointer_kusama_runtime::TransferOverXcm::transfer(
+			&treasury_account_local, &recipient, asset_kind, SPEND_AMOUNT
 		)
 		.unwrap();
 	});
@@ -191,10 +199,10 @@ fn remote_treasury_payout_works() {
 
 		// Check ending balance
 		assert_eq!(
-			Balances::free_balance(&treasury_account),
+			Balances::free_balance(&treasury_account_on_ah),
 			TREASURY_INITIAL_BALANCE - remote_fee()
 		);
-		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 3);
+		assert_eq!(Assets::balance(USDT_ID, &treasury_account_on_ah), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
 }
