@@ -69,7 +69,7 @@ fn treasury_account_on_ah() -> AccountId {
 }
 
 #[test]
-fn treasury_account_on_ah_works() {
+fn treasury_location_on_ah_works() {
 	let treasury = treasury_account();
 	assert_eq!(
 		treasury_location_on_ah(),
@@ -150,13 +150,11 @@ fn remote_treasury_payout_works() {
 
 	const SPEND_AMOUNT: u128 = 10_000_000;
 	const ONE_KSM: u128 = 1_000_000_000_000;
-	const TREASURY_INITIAL_BALANCE: u128 = ONE_KSM;
+	const TREASURY_INITIAL_BALANCE: u128 = 100 * ONE_KSM;
 	let recipient = AccountId::new([5u8; 32]);
 
-	let asset_hub_location = Location::new(1, Parachain(AssetHubKusama::para_id().into()));
-
 	let asset_kind = VersionedLocatableAsset::V5 {
-		location: asset_hub_location.clone(),
+		location: (Parent, Parachain(1000)).into(),
 		asset_id: AssetId((PalletInstance(50), GeneralIndex(USDT_ID.into())).into()),
 	};
 
@@ -199,4 +197,37 @@ fn remote_treasury_payout_works() {
 		assert_eq!(Assets::balance(USDT_ID, &treasury_account), SPEND_AMOUNT * 3);
 		assert_eq!(Assets::balance(USDT_ID, &recipient), SPEND_AMOUNT);
 	});
+}
+
+#[test]
+fn account_from_log_matches() {
+	// Fixme: Why do we get this in the above test. We fund the correct account:
+	// withdraw_asset what=Asset { id: AssetId(Location { parents: 1, interior: Here }), fun:
+	// Fungible(12749033321) } who=Location  { parents: 1, interior: X2([Parachain(1001),
+	// AccountId32 { network: None, id: [150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33,
+	// 252, 99, 215, 105, 11, 253, 230, 89, 13, 87, 138, 18, 41, 154, 220, 108, 179, 239, 229] }]) }
+	// 2025-06-19T07:45:58.473305Z TRACE get_version_1: state: method="Get" ext_id=7eba
+	// key=26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9759e3ef811e8e4c7e6df550a0dfaf910084bd52ce2fef65d1481558542743bf14359db2cffba3f1b98431daf7c55dc25
+	// result=None result_encoded=00 2025-06-19T07:45:58.473312Z TRACE get_version_1: state:
+	// method="Get" ext_id=7eba key=3a7472616e73616374696f6e5f6c6576656c3a result=Some(02000000)
+	// result_encoded=0102000000 2025-06-19T07:45:58.473315Z TRACE set_version_1: state:
+	// method="Put" ext_id=7eba key=3a7472616e73616374696f6e5f6c6576656c3a value=Some(01000000)
+	// value_encoded=0101000000 2025-06-19T07:45:58.473321Z DEBUG xcm::process: XCM execution
+	// failed at instruction index=1 error=FailedToTransactAsset("Funds are unavailable")
+	let loc = Location {
+		parents: 1,
+		interior: X2([
+			Parachain(1001),
+			AccountId32 {
+				network: None,
+				id: [
+					150, 141, 187, 98, 102, 33, 87, 174, 108, 105, 38, 201, 33, 252, 99, 215, 105,
+					11, 253, 230, 89, 13, 87, 138, 18, 41, 154, 220, 108, 179, 239, 229,
+				],
+			},
+		]
+		.into()),
+	};
+
+	assert_eq!(treasury_location_on_ah(), loc)
 }
