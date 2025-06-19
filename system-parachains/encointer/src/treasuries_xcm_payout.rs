@@ -40,9 +40,6 @@ pub struct ConstantKsmFee;
 
 impl GetRemoteFee for ConstantKsmFee {
 	fn get_remote_fee(_xcm: Xcm<()>, _asset_id: Option<AssetId>) -> Asset {
-		// Todo:
-		// 1. Use dry-run api to get the exact fee
-		// 2. write integration tests to see that it works with the emulated asset hub
 		fee_asset(REMOTE_XCM_TRANSFER_REMOTE_EXECUTION_FEE)
 	}
 }
